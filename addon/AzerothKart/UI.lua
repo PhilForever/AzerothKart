@@ -36,6 +36,14 @@ local function text(parent, anchor, x, y, value)
     return label
 end
 
+local function refreshHud()
+    if not UI.hud or not UI.state then return end
+    local c = UI.clock
+    UI.hud:SetText(("Speed: %d | Ticks: %d | Dropped: %.3fs | Sample: %.1fs"):format(
+        math.floor(math.abs(UI.state.speed)+0.5),UI.state.tick,
+        c and c.droppedSeconds or 0,c and c.elapsedSeconds or 0))
+end
+
 function UI.ReleaseInput()
     Input.clear(UI.keys)
     Input.sample(UI.keys, UI.input)
@@ -56,7 +64,9 @@ function UI.Stop(reason)
     UI.active = false
     UI.stopReason = reason or "Test drive stopped"
     UI.ReleaseInput()
-    if UI.clock then UI.clock.accumulator = 0 end
+    -- Freeze the complete timing sample, including its fractional remainder.
+    -- Inactive OnUpdate does no work; a fresh Start creates a new clock.
+    refreshHud()
     if UI.status then UI.status:SetText(UI.stopReason .. " | Click Start to capture again") end
     if UI.startButton then UI.startButton:Enable() end
     if UI.stopButton then UI.stopButton:Disable() end
@@ -158,6 +168,7 @@ function UI.Create()
     UI.status:SetJustifyH("LEFT")
     UI.hud = text(window,"BOTTOMLEFT",28,44,"Speed: 0 | Ticks: 0")
     UI.hud:SetJustifyH("LEFT")
+    refreshHud()
     UI.startButton = frame("Button",nil,window,"UIPanelButtonTemplate")
     UI.startButton:SetSize(130,24)
     UI.startButton:SetPoint("BOTTOMLEFT",28,12)
@@ -197,6 +208,7 @@ function UI.Start()
     UI.window:EnableKeyboard(true)
     UI.active = true
     render()
+    refreshHud()
     UI.status:SetText("Controls active: W/A/S/D or arrows | Esc / other key to release")
     UI.startButton:Disable()
     UI.stopButton:Enable()
@@ -219,8 +231,7 @@ function UI.OnUpdate(elapsed)
     UI.hudElapsed = UI.hudElapsed + steps * Physics.FIXED_DT
     if UI.hudElapsed >= 0.25 then
         UI.hudElapsed = 0
-        UI.hud:SetText(("Speed: %d | Ticks: %d | Dropped: %.3fs"):format(
-            math.floor(math.abs(UI.state.speed)+0.5),UI.state.tick,UI.clock.droppedSeconds))
+        refreshHud()
     end
 end
 
@@ -258,6 +269,9 @@ function UI.ReportProbe()
     report(("frames=%d ticks=%d maxElapsed=%.4f droppedSeconds=%.4f hitchFrames=%d accumulator=%.5f"):format(
         c and c.frames or 0,c and c.steps or 0,c and c.maxElapsed or 0,
         c and c.droppedSeconds or 0,c and c.hitchFrames or 0,c and c.accumulator or 0))
+    report(("activeFrameSeconds=%.4f simulatedSeconds=%.4f callbackHz=%.2f"):format(
+        c and c.elapsedSeconds or 0,c and c.steps*c.dt or 0,
+        c and c.elapsedSeconds>0 and c.frames/c.elapsedSeconds or 0))
     report(("UI frames=%d textures=%d fontStrings=%d active=%s stopReason=%s"):format(
         UI.objects.frames,UI.objects.textures,UI.objects.fontStrings,tostring(UI.active),UI.stopReason))
     report("eventRegistrationFailures=" .. (AK.eventFailures or "none"))

@@ -52,7 +52,11 @@ Do not use `/dump` to call `SetPropagateKeyboardInput` or other mutating input m
 /akart probe
 ```
 
-Record baseline and stopped-run output as described in [FEASIBILITY.md](FEASIBILITY.md). Starting chat while driving is a focus-loss test and stops capture, so collect metrics after Escape. `maxElapsed` is a frame interval, not addon CPU time. Object counts cover the UI module's explicit allocations, excluding the bootstrap event frame and template internals. Follow [the client checklist](../tests/MANUAL_CLIENT_CHECKLIST.md) for the temporary persistence sentinel; schema readback alone cannot prove a save occurred.
+Record baseline and stopped-run output as described in [FEASIBILITY.md](FEASIBILITY.md). Starting chat while driving is a focus-loss test and stops capture, so collect metrics after Escape. The probe adds `activeFrameSeconds` (sum of valid active `OnUpdate` elapsed), `simulatedSeconds` (`ticks * 1/60`) and `callbackHz` (`frames / activeFrameSeconds`, zero before elapsed time). These require no new client APIs; they are not an independent wall-clock duration, separately sampled whole-client FPS or addon CPU measurement. `maxElapsed` is a callback interval, not addon CPU time.
+
+After stopping, verify `activeFrameSeconds ≈ simulatedSeconds + droppedSeconds + accumulator` within 0.0002 seconds at the current printed precision. The stopped HUD must immediately show the same tick as the probe, with `Sample` showing active callback seconds. A second probe several seconds later and a close/reopen must preserve the timing values and tick; a deliberate Start resets the sample and HUD to zero. The 2026-10-19 timing/HUD changes and three 60-second client drives are **NOT RUN** in the actual client.
+
+Object counts cover the UI module's explicit allocations, excluding the bootstrap event frame and template internals. Follow [the client checklist](../tests/MANUAL_CLIENT_CHECKLIST.md) for the temporary persistence sentinel; schema readback alone cannot prove a save occurred.
 
 ## API confidence ledger
 

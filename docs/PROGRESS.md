@@ -1,7 +1,7 @@
 # PROGRESS — persistent project handoff
 
 **Current milestone:** M0 — repository and actual-client/API feasibility. **OPEN.**
-**Current state (2026-10-18, latest session ~17:33 CEST):** combat closes the racing window and records one retained interruption result/note. Seven offline tests pass in Lua 5.1/5.4. The installed probe's identity, rendering/Start, ordinary stop/window actions and clean inactive reload were observed. The owner confirmed actual combat closure, the interruption message and working WoW controls. The simultaneous W/Up case is SKIPPED at owner request, with offline alias coverage retained. M0 timed driving/performance, persistence and unrun edge cases remain open. See [sanitized live evidence](evidence/2026-10-18-m0-client.md).
+**Current state (2026-10-19, latest session ~01:28 CEST):** the source probe now reports active frame duration, executed simulation duration and callback cadence; stopped timing samples retain their fractional remainder, and Start/Stop refresh the HUD immediately. Seven offline tests pass in Lua 5.1/5.4, including synthetic 60-second schedules and stopped-sample checks. These changes are source-only, not installed or client-tested. The installed 2026-10-18 probe's identity, rendering/Start, ordinary stop/window actions and inactive reload were observed; the owner confirmed combat closure, the interruption message and working WoW controls. The simultaneous W/Up case remains SKIPPED at owner request. M0 timed driving/performance, persistence and unrun edge cases remain open. See [sanitized live evidence](evidence/2026-10-18-m0-client.md).
 
 ## Canonical checkout and commits
 
@@ -12,7 +12,7 @@ Remote: `https://github.com/PhilForever/AzerothKart.git`; branch `main`. The pac
 - `be33176` — `fix: harden M0 driving probe and feasibility checks`.
 - `c2ecadf` — `docs: record M0 validation evidence and client handoff` (initial offline session).
 - `6e20ec0` — `fix: close kart sessions when combat interrupts`.
-- The following documentation commit records the actual-client handoff; inspect `git log` for its hash.
+- `3b02641` — `docs: record live M0 checks and owner combat results`.
 
 Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.useConfigOnly=true`; verified in config and commit authors. Global identity was left unchanged. No push, tag, distribution or automation was performed. The later client-check session installed only AzerothKart in the local Forever AddOns folder and verified all nine files against source SHA-256. Ignored `local-artifacts/` contains test dependencies/logs only and is not staged.
 
@@ -28,6 +28,7 @@ Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.u
 - [x] Seed `1729` generates a repeatable 10,000-tick input tape. Every state field matches at every tick under 30/60/144 simulated FPS in each tested runtime. This is same-runtime determinism for the tested tape, not cross-client proof or a gameplay PRNG.
 - [x] Mocked UI/Core lifecycle coverage includes hidden/chat/combat/missing-capability Start refusal; key aliases; Escape/unknown/Enter; Stop/Close/Hide/toggle; all mouse clicks; text/application focus; leaving world/logout; combat event and OnUpdate fallback; deferred propagation; no automatic resume; minimal save-field preservation.
 - [x] Explicit `/akart probe` / Print Probe reports identity, input capabilities, event-registration failures, clock metrics, last stop reason and explicit UI object counts. No per-tick chat or UI object creation.
+- [x] Source timing aid: cumulative valid active frame seconds, executed simulation seconds and callback cadence; complete stopped elapsed/drop/remainder accounting and immediate Start/Stop HUD refresh. Offline tested; installation and actual-client timed samples pending.
 - [x] Exact installed-client manual probes and header-only F4 experiment ledger prepared; no network code/traffic or multiplayer claim.
 
 ## Pending acceptance / blockers
@@ -45,7 +46,9 @@ Initial file-only evidence: `_classic_beta_\WowB.exe` reports `1.60.1.70450`; `.
 
 ## Next exact task
 
-Run the **M0 timed driving/performance sample in section 3 of `tests/MANUAL_CLIENT_CHECKLIST.md`**: three 60-second out-of-combat drives with stopped probe output and stable explicit UI counts. Keep the unrun lifecycle/persistence cases documented without turning them into passes. The simultaneous W/Up case is skipped at the owner's request because the keyboard cannot hold that pair; it is not a live gate and must not be requested again. Do not automate WoW character movement/combat. Full M0 acceptance remains open.
+**Next unattended M0 task:** harden `scripts/install_local.ps1` for repeatable developer installs. Use temporary workspace AddOns fixtures to prevent nested addon copies on repeated installation, preserve prior addon files automatically, and verify copied SHA-256 values; test fresh/existing targets and cancellation/failure paths. Do not deploy as part of that tooling slice. The current helper was inspected but left unchanged in this run.
+
+**Pending client gate:** after an authorized install of the tested source, run the three human-controlled 60-second drives in section 3 of `tests/MANUAL_CLIENT_CHECKLIST.md`, collecting the new stopped timing output and stable explicit UI counts. No WoW process was available this run. Keep unrun lifecycle/persistence cases pending. Simultaneous W/Up remains SKIPPED and must not be requested again. Do not automate WoW character movement/combat. Full M0 acceptance remains open.
 
 ## Session handoff log
 
@@ -112,3 +115,31 @@ After the owner's test reply, the agent performed ordinary M/map-key release, ca
 Updated README, client checklist, API/feasibility ledgers, architecture and [actual-client evidence](evidence/2026-10-18-m0-client.md) distinguish observed core startup/control/combat/reload smoke from remaining unrun cases. Simultaneous aliases are skipped by owner instruction, not a blocker. Actual logout/login/world transition and persistence sentinel work were not performed; no claim of full M0 completion. The existing combat implementation remained unchanged during live checks and still matches all nine installed files by SHA-256.
 
 Final structural/doc-link/ledger and whitespace checks passed. Lua code has not changed since the complete Lua 5.1/5.4 suite passed and implementation commit `6e20ec0`. The session leaves the live kart window hidden and capture inactive. No push or release.
+
+### 2026-10-19 01:28 CEST (Europe/Oslo) — Codex / main
+
+**Milestone/objective:** M0, one timing-evidence slice while the actual-client driving gate is unavailable. Confirmed canonical remote `https://github.com/PhilForever/AzerothKart.git`, branch `main`, clean initial status and prior head `3b02641`. Read canonical docs/ADRs and existing source/tests/scripts. No `Wow*`/`Battle*` process was found; no client was launched or controlled.
+
+**Changes:** `Loop.lua` accumulates valid delivered elapsed in `elapsedSeconds`. The explicit six-line probe adds `activeFrameSeconds`, `simulatedSeconds=steps*dt` and `callbackHz=frames/elapsedSeconds` (zero before elapsed). `UI.Stop` freezes the clock including its fractional remainder; fresh Start creates a new clock. Thus stopped samples retain `elapsedSeconds ≈ steps*dt + droppedSeconds + accumulator`. Start/Stop immediately refresh the existing HUD, addressing the prior visible 528/probe 534 discrepancy. During driving the HUD remains bounded at quarter-second simulation intervals. No new frames/textures/font strings, automatic driving or periodic chat reports were added.
+
+**Documentation:** architecture/API/feasibility/testing docs and client-checklist section 3 now define exact duration/cadence semantics and three independent-timer samples, immediate stopped tick agreement, unchanged delayed/reopened probes and fresh Start reset. Corrected stale feasibility prose that still requested the owner's skipped simultaneous W/Up case. README/CHANGELOG distinguish the source update from the historical installed probe. Roadmap acceptance boxes remain unchanged.
+
+**Actually executed:**
+
+| Command/check | Result and scope |
+|---|---|
+| `python scripts/test_lua.py` | PASS — Lua 5.1 and 5.4 through pinned local Lupa; 14 files parsed and all seven tests executed in each runtime. Synthetic 60-second schedules at 30/60/144 Hz each execute exactly 3,600 ticks with complete elapsed/drop/residual accounting. |
+| New mocked timing/HUD assertions in `tests/test_ui.lua` | PASS within both complete suites — zero metrics before Start; immediate fresh/final HUD; frozen stopped/reopened clock and probe; retained fractional remainder; fresh clock replacement; five-step hitch bound; no periodic chat. Existing allocation regression remains 6 UI frames / 99 textures / 3 font strings across 1,001 updates and reopen cycles. |
+| `python scripts/validate_project.py` | PASS — 25 expected paths, synchronized TOCs, protocol docs, local links and header-only network ledger. |
+| `git diff --check` | PASS — whitespace check. |
+| Read-only delegated timing/code review | No blocking findings; preserved accumulator cannot advance while inactive and is replaced on Start. |
+| `Get-Command lua,luajit,luac -ErrorAction SilentlyContinue` | No native executable found; standalone `lua tests/run.lua` NOT RUN. Both actual embedded Lua runtimes above executed the same entry point. |
+| WoW F1/F2/F5 and network F4 | NOT RUN — no client process or peer experiment. New timing/HUD layout, three timed drives, scaling/stress, held-input/lifecycle edge cases and persistence remain pending. |
+
+The first integration run exposed a test-double instrumentation error: its fallback returns a function for unknown fields, so the new HUD-write counter needed `rawget`. Corrected that fixture counter; both full runtime suites then passed. No production change was required for that failure.
+
+**Risks/limits:** cumulative delivered callback time and callback cadence are not an independent wall clock, separately sampled whole-client FPS or addon CPU cost. Simulation time excludes dropped time. No handling/performance rating is inferred from synthetic schedules. The prior 2026-10-18 installation remains unchanged and does not contain these source changes. No migration, transport, race/standings, content or deployment work occurred. No API contradiction or new product decision arose.
+
+**Git:** focused commit intended as `fix: preserve complete M0 timing samples`; see `git log` for its hash. Repository-local PhilForever identity was reverified. No push, tag, release, deployment or automation was performed.
+
+**Next exact task:** harden the local install helper against nested repeat copies with backup/hash verification and workspace fixture tests; preserve the manual M0 gate above.

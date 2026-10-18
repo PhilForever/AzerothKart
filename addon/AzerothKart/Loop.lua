@@ -14,7 +14,7 @@ function Loop.new(dt, maxSteps)
            "positive integer step budget required")
     return {
         dt=dt, maxSteps=maxSteps, accumulator=0,
-        frames=0, steps=0, droppedSeconds=0, hitchFrames=0,
+        frames=0, steps=0, elapsedSeconds=0, droppedSeconds=0, hitchFrames=0,
         maxElapsed=0, lastSteps=0,
     }
 end
@@ -23,6 +23,8 @@ function Loop.advance(clock, elapsed, stepFn)
     if not finiteNumber(elapsed) or elapsed < 0 then return 0 end
     assert(type(stepFn) == "function", "step callback required")
     clock.frames = clock.frames + 1
+    -- Delivered active frame intervals, not wall-clock duration or addon CPU.
+    clock.elapsedSeconds = clock.elapsedSeconds + elapsed
     clock.maxElapsed = math.max(clock.maxElapsed, elapsed)
     clock.accumulator = clock.accumulator + elapsed
 

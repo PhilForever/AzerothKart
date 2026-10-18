@@ -1,6 +1,6 @@
 # Manual client acceptance — F0/F1/F2/F5
 
-**Live checks PARTIAL, 2026-10-18.** Identity, basic rendering/Start and several idle release paths were observed in the installed client; the owner also confirmed real combat closes the window, displays the interruption note and leaves WoW controls working. See [the actual-client evidence](../docs/evidence/2026-10-18-m0-client.md). Held-key driving/aliases and remaining rows are pending unless separately reported. Do not turn an idle UI smoke or test-double result into a full acceptance pass.
+**Live checks PARTIAL, 2026-10-18.** Identity, basic rendering/Start and several idle release paths were observed in the installed client; the owner also confirmed real combat closes the window, displays the interruption note and leaves WoW controls working. See [the actual-client evidence](../docs/evidence/2026-10-18-m0-client.md). Sustained driving, held-key release and remaining rows are pending unless separately reported; simultaneous W/Up is SKIPPED at the owner's request. Do not turn an idle UI smoke or test-double result into a full acceptance pass.
 
 Observed date/time: 2026-10-18 ~17:10–17:16 CEST (Europe/Oslo); tester: Codex computer-use, manual gameplay pending.
 Build/interface: 1.60.1 / 70450 / 16001; runtime project ID: 18; selected TOC: Camelot; addon version: 0.0.1.
@@ -49,13 +49,24 @@ The confirmed [combat rule](../docs/adr/0006-combat-interrupted-results.md) ends
 
 ## 3. F1 timing and allocation sample
 
-- [ ] Copy `/akart probe` and `/dump GetFramerate()` baseline output. Click Start, drive 60 seconds, press Escape and copy output again. Repeat three runs.
-- [ ] For each sample record duration, frames, ticks, maxElapsed, hitchFrames, droppedSeconds, accumulator, stop reason, explicit addon frame/texture/font-string counts and visible symptoms.
-- [ ] Confirm counts stay stable across repeated drives/open/close cycles and no chat output occurs each tick. These UI module counts exclude the bootstrap event frame and internal template allocations; do not claim whole-client allocation measurements.
+**NOT RUN:** three timed client drives and the 2026-10-19 timing/HUD changes. The 2026-10-18 short probe predates the cumulative elapsed/cadence fields and immediate stopped-HUD refresh; retain it as historical smoke evidence only.
+
+Perform each drive manually, outside combat, with an independent timer. Use the normal client FPS display if desired. Do not open chat or click the probe button during the active sample: both deliberately stop capture. This is a measurement aid, not an automatic driver or timed race mode.
+
+1. While stopped, copy `/akart probe`, `/dump GetFramerate()` and normal UI-scale readbacks. Record the client build, resolution, scale and other relevant conditions. Close chat before starting.
+2. Click **Start Test Drive** and start the independent timer. The HUD must reset from the previous sample to tick 0 / `Sample: 0.0s` immediately on Start, then advance normally. Drive and steer for approximately 60 seconds; sequential W then Up is sufficient for the throttle aliases. Do not attempt the owner's skipped simultaneous W/Up combination.
+3. Press Escape at the target duration and stop the independent timer. If Escape opens the normal game menu, dismiss it normally. The HUD must immediately reflect the final stopped tick, rather than retaining the last quarter-second update. Copy `/akart probe` while stopped and confirm its tick equals the HUD tick.
+4. Wait several seconds, run `/akart probe` again, then close/reopen `/akart` without Start and repeat the probe. Ticks, timing/cadence values and allocation counts must remain unchanged while inactive; the status/stop reason can reflect closing. Reopen must not resume driving. Confirm ordinary WoW controls work manually.
+5. Repeat steps 2–4 for three fresh drives. Only a deliberate Start resets the timing sample. Keep failed/interrupted or shorter runs as separate evidence rather than calling them 60-second passes.
+
+- [ ] Three samples recorded with independent timer duration, `activeFrameSeconds`, `simulatedSeconds`, `callbackHz`, frames, ticks, maxElapsed, hitchFrames, droppedSeconds, accumulator, stop reason, explicit addon frame/texture/font-string counts and visible symptoms.
+- [ ] For each sample, verify `activeFrameSeconds ≈ simulatedSeconds + droppedSeconds + accumulator` within 0.0002 seconds at the current printed precision; record actual values and investigate an unexplained discrepancy.
+- [ ] Immediate stopped HUD/probe tick agreement, frozen values across delayed probe/close/reopen, and fresh Start reset verified.
+- [ ] Counts stable across repeated drives/open/close cycles and no chat output each tick. These UI module counts exclude the bootstrap event frame and internal template allocations; do not claim whole-client allocation measurements.
 - [ ] Repeat readable/usable layout checks at available normal client scales near 0.75/1/1.25. Record actual values if the normal UI range differs.
 - [ ] After safety passes, leave open/idle for 15 minutes, then drive for 10 minutes. Record before/after FPS, metrics/errors and visible hitches. Return from a long Alt-Tab without catch-up burst or automatic resume.
 
-`maxElapsed` is whole-frame elapsed time, not measured addon CPU overhead. This one-kart experiment does not validate 32 sprites, multiplayer, production tracks or a lap engine.
+`activeFrameSeconds` sums valid elapsed values delivered to active `OnUpdate` callbacks; it is not an independent wall clock and need not equal the timer exactly. `simulatedSeconds` is `ticks × 1/60`, excluding dropped time. `callbackHz` is `frames / activeFrameSeconds` (zero before elapsed time), the cadence of accepted active callbacks; record separately sampled whole-client FPS independently. `maxElapsed` is whole-frame elapsed time, not measured addon CPU overhead. Stop preserves the residual accumulator for readback, and the inactive clock cannot advance. This one-kart experiment does not validate 32 sprites, multiplayer, production tracks or a lap engine.
 
 ## 4. F5 minimal SavedVariables persistence
 

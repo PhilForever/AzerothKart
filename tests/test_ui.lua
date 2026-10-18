@@ -62,7 +62,10 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent)
         end
         self.propagate=propagate
     end
-    function methods:SetText(text) self.text=text end
+    function methods:SetText(text)
+        self.text=text
+        self.textWrites=(rawget(self,"textWrites") or 0)+1
+    end
     function methods:GetText() return self.text end
     function methods:CreateTexture() return object("textures") end
     function methods:CreateFontString() return object("fontStrings") end
@@ -287,6 +290,65 @@ withMock({schemaVersion=1, custom={keep=true}}, false, function(env,UI)
     summary=("mock UI: frames=%d textures=%d fontStrings=%d; tickFrames=%d; combatPropagationCalls=%d")
         :format(UI.objects.frames,UI.objects.textures,UI.objects.fontStrings,
                 1001,env.combatPropagationCalls)
+end)
+
+withMock(nil, false, function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    local function probe()
+        local first=#env.output+1
+        SlashCmdList.AZEROTHKART("probe")
+        assert(#env.output==first+5,"explicit probe has six bounded report lines")
+        return env.output[first+1],env.output[first+2]
+    end
+    local _,duration=probe()
+    assert(duration:find("activeFrameSeconds=0.0000 simulatedSeconds=0.0000 callbackHz=0.00",1,true),
+        "probe before Start has finite zero timing metrics")
+    UI.Toggle(); UI.Start()
+    assert(UI.hud.text=="Speed: 0 | Ticks: 0 | Dropped: 0.000s | Sample: 0.0s",
+        "Start immediately displays a fresh sample")
+    env.key(UI,"OnKeyDown","W")
+    UI.OnUpdate(1/60+0.004)
+    assert(UI.state.tick==1 and UI.hud.text:find("Ticks: 0",1,true),
+        "active HUD updates stay throttled")
+    UI.Stop("timing sample")
+    assert(UI.hud.text:find("Ticks: 1",1,true) and UI.hud.text:find("Speed: 3",1,true),
+        "Stop flushes final tick/speed even before the next HUD interval")
+    local clock=UI.clock
+    assert(math.abs(clock.accumulator-0.004)<1e-10,"Stop retains final fractional remainder")
+    assert(math.abs(clock.elapsedSeconds-clock.steps*clock.dt-clock.droppedSeconds-clock.accumulator)<1e-10,
+        "stopped timing sample accounts for all delivered frame time")
+    local counters={}
+    for key,value in pairs(clock) do counters[key]=value end
+    local hud=UI.hud.text
+    local frameLine,timeLine=probe()
+    assert(timeLine:find("activeFrameSeconds=0.0207 simulatedSeconds=0.0167 callbackHz=48.39",1,true),
+        "probe reports measured frame duration, executed simulation time and callback cadence")
+    local output=#env.output
+    for _=1,10 do UI.OnUpdate(1) end
+    UI.Toggle(); UI.Toggle()
+    for key,value in pairs(counters) do
+        assert(clock[key]==value,"stopped/reopened sample changed "..key)
+    end
+    assert(UI.hud.text==hud and #env.output==output,"stopped samples retain their HUD text and do not print automatically")
+    local repeatedFrame,repeatedTime=probe()
+    assert(repeatedFrame==frameLine and repeatedTime==timeLine,"repeated stopped reports retain identical timing")
+    UI.Start()
+    assert(UI.clock~=clock and UI.clock.elapsedSeconds==0 and UI.clock.accumulator==0,
+        "fresh Start replaces the frozen clock and its remainder")
+    assert(UI.hud.text=="Speed: 0 | Ticks: 0 | Dropped: 0.000s | Sample: 0.0s",
+        "fresh Start clears the old stopped HUD immediately")
+    local writes=UI.hud.textWrites
+    output=#env.output
+    for _=1,144 do UI.OnUpdate(1/144) end
+    assert(UI.hud.textWrites>writes and UI.hud.textWrites-writes<=4,
+        "HUD writes stay bounded at four per simulated second during motion")
+    UI.OnUpdate(0.537)
+    UI.Stop("hitch timing sample")
+    assert(UI.clock.lastSteps==5 and UI.clock.droppedSeconds>0.4,"hitch keeps bounded catch-up")
+    assert(UI.hud.text:find("Ticks: "..UI.state.tick,1,true),"hitch Stop flushes final HUD")
+    assert(math.abs(UI.clock.elapsedSeconds-UI.clock.steps*UI.clock.dt-
+           UI.clock.droppedSeconds-UI.clock.accumulator)<1e-10,"hitch sample retains all elapsed time")
+    assert(#env.output==output,"active sampling and Stop do not print periodic chat")
 end)
 
 withMock(nil, false, function(env,UI)
