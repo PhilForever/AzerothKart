@@ -1,6 +1,5 @@
 -- Minimal analytical track geometry. Pure Lua, independent of WoW APIs.
-local AK = _G.AzerothKart or {}
-_G.AzerothKart = AK
+local _, namespace = ...
 
 local Track = {}
 Track.width, Track.height = 800, 480
@@ -23,5 +22,5 @@ function Track.spawn()
     return {x=Track.centerX + Track.lineX, y=Track.centerY, heading=math.pi/2}
 end
 
-AK.Track = Track
+if type(namespace) == "table" then namespace.Track = Track end
 return Track

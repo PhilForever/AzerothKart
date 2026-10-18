@@ -4,7 +4,10 @@
 ## Author: Azeroth Kart contributors
 ## Version: 0.0.1
 ## SavedVariables: AzerothKartDB
+## X-AzerothKart-TOC: Camelot
 Track.lua
 Physics.lua
+Input.lua
+Loop.lua
 UI.lua
 Core.lua

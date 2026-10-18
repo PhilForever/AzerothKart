@@ -1,10 +1,9 @@
 -- First game-feel/keyboard probe, not production race simulation.
 -- Pure Lua: takes explicit state, input, timestep, track.
-local AK = _G.AzerothKart or {}
-_G.AzerothKart = AK
+local _, namespace = ...
 
 local Physics = {}
-Physics.VERSION = 1
+Physics.VERSION = 2
 Physics.FIXED_DT = 1/60
 Physics.MAX_SPEED = 200
 Physics.REVERSE_MAX = 55
@@ -28,7 +27,7 @@ end
 local function normalizedControls(input)
     input = input or {}
     return not not input.accelerate, not not input.brake,
-           (input.left and -1 or 0) + (input.right and 1 or 0)
+           (input.left and 1 or 0) + (input.right and -1 or 0)
 end
 
 function Physics.step(state, input, dt, track)
@@ -62,5 +61,5 @@ function Physics.step(state, input, dt, track)
     }
 end
 
-AK.Physics = Physics
+if type(namespace) == "table" then namespace.Physics = Physics end
 return Physics

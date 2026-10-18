@@ -1,16 +1,16 @@
 # Azeroth Kart — top-down arcade racing inside WoW Forever
 
-**Status:** M0 starter scaffold / playable *local tech prototype*, not a released multiplayer game.
+**Status:** M0 local driving probe. Offline Lua 5.1/5.4 checks pass; actual-client acceptance is pending.
 **Vision:** A polished, responsive top-down 2D kart racer wholly inside a movable World of Warcraft addon window, inspired by approachable arcade racing, with original presentation and Warcraft-flavored humor.
 
 ## Start here (for a human)
 1. Read `docs/VISION.md`, `docs/FEASIBILITY.md` and `docs/ROADMAP.md`.
 2. Open this folder as the Codex workspace. Paste `PROMPT_01_MASTER.md` into Codex. Keep `AGENTS.md` in the repository root.
 3. `addon/AzerothKart/` is the addon folder to copy into the Forever `Interface/AddOns/` folder. Verify client flavor and TOC in `docs/CLIENT_API.md` first.
-4. Enable addon in the game; type `/akart` or `/azerothkart`. Start the local prototype with `Start Test Drive`. Press W/Up for throttle, S/Down for brake/reverse, A/D or Left/Right for steering; Escape or Close to stop input capture. **Do not race while in combat.**
+4. Enable addon in the game; type `/akart` or `/azerothkart`. Click `Start Test Drive` deliberately. W/Up throttle, S/Down brake/reverse, A/D or Left/Right steer. Escape, another key, any mouse click, Stop, Close or losing focus stops capture; click Start to restart. **Do not race while in combat.** Actual release behavior must pass the client checklist.
 5. Record *actual* results of keyboard focus, rendering, frametimes, and combat interrupts in `docs/PROGRESS.md`. An addon loaded successfully does not establish multiplayer feasibility.
-6. When Lua is available, run `lua tests/run.lua`. Python QA: `python scripts/validate_project.py` (does not execute Lua); on Linux with liblua5.4, `python scripts/test_with_lua54.py` (parses Lua and runs pure tests).
-7. Copy `PROMPT_02_SCHEDULED_CONTINUE.md` to Codex automation scheduled every 5 hours. See `docs/AUTOMATION.md` for preconditions.
+6. Run `python scripts/validate_project.py` for structure, then `python scripts/test_lua.py` for syntax and the complete suite in Lua 5.1 and 5.4. Install its pinned test dependency with `python -m pip install --target local-artifacts/python-deps -r requirements-dev.txt`. Native `lua tests/run.lua` is also supported; the Linux shared-library fallback is `python scripts/test_with_lua54.py`.
+7. After a stopped drive, run `/akart probe` or click **Print Probe** to report frame/tick/drop counts and explicit UI object counts. Follow [the client checklist](tests/MANUAL_CLIENT_CHECKLIST.md); live tests and network measurements remain pending.
 
 ## Core commitments
 - Multiplayer is part of the product vision but **must pass real-client network feasibility gates** before we claim a simultaneous eight-player racer is achievable.
@@ -34,7 +34,9 @@ AzerothKart/
 ```
 
 ## Important limitations of this starting package
-The included Lua is a **small local driving demonstration** intended to validate the client API and feel of keyboard control. It is not yet a complete racer: no finished lap system, weapons, assets, AI, or multiplayer. Pure Lua starter tests passed in the authoring environment using a Lua 5.4 shared-library harness, but the actual WoW Forever Lua runtime has not been tested. Client integration cannot be verified without the game.
+The included Lua is a **small local driving demonstration** intended to validate the client API and feel of keyboard control. It has no finished lap system, weapons, production assets, AI or multiplayer. Seven offline tests pass in Lua 5.1 and 5.4, including a 10,000-tick seeded input replay at 30/60/144 simulated FPS and mocked input/combat lifecycle checks. Mocks cannot establish actual rendering, keyboard release, taint or runtime compatibility. Local executable version `1.60.1.70450` was read from disk; interface `16001` and TOC selection still require in-game readback.
+
+This directory is the Git checkout linked to [PhilForever/AzerothKart](https://github.com/PhilForever/AzerothKart). Local commits preserve the original pack and focused M0 changes. No push, installation, release or scheduled automation was performed in this session. The continuation prompt remains an optional future workflow; see `docs/AUTOMATION.md`.
 
 ## References
 See `docs/CLIENT_API.md` for links and confidence levels. Updated documentation reflects Oct 2026-era WoW Forever but must be validated against the installed build.

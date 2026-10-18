@@ -1,13 +1,16 @@
 -- Usage: from repository root: lua tests/run.lua
--- Requires Lua runtime; intentionally does not stub in WoW globals.
-local tests = {"tests/test_track.lua", "tests/test_physics.lua", "tests/test_determinism.lua"}
+-- Pure tests plus explicitly mocked UI lifecycle checks, not a WoW client test.
+local tests = {
+    "tests/test_track.lua", "tests/test_physics.lua", "tests/test_handling.lua", "tests/test_input.lua",
+    "tests/test_loop.lua", "tests/test_determinism.lua", "tests/test_ui.lua",
+}
 for _,path in ipairs(tests) do
     io.write("RUN ",path," ... ")
     local ok,err=pcall(dofile,path)
     if not ok then
         io.write("FAIL\n",tostring(err),"\n")
-        os.exit(1)
+        error("Offline suite failed: "..path)
     end
     io.write("PASS\n")
 end
-print("All authored pure Lua starter tests passed.")
+print("All offline tests passed; live client behavior remains unverified.")

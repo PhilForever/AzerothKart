@@ -5,7 +5,7 @@
 ## Phase 0 — prove the client + game loop
 
 ### M0. Repository and API proof (CURRENT)
-- [ ] Run Python project validation + Lua syntax/runtime tests; address failures.
+- [x] Run Python project validation + Lua syntax/runtime tests; address failures. (2026-10-18: structural validator and complete offline suite in Lua 5.1/5.4; client checks remain open.)
 - [ ] Confirm actual TOC/interface/flavor and addon load; record build.
 - [ ] Render test window and drive prototype with keys in actual Forever.
 - [ ] Verify focus, escape, click-away, chat, combat start, /reload and normal WoW controls restored.

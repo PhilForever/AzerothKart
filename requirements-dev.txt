@@ -1,0 +1,2 @@
+# Offline tests only; no external runtime is used by the addon.
+lupa==2.8
