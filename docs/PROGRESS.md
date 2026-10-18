@@ -1,7 +1,7 @@
 # PROGRESS — persistent project handoff
 
 **Current milestone:** M0 — repository and actual-client/API feasibility. **OPEN.**
-**Current state (2026-10-18):** local driving probe hardened; structural checks and seven offline tests pass in Lua 5.1 and Lua 5.4. No actual WoW session was run. M0 rendering, focus, combat, reload and performance acceptance remain pending.
+**Current state (2026-10-18, latest session ~17:33 CEST):** combat closes the racing window and records one retained interruption result/note. Seven offline tests pass in Lua 5.1/5.4. The installed probe's identity, rendering/Start, ordinary stop/window actions and clean inactive reload were observed. The owner confirmed actual combat closure, the interruption message and working WoW controls. The simultaneous W/Up case is SKIPPED at owner request, with offline alias coverage retained. M0 timed driving/performance, persistence and unrun edge cases remain open. See [sanitized live evidence](evidence/2026-10-18-m0-client.md).
 
 ## Canonical checkout and commits
 
@@ -10,9 +10,11 @@ Remote: `https://github.com/PhilForever/AzerothKart.git`; branch `main`. The pac
 
 - `98bd16a` — `chore: preserve initial Azeroth Kart M0 project pack`.
 - `be33176` — `fix: harden M0 driving probe and feasibility checks`.
-- The following documentation handoff commit records this run; inspect `git log` for its hash.
+- `c2ecadf` — `docs: record M0 validation evidence and client handoff` (initial offline session).
+- `6e20ec0` — `fix: close kart sessions when combat interrupts`.
+- The following documentation commit records the actual-client handoff; inspect `git log` for its hash.
 
-Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.useConfigOnly=true`; verified in config and commit authors. Global identity was left unchanged. No push, tag, distribution, installation or automation was performed. Ignored `local-artifacts/` contains test dependencies/logs only and is not staged.
+Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.useConfigOnly=true`; verified in config and commit authors. Global identity was left unchanged. No push, tag, distribution or automation was performed. The later client-check session installed only AzerothKart in the local Forever AddOns folder and verified all nine files against source SHA-256. Ignored `local-artifacts/` contains test dependencies/logs only and is not staged.
 
 ## Completed and evidenced
 
@@ -30,20 +32,20 @@ Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.u
 
 ## Pending acceptance / blockers
 
-- [ ] Runtime `GetBuildInfo()`, interface `16001`, project ID, selected base/Camelot TOC and successful addon load. Unique `X-AzerothKart-TOC` metadata enables observation rather than inference.
-- [ ] Actual keyboard/focus and event ordering, including deliberate Start mouse-down/OnClick ordering, overlapping WoW UI, chat, Alt-Tab, hide/show and ordinary bindings after release.
-- [ ] Combat interruption: propagation setters are guarded in code/mocks, but actual legality/effectiveness of `EnableKeyboard(false)` during combat and absence of taint remain **MANUAL TEST REQUIRED**. No protected API bypass is acceptable.
-- [ ] `IsGameWindowFocused` availability/Alt-Tab semantics. Its absence does not crash the probe but leaves application focus safety unresolved and blocks accepting F2.
+- [x] Live `GetBuildInfo()` returned `1.60.1 70450 Oct 15 2026 16001`; runtime project ID is `18`; selected TOC metadata is `Camelot`; addon `0.0.1` loads and appears enabled without an out-of-date warning.
+- [x] Core client control smoke: Start mouse-down/OnClick ordering, Escape/menu, Close/reopen, Enter/chat, Stop, idle Alt-Tab, map binding, canvas click, UI hide/show and clean inactive reload observed. This does not mark every held-input/overlapping-panel/world-transition case passed; see the checklist's exact scope.
+- [x] Owner's real combat smoke: window closed, interruption message appeared, WoW controls worked. Once-only handling and retained results pass offline; exact repeated-notification count, reopen and full taint audit remain live follow-ups. Restricted propagation setters remain guarded; no bypass is used.
+- [ ] `IsGameWindowFocused` and `IsWindowFocused` are both absent on build 70450. An idle Alt-Tab trial stayed stopped after >=5 seconds away through the unknown-key path. Held-key release outside the application and other application-switch routes remain unverified; do not mark full F2 passed.
 - [ ] Actual rendering, rotation, UI scale, FPS/CPU cost, long-session behavior and memory. Mock counters measure explicit addon allocations only, not client/template internals or real performance.
-- [ ] Reload/logout/full restart and isolated sentinel persistence. Minimal schema initialization is not proof of a save, migration or settings/ghost support.
+- [ ] Logout/full restart and isolated sentinel persistence. Clean inactive `/reload` is observed; minimal schema initialization is not proof of a save, migration or settings/ghost support.
 - [ ] Direct handling/play evaluation. Analytical metrics are a baseline only; no M1 game-feel acceptance.
 - [ ] Two-client transport measurements, reconnect and architecture ADR. No runtime bandwidth, loss, throttle or latency results exist.
 
-Read-only local evidence: `_classic_beta_\WowB.exe` reports file/product version `1.60.1.70450`; `.flavor.info` contains `wow_classic_beta`. No running `Wow*` process was observed. These files establish neither interface number nor runtime TOC selection. Source was not installed during this run; IOU's direct-install authorization does not apply to this addon.
+Initial file-only evidence: `_classic_beta_\WowB.exe` reports `1.60.1.70450`; `.flavor.info` contains `wow_classic_beta`; the initial scan had no running `Wow*` process. A later actual client session confirmed runtime identity and Camelot selection as above. After the owner instructed proceeding with sections 1–2, this addon was installed for those checks. No prior AzerothKart installation existed; status and all nine hash matches are recorded in workspace `artifacts/AzerothKart/20261018-170909/`. No other addon or SavedVariables files were edited by deployment.
 
 ## Next exact task
 
-Execute the installed-client M0 identity and input/combat safety smoke in **sections 1–2 of `tests/MANUAL_CLIENT_CHECKLIST.md`**, recording real interface/TOC/API output and every control-release/taint outcome in `docs/FEASIBILITY.md` and this file. Arrange an explicit developer install of this source if needed; do not silently deploy. Keep M0 open and defer further features until these results exist.
+Run the **M0 timed driving/performance sample in section 3 of `tests/MANUAL_CLIENT_CHECKLIST.md`**: three 60-second out-of-combat drives with stopped probe output and stable explicit UI counts. Keep the unrun lifecycle/persistence cases documented without turning them into passes. The simultaneous W/Up case is skipped at the owner's request because the keyboard cannot hold that pair; it is not a live gate and must not be requested again. Do not automate WoW character movement/combat. Full M0 acceptance remains open.
 
 ## Session handoff log
 
@@ -75,3 +77,38 @@ Execute the installed-client M0 identity and input/combat safety smoke in **sect
 **Next exact task:** installed-client M0 identity and input/combat safety smoke (client checklist sections 1–2), then record observations before selecting another slice.
 
 **Git implementation:** `be33176`; original scaffold `98bd16a`; local only, no force push or release.
+
+### 2026-10-18 17:23 CEST (Europe/Oslo) — Codex / main
+
+**Milestone/objective:** proceed with M0 client-checklist sections 1–2 and apply the owner's clarified rule: combat ends the game, closes the window and labels current results interrupted. No broad race/multiplayer engine was added.
+
+**Implementation commit:** `6e20ec0` — `fix: close kart sessions when combat interrupts`.
+
+**Files/behavior:** UI.lua now records one terminal `UI.result` (interrupted status, reason, stopped tick), closes on combat from event/key/OnUpdate paths and emits `Game interrupted by combat` once. OnHide preserves a prior terminal reason; deliberate reopen retains the note, new Start clears it. Actual standings do not exist in M0, so placements are not fabricated; the future final-placement rule is recorded in ADR 0006, DECISIONS/GAME_DESIGN/AGENTS and related scoped docs. Added regression assertions for closure, frozen tick, duplicate notifications, retained reason/reopen, no auto-resume and zero mocked combat propagation calls.
+
+**Deployment:** owner instructed proceeding with live sections 1–2; the tested probe was installed directly into `_classic_beta_/Interface/AddOns/AzerothKart` using the normal filesystem approval mechanism. There was no prior AzerothKart install. All nine source/installed SHA-256 values matched both on install and the later read-only verification. Evidence is in workspace `artifacts/AzerothKart/20261018-170909/`; no other addon or SavedVariables file was edited by deployment. No push, tag, release or network traffic.
+
+**Actually executed:**
+
+- `python scripts/validate_project.py`: PASS, 25 expected paths plus TOC/docs links/ledger.
+- `python scripts/test_lua.py`: PASS, 14 parsed Lua files and seven executed tests in each of Lua 5.1/5.4 (Lupa 2.8), including the new terminal-combat regressions.
+- `git diff --check` and staged equivalent: PASS.
+- Read-only installed/source SHA-256 verification: PASS, nine files.
+- Actual Forever UI/commands through the [computer-use skill](C:/Users/bakke/.codex/plugins/cache/openai-bundled/computer-use/26.1013.40934/skills/computer-use/SKILL.md): successful addon startup/metadata, basic rendering/Start, idle Escape/Close/reopen/Enter-chat/Stop/Alt-Tab checks. Detailed sanitized output: [live evidence](evidence/2026-10-18-m0-client.md). Personal screenshots/chat were not committed or published.
+- Human actual-combat test: owner reported, "Window closed on combat and game interrupted by combat appears. wow controls work." Record as a user-observed combat smoke, not an independently instrumented taint or duplicate-message audit.
+
+**Client findings:** `GetBuildInfo()` = `1.60.1 70450 Oct 15 2026 16001`; project ID 18; Camelot TOC; addon version 0.0.1; enabled without an out-of-date notice. Required keyboard/text-focus/combat APIs and registered events available. IsGameWindowFocused and IsWindowFocused are nil. Existing unknown-key handling stopped an idle Alt-Tab trial after >=5 seconds away; no guessed focus getter was substituted. Local build-matching UI/API source was inspected read-only to confirm no known public application-focus getter/event; it was not copied into this repository or addon.
+
+**Metrics/scope:** short stopped-run live sample: frames=1871, ticks=534, maxElapsed=0.0310, droppedSeconds=0, hitchFrames=0, explicit UI counts 6/99/3. One closed-window whole-client FPS sample was 207.6124420166 at uiScale=1/useUiScale=0. These are not sustained driving, addon CPU, scaling or long-session performance passes. HUD throttling left 528 visible when stopped probe/state had 534; this small display lag is recorded as a known M0 observation. A single synthetic key tap gave no clearly measurable movement, so the agent did not mark held driving/handling passed.
+
+**Pending/coordination:** the agent stopped UI input for the owner's manual test. Real combat closure/message/working controls are confirmed by the owner's direct report. The owner then instructed skipping simultaneous W/Up because the keyboard cannot hold that pair; record SKIPPED, not pass/fail, with offline coverage retained. No further special combinations were requested. Repeat-notification count, combat reopen/retention, explicit in-combat Start refusal and full taint auditing are not inferred from the brief report. The subsequent ordinary checks below cover more UI/lifecycle behavior; unrun cases remain distinguished.
+
+**Next exact task:** the M0 timed driving/performance sample in client-checklist section 3, before selecting an M1 slice.
+
+### 2026-10-18 17:33 CEST — completion of this client-check run
+
+After the owner's test reply, the agent performed ordinary M/map-key release, canvas-click release, Alt-Z hide/show and `/reload`. The map opened on the first M while capture stopped; canvas click stopped; UI hide/show did not resume racing. Reload completed with the kart window hidden. A local `/akart probe` then reported frames=0/ticks=0, active=false, stopReason=Not started, UI counts 6/99/3, no event-registration failures and input APIs available. Chat accepted and executed the local probe after reload. No character movement/combat or third-party chat was automated.
+
+Updated README, client checklist, API/feasibility ledgers, architecture and [actual-client evidence](evidence/2026-10-18-m0-client.md) distinguish observed core startup/control/combat/reload smoke from remaining unrun cases. Simultaneous aliases are skipped by owner instruction, not a blocker. Actual logout/login/world transition and persistence sentinel work were not performed; no claim of full M0 completion. The existing combat implementation remained unchanged during live checks and still matches all nine installed files by SHA-256.
+
+Final structural/doc-link/ledger and whitespace checks passed. Lua code has not changed since the complete Lua 5.1/5.4 suite passed and implementation commit `6e20ec0`. The session leaves the live kart window hidden and capture inactive. No push or release.

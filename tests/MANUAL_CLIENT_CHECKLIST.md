@@ -1,46 +1,51 @@
 # Manual client acceptance — F0/F1/F2/F5
 
-**All client checks PENDING; no WoW session was available on 2026-10-18.** Do not tick from source inspection or UI test-double results. This is the single next M0 task. Run the short identity/safety smoke first; run the longer rendering/persistence work only after controls release correctly.
+**Live checks PARTIAL, 2026-10-18.** Identity, basic rendering/Start and several idle release paths were observed in the installed client; the owner also confirmed real combat closes the window, displays the interruption note and leaves WoW controls working. See [the actual-client evidence](../docs/evidence/2026-10-18-m0-client.md). Held-key driving/aliases and remaining rows are pending unless separately reported. Do not turn an idle UI smoke or test-double result into a full acceptance pass.
 
-Date/time/timezone: ______  Tester: ______  Build/interface: ______
-Runtime project ID: ______  Selected TOC metadata: ______  Addon version: ______
-Resolution/normal UI scale: ______  OS/hardware: ______  Location: ______
-Other addons/context: ______  Baseline FPS: ______  Evidence path: ______
+Observed date/time: 2026-10-18 ~17:10–17:16 CEST (Europe/Oslo); tester: Codex computer-use, manual gameplay pending.
+Build/interface: 1.60.1 / 70450 / 16001; runtime project ID: 18; selected TOC: Camelot; addon version: 0.0.1.
+Captured resolution: 1920×1080; uiScale: 1.000000 / useUiScale: 0; Windows; hardware not recorded.
+Other addons remained enabled/unchanged; baseline whole-client FPS sample: 207.6124420166. Evidence: linked above; no public screenshots.
 
 ## 1. Identity and startup
 
-- [ ] Observe the AddOns list: enabled state, displayed version and any incompatibility/load reason. Record a screenshot and errors verbatim.
-- [ ] Run all identity/capability `/dump` commands in [CLIENT_API.md](../docs/CLIENT_API.md); save the outputs. Record missing APIs/events and the optional focus API status. Candidate interface `16001` and Camelot selection require actual results.
-- [ ] Out of combat, `/akart` opens the primitive oval without starting movement/capture. `/akart probe` prints bounded output, including build/interface/TOC, frames/ticks/maxElapsed/droppedSeconds/hitchFrames, accumulator, object counts and stop reason.
-- [ ] A second `/akart` closes the window; ordinary movement/chat works. Reopening remains stopped until an explicit Start click.
+- [x] AddOns-list enabled state observed, addon version read from runtime metadata, no incompatible/out-of-date notice visible. Screenshot observed in this chat; personal capture not committed.
+- [x] Runtime identity and required capabilities read through `/akart probe`, `/dump` and equivalent grouped local readbacks; outputs transcribed in evidence. Interface `16001`, project ID `18`, Camelot selection confirmed; `IsGameWindowFocused`/`IsWindowFocused` absent. Extra standalone command forms remain available for reproduction in [CLIENT_API.md](../docs/CLIENT_API.md).
+- [x] Out of combat, `/akart` opened the primitive oval inactive; probe output observed. Start worked only after clicking its button.
+- [ ] Exact slash-toggle close plus manual ordinary movement check. Close-button hide and stopped reopen/chat were observed; ordinary character movement remains manual/pending.
 
 ## 2. Controls and stop matrix
 
 For **each row**, start a fresh drive with a deliberate **Start Test Drive** click outside combat. Hold W for movement, perform the action, then release all keys. Record the actual stop reason from `/akart probe`, confirm ticks remain unchanged across two probe calls several seconds apart, test ordinary WoW movement keys and type into chat, and confirm no automatic resume. Do not type the probe during the active timing sample: entering chat is itself a stop test.
 
+Perform character movement and combat setup manually through normal WoW controls; these steps do not authorize automation of the WoW character. Kart input controls only the addon's test drive.
+
 | Check | Reproducible action | Required observation | Result/evidence |
 |---|---|---|---|
 | Basic movement | W then Up; S then Down; A/D then Left/Right | Acceleration, braking/reverse and both steering aliases work; visible rotation matches motion | PENDING |
-| Overlapping aliases | Hold W and Up; release W while keeping Up held; then release Up. Repeat A/Left and D/Right | Remaining alias stays held; releasing both removes the control; no stuck key | PENDING |
-| Escape | Press Escape while moving | Capture stops; ordinary bindings/chat recover | PENDING |
-| Stop | Click Stop while holding throttle | Stops and clears held input; ordinary controls recover | PENDING |
-| Close/toggle | Click Close; separately use `/akart` to close | Hidden window cannot retain capture; reopening is stopped | PENDING |
-| Enter/chat | Press Enter during capture, then type a harmless chat draft and cancel it | Driving stops; chat receives text normally; record whether first Enter opens chat | PENDING |
-| Unrecognized key | Press the normal map key (or another non-driving binding), then close that UI normally | Driving stops; record whether the normal binding also works on that press | PENDING |
+| Overlapping aliases | Hardware-dependent simultaneous alias hold/release | Alias bookkeeping has offline regression coverage; this live combination is not an acceptance gate for this keyboard | SKIPPED at owner's request, 2026-10-18: keyboard cannot hold W+Up together. Not a pass/failure; do not request this combination again |
+| Escape | Press Escape while moving | Capture stops; ordinary bindings/chat recover | IDLE OBSERVED: stopped, normal Game Menu opened. Held movement still PENDING |
+| Stop | Click Stop while holding throttle | Stops and clears held input; ordinary controls recover | IDLE OBSERVED: global mouse-down stopped before button OnClick. Held throttle still PENDING |
+| Close/toggle | Click Close; separately use `/akart` to close | Hidden window cannot retain capture; reopening is stopped | Close/reopen observed inactive; exact slash-close/held-input still PENDING |
+| Enter/chat | Press Enter during capture, then type a harmless chat draft and cancel it | Driving stops; chat receives text normally; record whether first Enter opens chat | IDLE OBSERVED: first Enter stopped/opened chat; local command typed/executed; no peer message. Held throttle PENDING |
+| Unrecognized key | Press the normal map key (or another non-driving binding), then close that UI normally | Driving stops; record whether the normal binding also works on that press | OBSERVED: first M stopped capture and opened map; second M closed it normally |
 | Click outside | Click world outside the race window while throttle is held | Stops and releases controls without relying on key-up reaching the race frame | PENDING |
-| Any mouse click | Click the race canvas; separately click a non-text UI panel overlapping the race window | Every mouse-down releases capture; overlapping UI/clicks work normally | PENDING |
+| Any mouse click | Click the race canvas; separately click a non-text UI panel overlapping the race window | Every mouse-down releases capture; overlapping UI/clicks work normally | Canvas click OBSERVED: stopped with mouse-click reason. Overlapping panel/held-throttle variant PENDING |
 | Other UI focus | Click chat edit area, bag/UI panel or another normal edit box | Stops; typing/clicked UI work normally | PENDING |
-| Application focus | Alt-Tab away for 5 seconds, release W outside the game, return | Stopped on return, no stale throttle or auto-resume; record optional focus API status | PENDING |
-| Hide/show UI | Use the ordinary client UI-hide binding, then show UI again | No capture through a hidden window; stopped after show | PENDING |
+| Application focus | Alt-Tab away for 5 seconds, release W outside the game, return | Stopped on return, no stale throttle or auto-resume; record optional focus API status | IDLE OBSERVED: remained stopped after >=5s away; optional focus API absent. Held W/release-outside still PENDING |
+| Hide/show UI | Use the ordinary client UI-hide binding, then show UI again | No capture through a hidden window; stopped after show | OBSERVED: Alt-Z hid all UI; second Alt-Z restored it with racing stopped, no auto-resume |
 | World transition | Have a normal manually initiated loading transition occur during capture when practical (for example a consented portal/instance entry) | Stops on leaving world; no auto-resume after arrival | PENDING / unavailable |
-| Reload | While driving, enter `/reload` normally, then log result after load | Clean reload, inactive controls and ordinary movement/chat | PENDING |
+| Reload | While driving, enter `/reload` normally, then log result after load | Clean reload, inactive controls and ordinary movement/chat | OBSERVED: normal Enter released capture; reload completed with window hidden; post-reload probe active=false/Not started, ticks=0, counts=6/99/3. Local chat command worked; no movement automation used |
 | Logout/login | Log out normally after a drive, then log in | Clean load; inactive controls, ordinary movement/chat | PENDING |
 | Combat before Start | Enter combat through ordinary manual game play, open `/akart`, attempt Start | Start rejected; no capture, restricted-action error or taint | PENDING |
-| Combat during capture | Outside combat Start, then have combat begin through ordinary manual game play or a consenting duel partner | Simulation/input stop safely; movement works during and after combat; no taint or auto-resume | PENDING |
+| Combat during capture | Outside combat Start, then have combat begin through ordinary manual game play or a consenting duel partner; after combat deliberately reopen `/akart` without Start | Window closes; ticks stop; held input clears; `Game interrupted by combat` is retained on reopen; ordinary movement/chat work during and after combat; no taint or auto-resume | OWNER CONFIRMED: window closed, message appeared, WoW controls work. Exact stopped tick, reopen/retention, repeat/no-auto-resume and full taint audit still PENDING live |
+| Repeated combat notification | During the same interruption, observe subsequent combat notifications if they occur; otherwise leave the live duplicate case pending and use the offline lifecycle check as separate evidence | One interruption note/result for that drive, no change to its stopped tick; no repeated close/reopen loop | PENDING / unavailable |
 
 Capture stop reasons may differ with event order (for example global mouse-down can precede a button click). The deliberate Start click must activate capture successfully despite the mouse-down stop rule; verify actual ordering rather than assuming it. All later mouse-down events stop driving. Record actual output and behavior. Chat commands can stop capture before reload/logout events; the loading-transition row tests a separate non-chat route. If a scenario cannot be arranged, leave it pending and explain why.
 
 Any stuck input or combat taint is an M0 blocker. Record the exact failing action, event/status output and client error. End that driving test; do not bypass protected restrictions to produce a pass. Confirm that after combat the input propagation restoration does not restart the drive.
+
+The confirmed [combat rule](../docs/adr/0006-combat-interrupted-results.md) ends a race with its actual current placements, finalized once and labeled interrupted. This M0 probe has no standings: accept closure and the retained interruption note only, and do not record a fabricated placement. Network propagation of another player's combat is outside this local test. Do not generate fake combat events or deliberately enter a duplicate result merely to fill a checklist row.
 
 ## 3. F1 timing and allocation sample
 

@@ -17,7 +17,7 @@ Map is viewport-clipped; car drawn on separate rotating texture; track visuals l
 
 ## Focus and safe exit
 - Display **"Controls active — Esc to release"** while key capture is enabled.
-- Prevent racing during combat. When combat begins, stop on safe transition; do not use `SetPropagateKeyboardInput` inside combat. Determine actual safe behavior in F2 tests.
+- Prevent racing during combat. Combat during a game closes the racing window and records "Game interrupted by combat" once. Future races finalize their actual current placements; M0 has no standings to fabricate. Do not use `SetPropagateKeyboardInput` inside combat or automatically resume. Determine actual release behavior in F2 tests (ADR 0006).
 - Do not capture input during chat edit boxes. Show a visible pause/focus-lost overlay on losing focus.
 - Add always-clickable close/pause control; ESC cannot be sole release route.
 - Player should never have to `/reload` to recover movement.

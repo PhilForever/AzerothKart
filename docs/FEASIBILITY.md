@@ -1,24 +1,28 @@
 # M0–M2 feasibility — evidence gates
 
-**M0 is open. WoW client tests are PENDING.** Offline tests and a UI test double cannot establish actual keyboard release, combat safety, frame performance or transport capacity. Execute [the client checklist](../tests/MANUAL_CLIENT_CHECKLIST.md) before accepting F1/F2/F5. The single next task is the installed-client M0 safety smoke in that checklist.
+**M0 is open. Actual-client acceptance is PARTIAL.** On 2026-10-18, runtime identity, basic rendering, Start and several idle release routes were observed; the owner then confirmed real combat closure, the interruption note and working WoW controls. See [the actual-client evidence](evidence/2026-10-18-m0-client.md). Sustained driving, held-input release, repeated-event/lifecycle and full F1/F2/F5 acceptance remain pending. The next task is the remaining human-controlled input rows in [client-checklist section 2](../tests/MANUAL_CLIENT_CHECKLIST.md). Offline tests cannot supply those observations.
 
 ## Observed local installation, 2026-10-18
 
 - Read-only file inspection found `C:\Program Files (x86)\World of Warcraft\_classic_beta_\WowB.exe` with file/product version `1.60.1.70450`.
 - `_classic_beta_\.flavor.info` contains `Product Flavor!STRING:0` and `wow_classic_beta`.
-- A process-name inspection found no running `Wow*` process during this session. No live client commands or rendering tests were executed.
-- Both repository TOCs declare interface `16001`. This is an unverified candidate until `GetBuildInfo()` and successful addon loading are observed in game. The installation directory/flavor file does not establish runtime `WOW_PROJECT_ID` or prove that the `Camelot` TOC is selected.
-- TOC custom metadata `X-AzerothKart-TOC` distinguishes `base` from `Camelot` for the runtime metadata probe. Record the returned value; do not infer selection from filenames.
+- The initial process-name scan found no running `Wow*` process at that time. A live client was available later for the checks below; the initial scan is historical context.
+- Later live `GetBuildInfo()` returned `1.60.1 70450 Oct 15 2026 16001`, with `WOW_PROJECT_ID=18`. The addon probe reported selected TOC `Camelot` and version `0.0.1`; the AddOns list showed it enabled with no incompatibility notice. This confirms the tested install's interface and TOC selection.
+- TOC custom metadata `X-AzerothKart-TOC` distinguishes `base` from `Camelot` for runtime discovery. Recheck actual output after client/install changes; do not infer selection from filenames.
 
-These observations identify an installed executable, not a passing addon build. Do not change another addon's files or SavedVariables while running these experiments.
+Only `addon/AzerothKart/` was installed for this developer smoke; all nine installed files matched tested-source SHA-256 values. No other addon or SavedVariables files were edited for installation. The [sanitized live evidence](evidence/2026-10-18-m0-client.md) records observations and local artifact paths. Successful loading and this short smoke do not establish complete M0 acceptance.
 
 ## F0: runtime identity and available APIs
 
 Run the exact read-only `/dump` commands in [CLIENT_API.md](CLIENT_API.md), capture output and record date, build, interface, project ID, selected TOC and missing APIs. A missing API is a result, not permission to substitute a guessed protected call. If the addon does not load, first capture the AddOns-list reason and Lua error; do not mark F1/F2 passed.
 
+**Observed:** runtime identity/load above; core creation, combat, clock, frame-rate and text-focus APIs were functions. The probe reported keyboard/propagation support and `eventRegistrationFailures=none`. Both `IsGameWindowFocused` and `IsWindowFocused` were absent. `C_ChatInfo.RegisterAddonMessagePrefix`, `.SendAddonMessage` and `.SendAddonMessageLogged` were functions, with `Enum.SendAddonMessageResult` a table; no prefix registration or packet send was performed. Function presence is availability evidence, not a transport or combat behavior result.
+
 ## F1: rendering and bounded timing
 
 **M0 claim:** the pooled primitive oval and one kart render correctly without growing the addon's explicitly allocated UI object counts during repeated drives. This is a small workload, not the future 32-sprite benchmark.
+
+**Partial live observation:** the oval and orange kart rendered at 1920×1080, normal `uiScale=1`, `useUiScale=0`; Start advanced ticks. One stopped probe reported `frames=1871`, `ticks=534`, `maxElapsed=0.0310`, zero dropped time/hitch frames and UI counts of 6 frames/99 textures/3 font strings. A closed-window whole-client FPS sample was `207.6124420166`. These are short observations, not the three timed drives, rotation/handling proof, addon CPU cost or scaling/stress acceptance. A single W tap did not give clearly measurable displacement; sustained driving remains pending. No AzerothKart error dialog was visible, but error/taint logging was not enabled.
 
 1. Out of combat, open `/akart`, run `/akart probe`, and record FPS using `/dump GetFramerate()` before starting. Capture resolution, UI scale and a screenshot of the window.
 2. Click **Start Test Drive**, steer continuously for 60 seconds, press Escape, then run `/akart probe`. Do not type the command during an active timing sample: opening chat deliberately ends capture.
@@ -32,13 +36,17 @@ Run the exact read-only `/dump` commands in [CLIENT_API.md](CLIENT_API.md), capt
 
 ## F2: deliberate input capture and combat safety
 
-The prototype starts only after **Start Test Drive** outside combat. Every subsequent mouse click releases capture, including clicks inside the canvas or an overlapping UI; this avoids guessing which non-text frame owns focus. The Start click's mouse-down/OnClick order still requires live verification. A stop clears held key aliases and the fixed-step accumulator. Returning focus, ending combat, showing the window or logging in must never restart driving automatically.
+The prototype starts only after **Start Test Drive** outside combat. Every subsequent mouse click releases capture, including clicks inside the canvas or an overlapping UI; this avoids guessing which non-text frame owns focus. Live Start/global-mouse ordering allowed capture; clicking Stop released through global mouse-down on this build. A stop clears held key aliases and the fixed-step accumulator in the tested offline lifecycle. Returning focus, ending combat, showing the window or logging in must never restart driving automatically.
+
+**Partial live observation:** idle Escape released capture and opened the normal game menu; Close/reopen stayed stopped with ticks unchanged across the closed interval; first Enter released capture and opened chat; Stop released; idle Alt-Tab returned stopped through the unknown/Alt-key route. The owner subsequently reported actual combat closed the window, displayed the interruption note and left WoW controls working. Held throttle/alias outcomes are requested separately. [The evidence](evidence/2026-10-18-m0-client.md) separates observations, human reports and pending cases.
+
+**Confirmed combat rule:** [ADR 0006](adr/0006-combat-interrupted-results.md) requires closing the racing window, stopping input/simulation and retaining **"Game interrupted by combat"**, with no automatic resume. Future race standings are finalized once from actual current placements. M0 has no standings and must not invent them. Close/note/terminal-once behavior is covered offline; the owner confirmed actual combat closure/message/working controls. Repeated events, retained note after deliberate reopen, no auto-resume and full taint auditing remain separate live checks.
 
 Run every row of [the client checklist](../tests/MANUAL_CLIENT_CHECKLIST.md): W/Up overlap, left/right aliases, Escape, Stop, Close, chat/Enter and an unrecognized key, click outside, click chat or another UI, Alt-Tab, window hide/show, world transition, `/reload`, logout/login, opening/starting while in combat, and combat beginning during capture. After every stop, verify ordinary WoW movement and chat manually. A status message alone does not prove keyboard consumption ended.
 
-The probe reports optional game-window focus API availability and unavailable events. Required text-focus, combat, keyboard/propagation and global mouse-event support must be available for capture to start; missing required support fails closed. The optional focus API's absence leaves Alt-Tab behavior unproven, even when other release paths work. Never invoke the restricted propagation setter during combat. Deferred restoration after combat is an implementation detail that must be tested against actual behavior and taint output.
+The probe reports optional game-window focus API availability and unavailable events. Required text-focus, combat, keyboard/propagation and global mouse-event support must be available for capture to start; missing required support fails closed. The two observed application-focus APIs are absent; idle Alt-key release does not establish the held-key/release-outside Alt-Tab case. Do not substitute the unrelated unit-focus event. Never invoke the restricted propagation setter during combat. Deferred restoration after combat is an implementation detail that must be tested against actual behavior and taint output.
 
-**Gate:** every release route restores ordinary controls, start is rejected in combat, combat interruption stops simulation/input safely, no auto-resume or protected-action errors. Any stuck input or combat taint blocks M0; do not bypass it with protected-action tricks. A permitted on-screen-control fallback would require a separate scoped implementation and evidence.
+**Gate — still pending:** every release route restores ordinary controls, Start is rejected in real combat, and combat interruption closes the window, stops simulation/input and retains one interruption note with no auto-resume or protected-action errors. Any stuck input or combat taint blocks M0; do not bypass it with protected-action tricks. A permitted on-screen-control fallback would require a separate scoped implementation and evidence.
 
 ## F3: deterministic local simulation
 
@@ -64,12 +72,12 @@ The current addon only initializes a minimal schema table; there are no settings
 
 | ID | Environment | Experiment | Actual outcome | Status |
 |---|---|---|---|---|
-| F0-local | Windows files, 2026-10-18 | Executable/flavor/process inspection | `WowB.exe` 1.60.1.70450; `wow_classic_beta`; no running `Wow*` process | OBSERVED OFFLINE |
-| F0-runtime | Installed client | Build/interface/TOC/API dumps | Not run | PENDING |
-| F1 | Installed client | One-kart rendering/timing/object counts | Not run | PENDING |
-| F2 | Installed client | Focus/release/combat safety matrix | Not run | PENDING |
+| F0-local | Windows files, 2026-10-18 initial scan | Executable/flavor/process inspection | `WowB.exe` 1.60.1.70450; `wow_classic_beta`; no running `Wow*` process at that initial scan | HISTORICAL OFFLINE OBSERVATION |
+| F0-runtime | Installed client, 2026-10-18 | Build/interface/TOC/API readbacks | `1.60.1`, build `70450`, interface `16001`, project `18`, TOC `Camelot`; enabled/loaded; core and ChatInfo function presence observed; two application-focus APIs absent | IDENTITY/AVAILABILITY OBSERVED |
+| F1 | Installed client, 2026-10-18 | One-kart rendering/timing/object counts | Basic oval/kart and advancing ticks visible; short 6/99/3 UI-count sample; sustained driving, timed runs/scaling/stress not run | PARTIAL; GATE PENDING |
+| F2 | Installed client, 2026-10-18 | Focus/release/combat matrix | Start, Escape/Close/Enter/Stop/Alt-Tab, map-key, canvas click, hide/show and inactive reload observed; owner confirmed real combat closure/message/working WoW controls. Simultaneous aliases SKIPPED by owner; unrun lifecycle/repeat cases remain distinct | CORE SMOKE OBSERVED; FULL GATE PENDING |
 | F3 | Offline runtime | Determinism/hitch tests | See executed command evidence in `PROGRESS.md` | OFFLINE ONLY |
 | F4 | Two actual clients | Transport windows and recovery | No traffic generated; no measurements | PENDING |
-| F5 | Installed client | Reload/restart/sentinel persistence | Not run | PENDING |
+| F5 | Installed client | Reload/restart/sentinel persistence | Clean inactive reload observed in section 2; no persistence sentinel/logout/full restart experiment run | PENDING PERSISTENCE |
 
 When recording results include exact command output, build, date, conditions and evidence paths. Screenshots and personal logs belong in local artifacts unless explicitly approved for publication. On failure, record the narrow failing case and any resulting ADR before claiming a workaround.

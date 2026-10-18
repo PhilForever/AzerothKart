@@ -6,7 +6,7 @@
 
 ### M0. Repository and API proof (CURRENT)
 - [x] Run Python project validation + Lua syntax/runtime tests; address failures. (2026-10-18: structural validator and complete offline suite in Lua 5.1/5.4; client checks remain open.)
-- [ ] Confirm actual TOC/interface/flavor and addon load; record build.
+- [x] Confirm actual TOC/interface/flavor and addon load; record build. (2026-10-18 live: 1.60.1/70450, interface 16001, project ID 18, Camelot TOC.)
 - [ ] Render test window and drive prototype with keys in actual Forever.
 - [ ] Verify focus, escape, click-away, chat, combat start, /reload and normal WoW controls restored.
 - [ ] Measure frame performance and verify bounded UI allocations.
@@ -17,7 +17,7 @@
 - [ ] Road/wall/grass response and stable collisions across varying FPS.
 - [ ] Handling tuning suite: accel, brake, reverse, steering/traction, low-speed assist.
 - [ ] Implement drift charge/boost/release with deterministic tests and visible feedback.
-- [ ] Wire input loss, combat pause/release, gamepad only if client-proven.
+- [ ] Wire input loss and combat-interrupted final results/release (ADR 0006); gamepad only if client-proven.
 **Exit:** 10k-tick replay equivalence, manual game-feel trials, no unintended inputs.
 
 ### M2. Network feasibility and social handshake
