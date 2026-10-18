@@ -219,8 +219,19 @@ withMock({schemaVersion=1, custom={keep=true}}, false, function(env,UI)
     start(); env.key(UI,"OnKeyDown","W"); UI.OnUpdate(1/60)
     env.combat=true
     local releaseCalls=env.keyboardReleaseCalls
+    local interruptionOutput=#env.output
+    local interruptedTick=UI.state.tick
     env.fire("PLAYER_REGEN_DISABLED")
     assertReleased("combat event")
+    assert(not UI.window:IsShown(),"combat closes the racing window")
+    assert(UI.result.status=="interrupted" and UI.result.reason=="Game interrupted by combat",
+        "combat keeps the explicit interruption result")
+    assert(UI.result.tick==interruptedTick and UI.stopReason==UI.result.reason,
+        "hiding preserves the terminal tick/reason")
+    local result=UI.result
+    env.fire("PLAYER_REGEN_DISABLED"); UI.OnUpdate(1); UI.InterruptCombat()
+    assert(UI.result==result and UI.state.tick==interruptedTick,"interruption is terminal once")
+    assert(#env.output==interruptionOutput+1,"combat interruption note emitted once")
     assert(env.keyboardReleaseCalls>releaseCalls,"combat explicitly disables keyboard")
     assert(UI.pendingPropagationRelease,"combat defers propagation setter")
     local setters=env.propagationCalls
@@ -230,8 +241,12 @@ withMock({schemaVersion=1, custom={keep=true}}, false, function(env,UI)
     assert(not UI.pendingPropagationRelease and UI.window.propagate,
         "combat end restores propagation")
     assert(not UI.active,"combat end must not resume")
+    UI.Toggle()
+    assert(UI.result==result and UI.status.text:find("Game interrupted by combat",1,true),
+        "deliberate reopen retains interruption note until new Start")
     start(); env.combat=true; UI.OnUpdate(1/60)
     assertReleased("OnUpdate combat fallback")
+    assert(not UI.window:IsShown(),"combat OnUpdate fallback also closes the window")
     env.combat=false; env.fire("PLAYER_REGEN_ENABLED")
     for _,api in ipairs({"InCombatLockdown","GetCurrentKeyBoardFocus"}) do
         UI.Stop("capability probe")

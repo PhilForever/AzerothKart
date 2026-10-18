@@ -13,6 +13,11 @@ local function inCombat()
     return type(InCombatLockdown) ~= "function" or InCombatLockdown()
 end
 
+local function report(line)
+    if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("Azeroth Kart: " .. line)
+    else print("Azeroth Kart: " .. line) end
+end
+
 local function frame(kind, name, parent, template)
     UI.objects.frames = UI.objects.frames + 1
     return CreateFrame(kind, name, parent, template)
@@ -57,9 +62,18 @@ function UI.Stop(reason)
     if UI.stopButton then UI.stopButton:Disable() end
 end
 
+function UI.InterruptCombat()
+    if not UI.active then return end -- terminal once for the current test drive
+    UI.result = {status="interrupted", reason="Game interrupted by combat", tick=UI.state.tick}
+    -- There is no race/placement engine in M0; never fabricate a classification.
+    UI.Stop(UI.result.reason)
+    UI.window:Hide()
+    report(UI.result.reason)
+end
+
 local function keyEvent(key, down)
     if not UI.active then return end
-    if inCombat() then UI.Stop("Combat interrupted test drive"); return end
+    if inCombat() then UI.InterruptCombat(); return end
     if type(GetCurrentKeyBoardFocus) == "function" and GetCurrentKeyBoardFocus() then
         UI.Stop("Text input has focus"); return
     end
@@ -115,7 +129,9 @@ function UI.Create()
     window:Hide()
     window:SetScript("OnKeyDown",function(_,key) keyEvent(key,true) end)
     window:SetScript("OnKeyUp",function(_,key) keyEvent(key,false) end)
-    window:SetScript("OnHide",function() UI.Stop("Window hidden") end)
+    window:SetScript("OnHide",function()
+        if UI.active then UI.Stop("Window hidden") else UI.ReleaseInput() end
+    end)
 
     local title = text(window,"TOPLEFT",28,-20,"AZEROTH KART |cff777777[M0 LOCAL PROBE]|r")
     title:SetJustifyH("LEFT")
@@ -175,6 +191,7 @@ function UI.Start()
     UI.state = Physics.new(Track)
     UI.clock = Loop.new(Physics.FIXED_DT,5)
     UI.hudElapsed = 0
+    UI.result = nil
     UI.stopReason = "Driving"
     UI.window:SetPropagateKeyboardInput(false)
     UI.window:EnableKeyboard(true)
@@ -192,7 +209,7 @@ end
 
 function UI.OnUpdate(elapsed)
     if not UI.active then return end
-    if inCombat() then UI.Stop("Combat interrupted test drive"); return end
+    if inCombat() then UI.InterruptCombat(); return end
     if GetCurrentKeyBoardFocus() then UI.Stop("Text input has focus"); return end
     if type(IsGameWindowFocused) == "function" and not IsGameWindowFocused() then
         UI.Stop("Game window lost focus"); return
@@ -218,7 +235,7 @@ end
 function UI.HandleEvent(event)
     if event == "PLAYER_REGEN_ENABLED" then UI.OnCombatEnded(); return end
     if not UI.active then return end
-    if event == "PLAYER_REGEN_DISABLED" then UI.Stop("Combat interrupted test drive")
+    if event == "PLAYER_REGEN_DISABLED" then UI.InterruptCombat()
     elseif event == "GLOBAL_MOUSE_DOWN" then
         -- Bounds cannot identify which overlapping UI owns the click. M0 gives
         -- up capture on every click; the Start click's down precedes OnClick.
@@ -226,11 +243,6 @@ function UI.HandleEvent(event)
     elseif event == "PLAYER_LEAVING_WORLD" or event == "PLAYER_LOGOUT" then
         UI.Stop(event)
     end
-end
-
-local function report(line)
-    if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("Azeroth Kart: " .. line)
-    else print("Azeroth Kart: " .. line) end
 end
 
 function UI.ReportProbe()

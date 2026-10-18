@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased — M0 probe hardening (2026-10-18)
+- Combat now closes the window and records one retained interruption result/note; future races will freeze actual standings when implemented.
+- Local developer install verified by SHA-256; live build/interface/Camelot discovery, basic rendering and idle release checks observed. Full manual acceptance remains pending.
 - Corrected left/right steering; physics compatibility version 2.
 - Pure input sampling and bounded fixed-step clock with measured dropped time.
 - Focus/lifecycle stops, guarded combat propagation and explicit probe diagnostics.

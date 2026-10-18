@@ -7,6 +7,7 @@
 - Test offline driving first, retain multiplayer vision, gate design on measurements.
 - Prototype no borrowed graphic IP or in-game gold betting.
 - Demo initially runs on a simple analytical oval; production tracks use checkpoint geometry and collision regions.
+- **Combat interruption (owner confirmed 2026-10-18):** close the racing window, release its controls, finalize the current race placements once and label the result **"Game interrupted by combat"**. Do not resume that race when combat ends. The M0 driving probe has no standings, so it closes and records the interruption without inventing placements. See [ADR 0006](adr/0006-combat-interrupted-results.md).
 
 ## Questions that require evidence / product owner approval
 1. What exact installed Forever client build and TOC flavor path are present?

@@ -13,7 +13,7 @@ Lobby → select mode/track/kart → pre-race countdown → race (laps, drift, i
 - W/Up = accelerate; S/Down = brake/reverse; A/D or Left/Right = steer.
 - Space = drift; E / configurable key = use power-up; Esc = close/pause and release keyboard capture.
 - Keyboard capture only when the kart canvas is active/focused, always visibly indicated; fallback clickable buttons for key functions.
-- Short race pauses/resigns safely on player combat, zoning or UI loss of focus.
+- Combat closes the racing window and ends the game with **"Game interrupted by combat"**; controls return to WoW. Combat ending never resumes that game. Zoning and UI focus loss require their own explicit stop/recovery transitions.
 
 ## Race rules
 - Standard: three laps, last place start position for catch-up items if enabled, collisions, shortcuts with risk/reward.
@@ -21,6 +21,7 @@ Lobby → select mode/track/kart → pre-race countdown → race (laps, drift, i
 - Timing: fractional seconds for UI only; integer frame/tick authority to prevent inconsistent finish ordering.
 - Anti-shortcut validation: ordered checkpoint gates, directional crossing, lap wraps only if all gates passed in sequence; teleport/resync does not award laps.
 - Items: configurable off in competitive time trial; separate class for offensive/defensive and mobility items.
+- Combat interruption finalizes the actual current placements once at the first handled interruption, with the interruption label retained when results are reopened. Repeated combat notifications cannot duplicate a result or change its frozen order. See [ADR 0006](adr/0006-combat-interrupted-results.md). M0 has no standings and records only a stopped, interrupted drive; remote-player notification remains gated on verified networking.
 
 ## First track content
 - `Test Oval`: ugly but reliable probe, with surfaces and checkpoint points.
