@@ -1,0 +1,10 @@
+## Interface: 16001
+## Title: Azeroth Kart |cffaaaaaa[Dev Prototype]|r
+## Notes: Top-down arcade racing inside WoW Forever (local test drive only)
+## Author: Azeroth Kart contributors
+## Version: 0.0.1
+## SavedVariables: AzerothKartDB
+Track.lua
+Physics.lua
+UI.lua
+Core.lua

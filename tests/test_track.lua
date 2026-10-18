@@ -1,0 +1,8 @@
+local T=dofile("addon/AzerothKart/Track.lua")
+local s=T.spawn()
+assert(T.isDrivable(s.x,s.y),"spawn should be drivable")
+assert(not T.isDrivable(400,240),"island cannot be driven on")
+assert(not T.isDrivable(0,0),"off-track should reject")
+assert(not T.isDrivable(800,480),"outside oval should reject")
+assert(T.isDrivable(400,240+T.lineY),"centerline top should be drivable")
+assert(not T.isDrivable(0/0,240),"NaN coordinate should reject")

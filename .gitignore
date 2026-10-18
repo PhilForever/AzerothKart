@@ -1,0 +1,17 @@
+# Local machine/install overrides
+*.local.json
+*.log
+*.tmp
+.DS_Store
+.vscode/
+.idea/
+__pycache__/
+.pytest_cache/
+*.pyc
+.env
+.env.*
+!/.env.example
+**/WTF/
+*.secret
+local-artifacts/
+release/

@@ -1,0 +1,45 @@
+# Game design document (GDD) — target, not implemented
+
+## Primary loop
+Lobby → select mode/track/kart → pre-race countdown → race (laps, drift, item pickups, ranking) → results → rewards/statistics → rematch.
+
+## Handling & joy
+- Acceleration with top speed, progressive steering responsiveness, low-speed turn assist, braking/reverse, traction changes across surfaces, soft bump feedback.
+- Intentional drift button; charge tiers based on maintaining a controlled slide, reward with brief boost on release; one-button accessibility drift option configurable.
+- On impact, lose speed but retain control quickly; minimize dead time. No random loss of control lasting multiple seconds.
+- Input feels immediate in local mode. Multiplayer should use local visual prediction while displaying other karts interpolated, subject to feasibility testing.
+
+## Planned controls
+- W/Up = accelerate; S/Down = brake/reverse; A/D or Left/Right = steer.
+- Space = drift; E / configurable key = use power-up; Esc = close/pause and release keyboard capture.
+- Keyboard capture only when the kart canvas is active/focused, always visibly indicated; fallback clickable buttons for key functions.
+- Short race pauses/resigns safely on player combat, zoning or UI loss of focus.
+
+## Race rules
+- Standard: three laps, last place start position for catch-up items if enabled, collisions, shortcuts with risk/reward.
+- Race clock driven by deterministic simulation steps, not system clock deltas; countdown and result state changes host-governed in live races.
+- Timing: fractional seconds for UI only; integer frame/tick authority to prevent inconsistent finish ordering.
+- Anti-shortcut validation: ordered checkpoint gates, directional crossing, lap wraps only if all gates passed in sequence; teleport/resync does not award laps.
+- Items: configurable off in competitive time trial; separate class for offensive/defensive and mobility items.
+
+## First track content
+- `Test Oval`: ugly but reliable probe, with surfaces and checkpoint points.
+- `Tinker Speedway`: colorful starter track with readable turns, two shortcuts and one simple hazard.
+- `Murloc Marsh`, `Dusty Canyon`, `Frost Gearway`: illustrative future themes, not licensed Warcraft art.
+
+## Power-ups (future)
+- Turbo Cog: short speed boost; Slick Oil: deploy slowing puddle; Homing Wrench: target leading kart under line-of-sight/counterplay; Shield Bubble: blocks one hit; Blink Gate: forward burst without bypassing checkpoints; Repair Kit: recovers traction, not a monetary item.
+- Items should have shared typed payload, cooldown, duration, explicit collision rules and deterministic seeded randomness.
+- Avoid excessive screen effects or unavoidable chain stuns; use input responsiveness as invariant.
+
+## Karts and cosmetics
+- Initial karts share tuned balanced stats, visual skins only; variants are tightly balanced before PvP.
+- Stats are bounded by validated classes (acceleration, handling, traction, top speed). Cosmetic unlocks do not require gold or cash.
+
+## Modes by maturity
+1. Test Drive (M0), Solo Time Trial (M3), Ghost Race (M4), AI (M5).
+2. Multiplayer Experimental (after network gate), Multiplayer Stable (after in-game testing).
+3. Power-up Battle Race, cups, tournaments, profiles, track variants and long-term replayability.
+
+## Accessibility
+- Colorblind-friendly HUD, configurable scale, reduced animations, sound toggle, high contrast, remappable keys when client API allows, camera centering preferences, full keyboard release on exit.
