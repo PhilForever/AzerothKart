@@ -137,7 +137,7 @@ These scoped elapsed milliseconds include clock/protection instrumentation overh
 
 ## 3c. One supported-scale comparison — prepared independent M0 task
 
-**Status: NOT RUN.** Use a quiet client, stopped kart and profiling off. This is one renderer comparison, not the complete scale matrix, a driving trial or a performance benchmark. Do not change resolution, other addons or graphics settings.
+**Status: INCOMPLETE / REVIEW NEEDED, 2026-10-19 16:19–16:27 CEST.** The normal Use UI Scale control was found unchecked at stored 100%. Apply confirmations expired before acceptance; the changed-scale renderer/probe was not verified. Original preferences/CVars returned, but effective scale changed from 0.72452831268311 to 0.71111112833023. All clock counters and counts 6/99/3 stayed frozen, final hidden/inactive/profiling off. Further scale changes stopped for review under step 4. [Exact evidence](../docs/evidence/2026-10-19-m0-scale.md). This is not a scale-matrix or M0 pass.
 
 1. Inspect the normal client Options for an available UI-scale control. Record its actual label, enabled/automatic state, current displayed value and supported range/steps. Do not assume a menu path or that 0.75/1.0/1.25 are supported. If no normal control is available, record UNAVAILABLE and make no scale change.
 2. Open `/akart` without Start. Record a timestamp, build/source identity, road/controls appearance, `/akart probe` and these read-only values:
@@ -147,15 +147,29 @@ These scoped elapsed milliseconds include clock/protection instrumentation overh
 /dump UIParent:GetEffectiveScale()
 ```
 
-3. Choose one different supported setting through that normal control, apply it normally and record the actual displayed setting, the same readbacks/probe and appearance. Check full road/island/marker/kart visibility, horizontal seams, clipping, text and access to Start/Stop/Close/Print Probe. Keep capture inactive; the existing clock/state and explicit counts must stay unchanged. Effective scale is a measured value, not the nominal slider value. If a normal reload is required to apply, record it and collect a fresh inactive baseline; do not claim the old clock survived reload.
+3. Choose one different supported setting through that normal control, apply it normally and record the actual displayed setting, the same readbacks/probe and appearance. If the client presents a timed acceptance dialog, verify acceptance before collecting the changed-setting sample; automatic reversion is not a completed comparison. Do not repeat setting changes when the tool roundtrip cannot meet that deadline; leave the probe pending. Check full road/island/marker/kart visibility, horizontal seams, clipping, text and access to Start/Stop/Close/Print Probe. Keep capture inactive; the existing clock/state and explicit counts must stay unchanged. Effective scale is a measured value, not the nominal slider value. If a normal reload is required to apply, record it and collect a fresh inactive baseline; do not claim the old clock survived reload.
 4. Restore the exact original control value and automatic/enabled state through the normal UI, apply normally and verify the original CVar values and effective scale return. Do not use arbitrary `SetCVar` writes to reach unsupported values. If restoration fails, record it and stop for review. Close/reopen once to check readability/inactivity/counts, then finish hidden/inactive with profiling off.
 5. Transcribe sanitized results into the table and PROGRESS, including both changed and restored readbacks and any interruption. An unavailable setting remains pending, not a failure or a pass. Whole-client FPS, if sampled separately, is only a point observation.
 
 | Point | Normal control value/state | uiScale / useUiScale | Effective scale | Probe/canvas/readability | Status |
 |---|---|---|---|---|---|
-| Original baseline | Pending observation | Pending | Pending | Pending | NOT RUN |
-| One supported alternative | Pending normal-control discovery | Pending | Pending | Pending | NOT RUN |
-| Restored original | Pending restoration | Pending | Pending | Pending | NOT RUN |
+| Original baseline | Unchecked; stored 100% | 1.000000 / 0 | 0.72452831268311 | Tick 852, counts 6/99/3, full canvas/controls readable | OBSERVED |
+| One supported alternative | Checked; 100%, Apply then timed reversion | NOT READ during temporary state | NOT READ | Kart hidden; changed-scale renderer NOT RUN | INCOMPLETE |
+| Restored original | Unchecked; stored 100% | 1.000000 / 0 | 0.71111112833023 | All counters/counts frozen; hidden/inactive/profiling off | Preferences restored; effective-scale criterion unmet, REVIEW NEEDED |
+
+## 3d. Read-only geometry review — next M0 task
+
+**Status: PREPARED, NOT RUN.** Review the scale mismatch before further setting changes. At unchanged settings, record timestamp and actual build, then run these lines individually. Each optional call is type-checked and protected; its returned table begins with the `pcall` success boolean. Record unavailable/error results; if reporting encounters restricted or secret values, stop that read without coercion or a fallback access path.
+
+```text
+/dump GetCVar("uiScale"), GetCVar("useUiScale")
+/dump type(GetPhysicalScreenSize)=="function" and {pcall(GetPhysicalScreenSize)} or "unavailable"
+/dump type(GetDefaultScale)=="function" and {pcall(GetDefaultScale)} or "unavailable"
+/dump UIParent and type(UIParent.GetWidth)=="function" and {pcall(UIParent.GetWidth,UIParent)} or "unavailable", UIParent and type(UIParent.GetHeight)=="function" and {pcall(UIParent.GetHeight,UIParent)} or "unavailable"
+/dump UIParent and type(UIParent.GetScale)=="function" and {pcall(UIParent.GetScale,UIParent)} or "unavailable", UIParent and type(UIParent.GetEffectiveScale)=="function" and {pcall(UIParent.GetEffectiveScale,UIParent)} or "unavailable"
+```
+
+Keep the kart hidden/inactive and profiling off; do not change settings, reload, Start or supply character input. Compare only observed current dimensions with the pinned source described in [CLIENT_API.md](../docs/CLIENT_API.md). The former physical/window dimensions were not measured, so a numerical 1060/1080-height relationship cannot establish their history or explain the earlier scale. Record the review outcome and one next task; keep the accepted-alternative comparison pending.
 
 ## 4. F5 minimal SavedVariables persistence
 
