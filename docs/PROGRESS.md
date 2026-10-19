@@ -1,7 +1,7 @@
 # PROGRESS — persistent project handoff
 
 **Current milestone:** M0 — repository and actual-client/API feasibility. **OPEN.**
-**Current state (2026-10-19, latest session ~09:02 CEST):** authorized unattended client checks recorded 600 valid stationary profiler samples, zero invalid, scoped total average 0.0264 ms / maximum 0.2111 ms including instrumentation. Stopped/reopen/disarm results stayed frozen; explicit counts 6/99/3. The analytical road loaded with visible band seams. **Rendering review blocker:** two attempts to configure snapping during band creation hid the road after reload despite passing mocks. Both experiments and their fixtures were removed; source/installed addon restored to `38faab2`, ten hashes verified, original road visible after reload. Final client state stopped/hidden/profiling off. No implementation change retained; this run preserves measured evidence and the failed experiment. Final Lua 5.1/5.4 suites pass (16 parsed/eight tests each). M0, scaling/stress/handling/taint gates remain open; deferred combat and skipped W/Up checks were not repeated.
+**Current state (2026-10-19, latest checks ~14:02 CEST):** completed the M0 road seam/occlusion fix. Isolated live checks showed grass covering the road when snapping states differed. Grass now uses explicit `BACKGROUND,-1` priority, and the 96 bands receive guarded snapping settings once during creation. A fresh normal reload verified the full renderer without seams at effective scale 0.72452831268311; getters confirmed all 96 bands and unchanged grass snapping. UI counts remain 6/99/3, including reopen; final state stopped/hidden/profiling off. Ten installed hashes match source. Full Lua 5.1/5.4 suites pass, 16 files parsed/eight tests each. Work resumed after a quota interruption; no result is inferred for the gap. M0, supported scales, sustained performance, handling and remaining input/taint checks stay open. Deferred combat and skipped W/Up checks were not repeated.
 
 ## Canonical checkout and commits
 
@@ -20,6 +20,7 @@ Remote: `https://github.com/PhilForever/AzerothKart.git`; branch `main`. The pac
 - `ae6fed0` — `fix: close stopped kart windows when combat begins`.
 - `865e187` — `fix: align primitive road with analytical track bounds`.
 - `38faab2` — `feat: add bounded opt-in performance probe`.
+- `ce1b78c` — `docs: record stationary profiler results and renderer review blocker`.
 
 Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.useConfigOnly=true`; verified in config and commit authors. Global identity was left unchanged. No push, tag, distribution or automation was performed. The later client-check session installed only AzerothKart in the local Forever AddOns folder and verified all nine files against source SHA-256. Ignored `local-artifacts/` contains developer dependencies/logs and synthetic install fixtures/backups; it is not staged.
 
@@ -38,7 +39,7 @@ Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.u
 - [x] Source timing aid: cumulative valid active frame seconds, executed simulation seconds and callback cadence; complete stopped elapsed/drop/remainder accounting and immediate Start/Stop HUD refresh. Offline tested and installed; zeroed live baseline observed, with timed/final-sample acceptance pending.
 - [x] 2026-10-19 installation/reload baseline: prior addon backed up, two changed files copied and all nine installed SHA-256 values verified twice; updated zeroed timing/HUD fields rendered inactive. Timed drive/final-sample acceptance remains pending.
 - [x] Two human drives: ticks 3492/3756, active seconds 58.2120/62.6020, no dropped time, matching HUD and explicit counts 6/99/3. Delayed probes remained frozen; sample 1 also retained numbers across slash close/reopen. Third sample/external durations/full F1 remain pending.
-- [x] Primitive road follows unchanged analytical Track bounds with the same 96 road textures. Dense actual-rectangle regression covers 92,853 points outside a 3.5-unit vertical edge margin and the old mismatch at `(400,440)`. Live road/marker/kart observed at effective scale 0.71111112833023; horizontal seams found. Failed snapping experiments removed; original renderer restored after reload. Seam resolution/scaling remain pending review.
+- [x] Primitive road follows unchanged analytical Track bounds with the same 96 road textures. Dense actual-rectangle regression covers 92,853 points outside a 3.5-unit vertical edge margin and the old mismatch at `(400,440)`. Isolated grass occlusion led to explicit grass priority plus creation-only band snapping. Normal reload verified seam-free appearance and all 96 settings at effective scale 0.72452831268311; counts remain 6/99/3. [Evidence](evidence/2026-10-19-m0-road-layer.md); full supported-scale/performance acceptance remains pending.
 - [x] Optional bounded profiler passes offline tests and produced 600 valid stationary readings on build 70450. Scoped averages/maxima, continued simulation after cap, frozen stopped/reopen/disarm output and counts 6/99/3 recorded in [stationary evidence](evidence/2026-10-19-m0-stationary-profile.md). Fresh unprofiled Start and full performance acceptance remain pending; this is not exclusive CPU cost.
 - [x] Stopped-window combat source gap reproduced and fixed: combat-start event hides inactive window while preserving its sample/result/reason, without another interruption announcement. New never-started/stopped/interrupted fixtures pass Lua 5.1/5.4. Source installed and reloaded; actual combat behavior NOT RUN at owner direction.
 - [x] Retained interruption note through repeated Close/toggle/reopen, inactive Stop and rejected Start; actual refusal text is also visible. Regression checks retain the same result/state/clock/HUD and clear the note only on a successful fresh Start. Offline only; extended client sequence pending.
@@ -54,7 +55,7 @@ Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.u
 - [ ] Remaining UI-scale/layout, sustained FPS/CPU cost, long-session behavior and memory. Basic kart movement/rotation is observed; mock/live counters measure explicit addon allocations only, not client/template internals or whole-client performance.
 - [ ] Full optional-profiler acceptance: availability/guarded arming/one bounded stationary sample/retention observed; fresh unprofiled Start and errors/handling/stress checks remain unrun. No sustained performance or exclusive CPU/GPU claim.
 - [ ] Stopped-window combat-close live follow-up: source fixed/offline tested and reloaded, combat check deferred at owner direction to continue elsewhere. Do not ask for another combat test as the next development task. Prior observations remain scoped in the evidence; no combat API contradiction is established.
-- [ ] Renderer review blocker: live snapping preview across all 99 canvas textures removed seams; creation-time settings on only 96 road bands hid the road after reload, including a reordered attempt. Root cause unknown; do not promote this setting based on passing mock tests. Original renderer restored/visible; supported-scale appearance remains pending. See precise review/probe plan in FEASIBILITY.
+- [ ] Supported-scale renderer matrix and long-session behavior. The prior grass/road configuration blocker is resolved for the recorded startup case with explicit priority; native batching mechanics are not established. Do not infer all-scale correctness or a sustained-performance pass from the clean reload.
 - [ ] Logout/full restart and isolated sentinel persistence. Clean inactive `/reload` is observed; minimal schema initialization is not proof of a save, migration or settings/ghost support.
 - [ ] Direct handling/play evaluation. Analytical metrics are a baseline only; no M1 game-feel acceptance.
 - [ ] Two-client transport measurements, reconnect and architecture ADR. No runtime bandwidth, loss, throttle or latency results exist.
@@ -63,7 +64,7 @@ Initial file-only evidence: `_classic_beta_\WowB.exe` reports `1.60.1.70450`; `.
 
 ## Next exact task
 
-**Next exact task: review the startup-versus-live texture-snapping discrepancy before any further renderer change.** User policy requires stopping for review on API contradictions; this is unresolved client behavior, not an established public-contract violation. The review-only plan in FEASIBILITY isolates road-only versus grass-inclusive texture sets and creation/show timing using references to the existing textures, preserving the working renderer. Do not resume that experiment silently or jump to M1/networking. No manual driving/combat input is requested now; M0 remains open.
+**Next exact task: run one 15-minute stopped/open M0 idle stability sample.** Follow client-checklist section 3b: record independent baseline/end timestamps, build/source identity, probe counts/frozen clock, whole-client FPS point samples, effective scale and visible symptoms. Do not Start, change scale or automate character/combat input. Report the actual interval if interrupted; an open window during the quota gap is not an executed timed sample. Close/reopen once, verify unchanged inactive counters and finish hidden. Memory/CPU, sustained-FPS, human-driving and full F2/F5/F4 gates remain separate and pending. If the client is unavailable, mark NOT RUN and prepare only independent M0 work. No new combat or skipped W/Up test is requested.
 
 ## Session handoff log
 
@@ -369,3 +370,30 @@ The first 600 eligible callbacks produced 600 valid readings, zero invalid: simu
 | Human handling/third F1 drive, fresh unprofiled Start, scale/stress/taint/F5/F4 | NOT RUN this slice; no invented pass. Further combat checks remain owner-deferred. |
 
 **Final changes:** documentation and sanitized evidence only: README/CHANGELOG, architecture/track/API/feasibility/testing docs, manual client checklist and this handoff. Roadmap unchanged. Local focused evidence commit intended as `docs: record stationary profiler results and renderer review blocker`; use `git log` for its hash. **Next single task:** review the prepared isolated texture-population/timing probe before resuming renderer experiments. M0 stays open.
+
+### 2026-10-19 09:07–09:20 CEST; resumed 13:54–14:07 CEST — Codex / main
+
+**Milestone/objective:** M0, complete the reviewed road seam/visibility slice. The owner instructed continuing after the review stop and again after quota interruption. Canonical remote and branch `main` confirmed; initial HEAD `ce1b78c` was clean before the slice. Resume preserved this slice's uncommitted UI/tests/evidence. Repository-local PhilForever identity remains verified; no unrelated work was reset.
+
+**Isolation:** changing only 96 existing bands to bias 0/snap false reproduced disappearance without reload. Hiding just the unique full-canvas grass exposed the gray road; showing it covered the road. Matching grass snapping also restored the road. In an independent fresh session, lowering only grass to `BACKGROUND,-1`, then applying band settings, kept the road visible without seams. These observations establish a grass occlusion/configuration problem; they do not prove native renderer batching mechanics or a public API violation. [Exact evidence and measured scales](evidence/2026-10-19-m0-road-layer.md).
+
+**Implementation:** 11 presentation-only lines in UI.lua: explicit grass draw priority below the outer road, and optional guarded bias/snap setters after each band's color/geometry initialization. Geometry, Track/Physics/input/timing and marker/kart remain unchanged; no new objects or per-update configuration/output. Tests inspect relative priority, exactly 192 setter calls for 96 bands, unchanged grass snapping, missing/throwing optional APIs, unchanged geometry and no reconfiguration during updates/reopening.
+
+**Actual validation:**
+
+| Command/check | Result and scope |
+|---|---|
+| `python scripts/test_lua.py --runtime lua51` before implementation | Expected RED at the new band assertion; 16 files parsed, other seven tests passed. |
+| `python scripts/test_lua.py` before install and again after resume | PASS each time — Lua 5.1/5.4 through local Lupa, 16 files parsed/eight tests in each; includes 92,853-point geometry, 10k-tick replay, lifecycle, profiler and pooling regressions. |
+| `python scripts/validate_project.py` | PASS — 29 paths, TOC order, Markdown links, protocol/header-only network ledger. |
+| `git diff --check` and staged equivalent | PASS — final whitespace checks. |
+| Installed/source SHA-256 | PASS — all ten files on install and independent comparisons at 09:20:08 and 13:54:48 CEST. |
+| Controlled normal reload + read-only getters | PASS for recorded appearance — full road/island/marker/kart/controls, no horizontal seams, effective scale 0.72452831268311; all 96 bands bias 0/snap false; grass `BACKGROUND,-1`, unchanged bias 0.30000001192093/snap true. No texture preview after reload. |
+| Native `lua tests/run.lua` | NOT RUN — lua/luajit/luac absent from PATH; both actual embedded runtimes above executed the suite. |
+| Supported scales, idle/stress, full taint/input, third F1/handling, F5/F4 | NOT RUN this slice; M0 remains open and combat checks stay owner-deferred. |
+
+**Installation:** only UI.lua replaced after verified prior-addon backup; ten source hashes verified. Parent-workspace manifest `artifacts/AzerothKart/20261019-091849-478523/install.json`, prior addon in `before/`. No other addon/WTF/SavedVariables edited by deployment. No push/tag/release/automation or network traffic.
+
+**Quota/resume accounting:** quota interrupted the first post-install readback; the owner's later cropped image records a zeroed probe, not full appearance. After resuming, an already stopped 1,237-tick/20.6300-second sample was observed and transcribed before reloading. Its input history and independent duration are unknown; it is not this agent's drive or the third F1 sample. No progress or timed idle pass is inferred for the gap. A new controlled normal reload then verified the installed fix with fresh zero counters and counts 6/99/3. Close/reopen retained inactive counts; final readback active=false/shown=false/profiling=false. No avatar movement, combat or recovery was automated.
+
+**Handoff:** code/tests, rendering/API/feasibility/testing documentation and sanitized evidence are aligned; roadmap unchanged. Focused local commit intended as `fix: remove road seams with explicit grass layering`; inspect `git log` for the hash. **Next exact task:** the 15-minute stopped/open idle sample in client-checklist section 3b. Keep remaining M0 gates pending; do not repeat the skipped W/Up or deferred combat checks.

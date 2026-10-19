@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — explicit road draw order and seam fix (2026-10-19)
+- Put the canvas grass below the outer road bands and disable sharpening/pixel snapping only for the 96 bands during creation. Geometry, physics, input and the 6/99/3 object budget are unchanged.
+- Isolated live checks showed grass occlusion; a clean reload then verified the permanent fix, all 96 band settings and unchanged grass snapping at effective scale 0.72452831268311. Other-scale and sustained-performance acceptance remain pending.
+- Lua 5.1/5.4 regression coverage includes draw priority, creation-only settings, missing/throwing optional APIs and no reconfiguration on update/reopen. Installed UI.lua with verified prior backup and ten matching source hashes.
+
 ## Unreleased — stationary client evidence and renderer review (2026-10-19)
 - Recorded 600 valid stationary profiler samples on build 70450: scoped total average 0.0264 ms, maximum 0.2111 ms, including probe overhead; stopped/reopened/disarmed results retained. This is partial M0 evidence, not sustained driving or exclusive CPU cost.
 - Observed road-band seams. Both creation-time snapping experiments hid the road after reload despite passing mock tests; removed the experiments and restored/verified the prior source and visible road. Rendering API behavior is flagged for review; no snapping change is retained.

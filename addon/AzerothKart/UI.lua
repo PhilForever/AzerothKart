@@ -179,6 +179,14 @@ local function drawEllipse(canvas, radiusX, radiusY, rows, layer, r, g, b)
         piece:SetSize(2 * halfWidth,height)
         piece:SetPoint("BOTTOMLEFT",canvas,"BOTTOMLEFT",
             Track.centerX-halfWidth,Track.centerY+dy-height/2)
+        -- Fractional bands share edges without texture sharpening/snapping.
+        -- Optional setters are creation-only; failure keeps the basic renderer.
+        if type(piece.SetTexelSnappingBias) == "function" then
+            pcall(piece.SetTexelSnappingBias,piece,0)
+        end
+        if type(piece.SetSnapToPixelGrid) == "function" then
+            pcall(piece.SetSnapToPixelGrid,piece,false)
+        end
     end
 end
 
@@ -233,6 +241,9 @@ function UI.Create()
     local grass = texture(UI.canvas,"BACKGROUND")
     grass:SetAllPoints(UI.canvas)
     grass:SetColorTexture(0.08,0.24,0.12,1)
+    -- Mixed snapping states can cover the road within one default sublayer.
+    -- Keep the canvas backdrop explicitly below the outer road bands.
+    grass:SetDrawLayer("BACKGROUND",-1)
     drawTrack(UI.canvas)
     UI.kart = texture(UI.canvas,"OVERLAY")
     UI.kart:SetColorTexture(0.98,0.54,0.14,1)

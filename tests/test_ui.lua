@@ -9,7 +9,7 @@ local globalNames = {
     "AzerothKart", "AzerothKartDB", "print",
 }
 
-local function withMock(savedDB, initialCombat, test, unsupportedEvent)
+local function withMock(savedDB, initialCombat, test, unsupportedEvent, snappingMode)
     local previous = {}
     for _,name in ipairs(globalNames) do
         previous[#previous+1] = {name=name, value=_G[name]}
@@ -18,7 +18,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent)
         combat=initialCombat or false, focus=nil, focused=true, mouseInside=true,
         frames={}, textures={}, output={}, counts={frames=0, textures=0, fontStrings=0},
         propagationCalls=0, combatPropagationCalls=0, keyboardReleaseCalls=0,
-        profileTime=0, profileCalls=0,
+        profileTime=0, profileCalls=0, snappingCalls=0, drawLayerCalls=0,
     }
     local methods = {}
     local function object(kind)
@@ -70,9 +70,35 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent)
     function methods:SetSize(width,height) self.width,self.height=width,height end
     function methods:SetPoint(...) self.point={...} end
     function methods:SetColorTexture(...) self.color={...} end
+    function methods:SetDrawLayer(layer,sublevel)
+        env.drawLayerCalls=env.drawLayerCalls+1
+        self.layer,self.sublevel=layer,sublevel or 0
+    end
+    local function geometryReady(item)
+        return type(rawget(item,"color"))=="table" and
+            type(rawget(item,"width"))=="number" and
+            type(rawget(item,"height"))=="number" and
+            type(rawget(item,"point"))=="table"
+    end
+    function methods:SetTexelSnappingBias(value)
+        env.snappingCalls=env.snappingCalls+1
+        self.snappingBias=value
+        self.biasAfterGeometry=geometryReady(self)
+    end
+    function methods:SetSnapToPixelGrid(value)
+        env.snappingCalls=env.snappingCalls+1
+        self.snapToGrid=value
+        self.gridAfterGeometry=geometryReady(self)
+    end
     function methods:CreateTexture(_,layer)
         local item=object("textures")
-        item.parent,item.layer=self,layer
+        item.parent,item.layer,item.sublevel=self,layer,0
+        if snappingMode=="missing" then
+            item.SetTexelSnappingBias,item.SetSnapToPixelGrid=false,false
+        elseif snappingMode=="throws" then
+            item.SetTexelSnappingBias=function() error("mock snapping API refuses") end
+            item.SetSnapToPixelGrid=function() error("mock grid API refuses") end
+        end
         env.textures[#env.textures+1]=item
         return item
     end
@@ -141,6 +167,7 @@ withMock(nil, false, function(env,UI)
     env.fire("ADDON_LOADED","AzerothKart")
     local Track=env.namespace.Track
     local outer,inner={},{}
+    local grass,grassCount=nil,0
     local function sameColor(actual,r,g,b)
         return type(actual)=="table" and actual[1]==r and actual[2]==g
             and actual[3]==b and actual[4]==1
@@ -153,8 +180,17 @@ withMock(nil, false, function(env,UI)
             bands=outer
         elseif sameColor(color,0.08,0.24,0.12) and item.layer=="BORDER" then
             bands=inner
+        elseif sameColor(color,0.08,0.24,0.12) and item.layer=="BACKGROUND" then
+            grass,grassCount=item,grassCount+1
         end
         if bands then
+            assert(rawget(item,"snappingBias")==0 and rawget(item,"snapToGrid")==false,
+                "road band disables texture sharpening/pixel snapping at creation")
+            assert(rawget(item,"biasAfterGeometry")==true and rawget(item,"gridAfterGeometry")==true,
+                "road snapping is configured after color, size and anchor setup")
+            if bands==outer then
+                assert(item.sublevel==0,"outer bands retain their default background sublevel")
+            end
             local point=rawget(item,"point")
             assert(type(point)=="table" and point[2]==UI.canvas and point[3]=="BOTTOMLEFT",
                 "road bands must use canvas coordinates")
@@ -172,6 +208,12 @@ withMock(nil, false, function(env,UI)
         end
     end
     assert(#outer==64 and #inner==32,"road uses 64 outer bands and 32 island bands")
+    assert(grassCount==1 and grass.sublevel==-1,
+        "full-canvas grass must be explicitly below the outer bands")
+    assert(rawget(grass,"snappingBias")==nil and rawget(grass,"snapToGrid")==nil,
+        "grass snapping stays unchanged; explicit draw priority separates it from the road")
+    assert(env.drawLayerCalls==1,"only the grass configures an explicit draw sublevel once")
+    assert(env.snappingCalls==192,"only the 96 road bands configure snapping once")
     assert(UI.objects.frames==6 and UI.objects.textures==99 and UI.objects.fontStrings==3,
         "aligned placeholder must retain the existing explicit UI object budget")
     local function covered(rectangles,x,y)
@@ -211,6 +253,17 @@ withMock(nil, false, function(env,UI)
 end)
 originalPrint(renderSummary.." (client appearance still pending)")
 
+for _,mode in ipairs({"missing", "throws"}) do
+    withMock(nil,false,function(env,UI)
+        env.fire("ADDON_LOADED","AzerothKart")
+        UI.Toggle(); UI.Start(); UI.OnUpdate(1/60)
+        assert(UI.active and UI.state.tick==1,"optional snapping APIs cannot block driving: "..mode)
+        assert(UI.objects.frames==6 and UI.objects.textures==99 and UI.objects.fontStrings==3,
+            "snapping fallback preserves UI object budget: "..mode)
+        assert(env.drawLayerCalls==1,"grass priority remains explicit when snapping is unavailable: "..mode)
+    end,nil,mode)
+end
+
 local summary
 withMock({schemaVersion=1, custom={keep=true}}, false, function(env,UI)
     local originalDB=AzerothKartDB
@@ -233,7 +286,10 @@ withMock({schemaVersion=1, custom={keep=true}}, false, function(env,UI)
     assert(UI.objects.fontStrings==env.counts.fontStrings,"font counter matches wrappers")
     local counts={frames=env.counts.frames,textures=env.counts.textures,
                   fontStrings=env.counts.fontStrings}
+    local snappingCalls,drawLayerCalls=env.snappingCalls,env.drawLayerCalls
     local function assertPooled()
+        assert(env.snappingCalls==snappingCalls and env.drawLayerCalls==drawLayerCalls,
+            "updates/reopen never reconfigure snapping or draw priority")
         for kind,count in pairs(counts) do
             assert(env.counts[kind]==count,"UI object count grew: "..kind)
         end
