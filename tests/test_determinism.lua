@@ -1,7 +1,8 @@
 local T=dofile("addon/AzerothKart/Track.lua")
 local P=dofile("addon/AzerothKart/Physics.lua")
 local L=dofile("addon/AzerothKart/Loop.lua")
-local fields={"x","y","heading","speed","tick","impacts"}
+local fields={"x","y","heading","speed","tick","impacts","drifting","driftDirection",
+              "driftTicks","driftTier","boostTicks","slipAngle"}
 local ticks=10000
 
 -- Local Park-Miller generator creates reproducible bounded test input vectors.
@@ -15,6 +16,7 @@ local function inputTape(seed)
             brake=seed%19==0,
             left=seed%8<3,
             right=seed%8>4,
+            drift=seed%13>2,
         }
     end
     return tape
@@ -31,7 +33,7 @@ local repeated=inputTape(1729)
 local different=inputTape(1730)
 local changed=false
 for tick=1,ticks do
-    for _,key in ipairs({"accelerate","brake","left","right"}) do
+    for _,key in ipairs({"accelerate","brake","left","right","drift"}) do
         assert(tape[tick][key]==repeated[tick][key],"seeded input tape must repeat")
         if tape[tick][key]~=different[tick][key] then changed=true end
     end

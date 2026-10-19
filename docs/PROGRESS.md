@@ -1,7 +1,7 @@
 # PROGRESS — persistent project handoff
 
-**Current milestone:** M0 — repository and actual-client/API feasibility. **OPEN.**
-**Current state (2026-10-19, latest client checks through 16:27 CEST):** the supported-scale comparison is INCOMPLETE / REVIEW NEEDED. Normal Use UI Scale was discovered unchecked at stored 100%; attempts to apply checked 100% auto-reverted before timed confirmation completed. No accepted alternative-scale probe/renderer result exists. Original preferences/CVars 1.000000/0 returned, but effective scale changed from 0.72452831268311 to 0.71111112833023. All stopped clock counters/tick 852 and explicit counts 6/99/3 stayed unchanged; final hidden/inactive/profiling off. Further setting/client mutations stopped for restoration review. The cause is unproven, not an established API contradiction. A guarded read-only geometry snapshot is prepared, NOT RUN. Ten installed hashes match source `fbd3cc8`; Lua 5.1/5.4 suites pass (16 parsed/eight tests each). The earlier scoped idle pass remains valid for its recorded conditions. M0 remains OPEN; no combat or skipped W/Up checks were repeated.
+**Current development milestone:** M1 — local driving mechanics. M0 acceptance remains **OPEN**.
+**Current state (2026-10-19, 18:45 CEST):** implemented Space-held drift, two charge tiers, release mini-boost, slip and pooled HUD/tint feedback in physics version 3. Focused Lua 5.1 checks pass; the new 720-tick replay agrees at 30/60/144 render Hz. Installed with verified backup and ten matching source hashes; client reload/drift handling **NOT RUN**. Per the owner's request for about 80% less testing and [ADR 0007](adr/0007-build-first-development.md), continue playable solo development with focused validation. Prior scale restoration/geometry review and broader M0 client checks are deferred, still unresolved. No client input/settings changes this slice; no combat or skipped W/Up checks repeated. Next build: road/grass slowdown and bounded outer-wall collision.
 
 ## Canonical checkout and commits
 
@@ -23,6 +23,7 @@ Remote: `https://github.com/PhilForever/AzerothKart.git`; branch `main`. The pac
 - `ce1b78c` — `docs: record stationary profiler results and renderer review blocker`.
 - `fbd3cc8` — `fix: remove road seams with explicit grass layering`.
 - `68c243c` — `docs: record M0 idle stability and prepare scale probe`.
+- `0108b4e` — `docs: record incomplete scale probe and restoration mismatch`.
 
 Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.useConfigOnly=true`; verified in config and commit authors. Global identity was left unchanged. No push, tag, distribution or automation was performed. The later client-check session installed only AzerothKart in the local Forever AddOns folder and verified all nine files against source SHA-256. Ignored `local-artifacts/` contains developer dependencies/logs and synthetic install fixtures/backups; it is not staged.
 
@@ -30,12 +31,12 @@ Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.u
 
 - [x] Inspected all original source, tests/scripts and documents from `docs/INDEX.md`, including ADRs; preserved initial content in Git.
 - [x] Structural validation of paths, synchronized TOC source order, discovery markers, local Markdown links and network-ledger fields.
-- [x] All seven addon modules and nine Lua test/runner files parsed under both Lua 5.1 and Lua 5.4; eight tests executed in each runtime.
+- [x] Earlier M0 source: all seven addon modules and nine Lua test/runner files parsed under both Lua 5.1 and Lua 5.4; eight tests executed in each runtime. Current v3 focused results are in the latest handoff below; no new full-suite pass is claimed.
 - [x] Removed `_G` dependency from pure Track/Physics modules; introduced pure Input and Loop modules with explicit addon namespace registration/returned offline imports.
-- [x] Corrected inverted left/right steering; physics compatibility version is 2. This is still the analytical M0 handling probe, with no drift or production collision/race engine.
+- [x] Corrected inverted left/right steering in physics v2. Current v3 adds deterministic drift, two charge tiers and a release boost; production collision/race engine and handling acceptance remain pending.
 - [x] Physical-key alias tracking prevents W/Up and equivalent steering/brake releases from canceling another held alias. Sampling reuses a semantic input table; stop clears held/sampled controls in place.
 - [x] Fixed 60 Hz loop, at most five catch-up steps per frame; preserves fractional remainder and records full elapsed, executed ticks, dropped seconds and hitch frames.
-- [x] Seed `1729` generates a repeatable 10,000-tick input tape. Every state field matches at every tick under 30/60/144 simulated FPS in each tested runtime. This is same-runtime determinism for the tested tape, not cross-client proof or a gameplay PRNG.
+- [x] Earlier v2 seed `1729` generated a repeatable 10,000-tick input tape with every state field matching at every tick under 30/60/144 simulated FPS. The extended v3 long tape is NOT RUN this slice; focused 720-tick drift replay passed Lua 5.1. These are same-runtime checks, not cross-client proof or a gameplay PRNG.
 - [x] Mocked UI/Core lifecycle coverage includes hidden/chat/combat/missing-capability Start refusal; key aliases; Escape/unknown/Enter; Stop/Close/Hide/toggle; all mouse clicks; text/application focus; leaving world/logout; combat event and OnUpdate fallback; deferred propagation; no automatic resume; minimal save-field preservation.
 - [x] Explicit `/akart probe` / Print Probe reports identity, input capabilities, event-registration failures, clock metrics, last stop reason and explicit UI object counts. No per-tick chat or UI object creation.
 - [x] Source timing aid: cumulative valid active frame seconds, executed simulation seconds and callback cadence; complete stopped elapsed/drop/remainder accounting and immediate Start/Stop HUD refresh. Offline tested and installed; zeroed live baseline observed, with timed/final-sample acceptance pending.
@@ -60,7 +61,7 @@ Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.u
 - [ ] Full optional-profiler acceptance: availability/guarded arming/one bounded stationary sample/retention observed; fresh unprofiled Start and errors/handling/stress checks remain unrun. No sustained performance or exclusive CPU/GPU claim.
 - [ ] Stopped-window combat-close live follow-up: source fixed/offline tested and reloaded, combat check deferred at owner direction to continue elsewhere. Do not ask for another combat test as the next development task. Prior observations remain scoped in the evidence; no combat API contradiction is established.
 - [ ] Supported-scale renderer matrix and long-session behavior. The prior grass/road configuration blocker is resolved for the recorded startup case with explicit priority; native batching mechanics are not established. Do not infer all-scale correctness or a sustained-performance pass from the clean reload.
-- [ ] Scale restoration review: original 1.000000/0 preferences returned after normal Apply reversion, but effective scale changed 0.72452831268311 → 0.71111112833023. No baseline physical dimensions were measured; no native-scale explanation or API contradiction established. Stop further setting changes; next is the guarded read-only geometry review, not another timed Apply retry.
+- [ ] Scale restoration review: original 1.000000/0 preferences returned after normal Apply reversion, but effective scale changed 0.72452831268311 → 0.71111112833023. No baseline physical dimensions were measured; no native-scale explanation or API contradiction established. Keep settings unchanged. The guarded read-only geometry review is deferred under ADR 0007, not a blocker to independent M1 work.
 - [ ] Logout/full restart and isolated sentinel persistence. Clean inactive `/reload` is observed; minimal schema initialization is not proof of a save, migration or settings/ghost support.
 - [ ] Direct handling/play evaluation. Analytical metrics are a baseline only; no M1 game-feel acceptance.
 - [ ] Two-client transport measurements, reconnect and architecture ADR. No runtime bandwidth, loss, throttle or latency results exist.
@@ -69,7 +70,7 @@ Initial file-only evidence: `_classic_beta_\WowB.exe` reports `1.60.1.70450`; `.
 
 ## Next exact task
 
-**Next exact task: one guarded read-only screen/default-scale/UIParent geometry snapshot for restoration review.** Follow client-checklist section 3d at unchanged settings, with the kart hidden/inactive and profiling off. Read only available APIs; preserve unavailable/error/secret-value outcomes without coercion. Do not change scale/settings, write CVars, reload, Start or supply character input. Compare observed current dimensions only; the old dimensions were not measured and cannot be reconstructed as fact. Keep the accepted-alternative renderer test and exact effective-scale restoration unresolved until reviewed. Memory/CPU, sustained-FPS, human-driving and full F2/F5/F4 gates remain separate and pending. No new combat or skipped W/Up test is requested.
+**Next exact task: implement road/grass slowdown with bounded outer-wall collision.** Separate surface response from impassable bounds in pure Track/Physics, allow a recoverable off-road excursion instead of rejecting every grass step, and expose the current surface in the existing HUD. Use one focused Lua 5.1 check for slowdown, re-entry and drift/boost cancellation as needed; defer broad client testing. Preserve the measured multiplayer gate. Scale geometry review (client-checklist section 3d), sustained performance, handling and full F2/F5/F4 remain pending; do not resume timed scale changes, combat checks or skipped W/Up tests as the next task.
 
 ## Session handoff log
 
@@ -453,3 +454,29 @@ The kart was closed normally to expose the overlapping Options control. Checked 
 **Files/scope:** sanitized scale evidence, manual client checklist/probe, API/feasibility/testing docs and this handoff. Source/tests/ROADMAP unchanged; M0 remains OPEN. No personal screenshots/chat, other-addon/WTF/SavedVariables file edits, combat/recovery, packets, push/tag/release or automation. The existing idle pass remains historical evidence at its measured settings; it does not resolve this later scale difference.
 
 **Commit/handoff:** focused local commit intended as `docs: record incomplete scale probe and restoration mismatch`; inspect `git log` for hash. **Next exact task:** one guarded read-only screen/default-scale/UIParent geometry snapshot at unchanged settings for restoration review, checklist section 3d. Do not repeat timed scale changes or force the old effective value.
+
+### 2026-10-19 18:36–18:45 CEST (Europe/Oslo) — Codex / main, build-first drift slice
+
+**Milestone/direction:** M1 local mechanics development; M0 acceptance stays OPEN. Canonical checkout/remote/main and clean initial HEAD `0108b4e` confirmed; repository-local PhilForever identity/useConfigOnly verified. The owner requested about 80% less testing and building now. Accepted ADR 0007 updates the working policy: focused validation alongside a playable slice; defer repeated broad suites and long client probes. This explicitly permits local M1 work without declaring the remaining M0 gates passed. No transport/lobby/AI scope added.
+
+**Implementation:** physics compatibility version 3. Space plus a single turn at forward speed >=90 starts a directional slide with bounded slip. Hold the same turn to charge tier 1 at 54 ticks or tier 2 at 108 ticks; release Space while continuing the turn for 30/48 boosted steps, including the release step. Boost speed cap 260 versus normal 200. Brake, lost/opposite steering, insufficient speed or impact cancels charge; impacts clear boost/slip too. These are tunable prototype values, not accepted game feel. Physical Space state participates in the existing clear/release path.
+
+**Presentation:** preallocated fourth FontString shows controls, drift charge/tier and remaining boost. Existing quarter-second HUD cadence and immediate Start/Stop refresh are reused; stopped feedback is labeled `Last drive`. Kart tint changes only when the drift/boost phase changes. No UI objects or chat messages are created per simulation tick. Window height increased to fit feedback; explicit UI counts are now 6 frames/99 textures/4 font strings, excluding bootstrap/template internals. Fresh Start resets all mechanics. Combat/focus behavior retained.
+
+**Focused verification actually executed:**
+
+| Command/check | Result and scope |
+|---|---|
+| One-off pinned Lupa Lua 5.1 execution of `dofile("tests/test_drift.lua")` | PASS — charge boundaries/cap, slip signs, exact boost duration/expiry/speed cap, steering/brake/slow/reverse cancellation, collision clearing; seeded 720-tick replay compares all 12 state fields at 30/60/144 render Hz. |
+| `C:\Python314\python.exe scripts/test_lua.py --runtime lua51 --tests physics input ui` | PASS — 17 Lua files parsed, three selected modules executed. Space reaches actual-track fixed-step physics, HUD/tint phases and input release/reset pass; unchanged-phase tint is cached and pooled counts stay 6/99/4. |
+| `C:\Python314\python.exe scripts/validate_project.py` | PASS — 29 expected paths, synchronized TOCs, protocol/docs links and header-only network ledger. |
+| `git diff --check` | PASS — whitespace check. |
+| Short read-only integration review | No concrete blocker found; no additional test run. |
+| Verified backup/direct local installation | PASS — only Input.lua, Physics.lua and UI.lua copied after complete prior-addon backup/hash verification; all ten installed source hashes match. |
+| Full suite, extended 10k-tick v3 tape, Lua 5.4, native Lua CLI, actual-client reload/drift/handling, long scale/profiling/stress checks | NOT RUN this slice — deliberately deferred under the owner's build-first priority. Prior results remain historical and are not promoted to v3 acceptance. |
+
+`scripts/test_lua.py` now accepts `--tests <module>...` for repeatable focused runs while still parsing all sources; omitting it retains the full suite. Added a drift module and extended the existing long replay's field/input coverage, without claiming that long replay was executed this slice.
+
+**Installation:** normal filesystem approval used for the existing AzerothKart installation. Manifest: parent workspace `artifacts/AzerothKart/20261019-184501-352871/install.json`; verified prior files in `before/`. The client was left untouched; the updated disk build needs a normal `/reload` at the owner's convenience. No other addon/WTF/SavedVariables files edited, character controls automated, packets sent, push/tag/release or automation performed.
+
+**Handoff:** focused local commit intended as `feat: add charged drift and mini-boost to solo driving`; inspect `git log` for hash. Remaining risks: client handling/layout are unverified, existing road-edge collision is still the M0 position-rejection model, scale restoration review remains deferred/unresolved, and no race/lap/placement or multiplayer engine exists. **Next single task:** road/grass slowdown with bounded outer-wall collision and a surface HUD indicator; one focused Lua 5.1 pass, broader playtesting later.

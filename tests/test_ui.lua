@@ -69,7 +69,10 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     function methods:GetText() return self.text end
     function methods:SetSize(width,height) self.width,self.height=width,height end
     function methods:SetPoint(...) self.point={...} end
-    function methods:SetColorTexture(...) self.color={...} end
+    function methods:SetColorTexture(...)
+        self.color={...}
+        self.colorWrites=(rawget(self,"colorWrites") or 0)+1
+    end
     function methods:SetDrawLayer(layer,sublevel)
         env.drawLayerCalls=env.drawLayerCalls+1
         self.layer,self.sublevel=layer,sublevel or 0
@@ -214,8 +217,8 @@ withMock(nil, false, function(env,UI)
         "grass snapping stays unchanged; explicit draw priority separates it from the road")
     assert(env.drawLayerCalls==1,"only the grass configures an explicit draw sublevel once")
     assert(env.snappingCalls==192,"only the 96 road bands configure snapping once")
-    assert(UI.objects.frames==6 and UI.objects.textures==99 and UI.objects.fontStrings==3,
-        "aligned placeholder must retain the existing explicit UI object budget")
+    assert(UI.objects.frames==6 and UI.objects.textures==99 and UI.objects.fontStrings==4,
+        "placeholder plus pooled drift label must match the explicit UI object budget")
     local function covered(rectangles,x,y)
         for _,rect in ipairs(rectangles) do
             if y>=rect.bottom and y<=rect.top and x>=rect.left and x<=rect.right then
@@ -253,12 +256,53 @@ withMock(nil, false, function(env,UI)
 end)
 originalPrint(renderSummary.." (client appearance still pending)")
 
+-- One short real-track integration: Space survives the key adapter and reaches
+-- fixed-step physics. Tier HUD states are injected to avoid a long wall drive.
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    UI.Toggle(); UI.Start()
+    local counts={}
+    for key,value in pairs(env.counts) do counts[key]=value end
+    assert(UI.driftHud.text:find("Drift:",1,true),"fresh Start shows drift controls")
+    UI.state.speed=150
+    env.key(UI,"OnKeyDown","W")
+    env.key(UI,"OnKeyDown","A")
+    env.key(UI,"OnKeyDown","SPACE")
+    UI.OnUpdate(1/60)
+    assert(UI.active and UI.input.drift and UI.state.drifting and UI.state.driftTicks==1,
+        "Space is handled without releasing capture and starts a moving turn drift")
+    local colorWrites=UI.kart.colorWrites
+    for _=1,15 do UI.OnUpdate(1/60) end
+    assert(UI.state.impacts==0 and UI.state.drifting and UI.driftHud.text:find("Drifting",1,true),
+        "short drift remains on the real track and appears on the throttled HUD")
+    assert(UI.kart.colorWrites==colorWrites,"same drift phase does not rewrite kart tint each frame")
+    UI.Stop("drift fixture")
+    assert(not UI.input.drift and not UI.keys.SPACE,"Stop clears held and sampled Space")
+    for _,tier in ipairs({1,2}) do
+        UI.state.drifting=true; UI.state.driftTier=tier
+        UI.Stop("tier display fixture")
+        assert(UI.driftHud.text:find("Tier "..tier.." ready",1,true),"charged tier has visible release feedback")
+    end
+    UI.state.drifting=false; UI.state.driftTier=0; UI.state.boostTicks=20
+    UI.Stop("boost display fixture")
+    assert(UI.driftHud.text:find("BOOST",1,true),"remaining boost is visible on the stopped HUD")
+    UI.Start()
+    assert(not UI.state.drifting and UI.state.driftTicks==0 and UI.state.driftTier==0 and
+           UI.state.boostTicks==0 and UI.state.slipAngle==0,
+        "fresh Start clears charge, boost and slip")
+    assert(UI.driftHud.text:find("Drift:",1,true),"fresh Start clears old boost feedback")
+    UI.Stop("drift fixture done")
+    for key,value in pairs(counts) do
+        assert(env.counts[key]==value,"drift feedback allocates no additional UI objects: "..key)
+    end
+end)
+
 for _,mode in ipairs({"missing", "throws"}) do
     withMock(nil,false,function(env,UI)
         env.fire("ADDON_LOADED","AzerothKart")
         UI.Toggle(); UI.Start(); UI.OnUpdate(1/60)
         assert(UI.active and UI.state.tick==1,"optional snapping APIs cannot block driving: "..mode)
-        assert(UI.objects.frames==6 and UI.objects.textures==99 and UI.objects.fontStrings==3,
+        assert(UI.objects.frames==6 and UI.objects.textures==99 and UI.objects.fontStrings==4,
             "snapping fallback preserves UI object budget: "..mode)
         assert(env.drawLayerCalls==1,"grass priority remains explicit when snapping is unavailable: "..mode)
     end,nil,mode)
@@ -300,7 +344,8 @@ withMock({schemaVersion=1, custom={keep=true}}, false, function(env,UI)
         assert(UI.window.keyboard==false,reason..": keyboard disabled")
         assert(UI.keys==held and next(held)==nil,reason..": held table cleared in place")
         assert(not UI.input.accelerate and not UI.input.brake and
-               not UI.input.left and not UI.input.right,reason..": sampled input cleared")
+               not UI.input.left and not UI.input.right and not UI.input.drift,
+               reason..": sampled input cleared")
     end
     local function start()
         env.focus=nil; env.focused=true; env.mouseInside=true; env.combat=false
@@ -608,7 +653,7 @@ withMock(nil, false, function(env,UI)
     assert(math.abs(sample.simulationMs-6)<1e-8 and math.abs(sample.renderMs-6)<1e-8 and
            math.abs(sample.totalMs-12)<1e-8,"profile phases accumulate known mock milliseconds")
     assert(#env.output==before,"sampling/completion never prints per-frame chat")
-    assert(UI.objects.frames==6 and UI.objects.textures==99 and UI.objects.fontStrings==3,
+    assert(UI.objects.frames==6 and UI.objects.textures==99 and UI.objects.fontStrings==4,
         "profiling creates no UI objects")
     local state={}
     for key,value in pairs(UI.state) do state[key]=value end

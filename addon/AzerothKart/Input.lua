@@ -3,7 +3,7 @@ local _, namespace = ...
 local Input = {}
 local supported = {
     W=true, UP=true, S=true, DOWN=true,
-    A=true, LEFT=true, D=true, RIGHT=true,
+    A=true, LEFT=true, D=true, RIGHT=true, SPACE=true,
 }
 
 function Input.new()
@@ -28,6 +28,7 @@ function Input.sample(held, output)
     output.brake = not not (held.S or held.DOWN)
     output.left = not not (held.A or held.LEFT)
     output.right = not not (held.D or held.RIGHT)
+    output.drift = not not held.SPACE
     return output
 end
 

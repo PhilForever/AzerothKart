@@ -22,13 +22,20 @@ I.set(held,"A",true)
 I.set(held,"D",true)
 I.sample(held,output)
 assert(output.accelerate and output.left and output.right,"opposites remain explicit")
+assert(I.set(held,"space",true),"Space drift key must normalize and be handled")
+I.sample(held,output)
+assert(output.drift,"held Space samples drift alongside steering")
+I.set(held,"SPACE",false)
+I.sample(held,output)
+assert(not output.drift,"releasing Space clears drift")
+I.set(held,"SPACE",true)
 assert(not I.set(held,"ENTER",true),"unsupported key must remain unhandled")
 assert(not I.set(held,nil,true),"invalid key must remain unhandled")
 local sameHeld=held
 I.clear(held)
 assert(held==sameHeld and next(held)==nil,"clear must reuse and empty held state")
 I.sample(held,output)
-for _,key in ipairs({"accelerate","brake","left","right"}) do
+for _,key in ipairs({"accelerate","brake","left","right","drift"}) do
     assert(output[key]==false,"clearing must not leave stale sampled controls")
 end
 local before=_G.AzerothKart

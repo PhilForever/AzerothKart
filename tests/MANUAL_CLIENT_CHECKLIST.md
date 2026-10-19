@@ -4,7 +4,7 @@
 
 **2026-10-19 continuation:** two human near-minute drives are recorded below. An unplanned combat/death sequence left the stopped window visible. That inactive-event source gap is fixed/tested offline, installed and loaded; actual combat verification remains deferred. Further drives were put on hold at that point; the owner's subsequent direction is recorded below. [Driving evidence](../docs/evidence/2026-10-19-m0-client.md).
 
-**Owner steering afterward:** continue development elsewhere; no further combat test is requested now. Unrun rows stay pending while independent M0 work proceeds.
+**Owner steering afterward:** continue development elsewhere; no further combat test is requested now. On 2026-10-19 the owner requested about 80% less testing and build-first work ([ADR 0007](../docs/adr/0007-build-first-development.md)). Unrun rows stay pending while local M1 mechanics progress; long manual/scale/profile matrices and the geometry review below are deferred.
 
 **2026-10-19 profiler continuation, 07:32 CEST:** desktop app/window inventory returned no WoW client. The optional bounded profiler is installed on disk with all ten addon files matching tested source. Live profiler type/readback/cost, new-renderer load and appearance remain **NOT RUN**. The separate `/akart perf` protocol below is prepared; no new human drive or combat check is requested during this development slice.
 
@@ -16,6 +16,15 @@ Observed date/time: 2026-10-18 ~17:10–17:16 CEST (Europe/Oslo); tester: Codex 
 Build/interface: 1.60.1 / 70450 / 16001; runtime project ID: 18; selected TOC: Camelot; addon version: 0.0.1.
 Captured resolution: 1920×1080; uiScale: 1.000000 / useUiScale: 0; Windows; hardware not recorded.
 Other addons remained enabled/unchanged; baseline whole-client FPS sample: 207.6124420166. Evidence: linked above; no public screenshots.
+
+## Optional M1 drift smoke — NOT RUN
+
+Use at a later handling checkpoint, when a person can drive; this is not a prerequisite to the next local build slice.
+
+1. Outside combat, open `/akart` and click Start. Accelerate to 90+ with W or Up, then hold Space with one turn direction. Observe bounded slide, blue charge and the named drift HUD.
+2. Keep the turn for about 0.9 seconds to reach gold/tier 1; continuing about 1.8 seconds total reaches pink/tier 2. Release only Space while retaining the turn: observe cyan/BOOST, then return to normal. Judge responsiveness rather than timing these short intervals by eye as proof of exact ticks.
+3. In another attempt, cancel a charge by releasing steering or braking; it must not award a boost. Avoid intentionally triggering combat. Escape must stop capture; the HUD retains `Last drive`, and a deliberate new Start clears it.
+4. Record the subjective handling, any Lua/layout error and stopped probe. Current source expects 6 frames/99 textures/4 font strings; prior live 6/99/3 evidence belongs to the earlier source. Do not repeat the skipped simultaneous W/Up test.
 
 ## 1. Identity and startup
 
@@ -157,9 +166,9 @@ These scoped elapsed milliseconds include clock/protection instrumentation overh
 | One supported alternative | Checked; 100%, Apply then timed reversion | NOT READ during temporary state | NOT READ | Kart hidden; changed-scale renderer NOT RUN | INCOMPLETE |
 | Restored original | Unchecked; stored 100% | 1.000000 / 0 | 0.71111112833023 | All counters/counts frozen; hidden/inactive/profiling off | Preferences restored; effective-scale criterion unmet, REVIEW NEEDED |
 
-## 3d. Read-only geometry review — next M0 task
+## 3d. Read-only geometry review — deferred M0 check
 
-**Status: PREPARED, NOT RUN.** Review the scale mismatch before further setting changes. At unchanged settings, record timestamp and actual build, then run these lines individually. Each optional call is type-checked and protected; its returned table begins with the `pcall` success boolean. Record unavailable/error results; if reporting encounters restricted or secret values, stop that read without coercion or a fallback access path.
+**Status: PREPARED, NOT RUN; deferred under ADR 0007.** This review does not block local M1 work. Review the scale mismatch before further setting changes. At unchanged settings, record timestamp and actual build, then run these lines individually. Each optional call is type-checked and protected; its returned table begins with the `pcall` success boolean. Record unavailable/error results; if reporting encounters restricted or secret values, stop that read without coercion or a fallback access path.
 
 ```text
 /dump GetCVar("uiScale"), GetCVar("useUiScale")

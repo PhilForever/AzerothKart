@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — local drift charge and boost (2026-10-19)
+- Physics version 3 adds Space-held drift with bounded signed slip, two fixed-tick charge tiers and a release boost. Brake, steering loss/opposition, low speed and collision cancel the charge; brake/collision cancel an active boost.
+- Add a separate pooled drift HUD and phase-cached kart colors for charge, ready tiers and boost. The window is 856×670; the explicit budget is now 6 frames/99 textures/4 font strings. Stop retains `Last drive` feedback; a fresh Start resets it.
+- Focused Lua 5.1 physics/input/UI and separate drift checks passed. Installed Input/Physics/UI with a verified prior-addon backup and ten matching source hashes; no client reload or handling check performed.
+- Adopt the owner's build-first priority: focused checks for changed mechanics, with long client/scale/profile matrices deferred. M0 stays open; human drift handling, new-layout client verification and this slice's full dual-runtime suite are NOT RUN. Exact commands/results are in PROGRESS.
+
 ## Unreleased — explicit road draw order and seam fix (2026-10-19)
 - Put the canvas grass below the outer road bands and disable sharpening/pixel snapping only for the 96 bands during creation. Geometry, physics, input and the 6/99/3 object budget are unchanged.
 - Isolated live checks showed grass occlusion; a clean reload then verified the permanent fix, all 96 band settings and unchanged grass snapping at effective scale 0.72452831268311. Other-scale and sustained-performance acceptance remain pending.

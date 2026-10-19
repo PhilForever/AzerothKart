@@ -5,8 +5,8 @@ You are the implementation engineer for **Azeroth Kart**, a top-down 2D WoW Fore
 ## Session-start protocol (mandatory)
 1. Inspect working tree (`git status --short`, recent commits) and existing files. **Do not reset, delete, overwrite uncommitted user work, or force push.**
 2. Read: `README.md`, `docs/PROGRESS.md`, `docs/ROADMAP.md`, `docs/FEASIBILITY.md`, `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, relevant ADRs and tests.
-3. Determine **the first milestone that has unfinished acceptance criteria and no unresolved blocker**. Select one small vertical slice. If game/client input is needed, implement a probe and document exact manual steps, then continue with code that does not require invented results.
-4. Make a short plan before changes; respect the current milestone's exit gate. No uncontrolled scope expansion.
+3. Select one small vertical slice under the owner's current priority. Per [ADR 0007](docs/adr/0007-build-first-development.md), remaining M0 manual validation does not block local M1 development. Prepare a focused probe only when an actual uncertainty blocks implementation; record deferred client checks without inventing results.
+4. Make a short plan before changes. Respect acceptance criteria when declaring completion and retain the measured multiplayer gate. No uncontrolled scope expansion.
 
 ## Engineering non-negotiables
 - Pure Lua `Physics`, `Track`, `Race`, PRNG and protocol state should not depend on `_G`, WoW globals, wall clock, or rendering. Pass explicit inputs and deterministic seeds; favor dependency injection.
@@ -22,8 +22,10 @@ You are the implementation engineer for **Azeroth Kart**, a top-down 2D WoW Fore
 - Match mechanics should remain fun in solo mode even if multiplayer is absent.
 
 ## Development/test protocol
-- Make narrow, testable changes. Write tests **before/alongside** simulation and protocol changes.
-- Run `python scripts/validate_project.py`. If Lua interpreter is installed, run `lua tests/run.lua` and report actual pass/fail. Run in-game probes only if you have the actual running client; otherwise mark `MANUAL TEST REQUIRED`.
+- Build first: the owner requested about 80% less testing on 2026-10-19. Aim for roughly 80% implementation and 20% focused validation; this is a working priority, not a measured quota. See ADR 0007.
+- Make narrow changes with focused regression coverage alongside changed simulation or protocol behavior. Use one quick targeted Lua 5.1 pass for changed mechanics and cheap structural/load/packaging checks when relevant; report the commands actually executed.
+- Defer long manual scale/profiling sessions, repeated dual-runtime runs and broad stress matrices. Run broader suites for a new failure or material risk, or at a periodic integration checkpoint. Do not spend a session only on probes without a concrete blocker or an explicit owner request.
+- Run in-game checks only with the actual client. Label unexecuted checks `NOT RUN`; deferred validation leaves acceptance open and never becomes a pass by waiver.
 - Never state client, multiplayer, race timing, FPS or packet results unless measured.
 - Update `docs/PROGRESS.md` with completed work, commands actually run, limitations, blockers and exact next task; update roadmap checkboxes only if objectively met.
 - If blocked by API uncertainty, create a focused experiment in `docs/FEASIBILITY.md` and proceed to independent work. Do not hallucinate availability.
@@ -34,4 +36,4 @@ You are the implementation engineer for **Azeroth Kart**, a top-down 2D WoW Fore
 End every agent run with a concise report: milestone, files changed, tests run + results, any client tests pending, blockers, next exact task. Persist the same in `docs/PROGRESS.md` **before** ending.
 
 ## Precedence
-`AGENTS.md` > confirmed live-client findings in `docs/FEASIBILITY.md` and `docs/PROGRESS.md` > accepted ADRs > scoped design docs > generic WoW advice. If these conflict, document the conflict; don't silently rewrite all docs.
+User instructions > `AGENTS.md` > confirmed live-client findings in `docs/FEASIBILITY.md` and `docs/PROGRESS.md` > accepted ADRs > scoped design docs > generic WoW advice. If these conflict, document the conflict; don't silently rewrite all docs.

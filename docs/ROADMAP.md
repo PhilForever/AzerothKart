@@ -2,9 +2,11 @@
 
 **Not a schedule promise.** Milestones are completed only after measurable acceptance criteria. Codex should complete one small vertical slice per run and update `PROGRESS.md`.
 
+**Owner priority, 2026-10-19:** build playable local mechanics with roughly 80% implementation / 20% focused validation. M0's remaining manual checks are deferred and stay open; they no longer block M1 development. Long probe sessions and repeated broad test matrices wait for a concrete blocker or integration checkpoint. [ADR 0007](adr/0007-build-first-development.md) records this change; multiplayer still requires measured feasibility.
+
 ## Phase 0 — prove the client + game loop
 
-### M0. Repository and API proof (CURRENT)
+### M0. Repository and API proof (OPEN — remaining validation deferred)
 - [x] Run Python project validation + Lua syntax/runtime tests; address failures. (2026-10-18: structural validator and complete offline suite in Lua 5.1/5.4; client checks remain open.)
 - [x] Confirm actual TOC/interface/flavor and addon load; record build. (2026-10-18 live: 1.60.1/70450, interface 16001, project ID 18, Camelot TOC.)
 - [x] Render test window and drive prototype with keys in actual Forever. (2026-10-19: owner completed a near-minute drive; stopped tick 3492, displaced/rotated kart and matching HUD/probe observed. [Evidence](evidence/2026-10-19-m0-client.md); full timing/focus gates remain open.)
@@ -12,13 +14,15 @@
 - [ ] Measure frame performance and verify bounded UI allocations.
 **Exit:** all results recorded in F1/F2/F5, no taint and no stuck keyboard; offline tests passing in real Lua runtime.
 
-### M1. Deterministic driving model
+### M1. Deterministic driving model (CURRENT DEVELOPMENT)
 - [ ] Decouple physics from UI fully; 60Hz fixed-step baseline and bounded catch-up.
 - [ ] Road/wall/grass response and stable collisions across varying FPS.
 - [ ] Handling tuning suite: accel, brake, reverse, steering/traction, low-speed assist.
 - [ ] Implement drift charge/boost/release with deterministic tests and visible feedback.
 - [ ] Wire input loss and combat-interrupted final results/release (ADR 0006); gamepad only if client-proven.
 **Exit:** 10k-tick replay equivalence, manual game-feel trials, no unintended inputs.
+
+Current slice: Space-held drift charge, release boost and visible feedback. Implementation progress does not mark the manual game-feel or remaining M0 criteria passed.
 
 ### M2. Network feasibility and social handshake
 - [ ] `AZKART1` channel capability probe with two real clients.
@@ -103,6 +107,6 @@
 **Exit:** public package verifies clean install, reload, uninstall; no leaked credentials.
 
 ## Prioritization policy
-- M0 + M1 gate all physics investments; M2 gates live multiplayer investment. M3 is required for any public 'racer' claim.
+- Remaining M0 manual validation does not block local M1 mechanics development (ADR 0007). M0/M1 acceptance stays open until supported by executed checks; M2 gates live multiplayer investment. M3 is required for any public 'racer' claim.
 - If real-time racing is technically infeasible, choose M3/M4/M5/M11, not fabricated netcode.
 - Do not claim milestones completed because code exists; require actual tests and product-owner acceptance where relevant.

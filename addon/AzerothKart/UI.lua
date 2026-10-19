@@ -1,4 +1,4 @@
--- M0 presentation/input adapter. Mocked tests do not establish client API safety.
+-- Solo driving presentation/input adapter. Mocked tests do not establish client API safety.
 local _, AK = ...
 assert(type(AK) == "table", "addon namespace required")
 local Track, Physics, Input, Loop = AK.Track, AK.Physics, AK.Input, AK.Loop
@@ -96,6 +96,22 @@ local function refreshHud()
     UI.hud:SetText(("Speed: %d | Ticks: %d | Dropped: %.3fs | Sample: %.1fs"):format(
         math.floor(math.abs(UI.state.speed)+0.5),UI.state.tick,
         c and c.droppedSeconds or 0,c and c.elapsedSeconds or 0))
+    if UI.driftHud then
+        local state = UI.state
+        local feedback = "Drift: hold Space + turn at speed 90+ | Release Space to boost"
+        if state.boostTicks > 0 then
+            feedback = ("BOOST | %.2fs remaining"):format(state.boostTicks * Physics.FIXED_DT)
+        elseif state.drifting then
+            if state.driftTier > 0 then
+                feedback = ("Drifting | Tier %d ready | Release Space to boost"):format(state.driftTier)
+            else
+                feedback = ("Drifting | Charge %d%% | Hold Space + turn"):format(
+                    math.floor(state.driftTicks / Physics.DRIFT_TIER1_TICKS * 100))
+            end
+        end
+        if not UI.active and state.tick > 0 then feedback = "Last drive | " .. feedback end
+        UI.driftHud:SetText(feedback)
+    end
 end
 
 local function refuseStart(reason)
@@ -158,10 +174,7 @@ local function keyEvent(key, down)
     if type(key) ~= "string" then return end
     key = string.upper(key)
     if key == "ESCAPE" then UI.Stop("Exited test drive"); return end
-    if key == "W" or key == "UP" or key == "S" or key == "DOWN"
-        or key == "A" or key == "LEFT" or key == "D" or key == "RIGHT" then
-        Input.set(UI.keys, key, down)
-    elseif down then
+    if not Input.set(UI.keys, key, down) and down then
         -- Enter/chat/menu bindings release capture before normal UI handling.
         UI.Stop("Other key released controls")
     end
@@ -204,13 +217,23 @@ local function render()
     UI.kart:ClearAllPoints()
     UI.kart:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",UI.state.x,UI.state.y)
     UI.kart:SetRotation(UI.state.heading - math.pi/2)
+    local state = UI.state
+    local tint = state.boostTicks > 0 and 4 or (state.drifting and (1 + state.driftTier) or 0)
+    if tint ~= UI.kartTint then
+        UI.kartTint = tint
+        if tint == 4 then UI.kart:SetColorTexture(0.20,1.00,0.88,1)
+        elseif tint == 3 then UI.kart:SetColorTexture(1.00,0.35,0.78,1)
+        elseif tint == 2 then UI.kart:SetColorTexture(1.00,0.86,0.20,1)
+        elseif tint == 1 then UI.kart:SetColorTexture(0.35,0.65,1.00,1)
+        else UI.kart:SetColorTexture(0.98,0.54,0.14,1) end
+    end
 end
 
 function UI.Create()
     if UI.window then return end
     local window = frame("Frame","AzerothKartMainWindow",UIParent,"BackdropTemplate")
     UI.window = window
-    window:SetSize(856,640)
+    window:SetSize(856,670)
     window:SetPoint("CENTER")
     window:SetFrameStrata("DIALOG")
     window:SetClampedToScreen(true)
@@ -227,7 +250,7 @@ function UI.Create()
         if UI.active then UI.Stop("Window hidden") else UI.ReleaseInput() end
     end)
 
-    local title = text(window,"TOPLEFT",28,-20,"AZEROTH KART |cff777777[M0 LOCAL PROBE]|r")
+    local title = text(window,"TOPLEFT",28,-20,"AZEROTH KART |cff777777[SOLO DRIVE]|r")
     title:SetJustifyH("LEFT")
     local close = frame("Button",nil,window,"UIPanelButtonTemplate")
     close:SetSize(72,24)
@@ -246,15 +269,16 @@ function UI.Create()
     grass:SetDrawLayer("BACKGROUND",-1)
     drawTrack(UI.canvas)
     UI.kart = texture(UI.canvas,"OVERLAY")
-    UI.kart:SetColorTexture(0.98,0.54,0.14,1)
     UI.kart:SetSize(17,31)
     UI.state = Physics.new(Track)
     render()
 
-    UI.status = text(window,"BOTTOMLEFT",28,67,"Out of combat: Start Test Drive")
+    UI.status = text(window,"BOTTOMLEFT",28,97,"Out of combat: Start Test Drive")
     UI.status:SetJustifyH("LEFT")
-    UI.hud = text(window,"BOTTOMLEFT",28,44,"Speed: 0 | Ticks: 0")
+    UI.hud = text(window,"BOTTOMLEFT",28,74,"Speed: 0 | Ticks: 0")
     UI.hud:SetJustifyH("LEFT")
+    UI.driftHud = text(window,"BOTTOMLEFT",28,50,"")
+    UI.driftHud:SetJustifyH("LEFT")
     refreshHud()
     UI.startButton = frame("Button",nil,window,"UIPanelButtonTemplate")
     UI.startButton:SetSize(130,24)
@@ -297,7 +321,7 @@ function UI.Start()
     UI.active = true
     render()
     refreshHud()
-    UI.status:SetText("Controls active: W/A/S/D or arrows | Esc / other key to release")
+    UI.status:SetText("W/A/S/D or arrows | Space + turn: drift | Esc / other key: release controls")
     UI.startButton:Disable()
     UI.stopButton:Enable()
 end

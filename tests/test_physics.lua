@@ -21,7 +21,7 @@ local collided=P.step(edge,{accelerate=true},P.FIXED_DT,T)
 assert(collided.impacts==1,"outer bound collision detected")
 assert(collided.x==edge.x and collided.y==edge.y,"collision rejects penetration")
 assert(collided.speed<edge.speed,"collision scrubs speed")
-assert(P.VERSION==2,"steering fix changes replay compatibility")
+assert(P.VERSION==3,"drift changes replay compatibility")
 
 -- Measure handling without track impacts obscuring speed clamps.
 local openTrack={spawn=T.spawn,isDrivable=function() return true end}
