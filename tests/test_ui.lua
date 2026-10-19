@@ -156,7 +156,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     end
     local ok, err=pcall(function()
         local namespace={}
-        for _,name in ipairs({"Track", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "UI", "Core"}) do
+        for _,name in ipairs({"Track", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "UI", "Core"}) do
             assert(loadfile("addon/AzerothKart/"..name..".lua"))("AzerothKart",namespace)
         end
         env.namespace=namespace
@@ -244,8 +244,8 @@ withMock(nil, false, function(env,UI)
             "thin wall strips follow the canvas perimeter")
         assert(wall.item.colorWrites==1,"static wall color is configured once")
     end
-    assert(UI.objects.frames==6 and UI.objects.textures==110 and UI.objects.fontStrings==9,
-        "pooled lap/checkpoint HUD, drift meter and walls match the explicit UI object budget")
+    assert(UI.objects.frames==8 and UI.objects.textures==110 and UI.objects.fontStrings==12,
+        "pooled run summary, lap/checkpoint HUD, drift meter and walls match the explicit UI object budget")
     local function covered(rectangles,x,y)
         for _,rect in ipairs(rectangles) do
             if y>=rect.bottom and y<=rect.top and x>=rect.left and x<=rect.right then
@@ -369,7 +369,7 @@ withMock(nil,false,function(env,UI)
     assert(not UI.checkpoints.complete and UI.checkpoints.passed==0 and
            UI.checkpoints.nextGate==1 and UI.checkpoints.lastTick==firstFinishTick and
            UI.checkpoints==UI.laps.checkpoints and UI.active and UI.result==nil,
-        "lap completion immediately rearms North without inventing a finite race result")
+        "a nonfinal lap rearms North while the three-lap run remains active")
     local function lapCaption(completed,current,last)
         return ("Laps: %d | Current: %.2fs | Last: %.2fs"):format(
             completed,current*Physics.FIXED_DT,last*Physics.FIXED_DT)
@@ -441,6 +441,121 @@ withMock(nil,false,function(env,UI)
     UI.Stop("lap fixture done")
     for key,value in pairs(counts) do
         assert(env.counts[key]==value,"lap/checkpoint updates allocated UI objects: "..key)
+    end
+end)
+
+-- The third ordered circuit is terminal, including when the finish lands in a
+-- multi-tick render callback. Results and the pooled restart flow stay usable.
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    assert(UI.race==nil and not UI.summary:IsShown(),
+        "cold creation does not invent a run or display a result")
+    UI.Toggle(); UI.Start()
+    local Track,Physics=env.namespace.Track,env.namespace.Physics
+    local dt=Physics.FIXED_DT
+    local counts={}
+    for key,value in pairs(env.counts) do counts[key]=value end
+    assert(UI.race.status=="running" and UI.race.targetLaps==3 and
+           UI.laps==UI.race.laps and UI.checkpoints==UI.laps.checkpoints,
+        "deliberate Start creates one three-lap run with shared lap/checkpoint samples")
+    assert(not UI.summary:IsShown(),"running drive keeps the pooled summary hidden")
+    local function cross(index,elapsed)
+        local gate=Track.gates[index]
+        UI.state.x=(gate.ax+gate.bx)/2-gate.nx
+        UI.state.y=(gate.ay+gate.by)/2-gate.ny
+        UI.state.heading=gate.nx==1 and 0 or gate.nx==-1 and math.pi or
+            gate.ny==1 and math.pi/2 or -math.pi/2
+        UI.state.speed=200; UI.state.steering=0
+        UI.OnUpdate(elapsed or dt)
+    end
+    env.key(UI,"OnKeyDown","W"); env.key(UI,"OnKeyDown","SPACE")
+    for lap=1,3 do
+        for index=1,4 do
+            cross(index,lap==3 and index==4 and 3*dt or dt)
+        end
+        if lap<3 then
+            assert(UI.active and UI.race.status=="running" and UI.result==nil,
+                "nonfinal laps keep the run active without a terminal result")
+        end
+    end
+    local race,result,clock,pose=UI.race,UI.result,UI.clock,UI.state
+    assert(not UI.active and race.status=="finished" and race.finishTick==12 and
+           race.totalTicks==12 and race.laps.completedLaps==3 and
+           race.laps.lastLapTicks==4 and pose.tick==12,
+        "the third directional finish freezes the exact twelfth tick and all three laps")
+    assert(result.status=="finished" and result.reason=="Three-lap run complete" and
+           result.tick==12 and result.totalTicks==12 and result.completedLaps==3,
+        "finish result exposes actual terminal lap/time values")
+    assert(clock.steps==12 and clock.lastSteps==1 and clock.hitchFrames==0 and
+           math.abs(clock.droppedSeconds-2*dt)<1e-10 and math.abs(clock.accumulator)<1e-10,
+        "finish stops remaining catch-up ticks and accounts for them without a false hitch")
+    assert(math.abs(clock.steps*dt+clock.droppedSeconds+clock.accumulator-
+           clock.elapsedSeconds)<1e-10,"finish frame retains complete elapsed accounting")
+    assert(UI.window.keyboard==false and UI.window.propagate and next(UI.keys)==nil and
+           not UI.input.accelerate and not UI.input.drift,
+        "automatic finish releases held and sampled controls")
+    assert(UI.previousState==pose and UI.kart.point[4]==pose.x and UI.kart.point[5]==pose.y and
+           UI.kart.rotation==pose.heading-math.pi/2,
+        "automatic finish renders the exact terminal pose")
+    assert(UI.checkpointHud.text:find("Checkpoints: 3-lap run complete",1,true),
+        "terminal checkpoint HUD explains completion instead of requesting another circuit")
+    assert(UI.summary:IsShown() and UI.summary.parent==UI.canvas and
+           UI.summary.width==380 and UI.summary.height==170 and
+           UI.summaryTitle.text=="RUN COMPLETE",
+        "finished run displays its preallocated summary panel")
+    assert(UI.summaryDetail.text:find("3/3",1,true) and
+           UI.summaryDetail.text:find(("%.2fs"):format(12*dt),1,true) and
+           UI.summaryDetail.text:find(("%.2fs"):format(4*dt),1,true),
+        "summary displays completed/target laps, total time and the actual last lap")
+    assert(UI.restartButton.parent==UI.summary and UI.restartButton.text=="Restart" and
+           type(UI.restartButton.scripts.OnClick)=="function",
+        "summary exposes a reachable explicit Restart control")
+    local output=#env.output
+    local finishReason,finishHud=UI.stopReason,UI.hud.text
+    UI.OnUpdate(1); UI.Stop("later ordinary stop"); UI.Toggle(); UI.Toggle()
+    assert(UI.race==race and UI.result==result and UI.clock==clock and UI.state==pose and
+           UI.state.tick==12 and UI.stopReason==finishReason and UI.hud.text==finishHud and
+           UI.summary:IsShown() and UI.summaryTitle.text=="RUN COMPLETE",
+        "inactive updates, Stop, close and reopen retain the same completed run")
+    local closeButton
+    for _,item in ipairs(env.frames) do if item.text=="Close" then closeButton=item end end
+    closeButton.scripts.OnClick(closeButton)
+    UI.Start()
+    assert(not UI.window:IsShown() and UI.race==race and UI.result==result,
+        "hidden Start cannot replace a completed result")
+    UI.Toggle(); env.combat=true; UI.Start()
+    assert(not UI.active and UI.race==race and UI.result==result and UI.summary:IsShown(),
+        "refused combat-time Start preserves the completed summary")
+    env.fire("PLAYER_REGEN_DISABLED"); UI.InterruptCombat(); UI.OnUpdate(1)
+    assert(not UI.window:IsShown() and UI.race==race and UI.result==result and #env.output==output,
+        "combat after finish cannot turn the completed result into a new interruption")
+    env.combat=false; env.fire("PLAYER_REGEN_ENABLED"); UI.Toggle()
+    env.focus={}; UI.Start()
+    assert(UI.race==race and UI.result==result and UI.summary:IsShown(),
+        "refused text-focus Start preserves the same completed summary")
+    env.focus=nil
+    UI.restartButton.scripts.OnClick(UI.restartButton)
+    assert(UI.active and UI.race~=race and UI.race.status=="running" and
+           UI.result==nil and UI.state.tick==0 and UI.clock~=clock and
+           UI.laps==UI.race.laps and UI.laps.completedLaps==0 and not UI.summary:IsShown(),
+        "summary Restart begins a fresh run and hides the retained result")
+    cross(1); UI.Stop("partial run fixture")
+    assert(UI.race.status=="stopped" and UI.race.totalTicks==1 and
+           UI.race.laps.completedLaps==0 and UI.checkpoints.passed==1 and
+           UI.summary:IsShown() and UI.summaryTitle.text=="RUN STOPPED",
+        "ordinary Stop displays actual partial progress without a finish award")
+    UI.restartButton.scripts.OnClick(UI.restartButton)
+    cross(1); env.combat=true; env.fire("PLAYER_REGEN_DISABLED")
+    local interrupted=UI.race
+    assert(interrupted.status=="interrupted" and interrupted.totalTicks==1 and
+           interrupted.laps.completedLaps==0 and UI.checkpoints.passed==1 and
+           UI.summaryTitle.text=="GAME INTERRUPTED BY COMBAT" and not UI.window:IsShown(),
+        "combat interruption freezes actual partial progress and its summary")
+    env.combat=false; env.fire("PLAYER_REGEN_ENABLED"); UI.Toggle()
+    assert(UI.race==interrupted and not UI.active and UI.summary:IsShown(),
+        "explicit reopen shows the frozen interrupted summary without resuming")
+    for key,value in pairs(counts) do
+        assert(env.counts[key]==value,"finish/restart/partial flow allocated UI objects: "..key)
     end
 end)
 
@@ -706,7 +821,7 @@ for _,mode in ipairs({"missing", "throws"}) do
         env.fire("ADDON_LOADED","AzerothKart")
         UI.Toggle(); UI.Start(); UI.OnUpdate(1/60)
         assert(UI.active and UI.state.tick==1,"optional snapping APIs cannot block driving: "..mode)
-        assert(UI.objects.frames==6 and UI.objects.textures==110 and UI.objects.fontStrings==9,
+        assert(UI.objects.frames==8 and UI.objects.textures==110 and UI.objects.fontStrings==12,
             "snapping fallback preserves UI object budget: "..mode)
         assert(env.drawLayerCalls==1,"grass priority remains explicit when snapping is unavailable: "..mode)
     end,nil,mode)
@@ -1057,7 +1172,7 @@ withMock(nil, false, function(env,UI)
     assert(math.abs(sample.simulationMs-6)<1e-8 and math.abs(sample.renderMs-6)<1e-8 and
            math.abs(sample.totalMs-12)<1e-8,"profile phases accumulate known mock milliseconds")
     assert(#env.output==before,"sampling/completion never prints per-frame chat")
-    assert(UI.objects.frames==6 and UI.objects.textures==110 and UI.objects.fontStrings==9,
+    assert(UI.objects.frames==8 and UI.objects.textures==110 and UI.objects.fontStrings==12,
         "profiling creates no UI objects")
     local state={}
     for key,value in pairs(UI.state) do state[key]=value end

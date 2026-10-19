@@ -57,6 +57,32 @@ assert(fresh~=clock and fresh.elapsedSeconds==0 and fresh.frames==0 and fresh.st
        and fresh.accumulator==0 and fresh.droppedSeconds==0 and fresh.hitchFrames==0,
        "fresh clock resets all run timing metrics")
 
+-- A terminal callback has executed its final tick. Remaining whole ticks are
+-- accounted as dropped time, without labeling an ordinary finish as a hitch.
+for _,case in ipairs({
+    {elapsed=2/60, dropped=1/60, remainder=0, hitches=0},
+    {elapsed=1.5/60, dropped=0, remainder=0.5/60, hitches=0},
+    {elapsed=8.5/60, dropped=7/60, remainder=0.5/60, hitches=1},
+}) do
+    local terminal=L.new()
+    local calls=0
+    local executed=L.advance(terminal,case.elapsed,function(dt)
+        calls=calls+1
+        assert(dt==terminal.dt,"terminal callback receives the fixed step")
+        return false
+    end)
+    assert(executed==1 and calls==1 and terminal.lastSteps==1 and terminal.steps==1,
+        "terminal tick counts exactly once and stops catch-up immediately")
+    assert(terminal.hitchFrames==case.hitches,"only an exceeded work budget counts as a hitch")
+    near(terminal.droppedSeconds,case.dropped,"terminal frame accounts for unused whole ticks")
+    near(terminal.accumulator,case.remainder,"terminal frame retains its fractional remainder")
+    near(terminal.steps*terminal.dt+terminal.droppedSeconds+terminal.accumulator,
+        terminal.elapsedSeconds,"terminal tick accounting retains the complete frame duration")
+end
+local continuing=L.new()
+assert(L.advance(continuing,2/60,function() return true end)==2,
+    "explicit true continues catch-up, as do existing nil-returning callbacks")
+
 local before={}
 for key,value in pairs(clock) do before[key]=value end
 for _,invalid in ipairs({-1,math.huge,-math.huge,"0.1",false}) do

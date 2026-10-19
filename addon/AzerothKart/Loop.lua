@@ -32,8 +32,13 @@ function Loop.advance(clock, elapsed, stepFn)
     -- This tolerance is relative to dt and never admits a meaningful extra tick.
     local epsilon = clock.dt * 1e-9
     local available = math.floor((clock.accumulator + epsilon) / clock.dt)
-    local count = math.min(available, clock.maxSteps)
-    for _=1,count do stepFn(clock.dt) end
+    local budget = math.min(available, clock.maxSteps)
+    local count = 0
+    for _=1,budget do
+        count = count+1
+        -- Explicit false ends the run after this executed tick, not before it.
+        if stepFn(clock.dt) == false then break end
+    end
     clock.accumulator = clock.accumulator - count * clock.dt
     clock.steps = clock.steps + count
     clock.lastSteps = count
@@ -52,7 +57,7 @@ function Loop.advance(clock, elapsed, stepFn)
             clock.accumulator = clock.accumulator - seconds
         end
         clock.droppedSeconds = clock.droppedSeconds + seconds
-        clock.hitchFrames = clock.hitchFrames + 1
+        if available > clock.maxSteps then clock.hitchFrames = clock.hitchFrames + 1 end
     end
     if clock.accumulator < 0 and clock.accumulator > -epsilon then
         clock.accumulator = 0

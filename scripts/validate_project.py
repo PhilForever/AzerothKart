@@ -17,6 +17,7 @@ REQUIRED=[
  'addon/AzerothKart/Presentation.lua','tests/test_presentation.lua',
  'addon/AzerothKart/Checkpoints.lua','tests/test_checkpoints.lua',
  'addon/AzerothKart/Laps.lua','tests/test_laps.lua',
+ 'addon/AzerothKart/Race.lua','tests/test_race.lua',
  'addon/AzerothKart/UI.lua','addon/AzerothKart/Core.lua','tests/run.lua',
  'tests/test_input.lua','tests/test_loop.lua','tests/test_ui.lua','tests/test_handling.lua','scripts/test_lua.py',
  'requirements-dev.txt','docs/experiments/network-ledger.csv',
@@ -32,7 +33,7 @@ for tocname in ('AzerothKart.toc','AzerothKart_Camelot.toc'):
  if '## Interface: 16001' not in lines: errors.append(f'{tocname}: unexpected interface')
  if '## SavedVariables: AzerothKartDB' not in lines: errors.append(f'{tocname}: missing SavedVariables')
  loads=[x.strip() for x in lines if x.strip() and not x.startswith('##')]
- if loads!=['Track.lua','Physics.lua','Input.lua','Loop.lua','Performance.lua','Presentation.lua','Checkpoints.lua','Laps.lua','UI.lua','Core.lua']:
+ if loads!=['Track.lua','Physics.lua','Input.lua','Loop.lua','Performance.lua','Presentation.lua','Checkpoints.lua','Laps.lua','Race.lua','UI.lua','Core.lua']:
   errors.append(f'{tocname}: unexpected source load order: {loads}')
  for f in loads:
   if not (ADDON/f).is_file():errors.append(f'{tocname}: missing {f}')

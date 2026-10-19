@@ -13,5 +13,6 @@ Performance.lua
 Presentation.lua
 Checkpoints.lua
 Laps.lua
+Race.lua
 UI.lua
 Core.lua

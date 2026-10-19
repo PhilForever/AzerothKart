@@ -6,6 +6,7 @@ local Performance = AK.Performance
 local Presentation = AK.Presentation
 local Checkpoints = AK.Checkpoints
 local Laps = AK.Laps
+local Race = AK.Race
 local UI = {
     active=false, keys=Input.new(), input={}, pendingPropagationRelease=false,
     objects={frames=0, textures=0, fontStrings=0}, stopReason="Not started",
@@ -169,11 +170,35 @@ local function refreshCheckpoints()
     if changed or stopped ~= UI.gateStopped then
         UI.gateStopped = stopped
         local caption = ("Checkpoints: %d/%d | "):format(progress.passed,#Track.gates)
-        if progress.complete then caption = caption .. "Course complete"
+        if UI.race and UI.race.status == "finished" then
+            caption = "Checkpoints: 3-lap run complete"
+        elseif progress.complete then caption = caption .. "Course complete"
         else caption = caption .. "Next: " .. Track.gates[progress.nextGate].name end
         if stopped then caption = "Last drive | " .. caption end
         UI.checkpointHud:SetText(caption)
     end
+end
+
+local function refreshSummary()
+    if not UI.summary then return end
+    local race = UI.race
+    if not race or race.status == "running" then UI.summary:Hide(); return end
+    if UI.summaryRace ~= race then
+        UI.summaryRace = race
+        if race.status == "finished" then
+            UI.summaryTitle:SetText("RUN COMPLETE")
+            UI.summaryDetail:SetText(("3/3 laps | Total: %.2fs\nLast lap: %.2fs"):format(
+                race.totalTicks*Physics.FIXED_DT,race.laps.lastLapTicks*Physics.FIXED_DT))
+        else
+            UI.summaryTitle:SetText(race.status == "interrupted" and
+                "GAME INTERRUPTED BY COMBAT" or "RUN STOPPED")
+            UI.summaryDetail:SetText(("Laps: %d/3 | Time: %.2fs\nCurrent lap: %.2fs"):format(
+                race.laps.completedLaps,race.totalTicks*Physics.FIXED_DT,
+                race.laps.currentLapTicks*Physics.FIXED_DT))
+        end
+        UI.summaryHint:SetText("Controls released | Restart for a fresh run")
+    end
+    UI.summary:Show()
 end
 
 local function refreshHud()
@@ -241,7 +266,10 @@ end
 function UI.Stop(reason)
     UI.active = false
     -- Closing an already interrupted drive cannot replace its terminal reason.
-    if UI.result and UI.result.status == "interrupted" then reason = UI.result.reason end
+    if UI.result and (UI.result.status == "interrupted" or UI.result.status == "finished") then
+        reason = UI.result.reason
+    end
+    if UI.race then UI.race = Race.stop(UI.race,reason,false) end
     UI.stopReason = reason or "Test drive stopped"
     UI.ReleaseInput()
     UI.previousState = UI.state
@@ -249,6 +277,7 @@ function UI.Stop(reason)
     -- Freeze the complete timing sample, including its fractional remainder.
     -- Inactive OnUpdate does no work; a fresh Start creates a new clock.
     refreshHud()
+    refreshSummary()
     if UI.status then UI.status:SetText(UI.stopReason .. " | Click Start to capture again") end
     if UI.startButton then UI.startButton:Enable() end
     if UI.stopButton then UI.stopButton:Disable() end
@@ -262,7 +291,12 @@ function UI.InterruptCombat()
         return
     end
     UI.result = {status="interrupted", reason="Game interrupted by combat", tick=UI.state.tick}
-    -- There is no race/placement engine in M0; never fabricate a classification.
+    if UI.race then
+        UI.race = Race.stop(UI.race,UI.result.reason,true)
+        UI.result.totalTicks = UI.race.totalTicks
+        UI.result.completedLaps = UI.laps.completedLaps
+    end
+    -- Preserve actual solo progress; no remote placement is synthesized.
     UI.Stop(UI.result.reason)
     UI.window:Hide()
     report(UI.result.reason)
@@ -433,6 +467,24 @@ function UI.Create()
     UI.probeButton:SetPoint("BOTTOMRIGHT",-28,12)
     UI.probeButton:SetText("Print Probe")
     UI.probeButton:SetScript("OnClick",function() UI.ReportProbe() end)
+    UI.summary = frame("Frame",nil,UI.canvas,"BackdropTemplate")
+    UI.summary:SetSize(380,170)
+    UI.summary:SetPoint("CENTER")
+    UI.summary:EnableMouse(true)
+    UI.summary:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",
+        edgeFile="Interface\\Tooltips\\UI-Tooltip-Border",edgeSize=12,
+        insets={left=4,right=4,top=4,bottom=4}})
+    UI.summary:SetBackdropColor(0.07,0.08,0.11,0.98)
+    UI.summaryTitle = text(UI.summary,"TOPLEFT",24,-20,"")
+    UI.summaryDetail = text(UI.summary,"TOPLEFT",24,-54,"")
+    UI.summaryDetail:SetJustifyH("LEFT")
+    UI.summaryHint = text(UI.summary,"BOTTOMLEFT",24,54,"")
+    UI.restartButton = frame("Button",nil,UI.summary,"UIPanelButtonTemplate")
+    UI.restartButton:SetSize(130,24)
+    UI.restartButton:SetPoint("BOTTOMLEFT",24,16)
+    UI.restartButton:SetText("Restart")
+    UI.restartButton:SetScript("OnClick",function() UI.Start() end)
+    UI.summary:Hide()
     window:SetScript("OnUpdate",function(_,elapsed) UI.OnUpdate(elapsed) end)
 end
 
@@ -448,20 +500,23 @@ function UI.Start()
     if GetCurrentKeyBoardFocus() then refuseStart("Close text input before starting"); return end
     UI.ReleaseInput()
     UI.state = Physics.new(Track)
-    UI.laps = Laps.new(Track,Checkpoints,UI.state.tick)
+    UI.race = Race.new(Track,Checkpoints,Laps,UI.state.tick)
+    UI.laps = UI.race.laps
     UI.checkpoints = UI.laps.checkpoints
     UI.previousState = UI.state
     UI.clock = Loop.new(Physics.FIXED_DT,5)
     UI.performance = UI.performanceEnabled and Performance.new() or nil
     UI.hudElapsed = 0
     UI.result = nil
+    UI.summaryRace = nil
+    UI.summary:Hide()
     UI.stopReason = "Driving"
     UI.window:SetPropagateKeyboardInput(false)
     UI.window:EnableKeyboard(true)
     UI.active = true
     render()
     refreshHud()
-    UI.status:SetText("W/A/S/D or arrows | Space + turn: drift | Esc / other key: release controls")
+    UI.status:SetText("3 laps | W/A/S/D or arrows | Space + turn: drift | Esc: release controls")
     UI.startButton:Disable()
     UI.stopButton:Enable()
 end
@@ -470,8 +525,10 @@ local function step(dt)
     Input.sample(UI.keys,UI.input)
     UI.previousState = UI.state
     UI.state = Physics.step(UI.state,UI.input,dt,Track)
-    UI.laps = Laps.step(UI.laps,UI.previousState,UI.state,Track,Checkpoints)
+    UI.race = Race.step(UI.race,UI.previousState,UI.state,Track,Checkpoints,Laps)
+    UI.laps = UI.race.laps
     UI.checkpoints = UI.laps.checkpoints
+    return UI.race.status ~= "finished"
 end
 
 function UI.OnUpdate(elapsed)
@@ -487,11 +544,17 @@ function UI.OnUpdate(elapsed)
     local completedLaps = UI.laps.completedLaps
     local steps = Loop.advance(UI.clock,elapsed,step)
     local afterSimulation = p and readPerformanceClock(UI.performanceReader)
-    render()
-    UI.hudElapsed = UI.hudElapsed + steps * Physics.FIXED_DT
-    if UI.hudElapsed >= 0.25 or UI.laps.completedLaps ~= completedLaps then
-        UI.hudElapsed = 0
-        refreshHud()
+    if UI.race.status == "finished" then
+        UI.result = {status="finished",reason=UI.race.reason,tick=UI.state.tick,
+            totalTicks=UI.race.totalTicks,completedLaps=UI.laps.completedLaps}
+        UI.Stop(UI.result.reason)
+    else
+        render()
+        UI.hudElapsed = UI.hudElapsed + steps * Physics.FIXED_DT
+        if UI.hudElapsed >= 0.25 or UI.laps.completedLaps ~= completedLaps then
+            UI.hudElapsed = 0
+            refreshHud()
+        end
     end
     if p then
         local finish = readPerformanceClock(UI.performanceReader)

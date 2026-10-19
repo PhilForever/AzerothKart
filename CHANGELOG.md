@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — three-lap solo finish (2026-10-20)
+- Add a pure Race wrapper around Laps with running, finished, stopped and interrupted outcomes, fixed three-lap completion and integer total ticks. Terminal state is retained unchanged; no repeated finish or post-finish simulation is accepted.
+- Stop catch-up after the counted finish step, account for unexecuted whole ticks as dropped time and retain the fractional clock remainder. An ordinary early finish does not manufacture a hitch frame.
+- Add a pooled result summary and deliberate Restart flow. Successful completion shows total/last-lap times; early Stop or combat retains actual partial progress. Stop/reopen preserves the result, while a successful fresh Start clears it. Current explicit allocations are 8 frames/110 textures/12 font strings in the same 856×762 window; physics remains v5.
+- No countdown, persistence, best record, ghosts, remote standings or multiplayer is added. Focused Race/Loop/UI coverage accompanies the slice; exact executed results and installation status belong in PROGRESS. Client finish/restart driving and appearance remain NOT RUN; M0/M1/M3 acceptance stays open.
+
 ## Unreleased — repeatable practice laps (2026-10-19)
 - Add a pure Laps module around ordered checkpoints. Each accepted North → West → South → Start circuit increments completed laps once and rearms the next circuit at the finish tick. Duplicate, older and gapped tick reports cannot award or advance time; consecutive malformed or oversized movements advance practice time without a gate award.
 - Show completed laps, current lap time and the last completed time from integer 60 Hz simulation ticks. The first lap includes acceleration from Start Test Drive; Stop, combat interruption and normal reopen freeze the sample, while a fresh Start resets it. One pooled lap font string brings explicit objects to 6 frames/110 textures/9 font strings in an 856×762 window; physics remains version 5.
