@@ -366,7 +366,7 @@ for _,fps in ipairs({30,60,144}) do
                 "interpolated kart stays inside wall clearance at "..fps.." FPS")
         end
         for _,field in ipairs({"x","y","heading","speed","tick","impacts","drifting",
-            "driftDirection","driftTicks","driftTier","boostTicks","slipAngle","surface"}) do
+            "driftDirection","driftTicks","driftTier","boostTicks","slipAngle","surface","steering"}) do
             assert(UI.state[field]==reference[field],
                 "render cadence changed simulation field "..field.." at "..fps.." FPS")
         end
@@ -409,8 +409,8 @@ withMock(nil,false,function(env,UI)
     assert(UI.driftHud.text:find("BOOST",1,true),"remaining boost is visible on the stopped HUD")
     UI.Start()
     assert(not UI.state.drifting and UI.state.driftTicks==0 and UI.state.driftTier==0 and
-           UI.state.boostTicks==0 and UI.state.slipAngle==0,
-        "fresh Start clears charge, boost and slip")
+           UI.state.boostTicks==0 and UI.state.slipAngle==0 and UI.state.steering==0,
+        "fresh Start clears charge, boost, slip and steering")
     assert(UI.driftHud.text:find("Drift:",1,true),"fresh Start clears old boost feedback")
     UI.Stop("drift fixture done")
     for key,value in pairs(counts) do

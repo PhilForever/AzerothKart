@@ -1,7 +1,7 @@
 # PROGRESS — persistent project handoff
 
 **Current development milestone:** M1 — local driving mechanics. M0 acceptance remains **OPEN**.
-**Current state (2026-10-19, 19:13 CEST):** the solo window now includes a pooled drift/boost meter with half/full tier markers, named ready phases and remaining-time scale. Fill reads actual fixed-step ticks and freezes/resets with Stop/Start; kart pose interpolation remains separate. Physics stays version 4. Window is 856×706; explicit counts are 6/107/7. One focused Lua 5.1 pass parsed 20 Lua files and executed presentation/UI checks successfully. Installed with verified backup and eleven matching source hashes; client reload/appearance/handling **NOT RUN**. Broader M0 checks and scale restoration review remain deferred under [ADR 0007](adr/0007-build-first-development.md). Next build: progressive keyboard steering with fast centering.
+**Current state (2026-10-19, 22:31 CEST):** physics version 5 adds bounded progressive keyboard steering and faster centering, preserving raw-input drift cancellation, reverse yaw and immediate opposing-key cancellation. Measured simulation response is 8 ticks to full turn, 4 to neutral and 12 to full opposite turn. One focused Lua 5.1 pass parsed 21 Lua files and executed five modules; short replays matched all 14 fields at 30/60/144 render Hz. Only Physics.lua installed after verified backup; all eleven installed source hashes match. UI remains 856×706 with counts 6/107/7. Client reload/game feel **NOT RUN**; earlier M0 checks stay deferred under [ADR 0007](adr/0007-build-first-development.md). Next build: ordered directional checkpoint progress on the test oval.
 
 ## Canonical checkout and commits
 
@@ -27,6 +27,7 @@ Remote: `https://github.com/PhilForever/AzerothKart.git`; branch `main`. The pac
 - `e4610b6` — `feat: add charged drift and mini-boost to solo driving`.
 - `ef09433` — `feat: add recoverable grass and perimeter collisions`.
 - `f6ab761` — `feat: interpolate kart presentation between simulation steps`.
+- `092e397` — `feat: add pooled drift charge and boost meter`.
 
 Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.useConfigOnly=true`; verified in config and commit authors. Global identity was left unchanged. No push, tag, distribution or automation was performed. The later client-check session installed only AzerothKart in the local Forever AddOns folder and verified all nine files against source SHA-256. Ignored `local-artifacts/` contains developer dependencies/logs and synthetic install fixtures/backups; it is not staged.
 
@@ -34,12 +35,12 @@ Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.u
 
 - [x] Inspected all original source, tests/scripts and documents from `docs/INDEX.md`, including ADRs; preserved initial content in Git.
 - [x] Structural validation of paths, synchronized TOC source order, discovery markers, local Markdown links and network-ledger fields.
-- [x] Earlier M0 source: all seven addon modules and nine Lua test/runner files parsed under both Lua 5.1 and Lua 5.4; eight tests executed in each runtime. Current v4 focused results are in the latest handoff below; no new full-suite pass is claimed.
+- [x] Earlier M0 source: all seven addon modules and nine Lua test/runner files parsed under both Lua 5.1 and Lua 5.4; eight tests executed in each runtime. Current v5 focused results are in the latest handoff below; no new full-suite pass is claimed.
 - [x] Removed `_G` dependency from pure Track/Physics modules; introduced pure Input and Loop modules with explicit addon namespace registration/returned offline imports.
-- [x] Corrected inverted left/right steering in physics v2; v3 added deterministic drift, two charge tiers and a release boost. Current v4 separates road/grass/walls, slows grass travel gradually and clamps perimeter contact while retaining tangent movement. Production collision/race engine and handling acceptance remain pending.
+- [x] Corrected inverted left/right steering in physics v2; v3 added deterministic drift, two charge tiers and a release boost; v4 separated road/grass/walls with gradual slowdown and tangent-preserving wall constraints. Current v5 adds progressive steering with faster centering. Production collision/race engine and handling acceptance remain pending.
 - [x] Physical-key alias tracking prevents W/Up and equivalent steering/brake releases from canceling another held alias. Sampling reuses a semantic input table; stop clears held/sampled controls in place.
 - [x] Fixed 60 Hz loop, at most five catch-up steps per frame; preserves fractional remainder and records full elapsed, executed ticks, dropped seconds and hitch frames.
-- [x] Earlier v2 seed `1729` generated a repeatable 10,000-tick input tape with every state field matching at every tick under 30/60/144 simulated FPS. The extended current v4 long tape is NOT RUN this slice; focused 720-tick drift and 360-tick surface replays passed Lua 5.1 across all 13 fields. These are same-runtime checks, not cross-client proof or a gameplay PRNG.
+- [x] Earlier v2 seed `1729` generated a repeatable 10,000-tick input tape with every state field matching at every tick under 30/60/144 simulated FPS. The extended current v5 long tape is NOT RUN this slice; focused 720-tick drift, 360-tick surface/steering and 120-tick UI cadence replays passed Lua 5.1 across all 14 fields. These are same-runtime checks, not cross-client proof or a gameplay PRNG.
 - [x] Mocked UI/Core lifecycle coverage includes hidden/chat/combat/missing-capability Start refusal; key aliases; Escape/unknown/Enter; Stop/Close/Hide/toggle; all mouse clicks; text/application focus; leaving world/logout; combat event and OnUpdate fallback; deferred propagation; no automatic resume; minimal save-field preservation.
 - [x] Explicit `/akart probe` / Print Probe reports identity, input capabilities, event-registration failures, clock metrics, last stop reason and explicit UI object counts. No per-tick chat or UI object creation.
 - [x] Source timing aid: cumulative valid active frame seconds, executed simulation seconds and callback cadence; complete stopped elapsed/drop/remainder accounting and immediate Start/Stop HUD refresh. Offline tested and installed; zeroed live baseline observed, with timed/final-sample acceptance pending.
@@ -73,7 +74,7 @@ Initial file-only evidence: `_classic_beta_\WowB.exe` reports `1.60.1.70450`; `.
 
 ## Next exact task
 
-**Next exact task: add progressive keyboard steering with fast centering.** Store a bounded steering amount in pure simulation state and approach the held turn/neutral target by fixed-step rates. Preserve turn direction, reverse behavior and immediate opposing-input/drift-cancellation semantics; keep existing controls. Record a small time-to-steer/turn-response metric and a focused seeded replay with the new state field. Bump physics compatibility for the changed handling. Direct game-feel evaluation remains pending, without inventing an improvement claim. Use one focused Lua 5.1 pass; broader client testing stays deferred. Preserve the measured multiplayer gate and existing input/combat release behavior.
+**Next exact task: add ordered directional checkpoint progress to the test oval.** Define gates from Track geometry, advance a pure progress tracker from actual previous/current simulation poses, and expose the next gate/progress in the solo HUD. Reject backwards crossings, skipped gates and repeated reports for the same step. This is independent solo race groundwork while M1 direct-play acceptance stays deferred; do not declare M1/M3 complete or invent a race winner. Keep lap timing/countdown/results for a later coherent slice. Use one focused Lua 5.1 pass covering gate direction/order/duplicates and deterministic tick integration; retain current input/combat release behavior and the measured multiplayer gate.
 
 ## Session handoff log
 
@@ -539,3 +540,21 @@ The existing pooled HUD names Road/Grass/Wall and retains `Last drive` feedback.
 **Installation:** normal filesystem approval used. Parent-workspace manifest `artifacts/AzerothKart/20261019-191323-722306/install.json`; verified prior addon in `before/`. Disk build needs normal `/reload` at the owner's convenience. No client input/settings mutation, other-addon/WTF/SavedVariables edits, character actions, transport traffic, push/tag/release or automation.
 
 **Handoff:** focused local commit intended as `feat: add pooled drift charge and boost meter`; inspect `git log` for hash. Client appearance/handling and earlier M0 checks remain deferred. **Next single build task:** fixed-step progressive keyboard steering with fast centering, preserving reverse/input semantics and adding a focused response metric/replay.
+
+### 2026-10-19 22:28–22:31 CEST (Europe/Oslo) — Codex / main, progressive steering
+
+**Milestone/scope:** M1 under the build-first priority. Confirmed canonical remote/main, clean starting HEAD `092e397` and local PhilForever identity/useConfigOnly. Read the handoff, criteria, relevant design/architecture and affected source/tests. No work is inferred for the gap since the prior run. M0/M1 acceptance remains open; roadmap checkboxes unchanged.
+
+**Built:** Physics v5 adds signed `steering` in [-1,1]. Turn buildup at 8/s reaches full lock in eight 60 Hz ticks; release centering at 16/s takes four. Reversal finishes centering before building the opposite sign, taking twelve ticks from lock to lock. Both keys cancel immediately. Yaw uses the filtered value, while raw input still cancels drift immediately; new drift requires actual/raw signs to agree. Reverse flips yaw as before. Walls clear steering and grass preserves it for recovery. Stop retains the complete frozen state; fresh Start resets steering to zero. Existing bindings, UI interpolation/meter, clock and TOCs are unchanged; counts remain 6/107/7. These are prototype response timings, not measured input latency or proven game-feel improvements.
+
+| Command/check actually executed | Result and scope |
+|---|---|
+| `C:\Python314\python.exe scripts/test_lua.py --runtime lua51 --tests physics steering drift surface ui` | PASS once — 21 Lua files parsed, five modules executed. Observed 8/4/12-tick response; mirror/reverse/opposing keys, raw drift cancellation/re-entry sign gating, wall reset/grass retention and no state mutation passed. Steering/surface 360-tick, drift 720-tick and UI 120-tick cadence checks compare all 14 fields at 30/60/144 render Hz. |
+| `C:\Python314\python.exe scripts/validate_project.py` | PASS — 31 expected paths, synchronized TOCs, protocol/docs links and header-only network ledger. |
+| `git diff --check` | PASS — whitespace check. |
+| Verified prior-addon backup and direct install | PASS — only Physics.lua copied after complete prior-addon backup/hash verification; all eleven installed source hashes match. |
+| Full suite/10k-tick v5 replay, Lua 5.4, native Lua CLI, actual-client reload/steering/handling and broad scale/performance checks | NOT RUN this slice — intentionally deferred under ADR 0007. |
+
+**Installation:** normal filesystem approval used. Parent-workspace manifest `artifacts/AzerothKart/20261019-223121-797921/install.json`; verified prior addon in `before/`. Disk build needs normal `/reload` at the owner's convenience. No client input/settings mutation, other-addon/WTF/SavedVariables edits, character actions, packets, push/tag/release or automation.
+
+**Handoff:** focused local commit intended as `feat: add progressive keyboard steering with fast centering`; inspect `git log` for hash. Direct game feel and earlier M0 checks remain pending. **Next single build task:** ordered directional checkpoint progress on the existing test oval, with pure order/direction/duplicate checks and a pooled HUD indicator. No lap winner, networking or milestone acceptance is implied.

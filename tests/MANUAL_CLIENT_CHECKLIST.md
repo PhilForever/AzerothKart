@@ -32,6 +32,8 @@ Optional interpolation check at that checkpoint (**NOT RUN**): drive and turn at
 
 Optional meter check at that checkpoint (**NOT RUN**): during the same drift attempt, observe half-fill at Tier 1 and full fill at Tier 2 with a named ready caption. Release Space and observe the cyan remaining-boost meter drain on its 0.4s/0.8s scale; a Tier 1 boost starts shorter than Tier 2 on the shared scale. Cancelling or entering grass clears it. Escape freezes the meter with `Last drive`; close/reopen retains it, and a deliberate Start empties it. Record readability/layout issues in the 856×706 window; exact tick thresholds remain an offline check.
 
+Optional steering check at that checkpoint (**NOT RUN**): tap and hold a turn, release it, then reverse direction during the same drive. Judge whether buildup and faster centering feel controllable at road speed; reversal centers before turning the other way. Check that releasing steering cancels drift charge promptly and grass still permits recovery. Exact 8/4/12-tick full-turn/release/reversal timings are offline checks, not intervals to prove by eye. No additional capture, combat or scale matrix is requested.
+
 ## 1. Identity and startup
 
 - [x] AddOns-list enabled state observed, addon version read from runtime metadata, no incompatible/out-of-date notice visible. Screenshot observed in this chat; personal capture not committed.

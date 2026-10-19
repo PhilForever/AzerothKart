@@ -1,6 +1,12 @@
 # Racing physics, deterministic time and game feel
 
-The current `Physics.lua` is a pure version-4 analytical oval-handling prototype. Production race, item and checkpoint state below remains planned.
+The current `Physics.lua` is a pure version-5 analytical oval-handling prototype. Production race, item and checkpoint state below remains planned.
+
+## Implemented progressive keyboard steering
+
+Physics stores signed `steering` in [-1,1]. At each fixed step, one held turn approaches full steering at 8 units/s: from center, full lock takes eight 60 Hz ticks (about 133 ms). Releasing both directions centers at 16 units/s, taking four ticks (about 67 ms) from full lock. A reversal first centers the old sign at that faster rate, then builds the new sign on following ticks; full lock to opposite full lock takes twelve ticks (200 ms). Holding both directions cancels steering immediately. These are simulation timings, not measured input-to-display latency or proven improvements in handling.
+
+Yaw uses this progressive value with the existing speed/drift response; reverse motion still flips yaw. Wall contact clears steering; grass keeps it for recovery. Drift validity checks the raw turn intent, so releasing or opposing a turn cancels charge immediately despite residual centering. A new drift additionally requires the raw and progressive turn signs to agree. Input capture and W/A/S/D, arrows and Space bindings are unchanged; no steering preset or setting is exposed.
 
 ## Implemented surfaces and wall response
 
@@ -16,7 +22,7 @@ At 60 fixed ticks per second, hold Space with exactly one turn direction and for
 
 Losing steering, opposing turns, braking, slowing below the threshold or collision cancels a held drift without reward. Collision also clears active boost and slip. A cancelled turn cannot cash out its old charge. Drift increases yaw by 1.15 and moves signed slip toward ±0.40 radians at 1.8 rad/s; after release it recovers toward zero at 3 rad/s. Travel follows `heading - slipAngle`, separately from the kart's facing direction.
 
-Implemented state is `x,y,heading,speed,tick,impacts,drifting,driftDirection,driftTicks,driftTier,boostTicks,slipAngle,surface`. `surface` reports Wall on a contact step, otherwise the endpoint's road/grass classification. Compatibility version 4 distinguishes the new surface/collision behavior from earlier replays. The focused drift test covers thresholds, cancellation, bounded boost and an identical 720-tick seeded tape at 30/60/144 render schedules. These are offline expectations; human handling quality is **NOT RUN**.
+Implemented state is `x,y,heading,speed,tick,impacts,drifting,driftDirection,driftTicks,driftTier,boostTicks,slipAngle,surface,steering`. `surface` reports Wall on a contact step, otherwise the endpoint's road/grass classification. Compatibility version 5 distinguishes progressive steering from earlier replays. The focused drift test covers thresholds, cancellation, bounded boost and an identical 720-tick seeded tape at 30/60/144 render schedules. Exact executed checks belong in `PROGRESS.md`; human handling quality is **NOT RUN**.
 
 ## State and units
 World units ~= UI logical pixels in the prototype. Production world units are independent of pixels, with camera transforming to screen. Coordinates: x right, y up; orientation radians counterclockwise. Kart state `x,y,heading,speed,steer,driftState,driftCharge,boostTicks,stunTicks,lap,checkpointIndex`, simulation tick as integer.

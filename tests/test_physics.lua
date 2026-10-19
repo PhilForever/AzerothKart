@@ -1,7 +1,7 @@
 local T=dofile("addon/AzerothKart/Track.lua")
 local P=dofile("addon/AzerothKart/Physics.lua")
 local state=P.new(T)
-assert(state.tick==0 and state.speed==0,"initial state")
+assert(state.tick==0 and state.speed==0 and state.steering==0,"initial state")
 for i=1,20 do state=P.step(state,{accelerate=true},P.FIXED_DT,T) end
 assert(state.speed>0 and state.tick==20,"acceleration/tick progression")
 local speed=state.speed
@@ -21,7 +21,7 @@ local collided=P.step(edge,{accelerate=true},P.FIXED_DT,T)
 assert(collided.impacts==1,"outer bound collision detected")
 assert(collided.x==edge.x and collided.y==edge.y and collided.surface=="wall","wall clamps penetration")
 assert(collided.speed<edge.speed,"collision scrubs speed")
-assert(P.VERSION==4,"surface handling changes replay compatibility")
+assert(P.VERSION==5,"progressive steering changes replay compatibility")
 
 -- Measure handling without track impacts obscuring speed clamps.
 local openTrack={spawn=T.spawn,isDrivable=function() return true end}

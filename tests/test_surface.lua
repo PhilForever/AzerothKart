@@ -21,6 +21,7 @@ exit.boostTicks,exit.slipAngle=20,0.2
 local grass=P.step(exit,{accelerate=true,left=true,drift=true},dt,T)
 assert(grass.surface=="grass" and grass.x<exit.x and grass.impacts==0,"road exit crosses onto grass without impact")
 noCharge(grass,"entering grass cancels a charged drift and active boost")
+assert(grass.steering>0,"grass preserves steering while clearing the drift")
 assert(grass.speed<exit.speed,"grass entry removes this step's boost acceleration before slowing")
 exit.boostTicks=0
 local released=P.step(exit,{accelerate=true,left=true},dt,T)
@@ -76,6 +77,7 @@ charged.boostTicks,charged.slipAngle=20,0.4
 local wall=P.step(charged,{accelerate=true,left=true,drift=true},dt,T)
 assert(wall.surface=="wall","charged fixture reaches wall")
 noCharge(wall,"wall clears drift, boost and slip")
+assert(wall.steering==0,"wall contact resets steering")
 
 -- Real track geometry with a spawn near its wall ensures this short replay
 -- covers both grass and contact. All simulation fields must match each tick.
@@ -84,7 +86,7 @@ local replayTrack={
     isDrivable=T.isDrivable,surfaceAt=T.surfaceAt,constrainPosition=T.constrainPosition,
 }
 local fields={"x","y","heading","speed","tick","impacts","drifting","driftDirection",
-              "driftTicks","driftTier","boostTicks","slipAngle","surface"}
+              "driftTicks","driftTier","boostTicks","slipAngle","surface","steering"}
 local function tapeFor(seed)
     local tape,direction={},1
     for tick=1,360 do

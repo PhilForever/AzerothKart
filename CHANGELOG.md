@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — progressive keyboard steering (2026-10-19)
+- Physics version 5 adds bounded steering buildup, faster centering on release and a center-first direction reversal. Both directions cancel immediately; reverse yaw still flips, wall contact clears steering and grass preserves it for recovery.
+- Keep drift cancellation tied to raw turn input; a new drift waits until progressive steering agrees with that turn. Input capture, bindings, meter/interpolation and the 6/107/7 UI budget are unchanged.
+- Focused steering, drift, surface and UI coverage accompanies this slice; exact executed results and installation status belong in PROGRESS. Client handling is NOT RUN; broader checks remain deferred under ADR 0007.
+
 ## Unreleased — drift charge and boost meter (2026-10-19)
 - Add a 300×12 pooled meter with Tier 1/Tier 2 markers, named charge/ready phases and remaining-boost feedback on one shared 0.8-second scale. Pure Presentation mapping reads actual charge/boost ticks without changing physics version 4.
 - Cache phase and fill setters; empty fill is hidden, Stop freezes the last drive and Start clears it. Four textures and three font strings bring explicit allocations to 6 frames/107 textures/7 font strings in an 856×706 window.

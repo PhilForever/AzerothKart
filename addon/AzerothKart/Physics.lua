@@ -3,7 +3,7 @@
 local _, namespace = ...
 
 local Physics = {}
-Physics.VERSION = 4
+Physics.VERSION = 5
 Physics.FIXED_DT = 1/60
 Physics.MAX_SPEED = 200
 Physics.REVERSE_MAX = 55
@@ -11,6 +11,8 @@ Physics.ACCEL = 155
 Physics.BRAKE = 260
 Physics.COAST = 78
 Physics.STEER_RATE = 2.6
+Physics.STEERING_RISE_RATE = 8
+Physics.STEERING_CENTER_RATE = 16
 Physics.DRIFT_MIN_SPEED = 90
 Physics.DRIFT_TIER1_TICKS = 54
 Physics.DRIFT_TIER2_TICKS = 108
@@ -60,7 +62,7 @@ function Physics.new(track)
     return {
         x=start.x, y=start.y, heading=start.heading, speed=0, tick=0, impacts=0,
         drifting=false, driftDirection=0, driftTicks=0, driftTier=0,
-        boostTicks=0, slipAngle=0, surface=surfaceAt(track,start.x,start.y),
+        boostTicks=0, slipAngle=0, surface=surfaceAt(track,start.x,start.y), steering=0,
     }
 end
 
@@ -68,14 +70,24 @@ local function normalizedControls(input)
     input = input or {}
     return not not input.accelerate, not not input.brake,
            (input.left and 1 or 0) + (input.right and -1 or 0),
-           not not input.drift
+           not not input.drift, not not (input.left and input.right)
 end
 
 function Physics.step(state, input, dt, track)
     assert(state and track, "state and track required")
     dt = dt or Physics.FIXED_DT
     assert(dt > 0 and dt <= 0.05, "unexpected physics timestep")
-    local accel, brake, steer, driftHeld = normalizedControls(input)
+    local accel, brake, steer, driftHeld, opposing = normalizedControls(input)
+    local steering = math.max(-1,math.min(1,state.steering or 0))
+    if opposing then
+        -- Explicit opposing keys cancel immediately, even after a held turn.
+        steering = 0
+    elseif steer == 0 or steering * steer < 0 then
+        -- Finish centering on this tick; a reversal builds its new sign next tick.
+        steering = approachZero(steering,Physics.STEERING_CENTER_RATE*dt)
+    else
+        steering = approach(steering,steer,Physics.STEERING_RISE_RATE*dt)
+    end
     local startSurface = surfaceAt(track,state.x,state.y)
     local speed = state.speed
     if accel then speed = speed + Physics.ACCEL * dt end
@@ -87,7 +99,7 @@ function Physics.step(state, input, dt, track)
     -- Charge counts fixed simulation ticks, never render frames or wall time.
     -- Releasing drift pays only an existing drift with its turn/speed intact.
     local drifting, direction, driftTicks, tier = false, 0, 0, 0
-    local eligible = startSurface == "road" and not brake and steer ~= 0
+    local eligible = startSurface == "road" and not brake and steering * steer > 0
         and speed >= Physics.DRIFT_MIN_SPEED
     local wasDrifting = state.drifting == true
     local sameTurn = state.driftDirection == steer
@@ -126,7 +138,7 @@ function Physics.step(state, input, dt, track)
     local yaw = Physics.STEER_RATE * (0.28 + speedRatio * 0.72) * dt
     if drifting then yaw = yaw * Physics.DRIFT_STEER_MULTIPLIER end
     if speed < 0 then yaw = -yaw end
-    local heading = state.heading + steer * yaw
+    local heading = state.heading + steering * yaw
     local slip = state.slipAngle or 0
     if drifting then
         slip = approach(slip, direction * Physics.MAX_SLIP_ANGLE, Physics.SLIP_BUILD_RATE * dt)
@@ -153,6 +165,7 @@ function Physics.step(state, input, dt, track)
     if hit then
         -- One scrub per contact step, even when both axes hit a corner.
         speed = speed * 0.25
+        steering = 0
         drifting, direction, driftTicks, tier, boostTicks, slip = false, 0, 0, 0, 0, 0
     end
     if surface ~= "road" then
@@ -165,7 +178,7 @@ function Physics.step(state, input, dt, track)
         x=nx, y=ny, heading=heading, speed=speed,
         tick=state.tick+1, impacts=state.impacts + (hit and 1 or 0),
         drifting=drifting, driftDirection=direction, driftTicks=driftTicks, driftTier=tier,
-        boostTicks=boostTicks, slipAngle=slip, surface=hit and "wall" or surface,
+        boostTicks=boostTicks, slipAngle=slip, surface=hit and "wall" or surface, steering=steering,
     }
 end
 

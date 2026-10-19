@@ -24,7 +24,7 @@ local function noCharge(s, context)
     assert(not s.drifting and s.driftDirection==0 and s.driftTicks==0 and s.driftTier==0,context)
 end
 
-assert(P.VERSION==4,"surface handling changes replay compatibility")
+assert(P.VERSION==5,"progressive steering changes replay compatibility")
 local initial=P.new(open)
 noCharge(initial,"fresh drift state")
 assert(initial.boostTicks==0 and initial.slipAngle==0,"fresh boost/slip state")
@@ -93,7 +93,7 @@ assert(release(notHeld).boostTicks==0,"a tier without an active held drift canno
 -- Short seeded tape deliberately includes sustained charges and releases;
 -- compare every state field at every fixed tick across render schedules.
 local fields={"x","y","heading","speed","tick","impacts","drifting","driftDirection",
-              "driftTicks","driftTier","boostTicks","slipAngle","surface"}
+              "driftTicks","driftTier","boostTicks","slipAngle","surface","steering"}
 local tape,seed={},1729
 local direction=1
 for tick=1,720 do
