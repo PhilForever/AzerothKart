@@ -6,6 +6,8 @@
 
 **Owner steering afterward:** continue development elsewhere; no further combat test is requested now. Unrun rows stay pending while independent M0 work proceeds. The new analytical-bound road renderer is installed on disk, with unchanged 6/99/3 counts in offline tests; reload/live appearance is not yet observed.
 
+**2026-10-19 profiler continuation, 07:32 CEST:** desktop app/window inventory returned no WoW client. The optional bounded profiler is installed on disk with all ten addon files matching tested source. Live profiler type/readback/cost, new-renderer load and appearance remain **NOT RUN**. The separate `/akart perf` protocol below is prepared; no new human drive or combat check is requested during this development slice.
+
 Observed date/time: 2026-10-18 ~17:10–17:16 CEST (Europe/Oslo); tester: Codex computer-use, manual gameplay pending.
 Build/interface: 1.60.1 / 70450 / 16001; runtime project ID: 18; selected TOC: Camelot; addon version: 0.0.1.
 Captured resolution: 1920×1080; uiScale: 1.000000 / useUiScale: 0; Windows; hardware not recorded.
@@ -60,7 +62,7 @@ The confirmed [combat rule](../docs/adr/0006-combat-interrupted-results.md) ends
 
 ## 3. F1 timing and allocation sample
 
-**2026-10-19 two drives observed:** 58.2120/62.6020 active seconds and 3492/3756 ticks; no dropped time, counts 6/99/3, matching stopped HUD and frozen delayed readbacks. First-sample close/reopen also retained numeric fields. See [the live evidence](../docs/evidence/2026-10-19-m0-client.md). Third sample is ON HOLD for the stopped-window combat fix verification. Independent duration/handling details, scaling/stress and full acceptance remain pending. The 2026-10-18 short probe remains historical smoke evidence only.
+**2026-10-19 two drives observed:** 58.2120/62.6020 active seconds and 3492/3756 ticks; no dropped time, counts 6/99/3, matching stopped HUD and frozen delayed readbacks. First-sample close/reopen also retained numeric fields. See [the live evidence](../docs/evidence/2026-10-19-m0-client.md). Third sample remains PENDING at owner direction while independent M0 development continues. Independent duration/handling details, scaling/stress and full acceptance remain pending. The 2026-10-18 short probe remains historical smoke evidence only.
 
 Perform each drive manually, outside combat, with an independent timer. Use the normal client FPS display if desired. Do not open chat or click the probe button during the active sample: both deliberately stop capture. This is a measurement aid, not an automatic driver or timed race mode.
 
@@ -79,6 +81,44 @@ Perform each drive manually, outside combat, with an independent timer. Use the 
 - [ ] After safety passes, leave open/idle for 15 minutes, then drive for 10 minutes. Record before/after FPS, metrics/errors and visible hitches. Return from a long Alt-Tab without catch-up burst or automatic resume.
 
 `activeFrameSeconds` sums valid elapsed values delivered to active `OnUpdate` callbacks; it is not an independent wall clock and need not equal the timer exactly. `simulatedSeconds` is `ticks × 1/60`, excluding dropped time. `callbackHz` is `frames / activeFrameSeconds` (zero before elapsed time), the cadence of accepted active callbacks; record separately sampled whole-client FPS independently. `maxElapsed` is whole-frame elapsed time, not measured addon CPU overhead. Stop preserves the residual accumulator for readback, and the inactive clock cannot advance. This one-kart experiment does not validate 32 sprites, multiplayer, production tracks or a lap engine.
+
+## 3a. Optional bounded update-render timing
+
+**Status: NOT RUN in the client.** Profiling is off by default. This sequence measures one short diagnostic window of up to 600 active updates, independent of the three approximately 60-second F1 drives. It neither automates driving nor requires another combat test. Run when the client is available, outside combat and after loading the installed source through normal startup or `/reload`; record actual runtime identity and any errors.
+
+1. With driving stopped, open `/akart` if needed. Copy the unchanged six-line `/akart probe`, normal FPS/scale readbacks, and then run these commands separately:
+
+```text
+/dump type(debugprofilestop)
+/akart perf
+/akart perf on
+```
+
+2. Record the exact type and arming result. `perf on` checks one guarded finite, nonnegative clock read. If unavailable/invalid, record that result and leave profiling acceptance pending; do not replace the reader, call `debugprofilestart` or change client restrictions. Ordinary driving must remain usable. If armed, close chat and deliberately click **Start Test Drive**. Drive/steer normally for several seconds. Collection caps at 600 active updates, with three clock reads per attempted update (at most 1,800 plus the arming read); its elapsed duration varies with actual callback cadence. Completion must not print chat or stop the kart.
+3. Stop normally with Escape or Stop, recording the actual stop reason. Only then run:
+
+```text
+/akart probe
+/akart perf
+```
+
+4. Copy all three performance lines: armed/API/collection state, attempts/samples/invalid/limit, simulation/render/total averages/maxima in elapsed milliseconds, and scope. The output is three lines total: status/counters, timing aggregates, scope. If stopped before the cap, retain the partial sample as partial evidence. Invalid, backwards or throwing reads/validation consume attempts without inventing valid samples or stopping driving; `samples + invalid` should equal `attempts`, never exceeding 600. Zero means/maxima with no valid samples do not demonstrate zero cost.
+5. Wait several seconds and repeat `/akart perf`. Close and reopen with `/akart` twice without Start; repeat `/akart perf`. The same aggregates/counters must remain frozen, and the window must reopen stopped. Then run:
+
+```text
+/akart perf off
+/akart perf
+```
+
+6. Verify `armed=false` and the same retained stopped aggregates. Click Start deliberately for a fresh unprofiled drive, then stop and query `/akart perf`: the old diagnostic window must be cleared. Optionally arm a fresh window again, Start, stop early, and verify only that new window is reported. Record visible handling problems and explicit UI counts; do not infer responsiveness or unchanged allocation from a timing number alone.
+
+- [ ] Live function type and guarded arming result recorded; expected unavailability is reported without a driving error.
+- [ ] Three-line report captured with actual counters/elapsed means/maxima and unchanged six-line ordinary probe/counts.
+- [ ] Attempt budget/counters remain bounded; collection/completion emits no periodic chat and does not stop driving.
+- [ ] Stopped/delayed/close-reopen output remains frozen; off retains values; fresh Start resets/clears the window as configured.
+- [ ] Client errors, visible handling/hitch symptoms, build, FPS/scale and test conditions recorded; real live cost acceptance remains pending until measured.
+
+These scoped elapsed milliseconds include clock/protection instrumentation overhead around `Loop.advance` and render/HUD work. They exclude preceding input/focus/combat guards, aggregate/report work and native GPU rendering; they are not exclusive addon CPU cost. The addon never resets the shared profiler timer with `debugprofilestart`. Backwards timestamps reject, but another addon's reset can leave plausible positive spans and evade detection. [CLIENT_API.md](../docs/CLIENT_API.md#optional-bounded-updaterender-timing) records the pinned build-70450 primary source and remaining runtime uncertainty. Offline tests cover invalid/throwing reads, cap behavior and unchanged deterministic driving; those do not constitute live profiler verification.
 
 ## 4. F5 minimal SavedVariables persistence
 

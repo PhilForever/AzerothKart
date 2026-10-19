@@ -2,9 +2,11 @@
 local _, AK = ...
 assert(type(AK) == "table", "addon namespace required")
 local Track, Physics, Input, Loop = AK.Track, AK.Physics, AK.Input, AK.Loop
+local Performance = AK.Performance
 local UI = {
     active=false, keys=Input.new(), input={}, pendingPropagationRelease=false,
     objects={frames=0, textures=0, fontStrings=0}, stopReason="Not started",
+    performanceEnabled=false,
 }
 AK.UI = UI
 
@@ -16,6 +18,58 @@ end
 local function report(line)
     if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("Azeroth Kart: " .. line)
     else print("Azeroth Kart: " .. line) end
+end
+
+local function readPerformanceClock(reader)
+    -- Never reset the client's shared profiling timer. An unavailable/erroring
+    -- reader produces an invalid diagnostic sample, not a driving failure.
+    if type(reader) ~= "function" then return nil end
+    local ok,value = pcall(reader)
+    if ok then return value end
+end
+
+function UI.PerformanceCommand(argument)
+    if argument == "" then UI.ReportPerformance(); return end
+    if argument ~= "on" and argument ~= "off" then
+        report("Usage: /akart perf [on|off]"); return
+    end
+    if UI.active then report("Stop the test drive before changing profiling"); return end
+    if argument == "off" then
+        UI.performanceEnabled = false
+        UI.performanceReader = nil
+        report("Profiling off; stopped sample retained until the next Start")
+        return
+    end
+    local reader = debugprofilestop
+    local value = readPerformanceClock(reader)
+    -- Validation is guarded too: opaque values must never cause arithmetic
+    -- failures in the input/simulation path or bypass client protections.
+    local ok,valid = pcall(Performance.validTimestamp,value)
+    if not ok or not valid then
+        UI.performanceEnabled = false
+        UI.performanceReader = nil
+        report("Profiling unavailable: no valid debugprofilestop reading")
+        return
+    end
+    UI.performanceEnabled = true
+    UI.performanceReader = reader
+    report(("Profiling armed for next Start: up to %d active updates"):format(Performance.LIMIT))
+end
+
+function UI.ReportPerformance()
+    local p = UI.performance
+    local samples = p and p.samples or 0
+    local status = not p and "not-started" or
+        (p.attempts >= Performance.LIMIT and "complete" or (UI.active and "collecting" or "stopped"))
+    report(("perf armed=%s api=%s state=%s attempts=%d samples=%d invalid=%d limit=%d"):format(
+        tostring(UI.performanceEnabled),tostring(type(debugprofilestop)=="function"),status,
+        p and p.attempts or 0,samples,p and p.invalid or 0,Performance.LIMIT))
+    local count = samples > 0 and samples or 1
+    report(("perf elapsedMs simAvg=%.4f simMax=%.4f renderAvg=%.4f renderMax=%.4f totalAvg=%.4f totalMax=%.4f"):format(
+        p and p.simulationMs/count or 0,p and p.simulationMaxMs or 0,
+        p and p.renderMs/count or 0,p and p.renderMaxMs or 0,
+        p and p.totalMs/count or 0,p and p.totalMaxMs or 0))
+    report("perf scope=Loop.advance+render+HUD includesProbeOverhead=true exclusiveCPU=false")
 end
 
 local function frame(kind, name, parent, template)
@@ -223,6 +277,7 @@ function UI.Start()
     UI.ReleaseInput()
     UI.state = Physics.new(Track)
     UI.clock = Loop.new(Physics.FIXED_DT,5)
+    UI.performance = UI.performanceEnabled and Performance.new() or nil
     UI.hudElapsed = 0
     UI.result = nil
     UI.stopReason = "Driving"
@@ -248,12 +303,25 @@ function UI.OnUpdate(elapsed)
     if type(IsGameWindowFocused) == "function" and not IsGameWindowFocused() then
         UI.Stop("Game window lost focus"); return
     end
+    local p = UI.performance
+    if p and p.attempts >= Performance.LIMIT then p = nil end
+    local begin = p and readPerformanceClock(UI.performanceReader)
     local steps = Loop.advance(UI.clock,elapsed,step)
+    local afterSimulation = p and readPerformanceClock(UI.performanceReader)
     render()
     UI.hudElapsed = UI.hudElapsed + steps * Physics.FIXED_DT
     if UI.hudElapsed >= 0.25 then
         UI.hudElapsed = 0
         refreshHud()
+    end
+    if p then
+        local finish = readPerformanceClock(UI.performanceReader)
+        local attempts = p.attempts
+        local ok = pcall(Performance.record,p,begin,afterSimulation,finish)
+        if not ok then
+            p.attempts = attempts + 1
+            p.invalid = p.invalid + 1
+        end
     end
 end
 

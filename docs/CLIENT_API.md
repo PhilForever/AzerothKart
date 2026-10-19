@@ -1,12 +1,12 @@
 # Forever client identity and API probes
 
-**Live-client status: PARTIAL, 2026-10-18.** The installed client reported version `1.60.1`, build `70450`, interface `16001`, `WOW_PROJECT_ID=18` and selected TOC `Camelot`; Azeroth Kart `0.0.1` was enabled and loaded. Basic rendering, Start and several idle release routes were observed. The owner then confirmed actual combat closes the window, displays the interruption message and leaves WoW controls working. Sustained driving, held-key release, repeated-event/taint auditing and complete M0 acceptance remain pending. See the [actual-client evidence](evidence/2026-10-18-m0-client.md).
+**Live-client status: PARTIAL, updated 2026-10-19.** The installed client reported version `1.60.1`, build `70450`, interface `16001`, `WOW_PROJECT_ID=18` and selected TOC `Camelot`; Azeroth Kart `0.0.1` was enabled and loaded. Basic rendering, Start and several idle release routes were observed; two human near-minute drives supplied movement/rotation and stopped timing evidence. The owner confirmed actual combat closes an active drive and leaves WoW controls working. Full timing, held-key release, repeated-event/taint auditing and complete M0 acceptance remain pending. See the [initial evidence](evidence/2026-10-18-m0-client.md) and [two driving samples](evidence/2026-10-19-m0-client.md).
 
 The earlier read-only disk scan found `_classic_beta_\WowB.exe` version `1.60.1.70450`, `.flavor.info` value `wow_classic_beta` and no running `Wow*` process **at that initial scan**. A live client was available for the later observations above. Runtime readbacks, rather than the folder or executable alone, confirm the tested interface and TOC selection.
 
 ## Exact runtime identity checks
 
-On 2026-10-19 the updated source was installed with a verified prior-addon backup, then loaded through normal `/reload`. Live readbacks again showed `1.60.1`, build `70450`, interface `16001`, selected TOC `Camelot`, the new zeroed timing fields and UI counts 6/99/3. See [the new baseline](evidence/2026-10-19-m0-client.md). It does not establish the pending timed drives or retained-note behavior. A shell process scan missed the available client; the desktop app/window inventory confirmed it. Use that inventory before declaring a requested live session unavailable.
+On 2026-10-19 the updated source was installed with a verified prior-addon backup, then loaded through normal `/reload`. Live readbacks again showed `1.60.1`, build `70450`, interface `16001`, selected TOC `Camelot`, the new zeroed timing fields and UI counts 6/99/3. See [the baseline and later two drives](evidence/2026-10-19-m0-client.md); those observations do not complete the remaining timing or retained-note checks. A shell process scan missed the available client; the desktop app/window inventory confirmed it. Use that inventory before declaring a requested live session unavailable. The latest desktop inventory, 2026-10-19 at 07:32 CEST, returned no WoW client. Ten addon files now match the tested source on disk; the new renderer/profiler load, profiler type/readback and live cost measurements are **NOT RUN**.
 
 Enter each line separately in chat on the installed Forever client. Copy output verbatim; do not substitute a build inferred from a folder name. These `/dump` commands read data and do not start a drive or send network traffic.
 
@@ -60,6 +60,31 @@ After stopping, verify `activeFrameSeconds ≈ simulatedSeconds + droppedSeconds
 
 Object counts cover the UI module's explicit allocations, excluding the bootstrap event frame and template internals. Follow [the client checklist](../tests/MANUAL_CLIENT_CHECKLIST.md) for the temporary persistence sentinel; schema readback alone cannot prove a save occurred.
 
+## Optional bounded update/render timing
+
+The existing six-line `/akart probe` output is unchanged. `/akart perf` is a separate, explicit three-line report. Profiling is off by default and is not saved as a setting. Run setup commands while stopped and outside combat; close chat before clicking Start:
+
+```text
+/dump type(debugprofilestop)
+/akart perf on
+```
+
+`perf on` makes one guarded `debugprofilestop` read and requires a finite nonnegative numeric result before arming the next deliberate Start. An unavailable/throwing/invalid reader leaves profiling off and reports that result; driving remains available. A successful fresh Start creates new scalar aggregates. A profiled drive samples at most 600 active updates, using three reads per attempted update: before `Loop.advance`, after it, and after render/HUD work. This caps sampling at 1,800 reads per window, plus the one arming read; repeat arming commands each perform their own check. Invalid, backwards or throwing reads/validation consume the same attempt budget without aborting simulation or producing valid zero-cost samples. Collection stops silently at the cap while driving continues.
+
+After stopping the drive normally, run:
+
+```text
+/akart perf
+/akart perf off
+/akart perf
+```
+
+The report gives armed/API status, collection state, attempts, valid samples, invalid attempts and limit, followed by derived average/maximum simulation, render and total elapsed milliseconds, then scope. Before a sample or with zero valid samples, printed zero aggregates are not evidence of zero cost. Stop and close/reopen retain the sample; `perf off` disarms future collection and retains the stopped values until the next Start. Configuration changes are refused while a drive is active. See [the precise manual sequence](../tests/MANUAL_CLIENT_CHECKLIST.md#3a-optional-bounded-update-render-timing) for capture and reset checks.
+
+The locally pinned build-70450 primary API documentation defines `debugprofilestop` as elapsed milliseconds relative to the shared `debugprofilestart` reference. It is at parent-workspace path `research/upstream/wow-ui-source-forever-70450/Interface/AddOns/Blizzard_APIDocumentationGenerated/FrameScriptDocumentation.lua:528–539`, with `version.txt` value `1.60.1.70450`; [pinned mirror source](https://github.com/Gethe/wow-ui-source/blob/172a387e3ab85b26e6640d3058d5ec1e6ccd4c63/Interface/AddOns/Blizzard_APIDocumentationGenerated/FrameScriptDocumentation.lua#L528-L539), commit `172a387e3ab85b26e6640d3058d5ec1e6ccd4c63`. This is source evidence, not a runtime availability pass.
+
+The addon never calls `debugprofilestart`. It rejects backwards spans, but another addon's shared-timer reset can sometimes leave plausible positive deltas and evade that check. Measurements include clock/protection instrumentation overhead; their scope is `Loop.advance` plus render/HUD. They exclude preceding input/focus/combat guards, aggregation/report work and native GPU work, and do not establish exclusive addon CPU cost or whole-client FPS. No per-frame output, sample arrays or UI-object allocations are added. Live profiler checks and new-renderer load remain **NOT RUN** as of the 07:32 CEST inventory; all M0 performance gates remain open.
+
 ## API confidence ledger
 
 | Capability | Current evidence | Remaining verification |
@@ -69,7 +94,8 @@ Object counts cover the UI module's explicit allocations, excluding the bootstra
 | Core APIs | Live function types for `CreateFrame`, `InCombatLockdown`, `GetTime`, `GetFramerate`, `GetCurrentKeyBoardFocus`, `ChatEdit_GetActiveWindow`; input probe APIs true and no event-registration failures | Availability does not establish all runtime semantics |
 | Keyboard events/propagation | Live Start, Escape, Close/reopen, Enter/chat, Stop, Alt-Tab, map key, canvas click, hide/show and inactive reload observed; owner reported actual combat closure, note and working WoW controls | Simultaneous W/Up skipped at owner request (offline coverage retained); remaining focus/lifecycle, repeated combat/reopen behavior and full taint audit |
 | Application focus APIs | Live `IsGameWindowFocused` and `IsWindowFocused` both absent; idle Alt-key release observed | Held-key Alt-Tab/release-outside behavior remains pending |
-| Rotation/rendering/OnUpdate | Primitive oval/kart visible; ticks advanced; short stopped-run probe captured | Sustained driving/rotation, full timing/scaling/stress and allocation acceptance |
+| Rotation/rendering/OnUpdate | Primitive oval/kart visible; two human drives with matching stopped ticks/timing and counts 6/99/3 | New analytical-band renderer load/appearance; full timing/scaling/stress and allocation acceptance |
+| `debugprofilestop` | Build-70450 generated primary API documentation specifies elapsed milliseconds; bounded probe passes offline tests | Live function type, guarded read and real scoped cost results NOT RUN; no client in latest desktop inventory |
 | `C_ChatInfo` availability | Live function types for prefix registration, `SendAddonMessage`, `SendAddonMessageLogged`; `Enum.SendAddonMessageResult` is a table | Prefix registration/result semantics and transport measurements; no prefix registered or network traffic sent |
 | Message payload/rate behavior | Proposed experiment only | Measured private-channel send/receive, throttle, RTT/recovery |
 | SavedVariables | Minimal schema authored | Isolated sentinel across reload/logout/full restart |
@@ -88,4 +114,4 @@ These are reference starting points retained from the scaffold, not observed res
 - [CHAT_MSG_ADDON_LOGGED](https://warcraft.wiki.gg/wiki/CHAT_MSG_ADDON_LOGGED)
 - [Community Forever API dump/examples](https://github.com/Atraeau/WoW-Addons)
 
-Last local/live observations: 2026-10-18. Actual-client acceptance: **PARTIAL; held-input and remaining lifecycle/full M0 checks PENDING**. The [evidence transcription](evidence/2026-10-18-m0-client.md) defines the exact observed scope and the owner's combat report.
+Last local observations: 2026-10-19, including the 07:32 CEST desktop inventory; earlier actual-client evidence is linked above. Actual-client acceptance: **PARTIAL; held-input, remaining lifecycle, new renderer/profiler and full M0 checks PENDING**. The owner directed independent development elsewhere; another combat test is not the next task.

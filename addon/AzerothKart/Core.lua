@@ -27,7 +27,11 @@ end)
 SLASH_AZEROTHKART1 = "/akart"
 SLASH_AZEROTHKART2 = "/azerothkart"
 SlashCmdList.AZEROTHKART = function(message)
-    if type(message) == "string" and message:match("^%s*probe%s*$") then
+    local command,argument
+    if type(message) == "string" then command,argument = message:match("^%s*(%S+)%s*(.-)%s*$") end
+    if command == "probe" and argument == "" then
         AK.UI.ReportProbe()
+    elseif command == "perf" then
+        AK.UI.PerformanceCommand(argument)
     else AK.UI.Toggle() end
 end

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — optional bounded performance probe (2026-10-19)
+- `/akart perf on` arms up to 600 active updates on the next Start; `/akart perf` prints simulation/render-HUD averages and maxima in scoped elapsed milliseconds; `/akart perf off` disables collection. Default off, aggregate-only, no extra UI objects or per-frame chat.
+- Missing/invalid/reset/erroring clock readings consume the cap without changing driving. Never reset the shared profiler timer; output includes probe overhead and is not exclusive CPU/GPU attribution.
+- Pure aggregation and UI integration checks pass in Lua 5.1/5.4; synchronized TOCs load Performance before UI. Installed with verified backup/ten hashes; actual-client measurements remain NOT RUN.
+
 ## Unreleased — align the primitive road with collision (2026-10-19)
 - Draw the outer road and inner island from the analytical Track bounds, replacing the mismatched centerline tiles. Physics and steering are unchanged.
 - Reuse the 96-road-texture budget with static ellipse bands; regression checks compare the painted footprint with collision geometry and retain allocation/determinism coverage.

@@ -18,7 +18,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent)
         combat=initialCombat or false, focus=nil, focused=true, mouseInside=true,
         frames={}, textures={}, output={}, counts={frames=0, textures=0, fontStrings=0},
         propagationCalls=0, combatPropagationCalls=0, keyboardReleaseCalls=0,
-        profileTime=0,
+        profileTime=0, profileCalls=0,
     }
     local methods = {}
     local function object(kind)
@@ -93,6 +93,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent)
     _G.GetFramerate=function() return 60 end
     _G.GetTime=function() return env.profileTime/1000 end
     _G.debugprofilestop=function()
+        env.profileCalls=env.profileCalls+1
         env.profileTime=env.profileTime+0.01
         return env.profileTime
     end
@@ -122,7 +123,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent)
     end
     local ok, err=pcall(function()
         local namespace={}
-        for _,name in ipairs({"Track", "Physics", "Input", "Loop", "UI", "Core"}) do
+        for _,name in ipairs({"Track", "Physics", "Input", "Loop", "Performance", "UI", "Core"}) do
             assert(loadfile("addon/AzerothKart/"..name..".lua"))("AzerothKart",namespace)
         end
         env.namespace=namespace
@@ -513,6 +514,123 @@ withMock(nil, false, function(env,UI)
     assert(math.abs(UI.clock.elapsedSeconds-UI.clock.steps*UI.clock.dt-
            UI.clock.droppedSeconds-UI.clock.accumulator)<1e-10,"hitch sample retains all elapsed time")
     assert(#env.output==output,"active sampling and Stop do not print periodic chat")
+end)
+
+-- Optional profiler readings are diagnostic only; normal updates do no reads.
+withMock(nil, false, function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    UI.Toggle(); UI.Start()
+    for _=1,10 do UI.OnUpdate(1/60) end
+    assert(not UI.performanceEnabled and UI.performance==nil and env.profileCalls==0,
+        "profiling is off by default with zero profiler calls")
+    local clock=UI.clock
+    SlashCmdList.AZEROTHKART("perf on")
+    assert(UI.active and UI.clock==clock and not UI.performanceEnabled,
+        "changing profiling during capture is refused without changing driving")
+    UI.Stop("profile setup")
+    local before=#env.output
+    SlashCmdList.AZEROTHKART("  perf  ")
+    assert(#env.output==before+3 and env.output[before+1]:find("state=not-started",1,true),
+        "explicit perf query has three bounded lines and labels absent samples")
+    SlashCmdList.AZEROTHKART("perf nonsense")
+    assert(UI.window:IsShown() and env.output[#env.output]:find("Usage:",1,true),
+        "invalid perf arguments show usage rather than toggling the window")
+    SlashCmdList.AZEROTHKART(" perf on ")
+    assert(UI.performanceEnabled and env.profileCalls==1,"arming checks one valid clock reading")
+    UI.Start()
+    local sample=UI.performance
+    before=#env.output
+    env.key(UI,"OnKeyDown","W")
+    for frame=1,650 do
+        if frame==100 then env.key(UI,"OnKeyDown","A") end
+        if frame==200 then env.key(UI,"OnKeyUp","A") end
+        UI.OnUpdate(1/60)
+    end
+    assert(sample.attempts==600 and sample.samples==600 and sample.invalid==0,
+        "profiled sample caps at 600 active updates")
+    assert(env.profileCalls==1801,"no profiler calls occur after the window is full")
+    assert(math.abs(sample.simulationMs-6)<1e-8 and math.abs(sample.renderMs-6)<1e-8 and
+           math.abs(sample.totalMs-12)<1e-8,"profile phases accumulate known mock milliseconds")
+    assert(#env.output==before,"sampling/completion never prints per-frame chat")
+    assert(UI.objects.frames==6 and UI.objects.textures==99 and UI.objects.fontStrings==3,
+        "profiling creates no UI objects")
+    local state={}
+    for key,value in pairs(UI.state) do state[key]=value end
+    UI.Stop("profile stopped"); UI.Toggle(); UI.Toggle()
+    for _=1,10 do UI.OnUpdate(1) end
+    assert(UI.performance==sample and sample.samples==600 and env.profileCalls==1801,
+        "Stop and reopen freeze the same diagnostic window")
+    before=#env.output
+    SlashCmdList.AZEROTHKART("perf")
+    assert(#env.output==before+3 and env.output[before+1]:find("state=complete",1,true),
+        "completed window is reported explicitly")
+    assert(env.output[before+2]:find("totalAvg=0.0200",1,true) and
+           env.output[before+3]:find("exclusiveCPU=false",1,true),"timing units/scope are explicit")
+    SlashCmdList.AZEROTHKART("perf off")
+    assert(not UI.performanceEnabled and UI.performance==sample,"off retains the stopped result")
+    UI.Start()
+    assert(UI.performance==nil,"a new unprofiled Start clears the prior diagnostic window")
+    env.key(UI,"OnKeyDown","W")
+    for frame=1,650 do
+        if frame==100 then env.key(UI,"OnKeyDown","A") end
+        if frame==200 then env.key(UI,"OnKeyUp","A") end
+        UI.OnUpdate(1/60)
+    end
+    for key,value in pairs(state) do
+        assert(UI.state[key]==value,"profiling altered deterministic driving field "..key)
+    end
+    assert(env.profileCalls==1801,"unprofiled drive never reads the profiler")
+    UI.Stop("fresh profile")
+    SlashCmdList.AZEROTHKART("perf on"); UI.Start()
+    assert(UI.performance~=sample and UI.performance.attempts==0,
+        "a fresh profiled Start creates a new empty window")
+end)
+
+withMock(nil, false, function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    UI.Toggle()
+    local reader=debugprofilestop
+    for _,mode in ipairs({"missing", "throws", "string", "nan", "infinity", "negative"}) do
+        if mode=="missing" then _G.debugprofilestop=nil
+        else _G.debugprofilestop=function()
+            if mode=="throws" then error("mock timer unavailable") end
+            if mode=="string" then return "invalid" end
+            if mode=="nan" then return 0/0 end
+            if mode=="infinity" then return math.huge end
+            return -1
+        end end
+        SlashCmdList.AZEROTHKART("perf on")
+        assert(not UI.performanceEnabled,"invalid arm reading rejected: "..mode)
+        UI.Start(); UI.OnUpdate(1/60)
+        assert(UI.active and UI.state.tick==1,"unavailable profiler cannot block driving: "..mode)
+        UI.Stop("unavailable profile")
+    end
+    -- A reader can fail after arming. Invalid attempts are bounded and must not
+    -- become valid zero-cost samples or abort the fixed-step simulation.
+    local calls=0
+    _G.debugprofilestop=function()
+        calls=calls+1
+        if calls==1 then return 10 end
+        if calls%3==0 then error("mock timer reset/error") end
+        return "bad"
+    end
+    SlashCmdList.AZEROTHKART("perf on"); UI.Start()
+    local before=#env.output
+    for _=1,610 do UI.OnUpdate(1/60) end
+    assert(UI.active and UI.state.tick==610,"clock errors do not stop simulation")
+    assert(UI.performance.attempts==600 and UI.performance.samples==0 and UI.performance.invalid==600,
+        "invalid reads consume the bounded attempt budget without fabricated samples")
+    assert(calls==1801 and #env.output==before,"invalid sampling remains bounded and silent")
+    UI.Stop("invalid sample retained")
+    _G.debugprofilestop=reader
+    SlashCmdList.AZEROTHKART("perf on"); UI.Start()
+    local validTimestamp=env.namespace.Performance.validTimestamp
+    env.namespace.Performance.validTimestamp=function() error("mock opaque timestamp cannot be compared") end
+    for _=1,610 do UI.OnUpdate(1/60) end
+    env.namespace.Performance.validTimestamp=validTimestamp
+    assert(UI.active and UI.state.tick==610 and UI.performance.attempts==600 and
+           UI.performance.invalid==600 and UI.performance.samples==0,
+        "arithmetic/validation refusal remains bounded and cannot interrupt driving")
 end)
 
 -- Combat onset must also clear an open stopped window. It is not a new

@@ -9,5 +9,6 @@ Track.lua
 Physics.lua
 Input.lua
 Loop.lua
+Performance.lua
 UI.lua
 Core.lua
