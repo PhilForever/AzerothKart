@@ -11,5 +11,6 @@ Input.lua
 Loop.lua
 Performance.lua
 Presentation.lua
+Checkpoints.lua
 UI.lua
 Core.lua

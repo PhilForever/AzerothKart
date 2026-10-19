@@ -156,7 +156,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     end
     local ok, err=pcall(function()
         local namespace={}
-        for _,name in ipairs({"Track", "Physics", "Input", "Loop", "Performance", "Presentation", "UI", "Core"}) do
+        for _,name in ipairs({"Track", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "UI", "Core"}) do
             assert(loadfile("addon/AzerothKart/"..name..".lua"))("AzerothKart",namespace)
         end
         env.namespace=namespace
@@ -244,8 +244,8 @@ withMock(nil, false, function(env,UI)
             "thin wall strips follow the canvas perimeter")
         assert(wall.item.colorWrites==1,"static wall color is configured once")
     end
-    assert(UI.objects.frames==6 and UI.objects.textures==107 and UI.objects.fontStrings==7,
-        "pooled drift meter and walls must match the explicit UI object budget")
+    assert(UI.objects.frames==6 and UI.objects.textures==110 and UI.objects.fontStrings==8,
+        "pooled checkpoints, drift meter and walls must match the explicit UI object budget")
     local function covered(rectangles,x,y)
         for _,rect in ipairs(rectangles) do
             if y>=rect.bottom and y<=rect.top and x>=rect.left and x<=rect.right then
@@ -282,6 +282,105 @@ withMock(nil, false, function(env,UI)
         :format(#outer,#inner,checked)
 end)
 originalPrint(renderSummary.." (client appearance still pending)")
+
+-- Directional checkpoints consume consecutive physics samples, while pooled
+-- gate feedback changes immediately without promoting a course pass to a lap.
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    UI.Toggle(); UI.Start()
+    local Track,Physics=env.namespace.Track,env.namespace.Physics
+    local counts={}
+    for key,value in pairs(env.counts) do counts[key]=value end
+    local function gateColor(index,r,g,b,a)
+        local color=UI.gateTextures[index].color
+        assert(color[1]==r and color[2]==g and color[3]==b and color[4]==a,
+            "unexpected checkpoint tint for gate "..index)
+    end
+    assert(#Track.gates==4 and #UI.gateTextures==4,"four track gates have pooled strips")
+    assert(UI.checkpoints.passed==0 and UI.checkpoints.nextGate==1 and
+           not UI.checkpoints.complete and UI.checkpoints.lastTick==0,
+        "fresh drive starts before the first checkpoint")
+    assert(UI.checkpointHud.text=="Checkpoints: 0/4 | Next: North",
+        "fresh HUD explains the first required checkpoint")
+    assert(UI.checkpointHud.point[5]==154,"checkpoint text stays above the other HUD rows")
+    for index,gate in ipairs(Track.gates) do
+        local strip=UI.gateTextures[index]
+        assert(strip.point[1]=="CENTER" and strip.point[2]==UI.canvas and
+               strip.point[3]=="BOTTOMLEFT" and strip.point[4]==(gate.ax+gate.bx)/2 and
+               strip.point[5]==(gate.ay+gate.by)/2,"gate strip follows track endpoints")
+        if gate.ax==gate.bx then
+            assert(strip.width==5 and strip.height==math.abs(gate.by-gate.ay),
+                "vertical gate strip covers its crossing segment")
+        else
+            assert(gate.ay==gate.by and strip.height==5 and strip.width==math.abs(gate.bx-gate.ax),
+                "horizontal gate strip covers its crossing segment")
+        end
+        if index==1 then gateColor(index,.98,.93,.45,.9)
+        else gateColor(index,.55,.58,.62,.65) end
+    end
+    local startGate=Track.gates[4]
+    assert(startGate.name=="Start" and startGate.ay==Track.centerY and
+           startGate.by==Track.centerY and startGate.nx==0 and startGate.ny==1,
+        "right-side start gate crosses the spawn lane in the driving direction")
+    local function cross(index)
+        local gate=Track.gates[index]
+        UI.state.x=(gate.ax+gate.bx)/2-gate.nx
+        UI.state.y=(gate.ay+gate.by)/2-gate.ny
+        UI.state.heading=gate.nx==1 and 0 or gate.nx==-1 and math.pi or
+            gate.ny==1 and math.pi/2 or -math.pi/2
+        UI.state.speed=200; UI.state.steering=0
+        UI.OnUpdate(Physics.FIXED_DT)
+    end
+    cross(3)
+    assert(UI.checkpoints.passed==0,"crossing South before North cannot skip the ordered course")
+    cross(1)
+    assert(UI.checkpoints.passed==1 and UI.checkpoints.nextGate==2 and
+           UI.checkpoints.lastTick==UI.state.tick,
+        "actual fixed-step North crossing advances one checkpoint")
+    assert(UI.checkpointHud.text=="Checkpoints: 1/4 | Next: West",
+        "checkpoint HUD refreshes immediately before the periodic timing HUD")
+    gateColor(1,.25,.80,.72,.9); gateColor(2,.98,.93,.45,.9)
+    local writes={}
+    for index,strip in ipairs(UI.gateTextures) do writes[index]=strip.colorWrites end
+    local hudWrites=UI.checkpointHud.textWrites
+    for _=1,3 do UI.OnUpdate(0) end
+    cross(1)
+    assert(UI.checkpoints.passed==1,"recrossing an accepted gate cannot duplicate progress")
+    for index,strip in ipairs(UI.gateTextures) do
+        assert(strip.colorWrites==writes[index],"unchanged progress does not rewrite gate tints")
+    end
+    assert(UI.checkpointHud.textWrites==hudWrites,
+        "render-only and irrelevant crossings do not rewrite checkpoint text")
+    for index=2,4 do cross(index) end
+    assert(UI.checkpoints.complete and UI.checkpoints.passed==4 and UI.active and UI.result==nil,
+        "ordered four-gate completion remains a local course pass without inventing a race result")
+    assert(UI.checkpointHud.text=="Checkpoints: 4/4 | Course complete",
+        "completion is visible without a lap or winner claim")
+    for index=1,4 do gateColor(index,.25,.80,.72,.9) end
+    UI.Stop("checkpoint fixture")
+    local progress,pose,hud=UI.checkpoints,UI.state,UI.checkpointHud.text
+    local retained={}
+    for key,value in pairs(progress) do retained[key]=value end
+    assert(hud=="Last drive | Checkpoints: 4/4 | Course complete",
+        "stopped course feedback describes the retained drive")
+    UI.OnUpdate(1); UI.Toggle(); UI.Toggle()
+    assert(UI.checkpoints==progress and UI.state==pose and UI.checkpointHud.text==hud,
+        "inactive update and reopen retain the same checkpoint sample")
+    for key,value in pairs(retained) do
+        assert(progress[key]==value,"stopped checkpoint progress changed "..key)
+    end
+    UI.Start()
+    assert(UI.checkpoints~=progress and UI.checkpoints.passed==0 and
+           UI.checkpoints.nextGate==1 and not UI.checkpoints.complete and
+           UI.checkpoints.lastTick==0 and UI.checkpointHud.text=="Checkpoints: 0/4 | Next: North",
+        "fresh Start resets the terminal course sample and its retained caption")
+    gateColor(1,.98,.93,.45,.9)
+    for index=2,4 do gateColor(index,.55,.58,.62,.65) end
+    UI.Stop("checkpoint fixture done")
+    for key,value in pairs(counts) do
+        assert(env.counts[key]==value,"checkpoint updates allocated UI objects: "..key)
+    end
+end)
 
 -- Render interpolation uses the retained fixed-step pair, including updates
 -- without a simulation tick. Stop/reopen displays the exact frozen sample.
@@ -441,7 +540,7 @@ withMock(nil,false,function(env,UI)
         UI.OnUpdate(0)
         assert(UI.state.tick==tick,"meter render must not advance simulation")
     end
-    assert(UI.window.width==856 and UI.window.height==706,"meter fits the expanded window")
+    assert(UI.window.width==856 and UI.window.height==734,"meter and checkpoint HUD fit the expanded window")
     assert(UI.meterBackground.width==300 and UI.meterBackground.height==12,
         "meter has a fixed readable capacity")
     local point=UI.meterBackground.point
@@ -545,7 +644,7 @@ for _,mode in ipairs({"missing", "throws"}) do
         env.fire("ADDON_LOADED","AzerothKart")
         UI.Toggle(); UI.Start(); UI.OnUpdate(1/60)
         assert(UI.active and UI.state.tick==1,"optional snapping APIs cannot block driving: "..mode)
-        assert(UI.objects.frames==6 and UI.objects.textures==107 and UI.objects.fontStrings==7,
+        assert(UI.objects.frames==6 and UI.objects.textures==110 and UI.objects.fontStrings==8,
             "snapping fallback preserves UI object budget: "..mode)
         assert(env.drawLayerCalls==1,"grass priority remains explicit when snapping is unavailable: "..mode)
     end,nil,mode)
@@ -896,7 +995,7 @@ withMock(nil, false, function(env,UI)
     assert(math.abs(sample.simulationMs-6)<1e-8 and math.abs(sample.renderMs-6)<1e-8 and
            math.abs(sample.totalMs-12)<1e-8,"profile phases accumulate known mock milliseconds")
     assert(#env.output==before,"sampling/completion never prints per-frame chat")
-    assert(UI.objects.frames==6 and UI.objects.textures==107 and UI.objects.fontStrings==7,
+    assert(UI.objects.frames==6 and UI.objects.textures==110 and UI.objects.fontStrings==8,
         "profiling creates no UI objects")
     local state={}
     for key,value in pairs(UI.state) do state[key]=value end

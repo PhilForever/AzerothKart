@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — ordered directional checkpoints (2026-10-19)
+- Add four finite directional gates on the test oval and a pure fixed-tick checkpoint module. Only the next gate can advance; backwards crossings, departures from the gate line, stale/duplicate ticks, missing steps and oversized movements do not award progress. A completed 4/4 sequence stays terminal until a fresh Start.
+- Integrate actual simulation positions after physics, with pooled next/passed gate strips and a named checkpoint HUD. Correct the right-hand start stripe to cross the road horizontally. Stop/reopen freezes progress; Start resets it. Explicit objects are now 6 frames/110 textures/8 font strings in an 856×734 window; physics stays version 5.
+- This is solo checkpoint groundwork, with no lap count, timer, win result or security guarantee. Focused track/checkpoint/UI coverage accompanies it; exact executed results and installation status belong in PROGRESS. Client appearance and driving remain NOT RUN; broader checks stay deferred under ADR 0007.
+
 ## Unreleased — progressive keyboard steering (2026-10-19)
 - Physics version 5 adds bounded steering buildup, faster centering on release and a center-first direction reversal. Both directions cancel immediately; reverse yaw still flips, wall contact clears steering and grass preserves it for recovery.
 - Keep drift cancellation tied to raw turn input; a new drift waits until progressive steering agrees with that turn. Input capture, bindings, meter/interpolation and the 6/107/7 UI budget are unchanged.

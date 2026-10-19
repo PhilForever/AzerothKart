@@ -4,6 +4,7 @@ assert(type(AK) == "table", "addon namespace required")
 local Track, Physics, Input, Loop = AK.Track, AK.Physics, AK.Input, AK.Loop
 local Performance = AK.Performance
 local Presentation = AK.Presentation
+local Checkpoints = AK.Checkpoints
 local UI = {
     active=false, keys=Input.new(), input={}, pendingPropagationRelease=false,
     objects={frames=0, textures=0, fontStrings=0}, stopReason="Not started",
@@ -150,6 +151,30 @@ local function createMeter(window)
     refreshMeter()
 end
 
+local function refreshCheckpoints()
+    if not UI.checkpointHud or not UI.checkpoints then return end
+    local progress = UI.checkpoints
+    local changed = UI.gatePassed ~= progress.passed
+    if changed then
+        UI.gatePassed = progress.passed
+        for index,piece in ipairs(UI.gateTextures) do
+            if index <= progress.passed then piece:SetColorTexture(0.25,0.80,0.72,0.9)
+            elseif index == progress.nextGate and not progress.complete then
+                piece:SetColorTexture(0.98,0.93,0.45,0.9)
+            else piece:SetColorTexture(0.55,0.58,0.62,0.65) end
+        end
+    end
+    local stopped = not UI.active and UI.state.tick > 0
+    if changed or stopped ~= UI.gateStopped then
+        UI.gateStopped = stopped
+        local caption = ("Checkpoints: %d/%d | "):format(progress.passed,#Track.gates)
+        if progress.complete then caption = caption .. "Course complete"
+        else caption = caption .. "Next: " .. Track.gates[progress.nextGate].name end
+        if stopped then caption = "Last drive | " .. caption end
+        UI.checkpointHud:SetText(caption)
+    end
+end
+
 local function refreshHud()
     if not UI.hud or not UI.state then return end
     local c = UI.clock
@@ -276,10 +301,15 @@ local function drawTrack(canvas)
     -- Keep the 96-road-texture budget; mask the inner island above the road.
     drawEllipse(canvas,Track.outerX,Track.outerY,64,"BACKGROUND",0.26,0.25,0.23)
     drawEllipse(canvas,Track.innerX,Track.innerY,32,"BORDER",0.08,0.24,0.12)
-    local line = texture(canvas, "ARTWORK")
-    line:SetColorTexture(0.98,0.93,0.45,0.9)
-    line:SetSize(5,95)
-    line:SetPoint("CENTER",canvas,"BOTTOMLEFT",Track.centerX+Track.lineX,Track.centerY)
+    UI.gateTextures = {}
+    for index,gate in ipairs(Track.gates) do
+        local line = texture(canvas,"ARTWORK")
+        line:SetColorTexture(0.55,0.58,0.62,0.65)
+        line:SetSize(gate.ax == gate.bx and 5 or math.abs(gate.bx-gate.ax),
+            gate.ay == gate.by and 5 or math.abs(gate.by-gate.ay))
+        line:SetPoint("CENTER",canvas,"BOTTOMLEFT",(gate.ax+gate.bx)/2,(gate.ay+gate.by)/2)
+        UI.gateTextures[index] = line
+    end
 end
 
 local function drawWalls(canvas)
@@ -314,13 +344,14 @@ render = function()
         else UI.kart:SetColorTexture(0.98,0.54,0.14,1) end
     end
     refreshMeter()
+    refreshCheckpoints()
 end
 
 function UI.Create()
     if UI.window then return end
     local window = frame("Frame","AzerothKartMainWindow",UIParent,"BackdropTemplate")
     UI.window = window
-    window:SetSize(856,706)
+    window:SetSize(856,734)
     window:SetPoint("CENTER")
     window:SetFrameStrata("DIALOG")
     window:SetClampedToScreen(true)
@@ -359,9 +390,13 @@ function UI.Create()
     UI.kart = texture(UI.canvas,"OVERLAY")
     UI.kart:SetSize(17,31)
     UI.state = Physics.new(Track)
+    UI.checkpoints = Checkpoints.new(Track,UI.state.tick)
     UI.previousState = UI.state
     render()
 
+    UI.checkpointHud = text(window,"BOTTOMLEFT",28,154,"")
+    UI.checkpointHud:SetJustifyH("LEFT")
+    refreshCheckpoints()
     UI.status = text(window,"BOTTOMLEFT",28,133,"Out of combat: Start Test Drive")
     UI.status:SetJustifyH("LEFT")
     UI.hud = text(window,"BOTTOMLEFT",28,110,"Speed: 0 | Ticks: 0")
@@ -401,6 +436,7 @@ function UI.Start()
     if GetCurrentKeyBoardFocus() then refuseStart("Close text input before starting"); return end
     UI.ReleaseInput()
     UI.state = Physics.new(Track)
+    UI.checkpoints = Checkpoints.new(Track,UI.state.tick)
     UI.previousState = UI.state
     UI.clock = Loop.new(Physics.FIXED_DT,5)
     UI.performance = UI.performanceEnabled and Performance.new() or nil
@@ -421,6 +457,7 @@ local function step(dt)
     Input.sample(UI.keys,UI.input)
     UI.previousState = UI.state
     UI.state = Physics.step(UI.state,UI.input,dt,Track)
+    UI.checkpoints = Checkpoints.step(UI.checkpoints,UI.previousState,UI.state,Track)
 end
 
 function UI.OnUpdate(elapsed)

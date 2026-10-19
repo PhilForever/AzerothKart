@@ -1,7 +1,7 @@
 # PROGRESS — persistent project handoff
 
 **Current development milestone:** M1 — local driving mechanics. M0 acceptance remains **OPEN**.
-**Current state (2026-10-19, 22:31 CEST):** physics version 5 adds bounded progressive keyboard steering and faster centering, preserving raw-input drift cancellation, reverse yaw and immediate opposing-key cancellation. Measured simulation response is 8 ticks to full turn, 4 to neutral and 12 to full opposite turn. One focused Lua 5.1 pass parsed 21 Lua files and executed five modules; short replays matched all 14 fields at 30/60/144 render Hz. Only Physics.lua installed after verified backup; all eleven installed source hashes match. UI remains 856×706 with counts 6/107/7. Client reload/game feel **NOT RUN**; earlier M0 checks stay deferred under [ADR 0007](adr/0007-build-first-development.md). Next build: ordered directional checkpoint progress on the test oval.
+**Current state (2026-10-19, 22:37 CEST):** the test oval now tracks North → West → South → Start directional checkpoints with a next-gate cue and terminal 4/4 course progress. Pure progress consumes actual fixed-step poses and rejects wrong direction/order, duplicate tick reports and implausible movement awards; these are local consistency checks, not security or competitive route proof. Physics remains version 5. UI is 856×734 with explicit counts 6/110/8. One focused Lua 5.1 pass parsed 23 Lua files and executed three modules; the synthetic 900-tick gate path matched at 30/60/144 render Hz. Installed with verified backup and twelve matching source hashes; client reload/course drive **NOT RUN**. M0/M1 acceptance stays open under [ADR 0007](adr/0007-build-first-development.md). Next build: repeatable circuits and tick-based lap timing.
 
 ## Canonical checkout and commits
 
@@ -28,6 +28,7 @@ Remote: `https://github.com/PhilForever/AzerothKart.git`; branch `main`. The pac
 - `ef09433` — `feat: add recoverable grass and perimeter collisions`.
 - `f6ab761` — `feat: interpolate kart presentation between simulation steps`.
 - `092e397` — `feat: add pooled drift charge and boost meter`.
+- `d42fb92` — `feat: add progressive keyboard steering with fast centering`.
 
 Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.useConfigOnly=true`; verified in config and commit authors. Global identity was left unchanged. No push, tag, distribution or automation was performed. The later client-check session installed only AzerothKart in the local Forever AddOns folder and verified all nine files against source SHA-256. Ignored `local-artifacts/` contains developer dependencies/logs and synthetic install fixtures/backups; it is not staged.
 
@@ -74,7 +75,7 @@ Initial file-only evidence: `_classic_beta_\WowB.exe` reports `1.60.1.70450`; `.
 
 ## Next exact task
 
-**Next exact task: add ordered directional checkpoint progress to the test oval.** Define gates from Track geometry, advance a pure progress tracker from actual previous/current simulation poses, and expose the next gate/progress in the solo HUD. Reject backwards crossings, skipped gates and repeated reports for the same step. This is independent solo race groundwork while M1 direct-play acceptance stays deferred; do not declare M1/M3 complete or invent a race winner. Keep lap timing/countdown/results for a later coherent slice. Use one focused Lua 5.1 pass covering gate direction/order/duplicates and deterministic tick integration; retain current input/combat release behavior and the measured multiplayer gate.
+**Next exact task: add repeatable circuits and fixed-tick lap timing.** On a newly completed ordered course, record a completed lap exactly once and re-arm North at that completion tick. Show completed-lap count, current-lap time and last completed-lap time using simulation ticks, with no wall-clock authority. Freeze on Stop/combat and reset on deliberate Start; do not add persistence, countdown, winner/standings or multiplayer in this slice. Cover repeated completion reports, start-line jitter, gate order and identical tick histories at different render schedules in one focused Lua 5.1 pass. This is independent solo groundwork; M0/M1/M3 acceptance remains open and direct play stays deferred.
 
 ## Session handoff log
 
@@ -558,3 +559,23 @@ The existing pooled HUD names Road/Grass/Wall and retains `Last drive` feedback.
 **Installation:** normal filesystem approval used. Parent-workspace manifest `artifacts/AzerothKart/20261019-223121-797921/install.json`; verified prior addon in `before/`. Disk build needs normal `/reload` at the owner's convenience. No client input/settings mutation, other-addon/WTF/SavedVariables edits, character actions, packets, push/tag/release or automation.
 
 **Handoff:** focused local commit intended as `feat: add progressive keyboard steering with fast centering`; inspect `git log` for hash. Direct game feel and earlier M0 checks remain pending. **Next single build task:** ordered directional checkpoint progress on the existing test oval, with pure order/direction/duplicate checks and a pooled HUD indicator. No lap winner, networking or milestone acceptance is implied.
+
+### 2026-10-19 22:33–22:37 CEST (Europe/Oslo) — Codex / main, ordered checkpoint foundation
+
+**Scope:** independent solo course groundwork alongside open M1 direct-play acceptance. Canonical remote/main, clean starting HEAD `d42fb92` and local PhilForever identity/useConfigOnly confirmed; inspected current criteria, handoff and relevant source/design. M0/M1/M3 acceptance stays open; no roadmap checkbox promoted.
+
+**Built:** four radius-derived finite directional gates, North → West → South → Start, across the actual road. Strict negative-to-nonnegative plane crossing accepts the intersection within the gate span, rejecting backwards/parallel/on-line-departure awards. New pure `Checkpoints` state stores next gate, passed count, completion and last consumed tick. Only the expected gate can award, at most once per consecutive fixed step. Duplicate/stale/out-of-order/gap tick reports return unchanged progress. Consecutive malformed or >5-unit motion samples consume their tick without an award; later valid consecutive motion can recover. Four gates complete one terminal course pass; no loop, lap, timer, winner or competitive validation is claimed.
+
+UI passes actual physics poses after each fixed step, independently of render interpolation. It corrects the right-side Start strip to span the road horizontally, adds three other pooled strips and one next-gate/progress label, and caches tint/text changes. Stop/reopen retains progress; Start resets it. Counts are 6/110/8 in an 856×734 window. Nine-module TOCs load Checkpoints before UI; Physics remains v5. No per-tick UI object creation or chat output.
+
+| Command/check actually executed | Result and scope |
+|---|---|
+| `C:\Python314\python.exe scripts/test_lua.py --runtime lua51 --tests track checkpoints ui` | PASS once — 23 Lua files parsed, three modules executed. Direction/span/endpoints, tick/order/duplicate/gap/movement guards, recovery and terminal retention passed. A 900-tick synthetic centerline path matched checkpoint state at 30/60/144 render Hz; this is not a player-input replay or client drive. UI uses injected crossing poses followed by real Physics steps to verify immediate cue updates, cached colors/text, course completion, frozen Stop/reopen, fresh Start and pooling. |
+| `C:\Python314\python.exe scripts/validate_project.py` | PASS — 33 expected paths, synchronized nine-module TOCs, protocol/docs links and header-only network ledger. |
+| `git diff --check` | PASS — whitespace check. |
+| Verified prior-addon backup and direct install | PASS — Track.lua, Checkpoints.lua, UI.lua and both TOCs copied after complete prior-addon backup/hash verification; all twelve installed source hashes match. |
+| Full suite/10k-tick replay, Lua 5.4, native Lua CLI, actual-client reload/course drive/layout and broad scale/performance checks | NOT RUN this slice — intentionally deferred. |
+
+**Installation:** normal filesystem approval used. Parent-workspace manifest `artifacts/AzerothKart/20261019-223715-373497/install.json`; prior eleven-file addon preserved in `before/`. Disk build needs normal `/reload` at the owner's convenience. No client input/settings mutation, other-addon/WTF/SavedVariables edits, character actions, packets, push/tag/release or automation.
+
+**Handoff:** focused local commit intended as `feat: track ordered directional checkpoints on the test oval`; inspect `git log` for hash. Client appearance/course handling and earlier M0 gates remain pending. **Next single build task:** repeatable ordered circuits with simulation-tick lap count/current/last times, deduplicated course completion and the existing reset/freeze lifecycle.
