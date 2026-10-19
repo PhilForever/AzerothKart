@@ -1,7 +1,7 @@
 # PROGRESS — persistent project handoff
 
 **Current milestone:** M0 — repository and actual-client/API feasibility. **OPEN.**
-**Current state (2026-10-19, latest session ~02:43 CEST):** two human near-minute samples captured: 58.2120/62.6020 active frame seconds, 3492/3756 ticks, no dropped time, matching stopped HUD and UI counts 6/99/3. During sample 2's inactive readback the character was attacked and died while the stopped window remained visible. Source ignored combat events when inactive; that gap is reproduced/fixed offline and installed on disk with verified backup/nine hashes. **No reload after this fix; in-memory code is still the previous probe.** Third drive is ON HOLD pending reload/stopped-window combat verification. No character/combat/death-dialog actions were automated. Full F1/F2/F5 remain open. See [client evidence](evidence/2026-10-19-m0-client.md). Simultaneous W/Up remains SKIPPED at owner request.
+**Current state (2026-10-19, latest session ~02:51 CEST):** owner directed continuing elsewhere instead of more combat/death testing. Completed independent M0 road/collision alignment: 64 outer-ellipse gray bands + 32 island grass bands replace the mismatched centerline tiles, with unchanged physics and 6/99/3 explicit UI counts. Actual mock rectangles agree with collision at 92,853 grid points outside the documented raster margin; full Lua 5.1/5.4 suites pass. Updated UI.lua is installed on disk with verified backup/nine hashes. **Reload/live appearance NOT RUN** — desktop input interference prevented sending reload; client left alone. Earlier manual checks remain pending, not development blockers for independent work. No new drive/combat test requested. M0 remains open; simultaneous W/Up remains SKIPPED.
 
 ## Canonical checkout and commits
 
@@ -17,6 +17,7 @@ Remote: `https://github.com/PhilForever/AzerothKart.git`; branch `main`. The pac
 - `fc7f339` — `fix: verify and back up repeatable local installs`.
 - `2a5b8e8` — `fix: retain combat outcome through rejected restarts`.
 - `364a245` — `docs: record updated M0 install and live baseline`.
+- `ae6fed0` — `fix: close stopped kart windows when combat begins`.
 
 Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.useConfigOnly=true`; verified in config and commit authors. Global identity was left unchanged. No push, tag, distribution or automation was performed. The later client-check session installed only AzerothKart in the local Forever AddOns folder and verified all nine files against source SHA-256. Ignored `local-artifacts/` contains developer dependencies/logs and synthetic install fixtures/backups; it is not staged.
 
@@ -35,6 +36,7 @@ Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.u
 - [x] Source timing aid: cumulative valid active frame seconds, executed simulation seconds and callback cadence; complete stopped elapsed/drop/remainder accounting and immediate Start/Stop HUD refresh. Offline tested and installed; zeroed live baseline observed, with timed/final-sample acceptance pending.
 - [x] 2026-10-19 installation/reload baseline: prior addon backed up, two changed files copied and all nine installed SHA-256 values verified twice; updated zeroed timing/HUD fields rendered inactive. Timed drive/final-sample acceptance remains pending.
 - [x] Two human drives: ticks 3492/3756, active seconds 58.2120/62.6020, no dropped time, matching HUD and explicit counts 6/99/3. Delayed probes remained frozen; sample 1 also retained numbers across slash close/reopen. Third sample/external durations/full F1 remain pending.
+- [x] Primitive road now follows unchanged analytical Track outer/inner bounds using the same 96 road textures. Dense actual-rectangle regression covers 92,853 points outside a 3.5-unit vertical edge margin and the old mismatch at `(400,440)`; allocation/replay tests pass. Installed with verified backup/hashes; reload/live appearance pending.
 - [x] Stopped-window combat source gap reproduced and fixed: combat-start event hides inactive window while preserving its sample/result/reason, without another interruption announcement. New never-started/stopped/interrupted fixtures pass Lua 5.1/5.4. Disk install verified; reload/live fix verification NOT RUN.
 - [x] Retained interruption note through repeated Close/toggle/reopen, inactive Stop and rejected Start; actual refusal text is also visible. Regression checks retain the same result/state/clock/HUD and clear the note only on a successful fresh Start. Offline only; extended client sequence pending.
 - [x] Local installer fixture slice: direct per-file repeat copies, verified old-file backup before target writes, copied SHA-256 verification, explicit overwrite/preview and failure records. PowerShell 7: 18 cases passed, 3 junction fixtures skipped; PowerShell 5.1 syntax passed, runtime blocked. No live install performed.
@@ -47,7 +49,8 @@ Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.u
 - [x] Owner's real combat smoke: window closed, interruption message appeared, WoW controls worked. Once-only handling and retained results pass offline; exact repeated-notification count, reopen and full taint audit remain live follow-ups. Restricted propagation setters remain guarded; no bypass is used.
 - [ ] `IsGameWindowFocused` and `IsWindowFocused` are both absent on build 70450. An idle Alt-Tab trial stayed stopped after >=5 seconds away through the unknown-key path. Held-key release outside the application and other application-switch routes remain unverified; do not mark full F2 passed.
 - [ ] Remaining UI-scale/layout, sustained FPS/CPU cost, long-session behavior and memory. Basic kart movement/rotation is observed; mock/live counters measure explicit addon allocations only, not client/template internals or whole-client performance.
-- [ ] Stopped-window combat-close live follow-up after reload. During the second readback the inactive window stayed visible through unplanned attack/death. Source event guard explains a gap; actual event delivery was uninstrumented, so no API contradiction is established. Fixed source is installed on disk only; third drive is on hold.
+- [ ] Stopped-window combat-close live follow-up after reload: source fixed/offline tested, live check deferred at owner direction to continue elsewhere. Do not ask for another combat test as the next development task. Prior observations remain scoped in the evidence; no API contradiction is established.
+- [ ] Analytical-band renderer actual appearance/scaling after reload. Latest source installed, but the attempted local reload was not sent because the helper detected user input. Earlier drive samples used the old road renderer and do not establish this appearance check.
 - [ ] Logout/full restart and isolated sentinel persistence. Clean inactive `/reload` is observed; minimal schema initialization is not proof of a save, migration or settings/ghost support.
 - [ ] Direct handling/play evaluation. Analytical metrics are a baseline only; no M1 game-feel acceptance.
 - [ ] Two-client transport measurements, reconnect and architecture ADR. No runtime bandwidth, loss, throttle or latency results exist.
@@ -56,7 +59,7 @@ Initial file-only evidence: `_classic_beta_\WowB.exe` reports `1.60.1.70450`; `.
 
 ## Next exact task
 
-**Next exact task: reload and verify stopped-window combat closure when the owner is ready.** The fixed UI.lua is installed with verified hashes but has not been loaded into the running client. Follow the new `Combat after Stop` row in `tests/MANUAL_CLIENT_CHECKLIST.md`: preserve a stopped probe, arrange combat only through owner-controlled normal play when practical, confirm the window hides and the sample is retained without another interrupted-drive announcement; verify no automatic resume. Do not touch character recovery or automate combat. Leave unavailable cases NOT RUN. Only after this check resume sample 3. Full M0 remains open; do not request the skipped simultaneous W/Up combination.
+**Next exact task: add a bounded opt-in M0 render-cost measurement.** Confirm a suitable client profiler API from local build sources/readback before using it; keep it optional and guard absence. Measure aggregate addon update/render cost separately from delivered frame intervals, with explicit probe output only, no per-tick chat/UI creation and offline regression coverage. This is an independent M0 performance slice. Do not turn the owner's deferred combat check or skipped simultaneous W/Up test into another handoff blocker; all unrun client checks remain pending and M0 stays open.
 
 ## Session handoff log
 
@@ -280,3 +283,28 @@ Updated the sanitized [evidence ledger](evidence/2026-10-19-m0-client.md), F1 no
 **Deployment:** normal filesystem approval granted. Reused the inspected one-off verified Python file copier because the PowerShell helper's historical unsigned-script block remains; no policy/security change. Artifact: workspace `artifacts/AzerothKart/20261019-024015-566233/install.json`, verified prior files in `before/`. No other addon or WTF/SavedVariables edited. No reload after fix; client input left untouched for owner recovery. The timing/physics code was not changed, so both old-source samples remain valid with their recorded version context.
 
 **Git/handoff:** PhilForever repository-local identity reverified; focused commit intended as `fix: close stopped kart windows when combat begins` (inspect `git log` for hash). Includes the preserved first-sample evidence edits. No push, tag, release, network traffic or automation. Next exact task is the reload/stopped-window combat check above before sample 3; visual/collision alignment remains a separate M0 prototype follow-up.
+
+### 2026-10-19 02:51 CEST (Europe/Oslo) — Codex / main, primitive road alignment
+
+**Owner steering/objective:** owner said to continue elsewhere instead of focusing on combat/dying. Confirmed canonical remote, clean `main`, HEAD `ae6fed0`; read handoff/acceptance/docs and existing source. Selected one independent M0 fix: the visible centerline-tile road did not match the analytical drivable annulus. Prior client checks remain unrun and are not falsified or discarded. No further drive/combat test requested.
+
+**Plan/change:** retain physics and the object budget, replace the static road drawing with bands derived from Track radii, compare actual generated rectangles with collision geometry, then install tested source and document actual scope. UI.lua fills 64 outer gray ellipse bands (BACKGROUND), masks the island with 32 grass bands (BORDER), and keeps marker/kart in ARTWORK/OVERLAY. Total remains 6 frames/99 textures/3 font strings. Geometry is built once during Create; moving updates do not recreate it. The vertical raster uncertainty is at most 3.40625 world units outside and 2.625 inside, not an exact vector boundary or horizontal-error guarantee. Track/Physics/Input/Loop/Core and TOCs are unchanged.
+
+**Tests/evidence:**
+
+| Command/check | Actual result |
+|---|---|
+| `python scripts/test_lua.py --runtime lua51` before renderer fix | Expected FAIL — new test reproduced `road uses 64 outer bands and 32 island bands`; other six tests passed. |
+| `python scripts/test_lua.py` after fix | PASS — 14 Lua files parsed, seven tests in each embedded Lua 5.1/5.4. Actual mock rectangles agree with `Track.isDrivable` at 92,853 grid points outside a 3.5-unit vertical boundary margin; `(400,440)` is painted road. Existing 10k-tick replay, timing, lifecycle and 1,001-update/reopen allocation checks pass. |
+| `python scripts/validate_project.py` | PASS — 27 paths, synchronized TOCs, docs links/protocol and header-only transport ledger. |
+| `git diff --check` / staged equivalent | PASS — whitespace checks. |
+| Backup/install source SHA-256 checks | PASS — entire prior AzerothKart backed up/verified, only UI.lua copied, all nine installed files matched tested source. Independent read-only comparison also performed. |
+| Native `lua tests/run.lua` | NOT RUN — standalone interpreter absent; actual embedded runtimes above executed the suite. |
+| Client reload/new renderer display/scale/performance | NOT RUN — WoW was available in desktop inventory, but input actions were rejected by the helper's user-input freshness check. Refreshed once; ongoing interference remained. No reload command was typed/submitted; client left alone. |
+| New driving/combat/F5/F4 checks | NOT RUN — outside this owner-directed slice. No character or peer actions automated. |
+
+Delegated geometry design/test authoring supported the parent implementation. A later delegated review attempt failed because model capacity was unavailable; no successful final independent-review claim is made. Parent inspected code/tests and executed the complete suites. Updated architecture, track raster bounds, test plan, feasibility/manual steps, README and changelog; roadmap acceptance boxes stay unchanged.
+
+**Deployment:** normal filesystem approval granted. Inspected one-off Python copier preserved the prior addon under workspace `artifacts/AzerothKart/20261019-024844-773041/before/`; hashes/status recorded in `install.json` beside it. Only AzerothKart UI.lua changed in the installed addon; no other addon or WTF/SavedVariables touched. Source is installed on disk, not observed reloaded. Existing live drive evidence remains historical under its original renderer.
+
+**Handoff:** focused commit intended as `fix: align primitive road with analytical track bounds`; inspect `git log` for hash. No push, tag, release, network traffic or automation. Next exact task is the bounded opt-in render-cost probe above; do not resume repeated combat testing as the next task.

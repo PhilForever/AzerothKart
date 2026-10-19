@@ -16,7 +16,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent)
     end
     local env = {
         combat=initialCombat or false, focus=nil, focused=true, mouseInside=true,
-        frames={}, output={}, counts={frames=0, textures=0, fontStrings=0},
+        frames={}, textures={}, output={}, counts={frames=0, textures=0, fontStrings=0},
         propagationCalls=0, combatPropagationCalls=0, keyboardReleaseCalls=0,
         profileTime=0,
     }
@@ -67,7 +67,15 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent)
         self.textWrites=(rawget(self,"textWrites") or 0)+1
     end
     function methods:GetText() return self.text end
-    function methods:CreateTexture() return object("textures") end
+    function methods:SetSize(width,height) self.width,self.height=width,height end
+    function methods:SetPoint(...) self.point={...} end
+    function methods:SetColorTexture(...) self.color={...} end
+    function methods:CreateTexture(_,layer)
+        local item=object("textures")
+        item.parent,item.layer=self,layer
+        env.textures[#env.textures+1]=item
+        return item
+    end
     function methods:CreateFontString() return object("fontStrings") end
 
     _G.CreateFrame=function(_,name,parent)
@@ -123,6 +131,84 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent)
     for _,entry in ipairs(previous) do _G[entry.name]=entry.value end
     assert(ok,err)
 end
+
+-- Check the actual static rectangles, rather than a second copy of the drawing
+-- formula. Row sampling can differ from the analytical edge by at most half a
+-- band vertically; samples farther than 3.5 units away must classify identically.
+local renderSummary
+withMock(nil, false, function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    local Track=env.namespace.Track
+    local outer,inner={},{}
+    local function sameColor(actual,r,g,b)
+        return type(actual)=="table" and actual[1]==r and actual[2]==g
+            and actual[3]==b and actual[4]==1
+    end
+    for _,item in ipairs(env.textures) do
+        local color=rawget(item,"color")
+        local bands
+        if sameColor(color,0.26,0.25,0.23) then
+            assert(item.layer=="BACKGROUND","outer road must use its background layer")
+            bands=outer
+        elseif sameColor(color,0.08,0.24,0.12) and item.layer=="BORDER" then
+            bands=inner
+        end
+        if bands then
+            local point=rawget(item,"point")
+            assert(type(point)=="table" and point[2]==UI.canvas and point[3]=="BOTTOMLEFT",
+                "road bands must use canvas coordinates")
+            local width,height=rawget(item,"width"),rawget(item,"height")
+            assert(type(width)=="number" and type(height)=="number" and width>0 and height>0,
+                "road bands must have positive finite dimensions")
+            local x,y=point[4],point[5]
+            assert(type(x)=="number" and type(y)=="number","road bands need numeric positions")
+            if point[1]=="CENTER" then x,y=x-width/2,y-height/2
+            else assert(point[1]=="BOTTOMLEFT","unsupported band anchor") end
+            local rect={left=x,right=x+width,bottom=y,top=y+height}
+            assert(rect.left>=0 and rect.right<=Track.width and
+                   rect.bottom>=0 and rect.top<=Track.height,"road band escaped the canvas")
+            bands[#bands+1]=rect
+        end
+    end
+    assert(#outer==64 and #inner==32,"road uses 64 outer bands and 32 island bands")
+    assert(UI.objects.frames==6 and UI.objects.textures==99 and UI.objects.fontStrings==3,
+        "aligned placeholder must retain the existing explicit UI object budget")
+    local function covered(rectangles,x,y)
+        for _,rect in ipairs(rectangles) do
+            if y>=rect.bottom and y<=rect.top and x>=rect.left and x<=rect.right then
+                return true
+            end
+        end
+        return false
+    end
+    local function paintedRoad(x,y)
+        return covered(outer,x,y) and not covered(inner,x,y)
+    end
+    assert(Track.isDrivable(400,440) and paintedRoad(400,440),
+        "drivable road near the top must be painted instead of misleading grass")
+    local function nearBoundary(x,y,radiusX,radiusY)
+        local dx=x-Track.centerX
+        if math.abs(dx)>radiusX then return false end
+        local extent=radiusY*math.sqrt(math.max(0,1-(dx/radiusX)^2))
+        return math.abs(y-(Track.centerY-extent))<=3.5 or
+               math.abs(y-(Track.centerY+extent))<=3.5
+    end
+    local checked=0
+    for y=0,Track.height,2 do
+        for x=0,Track.width,2 do
+            if not nearBoundary(x,y,Track.outerX,Track.outerY) and
+               not nearBoundary(x,y,Track.innerX,Track.innerY) then
+                assert(paintedRoad(x,y)==Track.isDrivable(x,y),
+                    ("render/track mismatch away from boundary at (%d,%d)"):format(x,y))
+                checked=checked+1
+            end
+        end
+    end
+    assert(checked>90000,"dense grid must cover the canvas away from raster edges")
+    renderSummary=("mock road: %d outer + %d island bands; %d grid points agree outside 3.5-unit vertical margin")
+        :format(#outer,#inner,checked)
+end)
+originalPrint(renderSummary.." (client appearance still pending)")
 
 local summary
 withMock({schemaVersion=1, custom={keep=true}}, false, function(env,UI)

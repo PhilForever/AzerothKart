@@ -19,6 +19,10 @@ return {
 ## Prototype vs production
 The starter's `Test Oval` is mathematical ellipse annulus to prove movement and rendering. It is **not** the production track renderer and does not provide competitive lap validation.
 
+The M0 placeholder renderer derives its footprint from the same `Track` center and outer/inner radii used by `isDrivable`. It fills the outer ellipse with 64 horizontal gray bands and masks the island with 32 grass bands. All 96 textures are created once; the centerline is not used as a substitute collision boundary. Physics, spawn and steering remain unchanged.
+
+Bands sample the ellipse at each row's midpoint. At the current dimensions their vertical boundary uncertainty is at most 3.40625 world units outside and 2.625 inside. This is a vertical raster approximation, not an exact vector edge or horizontal-error guarantee. Offline tests compare the actual mock rectangles with analytical road classification away from a 3.5-unit vertical boundary margin, including `(400,440)`, which the old tiles left unpainted despite being drivable. Client layout/scaling/performance acceptance is separate.
+
 ## Geometry responsibilities
 - Track-local spawn positions, bounds, road/walls, surface grip, collision and recovery points.
 - Checkpoint ordering must prevent reversed driving and teleport skipping; segment intersection tests must confirm correct gate direction.

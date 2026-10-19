@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — align the primitive road with collision (2026-10-19)
+- Draw the outer road and inner island from the analytical Track bounds, replacing the mismatched centerline tiles. Physics and steering are unchanged.
+- Reuse the 96-road-texture budget with static ellipse bands; regression checks compare the painted footprint with collision geometry and retain allocation/determinism coverage.
+
 ## Unreleased — stopped-window combat closure (2026-10-19)
 - Handle combat onset even after a test drive has stopped; hide the open window without changing its completed timing/result or announcing another interruption.
 - Lua 5.1/5.4 regressions cover pre-Start/stopped/interrupted windows, duplicate events, preserved samples and no automatic resume. Installed with a verified backup; reload/live verification pending.

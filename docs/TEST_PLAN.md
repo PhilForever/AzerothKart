@@ -10,6 +10,8 @@
 
 The mocked combat lifecycle also covers repeated Close/toggle/reopen and rejected Start attempts: the interruption note and terminal result stay retained, refusal text remains visible, and only a successful fresh Start clears them. Those assertions are separate from actual-client acceptance.
 
+Road rendering regressions inspect the textures actually produced by `UI.Create`: 64 outer bands, 32 island bands, explicit draw order and canvas bounds. A dense grid compares the painted footprint with `Track.isDrivable` outside the documented 3.5-unit vertical raster margin and checks the former mismatch at `(400,440)`. Existing update/reopen allocation and deterministic replay tests still apply. These checks establish geometry consistency in the mock; actual display/scaling and sustained performance remain client checks.
+
 ## Priority manual smoke suite
 - A. Addon shows up with correct TOC and `/akart`; no Lua error.
 - B. Press Start Test Drive out of combat, test W then Up, S then Down, A/D then Left/Right; car moves and rotates, stays near oval. Simultaneous W/Up is SKIPPED at the owner's request for this keyboard; offline alias coverage remains.

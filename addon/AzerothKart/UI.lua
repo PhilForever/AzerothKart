@@ -113,17 +113,25 @@ local function keyEvent(key, down)
     end
 end
 
-local function drawTrack(canvas)
-    -- Static placeholder tiles; collision remains the analytical annulus.
-    for n=0,95 do
-        local angle = n / 96 * math.pi * 2
-        local piece = texture(canvas, "BACKGROUND")
-        piece:SetColorTexture(0.26,0.25,0.23,1)
-        piece:SetSize(79,68)
-        piece:SetPoint("CENTER",canvas,"BOTTOMLEFT",
-            Track.centerX + Track.lineX * math.cos(angle),
-            Track.centerY + Track.lineY * math.sin(angle))
+local function drawEllipse(canvas, radiusX, radiusY, rows, layer, r, g, b)
+    -- Static raster bands of the same analytical ellipse used by collision.
+    -- Midpoint sampling has at most half a band's vertical edge uncertainty.
+    local height = 2 * radiusY / rows
+    for row=0,rows-1 do
+        local dy = -radiusY + (row + 0.5) * height
+        local halfWidth = radiusX * math.sqrt(math.max(0,1-(dy/radiusY)^2))
+        local piece = texture(canvas, layer)
+        piece:SetColorTexture(r,g,b,1)
+        piece:SetSize(2 * halfWidth,height)
+        piece:SetPoint("BOTTOMLEFT",canvas,"BOTTOMLEFT",
+            Track.centerX-halfWidth,Track.centerY+dy-height/2)
     end
+end
+
+local function drawTrack(canvas)
+    -- Keep the 96-road-texture budget; mask the inner island above the road.
+    drawEllipse(canvas,Track.outerX,Track.outerY,64,"BACKGROUND",0.26,0.25,0.23)
+    drawEllipse(canvas,Track.innerX,Track.innerY,32,"BORDER",0.08,0.24,0.12)
     local line = texture(canvas, "ARTWORK")
     line:SetColorTexture(0.98,0.93,0.45,0.9)
     line:SetSize(5,95)
