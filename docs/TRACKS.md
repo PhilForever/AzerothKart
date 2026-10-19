@@ -21,6 +21,8 @@ The starter's `Test Oval` is mathematical ellipse annulus to prove movement and 
 
 The M0 placeholder renderer derives its footprint from the same `Track` center and outer/inner radii used by `isDrivable`. It fills the outer ellipse with 64 horizontal gray bands and masks the island with 32 grass bands. All 96 textures are created once; the centerline is not used as a substitute collision boundary. Physics, spawn and steering remain unchanged.
 
+Live build 70450 loaded this footprint but exposed thin horizontal seams at effective scale 0.71111112833023. A temporary all-canvas snapping preview worked; two attempts to apply snapping only to the road bands during creation instead hid the road after reload. Both changes were removed and the original renderer restored. Keep geometry and physics unchanged while the texture-set/timing difference is reviewed; other scales and seam resolution are not accepted. [Recorded experiment](evidence/2026-10-19-m0-stationary-profile.md).
+
 Bands sample the ellipse at each row's midpoint. At the current dimensions their vertical boundary uncertainty is at most 3.40625 world units outside and 2.625 inside. This is a vertical raster approximation, not an exact vector edge or horizontal-error guarantee. Offline tests compare the actual mock rectangles with analytical road classification away from a 3.5-unit vertical boundary margin, including `(400,440)`, which the old tiles left unpainted despite being drivable. Client layout/scaling/performance acceptance is separate.
 
 ## Geometry responsibilities

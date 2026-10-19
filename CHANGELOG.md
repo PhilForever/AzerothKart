@@ -1,9 +1,13 @@
 # Changelog
 
+## Unreleased — stationary client evidence and renderer review (2026-10-19)
+- Recorded 600 valid stationary profiler samples on build 70450: scoped total average 0.0264 ms, maximum 0.2111 ms, including probe overhead; stopped/reopened/disarmed results retained. This is partial M0 evidence, not sustained driving or exclusive CPU cost.
+- Observed road-band seams. Both creation-time snapping experiments hid the road after reload despite passing mock tests; removed the experiments and restored/verified the prior source and visible road. Rendering API behavior is flagged for review; no snapping change is retained.
+
 ## Unreleased — optional bounded performance probe (2026-10-19)
 - `/akart perf on` arms up to 600 active updates on the next Start; `/akart perf` prints simulation/render-HUD averages and maxima in scoped elapsed milliseconds; `/akart perf off` disables collection. Default off, aggregate-only, no extra UI objects or per-frame chat.
 - Missing/invalid/reset/erroring clock readings consume the cap without changing driving. Never reset the shared profiler timer; output includes probe overhead and is not exclusive CPU/GPU attribution.
-- Pure aggregation and UI integration checks pass in Lua 5.1/5.4; synchronized TOCs load Performance before UI. Installed with verified backup/ten hashes; actual-client measurements remain NOT RUN.
+- Pure aggregation and UI integration checks pass in Lua 5.1/5.4; synchronized TOCs load Performance before UI. Installed with verified backup/ten hashes; the later stationary client result is recorded above.
 
 ## Unreleased — align the primitive road with collision (2026-10-19)
 - Draw the outer road and inner island from the analytical Track bounds, replacing the mismatched centerline tiles. Physics and steering are unchanged.
@@ -11,7 +15,7 @@
 
 ## Unreleased — stopped-window combat closure (2026-10-19)
 - Handle combat onset even after a test drive has stopped; hide the open window without changing its completed timing/result or announcing another interruption.
-- Lua 5.1/5.4 regressions cover pre-Start/stopped/interrupted windows, duplicate events, preserved samples and no automatic resume. Installed with a verified backup; reload/live verification pending.
+- Lua 5.1/5.4 regressions cover pre-Start/stopped/interrupted windows, duplicate events, preserved samples and no automatic resume. Installed with a verified backup and loaded; actual combat verification remains deferred.
 - Record two human near-minute driving samples with matching stopped HUD, no dropped simulation time and stable explicit UI counts; full M0 acceptance remains open.
 
 ## Unreleased — retained interruption note (2026-10-19)

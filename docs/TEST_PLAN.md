@@ -23,7 +23,7 @@ The Performance unit test covers phase totals/maxima, zero-resolution samples, m
 - F. Run 15 min, resize UI scale, record FPS and memory. Confirm no per-tick widget creation.
 - G. M0 SavedVariables: isolated sentinel across reload/logout/restart and inactive capture after load. Corrupt-save handling/migrations for actual settings/records remain later milestones.
 
-The next actual-client task is startup/load of the new renderer/Performance module and the optional bounded profiling window in [checklist section 3](../tests/MANUAL_CLIENT_CHECKLIST.md). Two older near-minute drives are recorded; the complete three-drive independent-timer protocol, scaling/stress and new profiler results remain **PENDING**. Record scoped elapsed milliseconds separately from frame intervals and whole-client FPS. No extra combat test is requested during the owner's redirected work.
+Startup/load and one optional stationary profiler window were observed on build 70450: 600 valid readings, stopped/reopen/disarm retention and explicit counts 6/99/3. [Exact evidence](evidence/2026-10-19-m0-stationary-profile.md). Mock tests passed for a snapping experiment that hid the road after reload; the experiment and its fixtures were removed, demonstrating why actual-client acceptance is required. The next task is review of that startup-versus-live rendering discrepancy before another rendering change. Two older near-minute drives are recorded; the complete three-drive independent-timer protocol, fresh unprofiled Start, scaling/stress and full performance acceptance remain **PENDING**. Record scoped elapsed milliseconds separately from frame intervals and whole-client FPS. No extra combat test is requested during the owner's redirected work.
 
 ## Developer install helper fixtures
 
