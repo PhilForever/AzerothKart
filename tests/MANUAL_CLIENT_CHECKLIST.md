@@ -24,11 +24,13 @@ Use at a later handling checkpoint, when a person can drive; this is not a prere
 1. Outside combat, open `/akart` and click Start. Accelerate to 90+ with W or Up, then hold Space with one turn direction. Observe bounded slide, blue charge and the named drift HUD.
 2. Keep the turn for about 0.9 seconds to reach gold/tier 1; continuing about 1.8 seconds total reaches pink/tier 2. Release only Space while retaining the turn: observe cyan/BOOST, then return to normal. Judge responsiveness rather than timing these short intervals by eye as proof of exact ticks.
 3. In another attempt, cancel a charge by releasing steering or braking; it must not award a boost. Avoid intentionally triggering combat. Escape must stop capture; the HUD retains `Last drive`, and a deliberate new Start clears it.
-4. Record the subjective handling, any Lua/layout error and stopped probe. Current source expects 6 frames/103 textures/4 font strings; prior live 6/99/3 evidence belongs to the earlier source. Do not repeat the skipped simultaneous W/Up test.
+4. Record the subjective handling, any Lua/layout error and stopped probe. Current source expects 6 frames/107 textures/7 font strings; prior live 6/99/3 evidence belongs to the earlier source. Do not repeat the skipped simultaneous W/Up test.
 
 Optional surface check at that same later checkpoint (**NOT RUN**): leave the road into island/exterior grass, observe slowdown and Grass feedback with cancelled drift/boost, then return to road. Approach a gray perimeter wall at an angle: the kart stays visible and slides along it with a speed scrub. Stop retains the surface under `Last drive`; Start resets it. Do not expand this into another long scale/combat matrix.
 
 Optional interpolation check at that checkpoint (**NOT RUN**): drive and turn at a callback cadence above 60 Hz when available, observing motion between simulation steps and continuous heading across a full turn. Press Escape, note the final kart pose, then close/reopen; it must stay still until a deliberate Start resets it. Exact final-pose snapping can move the kart by up to the last fixed step; active interpolation adds at most one fixed step of visual delay. Record perceived smoothness and any visible jump or Lua error; no new scale/profile matrix is requested.
+
+Optional meter check at that checkpoint (**NOT RUN**): during the same drift attempt, observe half-fill at Tier 1 and full fill at Tier 2 with a named ready caption. Release Space and observe the cyan remaining-boost meter drain on its 0.4s/0.8s scale; a Tier 1 boost starts shorter than Tier 2 on the shared scale. Cancelling or entering grass clears it. Escape freezes the meter with `Last drive`; close/reopen retains it, and a deliberate Start empties it. Record readability/layout issues in the 856×706 window; exact tick thresholds remain an offline check.
 
 ## 1. Identity and startup
 

@@ -92,6 +92,64 @@ local function text(parent, anchor, x, y, value)
     return label
 end
 
+local meterWidth,meterHeight = 300,12
+local function refreshMeter()
+    if not UI.meterFill or not UI.state then return end
+    local fraction,phase = Presentation.meter(UI.state,Physics)
+    if fraction ~= UI.meterFraction then
+        UI.meterFraction = fraction
+        if fraction <= 0 then UI.meterFill:Hide()
+        else
+            UI.meterFill:SetSize(meterWidth*fraction,meterHeight)
+            UI.meterFill:Show()
+        end
+    end
+    local changed = phase ~= UI.meterPhase
+    local stopped = not UI.active and UI.state.tick > 0
+    if changed then
+        UI.meterPhase = phase
+        if phase == "boost" then UI.meterFill:SetColorTexture(0.20,1.00,0.88,1)
+        elseif phase == "tier2" then UI.meterFill:SetColorTexture(1.00,0.35,0.78,1)
+        elseif phase == "tier1" then UI.meterFill:SetColorTexture(1.00,0.86,0.20,1)
+        else UI.meterFill:SetColorTexture(0.35,0.65,1.00,1) end
+        UI.meterTier1Label:SetText(phase == "boost" and "0.4 s" or "Tier 1")
+        UI.meterTier2Label:SetText(phase == "boost" and "0.8 s" or "Tier 2")
+    end
+    if changed or stopped ~= UI.meterStopped then
+        UI.meterStopped = stopped
+        local caption = "DRIFT CHARGE"
+        if phase == "boost" then caption = "BOOST REMAINING"
+        elseif phase == "tier2" then caption = "TIER 2 READY | Release Space to boost"
+        elseif phase == "tier1" then caption = "TIER 1 READY | Release Space to boost"
+        elseif phase == "charging" then caption = "DRIFT CHARGE | Hold Space + turn" end
+        if stopped then caption = "Last drive | " .. caption end
+        UI.meterCaption:SetText(caption)
+    end
+end
+
+local function createMeter(window)
+    UI.meterBackground = texture(window,"BACKGROUND")
+    UI.meterBackground:SetColorTexture(0.14,0.16,0.19,1)
+    UI.meterBackground:SetSize(meterWidth,meterHeight)
+    UI.meterBackground:SetPoint("BOTTOMLEFT",window,"BOTTOMLEFT",28,52)
+    UI.meterFill = texture(window,"ARTWORK")
+    UI.meterFill:SetSize(meterWidth,meterHeight)
+    UI.meterFill:SetPoint("BOTTOMLEFT",window,"BOTTOMLEFT",28,52)
+    UI.meterTier1Mark = texture(window,"OVERLAY")
+    UI.meterTier1Mark:SetColorTexture(0.95,0.95,0.95,1)
+    UI.meterTier1Mark:SetSize(2,meterHeight+4)
+    UI.meterTier1Mark:SetPoint("BOTTOMLEFT",window,"BOTTOMLEFT",28+meterWidth/2-1,50)
+    UI.meterTier2Mark = texture(window,"OVERLAY")
+    UI.meterTier2Mark:SetColorTexture(0.95,0.95,0.95,1)
+    UI.meterTier2Mark:SetSize(2,meterHeight+4)
+    UI.meterTier2Mark:SetPoint("BOTTOMLEFT",window,"BOTTOMLEFT",28+meterWidth-1,50)
+    UI.meterCaption = text(window,"BOTTOMLEFT",28,68,"")
+    UI.meterCaption:SetJustifyH("LEFT")
+    UI.meterTier1Label = text(window,"BOTTOMLEFT",28+meterWidth/2-18,38,"Tier 1")
+    UI.meterTier2Label = text(window,"BOTTOMLEFT",28+meterWidth-36,38,"Tier 2")
+    refreshMeter()
+end
+
 local function refreshHud()
     if not UI.hud or not UI.state then return end
     local c = UI.clock
@@ -255,13 +313,14 @@ render = function()
         elseif tint == 1 then UI.kart:SetColorTexture(0.35,0.65,1.00,1)
         else UI.kart:SetColorTexture(0.98,0.54,0.14,1) end
     end
+    refreshMeter()
 end
 
 function UI.Create()
     if UI.window then return end
     local window = frame("Frame","AzerothKartMainWindow",UIParent,"BackdropTemplate")
     UI.window = window
-    window:SetSize(856,670)
+    window:SetSize(856,706)
     window:SetPoint("CENTER")
     window:SetFrameStrata("DIALOG")
     window:SetClampedToScreen(true)
@@ -303,12 +362,13 @@ function UI.Create()
     UI.previousState = UI.state
     render()
 
-    UI.status = text(window,"BOTTOMLEFT",28,97,"Out of combat: Start Test Drive")
+    UI.status = text(window,"BOTTOMLEFT",28,133,"Out of combat: Start Test Drive")
     UI.status:SetJustifyH("LEFT")
-    UI.hud = text(window,"BOTTOMLEFT",28,74,"Speed: 0 | Ticks: 0")
+    UI.hud = text(window,"BOTTOMLEFT",28,110,"Speed: 0 | Ticks: 0")
     UI.hud:SetJustifyH("LEFT")
-    UI.driftHud = text(window,"BOTTOMLEFT",28,50,"")
+    UI.driftHud = text(window,"BOTTOMLEFT",28,86,"")
     UI.driftHud:SetJustifyH("LEFT")
+    createMeter(window)
     refreshHud()
     UI.startButton = frame("Button",nil,window,"UIPanelButtonTemplate")
     UI.startButton:SetSize(130,24)

@@ -67,7 +67,10 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
         self.textWrites=(rawget(self,"textWrites") or 0)+1
     end
     function methods:GetText() return self.text end
-    function methods:SetSize(width,height) self.width,self.height=width,height end
+    function methods:SetSize(width,height)
+        self.width,self.height=width,height
+        self.sizeWrites=(rawget(self,"sizeWrites") or 0)+1
+    end
     function methods:SetPoint(...) self.point={...} end
     function methods:SetRotation(value) self.rotation=value end
     function methods:SetColorTexture(...)
@@ -241,8 +244,8 @@ withMock(nil, false, function(env,UI)
             "thin wall strips follow the canvas perimeter")
         assert(wall.item.colorWrites==1,"static wall color is configured once")
     end
-    assert(UI.objects.frames==6 and UI.objects.textures==103 and UI.objects.fontStrings==4,
-        "pooled drift label and four walls must match the explicit UI object budget")
+    assert(UI.objects.frames==6 and UI.objects.textures==107 and UI.objects.fontStrings==7,
+        "pooled drift meter and walls must match the explicit UI object budget")
     local function covered(rectangles,x,y)
         for _,rect in ipairs(rectangles) do
             if y>=rect.bottom and y<=rect.top and x>=rect.left and x<=rect.right then
@@ -415,6 +418,88 @@ withMock(nil,false,function(env,UI)
     end
 end)
 
+-- Meter feedback uses actual fixed-step charge/boost capacity and preallocated
+-- widgets. Inject boundary states and render without a simulation tick.
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    UI.Toggle(); UI.Start()
+    local counts={}
+    for key,value in pairs(env.counts) do counts[key]=value end
+    local function close(actual,expected,label)
+        assert(math.abs(actual-expected)<1e-10,label)
+    end
+    local function caption(words)
+        assert(UI.meterCaption.text:find(words,1,true),"missing meter caption: "..words)
+    end
+    local function sample(ticks,boost,surface)
+        UI.state.surface=surface or "road"
+        UI.state.drifting=ticks>0
+        UI.state.driftTicks=ticks
+        UI.state.driftTier=0 -- Display must derive thresholds from actual charge.
+        UI.state.boostTicks=boost or 0
+        local tick=UI.state.tick
+        UI.OnUpdate(0)
+        assert(UI.state.tick==tick,"meter render must not advance simulation")
+    end
+    assert(UI.window.width==856 and UI.window.height==706,"meter fits the expanded window")
+    assert(UI.meterBackground.width==300 and UI.meterBackground.height==12,
+        "meter has a fixed readable capacity")
+    local point=UI.meterBackground.point
+    assert(point[1]=="BOTTOMLEFT" and point[2]==UI.window and point[3]=="BOTTOMLEFT" and
+           point[4]==28 and point[5]==52,"meter stays below the text HUD")
+    for index,mark in ipairs({UI.meterTier1Mark,UI.meterTier2Mark}) do
+        assert(mark.width==2 and mark.height==16,"tier markers remain visible above the fill")
+        assert(mark.point[4]==28+150*index-1 and mark.point[5]==50,
+            "tier markers identify half and full charge")
+    end
+    sample(0); caption("DRIFT CHARGE")
+    assert(not UI.meterFill:IsShown(),"zero charge hides the fill")
+    assert(UI.meterTier1Label.text=="Tier 1" and UI.meterTier2Label.text=="Tier 2",
+        "charge meter labels explain its thresholds")
+    sample(53); caption("DRIFT CHARGE")
+    assert(UI.meterFill:IsShown(),"partial charge shows the fill")
+    close(UI.meterFill.width,300*53/108,"charge before tier one")
+    sample(54); caption("TIER 1 READY")
+    close(UI.meterFill.width,150,"tier one reaches the first marker")
+    sample(108); caption("TIER 2 READY")
+    close(UI.meterFill.width,300,"tier two reaches full charge")
+    sample(0,47); caption("BOOST REMAINING")
+    close(UI.meterFill.width,300*47/48,"boost uses the common maximum duration")
+    assert(UI.meterTier1Label.text=="0.4 s" and UI.meterTier2Label.text=="0.8 s",
+        "boost meter labels show remaining-time capacity")
+    sample(0,24)
+    close(UI.meterFill.width,150,"half remaining boost reaches the same halfway mark")
+    local sizeWrites,colorWrites,textWrites=UI.meterFill.sizeWrites,
+        UI.meterFill.colorWrites,UI.meterCaption.textWrites
+    UI.OnUpdate(0)
+    assert(UI.meterFill.sizeWrites==sizeWrites and UI.meterFill.colorWrites==colorWrites and
+           UI.meterCaption.textWrites==textWrites,
+        "unchanged meter state does not repeat geometry, color or caption setters")
+    for _,surface in ipairs({"grass","wall"}) do
+        sample(108,47,surface)
+        assert(not UI.meterFill:IsShown(),surface.." clears stale charge and boost feedback")
+        caption("DRIFT CHARGE")
+    end
+    sample(0,24)
+    UI.state.tick=1 -- A retained drive label requires an actual completed sample.
+    UI.Stop("meter fixture")
+    caption("Last drive | "); caption("BOOST REMAINING")
+    close(UI.meterFill.width,150,"Stop retains the actual remaining boost")
+    local frozenText=UI.meterCaption.text
+    UI.OnUpdate(1)
+    assert(UI.meterCaption.text==frozenText and UI.state.boostTicks==24,
+        "stopped meter and boost stay frozen")
+    UI.Start()
+    assert(not UI.meterFill:IsShown() and UI.state.boostTicks==0,
+        "fresh Start resets old boost and meter fill")
+    caption("DRIFT CHARGE")
+    assert(not UI.meterCaption.text:find("Last drive",1,true),"new drive clears the retained label")
+    UI.Stop("meter fixture done")
+    for key,value in pairs(counts) do
+        assert(env.counts[key]==value,"meter updates allocated additional UI objects: "..key)
+    end
+end)
+
 -- Surface feedback shares the existing drift label, including stopped samples.
 withMock(nil,false,function(env,UI)
     env.fire("ADDON_LOADED","AzerothKart")
@@ -460,7 +545,7 @@ for _,mode in ipairs({"missing", "throws"}) do
         env.fire("ADDON_LOADED","AzerothKart")
         UI.Toggle(); UI.Start(); UI.OnUpdate(1/60)
         assert(UI.active and UI.state.tick==1,"optional snapping APIs cannot block driving: "..mode)
-        assert(UI.objects.frames==6 and UI.objects.textures==103 and UI.objects.fontStrings==4,
+        assert(UI.objects.frames==6 and UI.objects.textures==107 and UI.objects.fontStrings==7,
             "snapping fallback preserves UI object budget: "..mode)
         assert(env.drawLayerCalls==1,"grass priority remains explicit when snapping is unavailable: "..mode)
     end,nil,mode)
@@ -811,7 +896,7 @@ withMock(nil, false, function(env,UI)
     assert(math.abs(sample.simulationMs-6)<1e-8 and math.abs(sample.renderMs-6)<1e-8 and
            math.abs(sample.totalMs-12)<1e-8,"profile phases accumulate known mock milliseconds")
     assert(#env.output==before,"sampling/completion never prints per-frame chat")
-    assert(UI.objects.frames==6 and UI.objects.textures==103 and UI.objects.fontStrings==4,
+    assert(UI.objects.frames==6 and UI.objects.textures==107 and UI.objects.fontStrings==7,
         "profiling creates no UI objects")
     local state={}
     for key,value in pairs(UI.state) do state[key]=value end

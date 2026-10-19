@@ -1,4 +1,4 @@
--- Pure render-pose interpolation; never feed the result back into simulation.
+-- Pure presentation values; never feed them back into simulation.
 local _, namespace = ...
 local Presentation = {}
 local pi, tau = math.pi, 2 * math.pi
@@ -17,6 +17,24 @@ function Presentation.pose(previous, current, alpha)
     return previous.x + (current.x - previous.x) * alpha,
            previous.y + (current.y - previous.y) * alpha,
            previous.heading + delta * alpha
+end
+
+function Presentation.meter(state, config)
+    assert(state and config, "state and meter config required")
+    -- Surface cancellation takes precedence even for a retained/stale charge.
+    if state.surface == "grass" or state.surface == "wall" then return 0, "idle" end
+    local boostTicks = state.boostTicks or 0
+    if boostTicks > 0 then
+        -- Both boost tiers share one capacity, so the shorter reward visibly
+        -- contains less boost instead of displaying an equally full meter.
+        return math.min(1, boostTicks / config.BOOST_TIER2_TICKS), "boost"
+    end
+    local ticks = state.driftTicks or 0
+    if not state.drifting or ticks <= 0 then return 0, "idle" end
+    local phase = "charging"
+    if ticks >= config.DRIFT_TIER2_TICKS then phase = "tier2"
+    elseif ticks >= config.DRIFT_TIER1_TICKS then phase = "tier1" end
+    return math.min(1, ticks / config.DRIFT_TIER2_TICKS), phase
 end
 
 if type(namespace) == "table" then namespace.Presentation = Presentation end

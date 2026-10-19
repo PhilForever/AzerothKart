@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — drift charge and boost meter (2026-10-19)
+- Add a 300×12 pooled meter with Tier 1/Tier 2 markers, named charge/ready phases and remaining-boost feedback on one shared 0.8-second scale. Pure Presentation mapping reads actual charge/boost ticks without changing physics version 4.
+- Cache phase and fill setters; empty fill is hidden, Stop freezes the last drive and Start clears it. Four textures and three font strings bring explicit allocations to 6 frames/107 textures/7 font strings in an 856×706 window.
+- Focused presentation/UI coverage accompanies this slice; exact executed results and install status belong in PROGRESS. Client reload and meter appearance are NOT RUN; broader checks remain deferred under ADR 0007.
+
 ## Unreleased — interpolated kart presentation (2026-10-19)
 - Blend previous/current simulation positions and shortest-arc heading using the fixed-step clock remainder, including render frames with no simulation step. A pure Presentation module returns scalar coordinates; displayed poses never feed back into physics, which remains version 4.
 - Start/Create and Stop show the exact current pose; stopped updates and reopening retain it. Active interpolation adds at most one fixed step of visual delay. The 6 frames/103 textures/4 font strings budget is unchanged.
