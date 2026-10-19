@@ -2,6 +2,7 @@
 local _, AK = ...
 assert(type(AK) == "table", "addon namespace required")
 local Track, Physics, Input, Loop = AK.Track, AK.Physics, AK.Input, AK.Loop
+local Oval = Track
 local Performance = AK.Performance
 local Presentation = AK.Presentation
 local Checkpoints = AK.Checkpoints
@@ -11,6 +12,7 @@ local UI = {
     active=false, keys=Input.new(), input={}, pendingPropagationRelease=false,
     objects={frames=0, textures=0, fontStrings=0}, stopReason="Not started",
     performanceEnabled=false,
+    track=Track, trackId="test_oval",
 }
 AK.UI = UI
 local render
@@ -239,11 +241,13 @@ local function refreshHud()
     end
     if UI.driftHud then
         local state = UI.state
-        local surface = state.surface == "grass" and "Grass" or
+        local salt = UI.trackId == "mirage_raceway"
+        local surface = state.surface == "grass" and (salt and "Rough salt" or "Grass") or
             (state.surface == "wall" and "Wall" or "Road")
         local feedback = "Drift: hold Space + turn at speed 90+ | Release Space to boost"
         if state.surface == "grass" then
-            feedback = "Slowing on grass | Rejoin the road to drift"
+            feedback = (salt and "Slowing on rough salt" or "Slowing on grass") ..
+                " | Rejoin the road to drift"
         elseif state.surface == "wall" then
             feedback = "Steer away from the barrier and rejoin the road"
         elseif state.boostTicks > 0 then
@@ -303,6 +307,7 @@ function UI.Stop(reason)
     if UI.status then UI.status:SetText(UI.stopReason .. " | Click Start to capture again") end
     if UI.startButton then UI.startButton:Enable() end
     if UI.stopButton then UI.stopButton:Disable() end
+    if UI.trackButton then UI.trackButton:Enable() end
 end
 
 function UI.InterruptCombat()
@@ -347,6 +352,7 @@ local function drawEllipse(canvas, radiusX, radiusY, rows, layer, r, g, b)
         local dy = -radiusY + (row + 0.5) * height
         local halfWidth = radiusX * math.sqrt(math.max(0,1-(dy/radiusY)^2))
         local piece = texture(canvas, layer)
+        UI.ovalTextures[#UI.ovalTextures+1] = piece
         piece:SetColorTexture(r,g,b,1)
         piece:SetSize(2 * halfWidth,height)
         piece:SetPoint("BOTTOMLEFT",canvas,"BOTTOMLEFT",
@@ -363,6 +369,7 @@ local function drawEllipse(canvas, radiusX, radiusY, rows, layer, r, g, b)
 end
 
 local function drawTrack(canvas)
+    UI.ovalTextures = {}
     -- Keep the 96-road-texture budget; mask the inner island above the road.
     drawEllipse(canvas,Track.outerX,Track.outerY,64,"BACKGROUND",0.26,0.25,0.23)
     drawEllipse(canvas,Track.innerX,Track.innerY,32,"BORDER",0.08,0.24,0.12)
@@ -378,10 +385,12 @@ local function drawTrack(canvas)
 end
 
 local function drawWalls(canvas)
+    UI.wallTextures = {}
     -- Static perimeter markers; collision keeps the kart's center farther in.
     local thickness = 4
     local function strip(x,y,width,height)
         local piece = texture(canvas,"ARTWORK")
+        UI.wallTextures[#UI.wallTextures+1] = piece
         piece:SetColorTexture(0.42,0.44,0.48,1)
         piece:SetSize(width,height)
         piece:SetPoint("BOTTOMLEFT",canvas,"BOTTOMLEFT",x,y)
@@ -392,9 +401,89 @@ local function drawWalls(canvas)
     strip(Track.width-thickness,thickness,thickness,Track.height-2*thickness)
 end
 
+local function layoutTrack()
+    local view = Presentation.fitViewport(Track.width,Track.height,800,480)
+    UI.view = view
+    local mirage = UI.trackId == "mirage_raceway"
+    for _,piece in ipairs(UI.ovalTextures) do
+        if mirage then piece:Hide() else piece:Show() end
+    end
+    if mirage then UI.mirageBackground:Show() else UI.mirageBackground:Hide() end
+    UI.grass:SetColorTexture(mirage and 0.12 or 0.08,mirage and 0.11 or 0.24,
+        mirage and 0.09 or 0.12,1)
+    UI.mirageBackground:ClearAllPoints()
+    UI.mirageBackground:SetPoint("BOTTOMLEFT",UI.canvas,"BOTTOMLEFT",view.offsetX,view.offsetY)
+    UI.mirageBackground:SetSize(view.width,view.height)
+    for index,gate in ipairs(Track.gates) do
+        local line = UI.gateTextures[index]
+        line:ClearAllPoints()
+        local x,y = Presentation.project(view,(gate.ax+gate.bx)/2,(gate.ay+gate.by)/2)
+        line:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x,y)
+        line:SetSize((gate.ax == gate.bx and 5 or math.abs(gate.bx-gate.ax))*view.scale,
+            (gate.ay == gate.by and 5 or math.abs(gate.by-gate.ay))*view.scale)
+    end
+    local thickness = 4
+    local function strip(index,x,y,width,height)
+        local piece = UI.wallTextures[index]
+        piece:ClearAllPoints()
+        local px,py = Presentation.project(view,x,y)
+        piece:SetPoint("BOTTOMLEFT",UI.canvas,"BOTTOMLEFT",px,py)
+        piece:SetSize(width*view.scale,height*view.scale)
+    end
+    strip(1,0,0,Track.width,thickness)
+    strip(2,0,Track.height-thickness,Track.width,thickness)
+    strip(3,0,thickness,thickness,Track.height-2*thickness)
+    strip(4,Track.width-thickness,thickness,thickness,Track.height-2*thickness)
+    UI.kart:SetSize(17*view.scale,31*view.scale)
+    UI.gatePassed,UI.gateStopped = nil,nil
+end
+
+function UI.SelectTrack(id)
+    if not UI.window or not UI.window:IsShown() or UI.active or inCombat() then return false end
+    if id ~= "test_oval" and id ~= "mirage_raceway" then return false end
+    if id == UI.trackId then return true end
+    if id == "mirage_raceway" and not UI.mirageTextureReady then
+        -- The client documents a boolean load result. Missing/erroring/failed
+        -- texture loads leave the old track and its stopped result untouched.
+        local loader = UI.mirageBackground.SetTexture
+        local ok,loaded = false,false
+        if type(loader) == "function" then
+            ok,loaded = pcall(loader,UI.mirageBackground,
+                "Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\SaltFlats\\Background.tga")
+        end
+        if not ok or loaded ~= true then
+            refuseStart("Mirage background unavailable | Test Oval remains available")
+            return false
+        end
+        UI.mirageTextureReady = true
+    end
+    if id == "mirage_raceway" then
+        UI.mirageTrack = UI.mirageTrack or AK.MirageRaceway.new(Oval.crossesGate)
+        Track = UI.mirageTrack
+    else Track = Oval end
+    UI.ReleaseInput()
+    UI.track,UI.trackId = Track,id
+    UI.state = Physics.new(Track)
+    UI.laps = Laps.new(Track,Checkpoints,UI.state.tick)
+    UI.checkpoints,UI.previousState = UI.laps.checkpoints,UI.state
+    UI.race,UI.result,UI.clock,UI.performance,UI.summaryRace = nil,nil,nil,nil,nil
+    UI.hudElapsed = 0
+    UI.stopReason = "Track selected"
+    UI.summary:Hide()
+    UI.trackButton:SetText(id == "mirage_raceway" and "Track: Mirage Raceway" or "Track: Test Oval")
+    layoutTrack()
+    render()
+    refreshHud()
+    UI.status:SetText(id == "mirage_raceway" and
+        "Mirage Raceway blockout | Start for 3 laps | Off-road: rough salt" or
+        "Test Oval | Start for 3 laps")
+    return true
+end
+
 render = function()
     local alpha = UI.active and UI.clock and UI.clock.accumulator/UI.clock.dt or 1
     local x,y,heading = Presentation.pose(UI.previousState,UI.state,alpha)
+    x,y = Presentation.project(UI.view,x,y)
     UI.kart:ClearAllPoints()
     UI.kart:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x,y)
     UI.kart:SetRotation(heading - math.pi/2)
@@ -443,9 +532,10 @@ function UI.Create()
     close:SetScript("OnClick",function() UI.Stop("Closed"); window:Hide() end)
 
     UI.canvas = frame("Frame",nil,window)
-    UI.canvas:SetSize(Track.width,Track.height)
+    UI.canvas:SetSize(800,480)
     UI.canvas:SetPoint("TOP",0,-58)
     local grass = texture(UI.canvas,"BACKGROUND")
+    UI.grass = grass
     grass:SetAllPoints(UI.canvas)
     grass:SetColorTexture(0.08,0.24,0.12,1)
     -- Mixed snapping states can cover the road within one default sublayer.
@@ -453,8 +543,10 @@ function UI.Create()
     grass:SetDrawLayer("BACKGROUND",-1)
     drawTrack(UI.canvas)
     drawWalls(UI.canvas)
+    UI.mirageBackground = texture(UI.canvas,"BACKGROUND")
+    UI.mirageBackground:Hide()
     UI.kart = texture(UI.canvas,"OVERLAY")
-    UI.kart:SetSize(17,31)
+    layoutTrack()
     UI.state = Physics.new(Track)
     UI.laps = Laps.new(Track,Checkpoints,UI.state.tick)
     UI.checkpoints = UI.laps.checkpoints
@@ -485,6 +577,15 @@ function UI.Create()
     UI.stopButton:SetText("Stop")
     UI.stopButton:SetScript("OnClick",function() UI.Stop("Stopped") end)
     UI.stopButton:Disable()
+    UI.trackButton = frame("Button",nil,window,"UIPanelButtonTemplate")
+    UI.trackButton:SetSize(208,24)
+    UI.trackButton:SetPoint("BOTTOMLEFT",280,12)
+    UI.trackButton:SetText("Track: Test Oval")
+    UI.trackButton:SetScript("OnClick",function()
+        -- A mouse-down that stopped a drive must not also discard its result.
+        if UI.trackClickBlocked then return end
+        UI.SelectTrack(UI.trackId == "test_oval" and "mirage_raceway" or "test_oval")
+    end)
     UI.probeButton = frame("Button",nil,window,"UIPanelButtonTemplate")
     UI.probeButton:SetSize(112,24)
     UI.probeButton:SetPoint("BOTTOMRIGHT",-28,12)
@@ -545,6 +646,7 @@ function UI.Start()
     UI.status:SetText("3 laps | Hold W/Up for GO | A/D or arrows: steer | Esc: release controls")
     UI.startButton:Disable()
     UI.stopButton:Enable()
+    UI.trackButton:Disable()
 end
 
 -- Reuse neutral input during prestart. The zero-speed spawn remains fixed,
@@ -614,6 +716,9 @@ end
 function UI.HandleEvent(event)
     if event == "PLAYER_REGEN_ENABLED" then UI.OnCombatEnded(); return end
     if event == "PLAYER_REGEN_DISABLED" then UI.InterruptCombat(); return end
+    if event == "GLOBAL_MOUSE_DOWN" then
+        UI.trackClickBlocked = UI.active
+    end
     if not UI.active then return end
     if event == "GLOBAL_MOUSE_DOWN" then
         -- Bounds cannot identify which overlapping UI owns the click. M0 gives
@@ -640,8 +745,8 @@ function UI.ReportProbe()
     report(("activeFrameSeconds=%.4f simulatedSeconds=%.4f callbackHz=%.2f"):format(
         c and c.elapsedSeconds or 0,c and c.steps*c.dt or 0,
         c and c.elapsedSeconds>0 and c.frames/c.elapsedSeconds or 0))
-    report(("UI frames=%d textures=%d fontStrings=%d active=%s stopReason=%s"):format(
-        UI.objects.frames,UI.objects.textures,UI.objects.fontStrings,tostring(UI.active),UI.stopReason))
+    report(("UI frames=%d textures=%d fontStrings=%d active=%s stopReason=%s track=%s"):format(
+        UI.objects.frames,UI.objects.textures,UI.objects.fontStrings,tostring(UI.active),UI.stopReason,UI.trackId))
     report("eventRegistrationFailures=" .. (AK.eventFailures or "none"))
     report(("combatApi=%s textFocusApi=%s keyboardApi=%s propagationApi=%s"):format(
         tostring(type(InCombatLockdown)=="function"),tostring(type(GetCurrentKeyBoardFocus)=="function"),

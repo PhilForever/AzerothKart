@@ -56,4 +56,6 @@ Neither pack was downloaded. A license match alone does not make a visual-style 
 
 ## Next asset decision
 
-Proceed with a pure Mirage geometry blockout and matching original background draft before large exports. Keep WC3Vault candidates separate until an individual import is supportable. Start eventual sprite production with a recognizable Goblin Drag Car, then the contrasting Gnome Drag Car; validate the overhead camera/pivot once before producing the rest of the roster. No broad art download or eight-vehicle pipeline is required for that first slice.
+The current runtime `addon/AzerothKart/Assets/Tracks/SaltFlats/Background.tga` is original code-generated blockout art derived from the repository's Mirage geometry. No archived model, game texture, screenshot or concept-board crop supplies its pixels. Authorship/source: AzerothKart project generator; intended use: local Mirage blockout background, 2026-10-20. This does not clear third-party Warcraft assets or claim production scenery completion.
+
+Next, author a recognizable original Goblin Drag Car, then the contrasting Gnome Drag Car; validate the overhead camera/pivot once before producing the rest of the roster. Keep WC3Vault candidates separate until an individual import is supportable. No broad art download or eight-vehicle pipeline is required for that first slice. Painterly background scenery follows while retaining the established geometry registration.

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — selectable playable Mirage blockout (2026-10-20)
+- Add one original 1024×1024 salt-flat TGA sampled from actual Lua road geometry, plus a deterministic exporter and format/alignment check. No third-party imagery or model is imported.
+- Add a stopped-state Track button for Test Oval/Mirage Raceway. Load the background once on deliberate selection, retain the working oval and stopped result if loading fails, and reuse all textures on later switches. A click releasing driving controls cannot also change the track.
+- Project background, kart, gates and perimeter dimensions uniformly into the existing canvas. Mirage labels rough ground as salt; physics v5, countdown, drift and three-lap results are preserved. Successful map changes start a fresh ready state; selection is not persisted.
+- Explicit UI allocations become 9 frames/111 textures/13 font strings. Focused Lua 5.1 mapping/lifecycle checks and exporter checks passed; actual client texture appearance/handling remain NOT RUN. M0/M1/M3 acceptance remains open.
+
 ## Unreleased — Mirage geometry blockout and layout guide (2026-10-20)
 - Add a pure MirageRaceway factory with explicit crossing dependency, 1024-square bounds, a closed 16-vertex centerline and 112-wide capsule-union road, perimeter walls, spawn and four directional gates. Rough salt reuses grass behavior; physics stays v5.
 - Add uniform Presentation viewport projection/unprojection. The 1024-square world fits 800×480 at scale 0.46875, offset (160,0); future rendering must scale both positions and dimensions.

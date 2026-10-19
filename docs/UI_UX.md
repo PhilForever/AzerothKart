@@ -15,7 +15,7 @@ The accepted first-map direction is **Mirage Raceway** on the dry, pre-flood Shi
 7. `SETTINGS`: keybinds, scale, graphics quality, reduced motion, audio, gameplay assist, restore defaults.
 
 ## Race canvas composition
-Map is viewport-clipped; a strict overhead vehicle uses a separate rotating texture, while an angled vehicle needs directional frames. Track visuals layer below players, optional scenery occlusion above them, trails/particles above road and below HUD. Preserve map aspect with a uniform transform rather than stretching square art into the existing landscape canvas. Pool sprites, cap particles, maintain readable contrast and accessible color cues. The future viewport/art migration has not changed the current 856×762 prototype window.
+Map is viewport-clipped; a strict overhead vehicle uses a separate rotating texture, while an angled vehicle needs directional frames. Track visuals layer below players, optional scenery occlusion above them, trails/particles above road and below HUD. Mirage's blockout uses a centered 480×480 background inside the existing 800×480 canvas, with one uniform scale for kart/gate/wall dimensions and positions; the window stays 856×762. The stopped **Track: Test Oval / Track: Mirage Raceway** button provides deliberate selection. Successful selection clears the previous local run/sample; load refusal preserves it. Test Oval is the default after reload. Pool sprites, cap particles, maintain readable contrast and accessible color cues. Vehicle sprites and the full scene navigation above remain future work.
 
 ## Focus and safe exit
 - Display **"Controls active — Esc to release"** while key capture is enabled.

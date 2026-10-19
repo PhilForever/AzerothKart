@@ -19,6 +19,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
         frames={}, textures={}, output={}, counts={frames=0, textures=0, fontStrings=0},
         propagationCalls=0, combatPropagationCalls=0, keyboardReleaseCalls=0,
         profileTime=0, profileCalls=0, snappingCalls=0, drawLayerCalls=0,
+        textureCalls=0,
     }
     local methods = {}
     local function object(kind)
@@ -76,6 +77,15 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     function methods:SetColorTexture(...)
         self.color={...}
         self.colorWrites=(rawget(self,"colorWrites") or 0)+1
+    end
+    function methods:SetTexture(path)
+        env.textureCalls=env.textureCalls+1
+        if env.textureMode=="throws" then error("mock texture load refuses") end
+        if env.textureMode=="false" then return false end
+        if env.textureMode=="nil" then return nil end
+        self.texturePath=path
+        self.textureWrites=(rawget(self,"textureWrites") or 0)+1
+        return true
     end
     function methods:SetDrawLayer(layer,sublevel)
         env.drawLayerCalls=env.drawLayerCalls+1
@@ -253,7 +263,7 @@ withMock(nil, false, function(env,UI)
             "thin wall strips follow the canvas perimeter")
         assert(wall.item.colorWrites==1,"static wall color is configured once")
     end
-    assert(UI.objects.frames==8 and UI.objects.textures==110 and UI.objects.fontStrings==13,
+    assert(UI.objects.frames==9 and UI.objects.textures==111 and UI.objects.fontStrings==13,
         "pooled run summary, lap/checkpoint HUD, drift meter and walls match the explicit UI object budget")
     local function covered(rectangles,x,y)
         for _,rect in ipairs(rectangles) do
@@ -291,6 +301,176 @@ withMock(nil, false, function(env,UI)
         :format(#outer,#inner,checked)
 end)
 originalPrint(renderSummary.." (client appearance still pending)")
+
+-- One geometry-aligned image is pooled alongside the fallback oval. Uniform
+-- projection must affect dimensions as well as anchors, without changing physics.
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    local Oval,Physics=env.namespace.Track,env.namespace.Physics
+    assert(UI.track==Oval and UI.view.scale==1 and not UI.mirageBackground:IsShown(),
+        "cold load retains the working Test Oval and hides the unloaded image")
+    assert(env.textureCalls==0,"custom texture loads only on deliberate Mirage selection")
+    UI.Toggle()
+    local counts={}
+    for key,value in pairs(env.counts) do counts[key]=value end
+    assert(UI.SelectTrack("mirage_raceway"),"stopped user can select Mirage")
+    local Mirage=UI.track
+    assert(Mirage.id=="mirage_raceway" and UI.view.scale==0.46875 and
+           UI.view.offsetX==160 and UI.view.offsetY==0,
+        "Mirage preserves its square aspect inside the fixed canvas")
+    assert(UI.canvas.width==800 and UI.canvas.height==480 and
+           UI.mirageBackground:IsShown() and env.textureCalls==1 and
+           UI.mirageBackground.texturePath==
+               "Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\SaltFlats\\Background.tga",
+        "one custom background is loaded at the declared addon path")
+    assert(UI.mirageBackground.width==480 and UI.mirageBackground.height==480 and
+           UI.mirageBackground.point[4]==160 and UI.mirageBackground.point[5]==0,
+        "background uses the fitted square rather than stretching the world")
+    assert(#UI.ovalTextures==96,"fallback bands remain pooled")
+    for _,piece in ipairs(UI.ovalTextures) do
+        assert(not piece:IsShown(),"fallback bands cannot cover the Mirage image")
+    end
+    local function close(actual,expected,label)
+        assert(math.abs(actual-expected)<1e-9,label)
+    end
+    local scale=UI.view.scale
+    local spawn=Mirage.spawn()
+    close(UI.kart.width,17*scale,"kart width follows the world scale")
+    close(UI.kart.height,31*scale,"kart height follows the world scale")
+    close(UI.kart.point[4],160+spawn.x*scale,"kart x follows the fitted projection")
+    close(UI.kart.point[5],spawn.y*scale,"kart y follows the fitted projection")
+    close(UI.kart.rotation,spawn.heading-math.pi/2,"kart keeps the tested heading convention")
+    for index,gate in ipairs(Mirage.gates) do
+        local strip=UI.gateTextures[index]
+        close(strip.point[4],160+(gate.ax+gate.bx)/2*scale,"gate x follows geometry")
+        close(strip.point[5],(gate.ay+gate.by)/2*scale,"gate y follows geometry")
+        close(strip.width,(gate.ax==gate.bx and 5 or math.abs(gate.bx-gate.ax))*scale,
+            "gate width follows the world scale")
+        close(strip.height,(gate.ay==gate.by and 5 or math.abs(gate.by-gate.ay))*scale,
+            "gate height follows the world scale")
+    end
+    local expectedWalls={
+        {0,0,1024,4},{0,1020,1024,4},{0,4,4,1016},{1020,4,4,1016},
+    }
+    assert(#UI.wallTextures==4,"maps reuse the four perimeter walls")
+    for index,wall in ipairs(UI.wallTextures) do
+        local expected=expectedWalls[index]
+        close(wall.point[4],160+expected[1]*scale,"wall x follows geometry")
+        close(wall.point[5],expected[2]*scale,"wall y follows geometry")
+        close(wall.width,expected[3]*scale,"wall width follows the world scale")
+        close(wall.height,expected[4]*scale,"wall height follows the world scale")
+    end
+    assert(UI.state.tick==0 and UI.clock==nil and UI.race==nil and UI.result==nil and
+           UI.laps.completedLaps==0 and not UI.summary:IsShown(),
+        "selecting a map creates ready state without claiming a started race")
+    local ready=UI.state
+    assert(not UI.SelectTrack("unknown_course") and UI.track==Mirage and UI.state==ready,
+        "unknown map cannot replace the ready session")
+    env.combat=true
+    assert(not UI.SelectTrack("test_oval") and UI.track==Mirage and UI.state==ready,
+        "combat refuses a map switch without mutating the session")
+    env.combat=false
+    UI.Start()
+    assert(UI.active and UI.race.status=="countdown" and not UI.trackButton:IsEnabled(),
+        "Mirage starts the existing countdown and disables map selection")
+    local race,state,clock=UI.race,UI.state,UI.clock
+    assert(not UI.SelectTrack("test_oval") and UI.race==race and UI.state==state and
+           UI.clock==clock and UI.track==Mirage,
+        "direct active selection cannot replace the running session")
+    env.key(UI,"OnKeyDown","W")
+    finishCountdown(UI)
+    assert(UI.state.x==spawn.x and UI.state.y==spawn.y and UI.state.speed==0,
+        "Mirage shares the neutral fixed-step countdown")
+    UI.OnUpdate(Physics.FIXED_DT)
+    assert(UI.state.y>spawn.y and UI.race.totalTicks==1,
+        "the held throttle drives Mirage after GO using the existing physics")
+    local function cross(index)
+        local gate=Mirage.gates[index]
+        UI.state.x=(gate.ax+gate.bx)/2-gate.nx
+        UI.state.y=(gate.ay+gate.by)/2-gate.ny
+        UI.state.heading=gate.nx==1 and 0 or gate.nx==-1 and math.pi or
+            gate.ny==1 and math.pi/2 or -math.pi/2
+        UI.state.speed=200; UI.state.steering=0
+        UI.OnUpdate(Physics.FIXED_DT)
+    end
+    for _=1,3 do for index=1,4 do cross(index) end end
+    assert(not UI.active and UI.race.status=="finished" and UI.result.status=="finished" and
+           UI.laps.completedLaps==3 and UI.race.totalTicks==13 and
+           UI.laps.bestLapTicks==4 and UI.laps.bestLapNumber==2 and UI.summary:IsShown(),
+        "Mirage preserves exact third-lap finish, result summary and earliest tied best lap")
+    assert(UI.trackButton:IsEnabled() and next(UI.keys)==nil,
+        "finishing releases held controls and permits a deliberate next map")
+    assert(UI.SelectTrack("test_oval") and UI.track==Oval and UI.view.scale==1 and
+           not UI.mirageBackground:IsShown() and UI.kart.width==17 and UI.kart.height==31,
+        "Test Oval remains selectable with its original projection and kart dimensions")
+    for _,piece in ipairs(UI.ovalTextures) do
+        assert(piece:IsShown(),"returning to Test Oval restores its pooled bands")
+    end
+    assert(UI.state.tick==0 and UI.clock==nil and UI.race==nil and UI.result==nil and
+           not UI.summary:IsShown(),"changing maps clears the old terminal session")
+    for _=1,3 do
+        assert(UI.SelectTrack("mirage_raceway"))
+        assert(UI.SelectTrack("test_oval"))
+    end
+    assert(env.textureCalls==1,"successful texture is reused across all later selections")
+    UI.Start()
+    env.fire("GLOBAL_MOUSE_DOWN","LeftButton")
+    local stoppedState,stoppedRace,stoppedClock=UI.state,UI.race,UI.clock
+    UI.OnUpdate(0)
+    UI.trackButton.scripts.OnClick(UI.trackButton)
+    assert(not UI.active and UI.track==Oval and UI.state==stoppedState and
+           UI.race==stoppedRace and UI.clock==stoppedClock,
+        "the click releasing capture cannot also discard that run by changing maps")
+    env.fire("GLOBAL_MOUSE_DOWN","LeftButton")
+    UI.trackButton.scripts.OnClick(UI.trackButton)
+    assert(UI.track.id=="mirage_raceway" and UI.race==nil and UI.clock==nil,
+        "a later deliberate stopped click can select the other map")
+    UI.state.surface="grass"; UI.Stop("rough-salt fixture")
+    assert(UI.driftHud.text:find("Rough salt",1,true) and
+           not UI.driftHud.text:find("Grass",1,true),
+        "Mirage labels its recoverable rough surface as salt")
+    for key,value in pairs(counts) do
+        assert(env.counts[key]==value,"switches, races and fallback reuse all UI objects: "..key)
+    end
+end)
+
+-- A refused/missing custom texture must preserve a complete previous sample,
+-- including its real interruption result, while leaving the fallback playable.
+for _,mode in ipairs({"false","nil","throws","missing"}) do
+    withMock(nil,false,function(env,UI)
+        env.fire("ADDON_LOADED","AzerothKart")
+        UI.Toggle(); UI.Start(); UI.OnUpdate(1/60)
+        env.combat=true; env.fire("PLAYER_REGEN_DISABLED")
+        env.combat=false; env.fire("PLAYER_REGEN_ENABLED"); UI.Toggle()
+        local track,state,previous,race,clock,result,laps,checkpoints=
+            UI.track,UI.state,UI.previousState,UI.race,UI.clock,UI.result,UI.laps,UI.checkpoints
+        local reason,hud,lapHud,summary=UI.stopReason,UI.hud.text,UI.lapHud.text,UI.summaryDetail.text
+        local counts={}
+        for key,value in pairs(env.counts) do counts[key]=value end
+        env.textureMode=mode
+        local loader=UI.mirageBackground.SetTexture
+        if mode=="missing" then UI.mirageBackground.SetTexture=false end
+        assert(not UI.SelectTrack("mirage_raceway"),"texture load failure is explicit: "..mode)
+        assert(UI.track==track and UI.state==state and UI.previousState==previous and
+               UI.race==race and UI.clock==clock and UI.result==result and
+               UI.laps==laps and UI.checkpoints==checkpoints,
+            "failed texture cannot replace any retained session identity: "..mode)
+        assert(UI.stopReason==reason and UI.hud.text==hud and UI.lapHud.text==lapHud and
+               UI.summaryDetail.text==summary and UI.summary:IsShown() and
+               not UI.mirageBackground:IsShown() and UI.trackButton:IsEnabled(),
+            "failed texture retains sample/result display and working fallback: "..mode)
+        assert(UI.status.text:find("Mirage",1,true),"texture refusal stays visible: "..mode)
+        for _,piece in ipairs(UI.ovalTextures) do
+            assert(piece:IsShown(),"failed texture cannot hide the fallback road: "..mode)
+        end
+        for key,value in pairs(counts) do
+            assert(env.counts[key]==value,"failed texture allocated UI objects: "..mode.."/"..key)
+        end
+        env.textureMode=nil; UI.mirageBackground.SetTexture=loader
+        assert(UI.SelectTrack("mirage_raceway") and UI.result==nil,
+            "explicit retry after fixing a texture can create a fresh map session: "..mode)
+    end)
+end
 
 -- Countdown cues follow fixed ticks independently of the timing HUD. Actual
 -- controls are sampled, while neutral physics prevents pre-start preparation.
@@ -998,7 +1178,7 @@ for _,mode in ipairs({"missing", "throws"}) do
         env.fire("ADDON_LOADED","AzerothKart")
         UI.Toggle(); UI.Start(); UI.OnUpdate(1/60)
         assert(UI.active and UI.state.tick==1,"optional snapping APIs cannot block driving: "..mode)
-        assert(UI.objects.frames==8 and UI.objects.textures==110 and UI.objects.fontStrings==13,
+        assert(UI.objects.frames==9 and UI.objects.textures==111 and UI.objects.fontStrings==13,
             "snapping fallback preserves UI object budget: "..mode)
         assert(env.drawLayerCalls==1,"grass priority remains explicit when snapping is unavailable: "..mode)
     end,nil,mode)
@@ -1350,7 +1530,7 @@ withMock(nil, false, function(env,UI)
     assert(math.abs(sample.simulationMs-6)<1e-8 and math.abs(sample.renderMs-6)<1e-8 and
            math.abs(sample.totalMs-12)<1e-8,"profile phases accumulate known mock milliseconds")
     assert(#env.output==before,"sampling/completion never prints per-frame chat")
-    assert(UI.objects.frames==8 and UI.objects.textures==110 and UI.objects.fontStrings==13,
+    assert(UI.objects.frames==9 and UI.objects.textures==111 and UI.objects.fontStrings==13,
         "profiling creates no UI objects")
     local state={}
     for key,value in pairs(UI.state) do state[key]=value end
