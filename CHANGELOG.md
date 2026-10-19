@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — repeatable practice laps (2026-10-19)
+- Add a pure Laps module around ordered checkpoints. Each accepted North → West → South → Start circuit increments completed laps once and rearms the next circuit at the finish tick. Duplicate, older and gapped tick reports cannot award or advance time; consecutive malformed or oversized movements advance practice time without a gate award.
+- Show completed laps, current lap time and the last completed time from integer 60 Hz simulation ticks. The first lap includes acceleration from Start Test Drive; Stop, combat interruption and normal reopen freeze the sample, while a fresh Start resets it. One pooled lap font string brings explicit objects to 6 frames/110 textures/9 font strings in an 856×762 window; physics remains version 5.
+- No countdown, fixed race length, winner, best record, persistence or multiplayer is added. These local consistency checks do not prove competitive route validity. Focused checkpoint/lap/UI coverage accompanies the slice; exact executed results and installation status belong in PROGRESS. Client lap driving/layout and broader checks remain NOT RUN unless recorded there.
+
 ## Unreleased — ordered directional checkpoints (2026-10-19)
 - Add four finite directional gates on the test oval and a pure fixed-tick checkpoint module. Only the next gate can advance; backwards crossings, departures from the gate line, stale/duplicate ticks, missing steps and oversized movements do not award progress. A completed 4/4 sequence stays terminal until a fresh Start.
 - Integrate actual simulation positions after physics, with pooled next/passed gate strips and a named checkpoint HUD. Correct the right-hand start stripe to cross the road horizontally. Stop/reopen freezes progress; Start resets it. Explicit objects are now 6 frames/110 textures/8 font strings in an 856×734 window; physics stays version 5.

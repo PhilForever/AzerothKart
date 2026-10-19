@@ -156,7 +156,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     end
     local ok, err=pcall(function()
         local namespace={}
-        for _,name in ipairs({"Track", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "UI", "Core"}) do
+        for _,name in ipairs({"Track", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "UI", "Core"}) do
             assert(loadfile("addon/AzerothKart/"..name..".lua"))("AzerothKart",namespace)
         end
         env.namespace=namespace
@@ -244,8 +244,8 @@ withMock(nil, false, function(env,UI)
             "thin wall strips follow the canvas perimeter")
         assert(wall.item.colorWrites==1,"static wall color is configured once")
     end
-    assert(UI.objects.frames==6 and UI.objects.textures==110 and UI.objects.fontStrings==8,
-        "pooled checkpoints, drift meter and walls must match the explicit UI object budget")
+    assert(UI.objects.frames==6 and UI.objects.textures==110 and UI.objects.fontStrings==9,
+        "pooled lap/checkpoint HUD, drift meter and walls match the explicit UI object budget")
     local function covered(rectangles,x,y)
         for _,rect in ipairs(rectangles) do
             if y>=rect.bottom and y<=rect.top and x>=rect.left and x<=rect.right then
@@ -283,8 +283,8 @@ withMock(nil, false, function(env,UI)
 end)
 originalPrint(renderSummary.." (client appearance still pending)")
 
--- Directional checkpoints consume consecutive physics samples, while pooled
--- gate feedback changes immediately without promoting a course pass to a lap.
+-- Consecutive directional checkpoints award repeatable fixed-tick laps. Finish
+-- feedback is immediate, while the running lap clock shares the throttled HUD.
 withMock(nil,false,function(env,UI)
     env.fire("ADDON_LOADED","AzerothKart")
     UI.Toggle(); UI.Start()
@@ -303,6 +303,13 @@ withMock(nil,false,function(env,UI)
     assert(UI.checkpointHud.text=="Checkpoints: 0/4 | Next: North",
         "fresh HUD explains the first required checkpoint")
     assert(UI.checkpointHud.point[5]==154,"checkpoint text stays above the other HUD rows")
+    assert(UI.laps.completedLaps==0 and UI.laps.currentLapTicks==0 and
+           UI.laps.lastLapTicks==nil and UI.laps.lapStartTick==0 and
+           UI.laps.lastTick==0 and UI.laps.lastFinishTick==nil and
+           UI.laps.checkpoints==UI.checkpoints,
+        "fresh lap timing owns the same checkpoint sample")
+    assert(UI.lapHud.text=="Laps: 0 | Current: 0.00s | Last: --" and
+           UI.lapHud.point[5]==176,"fresh lap HUD has its own pooled row")
     for index,gate in ipairs(Track.gates) do
         local strip=UI.gateTextures[index]
         assert(strip.point[1]=="CENTER" and strip.point[2]==UI.canvas and
@@ -322,12 +329,14 @@ withMock(nil,false,function(env,UI)
     assert(startGate.name=="Start" and startGate.ay==Track.centerY and
            startGate.by==Track.centerY and startGate.nx==0 and startGate.ny==1,
         "right-side start gate crosses the spawn lane in the driving direction")
-    local function cross(index)
+    local function cross(index,wrongWay)
         local gate=Track.gates[index]
-        UI.state.x=(gate.ax+gate.bx)/2-gate.nx
-        UI.state.y=(gate.ay+gate.by)/2-gate.ny
-        UI.state.heading=gate.nx==1 and 0 or gate.nx==-1 and math.pi or
-            gate.ny==1 and math.pi/2 or -math.pi/2
+        local nx,ny=gate.nx,gate.ny
+        if wrongWay then nx,ny=-nx,-ny end
+        UI.state.x=(gate.ax+gate.bx)/2-nx
+        UI.state.y=(gate.ay+gate.by)/2-ny
+        UI.state.heading=nx==1 and 0 or nx==-1 and math.pi or
+            ny==1 and math.pi/2 or -math.pi/2
         UI.state.speed=200; UI.state.steering=0
         UI.OnUpdate(Physics.FIXED_DT)
     end
@@ -352,33 +361,86 @@ withMock(nil,false,function(env,UI)
     assert(UI.checkpointHud.textWrites==hudWrites,
         "render-only and irrelevant crossings do not rewrite checkpoint text")
     for index=2,4 do cross(index) end
-    assert(UI.checkpoints.complete and UI.checkpoints.passed==4 and UI.active and UI.result==nil,
-        "ordered four-gate completion remains a local course pass without inventing a race result")
-    assert(UI.checkpointHud.text=="Checkpoints: 4/4 | Course complete",
-        "completion is visible without a lap or winner claim")
-    for index=1,4 do gateColor(index,.25,.80,.72,.9) end
-    UI.Stop("checkpoint fixture")
+    local firstFinishTick=UI.state.tick
+    assert(UI.laps.completedLaps==1 and UI.laps.lastLapTicks==firstFinishTick and
+           UI.laps.currentLapTicks==0 and UI.laps.lastFinishTick==firstFinishTick and
+           UI.laps.lapStartTick==firstFinishTick,
+        "first ordered circuit records its exact duration from Start tick zero")
+    assert(not UI.checkpoints.complete and UI.checkpoints.passed==0 and
+           UI.checkpoints.nextGate==1 and UI.checkpoints.lastTick==firstFinishTick and
+           UI.checkpoints==UI.laps.checkpoints and UI.active and UI.result==nil,
+        "lap completion immediately rearms North without inventing a finite race result")
+    local function lapCaption(completed,current,last)
+        return ("Laps: %d | Current: %.2fs | Last: %.2fs"):format(
+            completed,current*Physics.FIXED_DT,last*Physics.FIXED_DT)
+    end
+    assert(UI.lapHud.text==lapCaption(1,0,firstFinishTick),
+        "finish refreshes exact lap feedback before the periodic HUD interval")
+    assert(UI.checkpointHud.text=="Checkpoints: 0/4 | Next: North",
+        "a completed lap displays the next circuit's first required gate")
+    gateColor(1,.98,.93,.45,.9)
+    for index=2,4 do gateColor(index,.55,.58,.62,.65) end
+    cross(4); cross(1,true)
+    assert(UI.laps.completedLaps==1 and UI.laps.lastLapTicks==firstFinishTick and
+           UI.checkpoints.passed==0,
+        "duplicate Start crossings and wrong-way North cannot award another lap")
+    local lapWrites=UI.lapHud.textWrites
+    for _=1,3 do UI.OnUpdate(0) end
+    assert(UI.lapHud.textWrites==lapWrites,"render-only frames do not rewrite lap timing")
+    UI.state.speed=0
+    for _=1,15 do UI.OnUpdate(Physics.FIXED_DT) end
+    assert(UI.laps.currentLapTicks==UI.state.tick-firstFinishTick and
+           UI.lapHud.textWrites>lapWrites and
+           UI.lapHud.text:find("Laps: 1 | Current:",1,true),
+        "running lap time advances only on fixed ticks and refreshes at the HUD interval")
+    for index=1,4 do cross(index) end
+    local secondFinishTick=UI.state.tick
+    local secondLapTicks=secondFinishTick-firstFinishTick
+    assert(UI.laps.completedLaps==2 and UI.laps.lastLapTicks==secondLapTicks and
+           secondLapTicks~=firstFinishTick and UI.laps.currentLapTicks==0 and
+           UI.laps.lastFinishTick==secondFinishTick and
+           UI.laps.lapStartTick==secondFinishTick and
+           UI.lapHud.text==lapCaption(2,0,secondLapTicks),
+        "a second ordered circuit immediately reports its own distinct tick duration")
+    assert(UI.checkpoints.passed==0 and UI.checkpoints.nextGate==1 and
+           not UI.checkpoints.complete and UI.laps.checkpoints==UI.checkpoints,
+        "every finished lap rearms the same directional course")
+    UI.state.speed=0; UI.OnUpdate(Physics.FIXED_DT)
+    UI.Stop("lap fixture")
     local progress,pose,hud=UI.checkpoints,UI.state,UI.checkpointHud.text
-    local retained={}
+    local laps,lapHud=UI.laps,UI.lapHud.text
+    local retained,retainedLaps={},{}
     for key,value in pairs(progress) do retained[key]=value end
-    assert(hud=="Last drive | Checkpoints: 4/4 | Course complete",
-        "stopped course feedback describes the retained drive")
+    for key,value in pairs(laps) do retainedLaps[key]=value end
+    assert(hud=="Last drive | Checkpoints: 0/4 | Next: North" and
+           lapHud=="Last drive | "..lapCaption(2,1,secondLapTicks),
+        "Stop flushes the partial next lap and labels all retained progress")
     UI.OnUpdate(1); UI.Toggle(); UI.Toggle()
-    assert(UI.checkpoints==progress and UI.state==pose and UI.checkpointHud.text==hud,
-        "inactive update and reopen retain the same checkpoint sample")
+    assert(UI.checkpoints==progress and UI.state==pose and UI.checkpointHud.text==hud and
+           UI.laps==laps and UI.lapHud.text==lapHud,
+        "inactive update and reopen retain the same lap/checkpoint samples and captions")
     for key,value in pairs(retained) do
         assert(progress[key]==value,"stopped checkpoint progress changed "..key)
+    end
+    for key,value in pairs(retainedLaps) do
+        assert(laps[key]==value,"stopped lap timing changed "..key)
     end
     UI.Start()
     assert(UI.checkpoints~=progress and UI.checkpoints.passed==0 and
            UI.checkpoints.nextGate==1 and not UI.checkpoints.complete and
            UI.checkpoints.lastTick==0 and UI.checkpointHud.text=="Checkpoints: 0/4 | Next: North",
-        "fresh Start resets the terminal course sample and its retained caption")
+        "fresh Start resets the course sample and its retained caption")
+    assert(UI.laps~=laps and UI.laps.completedLaps==0 and UI.laps.currentLapTicks==0 and
+           UI.laps.lapStartTick==0 and UI.laps.lastTick==0 and
+           UI.laps.lastFinishTick==nil and UI.laps.lastLapTicks==nil and
+           UI.laps.checkpoints==UI.checkpoints and
+           UI.lapHud.text=="Laps: 0 | Current: 0.00s | Last: --",
+        "fresh Start resets all lap timing and replaces the retained lap object")
     gateColor(1,.98,.93,.45,.9)
     for index=2,4 do gateColor(index,.55,.58,.62,.65) end
-    UI.Stop("checkpoint fixture done")
+    UI.Stop("lap fixture done")
     for key,value in pairs(counts) do
-        assert(env.counts[key]==value,"checkpoint updates allocated UI objects: "..key)
+        assert(env.counts[key]==value,"lap/checkpoint updates allocated UI objects: "..key)
     end
 end)
 
@@ -540,7 +602,7 @@ withMock(nil,false,function(env,UI)
         UI.OnUpdate(0)
         assert(UI.state.tick==tick,"meter render must not advance simulation")
     end
-    assert(UI.window.width==856 and UI.window.height==734,"meter and checkpoint HUD fit the expanded window")
+    assert(UI.window.width==856 and UI.window.height==762,"lap/checkpoint HUD and meter fit the expanded window")
     assert(UI.meterBackground.width==300 and UI.meterBackground.height==12,
         "meter has a fixed readable capacity")
     local point=UI.meterBackground.point
@@ -644,7 +706,7 @@ for _,mode in ipairs({"missing", "throws"}) do
         env.fire("ADDON_LOADED","AzerothKart")
         UI.Toggle(); UI.Start(); UI.OnUpdate(1/60)
         assert(UI.active and UI.state.tick==1,"optional snapping APIs cannot block driving: "..mode)
-        assert(UI.objects.frames==6 and UI.objects.textures==110 and UI.objects.fontStrings==8,
+        assert(UI.objects.frames==6 and UI.objects.textures==110 and UI.objects.fontStrings==9,
             "snapping fallback preserves UI object budget: "..mode)
         assert(env.drawLayerCalls==1,"grass priority remains explicit when snapping is unavailable: "..mode)
     end,nil,mode)
@@ -995,7 +1057,7 @@ withMock(nil, false, function(env,UI)
     assert(math.abs(sample.simulationMs-6)<1e-8 and math.abs(sample.renderMs-6)<1e-8 and
            math.abs(sample.totalMs-12)<1e-8,"profile phases accumulate known mock milliseconds")
     assert(#env.output==before,"sampling/completion never prints per-frame chat")
-    assert(UI.objects.frames==6 and UI.objects.textures==110 and UI.objects.fontStrings==8,
+    assert(UI.objects.frames==6 and UI.objects.textures==110 and UI.objects.fontStrings==9,
         "profiling creates no UI objects")
     local state={}
     for key,value in pairs(UI.state) do state[key]=value end

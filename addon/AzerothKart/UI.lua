@@ -5,6 +5,7 @@ local Track, Physics, Input, Loop = AK.Track, AK.Physics, AK.Input, AK.Loop
 local Performance = AK.Performance
 local Presentation = AK.Presentation
 local Checkpoints = AK.Checkpoints
+local Laps = AK.Laps
 local UI = {
     active=false, keys=Input.new(), input={}, pendingPropagationRelease=false,
     objects={frames=0, textures=0, fontStrings=0}, stopReason="Not started",
@@ -181,6 +182,14 @@ local function refreshHud()
     UI.hud:SetText(("Speed: %d | Ticks: %d | Dropped: %.3fs | Sample: %.1fs"):format(
         math.floor(math.abs(UI.state.speed)+0.5),UI.state.tick,
         c and c.droppedSeconds or 0,c and c.elapsedSeconds or 0))
+    if UI.lapHud and UI.laps then
+        local laps = UI.laps
+        local last = laps.lastLapTicks and ("%.2fs"):format(laps.lastLapTicks*Physics.FIXED_DT) or "--"
+        local caption = ("Laps: %d | Current: %.2fs | Last: %s"):format(
+            laps.completedLaps,laps.currentLapTicks*Physics.FIXED_DT,last)
+        if not UI.active and UI.state.tick > 0 then caption = "Last drive | " .. caption end
+        UI.lapHud:SetText(caption)
+    end
     if UI.driftHud then
         local state = UI.state
         local surface = state.surface == "grass" and "Grass" or
@@ -351,7 +360,7 @@ function UI.Create()
     if UI.window then return end
     local window = frame("Frame","AzerothKartMainWindow",UIParent,"BackdropTemplate")
     UI.window = window
-    window:SetSize(856,734)
+    window:SetSize(856,762)
     window:SetPoint("CENTER")
     window:SetFrameStrata("DIALOG")
     window:SetClampedToScreen(true)
@@ -390,10 +399,13 @@ function UI.Create()
     UI.kart = texture(UI.canvas,"OVERLAY")
     UI.kart:SetSize(17,31)
     UI.state = Physics.new(Track)
-    UI.checkpoints = Checkpoints.new(Track,UI.state.tick)
+    UI.laps = Laps.new(Track,Checkpoints,UI.state.tick)
+    UI.checkpoints = UI.laps.checkpoints
     UI.previousState = UI.state
     render()
 
+    UI.lapHud = text(window,"BOTTOMLEFT",28,176,"")
+    UI.lapHud:SetJustifyH("LEFT")
     UI.checkpointHud = text(window,"BOTTOMLEFT",28,154,"")
     UI.checkpointHud:SetJustifyH("LEFT")
     refreshCheckpoints()
@@ -436,7 +448,8 @@ function UI.Start()
     if GetCurrentKeyBoardFocus() then refuseStart("Close text input before starting"); return end
     UI.ReleaseInput()
     UI.state = Physics.new(Track)
-    UI.checkpoints = Checkpoints.new(Track,UI.state.tick)
+    UI.laps = Laps.new(Track,Checkpoints,UI.state.tick)
+    UI.checkpoints = UI.laps.checkpoints
     UI.previousState = UI.state
     UI.clock = Loop.new(Physics.FIXED_DT,5)
     UI.performance = UI.performanceEnabled and Performance.new() or nil
@@ -457,7 +470,8 @@ local function step(dt)
     Input.sample(UI.keys,UI.input)
     UI.previousState = UI.state
     UI.state = Physics.step(UI.state,UI.input,dt,Track)
-    UI.checkpoints = Checkpoints.step(UI.checkpoints,UI.previousState,UI.state,Track)
+    UI.laps = Laps.step(UI.laps,UI.previousState,UI.state,Track,Checkpoints)
+    UI.checkpoints = UI.laps.checkpoints
 end
 
 function UI.OnUpdate(elapsed)
@@ -470,11 +484,12 @@ function UI.OnUpdate(elapsed)
     local p = UI.performance
     if p and p.attempts >= Performance.LIMIT then p = nil end
     local begin = p and readPerformanceClock(UI.performanceReader)
+    local completedLaps = UI.laps.completedLaps
     local steps = Loop.advance(UI.clock,elapsed,step)
     local afterSimulation = p and readPerformanceClock(UI.performanceReader)
     render()
     UI.hudElapsed = UI.hudElapsed + steps * Physics.FIXED_DT
-    if UI.hudElapsed >= 0.25 then
+    if UI.hudElapsed >= 0.25 or UI.laps.completedLaps ~= completedLaps then
         UI.hudElapsed = 0
         refreshHud()
     end

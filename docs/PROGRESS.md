@@ -1,7 +1,7 @@
 # PROGRESS — persistent project handoff
 
 **Current development milestone:** M1 — local driving mechanics. M0 acceptance remains **OPEN**.
-**Current state (2026-10-19, 22:37 CEST):** the test oval now tracks North → West → South → Start directional checkpoints with a next-gate cue and terminal 4/4 course progress. Pure progress consumes actual fixed-step poses and rejects wrong direction/order, duplicate tick reports and implausible movement awards; these are local consistency checks, not security or competitive route proof. Physics remains version 5. UI is 856×734 with explicit counts 6/110/8. One focused Lua 5.1 pass parsed 23 Lua files and executed three modules; the synthetic 900-tick gate path matched at 30/60/144 render Hz. Installed with verified backup and twelve matching source hashes; client reload/course drive **NOT RUN**. M0/M1 acceptance stays open under [ADR 0007](adr/0007-build-first-development.md). Next build: repeatable circuits and tick-based lap timing.
+**Current state (2026-10-19, 23:57 CEST):** practice circuits now repeat, with once-only completed-lap awards and current/last times from simulation ticks. Pure Laps rearms North at each finish tick; Stop/reopen freezes the sample and Start resets it. Physics stays v5. UI is 856×762 with explicit counts 6/110/9. One focused Lua 5.1 pass parsed 25 Lua files and executed three modules; synthetic multi-lap timing matched at 30/60/144 render Hz. Installed with verified backup and thirteen matching source hashes; client reload/lap drive **NOT RUN**. M0/M1/M3 acceptance remains open; no countdown, fixed race length, winner, persistence or multiplayer yet. Next build: a three-lap finish flow.
 
 ## Canonical checkout and commits
 
@@ -29,6 +29,7 @@ Remote: `https://github.com/PhilForever/AzerothKart.git`; branch `main`. The pac
 - `f6ab761` — `feat: interpolate kart presentation between simulation steps`.
 - `092e397` — `feat: add pooled drift charge and boost meter`.
 - `d42fb92` — `feat: add progressive keyboard steering with fast centering`.
+- `a7326e9` — `feat: track ordered directional checkpoints on the test oval`.
 
 Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.useConfigOnly=true`; verified in config and commit authors. Global identity was left unchanged. No push, tag, distribution or automation was performed. The later client-check session installed only AzerothKart in the local Forever AddOns folder and verified all nine files against source SHA-256. Ignored `local-artifacts/` contains developer dependencies/logs and synthetic install fixtures/backups; it is not staged.
 
@@ -75,7 +76,7 @@ Initial file-only evidence: `_classic_beta_\WowB.exe` reports `1.60.1.70450`; `.
 
 ## Next exact task
 
-**Next exact task: add repeatable circuits and fixed-tick lap timing.** On a newly completed ordered course, record a completed lap exactly once and re-arm North at that completion tick. Show completed-lap count, current-lap time and last completed-lap time using simulation ticks, with no wall-clock authority. Freeze on Stop/combat and reset on deliberate Start; do not add persistence, countdown, winner/standings or multiplayer in this slice. Cover repeated completion reports, start-line jitter, gate order and identical tick histories at different render schedules in one focused Lua 5.1 pass. This is independent solo groundwork; M0/M1/M3 acceptance remains open and direct play stays deferred.
+**Next exact task: add a three-lap solo finish flow.** Wrap the existing practice-lap core in a small pure session state with a fixed three-lap target. Freeze the exact final tick/time once on the third completed lap, release addon input, show a reachable completed-run summary and allow deliberate restart. Retain the actual partial sample on Stop/combat with the interruption label; do not award a finish or fabricate remote standings. Keep countdown, persistence, ghosts and networking separate. One focused Lua 5.1 pass should cover terminal deduplication, fixed-step catch-up at the finish and reset/interruption retention. Existing client/handling acceptance stays deferred.
 
 ## Session handoff log
 
@@ -579,3 +580,23 @@ UI passes actual physics poses after each fixed step, independently of render in
 **Installation:** normal filesystem approval used. Parent-workspace manifest `artifacts/AzerothKart/20261019-223715-373497/install.json`; prior eleven-file addon preserved in `before/`. Disk build needs normal `/reload` at the owner's convenience. No client input/settings mutation, other-addon/WTF/SavedVariables edits, character actions, packets, push/tag/release or automation.
 
 **Handoff:** focused local commit intended as `feat: track ordered directional checkpoints on the test oval`; inspect `git log` for hash. Client appearance/course handling and earlier M0 gates remain pending. **Next single build task:** repeatable ordered circuits with simulation-tick lap count/current/last times, deduplicated course completion and the existing reset/freeze lifecycle.
+
+### 2026-10-19 22:38 start; resumed 23:56–23:58 CEST (Europe/Oslo) — Codex / main, practice laps
+
+**Scope:** repeatable solo practice laps, with M0/M1/M3 acceptance still open. Canonical remote/main, clean starting HEAD `a7326e9` and PhilForever local identity/useConfigOnly confirmed. Inspected handoff, criteria and existing checkpoint/clock/UI source before integration. A documentation subagent hit quota after partial edits; parent preserved and completed them on resume. No execution or client activity is inferred for the time gap, and no milestone checkbox was promoted.
+
+**Built:** pure immutable `Laps` wraps the existing Checkpoints module through explicit dependency injection. A newly completed course records `finishTick - lapStartTick`, increments completed laps once and immediately rearms North at that same tick. The next lap starts at zero. Duplicate/older/gapped reports leave both clocks unchanged; accepted consecutive invalid movement advances practice time without a gate award. Start-line jitter still requires all four gates for another lap. No wall clock, saved record, countdown, finite race target or winner is added.
+
+UI consumes actual fixed-step poses, keeps `UI.checkpoints` as the nested progress alias and displays completed count/current/last times from ticks × 1/60. Text uses the existing quarter-second cadence plus immediate finish/Start/Stop refresh. Stop/combat/reopen freezes the sample; fresh Start clears it. One preallocated font string brings counts to 6/110/9 in an 856×762 window. Physics v5, input capture and track geometry are unchanged. Both TOCs load Laps after Checkpoints, for ten modules total; no per-tick UI creation/chat.
+
+| Command/check actually executed | Result and scope |
+|---|---|
+| `C:\Python314\python.exe scripts/test_lua.py --runtime lua51 --tests checkpoints laps ui` | PASS once at 23:56 — 25 Lua files parsed, three modules executed. Repeated finishes/jitter, wrong direction/order, invalid tick/movement, offset/reset and immutable state passed. A connected 1,800-tick synthetic three-circuit path compared all lap/nested checkpoint values at 30/60/144 render Hz. UI injected crossing fixtures verify two different lap durations, immediate rearm/time feedback, periodic current time, frozen retention/reset and stable pooling; no real-client lap result is claimed. |
+| `C:\Python314\python.exe scripts/validate_project.py` | PASS — 35 expected paths, synchronized ten-module TOCs, protocol/docs links and header-only network ledger. |
+| `git diff --check` | PASS — whitespace check. |
+| Verified prior-addon backup and direct install | PASS — Laps.lua, UI.lua and both TOCs copied after complete prior-addon backup/hash verification; all thirteen installed source hashes match. |
+| Full suite/10k-tick replay, Lua 5.4, native Lua CLI, client reload/lap driving/layout and broad scale/performance | NOT RUN this slice — build-first priority retained. |
+
+**Installation:** normal filesystem approval used. Parent-workspace manifest `artifacts/AzerothKart/20261019-235702-109038/install.json`; prior twelve-file addon in verified `before/`. Disk build needs normal `/reload` at the owner's convenience. No client input/settings mutation, other-addon/WTF/SavedVariables edits, character actions, packets, push/tag/release or automation.
+
+**Handoff:** focused local commit intended as `feat: add repeatable practice laps and tick-based timing`; inspect `git log` for hash. Client feel/layout and earlier M0 checks remain pending. **Next single build task:** a three-lap solo finish flow with frozen final timing, input release, reachable summary/restart and deduplicated terminal state.
