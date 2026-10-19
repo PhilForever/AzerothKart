@@ -414,10 +414,34 @@ local function drawWalls(canvas)
     strip(Track.width-thickness,thickness,thickness,Track.height-2*thickness)
 end
 
+local function placeWorldRect(piece,x,y,width,height)
+    local px,py,pw,ph = Presentation.clipRect(UI.view,x,y,width,height)
+    if not px then piece:Hide(); return end
+    piece:ClearAllPoints()
+    piece:SetPoint("BOTTOMLEFT",UI.canvas,"BOTTOMLEFT",px,py)
+    piece:SetSize(pw,ph)
+    piece:Show()
+end
+
+local function placeTrackMarkers()
+    for index,gate in ipairs(Track.gates) do
+        local width = gate.ax == gate.bx and 5 or math.abs(gate.bx-gate.ax)
+        local height = gate.ay == gate.by and 5 or math.abs(gate.by-gate.ay)
+        placeWorldRect(UI.gateTextures[index],(gate.ax+gate.bx-width)/2,
+            (gate.ay+gate.by-height)/2,width,height)
+    end
+    local thickness = 4
+    placeWorldRect(UI.wallTextures[1],0,0,Track.width,thickness)
+    placeWorldRect(UI.wallTextures[2],0,Track.height-thickness,Track.width,thickness)
+    placeWorldRect(UI.wallTextures[3],0,thickness,thickness,Track.height-2*thickness)
+    placeWorldRect(UI.wallTextures[4],Track.width-thickness,thickness,thickness,Track.height-2*thickness)
+end
+
 local function layoutTrack()
-    local view = Presentation.fitViewport(Track.width,Track.height,800,480)
-    UI.view = view
     local mirage = UI.trackId == "mirage_raceway"
+    UI.view = mirage and Presentation.cameraViewport(Track.width,Track.height,800,480,1.5) or
+        Presentation.fitViewport(Track.width,Track.height,800,480)
+    UI.cameraCropReady = false
     for _,piece in ipairs(UI.ovalTextures) do
         if mirage then piece:Hide() else piece:Show() end
     end
@@ -425,29 +449,10 @@ local function layoutTrack()
     UI.grass:SetColorTexture(mirage and 0.12 or 0.08,mirage and 0.11 or 0.24,
         mirage and 0.09 or 0.12,1)
     UI.mirageBackground:ClearAllPoints()
-    UI.mirageBackground:SetPoint("BOTTOMLEFT",UI.canvas,"BOTTOMLEFT",view.offsetX,view.offsetY)
-    UI.mirageBackground:SetSize(view.width,view.height)
-    for index,gate in ipairs(Track.gates) do
-        local line = UI.gateTextures[index]
-        line:ClearAllPoints()
-        local x,y = Presentation.project(view,(gate.ax+gate.bx)/2,(gate.ay+gate.by)/2)
-        line:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x,y)
-        line:SetSize((gate.ax == gate.bx and 5 or math.abs(gate.bx-gate.ax))*view.scale,
-            (gate.ay == gate.by and 5 or math.abs(gate.by-gate.ay))*view.scale)
-    end
-    local thickness = 4
-    local function strip(index,x,y,width,height)
-        local piece = UI.wallTextures[index]
-        piece:ClearAllPoints()
-        local px,py = Presentation.project(view,x,y)
-        piece:SetPoint("BOTTOMLEFT",UI.canvas,"BOTTOMLEFT",px,py)
-        piece:SetSize(width*view.scale,height*view.scale)
-    end
-    strip(1,0,0,Track.width,thickness)
-    strip(2,0,Track.height-thickness,Track.width,thickness)
-    strip(3,0,thickness,thickness,Track.height-2*thickness)
-    strip(4,Track.width-thickness,thickness,thickness,Track.height-2*thickness)
-    UI.kart:SetSize(17*view.scale,31*view.scale)
+    UI.mirageBackground:SetPoint("BOTTOMLEFT",UI.canvas,"BOTTOMLEFT",0,0)
+    UI.mirageBackground:SetSize(800,480)
+    placeTrackMarkers()
+    UI.kart:SetSize(17*UI.view.scale,31*UI.view.scale)
     UI.gatePassed,UI.gateStopped = nil,nil
 end
 
@@ -455,6 +460,10 @@ function UI.SelectTrack(id)
     if not UI.window or not UI.window:IsShown() or UI.active or inCombat() then return false end
     if id ~= "test_oval" and id ~= "mirage_raceway" then return false end
     if id == UI.trackId then return true end
+    if id == "mirage_raceway" and type(UI.mirageBackground.SetTexCoord) ~= "function" then
+        refuseStart("Mirage camera unavailable | Test Oval remains available")
+        return false
+    end
     if id == "mirage_raceway" and not UI.mirageTextureReady then
         -- The client documents a boolean load result. Missing/erroring/failed
         -- texture loads leave the old track and its stopped result untouched.
@@ -472,6 +481,18 @@ function UI.SelectTrack(id)
     end
     if id == "mirage_raceway" then
         UI.mirageTrack = UI.mirageTrack or AK.MirageRaceway.new(Oval.crossesGate)
+        if not UI.cameraApiReady then
+            local probe = Presentation.cameraViewport(UI.mirageTrack.width,UI.mirageTrack.height,800,480,1.5)
+            local spawn = UI.mirageTrack.spawn()
+            Presentation.follow(probe,spawn.x,spawn.y,spawn.heading,60)
+            local ok = pcall(UI.mirageBackground.SetTexCoord,UI.mirageBackground,
+                Presentation.texCoords(probe))
+            if not ok then
+                refuseStart("Mirage camera unavailable | Test Oval remains available")
+                return false
+            end
+            UI.cameraApiReady = true
+        end
         Track = UI.mirageTrack
     else Track = Oval end
     UI.ReleaseInput()
@@ -496,6 +517,15 @@ end
 render = function()
     local alpha = UI.active and UI.clock and UI.clock.accumulator/UI.clock.dt or 1
     local x,y,heading = Presentation.pose(UI.previousState,UI.state,alpha)
+    if UI.view.follow then
+        local oldX,oldY = UI.view.offsetX,UI.view.offsetY
+        Presentation.follow(UI.view,x,y,heading,60)
+        if oldX ~= UI.view.offsetX or oldY ~= UI.view.offsetY or not UI.cameraCropReady then
+            UI.mirageBackground:SetTexCoord(Presentation.texCoords(UI.view))
+            placeTrackMarkers()
+            UI.cameraCropReady = true
+        end
+    end
     x,y = Presentation.project(UI.view,x,y)
     UI.kart:ClearAllPoints()
     UI.kart:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x,y)

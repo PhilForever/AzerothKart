@@ -15,14 +15,16 @@ and the kart remain separate pooled UI textures.
 Format: 1024×1024, uncompressed true-color TGA (type 2), 32-bit BGRA, eight alpha
 bits, fully opaque, bottom-left origin. This matches the world's bottom-left,
 +Y-up coordinates. Positions and dimensions use the shared uniform viewport
-projection; the background occupies 480×480 within the 800×480 canvas.
+projection. The playable Mirage camera crops this same image to fill 800×480
+at scale 1.5; the 480-square overview remains an authoring-guide fit only.
 
 Regenerate with `python scripts/build_mirage_background.py`; verify exact bytes
 with `python scripts/build_mirage_background.py --check`. The check also asserts
 the header, payload size, opaque alpha and eight asymmetric road/orientation
 landmarks, including pixel centers immediately inside/outside the road edge.
-This offline evidence does not establish actual client texture loading or
-orientation; the focused client check remains separate.
+This offline evidence does not establish client behavior. The separate
+[stopped client check](../evidence/2026-10-20-mirage-camera-static.md) observed
+loading/cropping and Start-line alignment; moving-camera behavior is pending.
 
 The blockout establishes alignment and readability. Painterly scenery and the
 first Warcraft-inspired vehicle sprite follow in later slices.

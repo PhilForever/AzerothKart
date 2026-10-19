@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — closer Mirage follow camera (2026-10-20)
+- Replace Mirage's distant whole-map presentation with a north-up follow camera at scale 1.5. A cropped background fills the existing 800×480 canvas, with 60 world units of heading look-ahead and a view clamped to map bounds. The placeholder kart grows from about 8×14.5 to 25.5×46.5 canvas units; the road grows from 52.5 to 168 wide.
+- Keep art, kart, gates and walls in one uniform transform, clipping pooled gate/wall strips to the visible canvas. The camera follows the interpolated pose and freezes at the exact stopped pose; no simulation, geometry or Physics v6 change is introduced.
+- Preserve Test Oval's fixed overview and the existing 9 frames/111 textures/13 font strings. Painterly scenery and the first drag-car sprite remain subsequent work.
+- Record the owner's screenshot as evidence of the earlier opaque Mirage TGA loading and whole-map orientation. A separate stopped build-70450 check confirmed the close crop, larger kart, Start alignment and West-strip clipping, with 9/111/13 counts and zero drive ticks. Camera motion/edges, handling and sustained performance remain NOT RUN; exact focused checks and installation belong in PROGRESS.
+
 ## Unreleased — gentler drift and retained steering corrections (2026-10-20)
 - Tune Physics v6 for the owner's Test Oval feedback: drift yaw is 0.75 of normal yaw instead of 1.15; charge tiers take 30/60 valid ticks (0.5/1 second), while ordinary steering and boost duration stay unchanged.
 - Hold Space through up to twelve steering-correction ticks (0.2 seconds) to retain charge without adding more. Matching steering resumes charging in either direction; the thirteenth unqualified tick clears it. A valid road/speed release can spend a retained tier during that pause; brake, low speed, rough ground and walls still cancel immediately.

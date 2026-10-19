@@ -23,6 +23,28 @@ function Presentation.fitViewport(worldWidth, worldHeight, canvasWidth, canvasHe
     }
 end
 
+-- Unlike the overview, a camera fills the canvas and exposes a smaller part of
+-- the world. Covering the canvas is the minimum zoom, so UVs stay inside the art.
+function Presentation.cameraViewport(worldWidth, worldHeight, canvasWidth, canvasHeight, scale)
+    assert(finite(worldWidth) and worldWidth > 0 and finite(worldHeight) and worldHeight > 0
+        and finite(canvasWidth) and canvasWidth > 0 and finite(canvasHeight) and canvasHeight > 0,
+        "finite positive world and canvas dimensions required")
+    if scale == nil then scale = 1.5 end
+    assert(finite(scale) and scale > 0, "finite positive camera scale required")
+    scale = math.max(scale, canvasWidth/worldWidth, canvasHeight/worldHeight)
+    local viewWidth,viewHeight = canvasWidth/scale,canvasHeight/scale
+    local offsetX,offsetY = (canvasWidth-worldWidth*scale)/2,(canvasHeight-worldHeight*scale)/2
+    assert(finite(scale) and finite(viewWidth) and viewWidth > 0
+        and finite(viewHeight) and viewHeight > 0 and finite(offsetX) and finite(offsetY),
+        "camera scale must be representable")
+    return {
+        scale=scale, offsetX=offsetX, offsetY=offsetY, width=canvasWidth, height=canvasHeight,
+        worldWidth=worldWidth, worldHeight=worldHeight,
+        canvasWidth=canvasWidth, canvasHeight=canvasHeight,
+        viewWidth=viewWidth, viewHeight=viewHeight, follow=true,
+    }
+end
+
 local function requireViewport(view, x, y)
     assert(type(view) == "table" and finite(view.scale) and view.scale > 0
         and finite(view.offsetX) and finite(view.offsetY), "finite viewport transform required")
@@ -43,6 +65,61 @@ function Presentation.unproject(view, x, y)
     local wx,wy = (x-view.offsetX)/view.scale,(y-view.offsetY)/view.scale
     assert(finite(wx) and finite(wy), "world coordinates must be finite")
     return wx,wy
+end
+
+local function requireCamera(view)
+    requireViewport(view,0,0)
+    assert(view.follow == true and finite(view.worldWidth) and view.worldWidth > 0
+        and finite(view.worldHeight) and view.worldHeight > 0
+        and finite(view.canvasWidth) and view.canvasWidth > 0
+        and finite(view.canvasHeight) and view.canvasHeight > 0
+        and finite(view.viewWidth) and view.viewWidth > 0 and view.viewWidth <= view.worldWidth
+        and finite(view.viewHeight) and view.viewHeight > 0 and view.viewHeight <= view.worldHeight,
+        "bounded camera viewport required")
+end
+
+-- Follow the interpolated render pose, not the fixed-step state. Mutating only
+-- these two offsets reuses the viewport without per-frame camera allocations.
+function Presentation.follow(view, x, y, heading, lookAhead)
+    requireCamera(view)
+    assert(finite(x) and finite(y) and finite(heading), "finite camera pose required")
+    if lookAhead == nil then lookAhead = 60 end
+    assert(finite(lookAhead) and lookAhead >= 0, "finite nonnegative camera lookahead required")
+    local centerX,centerY = x+math.cos(heading)*lookAhead,y+math.sin(heading)*lookAhead
+    assert(finite(centerX) and finite(centerY), "camera target must be representable")
+    local left = math.max(0,math.min(view.worldWidth-view.viewWidth,centerX-view.viewWidth/2))
+    local bottom = math.max(0,math.min(view.worldHeight-view.viewHeight,centerY-view.viewHeight/2))
+    view.offsetX,view.offsetY = -left*view.scale,-bottom*view.scale
+    return view
+end
+
+-- WoW's four-number texture coordinates are left/right/top/bottom, while the
+-- simulation uses a bottom-left origin. This is a crop, not a stretched map.
+function Presentation.texCoords(view)
+    requireCamera(view)
+    local left,bottom = -view.offsetX/view.scale,-view.offsetY/view.scale
+    return math.max(0,math.min(1,left/view.worldWidth)),
+           math.max(0,math.min(1,(left+view.viewWidth)/view.worldWidth)),
+           math.max(0,math.min(1,1-(bottom+view.viewHeight)/view.worldHeight)),
+           math.max(0,math.min(1,1-bottom/view.worldHeight))
+end
+
+-- Axis-aligned world rectangles (gates and perimeter strips) are cropped before
+-- UI placement, keeping markers inside the canvas without a clipping API.
+function Presentation.clipRect(view, x, y, width, height)
+    requireViewport(view,x,y)
+    assert(finite(view.canvasWidth) and view.canvasWidth > 0
+        and finite(view.canvasHeight) and view.canvasHeight > 0,
+        "finite positive canvas dimensions required")
+    assert(finite(width) and width >= 0 and finite(height) and height >= 0,
+        "finite nonnegative rectangle dimensions required")
+    local px,py = Presentation.project(view,x,y)
+    local right,top = px+width*view.scale,py+height*view.scale
+    assert(finite(right) and finite(top), "rectangle bounds must be representable")
+    local left,bottom = math.max(0,px),math.max(0,py)
+    right,top = math.min(view.canvasWidth,right),math.min(view.canvasHeight,top)
+    if left >= right or bottom >= top then return nil end
+    return left,bottom,right-left,top-bottom
 end
 
 function Presentation.pose(previous, current, alpha)

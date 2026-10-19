@@ -66,6 +66,90 @@ assert(not pcall(P.project,{scale=2,offsetX=0,offsetY=0},1e308,0)
        and not pcall(P.unproject,{scale=0.1,offsetX=0,offsetY=0},1e308,0),
        "unrepresentable mapped coordinates must reject")
 
+local camera = P.cameraViewport(1024,1024,800,480,1.5)
+assert(camera.scale==1.5 and camera.width==800 and camera.height==480
+       and camera.follow==true, "close camera fills the full landscape canvas uniformly")
+near(camera.viewWidth,800/1.5,"camera visible world width")
+near(camera.viewHeight,320,"camera visible world height")
+assert(P.cameraViewport(1024,1024,800,480).scale==1.5,"close camera has a deliberate default zoom")
+local cameraBefore = {}
+for key,value in pairs(camera) do cameraBefore[key]=value end
+assert(P.follow(camera,700,360,pi/2)==camera,"follow reuses the same viewport")
+projected(camera,700,360,400,150,"Mirage start has forward road space")
+near(112*camera.scale,168,"Mirage road is 168 canvas units wide")
+near(17*camera.scale,25.5,"placeholder kart is readable at the close camera scale")
+for key,value in pairs(cameraBefore) do
+    if key~="offsetX" and key~="offsetY" then
+        assert(camera[key]==value,"follow only changes presentation offsets: "..key)
+    end
+end
+local function crop(view,left,right,top,bottom,label)
+    local l,r,t,b = P.texCoords(view)
+    near(l,left,label.." left"); near(r,right,label.." right")
+    near(t,top,label.." top"); near(b,bottom,label.." bottom")
+    assert(l>=0 and r<=1 and t>=0 and b<=1 and l<r and t<b,
+        label.." stays inside the image with upright UV ordering")
+end
+local spawnLeft,spawnBottom = P.unproject(camera,0,0)
+crop(camera,spawnLeft/1024,(spawnLeft+800/1.5)/1024,
+    1-(spawnBottom+320)/1024,1-spawnBottom/1024,"spawn crop")
+assert(select("#",P.texCoords(camera))==4,"camera crop returns four scalars")
+local offsetX,offsetY = camera.offsetX,camera.offsetY
+P.texCoords(camera)
+assert(camera.offsetX==offsetX and camera.offsetY==offsetY,"UV lookup does not move the camera")
+P.follow(camera,0,0,pi)
+assert(camera.offsetX==0 and camera.offsetY==0,"lookahead clamps at the bottom-left world edge")
+crop(camera,0,(800/1.5)/1024,1-320/1024,1,"bottom-left crop")
+P.follow(camera,1024,1024,0)
+near(camera.offsetX,800-1024*1.5,"right-edge camera clamp")
+near(camera.offsetY,480-1024*1.5,"top-edge camera clamp")
+crop(camera,1-(800/1.5)/1024,1,0,320/1024,"top-right crop")
+local covered = P.cameraViewport(1024,1024,800,480,0.1)
+assert(covered.scale==800/1024,"too-wide requested view clamps to cover the canvas")
+P.follow(covered,0,1024,pi/2)
+crop(covered,0,1,0,480/800,"cover zoom has no side margins or out-of-world UVs")
+P.follow(camera,700,360,pi/2,0)
+projected(camera,700,360,400,240,"zero lookahead centers the kart")
+P.follow(camera,600,360,0)
+projected(camera,600,360,310,240,"heading changes shift visible road ahead without rotating art")
+
+P.follow(camera,512,512,0,0)
+local left,bottom = P.unproject(camera,0,0)
+local function clipped(x,y,width,height,expectedX,expectedY,expectedW,expectedH,label)
+    local px,py,w,h = P.clipRect(camera,x,y,width,height)
+    near(px,expectedX,label.." x"); near(py,expectedY,label.." y")
+    near(w,expectedW,label.." width"); near(h,expectedH,label.." height")
+end
+clipped(left+10,bottom+20,112,2,15,30,168,3,"fully visible gate")
+clipped(left-10,bottom+10,20,20,0,15,15,30,"left-edge gate fragment")
+clipped(left+10,bottom+310,20,20,15,465,30,15,"top-edge wall fragment")
+clipped(left-10,bottom-10,1000,1000,0,0,800,480,"rectangle covering the camera")
+assert(P.clipRect(camera,left-20,bottom,10,10)==nil
+       and P.clipRect(camera,left,bottom-20,10,10)==nil,
+       "offscreen regions hide instead of leaking onto other UI")
+assert(P.clipRect(camera,left-10,bottom,10,10)==nil
+       and P.clipRect(camera,left,bottom,0,10)==nil,
+       "edge-only or empty rectangles have no visible fragment")
+assert(select("#",P.clipRect(camera,left,bottom,20,20))==4,
+       "clipping returns scalar dimensions without allocating rectangles")
+local cameraKeys = {}
+for key,value in pairs(camera) do cameraKeys[key]=value end
+P.clipRect(camera,left-10,bottom,20,20)
+P.texCoords(camera)
+for key,value in pairs(cameraKeys) do assert(camera[key]==value,"crop/clip keeps the camera unchanged") end
+for _,invalid in ipairs({false,"1.5",0,-1,0/0,math.huge,-math.huge}) do
+    assert(not pcall(P.cameraViewport,1024,1024,800,480,invalid),"invalid zoom rejects")
+end
+assert(not pcall(P.cameraViewport,0,1024,800,480)
+       and not pcall(P.cameraViewport,1024,1024,0,480),"invalid camera dimensions reject")
+assert(not pcall(P.follow,square,0,0,0)
+       and not pcall(P.texCoords,square),"an overview cannot accidentally use follow-camera UVs")
+assert(not pcall(P.follow,camera,0/0,0,0)
+       and not pcall(P.follow,camera,0,0,math.huge)
+       and not pcall(P.follow,camera,0,0,0,-1),"invalid camera target/lookahead rejects")
+assert(not pcall(P.clipRect,camera,0,0,-1,20)
+       and not pcall(P.clipRect,camera,0,0,20,math.huge),"invalid rectangle dimensions reject")
+
 local function pose(previous, current, alpha, x, y, heading, message)
     local px, py, ph = P.pose(previous, current, alpha)
     near(px, x, message .. " x")
@@ -169,4 +253,4 @@ local loaded = assert(loadfile("addon/AzerothKart/Presentation.lua"))("AzerothKa
 assert(namespace.Presentation == loaded and namespace.sentinel == marker,
        "addon import registers with its explicit namespace")
 assert(_G.AzerothKart == beforeGlobal, "namespace import must not replace an addon global")
-print("offline presentation: aspect-fit scalar mapping, poses, shortest-arc heading, drift/boost meter and untouched states")
+print("offline presentation: close follow camera/cropped UVs/marker clipping, aspect-fit mapping, poses and drift meter")

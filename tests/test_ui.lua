@@ -19,7 +19,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
         frames={}, textures={}, output={}, counts={frames=0, textures=0, fontStrings=0},
         propagationCalls=0, combatPropagationCalls=0, keyboardReleaseCalls=0,
         profileTime=0, profileCalls=0, snappingCalls=0, drawLayerCalls=0,
-        textureCalls=0,
+        textureCalls=0, texCoordCalls=0,
     }
     local methods = {}
     local function object(kind)
@@ -86,6 +86,10 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
         self.texturePath=path
         self.textureWrites=(rawget(self,"textureWrites") or 0)+1
         return true
+    end
+    function methods:SetTexCoord(...)
+        env.texCoordCalls=env.texCoordCalls+1
+        self.texCoords={...}
     end
     function methods:SetDrawLayer(layer,sublevel)
         env.drawLayerCalls=env.drawLayerCalls+1
@@ -302,8 +306,8 @@ withMock(nil, false, function(env,UI)
 end)
 originalPrint(renderSummary.." (client appearance still pending)")
 
--- One geometry-aligned image is pooled alongside the fallback oval. Uniform
--- projection must affect dimensions as well as anchors, without changing physics.
+-- Mirage uses one cropped image and a closer, north-up follow camera. The same
+-- uniform transform controls the readable kart and clipped geometry markers.
 withMock(nil,false,function(env,UI)
     env.fire("ADDON_LOADED","AzerothKart")
     local Oval,Physics=env.namespace.Track,env.namespace.Physics
@@ -315,17 +319,17 @@ withMock(nil,false,function(env,UI)
     for key,value in pairs(env.counts) do counts[key]=value end
     assert(UI.SelectTrack("mirage_raceway"),"stopped user can select Mirage")
     local Mirage=UI.track
-    assert(Mirage.id=="mirage_raceway" and UI.view.scale==0.46875 and
-           UI.view.offsetX==160 and UI.view.offsetY==0,
-        "Mirage preserves its square aspect inside the fixed canvas")
+    assert(Mirage.id=="mirage_raceway" and UI.view.scale==1.5 and UI.view.follow==true,
+        "Mirage uses the closer uniform follow camera")
     assert(UI.canvas.width==800 and UI.canvas.height==480 and
            UI.mirageBackground:IsShown() and env.textureCalls==1 and
            UI.mirageBackground.texturePath==
                "Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\SaltFlats\\Background.tga",
         "one custom background is loaded at the declared addon path")
-    assert(UI.mirageBackground.width==480 and UI.mirageBackground.height==480 and
-           UI.mirageBackground.point[4]==160 and UI.mirageBackground.point[5]==0,
-        "background uses the fitted square rather than stretching the world")
+    assert(UI.mirageBackground.width==800 and UI.mirageBackground.height==480 and
+           UI.mirageBackground.point[1]=="BOTTOMLEFT" and
+           UI.mirageBackground.point[4]==0 and UI.mirageBackground.point[5]==0,
+        "background fills the playable canvas without overview side margins")
     assert(#UI.ovalTextures==96,"fallback bands remain pooled")
     for _,piece in ipairs(UI.ovalTextures) do
         assert(not piece:IsShown(),"fallback bands cannot cover the Mirage image")
@@ -335,31 +339,77 @@ withMock(nil,false,function(env,UI)
     end
     local scale=UI.view.scale
     local spawn=Mirage.spawn()
-    close(UI.kart.width,17*scale,"kart width follows the world scale")
-    close(UI.kart.height,31*scale,"kart height follows the world scale")
-    close(UI.kart.point[4],160+spawn.x*scale,"kart x follows the fitted projection")
-    close(UI.kart.point[5],spawn.y*scale,"kart y follows the fitted projection")
+    close(UI.kart.width,25.5,"closer kart width is readable at play size")
+    close(UI.kart.height,46.5,"closer kart height is readable at play size")
+    close(Mirage.roadWidth*scale,168,"road and kart magnify by the same scale")
+    close(UI.kart.point[4],400,"spawn kart is centered across the camera")
+    close(UI.kart.point[5],150,"spawn camera leaves room ahead of the kart")
     close(UI.kart.rotation,spawn.heading-math.pi/2,"kart keeps the tested heading convention")
-    for index,gate in ipairs(Mirage.gates) do
-        local strip=UI.gateTextures[index]
-        close(strip.point[4],160+(gate.ax+gate.bx)/2*scale,"gate x follows geometry")
-        close(strip.point[5],(gate.ay+gate.by)/2*scale,"gate y follows geometry")
-        close(strip.width,(gate.ax==gate.bx and 5 or math.abs(gate.bx-gate.ax))*scale,
-            "gate width follows the world scale")
-        close(strip.height,(gate.ay==gate.by and 5 or math.abs(gate.by-gate.ay))*scale,
-            "gate height follows the world scale")
-    end
     local expectedWalls={
         {0,0,1024,4},{0,1020,1024,4},{0,4,4,1016},{1020,4,4,1016},
     }
     assert(#UI.wallTextures==4,"maps reuse the four perimeter walls")
-    for index,wall in ipairs(UI.wallTextures) do
-        local expected=expectedWalls[index]
-        close(wall.point[4],160+expected[1]*scale,"wall x follows geometry")
-        close(wall.point[5],expected[2]*scale,"wall y follows geometry")
-        close(wall.width,expected[3]*scale,"wall width follows the world scale")
-        close(wall.height,expected[4]*scale,"wall height follows the world scale")
+    local function cameraMatchesPose(label)
+        local alpha=UI.active and UI.clock and UI.clock.accumulator/UI.clock.dt or 1
+        local x,y,heading=env.namespace.Presentation.pose(UI.previousState,UI.state,alpha)
+        local view=UI.view
+        local targetX,targetY=x+60*math.cos(heading),y+60*math.sin(heading)
+        local left=math.max(0,math.min(1024-800/scale,targetX-400/scale))
+        local bottom=math.max(0,math.min(1024-480/scale,targetY-240/scale))
+        close(view.offsetX,-left*scale,label..": camera follows interpolated x with lookahead")
+        close(view.offsetY,-bottom*scale,label..": camera follows interpolated y with lookahead")
+        close(UI.kart.point[4],view.offsetX+x*scale,label..": kart uses the same camera x")
+        close(UI.kart.point[5],view.offsetY+y*scale,label..": kart uses the same camera y")
+        local uv=rawget(UI.mirageBackground,"texCoords")
+        assert(type(uv)=="table" and #uv==4,label..": crop calls the four-coordinate texture API")
+        assert(uv[1]>=0 and uv[1]<uv[2] and uv[2]<=1 and
+               uv[3]>=0 and uv[3]<uv[4] and uv[4]<=1,
+            label..": cropped UVs stay inside the image without mirroring or flipping")
+        close(uv[1],left/1024,label..": crop left matches world origin")
+        close(uv[2],(left+800/scale)/1024,label..": crop right preserves world scale")
+        close(uv[3],1-(bottom+480/scale)/1024,label..": crop top accounts for image Y direction")
+        close(uv[4],1-bottom/1024,label..": crop bottom accounts for image Y direction")
     end
+    local function clippedMarker(piece,x,y,width,height,label)
+        local px,py=UI.view.offsetX+x*scale,UI.view.offsetY+y*scale
+        local left,bottom=math.max(0,px),math.max(0,py)
+        local right,top=math.min(800,px+width*scale),math.min(480,py+height*scale)
+        local visible=left<right and bottom<top
+        assert(piece:IsShown()==visible,label..": only intersecting markers are visible")
+        if not visible then return false end
+        assert(piece.point[1]=="BOTTOMLEFT" and piece.point[2]==UI.canvas and
+               piece.point[3]=="BOTTOMLEFT",label..": clipped marker uses the canvas origin")
+        close(piece.point[4],left,label..": clipped marker x matches geometry")
+        close(piece.point[5],bottom,label..": clipped marker y matches geometry")
+        close(piece.width,right-left,label..": clipped marker width matches geometry")
+        close(piece.height,top-bottom,label..": clipped marker height matches geometry")
+        assert(piece.width>0 and piece.height>0 and piece.point[4]>=0 and piece.point[5]>=0 and
+               piece.point[4]+piece.width<=800+1e-9 and piece.point[5]+piece.height<=480+1e-9,
+            label..": markers cannot escape the canvas into controls or other WoW UI")
+        return true
+    end
+    local function markersMatchGeometry(label)
+        local visible,hidden=0,0
+        for index,gate in ipairs(Mirage.gates) do
+            local width=gate.ax==gate.bx and 5 or math.abs(gate.bx-gate.ax)
+            local height=gate.ay==gate.by and 5 or math.abs(gate.by-gate.ay)
+            local shown=clippedMarker(UI.gateTextures[index],
+                (gate.ax+gate.bx-width)/2,(gate.ay+gate.by-height)/2,width,height,
+                label.." gate "..index)
+            if shown then visible=visible+1 else hidden=hidden+1 end
+        end
+        for index,wall in ipairs(UI.wallTextures) do
+            local rect=expectedWalls[index]
+            clippedMarker(wall,rect[1],rect[2],rect[3],rect[4],label.." wall "..index)
+        end
+        return visible,hidden
+    end
+    cameraMatchesPose("ready spawn")
+    local visible,hidden=markersMatchGeometry("ready spawn")
+    assert(visible>0 and hidden>0,"closer camera shows nearby gates and hides distant ones")
+    assert(UI.gateTextures[2]:IsShown() and UI.gateTextures[2].point[4]==0 and
+           UI.gateTextures[2].width<Mirage.roadWidth*scale,
+        "a gate crossing the camera edge is clipped instead of overflowing")
     assert(UI.state.tick==0 and UI.clock==nil and UI.race==nil and UI.result==nil and
            UI.laps.completedLaps==0 and not UI.summary:IsShown(),
         "selecting a map creates ready state without claiming a started race")
@@ -373,6 +423,7 @@ withMock(nil,false,function(env,UI)
     UI.Start()
     assert(UI.active and UI.race.status=="countdown" and not UI.trackButton:IsEnabled(),
         "Mirage starts the existing countdown and disables map selection")
+    cameraMatchesPose("fresh countdown")
     local race,state,clock=UI.race,UI.state,UI.clock
     assert(not UI.SelectTrack("test_oval") and UI.race==race and UI.state==state and
            UI.clock==clock and UI.track==Mirage,
@@ -381,9 +432,22 @@ withMock(nil,false,function(env,UI)
     finishCountdown(UI)
     assert(UI.state.x==spawn.x and UI.state.y==spawn.y and UI.state.speed==0,
         "Mirage shares the neutral fixed-step countdown")
+    local expectedState=Physics.step(UI.state,{accelerate=true},Physics.FIXED_DT,Mirage)
     UI.OnUpdate(Physics.FIXED_DT)
     assert(UI.state.y>spawn.y and UI.race.totalTicks==1,
         "the held throttle drives Mirage after GO using the existing physics")
+    for field,value in pairs(expectedState) do
+        assert(UI.state[field]==value,"follow camera cannot alter fixed-step state field "..field)
+    end
+    cameraMatchesPose("first driving tick")
+    local firstOffsetY=UI.view.offsetY
+    local fixedState,previous=UI.state,UI.previousState
+    UI.OnUpdate(Physics.FIXED_DT/2)
+    assert(UI.state==fixedState and UI.previousState==previous and UI.race.totalTicks==1 and
+           UI.view.offsetY<firstOffsetY,
+        "a fractional render frame follows interpolated motion without adding a physics tick")
+    cameraMatchesPose("fractional driving frame")
+    markersMatchGeometry("fractional driving frame")
     local function cross(index)
         local gate=Mirage.gates[index]
         UI.state.x=(gate.ax+gate.bx)/2-gate.nx
@@ -392,6 +456,8 @@ withMock(nil,false,function(env,UI)
             gate.ny==1 and math.pi/2 or -math.pi/2
         UI.state.speed=200; UI.state.steering=0
         UI.OnUpdate(Physics.FIXED_DT)
+        cameraMatchesPose("gate crossing "..index)
+        markersMatchGeometry("gate crossing "..index)
     end
     for _=1,3 do for index=1,4 do cross(index) end end
     assert(not UI.active and UI.race.status=="finished" and UI.result.status=="finished" and
@@ -400,6 +466,25 @@ withMock(nil,false,function(env,UI)
         "Mirage preserves exact third-lap finish, result summary and earliest tied best lap")
     assert(UI.trackButton:IsEnabled() and next(UI.keys)==nil,
         "finishing releases held controls and permits a deliberate next map")
+    local finishedState,finishedRace,finishedClock=UI.state,UI.race,UI.clock
+    local offsetX,offsetY=UI.view.offsetX,UI.view.offsetY
+    local crop=table.concat(UI.mirageBackground.texCoords,",")
+    local cameraWrites=env.texCoordCalls
+    for _=1,3 do UI.OnUpdate(1) end
+    UI.Toggle(); UI.Toggle()
+    assert(UI.state==finishedState and UI.race==finishedRace and UI.clock==finishedClock and
+           UI.view.offsetX==offsetX and UI.view.offsetY==offsetY and
+           table.concat(UI.mirageBackground.texCoords,",")==crop and UI.summary:IsShown(),
+        "inactive updates and close/reopen retain the finished camera, sample and result")
+    assert(env.texCoordCalls<=cameraWrites+1,
+        "inactive updates cannot repeatedly rewrite the background crop")
+    UI.restartButton.scripts.OnClick(UI.restartButton)
+    assert(UI.active and UI.race.status=="countdown" and UI.state.tick==0 and
+           UI.state.x==spawn.x and UI.state.y==spawn.y and not UI.summary:IsShown(),
+        "Restart keeps Mirage selected and restores its fresh spawn/countdown")
+    cameraMatchesPose("restarted spawn")
+    markersMatchGeometry("restarted spawn")
+    UI.Stop("camera restart fixture")
     assert(UI.SelectTrack("test_oval") and UI.track==Oval and UI.view.scale==1 and
            not UI.mirageBackground:IsShown() and UI.kart.width==17 and UI.kart.height==31,
         "Test Oval remains selectable with its original projection and kart dimensions")
@@ -434,9 +519,9 @@ withMock(nil,false,function(env,UI)
     end
 end)
 
--- A refused/missing custom texture must preserve a complete previous sample,
+-- An unavailable texture or UV API must preserve a complete previous sample,
 -- including its real interruption result, while leaving the fallback playable.
-for _,mode in ipairs({"false","nil","throws","missing"}) do
+for _,mode in ipairs({"false","nil","throws","missing","uv missing","uv throws"}) do
     withMock(nil,false,function(env,UI)
         env.fire("ADDON_LOADED","AzerothKart")
         UI.Toggle(); UI.Start(); UI.OnUpdate(1/60)
@@ -449,8 +534,13 @@ for _,mode in ipairs({"false","nil","throws","missing"}) do
         for key,value in pairs(env.counts) do counts[key]=value end
         env.textureMode=mode
         local loader=UI.mirageBackground.SetTexture
+        local cropper=UI.mirageBackground.SetTexCoord
         if mode=="missing" then UI.mirageBackground.SetTexture=false end
-        assert(not UI.SelectTrack("mirage_raceway"),"texture load failure is explicit: "..mode)
+        if mode=="uv missing" then UI.mirageBackground.SetTexCoord=false
+        elseif mode=="uv throws" then
+            UI.mirageBackground.SetTexCoord=function() error("mock UV API refuses") end
+        end
+        assert(not UI.SelectTrack("mirage_raceway"),"renderer refusal is explicit: "..mode)
         assert(UI.track==track and UI.state==state and UI.previousState==previous and
                UI.race==race and UI.clock==clock and UI.result==result and
                UI.laps==laps and UI.checkpoints==checkpoints,
@@ -466,7 +556,9 @@ for _,mode in ipairs({"false","nil","throws","missing"}) do
         for key,value in pairs(counts) do
             assert(env.counts[key]==value,"failed texture allocated UI objects: "..mode.."/"..key)
         end
-        env.textureMode=nil; UI.mirageBackground.SetTexture=loader
+        env.textureMode=nil
+        UI.mirageBackground.SetTexture=loader
+        UI.mirageBackground.SetTexCoord=cropper
         assert(UI.SelectTrack("mirage_raceway") and UI.result==nil,
             "explicit retry after fixing a texture can create a fresh map session: "..mode)
     end)
@@ -617,9 +709,12 @@ withMock(nil,false,function(env,UI)
            UI.lapHud.point[5]==176,"fresh lap HUD has its own pooled row")
     for index,gate in ipairs(Track.gates) do
         local strip=UI.gateTextures[index]
-        assert(strip.point[1]=="CENTER" and strip.point[2]==UI.canvas and
-               strip.point[3]=="BOTTOMLEFT" and strip.point[4]==(gate.ax+gate.bx)/2 and
-               strip.point[5]==(gate.ay+gate.by)/2,"gate strip follows track endpoints")
+        local width=gate.ax==gate.bx and 5 or math.abs(gate.bx-gate.ax)
+        local height=gate.ay==gate.by and 5 or math.abs(gate.by-gate.ay)
+        assert(strip.point[1]=="BOTTOMLEFT" and strip.point[2]==UI.canvas and
+               strip.point[3]=="BOTTOMLEFT" and strip.point[4]==(gate.ax+gate.bx-width)/2 and
+               strip.point[5]==(gate.ay+gate.by-height)/2,
+            "gate strip follows track endpoints with its clipped rectangle anchor")
         if gate.ax==gate.bx then
             assert(strip.width==5 and strip.height==math.abs(gate.by-gate.ay),
                 "vertical gate strip covers its crossing segment")
