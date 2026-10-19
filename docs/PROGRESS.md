@@ -1,7 +1,7 @@
 # PROGRESS — persistent project handoff
 
 **Current milestone:** M0 — repository and actual-client/API feasibility. **OPEN.**
-**Current state (2026-10-19, latest session ~02:11 CEST):** fixed a reproduced M0 defect that hid the retained combat note after another close/reopen or rejected Start. The interruption reason remains visible and authoritative; refusals are shown alongside it, and a successful fresh Start clears it. Seven offline tests pass in both Lua 5.1/5.4, including frozen-result/timing and no-duplicate/resume regressions. No WoW process was available; all 2026-10-19 addon changes remain source-only. Prior actual-client smoke and the owner's combat report remain recorded in [sanitized live evidence](evidence/2026-10-18-m0-client.md). Simultaneous W/Up stays SKIPPED at owner request; timed drives, remaining lifecycle and persistence acceptance keep M0 open.
+**Current state (2026-10-19, latest session ~02:26 CEST):** the owner reported WoW running; desktop inventory confirmed it despite an empty shell process scan. Source through `2a5b8e8` is now installed with a verified prior-addon backup and all nine installed hashes match. Normal reload, rendering and the new inactive timing/HUD baseline were observed in build 70450/Camelot; UI counts remain 6/99/3. Seven offline tests pass in Lua 5.1/5.4. The first human-controlled 60-second drive was requested; no completed drive result is recorded yet. See [new client evidence](evidence/2026-10-19-m0-client.md). Timed driving, extended retained-note/lifecycle checks and persistence keep M0 open. Simultaneous W/Up remains SKIPPED at owner request.
 
 ## Canonical checkout and commits
 
@@ -15,6 +15,7 @@ Remote: `https://github.com/PhilForever/AzerothKart.git`; branch `main`. The pac
 - `3b02641` — `docs: record live M0 checks and owner combat results`.
 - `2825ba3` — `fix: preserve complete M0 timing samples`.
 - `fc7f339` — `fix: verify and back up repeatable local installs`.
+- `2a5b8e8` — `fix: retain combat outcome through rejected restarts`.
 
 Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.useConfigOnly=true`; verified in config and commit authors. Global identity was left unchanged. No push, tag, distribution or automation was performed. The later client-check session installed only AzerothKart in the local Forever AddOns folder and verified all nine files against source SHA-256. Ignored `local-artifacts/` contains developer dependencies/logs and synthetic install fixtures/backups; it is not staged.
 
@@ -30,7 +31,8 @@ Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.u
 - [x] Seed `1729` generates a repeatable 10,000-tick input tape. Every state field matches at every tick under 30/60/144 simulated FPS in each tested runtime. This is same-runtime determinism for the tested tape, not cross-client proof or a gameplay PRNG.
 - [x] Mocked UI/Core lifecycle coverage includes hidden/chat/combat/missing-capability Start refusal; key aliases; Escape/unknown/Enter; Stop/Close/Hide/toggle; all mouse clicks; text/application focus; leaving world/logout; combat event and OnUpdate fallback; deferred propagation; no automatic resume; minimal save-field preservation.
 - [x] Explicit `/akart probe` / Print Probe reports identity, input capabilities, event-registration failures, clock metrics, last stop reason and explicit UI object counts. No per-tick chat or UI object creation.
-- [x] Source timing aid: cumulative valid active frame seconds, executed simulation seconds and callback cadence; complete stopped elapsed/drop/remainder accounting and immediate Start/Stop HUD refresh. Offline tested; installation and actual-client timed samples pending.
+- [x] Source timing aid: cumulative valid active frame seconds, executed simulation seconds and callback cadence; complete stopped elapsed/drop/remainder accounting and immediate Start/Stop HUD refresh. Offline tested and installed; zeroed live baseline observed, with timed/final-sample acceptance pending.
+- [x] 2026-10-19 installation/reload baseline: prior addon backed up, two changed files copied and all nine installed SHA-256 values verified twice; updated zeroed timing/HUD fields rendered inactive. Timed drive/final-sample acceptance remains pending.
 - [x] Retained interruption note through repeated Close/toggle/reopen, inactive Stop and rejected Start; actual refusal text is also visible. Regression checks retain the same result/state/clock/HUD and clear the note only on a successful fresh Start. Offline only; extended client sequence pending.
 - [x] Local installer fixture slice: direct per-file repeat copies, verified old-file backup before target writes, copied SHA-256 verification, explicit overwrite/preview and failure records. PowerShell 7: 18 cases passed, 3 junction fixtures skipped; PowerShell 5.1 syntax passed, runtime blocked. No live install performed.
 - [x] Exact installed-client manual probes and header-only F4 experiment ledger prepared; no network code/traffic or multiplayer claim.
@@ -50,7 +52,7 @@ Initial file-only evidence: `_classic_beta_\WowB.exe` reports `1.60.1.70450`; `.
 
 ## Next exact task
 
-**Next exact task: M0 F1 timed client sample.** After an authorized install of the tested source, run the three human-controlled 60-second drives in section 3 of `tests/MANUAL_CLIENT_CHECKLIST.md`, collecting stopped timing output and stable explicit UI counts. The timing probe and repeatable install tooling are ready; the remaining gate needs an actual client and direct play. No WoW process was available this run, and no new gameplay milestone was opened. Keep unrun lifecycle/persistence cases pending. Simultaneous W/Up remains SKIPPED and must not be requested again. Do not automate WoW character movement/combat. Full M0 acceptance remains open.
+**Next exact task: capture the first M0 F1 timed drive.** The tested source is installed and the live kart window is open/inactive. The owner was asked to click Start, drive/steer for about 60 seconds, press Escape, click Print Probe and report completion/responsiveness. UI input is left untouched during that handoff. Capture the resulting stopped probe before starting another drive; then complete the remaining two samples from section 3 of `tests/MANUAL_CLIENT_CHECKLIST.md`. No drive is a pass until evidence exists. Keep lifecycle/persistence cases pending; do not automate WoW character movement/combat or request the skipped simultaneous W/Up combination. M0 remains open.
 
 ## Session handoff log
 
@@ -199,3 +201,29 @@ The helper performs no deletion or automatic rollback. A failure after copying s
 **Git:** focused commit intended as `fix: retain combat outcome through rejected restarts`; inspect `git log` for its hash. PhilForever repository-local identity reverified; no global config change, push, tag, release, deployment or automation.
 
 **Next exact task:** M0 F1, three human-controlled 60-second client samples after an authorized source install. The precise retained-note close/reopen/refused-Start follow-up is also prepared in client-checklist section 2 and remains pending. Do not request the owner's skipped simultaneous W/Up combination.
+
+### 2026-10-19 02:26 CEST (Europe/Oslo) — Codex / main, live continuation
+
+**Objective:** continue the existing M0 client gate after the owner reported WoW running. Confirmed clean `main`, canonical remote and HEAD `2a5b8e8`; read the handoff/acceptance criteria and [computer-use skill](C:/Users/bakke/.codex/plugins/cache/openai-bundled/computer-use/26.1013.40934/skills/computer-use/SKILL.md). The shell process scan again returned no matches, but the desktop inventory returned one running `WowB.exe` client window. Activated that returned window and observed the logged-in client. Added the discovery limitation to AGENTS so future runs do not declare the desktop unavailable from an empty shell scan alone.
+
+**Deployment:** validated source first. Only installed `Loop.lua`/`UI.lua` differed; the other seven files matched. The PowerShell helper `-WhatIf` could not load because the script was unsigned. No execution-policy change was made and that script was not executed. Using the normal filesystem approval mechanism, a one-off Python file operation backed up the full prior AzerothKart tree, verified the backup, copied only those two files, then verified all nine installed hashes against source. Artifact: workspace `artifacts/AzerothKart/20261019-022106-763673/install.json`, with source/before/installed hash maps and prior files under `before/`. Independent read-only verification at 02:24:17 +02:00 confirmed nine matches. No other addon or WTF/SavedVariables files were edited for deployment.
+
+**Actually observed:** normal local `/reload` completed; `/akart` opened the primitive track/kart inactive with `Sample: 0.0s`. A grouped read-only `/run` baseline plus explicit `UI.ReportProbe()` showed client `1.60.1`, build `70450`, interface `16001`, selected TOC `Camelot`, focus API false, all timing counters zero, active false/Not started, UI counts 6/99/3, no event-registration failures and required input capability flags true. One whole-client FPS sample with the stopped kart window open was `230.10543823242`; uiScale=1/useUiScale=0, combat=false, capture resolution 1920×1080. This is not CPU profiling, sustained driving or full F1/F2 acceptance. No AzerothKart error popup was visible; a full taint audit was not run. Sanitized evidence is in [2026-10-19 client observations](evidence/2026-10-19-m0-client.md); no personal captures/chat were committed.
+
+**Executed checks:**
+
+| Command/check | Actual result |
+|---|---|
+| `python scripts/validate_project.py` | PASS — 27 expected paths/TOCs/docs links/ledger; rerun after evidence/doc updates. |
+| `python scripts/test_lua.py` | PASS — 14 Lua files parsed, all seven tests in each of Lua 5.1/5.4 via Lupa. No addon source changed during the live run. |
+| Backup/source/installed SHA-256 checks | PASS — verified old addon backup and nine installed matches, followed by an independent nine-file comparison. |
+| PowerShell installer preview | NOT RUN — unsigned-script SecurityError prevented loading; no policy change. This is distinct from the prior fixture results. |
+| Normal client reload and stopped new-HUD/probe baseline | OBSERVED — precise scope above; no new gameplay/performance pass. |
+| Three human-controlled timed drives; extended combat-note sequence; scaling/stress; F5 sentinel/logout/restart; F4 peer tests | PENDING / NOT RUN — no completed result recorded. |
+| `git diff --check` | PASS — final whitespace check. |
+
+**Handoff:** asked the owner to perform the first normal 60-second kart drive and report completion/responsiveness. Keyboard/mouse input remains untouched while waiting. Blank drive rows in the evidence ledger mean unmeasured. Do not infer results, repeat the skipped W/Up combination, synthesize combat, or automate character movement. No gameplay milestone/roadmap checkbox advanced. No push, tag, release, network traffic or automation.
+
+**Git:** focused documentation/evidence commit intended as `docs: record updated M0 install and live baseline`; inspect `git log` for its hash. The installed addon source remains the tested files from `2a5b8e8`.
+
+**Next exact task:** capture the owner's first stopped timed-drive probe, then complete samples 2 and 3 before choosing further M0 work.

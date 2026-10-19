@@ -19,7 +19,7 @@ The mocked combat lifecycle also covers repeated Close/toggle/reopen and rejecte
 - F. Run 15 min, resize UI scale, record FPS and memory. Confirm no per-tick widget creation.
 - G. M0 SavedVariables: isolated sentinel across reload/logout/restart and inactive capture after load. Corrupt-save handling/migrations for actual settings/records remain later milestones.
 
-The next actual-client task is [checklist section 3](../tests/MANUAL_CLIENT_CHECKLIST.md): three manually driven 60-second samples, stopped HUD/probe agreement, frozen/reopened timing values and stable explicit UI counts. Record `activeFrameSeconds`, `simulatedSeconds`, `callbackHz`, frames/ticks, dropped time, residual accumulator and an independent timer duration. These checks and the 2026-10-19 timing/HUD changes remain **NOT RUN** in the client; the prior short smoke is not a substitute.
+The next actual-client task is [checklist section 3](../tests/MANUAL_CLIENT_CHECKLIST.md): three manually driven 60-second samples, stopped HUD/probe agreement, frozen/reopened timing values and stable explicit UI counts. Record `activeFrameSeconds`, `simulatedSeconds`, `callbackHz`, frames/ticks, dropped time, residual accumulator and an independent timer duration. The updated post-reload zeroed timing/HUD baseline was observed on 2026-10-19, but these timed checks remain **PENDING**; the stopped baseline is not a substitute.
 
 ## Developer install helper fixtures
 

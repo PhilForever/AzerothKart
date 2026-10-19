@@ -55,7 +55,7 @@ The confirmed [combat rule](../docs/adr/0006-combat-interrupted-results.md) ends
 
 ## 3. F1 timing and allocation sample
 
-**NOT RUN:** three timed client drives and the 2026-10-19 timing/HUD changes. The 2026-10-18 short probe predates the cumulative elapsed/cadence fields and immediate stopped-HUD refresh; retain it as historical smoke evidence only.
+**2026-10-19 baseline observed:** updated source installed with nine matching hashes; reload completed inactive; new timing fields and `Sample: 0.0s` rendered with counts 6/99/3. See [the live evidence](../docs/evidence/2026-10-19-m0-client.md). **PENDING:** the three timed drives, final stopped-HUD refresh/accounting, scaling and stress acceptance. The 2026-10-18 short probe predates these fields and remains historical smoke evidence only.
 
 Perform each drive manually, outside combat, with an independent timer. Use the normal client FPS display if desired. Do not open chat or click the probe button during the active sample: both deliberately stop capture. This is a measurement aid, not an automatic driver or timed race mode.
 

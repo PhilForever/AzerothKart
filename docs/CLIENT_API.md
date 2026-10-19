@@ -6,6 +6,8 @@ The earlier read-only disk scan found `_classic_beta_\WowB.exe` version `1.60.1.
 
 ## Exact runtime identity checks
 
+On 2026-10-19 the updated source was installed with a verified prior-addon backup, then loaded through normal `/reload`. Live readbacks again showed `1.60.1`, build `70450`, interface `16001`, selected TOC `Camelot`, the new zeroed timing fields and UI counts 6/99/3. See [the new baseline](evidence/2026-10-19-m0-client.md). It does not establish the pending timed drives or retained-note behavior. A shell process scan missed the available client; the desktop app/window inventory confirmed it. Use that inventory before declaring a requested live session unavailable.
+
 Enter each line separately in chat on the installed Forever client. Copy output verbatim; do not substitute a build inferred from a folder name. These `/dump` commands read data and do not start a drive or send network traffic.
 
 ```text
@@ -54,7 +56,7 @@ Do not use `/dump` to call `SetPropagateKeyboardInput` or other mutating input m
 
 Record baseline and stopped-run output as described in [FEASIBILITY.md](FEASIBILITY.md). Starting chat while driving is a focus-loss test and stops capture, so collect metrics after Escape. The probe adds `activeFrameSeconds` (sum of valid active `OnUpdate` elapsed), `simulatedSeconds` (`ticks * 1/60`) and `callbackHz` (`frames / activeFrameSeconds`, zero before elapsed time). These require no new client APIs; they are not an independent wall-clock duration, separately sampled whole-client FPS or addon CPU measurement. `maxElapsed` is a callback interval, not addon CPU time.
 
-After stopping, verify `activeFrameSeconds ≈ simulatedSeconds + droppedSeconds + accumulator` within 0.0002 seconds at the current printed precision. The stopped HUD must immediately show the same tick as the probe, with `Sample` showing active callback seconds. A second probe several seconds later and a close/reopen must preserve the timing values and tick; a deliberate Start resets the sample and HUD to zero. The 2026-10-19 timing/HUD changes and three 60-second client drives are **NOT RUN** in the actual client.
+After stopping, verify `activeFrameSeconds ≈ simulatedSeconds + droppedSeconds + accumulator` within 0.0002 seconds at the current printed precision. The stopped HUD must immediately show the same tick as the probe, with `Sample` showing active callback seconds. A second probe several seconds later and a close/reopen must preserve the timing values and tick; a deliberate Start resets the sample and HUD to zero. The new zeroed post-reload baseline was observed on 2026-10-19; three timed drives and final stopped-HUD/accounting acceptance remain **PENDING**.
 
 Object counts cover the UI module's explicit allocations, excluding the bootstrap event frame and template internals. Follow [the client checklist](../tests/MANUAL_CLIENT_CHECKLIST.md) for the temporary persistence sentinel; schema readback alone cannot prove a save occurred.
 
