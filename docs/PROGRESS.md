@@ -1,7 +1,7 @@
 # PROGRESS — persistent project handoff
 
 **Current milestone:** M0 — repository and actual-client/API feasibility. **OPEN.**
-**Current state (2026-10-19, latest session ~02:06 CEST):** the local install helper now performs explicit repeat installs with verified backups, source/target SHA-256 checks and failure records. PowerShell 7 fixture tests: 18 PASS, 3 junction tests SKIPPED because fixture creation was denied; Windows PowerShell 5.1 parsed both scripts, but runtime execution was NOT RUN after an AuthorizationManager failure. Seven offline Lua tests pass in both Lua 5.1/5.4. No installed addon was changed this run. The source timing/HUD improvements from `2825ba3` remain uninstalled and client tests remain pending. Prior actual-client smoke and the owner's combat report remain recorded in [sanitized live evidence](evidence/2026-10-18-m0-client.md). Simultaneous W/Up stays SKIPPED at owner request; M0 remains open.
+**Current state (2026-10-19, latest session ~02:11 CEST):** fixed a reproduced M0 defect that hid the retained combat note after another close/reopen or rejected Start. The interruption reason remains visible and authoritative; refusals are shown alongside it, and a successful fresh Start clears it. Seven offline tests pass in both Lua 5.1/5.4, including frozen-result/timing and no-duplicate/resume regressions. No WoW process was available; all 2026-10-19 addon changes remain source-only. Prior actual-client smoke and the owner's combat report remain recorded in [sanitized live evidence](evidence/2026-10-18-m0-client.md). Simultaneous W/Up stays SKIPPED at owner request; timed drives, remaining lifecycle and persistence acceptance keep M0 open.
 
 ## Canonical checkout and commits
 
@@ -14,8 +14,9 @@ Remote: `https://github.com/PhilForever/AzerothKart.git`; branch `main`. The pac
 - `6e20ec0` — `fix: close kart sessions when combat interrupts`.
 - `3b02641` — `docs: record live M0 checks and owner combat results`.
 - `2825ba3` — `fix: preserve complete M0 timing samples`.
+- `fc7f339` — `fix: verify and back up repeatable local installs`.
 
-Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.useConfigOnly=true`; verified in config and commit authors. Global identity was left unchanged. No push, tag, distribution or automation was performed. The later client-check session installed only AzerothKart in the local Forever AddOns folder and verified all nine files against source SHA-256. Ignored `local-artifacts/` contains test dependencies/logs only and is not staged.
+Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.useConfigOnly=true`; verified in config and commit authors. Global identity was left unchanged. No push, tag, distribution or automation was performed. The later client-check session installed only AzerothKart in the local Forever AddOns folder and verified all nine files against source SHA-256. Ignored `local-artifacts/` contains developer dependencies/logs and synthetic install fixtures/backups; it is not staged.
 
 ## Completed and evidenced
 
@@ -30,6 +31,7 @@ Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.u
 - [x] Mocked UI/Core lifecycle coverage includes hidden/chat/combat/missing-capability Start refusal; key aliases; Escape/unknown/Enter; Stop/Close/Hide/toggle; all mouse clicks; text/application focus; leaving world/logout; combat event and OnUpdate fallback; deferred propagation; no automatic resume; minimal save-field preservation.
 - [x] Explicit `/akart probe` / Print Probe reports identity, input capabilities, event-registration failures, clock metrics, last stop reason and explicit UI object counts. No per-tick chat or UI object creation.
 - [x] Source timing aid: cumulative valid active frame seconds, executed simulation seconds and callback cadence; complete stopped elapsed/drop/remainder accounting and immediate Start/Stop HUD refresh. Offline tested; installation and actual-client timed samples pending.
+- [x] Retained interruption note through repeated Close/toggle/reopen, inactive Stop and rejected Start; actual refusal text is also visible. Regression checks retain the same result/state/clock/HUD and clear the note only on a successful fresh Start. Offline only; extended client sequence pending.
 - [x] Local installer fixture slice: direct per-file repeat copies, verified old-file backup before target writes, copied SHA-256 verification, explicit overwrite/preview and failure records. PowerShell 7: 18 cases passed, 3 junction fixtures skipped; PowerShell 5.1 syntax passed, runtime blocked. No live install performed.
 - [x] Exact installed-client manual probes and header-only F4 experiment ledger prepared; no network code/traffic or multiplayer claim.
 
@@ -172,3 +174,28 @@ The helper performs no deletion or automatic rollback. A failure after copying s
 **Git:** focused commit intended as `fix: verify and back up repeatable local installs`; inspect `git log` for its hash. PhilForever repository-local identity reverified; global config unchanged. No push, tag, release, actual deployment or automation.
 
 **Next exact task:** the M0 F1 actual-client timing sample described above: three human-controlled 60-second drives after an authorized source install, with honest pending status while no client/tester is available.
+
+### 2026-10-19 02:11 CEST (Europe/Oslo) — Codex / main
+
+**Milestone/objective:** M0, one existing lifecycle defect while the actual-client timing gate is unavailable. Confirmed canonical remote, branch `main`, clean initial status and prior head `fc7f339`; read current handoff, acceptance criteria, architecture/ADRs and relevant source/tests. No `Wow*`/`Battle*` process was found. No client was launched or controlled.
+
+**Reproduction:** after a mocked combat interruption, the first reopen retained the note, but a second toggle close or Close button called `UI.Stop("Closed")`, replacing the visible reason while leaving `UI.result` intact. Start refusal for combat, text focus or missing input capability likewise replaced the note. This contradicted the already accepted ADR 0006 retention rule; no new product decision or API behavior was needed.
+
+**Changes:** `UI.Stop` keeps an interrupted result's reason authoritative. A small Start-refusal formatter displays the retained note plus the actual refusal. Existing guards, controls, terminal result and fixed-step simulation are unchanged; only a fresh accepted Start clears the result/note. `tests/test_ui.lua` now exercises repeated toggles/Close, hidden/inactive stops, combat/text/event/API refusals, frozen result identity/tick/state/clock/HUD, stable object counts, one unsolicited interruption message, no automatic resume, and a fresh Start followed by ordinary Stop/Close with no stale note. Updated architecture/feasibility/test docs, README/CHANGELOG and a precise pending manual follow-up. No new module, UI objects, race placements, transport or migration.
+
+**Actually executed:**
+
+| Command/check | Actual result and scope |
+|---|---|
+| `python scripts/test_lua.py --runtime lua51` before the UI fix | Expected FAIL — added regression reproduced `toggle close 1: interruption stays visible and authoritative` in `test_ui.lua`; other six tests passed. |
+| `python scripts/test_lua.py` after the fix | PASS — all 14 Lua files parsed and all seven tests executed in each of Lua 5.1/5.4 through Lupa, including the retained-note regressions and existing 10k-tick replay/timing tests. Mock UI allocation counts remain 6 frames / 99 textures / 3 font strings; no mocked propagation setter in combat. |
+| `python scripts/validate_project.py` | PASS — 27 expected paths, TOCs, protocol docs, Markdown links and header-only network ledger. |
+| `git diff --check` | PASS — whitespace checks. |
+| Native `lua tests/run.lua` | NOT RUN — no `lua`, `luajit` or `luac` executable found. The actual embedded Lua runtimes above executed the same suite. |
+| Actual-client F1/F2/F5 and network F4 | NOT RUN — no client process or peer measurement. Historical owner combat smoke remains observed; repeated-note/rejected-restart client behavior is not inferred from mocks. |
+
+**Limits:** all 2026-10-19 source changes remain uninstalled; the existing 2026-10-18 addon install is untouched. The longer refusal-plus-note layout still needs client observation. No fresh PowerShell installer runtime claim is made in this Lua-only slice; the preceding session's 18-pass/3-skipped PowerShell 7 evidence and blocked PowerShell 5.1 runtime remain scoped to that tooling task. Roadmap acceptance boxes are unchanged.
+
+**Git:** focused commit intended as `fix: retain combat outcome through rejected restarts`; inspect `git log` for its hash. PhilForever repository-local identity reverified; no global config change, push, tag, release, deployment or automation.
+
+**Next exact task:** M0 F1, three human-controlled 60-second client samples after an authorized source install. The precise retained-note close/reopen/refused-Start follow-up is also prepared in client-checklist section 2 and remains pending. Do not request the owner's skipped simultaneous W/Up combination.

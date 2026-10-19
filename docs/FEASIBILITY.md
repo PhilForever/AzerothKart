@@ -50,6 +50,8 @@ The probe reports optional game-window focus API availability and unavailable ev
 
 **Gate — still pending:** every release route restores ordinary controls, Start is rejected in real combat, and combat interruption closes the window, stops simulation/input and retains one interruption note with no auto-resume or protected-action errors. Any stuck input or combat taint blocks M0; do not bypass it with protected-action tricks. A permitted on-screen-control fallback would require a separate scoped implementation and evidence.
 
+**Source follow-up, 2026-10-19:** offline reproduction found that a second close/reopen or rejected Start hid the retained combat note. The source now keeps the interruption reason visible through repeated closes and displays any Start refusal alongside it. Lua regression checks cover the frozen result/tick/state/clock, one notification, no automatic resume and successful fresh Start reset. This is not a new live result: the extended sequence in the client checklist is **NOT RUN**.
+
 ## F3: deterministic local simulation
 
 For identical initial state/seed and tick-indexed input vectors, compare state at every tick over at least 10,000 fixed steps, including final state. Compare varied render schedules and bounded hitch behavior separately. Record commands and runtime version in `PROGRESS.md`. Offline determinism applies to the tested runtime; it does not establish cross-client floating-point compatibility or good handling. M1 still requires direct play and handling metrics. There is no production lap/checkpoint system to accept yet.

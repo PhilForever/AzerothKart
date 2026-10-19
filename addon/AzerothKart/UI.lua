@@ -44,6 +44,13 @@ local function refreshHud()
         c and c.droppedSeconds or 0,c and c.elapsedSeconds or 0))
 end
 
+local function refuseStart(reason)
+    if UI.result and UI.result.status == "interrupted" then
+        reason = UI.result.reason .. " | " .. reason
+    end
+    UI.status:SetText(reason)
+end
+
 function UI.ReleaseInput()
     Input.clear(UI.keys)
     Input.sample(UI.keys, UI.input)
@@ -62,6 +69,8 @@ end
 
 function UI.Stop(reason)
     UI.active = false
+    -- Closing an already interrupted drive cannot replace its terminal reason.
+    if UI.result and UI.result.status == "interrupted" then reason = UI.result.reason end
     UI.stopReason = reason or "Test drive stopped"
     UI.ReleaseInput()
     -- Freeze the complete timing sample, including its fractional remainder.
@@ -190,14 +199,14 @@ end
 
 function UI.Start()
     if not UI.window or not UI.window:IsShown() then return end
-    if inCombat() then UI.status:SetText("Cannot start while in combat"); return end
+    if inCombat() then refuseStart("Cannot start while in combat"); return end
     if type(GetCurrentKeyBoardFocus) ~= "function"
         or type(UI.window.EnableKeyboard) ~= "function"
         or type(UI.window.SetPropagateKeyboardInput) ~= "function"
         or not (AK.events and AK.events.GLOBAL_MOUSE_DOWN) then
-        UI.status:SetText("Input safety APIs unavailable; run /akart probe"); return
+        refuseStart("Input safety APIs unavailable; run /akart probe"); return
     end
-    if GetCurrentKeyBoardFocus() then UI.status:SetText("Close text input before starting"); return end
+    if GetCurrentKeyBoardFocus() then refuseStart("Close text input before starting"); return end
     UI.ReleaseInput()
     UI.state = Physics.new(Track)
     UI.clock = Loop.new(Physics.FIXED_DT,5)

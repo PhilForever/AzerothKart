@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — retained interruption note (2026-10-19)
+- Keep the combat interruption note through repeated closes/reopens and rejected Start attempts; display the refusal alongside the note.
+- Regression coverage checks frozen results/timing, no duplicate notification or resume, and clean reset on a successful fresh Start. Source-only; extended client check remains pending.
+
 ## Unreleased — repeatable developer installs (2026-10-19)
 - Local install helper copies files directly into the addon target, requires explicit overwrite, and supports `-WhatIf` previews.
 - Verifies prior-file backups and installed SHA-256 values, preserves unknown extra files, and records copy/verification failures without automatic rollback.

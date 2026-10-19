@@ -8,6 +8,8 @@
 5. **Manual Forever client tests:** visible load, UI, focus, keyboard controls, combat, reload, zoning, high UI scale, 20-minute continuous play, and 2-client network probe.
 6. **Performance regression:** FPS and Lua memory before/during/after 8 visual karts; total UI objects stable after 30 minutes.
 
+The mocked combat lifecycle also covers repeated Close/toggle/reopen and rejected Start attempts: the interruption note and terminal result stay retained, refusal text remains visible, and only a successful fresh Start clears them. Those assertions are separate from actual-client acceptance.
+
 ## Priority manual smoke suite
 - A. Addon shows up with correct TOC and `/akart`; no Lua error.
 - B. Press Start Test Drive out of combat, test W then Up, S then Down, A/D then Left/Right; car moves and rotates, stays near oval. Simultaneous W/Up is SKIPPED at the owner's request for this keyboard; offline alias coverage remains.

@@ -47,6 +47,12 @@ Any stuck input or combat taint is an M0 blocker. Record the exact failing actio
 
 The confirmed [combat rule](../docs/adr/0006-combat-interrupted-results.md) ends a race with its actual current placements, finalized once and labeled interrupted. This M0 probe has no standings: accept closure and the retained interruption note only, and do not record a fabricated placement. Network propagation of another player's combat is outside this local test. Do not generate fake combat events or deliberately enter a duplicate result merely to fill a checklist row.
 
+**Retained interruption note follow-up — NOT RUN for the 2026-10-19 source fix:**
+
+1. After the ordinary manual combat-interruption check above, reopen `/akart` without Start. Record the visible interruption note, stopped tick and timing probe.
+2. Close/reopen with `/akart` twice, then separately use Close and reopen. The interruption note and stopped probe values must remain, with no automatic resume or new unsolicited interruption message. Explicit probe reports may repeat the retained stop reason; those are requested diagnostics.
+3. If combat is still ongoing, attempt Start normally: the refusal and retained interruption note must both be visible, with ticks unchanged. After combat ends, a successful deliberate Start must clear the old note and reset the drive. A later normal Stop/Close must show its own reason. Leave unavailable cases pending; do not automate combat or remove APIs to fill a row.
+
 ## 3. F1 timing and allocation sample
 
 **NOT RUN:** three timed client drives and the 2026-10-19 timing/HUD changes. The 2026-10-18 short probe predates the cumulative elapsed/cadence fields and immediate stopped-HUD refresh; retain it as historical smoke evidence only.

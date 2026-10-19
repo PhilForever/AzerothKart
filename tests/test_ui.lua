@@ -247,6 +247,84 @@ withMock({schemaVersion=1, custom={keep=true}}, false, function(env,UI)
     UI.Toggle()
     assert(UI.result==result and UI.status.text:find("Game interrupted by combat",1,true),
         "deliberate reopen retains interruption note until new Start")
+    local interruptedClock, interruptedState = UI.clock, UI.state
+    local clockValues, stateValues = {}, {}
+    for key,value in pairs(interruptedClock) do clockValues[key]=value end
+    for key,value in pairs(interruptedState) do stateValues[key]=value end
+    local interruptedHud = UI.hud.text
+    local function assertRetained(label)
+        assertReleased(label)
+        assert(UI.result==result and UI.result.tick==interruptedTick,
+            label..": terminal result identity/tick retained")
+        assert(UI.stopReason==result.reason and UI.status.text:find(result.reason,1,true),
+            label..": interruption stays visible and authoritative")
+        assert(UI.clock==interruptedClock and UI.state==interruptedState,
+            label..": stopped clock/state retained")
+        for key,value in pairs(clockValues) do
+            assert(UI.clock[key]==value,label..": stopped clock changed "..key)
+        end
+        for key,value in pairs(stateValues) do
+            assert(UI.state[key]==value,label..": stopped state changed "..key)
+        end
+        assert(UI.hud.text==interruptedHud,label..": stopped HUD retained")
+        assert(#env.output==interruptionOutput+1,label..": no duplicate interruption output")
+        assertPooled()
+    end
+    for attempt=1,2 do
+        UI.Toggle()
+        assert(not UI.window:IsShown(),"repeated toggle closes interrupted window")
+        assertRetained("toggle close "..attempt)
+        local hiddenStatus=UI.status.text
+        UI.Start()
+        assert(UI.status.text==hiddenStatus,"hidden Start leaves terminal status unchanged")
+        assertRetained("hidden Start "..attempt)
+        UI.Toggle()
+        assertRetained("toggle reopen "..attempt)
+    end
+    closeButton.scripts.OnClick(closeButton)
+    assert(not UI.window:IsShown(),"Close button hides interrupted window")
+    assertRetained("Close button")
+    UI.Toggle()
+    assertRetained("Close button reopen")
+    UI.Stop("Idle stop after interruption")
+    assertRetained("inactive Stop")
+    local function refusedStart(label, reason)
+        UI.Start()
+        assertRetained(label)
+        assert(UI.status.text:find(reason,1,true),label..": actual Start refusal stays visible")
+    end
+    env.combat=true
+    refusedStart("combat Start refusal","Cannot start while in combat")
+    env.combat=false; env.fire("PLAYER_REGEN_ENABLED")
+    env.focus={}
+    refusedStart("text focus Start refusal","Close text input before starting")
+    env.focus=nil
+    env.namespace.events.GLOBAL_MOUSE_DOWN=false
+    refusedStart("mouse event Start refusal","Input safety APIs unavailable")
+    env.namespace.events.GLOBAL_MOUSE_DOWN=true
+    local textFocusAPI=GetCurrentKeyBoardFocus
+    _G.GetCurrentKeyBoardFocus=nil
+    refusedStart("missing text focus Start refusal","Input safety APIs unavailable")
+    _G.GetCurrentKeyBoardFocus=textFocusAPI
+    for _,method in ipairs({"EnableKeyboard","SetPropagateKeyboardInput"}) do
+        local prior=UI.window[method]
+        UI.window[method]=false
+        refusedStart("missing "..method.." Start refusal","Input safety APIs unavailable")
+        UI.window[method]=prior
+    end
+    start()
+    assert(UI.result==nil and UI.clock~=interruptedClock,
+        "successful explicit Start clears interrupted result and replaces clock")
+    assert(not UI.status.text:find(result.reason,1,true),
+        "successful Start clears visible interruption note")
+    UI.Stop("Ordinary stop")
+    assert(UI.stopReason=="Ordinary stop" and UI.status.text:find("Ordinary stop",1,true),
+        "later ordinary stop uses its own reason")
+    assert(not UI.status.text:find(result.reason,1,true),
+        "later ordinary stop does not resurrect interruption note")
+    closeButton.scripts.OnClick(closeButton)
+    assert(UI.stopReason=="Closed" and not UI.status.text:find(result.reason,1,true),
+        "later ordinary Close uses its own reason without stale interruption note")
     start(); env.combat=true; UI.OnUpdate(1/60)
     assertReleased("OnUpdate combat fallback")
     assert(not UI.window:IsShown(),"combat OnUpdate fallback also closes the window")

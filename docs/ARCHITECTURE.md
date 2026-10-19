@@ -63,6 +63,9 @@ SavedVariables -> Schema/Migrations -> settings/personal-bests/ghosts
 - `Replay.record(inputs,seed,trackHash)` and `Replay.play(...)`
 
 ## Source map
+
+An interrupted M0 drive keeps its terminal reason through repeated Close/toggle/hide/reopen. Rejected Start attempts show their refusal alongside the retained interruption note; they do not replace the result, state or timing sample. A successful fresh Start clears the note/result. This implements ADR 0006 using the existing UI objects, with offline regression coverage; the extended client sequence remains pending.
+
 Current M0: `Track.lua` (analytical geometry), `Physics.lua` (version 2 steering probe), `Input.lua` (physical held keys and reused semantic samples), `Loop.lua` (fixed-step clock, cumulative elapsed and drop counters), `UI.lua` (client adapter/presentation), `Core.lua` (bootstrap/events/minimal schema marker). Load order is identical in both TOCs. Pure modules optionally register into the explicit addon namespace passed by WoW and return their module for offline imports; they do not access `_G` or game APIs. Core alone exports `_G.AzerothKart` for manual diagnostics.
 
 `Loop.advance(clock, elapsed, stepFn)` runs up to five 1/60s steps per render frame, drops only excess whole ticks and retains the fractional remainder. `clock.elapsedSeconds` sums valid elapsed values accepted by the clock. UI calls it only while driving, so the explicit probe labels this `activeFrameSeconds`; `simulatedSeconds` is `steps * dt`, and `callbackHz` is `frames / elapsedSeconds` (zero before elapsed time). These measure delivered callback time and cadence, not an independent wall clock, separately sampled whole-client FPS or addon CPU cost. `maxElapsed` records the largest accepted callback interval. Normal samples satisfy `elapsedSeconds ≈ steps * dt + droppedSeconds + accumulator` within floating-point/printed precision.
