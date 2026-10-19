@@ -16,6 +16,7 @@ REQUIRED=[
  'addon/AzerothKart/UI.lua','addon/AzerothKart/Core.lua','tests/run.lua',
  'tests/test_input.lua','tests/test_loop.lua','tests/test_ui.lua','tests/test_handling.lua','scripts/test_lua.py',
  'requirements-dev.txt','docs/experiments/network-ledger.csv',
+ 'scripts/install_local.ps1','tests/test_install_local.ps1',
 ]
 errors=[]
 for name in REQUIRED:

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — repeatable developer installs (2026-10-19)
+- Local install helper copies files directly into the addon target, requires explicit overwrite, and supports `-WhatIf` previews.
+- Verifies prior-file backups and installed SHA-256 values, preserves unknown extra files, and records copy/verification failures without automatic rollback.
+- Workspace fixture suite covers install, cancellation and failure paths; no installed addon changed by this tooling work.
+
 ## Unreleased — M0 timing sample evidence (2026-10-19)
 - Probe reports cumulative active frame time, executed simulation time and callback cadence; stopped samples retain their timing remainder.
 - Start and Stop immediately refresh the HUD, fixing the observed stale stopped tick display.

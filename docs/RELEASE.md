@@ -1,7 +1,41 @@
 # Packaging, deployment and release policy
 
 ## Developer install
-Copy directory `addon/AzerothKart/` into the currently installed **Forever flavor** `Interface/AddOns/AzerothKart/`, confirm TOC loading and `/akart` toggle. An observed Forever developer setup uses `_classic_beta_`, but this is not a universal installation path; discover from user's machine. `scripts/install_local.ps1` accepts an explicit AddOns directory to avoid overwriting other flavors.
+
+`scripts/install_local.ps1` copies the tested `addon/AzerothKart/` files beneath an explicit, existing **Forever flavor** `Interface/AddOns/` directory. Its target is the `AzerothKart/` child. Supply the parent `AddOns` folder, not the addon folder. The observed developer setup uses `_classic_beta_`; discover the intended installation on the user's machine rather than assuming this path. The helper creates no game path by default and refuses an existing AzerothKart target unless `-Overwrite` is supplied.
+
+From the repository root, preview the operation with the actual authorized AddOns path:
+
+```powershell
+.\scripts\install_local.ps1 -AddOnsDirectory 'C:\...\Interface\AddOns' -Overwrite -WhatIf
+```
+
+`-WhatIf` performs preflight reads and writes no target, backup or manifest files. The standard `-Confirm` option can prompt before a real operation:
+
+```powershell
+.\scripts\install_local.ps1 -AddOnsDirectory 'C:\...\Interface\AddOns' -Overwrite -Confirm
+```
+
+Running the helper is a deployment action that requires the session's authorization and any filesystem approval. These examples do not authorize installation, push, publishing or release. Validate source before an authorized install, then reload and confirm TOC loading and `/akart` behavior in the actual client. The fixture suite below does not perform this client verification.
+
+Each real operation gets a unique timestamp/GUID directory under ignored `local-artifacts/install-backups/`. An optional `-BackupDirectory` changes that root; it must remain separate from the source and AddOns trees. The record contains:
+
+- `source.csv`: relative source paths and SHA-256 values.
+- `before/` and `before.csv`: the complete prior addon tree and its file hashes, when the target already existed. The backup is hash-verified before the target copy starts.
+- `install.json`: source, target, backup path and operation status. `Verified` means every source file matched its copied target hash. `Failed` records a caught error; `Prepared` after interruption means verification did not complete. `Stage`, `BackupVerified` and `TargetCopyStarted` distinguish backup failure from a potentially partial target copy; do not assume every backup path represents a verified backup.
+
+Files are copied by relative path into the target itself, so repeated installs do not create `AzerothKart/AzerothKart/`. Extra target files absent from the source are preserved and reported; inspect the prior-file manifest before any manual cleanup. The helper does not delete files, edit SavedVariables, modify another addon, or automatically roll back. Source/target collisions, overlapping paths and reparse paths are rejected during preflight.
+
+A failure after copying starts can leave a partially updated target. Retain the backup and manifests, inspect the recorded error and compare the relevant files before launching the client. For manual recovery, preserve the current failed target separately, verify the `before/` files against `before.csv`, and copy the saved relative files back into the same addon target. Verify the restored file hashes afterward. Restoring those files does not remove newly added files; review any extras separately rather than deleting the target wholesale. A fresh install has no prior `before/` tree to restore. Recovery remains a deliberate filesystem operation, not a helper guarantee.
+
+The local fixture suite exercises install behavior without using an installed game directory:
+
+```powershell
+powershell.exe -NoProfile -File tests/test_install_local.ps1
+pwsh -NoProfile -File tests/test_install_local.ps1
+```
+
+Use each available PowerShell runtime and record its actual result in `PROGRESS.md`; an unavailable runtime is `NOT RUN`.
 
 ## TOC
 `AzerothKart_Camelot.toc` and `AzerothKart.toc` are both provided while the live flavor selection is probed. The in-game test must establish actual discovered flavor and TOC priority. Keep duplicate entries synchronized and do not load both in one addon execution.

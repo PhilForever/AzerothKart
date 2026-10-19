@@ -1,7 +1,7 @@
 # PROGRESS — persistent project handoff
 
 **Current milestone:** M0 — repository and actual-client/API feasibility. **OPEN.**
-**Current state (2026-10-19, latest session ~01:28 CEST):** the source probe now reports active frame duration, executed simulation duration and callback cadence; stopped timing samples retain their fractional remainder, and Start/Stop refresh the HUD immediately. Seven offline tests pass in Lua 5.1/5.4, including synthetic 60-second schedules and stopped-sample checks. These changes are source-only, not installed or client-tested. The installed 2026-10-18 probe's identity, rendering/Start, ordinary stop/window actions and inactive reload were observed; the owner confirmed combat closure, the interruption message and working WoW controls. The simultaneous W/Up case remains SKIPPED at owner request. M0 timed driving/performance, persistence and unrun edge cases remain open. See [sanitized live evidence](evidence/2026-10-18-m0-client.md).
+**Current state (2026-10-19, latest session ~02:06 CEST):** the local install helper now performs explicit repeat installs with verified backups, source/target SHA-256 checks and failure records. PowerShell 7 fixture tests: 18 PASS, 3 junction tests SKIPPED because fixture creation was denied; Windows PowerShell 5.1 parsed both scripts, but runtime execution was NOT RUN after an AuthorizationManager failure. Seven offline Lua tests pass in both Lua 5.1/5.4. No installed addon was changed this run. The source timing/HUD improvements from `2825ba3` remain uninstalled and client tests remain pending. Prior actual-client smoke and the owner's combat report remain recorded in [sanitized live evidence](evidence/2026-10-18-m0-client.md). Simultaneous W/Up stays SKIPPED at owner request; M0 remains open.
 
 ## Canonical checkout and commits
 
@@ -13,6 +13,7 @@ Remote: `https://github.com/PhilForever/AzerothKart.git`; branch `main`. The pac
 - `c2ecadf` — `docs: record M0 validation evidence and client handoff` (initial offline session).
 - `6e20ec0` — `fix: close kart sessions when combat interrupts`.
 - `3b02641` — `docs: record live M0 checks and owner combat results`.
+- `2825ba3` — `fix: preserve complete M0 timing samples`.
 
 Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.useConfigOnly=true`; verified in config and commit authors. Global identity was left unchanged. No push, tag, distribution or automation was performed. The later client-check session installed only AzerothKart in the local Forever AddOns folder and verified all nine files against source SHA-256. Ignored `local-artifacts/` contains test dependencies/logs only and is not staged.
 
@@ -29,6 +30,7 @@ Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.u
 - [x] Mocked UI/Core lifecycle coverage includes hidden/chat/combat/missing-capability Start refusal; key aliases; Escape/unknown/Enter; Stop/Close/Hide/toggle; all mouse clicks; text/application focus; leaving world/logout; combat event and OnUpdate fallback; deferred propagation; no automatic resume; minimal save-field preservation.
 - [x] Explicit `/akart probe` / Print Probe reports identity, input capabilities, event-registration failures, clock metrics, last stop reason and explicit UI object counts. No per-tick chat or UI object creation.
 - [x] Source timing aid: cumulative valid active frame seconds, executed simulation seconds and callback cadence; complete stopped elapsed/drop/remainder accounting and immediate Start/Stop HUD refresh. Offline tested; installation and actual-client timed samples pending.
+- [x] Local installer fixture slice: direct per-file repeat copies, verified old-file backup before target writes, copied SHA-256 verification, explicit overwrite/preview and failure records. PowerShell 7: 18 cases passed, 3 junction fixtures skipped; PowerShell 5.1 syntax passed, runtime blocked. No live install performed.
 - [x] Exact installed-client manual probes and header-only F4 experiment ledger prepared; no network code/traffic or multiplayer claim.
 
 ## Pending acceptance / blockers
@@ -46,9 +48,7 @@ Initial file-only evidence: `_classic_beta_\WowB.exe` reports `1.60.1.70450`; `.
 
 ## Next exact task
 
-**Next unattended M0 task:** harden `scripts/install_local.ps1` for repeatable developer installs. Use temporary workspace AddOns fixtures to prevent nested addon copies on repeated installation, preserve prior addon files automatically, and verify copied SHA-256 values; test fresh/existing targets and cancellation/failure paths. Do not deploy as part of that tooling slice. The current helper was inspected but left unchanged in this run.
-
-**Pending client gate:** after an authorized install of the tested source, run the three human-controlled 60-second drives in section 3 of `tests/MANUAL_CLIENT_CHECKLIST.md`, collecting the new stopped timing output and stable explicit UI counts. No WoW process was available this run. Keep unrun lifecycle/persistence cases pending. Simultaneous W/Up remains SKIPPED and must not be requested again. Do not automate WoW character movement/combat. Full M0 acceptance remains open.
+**Next exact task: M0 F1 timed client sample.** After an authorized install of the tested source, run the three human-controlled 60-second drives in section 3 of `tests/MANUAL_CLIENT_CHECKLIST.md`, collecting stopped timing output and stable explicit UI counts. The timing probe and repeatable install tooling are ready; the remaining gate needs an actual client and direct play. No WoW process was available this run, and no new gameplay milestone was opened. Keep unrun lifecycle/persistence cases pending. Simultaneous W/Up remains SKIPPED and must not be requested again. Do not automate WoW character movement/combat. Full M0 acceptance remains open.
 
 ## Session handoff log
 
@@ -143,3 +143,32 @@ The first integration run exposed a test-double instrumentation error: its fallb
 **Git:** focused commit intended as `fix: preserve complete M0 timing samples`; see `git log` for its hash. Repository-local PhilForever identity was reverified. No push, tag, release, deployment or automation was performed.
 
 **Next exact task:** harden the local install helper against nested repeat copies with backup/hash verification and workspace fixture tests; preserve the manual M0 gate above.
+
+### 2026-10-19 02:06 CEST (Europe/Oslo) — Codex / main
+
+**Milestone/objective:** M0, complete the prior handoff's repeatable developer-install task using workspace fixtures only. Confirmed correct remote, branch `main`, clean initial status and prior head `2825ba3`. Read the current canonical handoff, acceptance criteria, architecture/ADRs and relevant source/tooling. No `Wow*`/`Battle*` process was found; no client was launched or controlled.
+
+**Changes:** rewrote `scripts/install_local.ps1` as an explicit AddOns-target installer with `-Overwrite` for existing targets and standard `-WhatIf`/`-Confirm`. It copies source files directly into the addon folder, preserves unknown extras and verifies source/installed SHA-256 values. Existing addon files and empty directories are copied into an isolated backup and verified before target writes. Ignored run directories contain `source.csv`, optional `before.csv`/`before/` and `install.json`; status, stage, backup verification and copy-start markers distinguish successful verification from failure. Missing/overlapping/conflicting paths and observed reparse entries are rejected; source/target snapshots are rechecked before copying. A target appearing after fresh-install preflight is rejected rather than overwritten without a backup.
+
+The helper performs no deletion or automatic rollback. A failure after copying starts can leave a partial target, so its error points to the retained backup and manifest. Added `tests/test_install_local.ps1` with literal-path and isolated AddOns/WTF sentinel fixtures, preflight/preview refusal, repeated installs, empty prior target, preserved extras, locked-file failures, injected backup/target hash failures, concurrent-target refusal, and a manual recovery rehearsal that preserves the failed target and verifies restored old files while acknowledging new files left behind. No real WTF or installed addon files were touched. Updated README/CHANGELOG, release/test documentation and structural validation (now 27 required paths). No roadmap boxes changed.
+
+**Actually executed:**
+
+| Command/check | Actual result and scope |
+|---|---|
+| `pwsh -NoProfile -NonInteractive -File tests/test_install_local.ps1` | PASS — PowerShell 7.6.5, 18 cases; 3 junction fixtures SKIPPED because `New-Item -ItemType Junction` returned Access denied in the sandbox. No junction rejection pass is claimed. |
+| `powershell.exe -NoProfile -NonInteractive -File tests/test_install_local.ps1` | Runtime NOT RUN — Windows PowerShell returned `AuthorizationManager check failed` before the suite executed. No execution-policy change or bypass was attempted. |
+| Windows PowerShell `Parser.ParseFile` on helper and fixture suite | PASS — both scripts parsed in 5.1.26100.9711. This is syntax evidence, not a 5.1 runtime pass. Read-only `Get-ExecutionPolicy -List` also reported registry access denied, so the effective policy was not established. |
+| `python scripts/test_lua.py` | PASS — 14 Lua files parsed, all seven tests executed in each of Lua 5.1/5.4 through local Lupa. No addon Lua changed in this slice. Standalone native `lua` was absent; native CLI NOT RUN. |
+| `python scripts/validate_project.py` | PASS — 27 expected paths, TOCs, protocol docs, Markdown links and network ledger. |
+| `python -m compileall -q scripts` | PASS — Python script parsing. |
+| `git diff --check` | PASS — whitespace checks. |
+| WoW F1/F2/F5, live installation and network F4 | NOT RUN — no client process, no installation or peer experiment. Historical client results are unchanged. |
+
+**Evidence:** ignored `local-artifacts/install-tests-ps7-20261019.log` and `install-tests-ps51-20261019.log`. Final successful fixture root: `local-artifacts/install-tests/c0c483a78c6746439aa7ed5f7ba3475f/`. Synthetic prior/failed installs and manifests are retained there for inspection. Early runs exercised smaller subsets before the final 18-case run; they do not substitute for the explicit skipped/runtime limits above.
+
+**Risks/limits:** file overlay with verified backup, not an atomic deployment or concurrency/security guarantee. Unknown extra files are retained; restoring old files does not remove newly added files. Stop other editors/installers during a real operation. Junction rejection remains unexecuted in this sandbox, PowerShell 5.1 runtime acceptance remains pending, and client behavior still requires direct play. No API contradiction, migration or product decision arose. Source timing/HUD changes are still not installed.
+
+**Git:** focused commit intended as `fix: verify and back up repeatable local installs`; inspect `git log` for its hash. PhilForever repository-local identity reverified; global config unchanged. No push, tag, release, actual deployment or automation.
+
+**Next exact task:** the M0 F1 actual-client timing sample described above: three human-controlled 60-second drives after an authorized source install, with honest pending status while no client/tester is available.

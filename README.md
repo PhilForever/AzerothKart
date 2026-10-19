@@ -6,7 +6,7 @@
 ## Start here (for a human)
 1. Read `docs/VISION.md`, `docs/FEASIBILITY.md` and `docs/ROADMAP.md`.
 2. Open this folder as the Codex workspace. Paste `PROMPT_01_MASTER.md` into Codex. Keep `AGENTS.md` in the repository root.
-3. `addon/AzerothKart/` is the addon folder to copy into the Forever `Interface/AddOns/` folder. Verify client flavor and TOC in `docs/CLIENT_API.md` first.
+3. `addon/AzerothKart/` is the addon folder to copy into the Forever `Interface/AddOns/` folder. Verify client flavor and TOC in `docs/CLIENT_API.md` first. The [developer install helper](docs/RELEASE.md#developer-install) supports a no-write preview, verified backups and repeat installs; use it only for an authorized deployment.
 4. Enable addon in the game; type `/akart` or `/azerothkart`. Click `Start Test Drive` deliberately. W/Up throttle, S/Down brake/reverse, A/D or Left/Right steer. Escape, another key, any mouse click, Stop, Close or losing focus stops capture; click Start to restart. **Do not race while in combat.** Actual release behavior must pass the client checklist.
 5. Record *actual* results of keyboard focus, rendering, frametimes, and combat interrupts in `docs/PROGRESS.md`. An addon loaded successfully does not establish multiplayer feasibility.
 6. Run `python scripts/validate_project.py` for structure, then `python scripts/test_lua.py` for syntax and the complete suite in Lua 5.1 and 5.4. Install its pinned test dependency with `python -m pip install --target local-artifacts/python-deps -r requirements-dev.txt`. Native `lua tests/run.lua` is also supported; the Linux shared-library fallback is `python scripts/test_with_lua54.py`.
