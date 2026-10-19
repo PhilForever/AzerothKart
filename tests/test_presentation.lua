@@ -4,6 +4,68 @@ local pi, tau = math.pi, 2 * math.pi
 local function near(actual, expected, message)
     assert(math.abs(actual - expected) < 1e-10, message)
 end
+
+local square = P.fitViewport(1024,1024,800,480)
+assert(square.scale==0.46875 and square.offsetX==160 and square.offsetY==0
+       and square.width==480 and square.height==480, "square world is centered without stretching")
+assert(square.worldWidth==1024 and square.worldHeight==1024 and
+       square.canvasWidth==800 and square.canvasHeight==480, "viewport retains its source dimensions")
+assert(P.fitViewport(1024,1024,800,480)~=square, "viewport factory returns a fresh value")
+local snapshotView = {}
+for key,value in pairs(square) do snapshotView[key]=value end
+local function projected(view,x,y,expectedX,expectedY,label)
+    local px,py = P.project(view,x,y)
+    near(px,expectedX,label.." x")
+    near(py,expectedY,label.." y")
+    local wx,wy = P.unproject(view,px,py)
+    near(wx,x,label.." round-trip x")
+    near(wy,y,label.." round-trip y")
+end
+projected(square,0,0,160,0,"square bottom-left")
+projected(square,1024,1024,640,480,"square top-right")
+projected(square,512,512,400,240,"square center")
+projected(square,-512,1536,-80,720,"outside world remains unclamped")
+local outsideX,outsideY = P.unproject(square,40,-120)
+assert(outsideX==-256 and outsideY==-256, "letterbox and outside canvas coordinates stay unclamped")
+local landscape = P.fitViewport(1600,400,800,480)
+assert(landscape.scale==0.5 and landscape.offsetX==0 and landscape.offsetY==140
+       and landscape.width==800 and landscape.height==200, "landscape world is letterboxed vertically")
+projected(landscape,1600,400,800,340,"landscape top-right")
+local portrait = P.fitViewport(400,1600,800,480)
+assert(portrait.scale==0.3 and portrait.offsetX==340 and portrait.offsetY==0
+       and portrait.width==120 and portrait.height==480, "portrait world is letterboxed horizontally")
+projected(portrait,200,800,400,240,"portrait center")
+assert(select("#",P.project(square,0,0))==2 and select("#",P.unproject(square,160,0))==2,
+       "viewport mapping returns two scalars without allocating point tables")
+for key,value in pairs(square) do assert(snapshotView[key]==value,"projection changed viewport "..key) end
+for key,value in pairs(snapshotView) do assert(square[key]==value,"projection lost viewport "..key) end
+for _,invalid in ipairs({false,"1024",0,-1,0/0,math.huge,-math.huge}) do
+    assert(not pcall(P.fitViewport,invalid,1024,800,480), "invalid world width must reject")
+    assert(not pcall(P.fitViewport,1024,invalid,800,480), "invalid world height must reject")
+    assert(not pcall(P.fitViewport,1024,1024,invalid,480), "invalid canvas width must reject")
+    assert(not pcall(P.fitViewport,1024,1024,800,invalid), "invalid canvas height must reject")
+end
+assert(not pcall(P.fitViewport,nil,1024,800,480), "missing dimensions must reject")
+for _,map in ipairs({P.project,P.unproject}) do
+    for _,invalid in ipairs({false,"1024",0/0,math.huge,-math.huge}) do
+        assert(not pcall(map,square,invalid,0) and not pcall(map,square,0,invalid),
+            "mapping rejects nonfinite or nonnumeric coordinates")
+    end
+    assert(not pcall(map,nil,0,0) and not pcall(map,square,nil,0),
+        "mapping requires a viewport and both coordinates")
+    for _,view in ipairs({{}, {scale=0,offsetX=0,offsetY=0},
+        {scale=math.huge,offsetX=0,offsetY=0}, {scale=1,offsetX=0/0,offsetY=0},
+        {scale=1,offsetX=0,offsetY=math.huge}}) do
+        assert(not pcall(map,view,0,0), "mapping rejects invalid transforms")
+    end
+end
+assert(not pcall(P.fitViewport,1e-308,1e-308,1e308,1e308)
+       and not pcall(P.fitViewport,1e308,1e308,1e-308,1e-308),
+       "unrepresentable viewport scales cannot produce poisoned transforms")
+assert(not pcall(P.project,{scale=2,offsetX=0,offsetY=0},1e308,0)
+       and not pcall(P.unproject,{scale=0.1,offsetX=0,offsetY=0},1e308,0),
+       "unrepresentable mapped coordinates must reject")
+
 local function pose(previous, current, alpha, x, y, heading, message)
     local px, py, ph = P.pose(previous, current, alpha)
     near(px, x, message .. " x")
@@ -102,4 +164,4 @@ local loaded = assert(loadfile("addon/AzerothKart/Presentation.lua"))("AzerothKa
 assert(namespace.Presentation == loaded and namespace.sentinel == marker,
        "addon import registers with its explicit namespace")
 assert(_G.AzerothKart == beforeGlobal, "namespace import must not replace an addon global")
-print("offline presentation: scalar poses, shortest-arc heading, tiered drift/boost meter and untouched states")
+print("offline presentation: aspect-fit scalar mapping, poses, shortest-arc heading, drift/boost meter and untouched states")

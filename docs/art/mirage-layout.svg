@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1216" viewBox="0 0 1024 1216">
+<title>Mirage Raceway geometry blockout v1</title>
+<desc>Generated from Lua road, gates and spawn. Diagram uses the same capsule road geometry; not production artwork.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 Z" fill="#17685f"/></marker></defs>
+<rect width="1024" height="1216" fill="#f1e7ce"/>
+<g font-family="Segoe UI, sans-serif" fill="#382b22">
+<text x="40" y="38" font-size="23" font-weight="700">MIRAGE RACEWAY / GEOMETRY BLOCKOUT</text>
+<path d="M 700,664 L 700,324 L 690,199 L 620,124 L 495,124 L 390,159 L 340,244 L 355,334 L 410,424 L 410,584 L 410,724 L 430,814 L 495,884 L 585,884 L 665,834 L 700,764 Z" fill="none" stroke="#c8b995" stroke-width="112" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M 700,664 L 700,324 L 690,199 L 620,124 L 495,124 L 390,159 L 340,244 L 355,334 L 410,424 L 410,584 L 410,724 L 430,814 L 495,884 L 585,884 L 665,834 L 700,764 Z" fill="none" stroke="#83765e" stroke-width="2" stroke-dasharray="7 9"/>
+<rect x="18" y="18" width="988" height="988" rx="0" fill="none" stroke="#b17241" stroke-width="2" stroke-dasharray="12 8"/>
+<line x1="550" y1="180" x2="550" y2="68" stroke="#17685f" stroke-width="5"/>
+<line x1="574.0" y1="124.0" x2="526.0" y2="124.0" stroke="#17685f" stroke-width="4" marker-end="url(#arrow)"/>
+<text x="550.0" y="206.0" font-size="17" font-weight="700" text-anchor="middle">1 North</text>
+<line x1="354" y1="504" x2="466" y2="504" stroke="#17685f" stroke-width="5"/>
+<line x1="410.0" y1="480.0" x2="410.0" y2="528.0" stroke="#17685f" stroke-width="4" marker-end="url(#arrow)"/>
+<text x="305.0" y="504.0" font-size="17" font-weight="700" text-anchor="middle">2 West</text>
+<line x1="540" y1="940" x2="540" y2="828" stroke="#17685f" stroke-width="5"/>
+<line x1="516.0" y1="884.0" x2="564.0" y2="884.0" stroke="#17685f" stroke-width="4" marker-end="url(#arrow)"/>
+<text x="540.0" y="964.0" font-size="17" font-weight="700" text-anchor="middle">3 South</text>
+<line x1="644" y1="664" x2="756" y2="664" stroke="#17685f" stroke-width="5"/>
+<line x1="700.0" y1="688.0" x2="700.0" y2="640.0" stroke="#17685f" stroke-width="4" marker-end="url(#arrow)"/>
+<text x="820.0" y="614.0" font-size="17" font-weight="700" text-anchor="middle">4 Start</text>
+<circle cx="245" cy="664" r="28" fill="#dcc49a" stroke="#a2835e" stroke-width="2" stroke-dasharray="5 4"/>
+<text x="245" y="713" font-size="14" text-anchor="middle">Gnome pit reference</text>
+<circle cx="850" cy="664" r="28" fill="#dcc49a" stroke="#a2835e" stroke-width="2" stroke-dasharray="5 4"/>
+<text x="850" y="713" font-size="14" text-anchor="middle">Goblin pit reference</text>
+<circle cx="455" cy="239" r="28" fill="#dcc49a" stroke="#a2835e" stroke-width="2" stroke-dasharray="5 4"/>
+<text x="455" y="288" font-size="14" text-anchor="middle">Rock mound reference</text>
+<circle cx="700" cy="664" r="9" fill="#c65d22" stroke="#fff6db" stroke-width="3"/>
+<rect x="0" y="1024" width="1024" height="192" fill="#e6d8b9"/>
+<text x="28" y="1054" font-size="16">World: 1024 x 1024 | Road: 112 units | Centerline: 1949.325 units</text>
+<text x="28" y="1081" font-size="16">Counterclockwise: North &gt; West &gt; South &gt; Start. Orange dot: spawn on Start, facing north.</text>
+<text x="28" y="1108" font-size="16">800 x 480 preview: scale 0.46875, offset (160, 0); map is 480 x 480.</text>
+<text x="28" y="1135" font-size="16">Rough salt uses the existing grass mechanics token. Dashed perimeter is the collision wall.</text>
+<text x="28" y="1162" font-size="16">Scenery circles are authoring notes only. Test Oval remains the playable default.</text>
+<text x="28" y="1189" font-size="16">Generated from Lua data; round joins match capsule union. Not a custom-texture/client test.</text>
+</g></svg>

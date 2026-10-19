@@ -3,6 +3,48 @@ local _, namespace = ...
 local Presentation = {}
 local pi, tau = math.pi, 2 * math.pi
 
+local function finite(value)
+    return type(value) == "number" and value == value
+        and value > -math.huge and value < math.huge
+end
+
+function Presentation.fitViewport(worldWidth, worldHeight, canvasWidth, canvasHeight)
+    assert(finite(worldWidth) and worldWidth > 0 and finite(worldHeight) and worldHeight > 0
+        and finite(canvasWidth) and canvasWidth > 0 and finite(canvasHeight) and canvasHeight > 0,
+        "finite positive world and canvas dimensions required")
+    local scale = math.min(canvasWidth/worldWidth,canvasHeight/worldHeight)
+    local width,height = worldWidth*scale,worldHeight*scale
+    assert(finite(scale) and scale > 0 and finite(width) and width > 0
+        and finite(height) and height > 0, "viewport scale must be representable")
+    return {
+        scale=scale, offsetX=(canvasWidth-width)/2, offsetY=(canvasHeight-height)/2,
+        width=width, height=height, worldWidth=worldWidth, worldHeight=worldHeight,
+        canvasWidth=canvasWidth, canvasHeight=canvasHeight,
+    }
+end
+
+local function requireViewport(view, x, y)
+    assert(type(view) == "table" and finite(view.scale) and view.scale > 0
+        and finite(view.offsetX) and finite(view.offsetY), "finite viewport transform required")
+    assert(finite(x) and finite(y), "finite coordinates required")
+end
+
+-- Both spaces use a bottom-left origin with positive Y pointing upward. The
+-- inverse deliberately accepts points outside the fitted rectangle without clamping.
+function Presentation.project(view, x, y)
+    requireViewport(view,x,y)
+    local px,py = view.offsetX+x*view.scale,view.offsetY+y*view.scale
+    assert(finite(px) and finite(py), "projected coordinates must be finite")
+    return px,py
+end
+
+function Presentation.unproject(view, x, y)
+    requireViewport(view,x,y)
+    local wx,wy = (x-view.offsetX)/view.scale,(y-view.offsetY)/view.scale
+    assert(finite(wx) and finite(wy), "world coordinates must be finite")
+    return wx,wy
+end
+
 function Presentation.pose(previous, current, alpha)
     assert(current, "current pose required")
     -- Missing/invalid timing draws the exact latest state. Infinities clamp

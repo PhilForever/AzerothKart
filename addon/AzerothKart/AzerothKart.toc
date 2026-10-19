@@ -6,6 +6,7 @@
 ## SavedVariables: AzerothKartDB
 ## X-AzerothKart-TOC: base
 Track.lua
+MirageRaceway.lua
 Physics.lua
 Input.lua
 Loop.lua

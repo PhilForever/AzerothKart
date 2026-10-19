@@ -1,0 +1,220 @@
+{
+  "schema": 1,
+  "purpose": "geometry blockout; not runtime art or a surveyed reconstruction",
+  "source": "addon/AzerothKart/MirageRaceway.lua",
+  "id": "mirage_raceway",
+  "version": 1,
+  "width": 1024,
+  "height": 1024,
+  "worldOrigin": "bottom-left, +Y up",
+  "roadWidth": 112,
+  "roadRadius": 56,
+  "roadShape": "union of closed line-segment capsules",
+  "closed": true,
+  "length": 1949.324971888,
+  "wallInset": 18,
+  "checkpointMaxStep": 5,
+  "centerline": [
+    {
+      "x": 700,
+      "y": 360
+    },
+    {
+      "x": 700,
+      "y": 700
+    },
+    {
+      "x": 690,
+      "y": 825
+    },
+    {
+      "x": 620,
+      "y": 900
+    },
+    {
+      "x": 495,
+      "y": 900
+    },
+    {
+      "x": 390,
+      "y": 865
+    },
+    {
+      "x": 340,
+      "y": 780
+    },
+    {
+      "x": 355,
+      "y": 690
+    },
+    {
+      "x": 410,
+      "y": 600
+    },
+    {
+      "x": 410,
+      "y": 440
+    },
+    {
+      "x": 410,
+      "y": 300
+    },
+    {
+      "x": 430,
+      "y": 210
+    },
+    {
+      "x": 495,
+      "y": 140
+    },
+    {
+      "x": 585,
+      "y": 140
+    },
+    {
+      "x": 665,
+      "y": 190
+    },
+    {
+      "x": 700,
+      "y": 260
+    }
+  ],
+  "gates": [
+    {
+      "name": "North",
+      "ax": 550,
+      "ay": 844,
+      "bx": 550,
+      "by": 956,
+      "nx": -1,
+      "ny": 0
+    },
+    {
+      "name": "West",
+      "ax": 354,
+      "ay": 520,
+      "bx": 466,
+      "by": 520,
+      "nx": 0,
+      "ny": -1
+    },
+    {
+      "name": "South",
+      "ax": 540,
+      "ay": 84,
+      "bx": 540,
+      "by": 196,
+      "nx": 1,
+      "ny": 0
+    },
+    {
+      "name": "Start",
+      "ax": 644,
+      "ay": 360,
+      "bx": 756,
+      "by": 360,
+      "nx": 0,
+      "ny": 1
+    }
+  ],
+  "spawn": {
+    "x": 700,
+    "y": 360,
+    "heading": 1.5707963267948966
+  },
+  "preview": {
+    "scale": 0.46875,
+    "offsetX": 160,
+    "offsetY": 0,
+    "width": 480,
+    "height": 480,
+    "worldWidth": 1024,
+    "worldHeight": 1024,
+    "canvasWidth": 800,
+    "canvasHeight": 480
+  },
+  "projectedCenterline": [
+    {
+      "x": 488.125,
+      "y": 168.75
+    },
+    {
+      "x": 488.125,
+      "y": 328.125
+    },
+    {
+      "x": 483.4375,
+      "y": 386.71875
+    },
+    {
+      "x": 450.625,
+      "y": 421.875
+    },
+    {
+      "x": 392.03125,
+      "y": 421.875
+    },
+    {
+      "x": 342.8125,
+      "y": 405.46875
+    },
+    {
+      "x": 319.375,
+      "y": 365.625
+    },
+    {
+      "x": 326.40625,
+      "y": 323.4375
+    },
+    {
+      "x": 352.1875,
+      "y": 281.25
+    },
+    {
+      "x": 352.1875,
+      "y": 206.25
+    },
+    {
+      "x": 352.1875,
+      "y": 140.625
+    },
+    {
+      "x": 361.5625,
+      "y": 98.4375
+    },
+    {
+      "x": 392.03125,
+      "y": 65.625
+    },
+    {
+      "x": 434.21875,
+      "y": 65.625
+    },
+    {
+      "x": 471.71875,
+      "y": 89.0625
+    },
+    {
+      "x": 488.125,
+      "y": 121.875
+    }
+  ],
+  "sceneryNotes": [
+    {
+      "name": "Gnome pit reference",
+      "x": 245,
+      "y": 360
+    },
+    {
+      "name": "Goblin pit reference",
+      "x": 850,
+      "y": 360
+    },
+    {
+      "name": "Rock mound reference",
+      "x": 455,
+      "y": 785
+    }
+  ]
+}

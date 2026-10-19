@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — Mirage geometry blockout and layout guide (2026-10-20)
+- Add a pure MirageRaceway factory with explicit crossing dependency, 1024-square bounds, a closed 16-vertex centerline and 112-wide capsule-union road, perimeter walls, spawn and four directional gates. Rough salt reuses grass behavior; physics stays v5.
+- Add uniform Presentation viewport projection/unprojection. The 1024-square world fits 800×480 at scale 0.46875, offset (160,0); future rendering must scale both positions and dimensions.
+- Generate JSON/SVG authoring guides from the actual Lua factory and viewport helpers, with the same unsmoothed round road stroke and one Y inversion. This is a blockout/guide, not playable Mirage or a loaded background.
+- Bundle the factory after Track (12 Lua modules/15 addon source files); UI remains Test Oval with unchanged 8/110/13 allocations, countdown and finish flow. No selector, TGA, new vehicle art or client API is added. Focused geometry/presentation/UI checks accompany the slice; exact executed results and installation belong in PROGRESS. Client custom-texture/viewport checks remain NOT RUN, with M0/M1/M3 acceptance open.
+
 ## Unreleased — Mirage Raceway asset research and art direction (2026-10-20)
 - Set Mirage Raceway on the dry Shimmering Flats as the first production-map target, replacing the proposed Tinker Speedway, with recognizable fantasy siege/steam tanks, trike, aircraft, gryphon rider and Mirage drag cars.
 - Record concrete WC3Vault candidates, author/permission gaps, OpenRealm/viewer tooling and explicitly licensed fallback art. No third-party archives were imported; tool licenses are distinguished from model/texture rights.

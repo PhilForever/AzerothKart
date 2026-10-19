@@ -12,6 +12,8 @@ REQUIRED=[
  'docs/INDEX.md','docs/FEASIBILITY.md','docs/ARCHITECTURE.md',
  'docs/ROADMAP.md','docs/PROGRESS.md','docs/TEST_PLAN.md','docs/CLIENT_API.md',
  'addon/AzerothKart/Track.lua','addon/AzerothKart/Physics.lua',
+ 'addon/AzerothKart/MirageRaceway.lua','tests/test_mirage.lua',
+ 'scripts/build_mirage_layout.py','docs/art/mirage-layout.json','docs/art/mirage-layout.svg',
  'addon/AzerothKart/Input.lua','addon/AzerothKart/Loop.lua',
  'addon/AzerothKart/Performance.lua','tests/test_performance.lua',
  'addon/AzerothKart/Presentation.lua','tests/test_presentation.lua',
@@ -33,7 +35,7 @@ for tocname in ('AzerothKart.toc','AzerothKart_Camelot.toc'):
  if '## Interface: 16001' not in lines: errors.append(f'{tocname}: unexpected interface')
  if '## SavedVariables: AzerothKartDB' not in lines: errors.append(f'{tocname}: missing SavedVariables')
  loads=[x.strip() for x in lines if x.strip() and not x.startswith('##')]
- if loads!=['Track.lua','Physics.lua','Input.lua','Loop.lua','Performance.lua','Presentation.lua','Checkpoints.lua','Laps.lua','Race.lua','UI.lua','Core.lua']:
+ if loads!=['Track.lua','MirageRaceway.lua','Physics.lua','Input.lua','Loop.lua','Performance.lua','Presentation.lua','Checkpoints.lua','Laps.lua','Race.lua','UI.lua','Core.lua']:
   errors.append(f'{tocname}: unexpected source load order: {loads}')
  for f in loads:
   if not (ADDON/f).is_file():errors.append(f'{tocname}: missing {f}')

@@ -7,7 +7,7 @@ return {
   version = 1,
   bounds = {width=1024, height=1024}, -- candidate art-aligned world bounds
   spawnGrid = {...}, -- authored start poses supplied by the geometry blockout
-  roadRegions = {...}, -- polygon or tile bitmap, standardized collision geometry
+  roadRegions = {...}, -- capsules in current blockout; other geometry may follow
   walls = {...},       -- line segments/polygons
   gates = {...},       -- ordered directional checkpoint segments
   items = {...},
@@ -27,7 +27,7 @@ The starter's `Test Oval` is mathematical ellipse annulus to prove movement and 
 
 The placeholder road derives its footprint from the same `Track` center and outer/inner radii used by `isDrivable`. It fills the outer ellipse with 64 horizontal gray bands and masks the island with 32 grass bands. All 96 Texture regions are created once; they are not 96 Frames. The centerline is not used as a substitute road boundary.
 
-The first planned production map is **Mirage Raceway**, set on the dry, pre-flood Shimmering Flats. Its authoring plan uses one precomposed `Background.tga`, an optional `Foreground.tga` and `Preview.tga`, with separate pooled vehicles, interactive props and VFX. Road, wall, gate, surface and spawn geometry stays explicit Lua data; no painted pixel determines collision. Square art must retain its aspect through a uniform transform into the current 800×480 canvas or a deliberately revised viewport. This is a future migration: Test Oval source/counts are unchanged, and texture loading, alpha, size and UV/rotation checks are NOT RUN. See [the map brief](art/MIRAGE_RACEWAY.md), [asset pipeline](ASSETS.md) and [ADR 0008](adr/0008-mirage-raceway-art-direction.md).
+The first planned production map is **Mirage Raceway**, set on the dry, pre-flood Shimmering Flats. Its authoring plan uses one precomposed `Background.tga`, an optional `Foreground.tga` and `Preview.tga`, with separate pooled vehicles, interactive props and VFX. Road, wall, gate, surface and spawn geometry stays explicit Lua data; no painted pixel determines collision. Square art must retain its aspect through a uniform transform into the current 800×480 canvas or a deliberately revised viewport. The pure geometry blockout/viewport helpers below are implemented, but UI/art migration remains future work: Test Oval source/counts are unchanged, and texture loading, alpha, size and UV/rotation checks are NOT RUN. See [the map brief](art/MIRAGE_RACEWAY.md), [asset pipeline](ASSETS.md) and [ADR 0008](adr/0008-mirage-raceway-art-direction.md).
 
 The simulation keeps `isDrivable` as the road-only annulus predicate, while `surfaceAt` separately reports road/grass/wall. The island and exterior grass inside the canvas are traversable with slowdown and drift/boost cancellation. A rectangular perimeter constrains the kart center to `wallInset=18`, independent of the road radii. `constrainPosition` clamps an attempted endpoint while retaining tangent motion; collision scrubs speed once per step even at corners. Four pooled gray perimeter strips identify that limit; including the drift/boost meter, checkpoint indicators, lap HUD and result summary, current explicit UI counts are 8 frames/110 textures/13 font strings. Road geometry and spawn are unchanged. Client perimeter/checkpoint/finish appearance and off-road handling are **NOT RUN**; focused offline results are in `PROGRESS.md`.
 
@@ -35,7 +35,17 @@ Live build 70450 exposed horizontal seams and grass covering the road under mixe
 
 Bands sample the ellipse at each row's midpoint. At the current dimensions their vertical boundary uncertainty is at most 3.40625 world units outside and 2.625 inside. This is a vertical raster approximation, not an exact vector edge or horizontal-error guarantee. Offline tests compare the actual mock rectangles with analytical road classification away from a 3.5-unit vertical boundary margin, including `(400,440)`, which the old tiles left unpainted despite being drivable. Client layout/scaling/performance acceptance is separate.
 
-## Local checkpoint sequence
+## Mirage geometry blockout v1
+
+`MirageRaceway.new(crossesGate)` returns independent pure track data with an explicitly injected gate-crossing predicate. It is bundled after Track; the UI still uses Test Oval with no Mirage selector, background or custom vehicle sprite. The blockout defines a 1024×1024 world, a closed 16-vertex centerline and a road formed by the union of radius-56 capsules along its segments (112 units wide). This uses the authored polyline without spline smoothing. The perimeter clamps at an 18-unit inset; off-road rough salt uses the existing grass response, leaving physics v5 unchanged.
+
+The north-facing spawn is (700,360). The four ordered gate centers/directions are North at (550,900), crossing toward −x; West at (410,520), toward −y; South at (540,140), toward +x; and Start at (700,360), toward +y. Gate geometry and crossing rules remain data, not painted pixels. This is a gameplay blockout rather than a surveyed reconstruction or completed route-validation guarantee.
+
+`Presentation.fitViewport/project/unproject` use one uniform scale and offset. For 1024×1024 into the existing 800×480 canvas, scale is 0.46875 with offset (160,0), so the map occupies 480×480 and is centered horizontally. Future UI rendering must scale sprite/gate/wall dimensions together with positions. Do not stretch the square art to 800×480.
+
+Run `python scripts/build_mirage_layout.py` to load the actual factory plus Presentation through pinned Lupa and regenerate the [JSON geometry guide](art/mirage-layout.json) and [SVG layout](art/mirage-layout.svg). The guide draws the same closed, unsmoothed centerline with a 112-wide round stroke, annotates gates/spawn/walls, and inverts world Y exactly once for SVG. It is an authoring artifact, not runtime collision artwork or a delivered TGA. Client custom-texture/viewport checks are NOT RUN; execution evidence belongs in PROGRESS.
+
+## Test Oval checkpoint sequence
 
 `Track.gates` defines four ordered finite segments: North, West, South, then Start, following counterclockwise motion from the right-hand spawn facing north. The Start strip now runs horizontally across the right-hand road at `y=240`, from `x=570` to `770`; it is the fourth gate rather than an immediate spawn award. The other gates cross the road at its north, west and south extremities. Four pooled strips show pending, next and passed gates; a separate text HUD names the next target and the passed count.
 
