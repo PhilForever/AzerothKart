@@ -69,6 +69,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     function methods:GetText() return self.text end
     function methods:SetSize(width,height) self.width,self.height=width,height end
     function methods:SetPoint(...) self.point={...} end
+    function methods:SetRotation(value) self.rotation=value end
     function methods:SetColorTexture(...)
         self.color={...}
         self.colorWrites=(rawget(self,"colorWrites") or 0)+1
@@ -152,7 +153,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     end
     local ok, err=pcall(function()
         local namespace={}
-        for _,name in ipairs({"Track", "Physics", "Input", "Loop", "Performance", "UI", "Core"}) do
+        for _,name in ipairs({"Track", "Physics", "Input", "Loop", "Performance", "Presentation", "UI", "Core"}) do
             assert(loadfile("addon/AzerothKart/"..name..".lua"))("AzerothKart",namespace)
         end
         env.namespace=namespace
@@ -278,6 +279,100 @@ withMock(nil, false, function(env,UI)
         :format(#outer,#inner,checked)
 end)
 originalPrint(renderSummary.." (client appearance still pending)")
+
+-- Render interpolation uses the retained fixed-step pair, including updates
+-- without a simulation tick. Stop/reopen displays the exact frozen sample.
+withMock(nil,false,function(env,UI)
+    UI.Stop("before creation")
+    env.fire("ADDON_LOADED","AzerothKart")
+    UI.Toggle(); UI.Start()
+    local function close(actual,expected,label)
+        assert(math.abs(actual-expected)<1e-10,label)
+    end
+    local function exactPose(label)
+        close(UI.kart.point[4],UI.state.x,label..": x")
+        close(UI.kart.point[5],UI.state.y,label..": y")
+        close(UI.kart.rotation,UI.state.heading-math.pi/2,label..": heading")
+    end
+    assert(UI.previousState==UI.state,"fresh Start collapses interpolation history")
+    exactPose("fresh Start")
+    local counts={}
+    for key,value in pairs(env.counts) do counts[key]=value end
+    env.key(UI,"OnKeyDown","W"); env.key(UI,"OnKeyDown","A")
+    local dt=env.namespace.Physics.FIXED_DT
+    UI.OnUpdate(dt*1.5)
+    assert(UI.state.tick==1 and UI.previousState.tick==0,"first tick retains its predecessor")
+    local previous,current=UI.previousState,UI.state
+    local function blended(alpha)
+        close(UI.kart.point[4],previous.x+(current.x-previous.x)*alpha,"blended x")
+        close(UI.kart.point[5],previous.y+(current.y-previous.y)*alpha,"blended y")
+        close(UI.kart.rotation,previous.heading+(current.heading-previous.heading)*alpha-math.pi/2,
+            "blended heading")
+    end
+    blended(0.5)
+    local snapshot={}
+    for key,value in pairs(current) do snapshot[key]=value end
+    UI.OnUpdate(dt*0.25)
+    assert(UI.clock.lastSteps==0 and UI.clock.steps==1 and UI.clock.frames==2 and
+           UI.state==current and UI.previousState==previous,
+        "zero-step render advances the blend without replacing simulation history")
+    blended(0.75)
+    for key,value in pairs(snapshot) do
+        assert(current[key]==value,"render interpolation changed simulation field "..key)
+    end
+    close(UI.clock.accumulator,dt*0.75,"zero-step remainder")
+    UI.Stop("interpolation fixture")
+    assert(UI.previousState==UI.state,"Stop collapses interpolation history")
+    exactPose("Stop")
+    local point=UI.kart.point
+    local clock={}
+    for key,value in pairs(UI.clock) do clock[key]=value end
+    UI.OnUpdate(1)
+    assert(UI.kart.point==point,"inactive update does not render or resume the blend")
+    UI.Toggle(); UI.Toggle()
+    exactPose("reopened stopped sample")
+    for key,value in pairs(clock) do
+        assert(UI.clock[key]==value,"stopped interpolation changed clock "..key)
+    end
+    UI.Start()
+    assert(UI.state.tick==0 and UI.previousState==UI.state,"fresh Start replaces frozen history")
+    exactPose("restarted")
+    UI.Stop("interpolation fixture done")
+    for key,value in pairs(counts) do
+        assert(env.counts[key]==value,"interpolation allocated UI objects: "..key)
+    end
+end)
+
+-- A short shared-input reference checks every simulation field at three render
+-- cadences; visual positions remain within the center clearance of the walls.
+for _,fps in ipairs({30,60,144}) do
+    withMock(nil,false,function(env,UI)
+        env.fire("ADDON_LOADED","AzerothKart")
+        UI.Toggle(); UI.Start()
+        local Physics,Track=env.namespace.Physics,env.namespace.Track
+        local reference=Physics.new(Track)
+        local controls={accelerate=true,left=true,drift=true}
+        for _=1,120 do reference=Physics.step(reference,controls,Physics.FIXED_DT,Track) end
+        env.key(UI,"OnKeyDown","W"); env.key(UI,"OnKeyDown","A")
+        env.key(UI,"OnKeyDown","SPACE")
+        for _=1,2*fps do
+            UI.OnUpdate(1/fps)
+            local x,y=UI.kart.point[4],UI.kart.point[5]
+            assert(x>=Track.wallInset and x<=Track.width-Track.wallInset and
+                   y>=Track.wallInset and y<=Track.height-Track.wallInset,
+                "interpolated kart stays inside wall clearance at "..fps.." FPS")
+        end
+        for _,field in ipairs({"x","y","heading","speed","tick","impacts","drifting",
+            "driftDirection","driftTicks","driftTier","boostTicks","slipAngle","surface"}) do
+            assert(UI.state[field]==reference[field],
+                "render cadence changed simulation field "..field.." at "..fps.." FPS")
+        end
+        assert(UI.clock.frames==2*fps and UI.clock.steps==120 and UI.clock.droppedSeconds==0 and
+               math.abs(UI.clock.accumulator)<1e-10 and math.abs(UI.clock.elapsedSeconds-2)<1e-10,
+            "interpolation leaves fixed-step clock accounting intact at "..fps.." FPS")
+        UI.Stop("cadence fixture done")
+    end)
+end
 
 -- One short real-track integration: Space survives the key adapter and reaches
 -- fixed-step physics. Tier HUD states are injected to avoid a long wall drive.

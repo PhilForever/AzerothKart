@@ -1,7 +1,7 @@
 # PROGRESS — persistent project handoff
 
 **Current development milestone:** M1 — local driving mechanics. M0 acceptance remains **OPEN**.
-**Current state (2026-10-19, 18:58 CEST):** physics version 4 adds traversable grass with gradual slowdown, drift/boost cancellation and recoverable perimeter collisions. Existing drift HUD now names Road/Grass/Wall; four static perimeter markers bring explicit counts to 6/103/4. One focused Lua 5.1 pass executed five modules with 18 Lua files parsed; drift and surface replays agree at 30/60/144 render Hz. Installed with verified backup and ten matching source hashes; client reload/handling/layout **NOT RUN**. Continue building under [ADR 0007](adr/0007-build-first-development.md); broader M0 checks and scale restoration review remain deferred/unresolved. No client input/settings changes or extra combat tests. Next build: interpolate kart presentation between fixed simulation states.
+**Current state (2026-10-19, 19:03 CEST):** kart rendering now interpolates previous/current fixed states with shortest-arc heading and exact Start/Stop poses. Physics remains version 4; input, collision and clock use actual state only. Explicit counts remain 6/103/4. One focused Lua 5.1 pass parsed 20 Lua files and executed presentation/UI checks, including unchanged simulation at 30/60/144 render Hz. Installed with verified backup and eleven matching source hashes; client reload/appearance/handling **NOT RUN**. Continue building under [ADR 0007](adr/0007-build-first-development.md); broader M0 checks and scale restoration review remain deferred/unresolved. Next build: pooled two-tier drift charge and remaining-boost meter.
 
 ## Canonical checkout and commits
 
@@ -25,6 +25,7 @@ Remote: `https://github.com/PhilForever/AzerothKart.git`; branch `main`. The pac
 - `68c243c` — `docs: record M0 idle stability and prepare scale probe`.
 - `0108b4e` — `docs: record incomplete scale probe and restoration mismatch`.
 - `e4610b6` — `feat: add charged drift and mini-boost to solo driving`.
+- `ef09433` — `feat: add recoverable grass and perimeter collisions`.
 
 Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.useConfigOnly=true`; verified in config and commit authors. Global identity was left unchanged. No push, tag, distribution or automation was performed. The later client-check session installed only AzerothKart in the local Forever AddOns folder and verified all nine files against source SHA-256. Ignored `local-artifacts/` contains developer dependencies/logs and synthetic install fixtures/backups; it is not staged.
 
@@ -71,7 +72,7 @@ Initial file-only evidence: `_classic_beta_\WowB.exe` reports `1.60.1.70450`; `.
 
 ## Next exact task
 
-**Next exact task: interpolate kart presentation between fixed simulation states.** Retain previous/current poses, use the loop's fractional accumulator to draw between them, and interpolate heading along the shortest arc. Rendered coordinates must never feed back into collision, drift, timing or later lap state. Start/Stop must display the exact reset/final pose without carrying an old sample. Use one focused Lua 5.1 check for interpolation boundaries, angle wrap and unchanged simulation; broader client testing remains deferred. Preserve the measured multiplayer gate. Scale geometry review, sustained performance, handling and full F2/F5/F4 remain pending; do not resume timed scale changes, combat checks or skipped W/Up tests as the next task.
+**Next exact task: add a pooled two-tier drift charge and remaining-boost meter.** Fit it into the solo window, show both tier thresholds and remaining boost duration alongside the existing text/color feedback, and keep it readable without relying on color alone. Use actual fixed-step mechanics state; no render-driven charge or boost awards. Preallocate its primitive textures and reset/freeze it with the existing Start/Stop behavior. One focused Lua 5.1 UI check is sufficient for this slice; broader client testing remains deferred. Preserve the measured multiplayer gate. Scale geometry review, sustained performance, handling and full F2/F5/F4 remain pending; do not resume timed scale changes, combat checks or skipped W/Up tests as the next task.
 
 ## Session handoff log
 
@@ -501,3 +502,21 @@ The existing pooled HUD names Road/Grass/Wall and retains `Last drive` feedback.
 **Installation:** normal filesystem approval used. Parent-workspace manifest `artifacts/AzerothKart/20261019-185838-921432/install.json`; verified prior addon in `before/`. Updated disk files need normal `/reload` at the owner's convenience. No other addon/WTF/SavedVariables files modified, character actions automated, transport traffic, push/tag/release or automation.
 
 **Handoff:** focused local commit intended as `feat: add recoverable grass and perimeter collisions`; use `git log` for hash. Client feel/perimeter appearance and prior M0 scale/focus/performance checks remain deferred. There is still no lap/placement or multiplayer engine. **Next single build task:** interpolate rendered kart poses between fixed states with shortest-arc heading and exact Start/Stop poses, never feeding presentation back into simulation.
+
+### 2026-10-19 19:01–19:04 CEST (Europe/Oslo) — Codex / main, interpolated presentation
+
+**Milestone/scope:** M1 under ADR 0007. Canonical remote/main, clean starting HEAD `ef09433` and local PhilForever identity/useConfigOnly confirmed. Read the handoff, current criteria, architecture/decisions and affected source/tests. M0/M1 acceptance remains open; roadmap checkboxes unchanged.
+
+**Built:** pure `Presentation.pose(previous,current,alpha)` returns three scalars, clamps interpolation, handles missing/invalid alpha and rotates along the shortest arc. UI retains the actual previous fixed-step state and renders using accumulator/dt, including frames with zero simulation steps. It adds at most one fixed step of visual delay, without extrapolation or feeding coordinates back into physics. Create/Start/Stop collapse history and show the exact reset/final pose; inactive updates do not animate, and reopen retains the frozen pose/clock. No new UI objects, per-frame pose tables or chat output. Physics version 4, input, Track and Loop are unchanged; explicit counts stay 6/103/4. Both TOCs and mock loading include the new module before UI; the structural validator checks it.
+
+| Command/check actually executed | Result and scope |
+|---|---|
+| `C:\Python314\python.exe scripts/test_lua.py --runtime lua51 --tests presentation ui` | PASS once — 20 Lua files parsed, two modules executed. Pure endpoints/clamps/angle wrap/no mutation passed. UI half/zero-step blend, exact Stop/reopen/Start and pooling passed; 120-tick direct simulation versus UI at 30/60/144 render Hz matched all 13 state fields and clock accounting. |
+| `C:\Python314\python.exe scripts/validate_project.py` | PASS — 31 expected paths, synchronized eight-module TOCs, protocol/docs links and header-only network ledger. |
+| `git diff --check` | PASS — whitespace check. |
+| Verified prior-addon backup and direct install | PASS — both TOCs, Presentation.lua and UI.lua copied after complete prior-addon backup/hash verification; all eleven installed source hashes match. |
+| Full suite/10k-tick replay, Lua 5.4, native Lua CLI, actual-client reload/interpolation/handling, scale/stress/performance | NOT RUN this slice — deferred build-first cadence. Interpolation math/mock evidence is not a client smoothness or latency measurement. |
+
+**Installation:** normal filesystem approval used. Parent-workspace manifest `artifacts/AzerothKart/20261019-190358-313163/install.json`; prior ten-file addon preserved in `before/`. Updated disk build needs normal `/reload` at the owner's convenience. Client input/settings were untouched; no other addon/WTF/SavedVariables changes, character actions, transport traffic, push/tag/release or automation.
+
+**Handoff:** focused local commit intended as `feat: interpolate kart presentation between simulation steps`; inspect `git log` for hash. Client feel/appearance and earlier M0 checks remain deferred. **Next single build task:** a pooled two-tier drift charge and remaining-boost meter using actual mechanics state, text/threshold cues and the existing reset/freeze lifecycle.

@@ -28,6 +28,8 @@ Use at a later handling checkpoint, when a person can drive; this is not a prere
 
 Optional surface check at that same later checkpoint (**NOT RUN**): leave the road into island/exterior grass, observe slowdown and Grass feedback with cancelled drift/boost, then return to road. Approach a gray perimeter wall at an angle: the kart stays visible and slides along it with a speed scrub. Stop retains the surface under `Last drive`; Start resets it. Do not expand this into another long scale/combat matrix.
 
+Optional interpolation check at that checkpoint (**NOT RUN**): drive and turn at a callback cadence above 60 Hz when available, observing motion between simulation steps and continuous heading across a full turn. Press Escape, note the final kart pose, then close/reopen; it must stay still until a deliberate Start resets it. Exact final-pose snapping can move the kart by up to the last fixed step; active interpolation adds at most one fixed step of visual delay. Record perceived smoothness and any visible jump or Lua error; no new scale/profile matrix is requested.
+
 ## 1. Identity and startup
 
 - [x] AddOns-list enabled state observed, addon version read from runtime metadata, no incompatible/out-of-date notice visible. Screenshot observed in this chat; personal capture not committed.

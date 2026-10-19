@@ -3,12 +3,14 @@ local _, AK = ...
 assert(type(AK) == "table", "addon namespace required")
 local Track, Physics, Input, Loop = AK.Track, AK.Physics, AK.Input, AK.Loop
 local Performance = AK.Performance
+local Presentation = AK.Presentation
 local UI = {
     active=false, keys=Input.new(), input={}, pendingPropagationRelease=false,
     objects={frames=0, textures=0, fontStrings=0}, stopReason="Not started",
     performanceEnabled=false,
 }
 AK.UI = UI
+local render
 
 local function inCombat()
     -- Missing combat API fails closed for keyboard capture.
@@ -150,6 +152,8 @@ function UI.Stop(reason)
     if UI.result and UI.result.status == "interrupted" then reason = UI.result.reason end
     UI.stopReason = reason or "Test drive stopped"
     UI.ReleaseInput()
+    UI.previousState = UI.state
+    if UI.kart and UI.state then render() end
     -- Freeze the complete timing sample, including its fractional remainder.
     -- Inactive OnUpdate does no work; a fresh Start creates a new clock.
     refreshHud()
@@ -235,10 +239,12 @@ local function drawWalls(canvas)
     strip(Track.width-thickness,thickness,thickness,Track.height-2*thickness)
 end
 
-local function render()
+render = function()
+    local alpha = UI.active and UI.clock and UI.clock.accumulator/UI.clock.dt or 1
+    local x,y,heading = Presentation.pose(UI.previousState,UI.state,alpha)
     UI.kart:ClearAllPoints()
-    UI.kart:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",UI.state.x,UI.state.y)
-    UI.kart:SetRotation(UI.state.heading - math.pi/2)
+    UI.kart:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x,y)
+    UI.kart:SetRotation(heading - math.pi/2)
     local state = UI.state
     local tint = state.boostTicks > 0 and 4 or (state.drifting and (1 + state.driftTier) or 0)
     if tint ~= UI.kartTint then
@@ -294,6 +300,7 @@ function UI.Create()
     UI.kart = texture(UI.canvas,"OVERLAY")
     UI.kart:SetSize(17,31)
     UI.state = Physics.new(Track)
+    UI.previousState = UI.state
     render()
 
     UI.status = text(window,"BOTTOMLEFT",28,97,"Out of combat: Start Test Drive")
@@ -334,6 +341,7 @@ function UI.Start()
     if GetCurrentKeyBoardFocus() then refuseStart("Close text input before starting"); return end
     UI.ReleaseInput()
     UI.state = Physics.new(Track)
+    UI.previousState = UI.state
     UI.clock = Loop.new(Physics.FIXED_DT,5)
     UI.performance = UI.performanceEnabled and Performance.new() or nil
     UI.hudElapsed = 0
@@ -351,6 +359,7 @@ end
 
 local function step(dt)
     Input.sample(UI.keys,UI.input)
+    UI.previousState = UI.state
     UI.state = Physics.step(UI.state,UI.input,dt,Track)
 end
 

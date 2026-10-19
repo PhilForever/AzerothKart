@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — interpolated kart presentation (2026-10-19)
+- Blend previous/current simulation positions and shortest-arc heading using the fixed-step clock remainder, including render frames with no simulation step. A pure Presentation module returns scalar coordinates; displayed poses never feed back into physics, which remains version 4.
+- Start/Create and Stop show the exact current pose; stopped updates and reopening retain it. Active interpolation adds at most one fixed step of visual delay. The 6 frames/103 textures/4 font strings budget is unchanged.
+- Focused presentation/UI coverage accompanies this slice; exact executed results and installation status belong in PROGRESS. In-game appearance and handling are NOT RUN; broader checks remain deferred under ADR 0007.
+
 ## Unreleased — grass slowdown and perimeter walls (2026-10-19)
 - Physics version 4 separates the road mask from traversable grass and solid perimeter bounds. Grass gradually reduces excess speed toward 70 forward/30 reverse and clears drift, boost and slip; road re-entry restores normal handling.
 - Clamp attempted movement at an 18-unit canvas inset, preserving tangent motion and scrubbing speed once per contact step, including corners. Add four pooled perimeter textures and reuse the drift HUD for Road/Grass/Wall feedback; explicit counts are now 6 frames/103 textures/4 font strings.
