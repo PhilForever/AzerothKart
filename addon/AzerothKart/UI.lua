@@ -109,13 +109,21 @@ local function refreshMeter()
             UI.meterFill:Show()
         end
     end
-    local changed = phase ~= UI.meterPhase
+    local heldTier = 0
+    if phase == "holding" then
+        if UI.state.driftTicks >= Physics.DRIFT_TIER2_TICKS then heldTier = 2
+        elseif UI.state.driftTicks >= Physics.DRIFT_TIER1_TICKS then heldTier = 1 end
+    end
+    local changed = phase ~= UI.meterPhase or heldTier ~= UI.meterHeldTier
     local stopped = not UI.active and UI.state.tick > 0
     if changed then
         UI.meterPhase = phase
+        UI.meterHeldTier = heldTier
         if phase == "boost" then UI.meterFill:SetColorTexture(0.20,1.00,0.88,1)
-        elseif phase == "tier2" then UI.meterFill:SetColorTexture(1.00,0.35,0.78,1)
-        elseif phase == "tier1" then UI.meterFill:SetColorTexture(1.00,0.86,0.20,1)
+        elseif phase == "tier2" or heldTier == 2 then
+            UI.meterFill:SetColorTexture(1.00,0.35,0.78,1)
+        elseif phase == "tier1" or heldTier == 1 then
+            UI.meterFill:SetColorTexture(1.00,0.86,0.20,1)
         else UI.meterFill:SetColorTexture(0.35,0.65,1.00,1) end
         UI.meterTier1Label:SetText(phase == "boost" and "0.4 s" or "Tier 1")
         UI.meterTier2Label:SetText(phase == "boost" and "0.8 s" or "Tier 2")
@@ -124,6 +132,9 @@ local function refreshMeter()
         UI.meterStopped = stopped
         local caption = "DRIFT CHARGE"
         if phase == "boost" then caption = "BOOST REMAINING"
+        elseif phase == "holding" then
+            caption = heldTier > 0 and "CHARGE HELD | Steer or release Space to boost" or
+                "CHARGE HELD | Hold Space + steer to resume"
         elseif phase == "tier2" then caption = "TIER 2 READY | Release Space to boost"
         elseif phase == "tier1" then caption = "TIER 1 READY | Release Space to boost"
         elseif phase == "charging" then caption = "DRIFT CHARGE | Hold Space + turn" end
@@ -253,7 +264,9 @@ local function refreshHud()
         elseif state.boostTicks > 0 then
             feedback = ("BOOST | %.2fs remaining"):format(state.boostTicks * Physics.FIXED_DT)
         elseif state.drifting then
-            if state.driftTier > 0 then
+            if (state.driftGraceTicks or 0) > 0 then
+                feedback = "Correcting | Charge held briefly | Hold Space + steer to resume"
+            elseif state.driftTier > 0 then
                 feedback = ("Drifting | Tier %d ready | Release Space to boost"):format(state.driftTier)
             else
                 feedback = ("Drifting | Charge %d%% | Hold Space + turn"):format(

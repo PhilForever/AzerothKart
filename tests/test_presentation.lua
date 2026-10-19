@@ -116,7 +116,7 @@ assert(select("#", P.pose(previous, current, 0.5)) == 3,
        "render pose returns exactly three scalars")
 
 local config = dofile("addon/AzerothKart/Physics.lua")
-local state = {surface="road", drifting=true, driftTicks=53, driftTier=2, boostTicks=0}
+local state = {surface="road", drifting=true, driftTicks=29, driftTier=2, boostTicks=0, driftGraceTicks=0}
 local function meter(ticks, fraction, phase)
     state.driftTicks = ticks
     local actualFraction, actualPhase = P.meter(state, config)
@@ -125,13 +125,18 @@ local function meter(ticks, fraction, phase)
 end
 -- Read actual ticks rather than a possibly stale/inconsistent driftTier.
 meter(0, 0, "idle")
-meter(53, 53/108, "charging")
-meter(54, 54/108, "tier1")
-meter(107, 107/108, "tier1")
-meter(108, 1, "tier2")
+meter(29, 29/60, "charging")
+meter(30, 30/60, "tier1")
+meter(59, 59/60, "tier1")
+meter(60, 1, "tier2")
 meter(500, 1, "tier2")
+state.driftGraceTicks = 1
+meter(30, 0.5, "holding")
+state.driftGraceTicks = 12
+meter(60, 1, "holding")
+state.driftGraceTicks = 0
 state.drifting = false
-meter(108, 0, "idle")
+meter(60, 0, "idle")
 for _, remaining in ipairs({29, 47, 48, 100}) do
     state.boostTicks = remaining
     local fraction, phase = P.meter(state, config)
@@ -139,7 +144,7 @@ for _, remaining in ipairs({29, 47, 48, 100}) do
     assert(phase == "boost", "boost takes precedence over charge")
 end
 state.boostTicks = 0
-meter(108, 0, "idle")
+meter(60, 0, "idle")
 for _, surface in ipairs({"grass", "wall"}) do
     state.surface, state.drifting, state.boostTicks = surface, true, 47
     local fraction, phase = P.meter(state, config)
@@ -155,7 +160,7 @@ for key, value in pairs(state) do snapshot[key] = value end
 assert(select("#", P.meter(state, config)) == 2, "meter returns exactly two scalars")
 for key, value in pairs(state) do assert(snapshot[key] == value, "meter preserves state") end
 for key, value in pairs(snapshot) do assert(state[key] == value, "meter retains every state field") end
-assert(config.DRIFT_TIER1_TICKS == 54 and config.DRIFT_TIER2_TICKS == 108
+assert(config.DRIFT_TIER1_TICKS == 30 and config.DRIFT_TIER2_TICKS == 60
        and config.BOOST_TIER2_TICKS == 48, "meter preserves injected configuration")
 
 assert(_G.AzerothKart == beforeGlobal, "offline import must not create or replace an addon global")

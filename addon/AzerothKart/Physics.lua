@@ -3,7 +3,7 @@
 local _, namespace = ...
 
 local Physics = {}
-Physics.VERSION = 5
+Physics.VERSION = 6
 Physics.FIXED_DT = 1/60
 Physics.MAX_SPEED = 200
 Physics.REVERSE_MAX = 55
@@ -14,13 +14,14 @@ Physics.STEER_RATE = 2.6
 Physics.STEERING_RISE_RATE = 8
 Physics.STEERING_CENTER_RATE = 16
 Physics.DRIFT_MIN_SPEED = 90
-Physics.DRIFT_TIER1_TICKS = 54
-Physics.DRIFT_TIER2_TICKS = 108
+Physics.DRIFT_TIER1_TICKS = 30
+Physics.DRIFT_TIER2_TICKS = 60
+Physics.DRIFT_GRACE_TICKS = 12
 Physics.BOOST_TIER1_TICKS = 30
 Physics.BOOST_TIER2_TICKS = 48
 Physics.BOOST_MAX_SPEED = 260
 Physics.BOOST_ACCEL = 300
-Physics.DRIFT_STEER_MULTIPLIER = 1.15
+Physics.DRIFT_STEER_MULTIPLIER = 0.75
 Physics.MAX_SLIP_ANGLE = 0.40
 Physics.SLIP_BUILD_RATE = 1.8
 Physics.SLIP_RECOVER_RATE = 3.0
@@ -61,7 +62,7 @@ function Physics.new(track)
     local start = track.spawn()
     return {
         x=start.x, y=start.y, heading=start.heading, speed=0, tick=0, impacts=0,
-        drifting=false, driftDirection=0, driftTicks=0, driftTier=0,
+        drifting=false, driftDirection=0, driftTicks=0, driftTier=0, driftGraceTicks=0,
         boostTicks=0, slipAngle=0, surface=surfaceAt(track,start.x,start.y), steering=0,
     }
 end
@@ -97,23 +98,28 @@ function Physics.step(state, input, dt, track)
     if brake or startSurface ~= "road" then boostTicks = 0 end
 
     -- Charge counts fixed simulation ticks, never render frames or wall time.
-    -- Releasing drift pays only an existing drift with its turn/speed intact.
-    local drifting, direction, driftTicks, tier = false, 0, 0, 0
-    local eligible = startSurface == "road" and not brake and steering * steer > 0
-        and speed >= Physics.DRIFT_MIN_SPEED
+    -- Brief corrections pause an existing charge; only actual single-direction
+    -- steering earns more. The bounded grace cannot bank charge on a straight.
+    -- Space release may pay a held charge during that correction window.
+    local drifting, direction, driftTicks, tier, grace = false, 0, 0, 0, 0
+    local eligible = startSurface == "road" and not brake and speed >= Physics.DRIFT_MIN_SPEED
+    local charging = eligible and steering * steer > 0
     local wasDrifting = state.drifting == true
-    local sameTurn = state.driftDirection == steer
-    if wasDrifting then
-        if eligible and sameTurn then
-            if driftHeld then
-                drifting, direction = true, steer
-                driftTicks = math.min(Physics.DRIFT_TIER2_TICKS, (state.driftTicks or 0) + 1)
-            elseif (state.driftTier or 0) > 0 then
+    if wasDrifting and eligible then
+        if not driftHeld then
+            if (state.driftTier or 0) > 0 then
                 boostTicks = math.max(boostTicks, state.driftTier == 2 and
                     Physics.BOOST_TIER2_TICKS or Physics.BOOST_TIER1_TICKS)
             end
+        elseif charging then
+            drifting, direction = true, steer
+            driftTicks = math.min(Physics.DRIFT_TIER2_TICKS, (state.driftTicks or 0) + 1)
+        elseif (state.driftGraceTicks or 0) < Physics.DRIFT_GRACE_TICKS then
+            drifting, direction = true, state.driftDirection
+            driftTicks = state.driftTicks or 0
+            grace = (state.driftGraceTicks or 0) + 1
         end
-    elseif driftHeld and eligible then
+    elseif driftHeld and charging then
         drifting, direction, driftTicks = true, steer, 1
     end
     if driftTicks >= Physics.DRIFT_TIER2_TICKS then tier = 2
@@ -140,7 +146,7 @@ function Physics.step(state, input, dt, track)
     if speed < 0 then yaw = -yaw end
     local heading = state.heading + steering * yaw
     local slip = state.slipAngle or 0
-    if drifting then
+    if drifting and grace == 0 then
         slip = approach(slip, direction * Physics.MAX_SLIP_ANGLE, Physics.SLIP_BUILD_RATE * dt)
     else
         slip = approachZero(slip, Physics.SLIP_RECOVER_RATE * dt)
@@ -167,17 +173,20 @@ function Physics.step(state, input, dt, track)
         speed = speed * 0.25
         steering = 0
         drifting, direction, driftTicks, tier, boostTicks, slip = false, 0, 0, 0, 0, 0
+        grace = 0
     end
     if surface ~= "road" then
         if startSurface == "road" then speed = grassSpeed(speed,dt) end
         -- Crossing into grass cancels even a charged release on this step.
         drifting, direction, driftTicks, tier, boostTicks, slip = false, 0, 0, 0, 0, 0
+        grace = 0
     end
 
     return {
         x=nx, y=ny, heading=heading, speed=speed,
         tick=state.tick+1, impacts=state.impacts + (hit and 1 or 0),
         drifting=drifting, driftDirection=direction, driftTicks=driftTicks, driftTier=tier,
+        driftGraceTicks=grace,
         boostTicks=boostTicks, slipAngle=slip, surface=hit and "wall" or surface, steering=steering,
     }
 end

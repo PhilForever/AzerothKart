@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — gentler drift and retained steering corrections (2026-10-20)
+- Tune Physics v6 for the owner's Test Oval feedback: drift yaw is 0.75 of normal yaw instead of 1.15; charge tiers take 30/60 valid ticks (0.5/1 second), while ordinary steering and boost duration stay unchanged.
+- Hold Space through up to twelve steering-correction ticks (0.2 seconds) to retain charge without adding more. Matching steering resumes charging in either direction; the thirteenth unqualified tick clears it. A valid road/speed release can spend a retained tier during that pause; brake, low speed, rough ground and walls still cancel immediately.
+- Add a correction-pause text cue using the existing meter/HUD. The deterministic state adds `driftGraceTicks`; no input binding, UI allocation, track geometry, countdown or race-result change is introduced.
+- Focused regression coverage accompanies the change; exact executed results and installation belong in PROGRESS. Version-6 client feel remains NOT RUN and M1 acceptance stays open.
+
 ## Unreleased — selectable playable Mirage blockout (2026-10-20)
 - Add one original 1024×1024 salt-flat TGA sampled from actual Lua road geometry, plus a deterministic exporter and format/alignment check. No third-party imagery or model is imported.
 - Add a stopped-state Track button for Test Oval/Mirage Raceway. Load the background once on deliberate selection, retain the working oval and stopped result if loading fails, and reuse all textures on later switches. A click releasing driving controls cannot also change the track.

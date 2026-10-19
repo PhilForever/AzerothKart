@@ -73,6 +73,9 @@ function Presentation.meter(state, config)
     end
     local ticks = state.driftTicks or 0
     if not state.drifting or ticks <= 0 then return 0, "idle" end
+    if (state.driftGraceTicks or 0) > 0 then
+        return math.min(1, ticks / config.DRIFT_TIER2_TICKS), "holding"
+    end
     local phase = "charging"
     if ticks >= config.DRIFT_TIER2_TICKS then phase = "tier2"
     elseif ticks >= config.DRIFT_TIER1_TICKS then phase = "tier1" end

@@ -60,27 +60,42 @@ local upgraded=P.step(legacy,leftInput,dt,open)
 close(upgraded.steering,P.STEERING_RISE_RATE*dt,"legacy fixtures default to neutral steering")
 assert(legacy.steering==nil,"stepping does not mutate the incoming state")
 
--- Raw intent cancels charge immediately even while steering is still centering.
+-- A correction preserves earned charge while steering centers, then resumes
+-- only when the actual progressive steering agrees with the new raw intent.
 local charged=ready()
 for _=1,P.DRIFT_TIER1_TICKS do
     charged=P.step(charged,{accelerate=true,left=true,drift=true},dt,open)
 end
 assert(charged.driftTier==1 and charged.steering==1,"charged steering fixture")
 local lost=P.step(charged,{accelerate=true,drift=true},dt,open)
-assert(lost.steering>0 and not lost.drifting and lost.driftTicks==0 and lost.boostTicks==0,
-    "residual steering cannot preserve charge after raw steering release")
+assert(lost.steering>0 and lost.drifting and lost.driftTicks==charged.driftTicks
+    and lost.driftGraceTicks==1 and lost.boostTicks==0,
+    "brief raw steering release holds charge without increasing it")
 local opposite=charged
 for tick=1,5 do
     opposite=P.step(opposite,{accelerate=true,right=true,drift=true},dt,open)
     assert(opposite.boostTicks==0,"reversing raw intent never cashes out the old charge")
     if tick<=4 then
-        assert(not opposite.drifting and opposite.driftTicks==0,
-            "opposite drift cannot charge while the old steering centers")
+        assert(opposite.drifting and opposite.driftTicks==charged.driftTicks
+            and opposite.driftGraceTicks==tick and opposite.driftDirection==1,
+            "opposite drift pauses charge while the old steering centers")
     else
-        assert(opposite.steering<0 and opposite.drifting and opposite.driftDirection==-1 and opposite.driftTicks==1,
-            "opposite drift begins only when actual steering matches intent")
+        assert(opposite.steering<0 and opposite.drifting and opposite.driftDirection==-1
+            and opposite.driftTicks==charged.driftTicks+1 and opposite.driftGraceTicks==0,
+            "opposite drift keeps earned charge once actual steering matches intent")
     end
 end
+
+-- At full speed/steering the drift's yaw is 25% lower than a normal turn.
+-- Measuring the actual step protects the handling change, rather than merely
+-- checking that its tuning constant was changed.
+local tight=ready()
+tight.steering=1
+local normal=P.step(tight,leftInput,dt,open)
+local wide=P.step(tight,{accelerate=true,left=true,drift=true},dt,open)
+local normalYaw,driftYaw=normal.heading-tight.heading,wide.heading-tight.heading
+close(driftYaw/normalYaw,0.75,"drift uses a wider, gentler turn than normal steering")
+assert(wide.drifting and wide.speed==normal.speed,"wider drift does not reduce straight-line speed")
 local wall={spawn=open.spawn,isDrivable=function() return false end}
 local hit=P.step(charged,leftInput,dt,wall)
 assert(hit.impacts==charged.impacts+1 and hit.steering==0,"collision resets progressive steering")
@@ -92,7 +107,7 @@ assert(offRoad.steering==1 and not offRoad.drifting and offRoad.boostTicks==0,
 
 -- Identical seed and input vectors must reproduce all state at each fixed tick.
 local fields={"x","y","heading","speed","tick","impacts","drifting","driftDirection",
-              "driftTicks","driftTier","boostTicks","slipAngle","surface","steering"}
+              "driftTicks","driftTier","boostTicks","slipAngle","surface","steering","driftGraceTicks"}
 local function tapeFor(seed)
     local tape={}
     for tick=1,360 do
@@ -125,4 +140,4 @@ for _,fps in ipairs({30,60,144}) do
     end
     assert(replay.tick==#tape and clock.droppedSeconds==0,"steering tape consumes exact fixed ticks")
 end
-print("steering: full=8 ticks neutral=4 ticks reversal=12 ticks; 360-tick seeded cadence replay")
+print("steering: full=8 ticks neutral=4 ticks reversal=12 ticks; drift yaw=75% normal; 360-tick seeded cadence replay")

@@ -995,7 +995,7 @@ for _,fps in ipairs({30,60,144}) do
                 "interpolated kart stays inside wall clearance at "..fps.." FPS")
         end
         for _,field in ipairs({"x","y","heading","speed","tick","impacts","drifting",
-            "driftDirection","driftTicks","driftTier","boostTicks","slipAngle","surface","steering"}) do
+            "driftDirection","driftTicks","driftTier","boostTicks","slipAngle","surface","steering","driftGraceTicks"}) do
             assert(UI.state[field]==reference[field],
                 "render cadence changed simulation field "..field.." at "..fps.." FPS")
         end
@@ -1032,16 +1032,28 @@ withMock(nil,false,function(env,UI)
     assert(not UI.input.drift and not UI.keys.SPACE,"Stop clears held and sampled Space")
     for _,tier in ipairs({1,2}) do
         UI.state.drifting=true; UI.state.driftTier=tier
+        UI.state.driftTicks=tier==1 and env.namespace.Physics.DRIFT_TIER1_TICKS
+            or env.namespace.Physics.DRIFT_TIER2_TICKS
+        UI.state.driftGraceTicks=0
         UI.Stop("tier display fixture")
         assert(UI.driftHud.text:find("Tier "..tier.." ready",1,true),"charged tier has visible release feedback")
+        local color=UI.meterFill.color
+        UI.state.driftGraceTicks=1
+        UI.Stop("correction display fixture")
+        assert(UI.driftHud.text:find("Correcting",1,true),"correction grace has visible held-charge feedback")
+        assert(UI.meterCaption.text:find("CHARGE HELD",1,true),"held charge is explained on the meter")
+        for channel,value in ipairs(color) do
+            assert(UI.meterFill.color[channel]==value,"correction preserves the earned tier color")
+        end
     end
-    UI.state.drifting=false; UI.state.driftTier=0; UI.state.boostTicks=20
+    UI.state.drifting=false; UI.state.driftTier=0; UI.state.driftGraceTicks=0; UI.state.boostTicks=20
     UI.Stop("boost display fixture")
     assert(UI.driftHud.text:find("BOOST",1,true),"remaining boost is visible on the stopped HUD")
     UI.Start()
     assert(not UI.state.drifting and UI.state.driftTicks==0 and UI.state.driftTier==0 and
-           UI.state.boostTicks==0 and UI.state.slipAngle==0 and UI.state.steering==0,
-        "fresh Start clears charge, boost, slip and steering")
+           UI.state.boostTicks==0 and UI.state.slipAngle==0 and UI.state.steering==0
+           and UI.state.driftGraceTicks==0,
+        "fresh Start clears charge, correction grace, boost, slip and steering")
     assert(UI.driftHud.text:find("Drift:",1,true),"fresh Start clears old boost feedback")
     UI.Stop("drift fixture done")
     for key,value in pairs(counts) do
@@ -1062,11 +1074,12 @@ withMock(nil,false,function(env,UI)
     local function caption(words)
         assert(UI.meterCaption.text:find(words,1,true),"missing meter caption: "..words)
     end
-    local function sample(ticks,boost,surface)
+    local function sample(ticks,boost,surface,grace)
         UI.state.surface=surface or "road"
         UI.state.drifting=ticks>0
         UI.state.driftTicks=ticks
         UI.state.driftTier=0 -- Display must derive thresholds from actual charge.
+        UI.state.driftGraceTicks=grace or 0
         UI.state.boostTicks=boost or 0
         local tick=UI.state.tick
         UI.OnUpdate(0)
@@ -1087,13 +1100,26 @@ withMock(nil,false,function(env,UI)
     assert(not UI.meterFill:IsShown(),"zero charge hides the fill")
     assert(UI.meterTier1Label.text=="Tier 1" and UI.meterTier2Label.text=="Tier 2",
         "charge meter labels explain its thresholds")
-    sample(53); caption("DRIFT CHARGE")
+    sample(29); caption("DRIFT CHARGE")
     assert(UI.meterFill:IsShown(),"partial charge shows the fill")
-    close(UI.meterFill.width,300*53/108,"charge before tier one")
-    sample(54); caption("TIER 1 READY")
+    close(UI.meterFill.width,300*29/60,"charge before tier one")
+    sample(30); caption("TIER 1 READY")
     close(UI.meterFill.width,150,"tier one reaches the first marker")
-    sample(108); caption("TIER 2 READY")
+    sample(60); caption("TIER 2 READY")
     close(UI.meterFill.width,300,"tier two reaches full charge")
+    local tierTwoColor=UI.meterFill.color
+    sample(60,0,nil,12); caption("CHARGE HELD")
+    close(UI.meterFill.width,300,"correcting retains full earned charge")
+    for channel,value in ipairs(tierTwoColor) do
+        assert(UI.meterFill.color[channel]==value,"holding retains tier-two color")
+    end
+    sample(30); caption("TIER 1 READY")
+    local tierOneColor=UI.meterFill.color
+    sample(30,0,nil,1); caption("CHARGE HELD")
+    close(UI.meterFill.width,150,"correcting retains the earned first tier")
+    for channel,value in ipairs(tierOneColor) do
+        assert(UI.meterFill.color[channel]==value,"holding retains tier-one color")
+    end
     sample(0,47); caption("BOOST REMAINING")
     close(UI.meterFill.width,300*47/48,"boost uses the common maximum duration")
     assert(UI.meterTier1Label.text=="0.4 s" and UI.meterTier2Label.text=="0.8 s",
@@ -1107,7 +1133,7 @@ withMock(nil,false,function(env,UI)
            UI.meterCaption.textWrites==textWrites,
         "unchanged meter state does not repeat geometry, color or caption setters")
     for _,surface in ipairs({"grass","wall"}) do
-        sample(108,47,surface)
+        sample(60,47,surface,1)
         assert(not UI.meterFill:IsShown(),surface.." clears stale charge and boost feedback")
         caption("DRIFT CHARGE")
     end

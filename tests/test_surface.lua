@@ -4,7 +4,8 @@ local P=dofile("addon/AzerothKart/Physics.lua")
 local L=dofile("addon/AzerothKart/Loop.lua")
 local dt=P.FIXED_DT
 local function noCharge(s,context)
-    assert(not s.drifting and s.driftDirection==0 and s.driftTicks==0 and s.driftTier==0,context)
+    assert(not s.drifting and s.driftDirection==0 and s.driftTicks==0 and s.driftTier==0
+        and s.driftGraceTicks==0,context)
     assert(s.boostTicks==0 and s.slipAngle==0,context..": boost/slip cleared")
 end
 local function place(x,y,heading,speed)
@@ -18,6 +19,7 @@ end
 local exit=place(T.centerX+T.innerX+1,T.centerY,math.pi,P.MAX_SPEED)
 exit.drifting,exit.driftDirection,exit.driftTicks,exit.driftTier=true,1,54,1
 exit.boostTicks,exit.slipAngle=20,0.2
+exit.driftGraceTicks=5
 local grass=P.step(exit,{accelerate=true,left=true,drift=true},dt,T)
 assert(grass.surface=="grass" and grass.x<exit.x and grass.impacts==0,"road exit crosses onto grass without impact")
 noCharge(grass,"entering grass cancels a charged drift and active boost")
@@ -86,7 +88,7 @@ local replayTrack={
     isDrivable=T.isDrivable,surfaceAt=T.surfaceAt,constrainPosition=T.constrainPosition,
 }
 local fields={"x","y","heading","speed","tick","impacts","drifting","driftDirection",
-              "driftTicks","driftTier","boostTicks","slipAngle","surface","steering"}
+              "driftTicks","driftTier","boostTicks","slipAngle","surface","steering","driftGraceTicks"}
 local function tapeFor(seed)
     local tape,direction={},1
     for tick=1,360 do
