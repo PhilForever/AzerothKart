@@ -1,7 +1,7 @@
 # PROGRESS — persistent project handoff
 
 **Current development milestone:** M1 — local driving mechanics. M0 acceptance remains **OPEN**.
-**Current state (2026-10-19, 18:45 CEST):** implemented Space-held drift, two charge tiers, release mini-boost, slip and pooled HUD/tint feedback in physics version 3. Focused Lua 5.1 checks pass; the new 720-tick replay agrees at 30/60/144 render Hz. Installed with verified backup and ten matching source hashes; client reload/drift handling **NOT RUN**. Per the owner's request for about 80% less testing and [ADR 0007](adr/0007-build-first-development.md), continue playable solo development with focused validation. Prior scale restoration/geometry review and broader M0 client checks are deferred, still unresolved. No client input/settings changes this slice; no combat or skipped W/Up checks repeated. Next build: road/grass slowdown and bounded outer-wall collision.
+**Current state (2026-10-19, 18:58 CEST):** physics version 4 adds traversable grass with gradual slowdown, drift/boost cancellation and recoverable perimeter collisions. Existing drift HUD now names Road/Grass/Wall; four static perimeter markers bring explicit counts to 6/103/4. One focused Lua 5.1 pass executed five modules with 18 Lua files parsed; drift and surface replays agree at 30/60/144 render Hz. Installed with verified backup and ten matching source hashes; client reload/handling/layout **NOT RUN**. Continue building under [ADR 0007](adr/0007-build-first-development.md); broader M0 checks and scale restoration review remain deferred/unresolved. No client input/settings changes or extra combat tests. Next build: interpolate kart presentation between fixed simulation states.
 
 ## Canonical checkout and commits
 
@@ -24,6 +24,7 @@ Remote: `https://github.com/PhilForever/AzerothKart.git`; branch `main`. The pac
 - `fbd3cc8` — `fix: remove road seams with explicit grass layering`.
 - `68c243c` — `docs: record M0 idle stability and prepare scale probe`.
 - `0108b4e` — `docs: record incomplete scale probe and restoration mismatch`.
+- `e4610b6` — `feat: add charged drift and mini-boost to solo driving`.
 
 Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.useConfigOnly=true`; verified in config and commit authors. Global identity was left unchanged. No push, tag, distribution or automation was performed. The later client-check session installed only AzerothKart in the local Forever AddOns folder and verified all nine files against source SHA-256. Ignored `local-artifacts/` contains developer dependencies/logs and synthetic install fixtures/backups; it is not staged.
 
@@ -31,12 +32,12 @@ Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.u
 
 - [x] Inspected all original source, tests/scripts and documents from `docs/INDEX.md`, including ADRs; preserved initial content in Git.
 - [x] Structural validation of paths, synchronized TOC source order, discovery markers, local Markdown links and network-ledger fields.
-- [x] Earlier M0 source: all seven addon modules and nine Lua test/runner files parsed under both Lua 5.1 and Lua 5.4; eight tests executed in each runtime. Current v3 focused results are in the latest handoff below; no new full-suite pass is claimed.
+- [x] Earlier M0 source: all seven addon modules and nine Lua test/runner files parsed under both Lua 5.1 and Lua 5.4; eight tests executed in each runtime. Current v4 focused results are in the latest handoff below; no new full-suite pass is claimed.
 - [x] Removed `_G` dependency from pure Track/Physics modules; introduced pure Input and Loop modules with explicit addon namespace registration/returned offline imports.
-- [x] Corrected inverted left/right steering in physics v2. Current v3 adds deterministic drift, two charge tiers and a release boost; production collision/race engine and handling acceptance remain pending.
+- [x] Corrected inverted left/right steering in physics v2; v3 added deterministic drift, two charge tiers and a release boost. Current v4 separates road/grass/walls, slows grass travel gradually and clamps perimeter contact while retaining tangent movement. Production collision/race engine and handling acceptance remain pending.
 - [x] Physical-key alias tracking prevents W/Up and equivalent steering/brake releases from canceling another held alias. Sampling reuses a semantic input table; stop clears held/sampled controls in place.
 - [x] Fixed 60 Hz loop, at most five catch-up steps per frame; preserves fractional remainder and records full elapsed, executed ticks, dropped seconds and hitch frames.
-- [x] Earlier v2 seed `1729` generated a repeatable 10,000-tick input tape with every state field matching at every tick under 30/60/144 simulated FPS. The extended v3 long tape is NOT RUN this slice; focused 720-tick drift replay passed Lua 5.1. These are same-runtime checks, not cross-client proof or a gameplay PRNG.
+- [x] Earlier v2 seed `1729` generated a repeatable 10,000-tick input tape with every state field matching at every tick under 30/60/144 simulated FPS. The extended current v4 long tape is NOT RUN this slice; focused 720-tick drift and 360-tick surface replays passed Lua 5.1 across all 13 fields. These are same-runtime checks, not cross-client proof or a gameplay PRNG.
 - [x] Mocked UI/Core lifecycle coverage includes hidden/chat/combat/missing-capability Start refusal; key aliases; Escape/unknown/Enter; Stop/Close/Hide/toggle; all mouse clicks; text/application focus; leaving world/logout; combat event and OnUpdate fallback; deferred propagation; no automatic resume; minimal save-field preservation.
 - [x] Explicit `/akart probe` / Print Probe reports identity, input capabilities, event-registration failures, clock metrics, last stop reason and explicit UI object counts. No per-tick chat or UI object creation.
 - [x] Source timing aid: cumulative valid active frame seconds, executed simulation seconds and callback cadence; complete stopped elapsed/drop/remainder accounting and immediate Start/Stop HUD refresh. Offline tested and installed; zeroed live baseline observed, with timed/final-sample acceptance pending.
@@ -70,7 +71,7 @@ Initial file-only evidence: `_classic_beta_\WowB.exe` reports `1.60.1.70450`; `.
 
 ## Next exact task
 
-**Next exact task: implement road/grass slowdown with bounded outer-wall collision.** Separate surface response from impassable bounds in pure Track/Physics, allow a recoverable off-road excursion instead of rejecting every grass step, and expose the current surface in the existing HUD. Use one focused Lua 5.1 check for slowdown, re-entry and drift/boost cancellation as needed; defer broad client testing. Preserve the measured multiplayer gate. Scale geometry review (client-checklist section 3d), sustained performance, handling and full F2/F5/F4 remain pending; do not resume timed scale changes, combat checks or skipped W/Up tests as the next task.
+**Next exact task: interpolate kart presentation between fixed simulation states.** Retain previous/current poses, use the loop's fractional accumulator to draw between them, and interpolate heading along the shortest arc. Rendered coordinates must never feed back into collision, drift, timing or later lap state. Start/Stop must display the exact reset/final pose without carrying an old sample. Use one focused Lua 5.1 check for interpolation boundaries, angle wrap and unchanged simulation; broader client testing remains deferred. Preserve the measured multiplayer gate. Scale geometry review, sustained performance, handling and full F2/F5/F4 remain pending; do not resume timed scale changes, combat checks or skipped W/Up tests as the next task.
 
 ## Session handoff log
 
@@ -480,3 +481,23 @@ The kart was closed normally to expose the overlapping Options control. Checked 
 **Installation:** normal filesystem approval used for the existing AzerothKart installation. Manifest: parent workspace `artifacts/AzerothKart/20261019-184501-352871/install.json`; verified prior files in `before/`. The client was left untouched; the updated disk build needs a normal `/reload` at the owner's convenience. No other addon/WTF/SavedVariables files edited, character controls automated, packets sent, push/tag/release or automation performed.
 
 **Handoff:** focused local commit intended as `feat: add charged drift and mini-boost to solo driving`; inspect `git log` for hash. Remaining risks: client handling/layout are unverified, existing road-edge collision is still the M0 position-rejection model, scale restoration review remains deferred/unresolved, and no race/lap/placement or multiplayer engine exists. **Next single task:** road/grass slowdown with bounded outer-wall collision and a surface HUD indicator; one focused Lua 5.1 pass, broader playtesting later.
+
+### 2026-10-19 18:53–18:58 CEST (Europe/Oslo) — Codex / main, grass and perimeter slice
+
+**Milestone/scope:** M1, following the build-first policy. Correct canonical remote/main, clean starting HEAD `e4610b6` and local PhilForever identity/useConfigOnly confirmed. Inspected existing modules, affected tests and persistent docs; preserved all work. M0 and M1 acceptance remain open; no roadmap checkbox promoted.
+
+**Built:** Physics v4 distinguishes the road mask from traversable island/exterior grass and rectangular walls. Grass eases inherited speed toward 70 forward/30 reverse with drag 360 after normal controls, applied at most once per step. Leaving road clears drift/charge/boost/slip, including a charged release. Review caught a boost-acceleration reward surviving the entry step; removed it before drag and added a narrow assertion before the single validation run. Grass permits returning to road without an impact. Perimeter contact clamps the center to an 18-unit inset, retains tangent movement and scrubs speed by 0.25 once per contact step, including corners. This is an endpoint-clamping prototype, not arbitrary swept wall collision.
+
+The existing pooled HUD names Road/Grass/Wall and retains `Last drive` feedback. Four creation-only gray perimeter strips increase explicit allocation counts to 6 frames/103 textures/4 font strings. The 96 road bands, grass layering, spawn, input and fixed-step clock are unchanged; no tick creates UI objects or prints chat. New `surface` state is included in replay comparisons. Legacy pure open-plane/solid-wall fixtures remain supported.
+
+| Command/check actually executed | Result and scope |
+|---|---|
+| `C:\Python314\python.exe scripts/test_lua.py --runtime lua51 --tests track physics drift surface ui` | PASS once — 18 Lua files parsed, five modules executed. Road/grass reentry, gradual 260→70 slowdown, reverse limit, drift/boost cancellation, tangent/corner/recovery and HUD/pooling checks passed. Seeded 360-tick surface and 720-tick drift replays matched all 13 fields at 30/60/144 render Hz. |
+| `C:\Python314\python.exe scripts/validate_project.py` | PASS — 29 expected paths, synchronized TOCs, protocol/docs links and header-only network ledger. |
+| `git diff --check` | PASS — whitespace check. |
+| Verified prior-addon backup and direct install | PASS — only Physics.lua, Track.lua and UI.lua copied; complete prior backup verified before writes, all ten installed hashes match source. |
+| Full suite/10k-tick v4 replay, Lua 5.4, native Lua CLI, actual-client reload/layout/handling, scale/stress/performance | NOT RUN this slice — focused build-first cadence; no new client availability claim or input attempt. |
+
+**Installation:** normal filesystem approval used. Parent-workspace manifest `artifacts/AzerothKart/20261019-185838-921432/install.json`; verified prior addon in `before/`. Updated disk files need normal `/reload` at the owner's convenience. No other addon/WTF/SavedVariables files modified, character actions automated, transport traffic, push/tag/release or automation.
+
+**Handoff:** focused local commit intended as `feat: add recoverable grass and perimeter collisions`; use `git log` for hash. Client feel/perimeter appearance and prior M0 scale/focus/performance checks remain deferred. There is still no lap/placement or multiplayer engine. **Next single build task:** interpolate rendered kart poses between fixed states with shortest-arc heading and exact Start/Stop poses, never feeding presentation back into simulation.

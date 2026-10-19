@@ -24,7 +24,9 @@ Use at a later handling checkpoint, when a person can drive; this is not a prere
 1. Outside combat, open `/akart` and click Start. Accelerate to 90+ with W or Up, then hold Space with one turn direction. Observe bounded slide, blue charge and the named drift HUD.
 2. Keep the turn for about 0.9 seconds to reach gold/tier 1; continuing about 1.8 seconds total reaches pink/tier 2. Release only Space while retaining the turn: observe cyan/BOOST, then return to normal. Judge responsiveness rather than timing these short intervals by eye as proof of exact ticks.
 3. In another attempt, cancel a charge by releasing steering or braking; it must not award a boost. Avoid intentionally triggering combat. Escape must stop capture; the HUD retains `Last drive`, and a deliberate new Start clears it.
-4. Record the subjective handling, any Lua/layout error and stopped probe. Current source expects 6 frames/99 textures/4 font strings; prior live 6/99/3 evidence belongs to the earlier source. Do not repeat the skipped simultaneous W/Up test.
+4. Record the subjective handling, any Lua/layout error and stopped probe. Current source expects 6 frames/103 textures/4 font strings; prior live 6/99/3 evidence belongs to the earlier source. Do not repeat the skipped simultaneous W/Up test.
+
+Optional surface check at that same later checkpoint (**NOT RUN**): leave the road into island/exterior grass, observe slowdown and Grass feedback with cancelled drift/boost, then return to road. Approach a gray perimeter wall at an angle: the kart stays visible and slides along it with a speed scrub. Stop retains the surface under `Last drive`; Start resets it. Do not expand this into another long scale/combat matrix.
 
 ## 1. Identity and startup
 

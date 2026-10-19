@@ -171,6 +171,7 @@ withMock(nil, false, function(env,UI)
     local Track=env.namespace.Track
     local outer,inner={},{}
     local grass,grassCount=nil,0
+    local walls={}
     local function sameColor(actual,r,g,b)
         return type(actual)=="table" and actual[1]==r and actual[2]==g
             and actual[3]==b and actual[4]==1
@@ -185,6 +186,14 @@ withMock(nil, false, function(env,UI)
             bands=inner
         elseif sameColor(color,0.08,0.24,0.12) and item.layer=="BACKGROUND" then
             grass,grassCount=item,grassCount+1
+        elseif sameColor(color,0.42,0.44,0.48) then
+            assert(item.layer=="ARTWORK","visible wall strips sit above the road and grass")
+            local point=rawget(item,"point")
+            assert(type(point)=="table" and point[1]=="BOTTOMLEFT" and
+                   point[2]==UI.canvas and point[3]=="BOTTOMLEFT",
+                "wall strips use canvas coordinates")
+            walls[#walls+1]={item=item,x=point[4],y=point[5],
+                width=rawget(item,"width"),height=rawget(item,"height")}
         end
         if bands then
             assert(rawget(item,"snappingBias")==0 and rawget(item,"snapToGrid")==false,
@@ -217,8 +226,22 @@ withMock(nil, false, function(env,UI)
         "grass snapping stays unchanged; explicit draw priority separates it from the road")
     assert(env.drawLayerCalls==1,"only the grass configures an explicit draw sublevel once")
     assert(env.snappingCalls==192,"only the 96 road bands configure snapping once")
-    assert(UI.objects.frames==6 and UI.objects.textures==99 and UI.objects.fontStrings==4,
-        "placeholder plus pooled drift label must match the explicit UI object budget")
+    assert(#walls==4,"four preallocated wall strips mark the play boundary")
+    local thickness=4
+    local expectedWalls={
+        {0,0,Track.width,thickness}, {0,Track.height-thickness,Track.width,thickness},
+        {0,thickness,thickness,Track.height-2*thickness},
+        {Track.width-thickness,thickness,thickness,Track.height-2*thickness},
+    }
+    for index,wall in ipairs(walls) do
+        local expected=expectedWalls[index]
+        assert(wall.x==expected[1] and wall.y==expected[2] and
+               wall.width==expected[3] and wall.height==expected[4],
+            "thin wall strips follow the canvas perimeter")
+        assert(wall.item.colorWrites==1,"static wall color is configured once")
+    end
+    assert(UI.objects.frames==6 and UI.objects.textures==103 and UI.objects.fontStrings==4,
+        "pooled drift label and four walls must match the explicit UI object budget")
     local function covered(rectangles,x,y)
         for _,rect in ipairs(rectangles) do
             if y>=rect.bottom and y<=rect.top and x>=rect.left and x<=rect.right then
@@ -297,12 +320,52 @@ withMock(nil,false,function(env,UI)
     end
 end)
 
+-- Surface feedback shares the existing drift label, including stopped samples.
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    UI.Toggle(); UI.Start()
+    assert(UI.state.surface=="road" and UI.driftHud.text:find("Road | Drift:",1,true),
+        "fresh drive reports road controls")
+    local counts={}
+    for key,value in pairs(env.counts) do counts[key]=value end
+    local walls={}
+    for _,item in ipairs(env.textures) do
+        local color=rawget(item,"color")
+        if color and color[1]==0.42 and color[2]==0.44 and color[3]==0.48 then
+            walls[#walls+1]={item=item,point=item.point,width=item.width,height=item.height,
+                colorWrites=item.colorWrites}
+        end
+    end
+    UI.state.x=400; UI.state.y=240; UI.state.speed=120
+    UI.OnUpdate(1/60)
+    UI.Stop("grass fixture")
+    assert(UI.state.surface=="grass" and UI.driftHud.text:find("Last drive | Grass |",1,true) and
+           UI.driftHud.text:find("Rejoin the road",1,true),
+        "drivable grass has visible feedback in the retained sample")
+    UI.Start()
+    UI.state.x=env.namespace.Track.wallInset; UI.state.y=240
+    UI.state.heading=math.pi; UI.state.speed=120
+    UI.OnUpdate(1/60)
+    UI.Stop("wall fixture")
+    assert(UI.state.surface=="wall" and UI.driftHud.text:find("Last drive | Wall |",1,true),
+        "wall contact has visible feedback in the retained sample")
+    UI.Start(); UI.OnUpdate(1/60); UI.Stop("surface fixture done")
+    for key,value in pairs(counts) do
+        assert(env.counts[key]==value,"surface feedback allocates no additional UI objects: "..key)
+    end
+    for _,wall in ipairs(walls) do
+        assert(wall.item.point==wall.point and wall.item.width==wall.width and
+               wall.item.height==wall.height and wall.item.colorWrites==wall.colorWrites,
+            "wall strips remain static across driving and restarting")
+    end
+end)
+
 for _,mode in ipairs({"missing", "throws"}) do
     withMock(nil,false,function(env,UI)
         env.fire("ADDON_LOADED","AzerothKart")
         UI.Toggle(); UI.Start(); UI.OnUpdate(1/60)
         assert(UI.active and UI.state.tick==1,"optional snapping APIs cannot block driving: "..mode)
-        assert(UI.objects.frames==6 and UI.objects.textures==99 and UI.objects.fontStrings==4,
+        assert(UI.objects.frames==6 and UI.objects.textures==103 and UI.objects.fontStrings==4,
             "snapping fallback preserves UI object budget: "..mode)
         assert(env.drawLayerCalls==1,"grass priority remains explicit when snapping is unavailable: "..mode)
     end,nil,mode)
@@ -653,7 +716,7 @@ withMock(nil, false, function(env,UI)
     assert(math.abs(sample.simulationMs-6)<1e-8 and math.abs(sample.renderMs-6)<1e-8 and
            math.abs(sample.totalMs-12)<1e-8,"profile phases accumulate known mock milliseconds")
     assert(#env.output==before,"sampling/completion never prints per-frame chat")
-    assert(UI.objects.frames==6 and UI.objects.textures==99 and UI.objects.fontStrings==4,
+    assert(UI.objects.frames==6 and UI.objects.textures==103 and UI.objects.fontStrings==4,
         "profiling creates no UI objects")
     local state={}
     for key,value in pairs(UI.state) do state[key]=value end

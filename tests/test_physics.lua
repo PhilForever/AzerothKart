@@ -16,12 +16,12 @@ assert(left.x<T.spawn().x,"left from north must move toward screen-left")
 assert(right.x>T.spawn().x,"right from north must move toward screen-right")
 local both=P.step(P.new(T),{accelerate=true,left=true,right=true},P.FIXED_DT,T)
 assert(both.heading==T.spawn().heading,"opposing steering inputs cancel")
-local edge={x=769,y=240,heading=0,speed=200,tick=20,impacts=0}
+local edge={x=T.width-T.wallInset,y=240,heading=0,speed=200,tick=20,impacts=0}
 local collided=P.step(edge,{accelerate=true},P.FIXED_DT,T)
 assert(collided.impacts==1,"outer bound collision detected")
-assert(collided.x==edge.x and collided.y==edge.y,"collision rejects penetration")
+assert(collided.x==edge.x and collided.y==edge.y and collided.surface=="wall","wall clamps penetration")
 assert(collided.speed<edge.speed,"collision scrubs speed")
-assert(P.VERSION==3,"drift changes replay compatibility")
+assert(P.VERSION==4,"surface handling changes replay compatibility")
 
 -- Measure handling without track impacts obscuring speed clamps.
 local openTrack={spawn=T.spawn,isDrivable=function() return true end}
@@ -40,3 +40,7 @@ for _,dt in ipairs({0,-1,0.051,math.huge}) do
     assert(not pcall(P.step,straight,{},dt,openTrack),"invalid timestep must reject")
 end
 assert(not pcall(P.step,straight,{},0/0,openTrack),"NaN timestep must reject")
+local legacyWall={spawn=T.spawn,isDrivable=function() return false end}
+local rejected=P.step(straight,{accelerate=true},P.FIXED_DT,legacyWall)
+assert(rejected.x==straight.x and rejected.y==straight.y and rejected.impacts==straight.impacts+1,
+       "legacy road-only track doubles retain rejecting collision fallback")

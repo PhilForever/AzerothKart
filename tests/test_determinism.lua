@@ -2,7 +2,7 @@ local T=dofile("addon/AzerothKart/Track.lua")
 local P=dofile("addon/AzerothKart/Physics.lua")
 local L=dofile("addon/AzerothKart/Loop.lua")
 local fields={"x","y","heading","speed","tick","impacts","drifting","driftDirection",
-              "driftTicks","driftTier","boostTicks","slipAngle"}
+              "driftTicks","driftTier","boostTicks","slipAngle","surface"}
 local ticks=10000
 
 -- Local Park-Miller generator creates reproducible bounded test input vectors.

@@ -1,14 +1,22 @@
 # Racing physics, deterministic time and game feel
 
-The current `Physics.lua` is a pure version-3 analytical oval-handling prototype. Production race, item and checkpoint state below remains planned.
+The current `Physics.lua` is a pure version-4 analytical oval-handling prototype. Production race, item and checkpoint state below remains planned.
+
+## Implemented surfaces and wall response
+
+`Track.isDrivable` retains its road-only analytical annulus predicate. `Track.surfaceAt` separately classifies road, grass and wall; both the island and grass outside the oval are traversable inside the perimeter. On grass, forward/reverse targets are 70/30 units/s, with 360 units/s² of drag toward those bounds after normal acceleration/braking. Overspeed is reduced gradually. Grass entry clears drift, charge, boost and slip; returning to road restores normal handling.
+
+The canvas perimeter constrains the kart's center to an 18-unit inset. `Track.constrainPosition` clamps the attempted endpoint on each axis, preserving movement tangent to a wall. Contact multiplies speed by 0.25 once for that simulation step, including a corner touching both axes; there is no bounce. The inset keeps the rotated 17×31 primitive inside the canvas. This is a bounded rectangular prototype, not swept collision against arbitrary production walls. Pure test tracks without the optional surface/constraint helpers retain the earlier predicate fallback.
+
+Focused surface coverage accompanies the implementation; exact executed results are recorded in `PROGRESS.md`. Client handling and the new perimeter appearance are **NOT RUN**.
 
 ## Implemented local drift slice
 
-At 60 fixed ticks per second, hold Space with exactly one turn direction and forward speed at least 90 units/s to drift. Sustaining the same turn charges tier 1 at 54 ticks (0.9 s), tier 2 at 108 ticks (1.8 s); charge caps at tier 2. Release Space while that turn and speed remain valid to spend the charge. Tier 1 boosts for 30 steps (0.5 s), tier 2 for 48 (0.8 s), counting the release step. Boost adds 300 units/s² and raises the speed cap from 200 to 260; brake cancels it.
+At 60 fixed ticks per second, hold Space with exactly one turn direction and forward road speed at least 90 units/s to drift. Sustaining the same turn charges tier 1 at 54 ticks (0.9 s), tier 2 at 108 ticks (1.8 s); charge caps at tier 2. Release Space while that turn and speed remain valid to spend the charge. Tier 1 boosts for 30 steps (0.5 s), tier 2 for 48 (0.8 s), counting the release step. Boost adds 300 units/s² and raises the speed cap from 200 to 260; brake or leaving the road cancels it.
 
 Losing steering, opposing turns, braking, slowing below the threshold or collision cancels a held drift without reward. Collision also clears active boost and slip. A cancelled turn cannot cash out its old charge. Drift increases yaw by 1.15 and moves signed slip toward ±0.40 radians at 1.8 rad/s; after release it recovers toward zero at 3 rad/s. Travel follows `heading - slipAngle`, separately from the kart's facing direction.
 
-Implemented state is `x,y,heading,speed,tick,impacts,drifting,driftDirection,driftTicks,driftTier,boostTicks,slipAngle`. Compatibility version 3 prevents treating prior handling as the same replay contract. The focused drift test covers thresholds, cancellation, bounded boost and an identical 720-tick seeded tape at 30/60/144 render schedules. These are offline expectations; human handling quality is **NOT RUN**. Grass slowdown and a bounded outer-wall response are the next local build slice; the current oval boundary still rejects movement and scrubs speed.
+Implemented state is `x,y,heading,speed,tick,impacts,drifting,driftDirection,driftTicks,driftTier,boostTicks,slipAngle,surface`. `surface` reports Wall on a contact step, otherwise the endpoint's road/grass classification. Compatibility version 4 distinguishes the new surface/collision behavior from earlier replays. The focused drift test covers thresholds, cancellation, bounded boost and an identical 720-tick seeded tape at 30/60/144 render schedules. These are offline expectations; human handling quality is **NOT RUN**.
 
 ## State and units
 World units ~= UI logical pixels in the prototype. Production world units are independent of pixels, with camera transforming to screen. Coordinates: x right, y up; orientation radians counterclockwise. Kart state `x,y,heading,speed,steer,driftState,driftCharge,boostTicks,stunTicks,lap,checkpointIndex`, simulation tick as integer.
@@ -20,7 +28,7 @@ World units ~= UI logical pixels in the prototype. Production world units are in
 - Longitudinal acceleration `dv = (throttle*a - friction(v) - brake*b)*dt` clamped into bounded reverse/top speed.
 - Steering curvature `dHeading = steer * steerRate(speed,surface,drift) * dt`, with low-speed help and high-speed cornering limit.
 - Drift: the implemented thresholds and boost durations above are initial tunings, pending direct play.
-- Terrain controls grip and speed retention; grass slows, walls reject penetration and scrub speed.
+- Terrain controls grip and speed retention; grass slows, walls constrain penetration and scrub speed while preserving tangent movement.
 - Box/circle swept collision when speed causes tunneling; stepping should remain deterministic and allow rescue from invalid positions.
 
 ## Deferred tuning workflow

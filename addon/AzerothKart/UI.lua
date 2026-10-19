@@ -98,8 +98,14 @@ local function refreshHud()
         c and c.droppedSeconds or 0,c and c.elapsedSeconds or 0))
     if UI.driftHud then
         local state = UI.state
+        local surface = state.surface == "grass" and "Grass" or
+            (state.surface == "wall" and "Wall" or "Road")
         local feedback = "Drift: hold Space + turn at speed 90+ | Release Space to boost"
-        if state.boostTicks > 0 then
+        if state.surface == "grass" then
+            feedback = "Slowing on grass | Rejoin the road to drift"
+        elseif state.surface == "wall" then
+            feedback = "Steer away from the barrier and rejoin the road"
+        elseif state.boostTicks > 0 then
             feedback = ("BOOST | %.2fs remaining"):format(state.boostTicks * Physics.FIXED_DT)
         elseif state.drifting then
             if state.driftTier > 0 then
@@ -109,6 +115,7 @@ local function refreshHud()
                     math.floor(state.driftTicks / Physics.DRIFT_TIER1_TICKS * 100))
             end
         end
+        feedback = surface .. " | " .. feedback
         if not UI.active and state.tick > 0 then feedback = "Last drive | " .. feedback end
         UI.driftHud:SetText(feedback)
     end
@@ -213,6 +220,21 @@ local function drawTrack(canvas)
     line:SetPoint("CENTER",canvas,"BOTTOMLEFT",Track.centerX+Track.lineX,Track.centerY)
 end
 
+local function drawWalls(canvas)
+    -- Static perimeter markers; collision keeps the kart's center farther in.
+    local thickness = 4
+    local function strip(x,y,width,height)
+        local piece = texture(canvas,"ARTWORK")
+        piece:SetColorTexture(0.42,0.44,0.48,1)
+        piece:SetSize(width,height)
+        piece:SetPoint("BOTTOMLEFT",canvas,"BOTTOMLEFT",x,y)
+    end
+    strip(0,0,Track.width,thickness)
+    strip(0,Track.height-thickness,Track.width,thickness)
+    strip(0,thickness,thickness,Track.height-2*thickness)
+    strip(Track.width-thickness,thickness,thickness,Track.height-2*thickness)
+end
+
 local function render()
     UI.kart:ClearAllPoints()
     UI.kart:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",UI.state.x,UI.state.y)
@@ -268,6 +290,7 @@ function UI.Create()
     -- Keep the canvas backdrop explicitly below the outer road bands.
     grass:SetDrawLayer("BACKGROUND",-1)
     drawTrack(UI.canvas)
+    drawWalls(UI.canvas)
     UI.kart = texture(UI.canvas,"OVERLAY")
     UI.kart:SetSize(17,31)
     UI.state = Physics.new(Track)

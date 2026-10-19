@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — grass slowdown and perimeter walls (2026-10-19)
+- Physics version 4 separates the road mask from traversable grass and solid perimeter bounds. Grass gradually reduces excess speed toward 70 forward/30 reverse and clears drift, boost and slip; road re-entry restores normal handling.
+- Clamp attempted movement at an 18-unit canvas inset, preserving tangent motion and scrubbing speed once per contact step, including corners. Add four pooled perimeter textures and reuse the drift HUD for Road/Grass/Wall feedback; explicit counts are now 6 frames/103 textures/4 font strings.
+- Focused coverage accompanies surface/collision and UI changes; exact executed results and install status are recorded in PROGRESS. Client reload, layout and handling are NOT RUN. Broader checks remain deferred under ADR 0007; M0/M1 acceptance remains open.
+
 ## Unreleased — local drift charge and boost (2026-10-19)
 - Physics version 3 adds Space-held drift with bounded signed slip, two fixed-tick charge tiers and a release boost. Brake, steering loss/opposition, low speed and collision cancel the charge; brake/collision cancel an active boost.
 - Add a separate pooled drift HUD and phase-cached kart colors for charge, ready tiers and boost. The window is 856×670; the explicit budget is now 6 frames/99 textures/4 font strings. Stop retains `Last drive` feedback; a fresh Start resets it.

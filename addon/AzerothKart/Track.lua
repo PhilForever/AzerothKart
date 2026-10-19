@@ -7,6 +7,13 @@ Track.centerX, Track.centerY = 400, 240
 Track.outerX, Track.outerY = 370, 218
 Track.innerX, Track.innerY = 170, 84
 Track.lineX, Track.lineY = 266, 151
+-- Center clearance encloses the 17x31 kart at any rotation (half diagonal <18).
+Track.wallInset = 18
+
+local function finite(value)
+    return type(value) == "number" and value == value
+        and value > -math.huge and value < math.huge
+end
 
 function Track.isDrivable(x, y)
     if type(x) ~= "number" or type(y) ~= "number" then return false end
@@ -16,6 +23,24 @@ function Track.isDrivable(x, y)
     local out = (dx / Track.outerX)^2 + (dy / Track.outerY)^2
     local inside = (dx / Track.innerX)^2 + (dy / Track.innerY)^2
     return out <= 1 and inside >= 1
+end
+
+-- isDrivable remains the road mask; grass is traversable inside separate walls.
+function Track.surfaceAt(x, y)
+    if not finite(x) or not finite(y) then return "wall" end
+    local inset = Track.wallInset
+    if x < inset or x > Track.width-inset or y < inset or y > Track.height-inset then
+        return "wall"
+    end
+    return Track.isDrivable(x,y) and "road" or "grass"
+end
+
+function Track.constrainPosition(x, y)
+    assert(finite(x) and finite(y), "finite track coordinates required")
+    local inset = Track.wallInset
+    local cx = math.max(inset,math.min(Track.width-inset,x))
+    local cy = math.max(inset,math.min(Track.height-inset,y))
+    return cx,cy,cx ~= x or cy ~= y
 end
 
 function Track.spawn()
