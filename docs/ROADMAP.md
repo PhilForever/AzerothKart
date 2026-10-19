@@ -35,7 +35,7 @@ Current slice: Space-held drift charge, release boost and visible feedback. Impl
 
 ### M3. Playable race, checkpoints and first production track
 - [ ] Complete race FSM: menu/countdown/running/paused/finished/aborted.
-- [ ] `Tinker Speedway`: original 2D course, walls/surfaces, directional checkpoints.
+- [ ] `Mirage Raceway`: dry, pre-flood Shimmering Flats course, walls/surfaces and directional checkpoints; precomposed art with independent geometry ([ADR 0008](adr/0008-mirage-raceway-art-direction.md)).
 - [ ] Three-lap run + race time + best lap + anti-shortcut/checkpoint validation.
 - [ ] Race HUD, position/time display, results, restart, short intro tutorial.
 - [ ] Safe persistence v1 + schema/migrations and corrupted-save tests.

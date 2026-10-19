@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — Mirage Raceway asset research and art direction (2026-10-20)
+- Set Mirage Raceway on the dry Shimmering Flats as the first production-map target, replacing the proposed Tinker Speedway, with recognizable fantasy siege/steam tanks, trike, aircraft, gryphon rider and Mirage drag cars.
+- Record concrete WC3Vault candidates, author/permission gaps, OpenRealm/viewer tooling and explicitly licensed fallback art. No third-party archives were imported; tool licenses are distinguished from model/texture rights.
+- Add a generated concept board, exact prompts and PNG hash/provenance manifest outside the addon. Document precomposed track layers, separate simulation geometry, bounded sprite pools, camera/facing requirements and export/viewport checks still pending.
+- Planning/artifacts only: Test Oval runtime, installed files and milestone acceptance are unchanged. No runtime TGA, asset loader, geometry migration or new selectable roster is claimed.
+
 ## Unreleased — best completed lap within a run (2026-10-20)
 - Track the fastest accepted completed lap and its lap number in pure Laps. Fields start empty; strictly shorter integer durations replace the best, while ties retain the earliest lap. Incomplete/current laps never become the best.
 - Append best time/lap number to the existing lap HUD and all terminal summaries. Retain it through Stop/combat/reopen/rejected Start; successful fresh Start/Restart and GO reset it. This is in-memory per run, with no saved personal record, schema change or migration.

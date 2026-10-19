@@ -53,7 +53,9 @@ SavedVariables -> Schema/Migrations -> settings/personal-bests/ghosts
 ## Visual performance budget
 - Pool all kart/player sprite objects and HUD elements. No `CreateFrame`/`CreateTexture` per physics tick. No chat prints during motion.
 - Data tables per tick are bounded and reused if Lua GC spikes; profile first, optimize second.
-- For production tracks prefer atlas tiles at power-of-two dimensions and limited draw calls. Use no ripped assets.
+- For the first production track, prefer one precomposed background and optional foreground, plus pooled sprites for vehicles, interactive props and VFX. Use no ripped assets.
+
+The future Mirage Raceway renderer will load `Background.tga`, optional `Foreground.tga` and `Preview.tga` while keeping collision/surfaces/gates/spawns in independent deterministic Track data. A common coordinate origin and uniform world-to-canvas transform register art with geometry without stretching its aspect ratio into the current 800×480 canvas; viewport framing is still to be implemented. Editable PNG/source art stays under `docs/art/concepts/`, outside runtime. Strict overhead north-facing sprites can rotate; angled three-quarter artwork requires directional frames. Aircraft initially share ground collision with cosmetic hover and separate shadows. This migration is planned only: current 96 road Texture regions and the 8/110/13 object counts are unchanged. Texture loading, alpha, dimensions and UV/rotation checks are NOT RUN. See [ASSETS.md](ASSETS.md), [the map brief](art/MIRAGE_RACEWAY.md) and [ADR 0008](adr/0008-mirage-raceway-art-direction.md).
 
 ## Public module APIs (proposed)
 - `Physics.new(config, startPose)` -> state

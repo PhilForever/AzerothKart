@@ -3,6 +3,8 @@
 ## Visual direction
 Original retro-fantasy goblin-engineering arcade, with a dark metal / parchment shell and bright readable kart accents. **Not** a clone of Mario Kart UI and not a reuse of proprietary art. Design for the WoW screen with a movable, scalable 950x620-ish panel and full-screen optional only if safe.
 
+The accepted first-map direction is **Mirage Raceway** on the dry, pre-flood Shimmering Flats, with Warcraft III-like recognizable fantasy vehicles rather than modern go-karts. Preserve distinct Siege Tank and Steam Tank concepts alongside Goblin Mortar Trike, Gyrocopter, Gryphon Rider, Gnome/Goblin Drag Cars and optional Shredder. For freely rotated sprites, use strict overhead orthographic art facing north; an angled three-quarter treatment needs directional frames. Aircraft hover is cosmetic with shared ground collision and separate shadows. Use one precomposed background, optional foreground and pooled dynamic sprites, keeping track/vehicle silhouettes readable at play size. This is planned art direction, not an implemented skin or cleared asset collection; see [ADR 0008](adr/0008-mirage-raceway-art-direction.md) and [the map brief](art/MIRAGE_RACEWAY.md).
+
 ## Scenes
 1. `HOME`: logo, Quick Race, Time Trial, Multiplayer (disabled until gate), Garage, Tracks, Settings, Help; explicit Coming Soon cards rather than fake active buttons.
 2. `ROOM`: host, invites, track, slots, ready indicators, server compatibility, countdown and leave.
@@ -13,7 +15,7 @@ Original retro-fantasy goblin-engineering arcade, with a dark metal / parchment 
 7. `SETTINGS`: keybinds, scale, graphics quality, reduced motion, audio, gameplay assist, restore defaults.
 
 ## Race canvas composition
-Map is viewport-clipped; car drawn on separate rotating texture; track visuals layer below players, trails/particles above road and below HUD. Pool sprites, cap particles, maintain readable contrast and accessible color cues.
+Map is viewport-clipped; a strict overhead vehicle uses a separate rotating texture, while an angled vehicle needs directional frames. Track visuals layer below players, optional scenery occlusion above them, trails/particles above road and below HUD. Preserve map aspect with a uniform transform rather than stretching square art into the existing landscape canvas. Pool sprites, cap particles, maintain readable contrast and accessible color cues. The future viewport/art migration has not changed the current 856×762 prototype window.
 
 ## Focus and safe exit
 - Display **"Controls active — Esc to release"** while key capture is enabled.

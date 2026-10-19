@@ -9,6 +9,7 @@
 - Demo initially runs on a simple analytical oval; production tracks use checkpoint geometry and collision regions.
 - **Combat interruption (owner confirmed 2026-10-18):** close the racing window, release its controls, finalize the current race placements once and label the result **"Game interrupted by combat"**. Do not resume that race when combat ends. The M0 driving probe has no standings, so it closes and records the interruption without inventing placements. See [ADR 0006](adr/0006-combat-interrupted-results.md).
 - **Build-first development (owner confirmed 2026-10-19):** reduce testing effort by about 80% and proceed with playable local M1 slices while remaining M0 manual validation stays open. Use focused checks for changed mechanics; defer long probe sessions and repeated broad matrices. This does not waive acceptance, input/combat safeguards, data integrity or the measured multiplayer gate. See [ADR 0007](adr/0007-build-first-development.md).
+- **First production map and vehicles (owner confirmed 2026-10-20):** Mirage Raceway on the dry, pre-flood Shimmering Flats replaces the planned Tinker Speedway. Use precomposed static track art with separate geometry and pooled dynamic sprites; vehicles should be recognizable Warcraft III-like fantasy archetypes, preserving both Siege Tank and Steam Tank. Strict overhead sprites may rotate; angled art needs directional frames. Aircraft initially share ground collision with cosmetic hover. This accepts the direction, without claiming assets cleared or runtime migration tested. See [ADR 0008](adr/0008-mirage-raceway-art-direction.md).
 
 ## Questions that require evidence / product owner approval
 1. What exact installed Forever client build and TOC flavor path are present?
@@ -16,7 +17,7 @@
 3. What is sustained addon message throughput in actual party/whisper in cities, dungeons and raids?
 4. Does world zoning and `/reload` disrupt frames and transport in ways affecting race resumption?
 5. Is usable simultaneous racing feasible at 2, 4 or 8 players, or should asynchronous time-trial ghost races be the first social mode?
-6. Asset direction: illustrated sprites vs pixel art; visual quality target/asset provenance.
+6. Per-asset provenance, final illustration treatment, export dimensions and viewport framing within the accepted Mirage Raceway/Warcraft III-like direction; see ADR 0008.
 7. Cross-realm support: test, do not assume.
 
 ## Change process

@@ -3,6 +3,8 @@
 **Status:** M1 local mechanics development; M0 acceptance remains open. The owner requested build-first work with focused validation ([ADR 0007](docs/adr/0007-build-first-development.md)).
 **Vision:** A polished, responsive top-down 2D kart racer wholly inside a movable World of Warcraft addon window, inspired by approachable arcade racing, with original presentation and Warcraft-flavored humor.
 
+**First production map:** Mirage Raceway on the dry Shimmering Flats, with recognizable Warcraft III-like machines and riders. The [map/vehicle brief](docs/art/MIRAGE_RACEWAY.md), [asset-source shortlist](docs/art/ASSET_SOURCES.md) and [concept board](docs/art/concepts/mirage-raceway-direction-v1.png) record the owner's direction. Precomposed background/foreground art with separate geometry is planned; the installed playable build remains Test Oval.
+
 ## Start here (for a human)
 1. Read `docs/VISION.md`, `docs/FEASIBILITY.md` and `docs/ROADMAP.md`.
 2. Open this folder as the Codex workspace. Paste `PROMPT_01_MASTER.md` into Codex. Keep `AGENTS.md` in the repository root.

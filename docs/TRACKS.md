@@ -3,23 +3,31 @@
 ## Track data v1 (proposed)
 ```lua
 return {
-  id = "tinker_speedway",
+  id = "mirage_raceway",
   version = 1,
-  bounds = {width=1200, height=800},
-  spawnGrid = {{x=320,y=420,heading=1.2}},
+  bounds = {width=1024, height=1024}, -- candidate art-aligned world bounds
+  spawnGrid = {...}, -- authored start poses supplied by the geometry blockout
   roadRegions = {...}, -- polygon or tile bitmap, standardized collision geometry
   walls = {...},       -- line segments/polygons
   gates = {...},       -- ordered directional checkpoint segments
   items = {...},
   surfaceZones = {...}, -- asphalt/mud/ice/boost
-  visuals = {atlas="...", tiles={...}},
+  visuals = {
+    background=".../Background.tga",
+    foreground=".../Foreground.tga", -- optional static occlusion
+    preview=".../Preview.tga",
+    artBounds={width=1024,height=1024}, -- candidate, not a client limit
+    preserveAspect=true, -- one uniform map-to-canvas transform
+  },
 }
 ```
 
 ## Prototype vs production
 The starter's `Test Oval` is mathematical ellipse annulus to prove movement and rendering. It now has three-lap solo runs over ordered checkpoints, while the standalone Laps module supports repeated practice circuits. It is **not** the production track renderer and does not provide competitive lap validation.
 
-The placeholder road derives its footprint from the same `Track` center and outer/inner radii used by `isDrivable`. It fills the outer ellipse with 64 horizontal gray bands and masks the island with 32 grass bands. All 96 textures are created once; the centerline is not used as a substitute road boundary.
+The placeholder road derives its footprint from the same `Track` center and outer/inner radii used by `isDrivable`. It fills the outer ellipse with 64 horizontal gray bands and masks the island with 32 grass bands. All 96 Texture regions are created once; they are not 96 Frames. The centerline is not used as a substitute road boundary.
+
+The first planned production map is **Mirage Raceway**, set on the dry, pre-flood Shimmering Flats. Its authoring plan uses one precomposed `Background.tga`, an optional `Foreground.tga` and `Preview.tga`, with separate pooled vehicles, interactive props and VFX. Road, wall, gate, surface and spawn geometry stays explicit Lua data; no painted pixel determines collision. Square art must retain its aspect through a uniform transform into the current 800×480 canvas or a deliberately revised viewport. This is a future migration: Test Oval source/counts are unchanged, and texture loading, alpha, size and UV/rotation checks are NOT RUN. See [the map brief](art/MIRAGE_RACEWAY.md), [asset pipeline](ASSETS.md) and [ADR 0008](adr/0008-mirage-raceway-art-direction.md).
 
 The simulation keeps `isDrivable` as the road-only annulus predicate, while `surfaceAt` separately reports road/grass/wall. The island and exterior grass inside the canvas are traversable with slowdown and drift/boost cancellation. A rectangular perimeter constrains the kart center to `wallInset=18`, independent of the road radii. `constrainPosition` clamps an attempted endpoint while retaining tangent motion; collision scrubs speed once per step even at corners. Four pooled gray perimeter strips identify that limit; including the drift/boost meter, checkpoint indicators, lap HUD and result summary, current explicit UI counts are 8 frames/110 textures/13 font strings. Road geometry and spawn are unchanged. Client perimeter/checkpoint/finish appearance and off-road handling are **NOT RUN**; focused offline results are in `PROGRESS.md`.
 
@@ -59,9 +67,9 @@ UI releases capture, draws the exact finish pose and shows a pooled `RUN COMPLET
 - Map supports normal and mirrored direction only if gate/spawn orientation defined.
 
 ## Content authoring
-- Build a simple external Python asset/track validation pipeline producing read-only Lua tables; no external executable is needed by addon users.
+- Build a simple external Python asset/track validation pipeline producing precomposed track exports and read-only geometry tables; no external executable is needed by addon users. Editable PNG masters remain outside runtime under `docs/art/concepts/`.
 - Lint spawn outside collision, gates out of order, isolated road islands, item pickup unreachable, wall intersection, max tiling and texture dimensions.
 - Document copyright/ownership of every texture, icon, music/sound asset. Start from plain colored tiles where feasible.
 
 ## Initial track sequence
-M0 `Test Oval` → M3 `Tinker Speedway` → M7 `Murloc Marsh` → M9 `Frost Gearway` and more based on performance metrics.
+M0 `Test Oval` → M3 `Mirage Raceway` (dry, pre-flood Shimmering Flats) → M7 `Murloc Marsh` → M9 `Frost Gearway` and more based on performance metrics. Mirage replaces the planned Tinker Speedway name; no production-map acceptance is claimed.

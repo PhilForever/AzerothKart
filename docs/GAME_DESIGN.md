@@ -25,7 +25,7 @@ Lobby → select mode/track/kart → pre-race countdown → race (laps, drift, i
 
 ## First track content
 - `Test Oval`: ugly but reliable probe, with surfaces and checkpoint points.
-- `Tinker Speedway`: colorful starter track with readable turns, two shortcuts and one simple hazard.
+- `Mirage Raceway`: dry Shimmering Flats salt circuit, rival goblin/gnome pit camps and readable turns, with precomposed scenery and independent road/wall/checkpoint geometry. Replaces the proposed Tinker Speedway; see [ADR 0008](adr/0008-mirage-raceway-art-direction.md).
 - `Murloc Marsh`, `Dusty Canyon`, `Frost Gearway`: illustrative future themes, not licensed Warcraft art.
 
 ## Power-ups (future)
@@ -34,6 +34,7 @@ Lobby → select mode/track/kart → pre-race countdown → race (laps, drift, i
 - Avoid excessive screen effects or unavoidable chain stuns; use input responsiveness as invariant.
 
 ## Karts and cosmetics
+- Recognizable Warcraft III-like Siege Tank, Steam Tank, Goblin Mortar Trike, Gyrocopter, Gryphon Rider and the two Mirage drag-car designs; optional Shredder follows the initial pair. Use the [vehicle brief](art/MIRAGE_RACEWAY.md) and recorded asset provenance.
 - Initial karts share tuned balanced stats, visual skins only; variants are tightly balanced before PvP.
 - Stats are bounded by validated classes (acceleration, handling, traction, top speed). Cosmetic unlocks do not require gold or cash.
 
