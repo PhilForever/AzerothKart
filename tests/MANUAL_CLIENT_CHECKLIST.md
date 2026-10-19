@@ -126,14 +126,36 @@ Profiling is off by default. This sequence measures one short diagnostic window 
 
 These scoped elapsed milliseconds include clock/protection instrumentation overhead around `Loop.advance` and render/HUD work. They exclude preceding input/focus/combat guards, aggregate/report work and native GPU rendering; they are not exclusive addon CPU cost. The addon never resets the shared profiler timer with `debugprofilestart`. Backwards timestamps reject, but another addon's reset can leave plausible positive spans and evade detection. [CLIENT_API.md](../docs/CLIENT_API.md#optional-bounded-updaterender-timing) records the pinned build-70450 primary source and remaining runtime uncertainty. Offline tests cover invalid/throwing reads, cap behavior and unchanged deterministic driving; those do not constitute live profiler verification.
 
-## 3b. Stopped/open idle stability — next unattended task
+## 3b. Stopped/open idle stability
 
-**Status: NOT RUN.** This isolates the inactive renderer and requires no kart/character input. It does not replace the ten-minute human drive, full focus matrix or memory/CPU measurement.
+**Status: PASS for this scoped idle check, 2026-10-19 15:29:48.901–15:45:06.499 CEST.** Completed 917.598 wall-clock seconds (917.608 monotonic) without agent input. Endpoint probe retained all counters/tick 852, counts 6/99/3, inactivity and profiling off; effective scale stayed 0.72452831268311. Before/after FPS points were 206.00857543945 / 198.3470916748. Sampled road/controls stayed readable without an observed error dialog; no continuous hitch/taint measurement was made. Normal close/reopen retained the sample; final hidden/inactive/profiling-off readback passed. The earlier attempt was interrupted by confirmed owner use and remains an interruption, not a failure. [Exact evidence](../docs/evidence/2026-10-19-m0-idle.md). This does not replace the ten-minute human drive, full focus matrix, supported-scale matrix or memory/CPU measurement; the combined section 3 checkbox stays pending.
 
 1. Confirm the returned WoW window, current installed source/build and an inactive kart. Open `/akart` without Start; keep profiling off. Record an independent start timestamp, `/akart probe`, `/dump GetFramerate()` and `/dump UIParent:GetEffectiveScale()`. Keep other addons/settings unchanged.
 2. Leave the kart stopped/open for 15 measured minutes. Do not arm input, drive, change scale, generate combat, or add any per-update diagnostic. If input occurs or the client closes/hides/disconnects, record the actual interval and interruption rather than claiming a completed run.
 3. Record the end timestamp, the same probe/FPS/scale readbacks and visible errors/hitches. Counts, stopped tick and timing must remain frozen; the road/controls must remain readable. A start/end FPS pair consists of two whole-client observations, not sustained FPS or exclusive addon cost. Leave memory/CPU checks NOT RUN unless separately measured.
 4. Close/reopen normally, repeat the stopped probe, then leave the window hidden and controls inactive. Record exact elapsed duration, conditions and results in PROGRESS. Keep unsupported/unavailable checks pending.
+
+## 3c. One supported-scale comparison — prepared independent M0 task
+
+**Status: NOT RUN.** Use a quiet client, stopped kart and profiling off. This is one renderer comparison, not the complete scale matrix, a driving trial or a performance benchmark. Do not change resolution, other addons or graphics settings.
+
+1. Inspect the normal client Options for an available UI-scale control. Record its actual label, enabled/automatic state, current displayed value and supported range/steps. Do not assume a menu path or that 0.75/1.0/1.25 are supported. If no normal control is available, record UNAVAILABLE and make no scale change.
+2. Open `/akart` without Start. Record a timestamp, build/source identity, road/controls appearance, `/akart probe` and these read-only values:
+
+```text
+/dump GetCVar("uiScale"), GetCVar("useUiScale")
+/dump UIParent:GetEffectiveScale()
+```
+
+3. Choose one different supported setting through that normal control, apply it normally and record the actual displayed setting, the same readbacks/probe and appearance. Check full road/island/marker/kart visibility, horizontal seams, clipping, text and access to Start/Stop/Close/Print Probe. Keep capture inactive; the existing clock/state and explicit counts must stay unchanged. Effective scale is a measured value, not the nominal slider value. If a normal reload is required to apply, record it and collect a fresh inactive baseline; do not claim the old clock survived reload.
+4. Restore the exact original control value and automatic/enabled state through the normal UI, apply normally and verify the original CVar values and effective scale return. Do not use arbitrary `SetCVar` writes to reach unsupported values. If restoration fails, record it and stop for review. Close/reopen once to check readability/inactivity/counts, then finish hidden/inactive with profiling off.
+5. Transcribe sanitized results into the table and PROGRESS, including both changed and restored readbacks and any interruption. An unavailable setting remains pending, not a failure or a pass. Whole-client FPS, if sampled separately, is only a point observation.
+
+| Point | Normal control value/state | uiScale / useUiScale | Effective scale | Probe/canvas/readability | Status |
+|---|---|---|---|---|---|
+| Original baseline | Pending observation | Pending | Pending | Pending | NOT RUN |
+| One supported alternative | Pending normal-control discovery | Pending | Pending | Pending | NOT RUN |
+| Restored original | Pending restoration | Pending | Pending | Pending | NOT RUN |
 
 ## 4. F5 minimal SavedVariables persistence
 
