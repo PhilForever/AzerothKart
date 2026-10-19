@@ -87,9 +87,9 @@ local function texture(parent, layer)
     return parent:CreateTexture(nil, layer)
 end
 
-local function text(parent, anchor, x, y, value)
+local function text(parent, anchor, x, y, value, font)
     UI.objects.fontStrings = UI.objects.fontStrings + 1
-    local label = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    local label = parent:CreateFontString(nil, "OVERLAY", font or "GameFontNormal")
     label:SetPoint(anchor, parent, anchor, x, y)
     label:SetText(value)
     return label
@@ -182,7 +182,9 @@ end
 local function refreshSummary()
     if not UI.summary then return end
     local race = UI.race
-    if not race or race.status == "running" then UI.summary:Hide(); return end
+    if not race or race.status == "countdown" or race.status == "running" then
+        UI.summary:Hide(); return
+    end
     if UI.summaryRace ~= race then
         UI.summaryRace = race
         if race.status == "finished" then
@@ -199,6 +201,19 @@ local function refreshSummary()
         UI.summaryHint:SetText("Controls released | Restart for a fresh run")
     end
     UI.summary:Show()
+end
+
+local function refreshCountdown()
+    if not UI.countdownCue then return end
+    local cue = UI.active and UI.race and Race.cue(UI.race) or nil
+    if cue == UI.cueText then return end
+    UI.cueText = cue
+    if cue then
+        UI.countdownCue:SetText(cue)
+        UI.countdownCue:Show()
+    else
+        UI.countdownCue:Hide()
+    end
 end
 
 local function refreshHud()
@@ -388,6 +403,7 @@ render = function()
     end
     refreshMeter()
     refreshCheckpoints()
+    refreshCountdown()
 end
 
 function UI.Create()
@@ -485,6 +501,9 @@ function UI.Create()
     UI.restartButton:SetText("Restart")
     UI.restartButton:SetScript("OnClick",function() UI.Start() end)
     UI.summary:Hide()
+    UI.countdownCue = text(UI.canvas,"CENTER",0,0,"",
+        GameFontNormalHuge and "GameFontNormalHuge" or "GameFontNormal")
+    UI.countdownCue:Hide()
     window:SetScript("OnUpdate",function(_,elapsed) UI.OnUpdate(elapsed) end)
 end
 
@@ -510,24 +529,32 @@ function UI.Start()
     UI.result = nil
     UI.summaryRace = nil
     UI.summary:Hide()
-    UI.stopReason = "Driving"
+    UI.stopReason = "Countdown"
     UI.window:SetPropagateKeyboardInput(false)
     UI.window:EnableKeyboard(true)
     UI.active = true
     render()
     refreshHud()
-    UI.status:SetText("3 laps | W/A/S/D or arrows | Space + turn: drift | Esc: release controls")
+    UI.status:SetText("3 laps | Hold W/Up for GO | A/D or arrows: steer | Esc: release controls")
     UI.startButton:Disable()
     UI.stopButton:Enable()
 end
 
+-- Reuse neutral input during prestart. The zero-speed spawn remains fixed,
+-- while physics/probe ticks continue and the real held keys are still sampled.
+local countdownInput = {}
 local function step(dt)
     Input.sample(UI.keys,UI.input)
     UI.previousState = UI.state
-    UI.state = Physics.step(UI.state,UI.input,dt,Track)
+    local countdown = UI.race.status == "countdown"
+    UI.state = Physics.step(UI.state,countdown and countdownInput or UI.input,dt,Track)
     UI.race = Race.step(UI.race,UI.previousState,UI.state,Track,Checkpoints,Laps)
     UI.laps = UI.race.laps
     UI.checkpoints = UI.laps.checkpoints
+    if countdown and UI.race.status == "running" then
+        UI.stopReason = "Driving"
+        UI.status:SetText("3 laps | W/A/S/D or arrows | Space + turn: drift | Esc: release controls")
+    end
     return UI.race.status ~= "finished"
 end
 
@@ -542,6 +569,7 @@ function UI.OnUpdate(elapsed)
     if p and p.attempts >= Performance.LIMIT then p = nil end
     local begin = p and readPerformanceClock(UI.performanceReader)
     local completedLaps = UI.laps.completedLaps
+    local raceStatus = UI.race.status
     local steps = Loop.advance(UI.clock,elapsed,step)
     local afterSimulation = p and readPerformanceClock(UI.performanceReader)
     if UI.race.status == "finished" then
@@ -551,7 +579,8 @@ function UI.OnUpdate(elapsed)
     else
         render()
         UI.hudElapsed = UI.hudElapsed + steps * Physics.FIXED_DT
-        if UI.hudElapsed >= 0.25 or UI.laps.completedLaps ~= completedLaps then
+        if UI.hudElapsed >= 0.25 or UI.laps.completedLaps ~= completedLaps
+            or UI.race.status ~= raceStatus then
             UI.hudElapsed = 0
             refreshHud()
         end

@@ -1,7 +1,7 @@
 # PROGRESS — persistent project handoff
 
 **Current development milestone:** M1 — local driving mechanics. M0 acceptance remains **OPEN**.
-**Current state (2026-10-20, 00:06 CEST):** three-lap solo runs now finish at the exact simulation tick, stop further catch-up, release controls and show retained total/last-lap times with Restart. Pure Race wraps Laps and freezes finished/stopped/interrupted outcomes. Physics stays v5. UI remains 856×762 with explicit counts 8/110/12. One focused Lua 5.1 pass parsed 27 Lua files and executed Race/Loop/UI checks; a connected synthetic three-lap run matched at 30/60/144 render Hz. Client reload/finish/restart/appearance **NOT RUN**. Installation evidence is in the latest handoff below. M0/M1/M3 acceptance remains open; no countdown, best record, persistence, ghosts or multiplayer yet. Next build: a fixed-step countdown with racing time starting at GO.
+**Current state (2026-10-20, 00:12 CEST):** a fixed-step 3–2–1–GO countdown now precedes each three-lap solo run. The kart stays at spawn for 180 neutral ticks, race/lap time starts at GO and held controls first affect tick 181. A pooled center cue hides after the first 60 racing ticks or on cancellation. Existing exact finish, retained results and deliberate Restart remain. Physics stays v5; UI remains 856×762 with explicit counts 8/110/13. One focused Lua 5.1 pass parsed 27 Lua files and executed Race/UI checks; a connected synthetic countdown/three-lap run matched at 30/60/144 render Hz. Installed with verified backup and fourteen matching source hashes. Client reload/countdown/finish/restart/appearance **NOT RUN**; M0/M1/M3 acceptance remains open. Next build: best completed lap within the current run, in memory only.
 
 ## Canonical checkout and commits
 
@@ -31,6 +31,7 @@ Remote: `https://github.com/PhilForever/AzerothKart.git`; branch `main`. The pac
 - `d42fb92` — `feat: add progressive keyboard steering with fast centering`.
 - `a7326e9` — `feat: track ordered directional checkpoints on the test oval`.
 - `e10e869` — `feat: add repeatable practice laps and tick-based timing`.
+- `e3a6523` — `feat: finish three-lap solo runs with retained results`.
 
 Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.useConfigOnly=true`; verified in config and commit authors. Global identity was left unchanged. No push, tag, distribution or automation was performed. The later client-check session installed only AzerothKart in the local Forever AddOns folder and verified all nine files against source SHA-256. Ignored `local-artifacts/` contains developer dependencies/logs and synthetic install fixtures/backups; it is not staged.
 
@@ -77,7 +78,7 @@ Initial file-only evidence: `_classic_beta_\WowB.exe` reports `1.60.1.70450`; `.
 
 ## Next exact task
 
-**Next exact task: add a fixed-step 3–2–1–GO countdown.** Extend the small pure Race state so the kart stays at spawn during the countdown and race/lap time begins at GO. Use a pooled visible cue, sample held controls without moving early and preserve the existing Stop/combat/focus release paths. A deliberate Restart must begin a fresh countdown; reopening a terminal result must not resume. Cover exact transition ticks, catch-up through GO and cancellation/reset with one focused Lua 5.1 pass. Keep persistence, ghosts and networking separate; existing client/handling acceptance stays deferred.
+**Next exact task: show the best completed lap within the current three-lap run.** Track the smallest accepted completed-lap duration as integer ticks, with its lap number, and show it in the existing lap HUD and retained result summary. Incomplete laps never become records; ties keep the earlier lap. Fresh Start/Restart clears the value, while Stop/combat/reopen retains it. Keep this in memory only, with no saved records, migrations, ghosts or networking. Use one focused Lua 5.1 pass for completed/tied/partial/reset behavior; existing client/handling acceptance stays deferred.
 
 ## Session handoff log
 
@@ -621,3 +622,23 @@ UI consumes actual fixed-step poses, keeps `UI.checkpoints` as the nested progre
 **Installation:** normal filesystem approval used. Parent-workspace manifest `artifacts/AzerothKart/20261020-000615-459134/install.json`; prior addon preserved in verified `before/`. Disk build needs normal `/reload` at the owner's convenience. No other addon/WTF/SavedVariables edits, character actions, transport traffic, push/tag/release or automation.
 
 **Handoff:** focused local commit intended as `feat: finish three-lap solo runs with retained results`; inspect `git log` for hash. Client appearance/direct play and earlier M0 scale/focus/performance risks remain deferred, with no new blocker established. **Next single build task:** a fixed-step 3–2–1–GO countdown that holds spawn, starts lap/run timing at GO, displays a pooled cue and retains existing cancellation/restart semantics.
+
+### 2026-10-20 00:07–00:12 CEST (Europe/Oslo) — Codex / main, fixed-step countdown
+
+**Scope:** one local solo slice under ADR 0007. Canonical remote/main, clean starting HEAD `e3a6523` and repository-local PhilForever identity/useConfigOnly confirmed. Read persistent handoff, milestone criteria, accepted decisions and relevant source/tests before editing. M0/M1/M3 acceptance remains open; no roadmap checkbox promoted.
+
+**Built:** pure Race starts in `countdown` with 180 remaining ticks and no racing start tick. It validates consecutive finite integer tick pairs independently of lap progress, ignoring duplicates/gaps/invalid reports. Cues are fixed strings: 3 for remaining 180–121, 2 for 120–61 and 1 for 60–1. GO at tick 180 enters running, sets `startTick` and creates fresh Laps at that origin, still with zero race elapsed time. Race.cue retains GO for racing ticks 0–59 and hides it at tick 60. Countdown Stop/combat records an immutable terminal partial result with zero racing time; later calls retain it.
+
+UI samples held input into the existing reused table throughout countdown but supplies a separate reused neutral table to Physics. At the current zero-speed spawn, all fourteen physics fields except tick stay at their initial values. Tick 181 applies the actual held input; a multi-step callback crossing GO preserves this ordering. Physics/Loop/probe ticks stay unified and include countdown, while race/lap durations exclude it, dropped time and stopped time. A hitch that drops fixed steps can extend countdown wall time; no timer shortcut skips simulation. One preallocated centered font string shows phase changes outside the quarter-second HUD cadence with cached text writes, using an available large built-in font or the existing normal-font fallback. Counts are 8/110/13 in the unchanged 856×762 window. Stop hides the cue/releases input, canceled results stay frozen on reopen, and explicit Start/Restart begins all 180 countdown ticks again. Physics v5, input bindings, track geometry, Loop and eleven-module TOC order are unchanged. No new client API, UI allocation per tick, chat spam, persistence, ghosts or transport.
+
+| Command/check actually executed | Result and scope |
+|---|---|
+| `C:\Python314\python.exe scripts/test_lua.py --runtime lua51 --tests race ui` | PASS once — 27 Lua files parsed, two modules executed. Pure cue boundaries, exact GO origin, invalid/duplicate/gapped ticks, pre/post-GO cancellation/reset/nonzero origins and terminal retention passed. A connected synthetic 1,980-tick countdown plus three-lap run compared every Race/Laps/checkpoint field and cue at 30/60/144 render Hz. UI mocks check unchanged spawn fields through tick 180, sampled held/released inputs, first movement at 181, a three-step callback crossing GO, cached cue writes/hiding, zero-time cancellation via Stop/Escape/focus/combat, reopen/Restart and stable pooling. Existing driving fixtures now execute the real countdown; exact global-tick-192 finish still reports twelve racing ticks and stops remaining catch-up. No real-client countdown, input latency or handling result is claimed. |
+| `C:\Python314\python.exe scripts/validate_project.py` | PASS — 37 expected paths, synchronized eleven-module TOCs, protocol/docs links and header-only network ledger. |
+| `git diff --check` | PASS — whitespace check; CRLF-to-LF notices are informational. |
+| `C:\Python314\python.exe local-artifacts/install_verified_files.py` | PASS — complete prior fourteen-file addon backup verified before writes; only Race.lua, UI.lua and README_ADDON.md copied, all fourteen installed source SHA-256 values match. |
+| Full suite/10k-tick v5 replay, Lua 5.4, native Lua CLI, actual-client reload/countdown/finish/restart/layout/handling and broad scale/performance checks | NOT RUN this slice — deferred build-first cadence. No client availability conclusion or input attempt was made. |
+
+**Installation:** normal filesystem approval used. Parent-workspace manifest `artifacts/AzerothKart/20261020-001127-759404/install.json`; prior addon preserved in verified `before/`. Disk build needs normal `/reload` at the owner's convenience. No other addon/WTF/SavedVariables edits, character actions, packets, push/tag/release or automation.
+
+**Handoff:** focused local commit intended as `feat: add fixed-step countdown before solo races`; inspect `git log` for hash. Direct play/layout and earlier M0 scale/focus/performance checks remain deferred; no new blocker established. **Next single build task:** best completed lap within the current three-lap run, with lap number, earliest-lap ties, frozen partial/result retention and fresh-run reset; no persistence yet.

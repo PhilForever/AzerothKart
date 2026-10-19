@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — fixed-tick start countdown (2026-10-20)
+- Start each three-lap solo run with 180 fixed ticks of 3–2–1 and a GO cue. The kart stays at spawn with neutral physics input while actual held controls are sampled; GO resets the Race/Laps timing origin, and driving begins on the following tick.
+- Race/lap time excludes countdown, dropped time and stopped time; physics/loop/probe ticks include countdown. Dropped hitch ticks can extend countdown wall time without skipping it. GO remains visible for the first 60 racing ticks.
+- Stop/focus loss/combat cancels countdown with zero race elapsed time and retains the frozen result; a deliberate successful Restart begins a fresh countdown. One pooled center font string brings explicit allocations to 8/110/13 in the unchanged 856×762 window; physics stays v5 and exact three-lap finishing is unchanged.
+- Focused Race/UI coverage accompanies the slice; exact executed results belong in PROGRESS. Countdown appearance/handling and other client checks remain NOT RUN; M0/M1/M3 acceptance stays open. No persistence, best record, ghosts or networking is added.
+
 ## Unreleased — three-lap solo finish (2026-10-20)
 - Add a pure Race wrapper around Laps with running, finished, stopped and interrupted outcomes, fixed three-lap completion and integer total ticks. Terminal state is retained unchanged; no repeated finish or post-finish simulation is accepted.
 - Stop catch-up after the counted finish step, account for unexecuted whole ticks as dropped time and retain the fractional clock remainder. An ordinary early finish does not manufacture a hitch frame.

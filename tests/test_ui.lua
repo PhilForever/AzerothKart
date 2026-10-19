@@ -166,6 +166,15 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     assert(ok,err)
 end
 
+local countdownTicks=180
+local function finishCountdown(UI)
+    assert(UI.active and UI.race.status=="countdown","fixture must enter the real countdown")
+    for _=1,countdownTicks do UI.OnUpdate(1/60) end
+    assert(UI.race.status=="running" and UI.race.startTick==countdownTicks and
+           UI.race.totalTicks==0 and UI.state.tick==countdownTicks,
+        "fixture consumes the actual fixed-step countdown without resetting clock or state")
+end
+
 -- Check the actual static rectangles, rather than a second copy of the drawing
 -- formula. Row sampling can differ from the analytical edge by at most half a
 -- band vertically; samples farther than 3.5 units away must classify identically.
@@ -244,7 +253,7 @@ withMock(nil, false, function(env,UI)
             "thin wall strips follow the canvas perimeter")
         assert(wall.item.colorWrites==1,"static wall color is configured once")
     end
-    assert(UI.objects.frames==8 and UI.objects.textures==110 and UI.objects.fontStrings==12,
+    assert(UI.objects.frames==8 and UI.objects.textures==110 and UI.objects.fontStrings==13,
         "pooled run summary, lap/checkpoint HUD, drift meter and walls match the explicit UI object budget")
     local function covered(rectangles,x,y)
         for _,rect in ipairs(rectangles) do
@@ -282,6 +291,121 @@ withMock(nil, false, function(env,UI)
         :format(#outer,#inner,checked)
 end)
 originalPrint(renderSummary.." (client appearance still pending)")
+
+-- Countdown cues follow fixed ticks independently of the timing HUD. Actual
+-- controls are sampled, while neutral physics prevents pre-start preparation.
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    assert(not UI.countdownCue:IsShown(),"cold creation keeps the countdown cue hidden")
+    UI.Toggle(); UI.Start()
+    local Physics,Track=env.namespace.Physics,env.namespace.Track
+    local dt=Physics.FIXED_DT
+    local spawn=Physics.new(Track)
+    local counts={}
+    for key,value in pairs(env.counts) do counts[key]=value end
+    local function neutral(label)
+        for field,value in pairs(spawn) do
+            if field~="tick" then assert(UI.state[field]==value,label..": changed spawn "..field) end
+        end
+    end
+    local function advance(ticks)
+        for _=1,ticks do UI.OnUpdate(dt) end
+    end
+    local function cue(value)
+        assert(UI.countdownCue:IsShown() and UI.countdownCue.text==value,
+            "expected visible countdown cue "..value)
+    end
+    assert(UI.race.status=="countdown" and UI.race.startTick==nil and UI.race.totalTicks==0 and
+           UI.state.tick==0 and not UI.summary:IsShown(),"Start begins an untimed pre-start phase")
+    assert(UI.countdownCue.point[1]=="CENTER" and UI.countdownCue.point[2]==UI.canvas,
+        "preallocated countdown cue sits in the canvas center")
+    cue("3")
+    env.key(UI,"OnKeyDown","W"); env.key(UI,"OnKeyDown","A"); env.key(UI,"OnKeyDown","SPACE")
+    local input=UI.input
+    local writes=UI.countdownCue.textWrites
+    advance(59); cue("3"); neutral("first countdown second")
+    assert(UI.input==input and input.accelerate and input.left and input.drift,
+        "held controls are sampled into the reused input table during countdown")
+    UI.OnUpdate(0)
+    assert(UI.countdownCue.textWrites==writes,"unchanged cue avoids repeated text writes")
+    advance(1); cue("2"); neutral("second countdown cue")
+    advance(59); cue("2")
+    advance(1); cue("1"); neutral("third countdown cue")
+    advance(59); cue("1"); neutral("last pre-start tick")
+    assert(UI.state.tick==179 and UI.race.totalTicks==0 and UI.checkpoints.passed==0 and
+           UI.laps.completedLaps==0,"pre-start ticks award no course progress or race time")
+    advance(1); cue("GO"); neutral("GO transition tick")
+    assert(UI.state.tick==180 and UI.clock.steps==180 and UI.race.status=="running" and
+           UI.race.startTick==180 and UI.race.totalTicks==0 and UI.laps.lapStartTick==180 and
+           UI.checkpoints.lastTick==180,"GO shares the global tick and starts fresh lap timing")
+    advance(1)
+    assert(UI.state.tick==181 and UI.race.totalTicks==1 and UI.state.speed>0 and
+           UI.state.steering>0 and UI.state.driftTicks==0 and UI.state.boostTicks==0,
+        "held controls first affect the tick after GO without stored steering or drift charge")
+    writes=UI.countdownCue.textWrites
+    advance(58); cue("GO")
+    assert(UI.race.totalTicks==59 and UI.countdownCue.textWrites==writes,
+        "GO stays visible and cached for the first 59 driving ticks")
+    advance(1)
+    assert(UI.race.totalTicks==60 and not UI.countdownCue:IsShown(),
+        "GO hides after one simulated driving second")
+    writes=UI.countdownCue.textWrites; UI.OnUpdate(0)
+    assert(UI.countdownCue.textWrites==writes,"hidden cue also avoids repeated text writes")
+    UI.Stop("countdown controls fixture")
+
+    -- One render callback spans neutral GO and two actual held-input ticks.
+    UI.Start(); advance(179)
+    env.key(UI,"OnKeyDown","W"); env.key(UI,"OnKeyDown","A"); env.key(UI,"OnKeyDown","SPACE")
+    UI.OnUpdate(3*dt)
+    local reference=Physics.new(Track)
+    local empty,held={}, {accelerate=true,left=true,drift=true}
+    for _=1,180 do reference=Physics.step(reference,empty,dt,Track) end
+    for _=1,2 do reference=Physics.step(reference,held,dt,Track) end
+    for field,value in pairs(reference) do
+        assert(UI.state[field]==value,"catch-up crossed GO incorrectly for "..field)
+    end
+    assert(UI.clock.steps==182 and UI.clock.lastSteps==3 and UI.race.totalTicks==2 and
+           UI.clock.droppedSeconds==0,"catch-up applies countdown and driving in exact tick order")
+    UI.Stop("held GO fixture")
+    UI.Start(); env.key(UI,"OnKeyDown","W"); env.key(UI,"OnKeyDown","SPACE")
+    advance(179)
+    env.key(UI,"OnKeyUp","W"); env.key(UI,"OnKeyUp","SPACE")
+    UI.OnUpdate(3*dt); neutral("released before GO")
+    assert(UI.state.tick==182 and not UI.input.accelerate and not UI.input.drift,
+        "keys released before GO cannot produce stored throttle or drift")
+    UI.Stop("released GO fixture")
+
+    for _,exit in ipairs({"Stop","Escape","focus","combat"}) do
+        UI.Start(); env.key(UI,"OnKeyDown","W"); advance(17)
+        if exit=="Stop" then UI.Stop("countdown stopped")
+        elseif exit=="Escape" then env.key(UI,"OnKeyDown","ESCAPE")
+        elseif exit=="focus" then env.focused=false; UI.OnUpdate(dt); env.focused=true
+        else env.combat=true; env.fire("PLAYER_REGEN_DISABLED") end
+        assert(not UI.active and not UI.countdownCue:IsShown() and next(UI.keys)==nil and
+               not UI.input.accelerate and UI.race.totalTicks==0 and UI.race.startTick==nil and
+               UI.race.laps.completedLaps==0 and UI.checkpoints.passed==0 and
+               UI.summary:IsShown(),exit..": cancellation retains zero race time and releases controls")
+        assert(UI.race.status==(exit=="combat" and "interrupted" or "stopped"),
+            exit..": cancellation records its actual terminal state")
+        local race,clock=UI.race,UI.clock
+        local output=#env.output
+        UI.OnUpdate(1)
+        if exit=="combat" then env.combat=false; env.fire("PLAYER_REGEN_ENABLED") end
+        if not UI.window:IsShown() then UI.Toggle() end
+        assert(UI.race==race and UI.clock==clock and not UI.active and
+               not UI.countdownCue:IsShown() and #env.output==output,
+            exit..": inactive update and reopen cannot resume the cancelled countdown")
+        UI.restartButton.scripts.OnClick(UI.restartButton)
+        assert(UI.active and UI.state.tick==0 and UI.race.status=="countdown" and
+               UI.race.totalTicks==0 and UI.race.startTick==nil and not UI.summary:IsShown(),
+            exit..": explicit Restart creates a complete fresh countdown")
+        cue("3"); neutral(exit.." restart")
+        UI.Stop("next cancellation fixture")
+    end
+    for key,value in pairs(counts) do
+        assert(env.counts[key]==value,"countdown/cancel/restart allocated UI objects: "..key)
+    end
+end)
 
 -- Consecutive directional checkpoints award repeatable fixed-tick laps. Finish
 -- feedback is immediate, while the running lap clock shares the throttled HUD.
@@ -340,6 +464,7 @@ withMock(nil,false,function(env,UI)
         UI.state.speed=200; UI.state.steering=0
         UI.OnUpdate(Physics.FIXED_DT)
     end
+    finishCountdown(UI)
     cross(3)
     assert(UI.checkpoints.passed==0,"crossing South before North cannot skip the ordered course")
     cross(1)
@@ -362,10 +487,11 @@ withMock(nil,false,function(env,UI)
         "render-only and irrelevant crossings do not rewrite checkpoint text")
     for index=2,4 do cross(index) end
     local firstFinishTick=UI.state.tick
-    assert(UI.laps.completedLaps==1 and UI.laps.lastLapTicks==firstFinishTick and
+    local firstLapTicks=firstFinishTick-countdownTicks
+    assert(UI.laps.completedLaps==1 and UI.laps.lastLapTicks==firstLapTicks and
            UI.laps.currentLapTicks==0 and UI.laps.lastFinishTick==firstFinishTick and
            UI.laps.lapStartTick==firstFinishTick,
-        "first ordered circuit records its exact duration from Start tick zero")
+        "first ordered circuit records its exact duration from the GO tick")
     assert(not UI.checkpoints.complete and UI.checkpoints.passed==0 and
            UI.checkpoints.nextGate==1 and UI.checkpoints.lastTick==firstFinishTick and
            UI.checkpoints==UI.laps.checkpoints and UI.active and UI.result==nil,
@@ -374,14 +500,14 @@ withMock(nil,false,function(env,UI)
         return ("Laps: %d | Current: %.2fs | Last: %.2fs"):format(
             completed,current*Physics.FIXED_DT,last*Physics.FIXED_DT)
     end
-    assert(UI.lapHud.text==lapCaption(1,0,firstFinishTick),
+    assert(UI.lapHud.text==lapCaption(1,0,firstLapTicks),
         "finish refreshes exact lap feedback before the periodic HUD interval")
     assert(UI.checkpointHud.text=="Checkpoints: 0/4 | Next: North",
         "a completed lap displays the next circuit's first required gate")
     gateColor(1,.98,.93,.45,.9)
     for index=2,4 do gateColor(index,.55,.58,.62,.65) end
     cross(4); cross(1,true)
-    assert(UI.laps.completedLaps==1 and UI.laps.lastLapTicks==firstFinishTick and
+    assert(UI.laps.completedLaps==1 and UI.laps.lastLapTicks==firstLapTicks and
            UI.checkpoints.passed==0,
         "duplicate Start crossings and wrong-way North cannot award another lap")
     local lapWrites=UI.lapHud.textWrites
@@ -397,7 +523,7 @@ withMock(nil,false,function(env,UI)
     local secondFinishTick=UI.state.tick
     local secondLapTicks=secondFinishTick-firstFinishTick
     assert(UI.laps.completedLaps==2 and UI.laps.lastLapTicks==secondLapTicks and
-           secondLapTicks~=firstFinishTick and UI.laps.currentLapTicks==0 and
+           secondLapTicks~=firstLapTicks and UI.laps.currentLapTicks==0 and
            UI.laps.lastFinishTick==secondFinishTick and
            UI.laps.lapStartTick==secondFinishTick and
            UI.lapHud.text==lapCaption(2,0,secondLapTicks),
@@ -455,9 +581,9 @@ withMock(nil,false,function(env,UI)
     local dt=Physics.FIXED_DT
     local counts={}
     for key,value in pairs(env.counts) do counts[key]=value end
-    assert(UI.race.status=="running" and UI.race.targetLaps==3 and
+    assert(UI.race.status=="countdown" and UI.race.targetLaps==3 and
            UI.laps==UI.race.laps and UI.checkpoints==UI.laps.checkpoints,
-        "deliberate Start creates one three-lap run with shared lap/checkpoint samples")
+        "deliberate Start creates a countdown with shared lap/checkpoint samples")
     assert(not UI.summary:IsShown(),"running drive keeps the pooled summary hidden")
     local function cross(index,elapsed)
         local gate=Track.gates[index]
@@ -468,6 +594,7 @@ withMock(nil,false,function(env,UI)
         UI.state.speed=200; UI.state.steering=0
         UI.OnUpdate(elapsed or dt)
     end
+    finishCountdown(UI)
     env.key(UI,"OnKeyDown","W"); env.key(UI,"OnKeyDown","SPACE")
     for lap=1,3 do
         for index=1,4 do
@@ -479,21 +606,21 @@ withMock(nil,false,function(env,UI)
         end
     end
     local race,result,clock,pose=UI.race,UI.result,UI.clock,UI.state
-    assert(not UI.active and race.status=="finished" and race.finishTick==12 and
+    assert(not UI.active and race.status=="finished" and race.finishTick==countdownTicks+12 and
            race.totalTicks==12 and race.laps.completedLaps==3 and
-           race.laps.lastLapTicks==4 and pose.tick==12,
-        "the third directional finish freezes the exact twelfth tick and all three laps")
+           race.laps.lastLapTicks==4 and pose.tick==countdownTicks+12,
+        "the third directional finish freezes the twelfth driving tick and all three laps")
     assert(result.status=="finished" and result.reason=="Three-lap run complete" and
-           result.tick==12 and result.totalTicks==12 and result.completedLaps==3,
+           result.tick==countdownTicks+12 and result.totalTicks==12 and result.completedLaps==3,
         "finish result exposes actual terminal lap/time values")
-    assert(clock.steps==12 and clock.lastSteps==1 and clock.hitchFrames==0 and
+    assert(clock.steps==countdownTicks+12 and clock.lastSteps==1 and clock.hitchFrames==0 and
            math.abs(clock.droppedSeconds-2*dt)<1e-10 and math.abs(clock.accumulator)<1e-10,
         "finish stops remaining catch-up ticks and accounts for them without a false hitch")
     assert(math.abs(clock.steps*dt+clock.droppedSeconds+clock.accumulator-
            clock.elapsedSeconds)<1e-10,"finish frame retains complete elapsed accounting")
     assert(UI.window.keyboard==false and UI.window.propagate and next(UI.keys)==nil and
-           not UI.input.accelerate and not UI.input.drift,
-        "automatic finish releases held and sampled controls")
+           not UI.input.accelerate and not UI.input.drift and not UI.countdownCue:IsShown(),
+        "automatic finish releases held/sampled controls and hides the start cue")
     assert(UI.previousState==pose and UI.kart.point[4]==pose.x and UI.kart.point[5]==pose.y and
            UI.kart.rotation==pose.heading-math.pi/2,
         "automatic finish renders the exact terminal pose")
@@ -514,7 +641,7 @@ withMock(nil,false,function(env,UI)
     local finishReason,finishHud=UI.stopReason,UI.hud.text
     UI.OnUpdate(1); UI.Stop("later ordinary stop"); UI.Toggle(); UI.Toggle()
     assert(UI.race==race and UI.result==result and UI.clock==clock and UI.state==pose and
-           UI.state.tick==12 and UI.stopReason==finishReason and UI.hud.text==finishHud and
+           UI.state.tick==countdownTicks+12 and UI.stopReason==finishReason and UI.hud.text==finishHud and
            UI.summary:IsShown() and UI.summaryTitle.text=="RUN COMPLETE",
         "inactive updates, Stop, close and reopen retain the same completed run")
     local closeButton
@@ -535,16 +662,18 @@ withMock(nil,false,function(env,UI)
         "refused text-focus Start preserves the same completed summary")
     env.focus=nil
     UI.restartButton.scripts.OnClick(UI.restartButton)
-    assert(UI.active and UI.race~=race and UI.race.status=="running" and
+    assert(UI.active and UI.race~=race and UI.race.status=="countdown" and
            UI.result==nil and UI.state.tick==0 and UI.clock~=clock and
            UI.laps==UI.race.laps and UI.laps.completedLaps==0 and not UI.summary:IsShown(),
         "summary Restart begins a fresh run and hides the retained result")
+    finishCountdown(UI)
     cross(1); UI.Stop("partial run fixture")
     assert(UI.race.status=="stopped" and UI.race.totalTicks==1 and
            UI.race.laps.completedLaps==0 and UI.checkpoints.passed==1 and
            UI.summary:IsShown() and UI.summaryTitle.text=="RUN STOPPED",
         "ordinary Stop displays actual partial progress without a finish award")
     UI.restartButton.scripts.OnClick(UI.restartButton)
+    finishCountdown(UI)
     cross(1); env.combat=true; env.fire("PLAYER_REGEN_DISABLED")
     local interrupted=UI.race
     assert(interrupted.status=="interrupted" and interrupted.totalTicks==1 and
@@ -575,12 +704,14 @@ withMock(nil,false,function(env,UI)
     end
     assert(UI.previousState==UI.state,"fresh Start collapses interpolation history")
     exactPose("fresh Start")
+    finishCountdown(UI)
     local counts={}
     for key,value in pairs(env.counts) do counts[key]=value end
     env.key(UI,"OnKeyDown","W"); env.key(UI,"OnKeyDown","A")
     local dt=env.namespace.Physics.FIXED_DT
     UI.OnUpdate(dt*1.5)
-    assert(UI.state.tick==1 and UI.previousState.tick==0,"first tick retains its predecessor")
+    assert(UI.state.tick==countdownTicks+1 and UI.previousState.tick==countdownTicks,
+        "first driving tick retains its GO predecessor")
     local previous,current=UI.previousState,UI.state
     local function blended(alpha)
         close(UI.kart.point[4],previous.x+(current.x-previous.x)*alpha,"blended x")
@@ -592,7 +723,8 @@ withMock(nil,false,function(env,UI)
     local snapshot={}
     for key,value in pairs(current) do snapshot[key]=value end
     UI.OnUpdate(dt*0.25)
-    assert(UI.clock.lastSteps==0 and UI.clock.steps==1 and UI.clock.frames==2 and
+    assert(UI.clock.lastSteps==0 and UI.clock.steps==countdownTicks+1 and
+           UI.clock.frames==countdownTicks+2 and
            UI.state==current and UI.previousState==previous,
         "zero-step render advances the blend without replacing simulation history")
     blended(0.75)
@@ -630,6 +762,9 @@ for _,fps in ipairs({30,60,144}) do
         UI.Toggle(); UI.Start()
         local Physics,Track=env.namespace.Physics,env.namespace.Track
         local reference=Physics.new(Track)
+        local neutral={}
+        for _=1,countdownTicks do reference=Physics.step(reference,neutral,Physics.FIXED_DT,Track) end
+        finishCountdown(UI)
         local controls={accelerate=true,left=true,drift=true}
         for _=1,120 do reference=Physics.step(reference,controls,Physics.FIXED_DT,Track) end
         env.key(UI,"OnKeyDown","W"); env.key(UI,"OnKeyDown","A")
@@ -646,8 +781,9 @@ for _,fps in ipairs({30,60,144}) do
             assert(UI.state[field]==reference[field],
                 "render cadence changed simulation field "..field.." at "..fps.." FPS")
         end
-        assert(UI.clock.frames==2*fps and UI.clock.steps==120 and UI.clock.droppedSeconds==0 and
-               math.abs(UI.clock.accumulator)<1e-10 and math.abs(UI.clock.elapsedSeconds-2)<1e-10,
+        assert(UI.clock.frames==countdownTicks+2*fps and UI.clock.steps==countdownTicks+120 and
+               UI.clock.droppedSeconds==0 and math.abs(UI.clock.accumulator)<1e-10 and
+               math.abs(UI.clock.elapsedSeconds-5)<1e-10,
             "interpolation leaves fixed-step clock accounting intact at "..fps.." FPS")
         UI.Stop("cadence fixture done")
     end)
@@ -661,6 +797,7 @@ withMock(nil,false,function(env,UI)
     local counts={}
     for key,value in pairs(env.counts) do counts[key]=value end
     assert(UI.driftHud.text:find("Drift:",1,true),"fresh Start shows drift controls")
+    finishCountdown(UI)
     UI.state.speed=150
     env.key(UI,"OnKeyDown","W")
     env.key(UI,"OnKeyDown","A")
@@ -782,6 +919,7 @@ withMock(nil,false,function(env,UI)
     UI.Toggle(); UI.Start()
     assert(UI.state.surface=="road" and UI.driftHud.text:find("Road | Drift:",1,true),
         "fresh drive reports road controls")
+    finishCountdown(UI)
     local counts={}
     for key,value in pairs(env.counts) do counts[key]=value end
     local walls={}
@@ -799,13 +937,14 @@ withMock(nil,false,function(env,UI)
            UI.driftHud.text:find("Rejoin the road",1,true),
         "drivable grass has visible feedback in the retained sample")
     UI.Start()
+    finishCountdown(UI)
     UI.state.x=env.namespace.Track.wallInset; UI.state.y=240
     UI.state.heading=math.pi; UI.state.speed=120
     UI.OnUpdate(1/60)
     UI.Stop("wall fixture")
     assert(UI.state.surface=="wall" and UI.driftHud.text:find("Last drive | Wall |",1,true),
         "wall contact has visible feedback in the retained sample")
-    UI.Start(); UI.OnUpdate(1/60); UI.Stop("surface fixture done")
+    UI.Start(); finishCountdown(UI); UI.OnUpdate(1/60); UI.Stop("surface fixture done")
     for key,value in pairs(counts) do
         assert(env.counts[key]==value,"surface feedback allocates no additional UI objects: "..key)
     end
@@ -821,7 +960,7 @@ for _,mode in ipairs({"missing", "throws"}) do
         env.fire("ADDON_LOADED","AzerothKart")
         UI.Toggle(); UI.Start(); UI.OnUpdate(1/60)
         assert(UI.active and UI.state.tick==1,"optional snapping APIs cannot block driving: "..mode)
-        assert(UI.objects.frames==8 and UI.objects.textures==110 and UI.objects.fontStrings==12,
+        assert(UI.objects.frames==8 and UI.objects.textures==110 and UI.objects.fontStrings==13,
             "snapping fallback preserves UI object budget: "..mode)
         assert(env.drawLayerCalls==1,"grass priority remains explicit when snapping is unavailable: "..mode)
     end,nil,mode)
@@ -882,6 +1021,7 @@ withMock({schemaVersion=1, custom={keep=true}}, false, function(env,UI)
     assert(not UI.active,"text input focus prevents Start capture")
     env.focus=nil
     start()
+    finishCountdown(UI)
     env.key(UI,"OnKeyDown","W")
     env.key(UI,"OnKeyDown","UP")
     env.key(UI,"OnKeyUp","W")
@@ -1096,8 +1236,8 @@ withMock(nil, false, function(env,UI)
     assert(UI.state.tick==1 and UI.hud.text:find("Ticks: 0",1,true),
         "active HUD updates stay throttled")
     UI.Stop("timing sample")
-    assert(UI.hud.text:find("Ticks: 1",1,true) and UI.hud.text:find("Speed: 3",1,true),
-        "Stop flushes final tick/speed even before the next HUD interval")
+    assert(UI.hud.text:find("Ticks: 1",1,true) and UI.hud.text:find("Speed: 0",1,true),
+        "Stop flushes final tick and neutral countdown speed before the next HUD interval")
     local clock=UI.clock
     assert(math.abs(clock.accumulator-0.004)<1e-10,"Stop retains final fractional remainder")
     assert(math.abs(clock.elapsedSeconds-clock.steps*clock.dt-clock.droppedSeconds-clock.accumulator)<1e-10,
@@ -1172,7 +1312,7 @@ withMock(nil, false, function(env,UI)
     assert(math.abs(sample.simulationMs-6)<1e-8 and math.abs(sample.renderMs-6)<1e-8 and
            math.abs(sample.totalMs-12)<1e-8,"profile phases accumulate known mock milliseconds")
     assert(#env.output==before,"sampling/completion never prints per-frame chat")
-    assert(UI.objects.frames==8 and UI.objects.textures==110 and UI.objects.fontStrings==12,
+    assert(UI.objects.frames==8 and UI.objects.textures==110 and UI.objects.fontStrings==13,
         "profiling creates no UI objects")
     local state={}
     for key,value in pairs(UI.state) do state[key]=value end
