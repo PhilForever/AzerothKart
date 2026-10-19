@@ -7,7 +7,7 @@
 ### M0. Repository and API proof (CURRENT)
 - [x] Run Python project validation + Lua syntax/runtime tests; address failures. (2026-10-18: structural validator and complete offline suite in Lua 5.1/5.4; client checks remain open.)
 - [x] Confirm actual TOC/interface/flavor and addon load; record build. (2026-10-18 live: 1.60.1/70450, interface 16001, project ID 18, Camelot TOC.)
-- [ ] Render test window and drive prototype with keys in actual Forever.
+- [x] Render test window and drive prototype with keys in actual Forever. (2026-10-19: owner completed a near-minute drive; stopped tick 3492, displaced/rotated kart and matching HUD/probe observed. [Evidence](evidence/2026-10-19-m0-client.md); full timing/focus gates remain open.)
 - [ ] Verify focus, escape, click-away, chat, combat start, /reload and normal WoW controls restored.
 - [ ] Measure frame performance and verify bounded UI allocations.
 **Exit:** all results recorded in F1/F2/F5, no taint and no stuck keyboard; offline tests passing in real Lua runtime.

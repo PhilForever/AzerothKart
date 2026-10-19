@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — stopped-window combat closure (2026-10-19)
+- Handle combat onset even after a test drive has stopped; hide the open window without changing its completed timing/result or announcing another interruption.
+- Lua 5.1/5.4 regressions cover pre-Start/stopped/interrupted windows, duplicate events, preserved samples and no automatic resume. Installed with a verified backup; reload/live verification pending.
+- Record two human near-minute driving samples with matching stopped HUD, no dropped simulation time and stable explicit UI counts; full M0 acceptance remains open.
+
 ## Unreleased — retained interruption note (2026-10-19)
 - Keep the combat interruption note through repeated closes/reopens and rejected Start attempts; display the refusal alongside the note.
 - Regression coverage checks frozen results/timing, no duplicate notification or resume, and clean reset on a successful fresh Start. Source-only; extended client check remains pending.

@@ -1,7 +1,7 @@
 # PROGRESS — persistent project handoff
 
 **Current milestone:** M0 — repository and actual-client/API feasibility. **OPEN.**
-**Current state (2026-10-19, latest session ~02:26 CEST):** the owner reported WoW running; desktop inventory confirmed it despite an empty shell process scan. Source through `2a5b8e8` is now installed with a verified prior-addon backup and all nine installed hashes match. Normal reload, rendering and the new inactive timing/HUD baseline were observed in build 70450/Camelot; UI counts remain 6/99/3. Seven offline tests pass in Lua 5.1/5.4. The first human-controlled 60-second drive was requested; no completed drive result is recorded yet. See [new client evidence](evidence/2026-10-19-m0-client.md). Timed driving, extended retained-note/lifecycle checks and persistence keep M0 open. Simultaneous W/Up remains SKIPPED at owner request.
+**Current state (2026-10-19, latest session ~02:43 CEST):** two human near-minute samples captured: 58.2120/62.6020 active frame seconds, 3492/3756 ticks, no dropped time, matching stopped HUD and UI counts 6/99/3. During sample 2's inactive readback the character was attacked and died while the stopped window remained visible. Source ignored combat events when inactive; that gap is reproduced/fixed offline and installed on disk with verified backup/nine hashes. **No reload after this fix; in-memory code is still the previous probe.** Third drive is ON HOLD pending reload/stopped-window combat verification. No character/combat/death-dialog actions were automated. Full F1/F2/F5 remain open. See [client evidence](evidence/2026-10-19-m0-client.md). Simultaneous W/Up remains SKIPPED at owner request.
 
 ## Canonical checkout and commits
 
@@ -16,6 +16,7 @@ Remote: `https://github.com/PhilForever/AzerothKart.git`; branch `main`. The pac
 - `2825ba3` — `fix: preserve complete M0 timing samples`.
 - `fc7f339` — `fix: verify and back up repeatable local installs`.
 - `2a5b8e8` — `fix: retain combat outcome through rejected restarts`.
+- `364a245` — `docs: record updated M0 install and live baseline`.
 
 Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.useConfigOnly=true`; verified in config and commit authors. Global identity was left unchanged. No push, tag, distribution or automation was performed. The later client-check session installed only AzerothKart in the local Forever AddOns folder and verified all nine files against source SHA-256. Ignored `local-artifacts/` contains developer dependencies/logs and synthetic install fixtures/backups; it is not staged.
 
@@ -33,6 +34,8 @@ Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.u
 - [x] Explicit `/akart probe` / Print Probe reports identity, input capabilities, event-registration failures, clock metrics, last stop reason and explicit UI object counts. No per-tick chat or UI object creation.
 - [x] Source timing aid: cumulative valid active frame seconds, executed simulation seconds and callback cadence; complete stopped elapsed/drop/remainder accounting and immediate Start/Stop HUD refresh. Offline tested and installed; zeroed live baseline observed, with timed/final-sample acceptance pending.
 - [x] 2026-10-19 installation/reload baseline: prior addon backed up, two changed files copied and all nine installed SHA-256 values verified twice; updated zeroed timing/HUD fields rendered inactive. Timed drive/final-sample acceptance remains pending.
+- [x] Two human drives: ticks 3492/3756, active seconds 58.2120/62.6020, no dropped time, matching HUD and explicit counts 6/99/3. Delayed probes remained frozen; sample 1 also retained numbers across slash close/reopen. Third sample/external durations/full F1 remain pending.
+- [x] Stopped-window combat source gap reproduced and fixed: combat-start event hides inactive window while preserving its sample/result/reason, without another interruption announcement. New never-started/stopped/interrupted fixtures pass Lua 5.1/5.4. Disk install verified; reload/live fix verification NOT RUN.
 - [x] Retained interruption note through repeated Close/toggle/reopen, inactive Stop and rejected Start; actual refusal text is also visible. Regression checks retain the same result/state/clock/HUD and clear the note only on a successful fresh Start. Offline only; extended client sequence pending.
 - [x] Local installer fixture slice: direct per-file repeat copies, verified old-file backup before target writes, copied SHA-256 verification, explicit overwrite/preview and failure records. PowerShell 7: 18 cases passed, 3 junction fixtures skipped; PowerShell 5.1 syntax passed, runtime blocked. No live install performed.
 - [x] Exact installed-client manual probes and header-only F4 experiment ledger prepared; no network code/traffic or multiplayer claim.
@@ -43,7 +46,8 @@ Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.u
 - [x] Core client control smoke: Start mouse-down/OnClick ordering, Escape/menu, Close/reopen, Enter/chat, Stop, idle Alt-Tab, map binding, canvas click, UI hide/show and clean inactive reload observed. This does not mark every held-input/overlapping-panel/world-transition case passed; see the checklist's exact scope.
 - [x] Owner's real combat smoke: window closed, interruption message appeared, WoW controls worked. Once-only handling and retained results pass offline; exact repeated-notification count, reopen and full taint audit remain live follow-ups. Restricted propagation setters remain guarded; no bypass is used.
 - [ ] `IsGameWindowFocused` and `IsWindowFocused` are both absent on build 70450. An idle Alt-Tab trial stayed stopped after >=5 seconds away through the unknown-key path. Held-key release outside the application and other application-switch routes remain unverified; do not mark full F2 passed.
-- [ ] Actual rendering, rotation, UI scale, FPS/CPU cost, long-session behavior and memory. Mock counters measure explicit addon allocations only, not client/template internals or real performance.
+- [ ] Remaining UI-scale/layout, sustained FPS/CPU cost, long-session behavior and memory. Basic kart movement/rotation is observed; mock/live counters measure explicit addon allocations only, not client/template internals or whole-client performance.
+- [ ] Stopped-window combat-close live follow-up after reload. During the second readback the inactive window stayed visible through unplanned attack/death. Source event guard explains a gap; actual event delivery was uninstrumented, so no API contradiction is established. Fixed source is installed on disk only; third drive is on hold.
 - [ ] Logout/full restart and isolated sentinel persistence. Clean inactive `/reload` is observed; minimal schema initialization is not proof of a save, migration or settings/ghost support.
 - [ ] Direct handling/play evaluation. Analytical metrics are a baseline only; no M1 game-feel acceptance.
 - [ ] Two-client transport measurements, reconnect and architecture ADR. No runtime bandwidth, loss, throttle or latency results exist.
@@ -52,7 +56,7 @@ Initial file-only evidence: `_classic_beta_\WowB.exe` reports `1.60.1.70450`; `.
 
 ## Next exact task
 
-**Next exact task: capture the first M0 F1 timed drive.** The tested source is installed and the live kart window is open/inactive. The owner was asked to click Start, drive/steer for about 60 seconds, press Escape, click Print Probe and report completion/responsiveness. UI input is left untouched during that handoff. Capture the resulting stopped probe before starting another drive; then complete the remaining two samples from section 3 of `tests/MANUAL_CLIENT_CHECKLIST.md`. No drive is a pass until evidence exists. Keep lifecycle/persistence cases pending; do not automate WoW character movement/combat or request the skipped simultaneous W/Up combination. M0 remains open.
+**Next exact task: reload and verify stopped-window combat closure when the owner is ready.** The fixed UI.lua is installed with verified hashes but has not been loaded into the running client. Follow the new `Combat after Stop` row in `tests/MANUAL_CLIENT_CHECKLIST.md`: preserve a stopped probe, arrange combat only through owner-controlled normal play when practical, confirm the window hides and the sample is retained without another interrupted-drive announcement; verify no automatic resume. Do not touch character recovery or automate combat. Leave unavailable cases NOT RUN. Only after this check resume sample 3. Full M0 remains open; do not request the skipped simultaneous W/Up combination.
 
 ## Session handoff log
 
@@ -227,3 +231,52 @@ The helper performs no deletion or automatic rollback. A failure after copying s
 **Git:** focused documentation/evidence commit intended as `docs: record updated M0 install and live baseline`; inspect `git log` for its hash. The installed addon source remains the tested files from `2a5b8e8`.
 
 **Next exact task:** capture the owner's first stopped timed-drive probe, then complete samples 2 and 3 before choosing further M0 work.
+
+### 2026-10-19 02:35 CEST (Europe/Oslo) — Codex / main, first human drive
+
+**Objective:** capture the owner's `Done` reply to the first requested near-minute kart drive. Confirmed clean `main`, prior HEAD `364a245`, read current handoff/checklist, selected the unique returned WoW desktop window and activated it. No installed/source code changed, no reload or new deployment.
+
+**Observed sample 1:** owner-confirmed completion, with no separately reported handling rating or external timer. Stopped probe: frames=13171, ticks=3492, maxElapsed=0.0700, droppedSeconds=0.0000, hitchFrames=0, accumulator=0.01200, activeFrameSeconds=58.2120, simulatedSeconds=58.2000, callbackHz=226.26; UI=6 frames/99 textures/3 font strings; active=false, stopReason=Mouse click released controls, event failures=none. Build 70450/interface16001/Camelot and capability flags unchanged. Kart displacement/rotation from spawn was visible; stopped HUD tick matched 3492. Actual stop reason is mouse-click release; held Escape is not inferred from the brief reply.
+
+**Delayed lifecycle check:** ordinary `/akart` closed the window, which was visibly hidden; a second `/akart` reopened it inactive. A subsequent `/akart probe` retained all numeric fields and the same HUD tick without auto-resume. Only the ordinary stop reason changed to `Closed`. Local chat commands worked; no WoW character movement/combat was automated. Personal screenshots/chat were not committed.
+
+**Evidence/checks:**
+
+- Python arithmetic on printed values: PASS — `3492 / 60 = 58.2000`; `58.2000 + 0.01200 = 58.2120`; `13171 / 58.2120` rounds to `226.26`. This verifies printed internal accounting, not independent wall-clock accuracy or addon CPU cost.
+- `python scripts/validate_project.py`: PASS — 27 expected paths, TOCs, links and ledger.
+- `python scripts/test_lua.py`: PASS — actual embedded Lua 5.1/5.4, all 14 Lua files parsed and seven tests each; no Lua source changes this session.
+- `git diff --check`: PASS — whitespace.
+- Sample 2/3, external timer/handling rating, scaling/stress, extended combat-note/remaining F2 routes, F5 persistence and F4 networking: PENDING / NOT RUN; not established by one drive.
+
+Updated the sanitized [evidence ledger](evidence/2026-10-19-m0-client.md), F1 notes and manual checklist. Checked only the roadmap's basic render-and-drive criterion, supported by the owner's completion and actual moved/rotated kart with advancing ticks. Frame-performance/focus/full M0 gates remain unchecked.
+
+**Known visual follow-up:** the stopped kart was beyond the gray primitive road. Existing source confirms the painted tile oval and analytical drivable annulus differ: for example `(400,440)` is drivable while the gray tiles reach at most y=425. Keep visual/collision alignment as a prototype follow-up; no road/grass handling acceptance is claimed. Do not change the installed probe between the remaining measurement samples.
+
+**Handoff:** second near-minute drive requested, UI input left untouched. Source remained `2a5b8e8` at this point; no tag, push, release, deployment or network traffic. These first-sample documentation edits were still uncommitted when the second reply arrived; they are preserved in the focused follow-up below.
+
+**Next exact task:** capture sample 2's stopped probe, then request/capture sample 3 and update the F1 evidence before choosing further work.
+
+### 2026-10-19 02:43 CEST (Europe/Oslo) — Codex / main, second drive and stopped-window combat fix
+
+**Objective/state:** owner replied `Done.` to sample 2. Confirmed canonical `main`, HEAD `364a245`, and five existing first-sample documentation edits; preserved them. Selected the unique returned WoW window through the computer-use skill. Sample 2 showed a displaced/rotated kart and stopped HUD speed 179, tick 3756, Sample 62.6 s. Probe: frames=14326, ticks=3756, maxElapsed=0.0700, droppedSeconds=0.0000, hitchFrames=0, accumulator=0.00200, activeFrameSeconds=62.6020, simulatedSeconds=62.6000, callbackHz=228.84, UI counts=6/99/3, active=false, stopReason=Mouse click released controls; identity/capabilities unchanged. A delayed local `/akart probe` retained the same numbers/reason. External duration and handling feedback were unreported.
+
+**Unplanned live failure:** during this stopped readback the character was attacked and died while the window stayed visible. No character movement/combat or death-dialog action was automated. The event was not instrumented, so do not declare an API contradiction or claim the active-drive path failed. Source inspection found `HandleEvent` discarded combat-start events whenever inactive, and `InterruptCombat` returned before hiding an inactive window. Stopped-window closure is a real missing path consistent with the observation. Further driving is on hold for user review/live verification; no third drive was requested.
+
+**Plan/change:** preserve both measured samples, reproduce the inactive closure failure offline, then repair that path without changing physics or timing. Handle combat-start events before the active guard; inactive interruption hides an existing shown window, preserving the completed sample/result/HUD/reason and printing nothing. Existing active-drive terminal result/once-only note remains unchanged. Inactive OnUpdate remains idle so deliberate combat-time reopen can inspect the note and Start refusal. Added regressions for pre-load/nil window, never-started/stopped/interrupted UI, duplicate event/direct calls, every clock/state field, UI counts, guarded propagation, no duplicate output and no reopen/resume. Architecture/checklist/feasibility/evidence/README/changelog aligned. Only the basic render-and-drive roadmap box advances; M0 remains open.
+
+**Actually executed:**
+
+| Command/check | Actual result |
+|---|---|
+| `python scripts/test_lua.py --runtime lua51` before production fix | Expected FAIL — `never started: combat hides stopped window`; new regression reproduced the gap. Other six tests passed. |
+| `python scripts/test_lua.py` after fix | PASS — 14 Lua files parsed, seven tests each in actual embedded Lua 5.1/5.4; seeded 10k-tick replay/timing/active combat plus new inactive fixtures. Counts 6/99/3; zero mocked propagation setters in combat. |
+| Python arithmetic on both printed samples | PASS — sample 2: `3756/60=62.6000`; `62.6000+0.00200=62.6020`; `14326/62.6020` rounds to `228.84`. Sample 1 accounting also rechecked. Not independent timing/CPU evidence. |
+| `python scripts/validate_project.py` / `git diff --check` | PASS — final structural/docs/ledger and whitespace checks. |
+| Read-only delegated code/test/evidence review | No blocking findings; narrow stopped-result preservation and pending live scope verified. |
+| Backup/install SHA-256 verification | PASS — prior entire AzerothKart backed up/verified; only UI.lua copied, all nine installed files matched tested source. An independent read-only nine-file hash comparison also passed at 02:42 CEST. Manifest below. |
+| Native `lua tests/run.lua` | NOT RUN — no standalone runtime available; actual embedded runtimes above executed the suite. |
+| Reload/live verification of this fix; sample 3; held-input/extended combat/scale/stress/F5/F4 | NOT RUN / PENDING. Running client still has previous in-memory code. |
+
+**Deployment:** normal filesystem approval granted. Reused the inspected one-off verified Python file copier because the PowerShell helper's historical unsigned-script block remains; no policy/security change. Artifact: workspace `artifacts/AzerothKart/20261019-024015-566233/install.json`, verified prior files in `before/`. No other addon or WTF/SavedVariables edited. No reload after fix; client input left untouched for owner recovery. The timing/physics code was not changed, so both old-source samples remain valid with their recorded version context.
+
+**Git/handoff:** PhilForever repository-local identity reverified; focused commit intended as `fix: close stopped kart windows when combat begins` (inspect `git log` for hash). Includes the preserved first-sample evidence edits. No push, tag, release, network traffic or automation. Next exact task is the reload/stopped-window combat check above before sample 3; visual/collision alignment remains a separate M0 prototype follow-up.

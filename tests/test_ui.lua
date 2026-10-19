@@ -429,6 +429,69 @@ withMock(nil, false, function(env,UI)
     assert(#env.output==output,"active sampling and Stop do not print periodic chat")
 end)
 
+-- Combat onset must also clear an open stopped window. It is not a new
+-- interruption of a drive that already ended, and must retain its sample.
+for _,scenario in ipairs({"never started", "stopped", "interrupted"}) do
+    withMock(nil, false, function(env,UI)
+        env.combat=true; env.fire("PLAYER_REGEN_DISABLED")
+        assert(not UI.window,"combat before own load does not construct UI")
+        env.combat=false
+        env.fire("ADDON_LOADED","AzerothKart")
+        UI.Toggle()
+        if scenario~="never started" then
+            UI.Start()
+            env.key(UI,"OnKeyDown","W")
+            UI.OnUpdate(1/60+0.004)
+            if scenario=="interrupted" then
+                env.combat=true; env.fire("PLAYER_REGEN_DISABLED")
+                env.combat=false; env.fire("PLAYER_REGEN_ENABLED")
+                UI.Toggle()
+            else
+                UI.Stop("Mouse click released controls")
+            end
+        end
+        local clock, state, result=UI.clock, UI.state, UI.result
+        local reason, hud, status=UI.stopReason, UI.hud.text, UI.status.text
+        local counters, stateValues={}, {}
+        for key,value in pairs(clock or {}) do counters[key]=value end
+        for key,value in pairs(state) do stateValues[key]=value end
+        local output, allocations=#env.output, {}
+        for key,value in pairs(env.counts) do allocations[key]=value end
+        env.combat=true; env.fire("PLAYER_REGEN_DISABLED")
+        assert(not UI.window:IsShown(),scenario..": combat hides stopped window")
+        env.fire("PLAYER_REGEN_DISABLED"); UI.InterruptCombat(); UI.OnUpdate(1)
+        assert(not UI.active and UI.window.keyboard==false and next(UI.keys)==nil,
+            scenario..": combat leaves capture released")
+        assert(UI.clock==clock and UI.state==state and UI.result==result,
+            scenario..": combat preserves stopped sample/result identities")
+        for key,value in pairs(counters) do
+            assert(clock[key]==value,scenario..": combat changed stopped clock "..key)
+        end
+        for key,value in pairs(stateValues) do
+            assert(state[key]==value,scenario..": combat changed stopped state "..key)
+        end
+        assert(UI.stopReason==reason and UI.hud.text==hud and UI.status.text==status,
+            scenario..": stopped reason/HUD retained")
+        assert(#env.output==output,scenario..": no new interrupted-drive announcement")
+        assert(env.combatPropagationCalls==0,scenario..": combat never sets propagation")
+        for key,value in pairs(allocations) do
+            assert(env.counts[key]==value,scenario..": combat allocated UI objects")
+        end
+        -- A deliberate reopen can still inspect the old note and Start refusal.
+        UI.Toggle(); UI.Start(); UI.OnUpdate(1)
+        assert(UI.window:IsShown() and not UI.active,
+            scenario..": explicit combat-time inspection stays inactive")
+        assert(UI.status.text:find("Cannot start while in combat",1,true),
+            scenario..": combat Start refusal remains visible")
+        assert(UI.result==result and #env.output==output,
+            scenario..": inspection cannot duplicate or replace a result")
+        UI.Toggle()
+        env.combat=false; env.fire("PLAYER_REGEN_ENABLED")
+        assert(not UI.window:IsShown() and not UI.active,
+            scenario..": combat ending cannot reopen or resume")
+    end)
+end
+
 withMock(nil, false, function(env,UI)
     env.fire("ADDON_LOADED","AzerothKart")
     assert(not env.namespace.events.GLOBAL_MOUSE_DOWN,"unsupported event not claimed available")

@@ -82,7 +82,12 @@ function UI.Stop(reason)
 end
 
 function UI.InterruptCombat()
-    if not UI.active then return end -- terminal once for the current test drive
+    if not UI.active then
+        -- Combat onset clears even an idle/results window. A stopped drive
+        -- already ended: keep its sample/result and do not announce it again.
+        if UI.window and UI.window:IsShown() then UI.window:Hide() end
+        return
+    end
     UI.result = {status="interrupted", reason="Game interrupted by combat", tick=UI.state.tick}
     -- There is no race/placement engine in M0; never fabricate a classification.
     UI.Stop(UI.result.reason)
@@ -254,9 +259,9 @@ end
 
 function UI.HandleEvent(event)
     if event == "PLAYER_REGEN_ENABLED" then UI.OnCombatEnded(); return end
+    if event == "PLAYER_REGEN_DISABLED" then UI.InterruptCombat(); return end
     if not UI.active then return end
-    if event == "PLAYER_REGEN_DISABLED" then UI.InterruptCombat()
-    elseif event == "GLOBAL_MOUSE_DOWN" then
+    if event == "GLOBAL_MOUSE_DOWN" then
         -- Bounds cannot identify which overlapping UI owns the click. M0 gives
         -- up capture on every click; the Start click's down precedes OnClick.
         UI.Stop("Mouse click released controls")
