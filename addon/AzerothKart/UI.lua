@@ -179,6 +179,12 @@ local function refreshCheckpoints()
     end
 end
 
+local function bestLapText(laps)
+    if laps.bestLapTicks == nil then return "Best: --" end
+    return ("Best: %.2fs (lap %d)"):format(
+        laps.bestLapTicks*Physics.FIXED_DT,laps.bestLapNumber)
+end
+
 local function refreshSummary()
     if not UI.summary then return end
     local race = UI.race
@@ -189,14 +195,15 @@ local function refreshSummary()
         UI.summaryRace = race
         if race.status == "finished" then
             UI.summaryTitle:SetText("RUN COMPLETE")
-            UI.summaryDetail:SetText(("3/3 laps | Total: %.2fs\nLast lap: %.2fs"):format(
-                race.totalTicks*Physics.FIXED_DT,race.laps.lastLapTicks*Physics.FIXED_DT))
+            UI.summaryDetail:SetText(("3/3 laps | Total: %.2fs\nLast lap: %.2fs\n%s"):format(
+                race.totalTicks*Physics.FIXED_DT,race.laps.lastLapTicks*Physics.FIXED_DT,
+                bestLapText(race.laps)))
         else
             UI.summaryTitle:SetText(race.status == "interrupted" and
                 "GAME INTERRUPTED BY COMBAT" or "RUN STOPPED")
-            UI.summaryDetail:SetText(("Laps: %d/3 | Time: %.2fs\nCurrent lap: %.2fs"):format(
+            UI.summaryDetail:SetText(("Laps: %d/3 | Time: %.2fs\nCurrent lap: %.2fs\n%s"):format(
                 race.laps.completedLaps,race.totalTicks*Physics.FIXED_DT,
-                race.laps.currentLapTicks*Physics.FIXED_DT))
+                race.laps.currentLapTicks*Physics.FIXED_DT,bestLapText(race.laps)))
         end
         UI.summaryHint:SetText("Controls released | Restart for a fresh run")
     end
@@ -225,8 +232,8 @@ local function refreshHud()
     if UI.lapHud and UI.laps then
         local laps = UI.laps
         local last = laps.lastLapTicks and ("%.2fs"):format(laps.lastLapTicks*Physics.FIXED_DT) or "--"
-        local caption = ("Laps: %d | Current: %.2fs | Last: %s"):format(
-            laps.completedLaps,laps.currentLapTicks*Physics.FIXED_DT,last)
+        local caption = ("Laps: %d | Current: %.2fs | Last: %s | %s"):format(
+            laps.completedLaps,laps.currentLapTicks*Physics.FIXED_DT,last,bestLapText(laps))
         if not UI.active and UI.state.tick > 0 then caption = "Last drive | " .. caption end
         UI.lapHud:SetText(caption)
     end
@@ -484,7 +491,7 @@ function UI.Create()
     UI.probeButton:SetText("Print Probe")
     UI.probeButton:SetScript("OnClick",function() UI.ReportProbe() end)
     UI.summary = frame("Frame",nil,UI.canvas,"BackdropTemplate")
-    UI.summary:SetSize(380,170)
+    UI.summary:SetSize(380,190)
     UI.summary:SetPoint("CENTER")
     UI.summary:EnableMouse(true)
     UI.summary:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",

@@ -1,7 +1,7 @@
 # PROGRESS — persistent project handoff
 
 **Current development milestone:** M1 — local driving mechanics. M0 acceptance remains **OPEN**.
-**Current state (2026-10-20, 00:12 CEST):** a fixed-step 3–2–1–GO countdown now precedes each three-lap solo run. The kart stays at spawn for 180 neutral ticks, race/lap time starts at GO and held controls first affect tick 181. A pooled center cue hides after the first 60 racing ticks or on cancellation. Existing exact finish, retained results and deliberate Restart remain. Physics stays v5; UI remains 856×762 with explicit counts 8/110/13. One focused Lua 5.1 pass parsed 27 Lua files and executed Race/UI checks; a connected synthetic countdown/three-lap run matched at 30/60/144 render Hz. Installed with verified backup and fourteen matching source hashes. Client reload/countdown/finish/restart/appearance **NOT RUN**; M0/M1/M3 acceptance remains open. Next build: best completed lap within the current run, in memory only.
+**Current state (2026-10-20, 00:22 CEST):** the lap HUD and retained summaries now show the best completed lap within the current run and its lap number. Only strictly shorter completed durations replace it; ties retain the earlier lap, incomplete laps never qualify, and fresh Start/Restart clears it. This is in memory only. Countdown, exact three-lap finish and physics v5 stay unchanged. UI remains 856×762 with counts 8/110/13; the same summary panel is 380×190 to fit a third line. One focused Lua 5.1 pass parsed 27 Lua files and executed Laps/Race/UI checks, including the best fields at 30/60/144 simulated render Hz. Installed with verified backup and fourteen matching source hashes. Client reload/layout/handling **NOT RUN**; M0/M1/M3 acceptance remains open. Next build: a bounded three-lap split recap in retained results.
 
 ## Canonical checkout and commits
 
@@ -32,6 +32,7 @@ Remote: `https://github.com/PhilForever/AzerothKart.git`; branch `main`. The pac
 - `a7326e9` — `feat: track ordered directional checkpoints on the test oval`.
 - `e10e869` — `feat: add repeatable practice laps and tick-based timing`.
 - `e3a6523` — `feat: finish three-lap solo runs with retained results`.
+- `5c4c135` — `feat: add fixed-step countdown before solo races`.
 
 Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.useConfigOnly=true`; verified in config and commit authors. Global identity was left unchanged. No push, tag, distribution or automation was performed. The later client-check session installed only AzerothKart in the local Forever AddOns folder and verified all nine files against source SHA-256. Ignored `local-artifacts/` contains developer dependencies/logs and synthetic install fixtures/backups; it is not staged.
 
@@ -78,7 +79,7 @@ Initial file-only evidence: `_classic_beta_\WowB.exe` reports `1.60.1.70450`; `.
 
 ## Next exact task
 
-**Next exact task: show the best completed lap within the current three-lap run.** Track the smallest accepted completed-lap duration as integer ticks, with its lap number, and show it in the existing lap HUD and retained result summary. Incomplete laps never become records; ties keep the earlier lap. Fresh Start/Restart clears the value, while Stop/combat/reopen retains it. Keep this in memory only, with no saved records, migrations, ghosts or networking. Use one focused Lua 5.1 pass for completed/tied/partial/reset behavior; existing client/handling acceptance stays deferred.
+**Next exact task: show completed lap splits in the retained run summary.** Store at most three accepted integer lap durations in pure Race, without recording every tick or expanding standalone Laps into an unbounded history. Show each completed lap's duration in the pooled result panel, alongside total/best time; keep incomplete laps unawarded and partial results honest. Stop/combat/reopen retains the same split data, while fresh Start/Restart clears it. Cover ordered append, duplicate-finish rejection, finish/partial retention and reset in one focused Lua 5.1 pass. Keep persistence, ghosts and networking separate; existing client/handling acceptance stays deferred.
 
 ## Session handoff log
 
@@ -642,3 +643,23 @@ UI samples held input into the existing reused table throughout countdown but su
 **Installation:** normal filesystem approval used. Parent-workspace manifest `artifacts/AzerothKart/20261020-001127-759404/install.json`; prior addon preserved in verified `before/`. Disk build needs normal `/reload` at the owner's convenience. No other addon/WTF/SavedVariables edits, character actions, packets, push/tag/release or automation.
 
 **Handoff:** focused local commit intended as `feat: add fixed-step countdown before solo races`; inspect `git log` for hash. Direct play/layout and earlier M0 scale/focus/performance checks remain deferred; no new blocker established. **Next single build task:** best completed lap within the current three-lap run, with lap number, earliest-lap ties, frozen partial/result retention and fresh-run reset; no persistence yet.
+
+### 2026-10-20 00:19–00:22 CEST (Europe/Oslo) — Codex / main, best completed lap within a run
+
+**Scope:** one solo timing/feedback slice under the owner's build-first priority. Canonical remote/main, clean starting HEAD `5c4c135` and local PhilForever identity/useConfigOnly confirmed. Read handoff, criteria, relevant accepted decisions and affected source/tests before changes. M0/M1/M3 acceptance stays open; roadmap unchanged.
+
+**Built:** pure immutable Laps adds `bestLapTicks` and `bestLapNumber`, initially nil. Only an accepted completed lap can establish or improve the best. Strictly shorter integer duration replaces it and records that one-based lap number; equal durations retain the earlier lap. Current/incomplete laps, rejected/invalid movement and duplicate/gapped reports cannot establish or improve it. Ordinary steps carry both fields unchanged. Race retains the same nested lap state on Stop/combat/finish, and its existing new-run/GO initialization resets it. No Race, Physics, countdown, checkpoint or clock behavior was changed.
+
+The existing lap HUD and finished/stopped/interrupted summary text display `Best: --` before any completion, then `Best: %.2fs (lap %d)`. They use one shared formatter at the existing HUD/summary refresh points; no per-tick formatting or new objects. The summary grows from 380×170 to 380×190 for its third line, while the outer window and explicit counts remain 856×762 and 8/110/13. Stop/reopen and refused Start retain the record; successful Start/Restart clears it. This is the best lap of the current run only, with no saved personal record, persistence/schema/migration, settings, new client API, ghosts or networking.
+
+| Command/check actually executed | Result and scope |
+|---|---|
+| `C:\Python314\python.exe scripts/test_lua.py --runtime lua51 --tests laps race ui` | PASS once — 27 Lua files parsed, three modules executed. Variable completed durations 8→10→6→6 ticks verify first/slower/faster/tie behavior, unfinished faster-so-far laps, invalid/order/duplicate/gapped samples, reset/nonzero origins and immutable prior states. Connected synthetic 1,800-tick Laps and 1,980-tick countdown/Race replays compare the new best fields with all prior lap/checkpoint/race state at 30/60/144 render Hz. UI fixtures exercise slower retention and 6/4/4 lap durations (best lap 2), global-tick-194 exact finish/drop accounting, HUD/summary formatting, partial/combat/reopen/refused Start retention, explicit Restart reset and unchanged pooling. These are synthetic/mock results, not real-client timing or layout observations. |
+| `C:\Python314\python.exe scripts/validate_project.py` | PASS — 37 expected paths, synchronized eleven-module TOCs, protocol/docs links and header-only network ledger. |
+| `git diff --check` | PASS — whitespace check; CRLF-to-LF notices are informational. |
+| `C:\Python314\python.exe local-artifacts/install_verified_files.py` | PASS — complete prior fourteen-file addon backup verified before writes; only Laps.lua, UI.lua and README_ADDON.md copied; all fourteen installed source SHA-256 values match. |
+| Full suite/10k-tick v5 replay, Lua 5.4, native Lua CLI, actual-client reload/best-lap layout/handling and broad scale/performance checks | NOT RUN this slice — focused build-first cadence. No client availability conclusion or input attempt was made. |
+
+**Installation:** normal filesystem approval used. Parent-workspace manifest `artifacts/AzerothKart/20261020-002117-926175/install.json`; prior addon preserved in verified `before/`. Disk build needs normal `/reload` at the owner's convenience. No other addon/WTF/SavedVariables edits, character actions, packets, push/tag/release or automation.
+
+**Handoff:** focused local commit intended as `feat: show the best completed lap within each run`; inspect `git log` for hash. Direct play/layout and earlier M0 scale/focus/performance checks stay deferred; no new blocker established. **Next single build task:** bounded three-lap split data and recap in retained results, with no persistence or full input recording.

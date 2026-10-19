@@ -19,6 +19,7 @@ function Laps.new(track, checkpoints, tick)
     return {
         checkpoints=checkpoints.new(track,tick), completedLaps=0,
         lapStartTick=tick, currentLapTicks=0, lastLapTicks=nil,
+        bestLapTicks=nil, bestLapNumber=nil,
         lastTick=tick, lastFinishTick=nil,
     }
 end
@@ -38,12 +39,16 @@ function Laps.step(laps, previous, current, track, checkpoints)
         or progress.lastTick ~= current.tick then return laps end
     local finished = progress.complete
         and (laps.lastFinishTick == nil or current.tick > laps.lastFinishTick)
+    local duration = current.tick-laps.lapStartTick
+    local newBest = finished and (laps.bestLapTicks == nil or duration < laps.bestLapTicks)
     return {
         checkpoints=finished and checkpoints.new(track,current.tick) or progress,
         completedLaps=laps.completedLaps+(finished and 1 or 0),
         lapStartTick=finished and current.tick or laps.lapStartTick,
         currentLapTicks=finished and 0 or current.tick-laps.lapStartTick,
-        lastLapTicks=finished and current.tick-laps.lapStartTick or laps.lastLapTicks,
+        lastLapTicks=finished and duration or laps.lastLapTicks,
+        bestLapTicks=newBest and duration or laps.bestLapTicks,
+        bestLapNumber=newBest and laps.completedLaps+1 or laps.bestLapNumber,
         lastTick=current.tick,
         lastFinishTick=finished and current.tick or laps.lastFinishTick,
     }

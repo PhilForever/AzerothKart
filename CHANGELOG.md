@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — best completed lap within a run (2026-10-20)
+- Track the fastest accepted completed lap and its lap number in pure Laps. Fields start empty; strictly shorter integer durations replace the best, while ties retain the earliest lap. Incomplete/current laps never become the best.
+- Append best time/lap number to the existing lap HUD and all terminal summaries. Retain it through Stop/combat/reopen/rejected Start; successful fresh Start/Restart and GO reset it. This is in-memory per run, with no saved personal record, schema change or migration.
+- Grow the existing summary to 380×190 for its third text line. Counts remain 8/110/13 in the same 856×762 window, with unchanged physics v5, countdown and three-lap finish; no new UI objects, APIs, settings or networking.
+- Focused Laps/Race/UI coverage accompanies the slice; exact executed results belong in PROGRESS. Current client layout/handling remains NOT RUN, and M0/M1/M3 acceptance stays open.
+
 ## Unreleased — fixed-tick start countdown (2026-10-20)
 - Start each three-lap solo run with 180 fixed ticks of 3–2–1 and a GO cue. The kart stays at spawn with neutral physics input while actual held controls are sampled; GO resets the Race/Laps timing origin, and driving begins on the following tick.
 - Race/lap time excludes countdown, dropped time and stopped time; physics/loop/probe ticks include countdown. Dropped hitch ticks can extend countdown wall time without skipping it. GO remains visible for the first 60 racing ticks.

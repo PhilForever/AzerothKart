@@ -430,9 +430,10 @@ withMock(nil,false,function(env,UI)
     assert(UI.laps.completedLaps==0 and UI.laps.currentLapTicks==0 and
            UI.laps.lastLapTicks==nil and UI.laps.lapStartTick==0 and
            UI.laps.lastTick==0 and UI.laps.lastFinishTick==nil and
+           UI.laps.bestLapTicks==nil and UI.laps.bestLapNumber==nil and
            UI.laps.checkpoints==UI.checkpoints,
         "fresh lap timing owns the same checkpoint sample")
-    assert(UI.lapHud.text=="Laps: 0 | Current: 0.00s | Last: --" and
+    assert(UI.lapHud.text=="Laps: 0 | Current: 0.00s | Last: -- | Best: --" and
            UI.lapHud.point[5]==176,"fresh lap HUD has its own pooled row")
     for index,gate in ipairs(Track.gates) do
         local strip=UI.gateTextures[index]
@@ -490,15 +491,17 @@ withMock(nil,false,function(env,UI)
     local firstLapTicks=firstFinishTick-countdownTicks
     assert(UI.laps.completedLaps==1 and UI.laps.lastLapTicks==firstLapTicks and
            UI.laps.currentLapTicks==0 and UI.laps.lastFinishTick==firstFinishTick and
-           UI.laps.lapStartTick==firstFinishTick,
+           UI.laps.lapStartTick==firstFinishTick and UI.laps.bestLapTicks==firstLapTicks and
+           UI.laps.bestLapNumber==1,
         "first ordered circuit records its exact duration from the GO tick")
     assert(not UI.checkpoints.complete and UI.checkpoints.passed==0 and
            UI.checkpoints.nextGate==1 and UI.checkpoints.lastTick==firstFinishTick and
            UI.checkpoints==UI.laps.checkpoints and UI.active and UI.result==nil,
         "a nonfinal lap rearms North while the three-lap run remains active")
     local function lapCaption(completed,current,last)
-        return ("Laps: %d | Current: %.2fs | Last: %.2fs"):format(
-            completed,current*Physics.FIXED_DT,last*Physics.FIXED_DT)
+        return ("Laps: %d | Current: %.2fs | Last: %.2fs | Best: %.2fs (lap 1)"):format(
+            completed,current*Physics.FIXED_DT,last*Physics.FIXED_DT,
+            firstLapTicks*Physics.FIXED_DT)
     end
     assert(UI.lapHud.text==lapCaption(1,0,firstLapTicks),
         "finish refreshes exact lap feedback before the periodic HUD interval")
@@ -523,11 +526,12 @@ withMock(nil,false,function(env,UI)
     local secondFinishTick=UI.state.tick
     local secondLapTicks=secondFinishTick-firstFinishTick
     assert(UI.laps.completedLaps==2 and UI.laps.lastLapTicks==secondLapTicks and
-           secondLapTicks~=firstLapTicks and UI.laps.currentLapTicks==0 and
+           secondLapTicks>firstLapTicks and UI.laps.currentLapTicks==0 and
+           UI.laps.bestLapTicks==firstLapTicks and UI.laps.bestLapNumber==1 and
            UI.laps.lastFinishTick==secondFinishTick and
            UI.laps.lapStartTick==secondFinishTick and
            UI.lapHud.text==lapCaption(2,0,secondLapTicks),
-        "a second ordered circuit immediately reports its own distinct tick duration")
+        "a slower second circuit updates last-lap timing and retains the first lap as best")
     assert(UI.checkpoints.passed==0 and UI.checkpoints.nextGate==1 and
            not UI.checkpoints.complete and UI.laps.checkpoints==UI.checkpoints,
         "every finished lap rearms the same directional course")
@@ -541,6 +545,9 @@ withMock(nil,false,function(env,UI)
     assert(hud=="Last drive | Checkpoints: 0/4 | Next: North" and
            lapHud=="Last drive | "..lapCaption(2,1,secondLapTicks),
         "Stop flushes the partial next lap and labels all retained progress")
+    local bestCaption=("Best: %.2fs (lap 1)"):format(firstLapTicks*Physics.FIXED_DT)
+    assert(UI.summaryDetail.text:find("\n"..bestCaption,1,true),
+        "partial Stop summary includes the completed best lap on its third line")
     UI.OnUpdate(1); UI.Toggle(); UI.Toggle()
     assert(UI.checkpoints==progress and UI.state==pose and UI.checkpointHud.text==hud and
            UI.laps==laps and UI.lapHud.text==lapHud,
@@ -551,6 +558,11 @@ withMock(nil,false,function(env,UI)
     for key,value in pairs(retainedLaps) do
         assert(laps[key]==value,"stopped lap timing changed "..key)
     end
+    env.focus={}; UI.Start()
+    assert(UI.laps==laps and UI.lapHud.text==lapHud and
+           UI.summaryDetail.text:find(bestCaption,1,true),
+        "refused Start retains completed best-lap timing in both stopped displays")
+    env.focus=nil
     UI.Start()
     assert(UI.checkpoints~=progress and UI.checkpoints.passed==0 and
            UI.checkpoints.nextGate==1 and not UI.checkpoints.complete and
@@ -559,8 +571,9 @@ withMock(nil,false,function(env,UI)
     assert(UI.laps~=laps and UI.laps.completedLaps==0 and UI.laps.currentLapTicks==0 and
            UI.laps.lapStartTick==0 and UI.laps.lastTick==0 and
            UI.laps.lastFinishTick==nil and UI.laps.lastLapTicks==nil and
+           UI.laps.bestLapTicks==nil and UI.laps.bestLapNumber==nil and
            UI.laps.checkpoints==UI.checkpoints and
-           UI.lapHud.text=="Laps: 0 | Current: 0.00s | Last: --",
+           UI.lapHud.text=="Laps: 0 | Current: 0.00s | Last: -- | Best: --",
         "fresh Start resets all lap timing and replaces the retained lap object")
     gateColor(1,.98,.93,.45,.9)
     for index=2,4 do gateColor(index,.55,.58,.62,.65) end
@@ -596,6 +609,7 @@ withMock(nil,false,function(env,UI)
     end
     finishCountdown(UI)
     env.key(UI,"OnKeyDown","W"); env.key(UI,"OnKeyDown","SPACE")
+    UI.OnUpdate(2*dt) -- First lap is slower; the second and third then tie.
     for lap=1,3 do
         for index=1,4 do
             cross(index,lap==3 and index==4 and 3*dt or dt)
@@ -604,16 +618,19 @@ withMock(nil,false,function(env,UI)
             assert(UI.active and UI.race.status=="running" and UI.result==nil,
                 "nonfinal laps keep the run active without a terminal result")
         end
+        assert(UI.laps.bestLapTicks==(lap==1 and 6 or 4) and
+               UI.laps.bestLapNumber==(lap==1 and 1 or 2),
+            "a faster second lap replaces the best and a tied third keeps lap two")
     end
     local race,result,clock,pose=UI.race,UI.result,UI.clock,UI.state
-    assert(not UI.active and race.status=="finished" and race.finishTick==countdownTicks+12 and
-           race.totalTicks==12 and race.laps.completedLaps==3 and
-           race.laps.lastLapTicks==4 and pose.tick==countdownTicks+12,
-        "the third directional finish freezes the twelfth driving tick and all three laps")
+    assert(not UI.active and race.status=="finished" and race.finishTick==countdownTicks+14 and
+           race.totalTicks==14 and race.laps.completedLaps==3 and
+           race.laps.lastLapTicks==4 and pose.tick==countdownTicks+14,
+        "the third directional finish freezes the fourteenth driving tick and all three laps")
     assert(result.status=="finished" and result.reason=="Three-lap run complete" and
-           result.tick==countdownTicks+12 and result.totalTicks==12 and result.completedLaps==3,
+           result.tick==countdownTicks+14 and result.totalTicks==14 and result.completedLaps==3,
         "finish result exposes actual terminal lap/time values")
-    assert(clock.steps==countdownTicks+12 and clock.lastSteps==1 and clock.hitchFrames==0 and
+    assert(clock.steps==countdownTicks+14 and clock.lastSteps==1 and clock.hitchFrames==0 and
            math.abs(clock.droppedSeconds-2*dt)<1e-10 and math.abs(clock.accumulator)<1e-10,
         "finish stops remaining catch-up ticks and accounts for them without a false hitch")
     assert(math.abs(clock.steps*dt+clock.droppedSeconds+clock.accumulator-
@@ -627,22 +644,25 @@ withMock(nil,false,function(env,UI)
     assert(UI.checkpointHud.text:find("Checkpoints: 3-lap run complete",1,true),
         "terminal checkpoint HUD explains completion instead of requesting another circuit")
     assert(UI.summary:IsShown() and UI.summary.parent==UI.canvas and
-           UI.summary.width==380 and UI.summary.height==170 and
+           UI.summary.width==380 and UI.summary.height==190 and
            UI.summaryTitle.text=="RUN COMPLETE",
         "finished run displays its preallocated summary panel")
     assert(UI.summaryDetail.text:find("3/3",1,true) and
-           UI.summaryDetail.text:find(("%.2fs"):format(12*dt),1,true) and
-           UI.summaryDetail.text:find(("%.2fs"):format(4*dt),1,true),
-        "summary displays completed/target laps, total time and the actual last lap")
+           UI.summaryDetail.text:find(("%.2fs"):format(14*dt),1,true) and
+           UI.summaryDetail.text:find(("%.2fs"):format(4*dt),1,true) and
+           UI.summaryDetail.text:find(("\nBest: %.2fs (lap 2)"):format(4*dt),1,true) and
+           UI.lapHud.text:find(("Best: %.2fs (lap 2)"):format(4*dt),1,true),
+        "summary and final HUD display the faster second lap, retained after a tied third")
     assert(UI.restartButton.parent==UI.summary and UI.restartButton.text=="Restart" and
            type(UI.restartButton.scripts.OnClick)=="function",
         "summary exposes a reachable explicit Restart control")
     local output=#env.output
-    local finishReason,finishHud=UI.stopReason,UI.hud.text
+    local finishReason,finishHud,finishDetail=UI.stopReason,UI.hud.text,UI.summaryDetail.text
     UI.OnUpdate(1); UI.Stop("later ordinary stop"); UI.Toggle(); UI.Toggle()
     assert(UI.race==race and UI.result==result and UI.clock==clock and UI.state==pose and
-           UI.state.tick==countdownTicks+12 and UI.stopReason==finishReason and UI.hud.text==finishHud and
-           UI.summary:IsShown() and UI.summaryTitle.text=="RUN COMPLETE",
+           UI.state.tick==countdownTicks+14 and UI.stopReason==finishReason and UI.hud.text==finishHud and
+           UI.summaryDetail.text==finishDetail and UI.summary:IsShown() and
+           UI.summaryTitle.text=="RUN COMPLETE",
         "inactive updates, Stop, close and reopen retain the same completed run")
     local closeButton
     for _,item in ipairs(env.frames) do if item.text=="Close" then closeButton=item end end
@@ -651,38 +671,56 @@ withMock(nil,false,function(env,UI)
     assert(not UI.window:IsShown() and UI.race==race and UI.result==result,
         "hidden Start cannot replace a completed result")
     UI.Toggle(); env.combat=true; UI.Start()
-    assert(not UI.active and UI.race==race and UI.result==result and UI.summary:IsShown(),
+    assert(not UI.active and UI.race==race and UI.result==result and UI.summary:IsShown() and
+           UI.summaryDetail.text==finishDetail,
         "refused combat-time Start preserves the completed summary")
     env.fire("PLAYER_REGEN_DISABLED"); UI.InterruptCombat(); UI.OnUpdate(1)
     assert(not UI.window:IsShown() and UI.race==race and UI.result==result and #env.output==output,
         "combat after finish cannot turn the completed result into a new interruption")
     env.combat=false; env.fire("PLAYER_REGEN_ENABLED"); UI.Toggle()
     env.focus={}; UI.Start()
-    assert(UI.race==race and UI.result==result and UI.summary:IsShown(),
+    assert(UI.race==race and UI.result==result and UI.summary:IsShown() and
+           UI.summaryDetail.text==finishDetail,
         "refused text-focus Start preserves the same completed summary")
     env.focus=nil
     UI.restartButton.scripts.OnClick(UI.restartButton)
     assert(UI.active and UI.race~=race and UI.race.status=="countdown" and
            UI.result==nil and UI.state.tick==0 and UI.clock~=clock and
-           UI.laps==UI.race.laps and UI.laps.completedLaps==0 and not UI.summary:IsShown(),
+           UI.laps==UI.race.laps and UI.laps.completedLaps==0 and
+           UI.laps.bestLapTicks==nil and UI.laps.bestLapNumber==nil and
+           UI.lapHud.text:find("Best: --",1,true) and not UI.summary:IsShown(),
         "summary Restart begins a fresh run and hides the retained result")
     finishCountdown(UI)
     cross(1); UI.Stop("partial run fixture")
     assert(UI.race.status=="stopped" and UI.race.totalTicks==1 and
            UI.race.laps.completedLaps==0 and UI.checkpoints.passed==1 and
-           UI.summary:IsShown() and UI.summaryTitle.text=="RUN STOPPED",
+           UI.summary:IsShown() and UI.summaryTitle.text=="RUN STOPPED" and
+           UI.summaryDetail.text:find("\nBest: --",1,true),
         "ordinary Stop displays actual partial progress without a finish award")
     UI.restartButton.scripts.OnClick(UI.restartButton)
     finishCountdown(UI)
+    for index=1,4 do cross(index) end
     cross(1); env.combat=true; env.fire("PLAYER_REGEN_DISABLED")
     local interrupted=UI.race
-    assert(interrupted.status=="interrupted" and interrupted.totalTicks==1 and
-           interrupted.laps.completedLaps==0 and UI.checkpoints.passed==1 and
+    assert(interrupted.status=="interrupted" and interrupted.totalTicks==5 and
+           interrupted.laps.completedLaps==1 and UI.checkpoints.passed==1 and
+           interrupted.laps.bestLapTicks==4 and interrupted.laps.bestLapNumber==1 and
+           UI.summaryDetail.text:find(("\nBest: %.2fs (lap 1)"):format(4*dt),1,true) and
            UI.summaryTitle.text=="GAME INTERRUPTED BY COMBAT" and not UI.window:IsShown(),
         "combat interruption freezes actual partial progress and its summary")
     env.combat=false; env.fire("PLAYER_REGEN_ENABLED"); UI.Toggle()
-    assert(UI.race==interrupted and not UI.active and UI.summary:IsShown(),
+    local interruptedDetail=UI.summaryDetail.text
+    assert(UI.race==interrupted and not UI.active and UI.summary:IsShown() and
+           UI.lapHud.text:find(("Best: %.2fs (lap 1)"):format(4*dt),1,true),
         "explicit reopen shows the frozen interrupted summary without resuming")
+    env.focus={}; UI.Start()
+    assert(UI.race==interrupted and UI.summaryDetail.text==interruptedDetail,
+        "refused Start retains the best completed lap after interruption")
+    env.focus=nil; UI.restartButton.scripts.OnClick(UI.restartButton)
+    assert(UI.race.status=="countdown" and UI.laps.bestLapTicks==nil and
+           UI.laps.bestLapNumber==nil and UI.lapHud.text:find("Best: --",1,true),
+        "explicit Restart clears the interrupted best-lap record")
+    UI.Stop("finish/best-lap fixture done")
     for key,value in pairs(counts) do
         assert(env.counts[key]==value,"finish/restart/partial flow allocated UI objects: "..key)
     end

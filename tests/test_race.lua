@@ -24,6 +24,7 @@ local fresh=Race.new(T,C,Laps)
 assert(fresh.status=="countdown" and fresh.targetLaps==3 and fresh.startTick==nil
     and fresh.lastTick==0 and fresh.totalTicks==0 and fresh.finishTick==nil
     and fresh.reason==nil and fresh.laps.completedLaps==0 and fresh.countdownTicks==180
+    and fresh.laps.bestLapTicks==nil and fresh.laps.bestLapNumber==nil
     and Race.cue(fresh)=="3","fresh three-lap countdown")
 local countdown=fresh
 for tick=1,180 do
@@ -45,6 +46,8 @@ assert(running.status=="running" and running.startTick==180 and running.lastTick
     and running.laps~=fresh.laps and running.laps.lapStartTick==180
     and running.laps.lastTick==180 and running.laps.checkpoints.lastTick==180,
     "GO creates a fresh lap origin without a driving tick")
+assert(running.laps.bestLapTicks==nil and running.laps.bestLapNumber==nil,
+    "GO starts with no completed-lap best")
 assert(fresh.status=="countdown" and fresh.lastTick==0 and fresh.countdownTicks==180,
     "countdown transitions preserve previous immutable states")
 local partial=crossing(running,1)
@@ -72,17 +75,30 @@ for _,source in ipairs({advanceCountdown(fresh,17),partial}) do
     end
 end
 assert(Race.stop(partial,"Focus lost").reason=="Focus lost","explicit stop reason retained")
+local completed=running
+for index=1,4 do completed=crossing(completed,index) end
+assert(completed.laps.bestLapTicks==4 and completed.laps.bestLapNumber==1,
+    "a completed running lap establishes the session best")
+for _,interrupted in ipairs({false,true}) do
+    local frozen=Race.stop(completed,nil,interrupted)
+    assert(frozen.laps==completed.laps and frozen.laps.bestLapTicks==4
+        and frozen.laps.bestLapNumber==1 and Race.stop(frozen,"Changed")==frozen,
+        "ordinary and combat stops preserve the completed run best")
+end
 local reset=Race.new(T,C,Laps)
 assert(reset~=partial and reset.laps~=partial.laps and reset.laps.checkpoints.passed==0
     and reset.laps.completedLaps==0 and reset.totalTicks==0 and reset.reason==nil
     and reset.countdownTicks==180 and reset.startTick==nil and Race.cue(reset)=="3",
     "fresh Start resets the full countdown without mutating the previous run")
+assert(reset.laps.bestLapTicks==nil and reset.laps.bestLapNumber==nil
+    and completed.laps.bestLapTicks==4,"fresh Start never inherits a prior run best")
 local offset=advanceCountdown(Race.new(T,C,Laps,200))
 assert(offset.startTick==380 and offset.lastTick==380 and offset.totalTicks==0,
     "countdown uses the explicit initial simulation tick")
 for _=1,3 do for index=1,4 do offset=crossing(offset,index) end end
 assert(offset.status=="finished" and offset.startTick==380 and offset.lastTick==392
-    and offset.totalTicks==12 and offset.finishTick==392 and offset.laps.completedLaps==3,
+    and offset.totalTicks==12 and offset.finishTick==392 and offset.laps.completedLaps==3
+    and offset.laps.bestLapTicks==4 and offset.laps.bestLapNumber==1,
     "run timing begins at offset GO, excluding the countdown")
 for _,bad in ipairs({-1,0.5,math.huge,-math.huge,0/0,"1",false}) do
     assert(not pcall(Race.new,T,C,Laps,bad),"invalid initial tick delegates rejection to Laps")
@@ -129,7 +145,8 @@ end
 assert(state.status=="finished" and state.reason=="Three-lap run complete"
     and state.startTick==180 and state.finishTick==1980 and state.totalTicks==1800
     and state.countdownTicks==0 and state.laps.completedLaps==3
-    and state.laps.lastLapTicks==600 and state.laps.currentLapTicks==0 and Race.cue(state)==nil,
+    and state.laps.lastLapTicks==600 and state.laps.currentLapTicks==0 and Race.cue(state)==nil
+    and state.laps.bestLapTicks==600 and state.laps.bestLapNumber==1,
     "third circuit records one exact finish excluding countdown ticks")
 for tick=1981,2580 do
     assert(Race.step(state,poses[tick-1],poses[tick],T,C,Laps)==state,
@@ -139,7 +156,7 @@ assert(Race.step(state,poses[1979],poses[1980],T,C,Laps)==state
     and Race.stop(state,"Game interrupted by combat",true)==state
     and Race.stop(state,"Closed")==state,"duplicate finish and later stops cannot replace a finish")
 local raceFields={"status","targetLaps","countdownTicks","startTick","lastTick","totalTicks","finishTick","reason"}
-local lapFields={"completedLaps","lapStartTick","currentLapTicks","lastLapTicks","lastTick","lastFinishTick"}
+local lapFields={"completedLaps","lapStartTick","currentLapTicks","lastLapTicks","bestLapTicks","bestLapNumber","lastTick","lastFinishTick"}
 local checkpointFields={"nextGate","passed","complete","lastTick"}
 for _,fps in ipairs({30,60,144}) do
     local clock,replay,tick=L.new(1/60,5),Race.new(T,C,Laps),0
