@@ -144,6 +144,8 @@ Inspected primary source is the parent-workspace tree `research/upstream/wow-ui-
 - `ChatInfoDocumentation.lua:803` declares `CHAT_MSG_ADDON` payload order: prefix, text, channel, sender, target, zoneChannelID, localID, name, instanceID. Peer scoping uses the event `sender`, never a payload identity or the event `target` field.
 - `ChatConstantsDocumentation.lua` declares `Enum.RegisterAddonMessagePrefixResult.Success=0`, `DuplicatePrefix=1`, `InvalidPrefix=2`, `MaxPrefixes=3`; `Enum.SendAddonMessageResult.Success=0`, `AddonMessageThrottle=3`, `ChannelThrottle=8`, and other failures within 1–12. These source values are expectations to compare with the real client's enum tables, not hard-coded proof of installed behavior.
 
+**2026-10-20 actual no-send readback:** registration/send function types and five selected constants returned `function function 0 1 0 3 8` (registration Success/DuplicatePrefix, send Success/AddonMessageThrottle/ChannelThrottle). This matches the selected source expectations; full enum tables, actual registration/send returns and transport remain unverified. Later `/akart net report` returned `Idle: no experiment run`. [Exact command/evidence](evidence/2026-10-20-menu-integration-client.md). No prefix was registered or packet sent in this check.
+
 Read these on **both** clients before any explicit arm. They only read availability/enum values; they do not register or send:
 
 ```text

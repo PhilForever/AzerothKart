@@ -6,7 +6,7 @@ Prepared 2026-10-20 18:22 UTC. M1 input/menu correction and M2 integration check
 
 - Canonical remote: `https://github.com/PhilForever/AzerothKart.git`.
 - Worktree: existing `../AzerothKart-Codex-Review`, feature `codex/menu-integration`.
-- Parents: Codex `de7a63e9f77b6df43b6ba42a4f8513977ed9bd8f` and reviewed Claude `812d132` (runtime `cf71394`). Resolve resulting checkpoint with `git log -1 codex/menu-integration`; final report gives immutable hash.
+- Parents: Codex `de7a63e9f77b6df43b6ba42a4f8513977ed9bd8f` and reviewed Claude `812d132` (runtime `cf71394`). Implementation result: `7fcdd8919831c6e453bb81a21debc8a190f8b9df`; a later documentation commit records live evidence.
 - Owner now explicitly authorized this reviewed merge and menu fix. Scope: UI/Core capture and Stop callbacks/shared tests, merge conflict reconciliation, implemented contracts and policy/handoff docs. No new gameplay/network architecture.
 - Main/local origin/main remain `f923d15`; canonical checkout remains `5570968`. Claude worktree/branch and its untracked `Claude outputs/`, canonical empty untracked handoff placeholders and unrelated content are preserved. No reset/rebase/prune/GC/push/release.
 - Current shared installation before this checkpoint is Claude `cf71394`, manifest `../AzerothKart-Claude/local-artifacts/installs/20261020-173759/install.json`. Combined deployment must preserve the same trike/background bytes and record its own backup/hash manifest.
@@ -38,3 +38,16 @@ Claude should continue visuals from its own branch; review integration diffs bef
 ## Asset reproducibility checks (18:21:46–18:23:52 UTC)
 
 All check-only commands passed with Windows Python3.14: `scripts/build_kart_sprites.py --check`, `scripts/build_mirage_background.py --check`, and `scripts/build_wc3_kart.py --source ../AzerothKart-Claude/local-artifacts/third-party/goblin-mortar-trike --check`. Drag car SHA `cc7c1c69…126a`, scenery `cd5aecb9…c567e`, trike `a723b067…3208`. Background's first invocation lacked the pinned Lupa path; retry with canonical PYTHONPATH passed. No generated file changed. Trike private sources remain ignored in Claude's worktree; no new download or source redistribution.
+
+
+## Deployment and live evidence completed
+
+Installed `7fcdd89` at 18:25 UTC with a verified full prior backup and 20/20 hashes; independent resumed comparison also matched 20/20. Manifest under ignored `local-artifacts/install-backups/20261020-202526-131-567cfd9612074e2d957df74433a02f53/install.json`. No other addons or WTF data were changed by deployment.
+
+[Exact live menu evidence](../evidence/2026-10-20-menu-integration-client.md): reload/load, Oval/trike, Mirage switch, stationary M/left/right clicks retaining the run, actual Stop reason/frozen sample, fresh Restart, explicit Escape and Close observed. Counts 9/113/13, no registration failures; first Stop at 2715 ticks / 42.25 s race time. Escape also opens the normal WoW menu on release; a second Escape dismissed it. No held-driving-input, motion/edge/handling/performance acceptance inferred.
+
+No-send API types/five selected constants matched `function function 0 1 0 3 8`. Actual registration/send results and delivery remain untested. At 21:59 UTC, after work resumed, `/akart net report` confirmed `Idle: no experiment run`. No experiment or capacity result; second client unavailable. Final observed addon hidden, chat closed.
+
+On resumed inspection Claude had adopted `7fcdd89` and advanced to docs-only `f675610`, reserving effects/vehicles. Read its latest handoff before the next shared edit/deployment. This documentation checkpoint does not merge that reservation or modify its checkout. No continuous work is claimed across the interruption.
+
+**Next live task:** first consenting two-client 0.5 DATA/s, 16-byte, 120-second WHISPER window with complete reports/four maps. **If still one client:** build the offline reconciliation helper against existing report/evidence formats; keep actual transport pending and do not begin broad replication or ghosts.
