@@ -5,6 +5,8 @@
 
 ## Canonical checkout and commits
 
+**GitHub publication, 2026-10-20 11:48 CEST:** the owner explicitly requested pushing the existing project. `main` through implementation commit `7acab18` was pushed successfully to `https://github.com/PhilForever/AzerothKart.git` and now tracks `origin/main`. This is source publication only; no tag, release, distribution package or automatic future-push authorization was created. The publication handoff below follows in a documentation commit.
+
 Work in this directory: `C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart`.
 Remote: `https://github.com/PhilForever/AzerothKart.git`; branch `main`. The pack originally had no `.git` history; remote inspection returned no refs. The original pack was preserved before changes.
 
@@ -38,8 +40,9 @@ Remote: `https://github.com/PhilForever/AzerothKart.git`; branch `main`. The pac
 - `5237f7a` — `feat: add Mirage geometry blockout and layout guide`.
 - `c019ad2` — `feat: add selectable Mirage blockout track`.
 - `0ed33c2` — `fix: make drift charging usable through steering corrections`.
+- `7acab18` — `feat: bring Mirage racing into a close follow camera`.
 
-Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.useConfigOnly=true`; verified in config and commit authors. Global identity was left unchanged. No push, tag, distribution or automation was performed. The later client-check session installed only AzerothKart in the local Forever AddOns folder and verified all nine files against source SHA-256. Ignored `local-artifacts/` contains developer dependencies/logs and synthetic install fixtures/backups; it is not staged.
+Repository-local identity is `PhilForever <philfluenser@gmail.com>` with `user.useConfigOnly=true`; verified in config and commit authors. Global identity was left unchanged. Earlier implementation sessions performed no push, tag, distribution or automation; the owner's first authorized GitHub push is recorded above. The initial client-check session installed only AzerothKart in the local Forever AddOns folder and verified all nine files against source SHA-256; current sixteen-file installation evidence is in the latest implementation handoff. Ignored `local-artifacts/` contains developer dependencies/logs and synthetic install fixtures/backups; it is not staged.
 
 ## Completed and evidenced
 
@@ -786,3 +789,13 @@ UI repositions/crops existing gate and perimeter rectangles to the canvas, hidin
 **Installation/evidence:** initial camera install manifest is parent-workspace `artifacts/AzerothKart/20261020-013013-732647/install.json`, with verified prior tree in `before/`. After the live check, the installed readme was synchronized with observed static results: final manifest `artifacts/AzerothKart/20261020-013336-810308/install.json`, only README_ADDON.md changed, prior backup verified and all sixteen source/installed hashes matched again. The supplied personal screenshot was not copied into the repo; sanitized scopes are in `docs/evidence/2026-10-20-mirage-static-background.md` and `docs/evidence/2026-10-20-mirage-camera-static.md`. No other addon or WTF/SavedVariables files were edited directly. No scale changes, combat tests, network traffic, push/tag/release or automation. Client left open on Mirage, stopped at tick zero and ready for the owner's Start.
 
 **Handoff:** focused local commit intended as `feat: bring Mirage racing into a close follow camera`; resolve hash from `git log`. Static camera load/alignment is observed on70450; motion/edge/feel acceptance remains pending. **Next single executable task:** create/integrate one original north-facing Goblin drag-car sprite, readable at 25.5×46.5 play size, with alpha/pivot/provenance and primitive fallback. Painterly pit scenery follows, registered to unchanged geometry. M0/M1/M3 and measured multiplayer gates remain open.
+
+### 2026-10-20 11:47–11:49 CEST (Europe/Oslo) — Codex / main, authorized GitHub push
+
+**Scope:** owner explicitly requested pushing to `https://github.com/PhilForever/AzerothKart`. Confirmed the existing canonical checkout, clean `main` at `7acab18`, exact fetch/push remote and repository-local PhilForever identity/useConfigOnly. No gameplay, asset, installation, test expectation or acceptance changes.
+
+**Executed:** inspected `git status --short`, `git branch -vv`, remote URLs and recent commits. A read-only audit of tracked/history paths and obvious secret patterns found no publication blocker: no tracked personal screenshots, exports, installed backups or credentials; network ledger remains header-only and generated concept art has provenance. The default-sandbox `git ls-remote --heads origin` failed with a resolver/thread error; the normally approved network call then succeeded with no remote branches. `git push --set-upstream origin main` succeeded, created `main` and configured its upstream. Local HEAD and `origin/main` both resolved to `7acab189eaa8771c5c52e2cd94e44e7bb08c6ac2` afterward. The handoff documentation is committed and pushed afterward as the final fast-forward update; final remote-ref verification belongs to the command result.
+
+**Validation:** no Lua/client tests rerun for this publication-only task; source/runtime assets are unchanged from the recorded implementation checks. Documentation whitespace is checked before the handoff commit. No force push, tag, release, distribution upload, client input, installer write or scheduled automation. Existing milestone/manual risks remain pending without promotion.
+
+**Next single executable task:** the original overhead Goblin drag-car sprite at the closer Mirage play size, with alpha/pivot/provenance and primitive fallback. Push authorization applies to this requested publication; future automatic publishing is not configured by it.
