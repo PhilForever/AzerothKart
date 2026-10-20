@@ -19,7 +19,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
         frames={}, textures={}, output={}, counts={frames=0, textures=0, fontStrings=0},
         propagationCalls=0, combatPropagationCalls=0, keyboardReleaseCalls=0,
         profileTime=0, profileCalls=0, snappingCalls=0, drawLayerCalls=0,
-        textureCalls=0, texCoordCalls=0,
+        textureCalls=0, texCoordCalls=0, texturePaths={},
     }
     local methods = {}
     local function object(kind)
@@ -80,12 +80,19 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     end
     function methods:SetTexture(path)
         env.textureCalls=env.textureCalls+1
-        if env.textureMode=="throws" then error("mock texture load refuses") end
-        if env.textureMode=="false" then return false end
-        if env.textureMode=="nil" then return nil end
+        env.texturePaths[#env.texturePaths+1]=path
+        -- A per-path outcome lets one asset fail while the others load.
+        local mode=env.textureModes and env.textureModes[path] or env.textureMode
+        if mode=="throws" then error("mock texture load refuses") end
+        if mode=="false" then return false end
+        if mode=="nil" then return nil end
         self.texturePath=path
         self.textureWrites=(rawget(self,"textureWrites") or 0)+1
         return true
+    end
+    function methods:SetVertexColor(...)
+        self.vertexColor={...}
+        self.vertexColorWrites=(rawget(self,"vertexColorWrites") or 0)+1
     end
     function methods:SetTexCoord(...)
         env.texCoordCalls=env.texCoordCalls+1
@@ -121,6 +128,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
             item.SetSnapToPixelGrid=function() error("mock grid API refuses") end
         end
         env.textures[#env.textures+1]=item
+        if env.onCreateTexture then env.onCreateTexture(item,self,layer) end
         return item
     end
     function methods:CreateFontString() return object("fontStrings") end
@@ -178,6 +186,16 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     end)
     for _,entry in ipairs(previous) do _G[entry.name]=entry.value end
     assert(ok,err)
+end
+
+local KART_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Karts\\GoblinDragCar.tga"
+local BACKGROUND_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\SaltFlats\\Background.tga"
+local function loads(env,path)
+    local count=0
+    for _,value in ipairs(env.texturePaths) do
+        if value==path then count=count+1 end
+    end
+    return count
 end
 
 local countdownTicks=180
@@ -313,7 +331,9 @@ withMock(nil,false,function(env,UI)
     local Oval,Physics=env.namespace.Track,env.namespace.Physics
     assert(UI.track==Oval and UI.view.scale==1 and not UI.mirageBackground:IsShown(),
         "cold load retains the working Test Oval and hides the unloaded image")
-    assert(env.textureCalls==0,"custom texture loads only on deliberate Mirage selection")
+    assert(env.textureCalls==1 and env.texturePaths[1]==KART_PATH and UI.kartSprite and
+           UI.kart.texturePath==KART_PATH and loads(env,BACKGROUND_PATH)==0,
+        "creation loads only the small kart sprite; the background waits for deliberate Mirage selection")
     UI.Toggle()
     local counts={}
     for key,value in pairs(env.counts) do counts[key]=value end
@@ -322,7 +342,8 @@ withMock(nil,false,function(env,UI)
     assert(Mirage.id=="mirage_raceway" and UI.view.scale==1.5 and UI.view.follow==true,
         "Mirage uses the closer uniform follow camera")
     assert(UI.canvas.width==800 and UI.canvas.height==480 and
-           UI.mirageBackground:IsShown() and env.textureCalls==1 and
+           UI.mirageBackground:IsShown() and env.textureCalls==2 and
+           loads(env,BACKGROUND_PATH)==1 and
            UI.mirageBackground.texturePath==
                "Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\SaltFlats\\Background.tga",
         "one custom background is loaded at the declared addon path")
@@ -339,8 +360,11 @@ withMock(nil,false,function(env,UI)
     end
     local scale=UI.view.scale
     local spawn=Mirage.spawn()
-    close(UI.kart.width,25.5,"closer kart width is readable at play size")
-    close(UI.kart.height,46.5,"closer kart height is readable at play size")
+    local Presentation=env.namespace.Presentation
+    close(UI.kart.width,30,"closer sprite quad keeps its uniform padding at play size")
+    close(UI.kart.height,60,"closer sprite quad keeps its uniform padding at play size")
+    close(Presentation.KART_FOOTPRINT_WIDTH*scale,25.5,"closer kart body width is readable at play size")
+    close(Presentation.KART_FOOTPRINT_HEIGHT*scale,46.5,"closer kart body height is readable at play size")
     close(Mirage.roadWidth*scale,168,"road and kart magnify by the same scale")
     close(UI.kart.point[4],400,"spawn kart is centered across the camera")
     close(UI.kart.point[5],150,"spawn camera leaves room ahead of the kart")
@@ -486,8 +510,8 @@ withMock(nil,false,function(env,UI)
     markersMatchGeometry("restarted spawn")
     UI.Stop("camera restart fixture")
     assert(UI.SelectTrack("test_oval") and UI.track==Oval and UI.view.scale==1 and
-           not UI.mirageBackground:IsShown() and UI.kart.width==17 and UI.kart.height==31,
-        "Test Oval remains selectable with its original projection and kart dimensions")
+           not UI.mirageBackground:IsShown() and UI.kart.width==20 and UI.kart.height==40,
+        "Test Oval remains selectable with its original projection and unscaled sprite quad")
     for _,piece in ipairs(UI.ovalTextures) do
         assert(piece:IsShown(),"returning to Test Oval restores its pooled bands")
     end
@@ -497,7 +521,8 @@ withMock(nil,false,function(env,UI)
         assert(UI.SelectTrack("mirage_raceway"))
         assert(UI.SelectTrack("test_oval"))
     end
-    assert(env.textureCalls==1,"successful texture is reused across all later selections")
+    assert(env.textureCalls==2 and loads(env,BACKGROUND_PATH)==1 and loads(env,KART_PATH)==1,
+        "background and kart sprite each load once and are reused across all later selections")
     UI.Start()
     env.fire("GLOBAL_MOUSE_DOWN","LeftButton")
     local stoppedState,stoppedRace,stoppedClock=UI.state,UI.race,UI.clock
@@ -1118,11 +1143,12 @@ withMock(nil,false,function(env,UI)
     UI.OnUpdate(1/60)
     assert(UI.active and UI.input.drift and UI.state.drifting and UI.state.driftTicks==1,
         "Space is handled without releasing capture and starts a moving turn drift")
-    local colorWrites=UI.kart.colorWrites
+    local tintWrites=UI.kart.vertexColorWrites
     for _=1,15 do UI.OnUpdate(1/60) end
     assert(UI.state.impacts==0 and UI.state.drifting and UI.driftHud.text:find("Drifting",1,true),
         "short drift remains on the real track and appears on the throttled HUD")
-    assert(UI.kart.colorWrites==colorWrites,"same drift phase does not rewrite kart tint each frame")
+    assert(UI.kart.vertexColorWrites==tintWrites and rawget(UI.kart,"color")==nil,
+        "same drift phase does not rewrite the sprite tint each frame or replace the image")
     UI.Stop("drift fixture")
     assert(not UI.input.drift and not UI.keys.SPACE,"Stop clears held and sampled Space")
     for _,tier in ipairs({1,2}) do
@@ -1845,4 +1871,184 @@ for _,fixture in ipairs({
         end
     end)
 end
+-- Kart sprite (Claude visual scope). The goblin drag car loads once at creation,
+-- is tinted with vertex colors and is never replaced by SetColorTexture; every
+-- failed load keeps the original primitive. Mock calls only: actual client
+-- alpha, filtering, facing and missing-file semantics remain pending.
+local spriteTints={[0]={1,1,1},{0.70,0.84,1.00},{1.00,0.86,0.40},{1.00,0.62,0.90},{0.56,1.00,0.94}}
+local primitiveColors={[0]={0.98,0.54,0.14},{0.35,0.65,1.00},{1.00,0.86,0.20},{1.00,0.35,0.78},
+    {0.20,1.00,0.88}}
+local function expectedTint(state)
+    return state.boostTicks>0 and 4 or (state.drifting and 1+state.driftTier or 0)
+end
+local function sameRGB(actual,expected)
+    return type(actual)=="table" and math.abs(actual[1]-expected[1])<1e-12 and
+        math.abs(actual[2]-expected[2])<1e-12 and math.abs(actual[3]-expected[3])<1e-12 and
+        actual[4]==1
+end
+local function showPhase(UI,tint,label)
+    -- Inject a stopped phase and redraw through the existing Stop path.
+    local state=UI.state
+    state.boostTicks=tint==4 and 20 or 0
+    state.drifting=tint>=1 and tint<=3
+    state.driftTier=state.drifting and tint-1 or 0
+    state.driftTicks=({[0]=0,10,30,60,0})[tint]
+    state.driftGraceTicks=0
+    UI.Stop(label)
+    assert(expectedTint(UI.state)==tint,"phase fixture maps to tint "..tint)
+end
+local function sameCounts(env,counts,label)
+    for key,value in pairs(counts) do
+        assert(env.counts[key]==value,label..": "..key)
+    end
+end
+local spriteSummary
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    local P=env.namespace.Presentation
+    local sprite=P.KART_SPRITES[P.DEFAULT_KART]
+    assert(UI.kartSprite==sprite and sprite.path==KART_PATH,
+        "the goblin drag car is the active default kart visual")
+    assert(UI.kart.texturePath==KART_PATH and UI.kart.textureWrites==1 and loads(env,KART_PATH)==1,
+        "creation loads the kart sprite once from its declared addon path")
+    assert(rawget(UI.kart,"color")==nil and sameRGB(UI.kart.vertexColor,spriteTints[0]),
+        "the loaded sprite starts untinted and is never filled with a solid color")
+    assert(UI.kart.layer=="OVERLAY" and UI.kart.parent==UI.canvas,
+        "the sprite stays on the canvas above background, road and marker layers")
+    assert(UI.kart.width==20 and UI.kart.height==40,"Test Oval draws the padded quad at scale 1")
+    local spawn=UI.state
+    assert(UI.kart.point[1]=="CENTER" and UI.kart.point[2]==UI.canvas and
+           UI.kart.point[3]=="BOTTOMLEFT" and UI.kart.point[4]==spawn.x and
+           UI.kart.point[5]==spawn.y and UI.kart.rotation==spawn.heading-math.pi/2,
+        "the quad is centered on the physical kart center with the north-facing rotation")
+    local counts={}
+    for key,value in pairs(env.counts) do counts[key]=value end
+    UI.Toggle()
+    for _,tint in ipairs({1,2,3,4,0,4,1,0}) do
+        showPhase(UI,tint,"sprite tint fixture")
+        assert(sameRGB(UI.kart.vertexColor,spriteTints[tint]),"sprite tint for phase "..tint)
+        assert(rawget(UI.kart,"color")==nil and UI.kart.texturePath==KART_PATH and
+               UI.kart.textureWrites==1,
+            "phase "..tint.." tints the sprite without reloading or replacing its image")
+    end
+    local writes=UI.kart.vertexColorWrites
+    UI.Stop("unchanged phase"); UI.Stop("unchanged phase")
+    assert(UI.kart.vertexColorWrites==writes,"an unchanged phase does not rewrite the sprite tint")
+    assert(UI.SelectTrack("mirage_raceway"))
+    assert(math.abs(UI.kart.width-30)<1e-9 and math.abs(UI.kart.height-60)<1e-9,
+        "Mirage scales the whole sprite quad uniformly")
+    UI.Start(); UI.OnUpdate(1/60); UI.Stop("sprite reuse fixture")
+    assert(UI.SelectTrack("test_oval") and UI.kart.width==20 and UI.kart.height==40,
+        "returning to Test Oval restores the unscaled quad")
+    UI.Start(); UI.Stop("sprite reuse fixture")
+    assert(loads(env,KART_PATH)==1 and UI.kart.textureWrites==1 and rawget(UI.kart,"color")==nil,
+        "starts and map switches reuse the loaded sprite; no per-run or per-frame texture load")
+    assert(UI.objects.frames==9 and UI.objects.textures==111 and UI.objects.fontStrings==13,
+        "the sprite reuses the existing kart texture without new UI objects")
+    sameCounts(env,counts,"sprite tints and switches allocate no UI objects")
+end)
+
+-- Each refused sprite path keeps the primitive, its 17x31 footprint and the
+-- original drift/boost colors, with no load retry per frame, run or map.
+for _,mode in ipairs({"false","nil","throws","missing","tint missing","tint throws"}) do
+    withMock(nil,false,function(env,UI)
+        if mode=="missing" or mode=="tint missing" or mode=="tint throws" then
+            env.onCreateTexture=function(item,parent,layer)
+                if parent~=UI.canvas or layer~="OVERLAY" then return end
+                if mode=="missing" then item.SetTexture=false
+                elseif mode=="tint missing" then item.SetVertexColor=false
+                else item.SetVertexColor=function() error("mock tint API refuses") end end
+            end
+        else env.textureModes={[KART_PATH]=mode} end
+        env.fire("ADDON_LOADED","AzerothKart")
+        local attempts=(mode=="missing" or mode=="tint missing") and 0 or 1
+        assert(UI.kartSprite==nil and loads(env,KART_PATH)==attempts,
+            "refused sprite selects the primitive after one guarded attempt: "..mode)
+        assert(UI.kart.width==17 and UI.kart.height==31,"primitive keeps its 17x31 body: "..mode)
+        assert(sameRGB(UI.kart.color,primitiveColors[0]) and rawget(UI.kart,"vertexColor")==nil,
+            "primitive starts orange and never uses the sprite tint path: "..mode)
+        UI.Toggle()
+        for _,tint in ipairs({1,2,3,4,0}) do
+            showPhase(UI,tint,"primitive tint fixture")
+            assert(sameRGB(UI.kart.color,primitiveColors[tint]),
+                "primitive keeps phase color "..tint..": "..mode)
+        end
+        assert(UI.SelectTrack("mirage_raceway") and math.abs(UI.kart.width-25.5)<1e-9 and
+               math.abs(UI.kart.height-46.5)<1e-9 and UI.mirageBackground:IsShown(),
+            "Mirage stays playable with the scaled primitive kart: "..mode)
+        UI.Start()
+        for _=1,3 do UI.OnUpdate(1/60) end
+        assert(UI.active and UI.state.tick==3 and UI.race.status=="countdown",
+            "the fallback kart drives the normal fixed-step session: "..mode)
+        UI.Stop("fallback fixture done")
+        assert(loads(env,KART_PATH)==attempts and rawget(UI.kart,"vertexColor")==nil,
+            "no sprite retry per frame, run or map: "..mode)
+        assert(UI.objects.frames==9 and UI.objects.textures==111 and UI.objects.fontStrings==13,
+            "fallback keeps the explicit UI object budget: "..mode)
+    end)
+end
+
+-- The visual path cannot alter simulation: an identical scripted Mirage drive
+-- with irregular frame times yields identical state in sprite and primitive
+-- mode, while every rendered frame shows the tint for the actual state.
+local function scriptedDrive(mode)
+    local trace,seen={}, {}
+    withMock(nil,false,function(env,UI)
+        if mode then env.textureModes={[KART_PATH]=mode} end
+        env.fire("ADDON_LOADED","AzerothKart")
+        assert((UI.kartSprite~=nil)==(mode==nil),"fixture selects the intended kart visual")
+        UI.Toggle()
+        assert(UI.SelectTrack("mirage_raceway"))
+        UI.Start()
+        env.key(UI,"OnKeyDown","W")
+        local frames={1/60,1/30,1/144,0.05,1/90}
+        local drifting,released,straight=false,false,false
+        for frame=1,900 do
+            local tick=UI.state.tick
+            if tick>=340 and not drifting then
+                drifting=true; env.key(UI,"OnKeyDown","A"); env.key(UI,"OnKeyDown","SPACE")
+            elseif tick>=415 and not released then
+                released=true; env.key(UI,"OnKeyUp","SPACE")
+            elseif tick>=450 and not straight then
+                straight=true; env.key(UI,"OnKeyUp","A")
+            end
+            UI.OnUpdate(frames[frame%#frames+1])
+            assert(UI.active,"scripted drive keeps capture")
+            local snapshot={status=UI.race.status,totalTicks=UI.race.totalTicks,
+                nextGate=UI.checkpoints.nextGate,completedLaps=UI.laps.completedLaps}
+            for field,value in pairs(UI.state) do snapshot[field]=value end
+            trace[frame]=snapshot
+            local tint=expectedTint(UI.state)
+            seen[tint]=true
+            if mode==nil then
+                assert(sameRGB(UI.kart.vertexColor,spriteTints[tint]) and
+                       rawget(UI.kart,"color")==nil and UI.kart.textureWrites==1,
+                    "sprite frame "..frame.." shows tint "..tint.." without replacing its image")
+            else
+                assert(sameRGB(UI.kart.color,primitiveColors[tint]),
+                    "primitive frame "..frame.." shows color "..tint)
+            end
+        end
+        UI.Stop("scripted drive done")
+    end)
+    return trace,seen
+end
+local spriteTrace,spriteSeen=scriptedDrive(nil)
+local primitiveTrace=scriptedDrive("false")
+assert(#spriteTrace==900 and #primitiveTrace==900,"both scripted drives complete")
+for frame,snapshot in ipairs(spriteTrace) do
+    for field,value in pairs(snapshot) do
+        assert(primitiveTrace[frame][field]==value,
+            ("kart visual changed simulation field %s at frame %d"):format(field,frame))
+    end
+end
+local last=spriteTrace[#spriteTrace]
+assert(spriteSeen[0] and spriteSeen[1] and spriteSeen[2] and spriteSeen[3],
+    "the scripted drive exercises charge and both ready tiers on Mirage")
+spriteSummary=("mock kart sprite: 1 creation load, vertex tints only, 6 refused-load fallbacks; "..
+    "900-frame Mirage drive identical in sprite/primitive mode through tick %d (tints seen:%s%s%s%s%s)")
+    :format(last.tick,spriteSeen[0] and " 0" or "",spriteSeen[1] and " 1" or "",
+        spriteSeen[2] and " 2" or "",spriteSeen[3] and " 3" or "",spriteSeen[4] and " 4/boost" or "")
+originalPrint(spriteSummary)
+
 originalPrint(summary.." (mock regression only; live-client probes pending)")

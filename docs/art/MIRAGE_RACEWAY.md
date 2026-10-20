@@ -1,6 +1,6 @@
 # Mirage Raceway — map and vehicle brief
 
-Owner direction accepted 2026-10-20 in [ADR 0008](../adr/0008-mirage-raceway-art-direction.md). This replaces the proposed Tinker Speedway as the first production map. The geometry blockout is now selectable with one original salt-flat background and the existing placeholder kart. This is the art/geometry brief, not completed production art or an acceptance result.
+Owner direction accepted 2026-10-20 in [ADR 0008](../adr/0008-mirage-raceway-art-direction.md). This replaces the proposed Tinker Speedway as the first production map. The geometry blockout is now selectable with one original salt-flat background; the kart is the original [Goblin Drag Car sprite](karts/goblin-drag-car.md), with the primitive as fallback (client check pending). This is the art/geometry brief, not completed production art or an acceptance result.
 
 ## Place and composition
 
@@ -37,14 +37,14 @@ The [source ledger](ASSET_SOURCES.md) contains actual candidates and their unver
 
 Agree with one precomposed background and a limited sprite pool. The prototype's 96 road bands are Texture regions on one canvas, not hundreds of Frames; replacing those regions is still a sensible authoring simplification. Performance gains remain unmeasured.
 
-Runtime paths below distinguish the delivered blockout background from future art:
+Runtime paths below distinguish delivered files from future art:
 
 ```text
 addon/AzerothKart/Assets/
   Tracks/SaltFlats/Background.tga   # delivered original blockout
   Tracks/SaltFlats/Foreground.tga   # optional transparent occlusion
   Tracks/SaltFlats/Preview.tga
-  Karts/GoblinDragCar.tga
+  Karts/GoblinDragCar.tga           # delivered original sprite (client check pending)
   Karts/GnomeDragCar.tga
   Props/OilBarrel.tga
   Props/Wreckage.tga
@@ -71,4 +71,4 @@ The [SVG layout](mirage-layout.svg) and [JSON guide](mirage-layout.json) are gen
 
 The factory is bundled directly after Track within the twelve-module addon. While stopped, **Track: Test Oval** toggles to **Track: Mirage Raceway** and loads the original geometry-derived `Background.tga`; a failed guarded load leaves the current map/result/sample intact. Successful selection resets the run and sample. Test Oval remains the reload default and fallback; the background and old oval bands remain pooled. Current explicit UI counts remain 9/111/13 through camera movement. Physics v6 and input/drift/countdown/three-lap/best-lap behavior remain unchanged; rough salt reuses the grass mechanic. The concept board is not cropped into runtime art. The supplied screenshot establishes earlier whole-map loading/orientation. A separate stopped build-70450 check confirmed the close UV crop, larger kart and Start/West strip alignment/clipping at counts 9/111/13. Moving camera/edges and transparent-sprite client checks remain **NOT RUN**; see [the short camera probe](../FEASIBILITY.md#mirage-blockout-first-load-probe) and PROGRESS for actual executed checks.
 
-The closer camera responds first to the owner's report that the whole-map view made the kart too distant. At scale 1.5, the current 17×31 world-unit placeholder becomes 25.5×46.5 canvas units and the road is 168 wide, both 3.2 times their former linear size. This makes intended play size explicit before sprite authoring. The next art slice remains one original, overhead north-facing Mirage drag-car sprite, with a consistent pivot and readable silhouette at that size. Painterly scenery can then replace the blockout while preserving its road registration. No full roster pipeline is required first. M0/M1/M3 acceptance and the multiplayer transport gate remain open; there is no roster selection, save migration or multiplayer.
+The closer camera responds first to the owner's report that the whole-map view made the kart too distant. At scale 1.5, the current 17×31 world-unit placeholder becomes 25.5×46.5 canvas units and the road is 168 wide, both 3.2 times their former linear size. This makes intended play size explicit before sprite authoring. That slice is now the original [Goblin Drag Car](karts/goblin-drag-car.md): a 64×128 north-facing sprite drawn as a 20×40 world-unit quad whose visible body stays inside the 17×31 footprint, loaded once with a primitive fallback; client appearance is pending. Painterly scenery can then replace the blockout while preserving its road registration. No full roster pipeline is required first. M0/M1/M3 acceptance and the multiplayer transport gate remain open; there is no roster selection, save migration or multiplayer.

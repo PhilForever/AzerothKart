@@ -452,8 +452,43 @@ local function layoutTrack()
     UI.mirageBackground:SetPoint("BOTTOMLEFT",UI.canvas,"BOTTOMLEFT",0,0)
     UI.mirageBackground:SetSize(800,480)
     placeTrackMarkers()
-    UI.kart:SetSize(17*UI.view.scale,31*UI.view.scale)
+    -- A loaded sprite draws its padded quad; its visible body keeps the
+    -- primitive's 17x31 footprint. Both share the view's uniform scale.
+    local sprite = UI.kartSprite
+    UI.kart:SetSize((sprite and sprite.quadWidth or Presentation.KART_FOOTPRINT_WIDTH)*UI.view.scale,
+        (sprite and sprite.quadHeight or Presentation.KART_FOOTPRINT_HEIGHT)*UI.view.scale)
     UI.gatePassed,UI.gateStopped = nil,nil
+end
+
+-- Kart visual: one pooled Texture shows the goblin drag-car sprite, or the
+-- original primitive when the guarded creation-time load fails. Tint indices
+-- follow render: 0 normal, 1 charging, 2/3 tier ready, 4 boost. SetColorTexture
+-- replaces a texture's image with a solid color, so only the primitive may use
+-- it; the sprite is tinted multiplicatively with SetVertexColor instead.
+local kartColors = {
+    [0]={0.98,0.54,0.14}, {0.35,0.65,1.00}, {1.00,0.86,0.20}, {1.00,0.35,0.78}, {0.20,1.00,0.88},
+}
+local kartSpriteTints = {
+    [0]={1.00,1.00,1.00}, {0.70,0.84,1.00}, {1.00,0.86,0.40}, {1.00,0.62,0.90}, {0.56,1.00,0.94},
+}
+
+local function loadKartSprite()
+    -- Once, at creation. A true load result plus a working vertex tint select
+    -- the sprite; a missing, erroring, false or nil result keeps the primitive.
+    local kart,sprite = UI.kart,Presentation.KART_SPRITES[Presentation.DEFAULT_KART]
+    UI.kartSprite = nil
+    if not sprite or type(kart.SetTexture) ~= "function"
+        or type(kart.SetVertexColor) ~= "function" then return end
+    local ok,loaded = pcall(kart.SetTexture,kart,sprite.path)
+    if not ok or loaded ~= true or not pcall(kart.SetVertexColor,kart,1,1,1,1) then return end
+    UI.kartSprite = sprite
+end
+
+local function tintKart(tint)
+    local palette = UI.kartSprite and kartSpriteTints or kartColors
+    local color = palette[tint] or palette[0]
+    if UI.kartSprite then UI.kart:SetVertexColor(color[1],color[2],color[3],1)
+    else UI.kart:SetColorTexture(color[1],color[2],color[3],1) end
 end
 
 function UI.SelectTrack(id)
@@ -534,11 +569,7 @@ render = function()
     local tint = state.boostTicks > 0 and 4 or (state.drifting and (1 + state.driftTier) or 0)
     if tint ~= UI.kartTint then
         UI.kartTint = tint
-        if tint == 4 then UI.kart:SetColorTexture(0.20,1.00,0.88,1)
-        elseif tint == 3 then UI.kart:SetColorTexture(1.00,0.35,0.78,1)
-        elseif tint == 2 then UI.kart:SetColorTexture(1.00,0.86,0.20,1)
-        elseif tint == 1 then UI.kart:SetColorTexture(0.35,0.65,1.00,1)
-        else UI.kart:SetColorTexture(0.98,0.54,0.14,1) end
+        tintKart(tint)
     end
     refreshMeter()
     refreshCheckpoints()
@@ -589,6 +620,7 @@ function UI.Create()
     UI.mirageBackground = texture(UI.canvas,"BACKGROUND")
     UI.mirageBackground:Hide()
     UI.kart = texture(UI.canvas,"OVERLAY")
+    loadKartSprite()
     layoutTrack()
     UI.state = Physics.new(Track)
     UI.laps = Laps.new(Track,Checkpoints,UI.state.tick)

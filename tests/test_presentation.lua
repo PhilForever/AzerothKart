@@ -247,6 +247,82 @@ for key, value in pairs(snapshot) do assert(state[key] == value, "meter retains 
 assert(config.DRIFT_TIER1_TICKS == 30 and config.DRIFT_TIER2_TICKS == 60
        and config.BOOST_TIER2_TICKS == 48, "meter preserves injected configuration")
 
+-- Kart sprite registry and the shipped TGA bytes. This checks the packaging
+-- contract and offline alpha only; client loading, filtering and facing are
+-- separate in-game checks.
+assert(P.KART_FOOTPRINT_WIDTH == 17 and P.KART_FOOTPRINT_HEIGHT == 31,
+       "sprite body matches the primitive footprint and the 18-unit wall clearance")
+near(P.KART_FOOTPRINT_WIDTH * camera.scale, 25.5, "sprite body width at the close camera")
+assert(type(P.KART_SPRITES[P.DEFAULT_KART]) == "table", "the default kart sprite is registered")
+local function powerOfTwo(value)
+    if type(value) ~= "number" or value < 1 or value % 1 ~= 0 then return false end
+    while value > 1 do
+        if value % 2 ~= 0 then return false end
+        value = value / 2
+    end
+    return true
+end
+local addonPrefix = "Interface\\AddOns\\AzerothKart\\"
+local spriteFiles = 0
+for id, sprite in pairs(P.KART_SPRITES) do
+    local w, h = sprite.textureWidth, sprite.textureHeight
+    assert(type(sprite.path) == "string" and sprite.path:sub(1, #addonPrefix) == addonPrefix
+           and sprite.path:find("\\Assets\\Karts\\[%w]+%.tga$"), id .. ": addon kart TGA path")
+    assert(powerOfTwo(w) and powerOfTwo(h), id .. ": power-of-two texture")
+    assert(w * sprite.quadHeight == h * sprite.quadWidth, id .. ": square texels in world units")
+    assert(sprite.quadWidth >= P.KART_FOOTPRINT_WIDTH and sprite.quadHeight >= P.KART_FOOTPRINT_HEIGHT,
+           id .. ": quad pads the body rather than cropping it")
+    local file = assert(io.open("addon/AzerothKart/" .. (sprite.path:sub(#addonPrefix + 1):gsub("\\", "/")),
+                                "rb"), id .. ": declared sprite file exists in the addon")
+    local data = file:read("*a")
+    file:close()
+    local function u16(index) return data:byte(index) + 256 * data:byte(index + 1) end
+    assert(data:byte(1) == 0 and data:byte(2) == 0 and data:byte(3) == 2 and u16(13) == w
+           and u16(15) == h and data:byte(17) == 32 and data:byte(18) == 8,
+           id .. ": uncompressed BGRA32, eight alpha bits, bottom-left origin")
+    assert(#data == 18 + w * h * 4, id .. ": exact payload size")
+    local function alpha(column, rowFromTop)
+        return data:byte(18 + ((h - 1 - rowFromTop) * w + column) * 4 + 4)
+    end
+    local perUnit = w / sprite.quadWidth
+    local halfW, halfH = P.KART_FOOTPRINT_WIDTH * perUnit / 2, P.KART_FOOTPRINT_HEIGHT * perUnit / 2
+    local visible, solid = 0, 0
+    local left, right, top, bottom = w, -1, h, -1
+    for row = 0, h - 1 do
+        for column = 0, w - 1 do
+            local a = alpha(column, row)
+            if a > 0 then
+                assert(math.abs(column + 0.5 - w / 2) <= halfW and math.abs(row + 0.5 - h / 2) <= halfH,
+                       id .. ": visible texels stay inside the 17x31 body")
+                assert(column > 0 and column < w - 1 and row > 0 and row < h - 1,
+                       id .. ": a transparent border protects filtered edges")
+                visible = visible + 1
+                if a == 255 then solid = solid + 1 end
+                left, right = math.min(left, column), math.max(right, column)
+                top, bottom = math.min(top, row), math.max(bottom, row)
+            end
+        end
+    end
+    assert(solid > 0.4 * 4 * halfW * halfH, id .. ": substantial opaque silhouette")
+    assert(math.abs((left + right + 1) / 2 - w / 2) <= 0.5 and math.abs((top + bottom + 1) / 2 - h / 2) <= 1,
+           id .. ": silhouette centered on the quad (kart pivot)")
+    if id == "goblin_drag_car" then
+        -- North-facing landmarks: pointed nose up, open front corners, wide rear slicks.
+        assert(alpha(w / 2, 16) > 0 and alpha(w / 2 - 1, 16) > 0, id .. ": nose points north")
+        for row = 15, 21 do
+            for column = 5, 21 do
+                assert(alpha(column, row) == 0 and alpha(w - 1 - column, row) == 0,
+                       id .. ": front corners stay open")
+            end
+        end
+        assert(alpha(8, 96) == 255 and alpha(w - 9, 96) == 255, id .. ": wide rear slicks sit south")
+    end
+    spriteFiles = spriteFiles + 1
+    print(("offline kart sprite %s: %dx%d TGA, %d visible/%d opaque texels inside %dx%d body")
+        :format(id, w, h, visible, solid, P.KART_FOOTPRINT_WIDTH, P.KART_FOOTPRINT_HEIGHT))
+end
+assert(spriteFiles >= 1, "at least one kart sprite is validated")
+
 assert(_G.AzerothKart == beforeGlobal, "offline import must not create or replace an addon global")
 local namespace = {sentinel=marker}
 local loaded = assert(loadfile("addon/AzerothKart/Presentation.lua"))("AzerothKart", namespace)

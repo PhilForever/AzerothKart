@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — first Goblin Drag Car sprite (2026-10-20, `claude/track-ui`)
+- Add an original strict-overhead, north-facing goblin dragster. The runtime file `Assets/Karts/GoblinDragCar.tga` is a 64×128 straight-alpha TGA, 32,786 bytes, bottom-left origin. It shows a long red nose, a big-eared goblin pilot, explosive canisters, an oversized supercharged engine, huge slicks and a rocket bell.
+- The sprite is drawn as a 20×40 world-unit quad whose visible body stays inside the existing 17×31 footprint. Transparent padding has bled edge colors.
+- The new standard-library `scripts/build_kart_sprites.py` paints the sprite deterministically. `--check` verifies exact bytes, footprint, pivot, facing and edge invariants; `--preview` writes a PNG master and an in-context review sheet under `docs/art/karts/`.
+- Register sprite metadata in `Presentation.KART_SPRITES`. UI loads the sprite once at creation behind a guarded `SetTexture`, then tints drift/boost phases with `SetVertexColor` instead of `SetColorTexture`, which would have replaced the image. Any refused load keeps the original primitive and its colors.
+- Physics, input, race, camera and capture code are unchanged, and explicit UI counts stay 9/111/13. Offline tests cover the asset bytes, sprite/fallback rendering, and identical simulation state across a scripted Mirage drive in both modes. Client appearance is NOT RUN; see `docs/handoffs/claude-latest.md`.
+
 ## Unreleased — closer Mirage follow camera (2026-10-20)
 - Replace Mirage's distant whole-map presentation with a north-up follow camera at scale 1.5. A cropped background fills the existing 800×480 canvas, with 60 world units of heading look-ahead and a view clamped to map bounds. The placeholder kart grows from about 8×14.5 to 25.5×46.5 canvas units; the road grows from 52.5 to 168 wide.
 - Keep art, kart, gates and walls in one uniform transform, clipping pooled gate/wall strips to the visible canvas. The camera follows the interpolated pose and freezes at the exact stopped pose; no simulation, geometry or Physics v6 change is introduced.

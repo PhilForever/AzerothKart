@@ -135,7 +135,18 @@ Test Oval uses a fixed fit overview (800×480 into 800×480, scale 1). Mirage us
 
 `texCoords` converts +Y-up to top-origin texture V once and returns four arguments for `SetTexCoord(left,right,top,bottom)`, bounded to [0,1]. `clipRect` returns the visible canvas intersection for axis-aligned world rectangles, or nil when invisible. UI repositions/clips pooled gate and perimeter textures when camera offsets change; no native clipping API is assumed. Rotated kart clipping is not a general sprite-clip interface.
 
-Kart anchoring is centered at projected pose; dimensions are currently 17×31 **world** units (25.5×46.5 UI units on Mirage). Rotation is `heading - math.pi/2`, for a north-facing source image. The current kart is a solid color Texture, not a sprite: `render` uses `SetColorTexture` on phase changes. Sprite integration must replace that visual tint path appropriately or it will overwrite a loaded image. A new sprite's padded canvas/pivot must preserve the physical center and visible footprint; art does not enlarge collision clearance.
+Kart anchoring is centered at the projected pose; rotation is `heading - math.pi/2`, for a north-facing source image. Art does not enlarge collision clearance.
+
+**Proposed on `claude/track-ui` (Claude, pending Codex review):**
+
+- The kart body stays 17×31 **world** units, published as `Presentation.KART_FOOTPRINT_WIDTH/HEIGHT` (25.5×46.5 UI units on Mirage).
+- `Presentation.KART_SPRITES[id]` is pure, read-only data: `path`, power-of-two `textureWidth/textureHeight`, and `quadWidth/quadHeight` in world units with square texels.
+- `Presentation.DEFAULT_KART` is `"goblin_drag_car"`: a 64×128 TGA drawn as a 20×40 quad. Every visible sprite texel lies inside the 17×31 body; transparent padding fills the rest of the quad.
+- UI loads the default sprite once in `UI.Create`. The guarded `SetTexture` must return exactly `true` and a neutral `SetVertexColor` must succeed; only then is the read-only diagnostic `UI.kartSprite` set and the kart Texture sized to the quad times the view scale.
+- Phase changes tint the sprite with `SetVertexColor`.
+- Any refused load keeps the primitive: a 17×31 quad and `SetColorTexture` phase colors, with no retry. Only that path calls `SetColorTexture`, which would replace a loaded image.
+
+The visual path reads state only. An offline scripted drive produces identical simulation state in both modes. See [the asset sheet](art/karts/goblin-drag-car.md).
 
 ## Rendering cadence, resources and lifecycle
 

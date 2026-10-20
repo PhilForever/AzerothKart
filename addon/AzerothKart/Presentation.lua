@@ -159,5 +159,23 @@ function Presentation.meter(state, config)
     return math.min(1, ticks / config.DRIFT_TIER2_TICKS), phase
 end
 
+-- Kart art metadata: pure data, read-only by convention. Each sprite is a
+-- strict-overhead, north-facing image centred on the kart's physical centre.
+-- Its visible texels stay inside the 17x31 world-unit body of the original
+-- primitive (the clearance assumed by the 18-unit perimeter inset); the rest
+-- of the quad is transparent padding for filtering. Quad and body scale with
+-- the same uniform view transform and rotate by heading - pi/2. Art never
+-- feeds collision, gates, input or race timing.
+Presentation.KART_FOOTPRINT_WIDTH = 17
+Presentation.KART_FOOTPRINT_HEIGHT = 31
+Presentation.DEFAULT_KART = "goblin_drag_car"
+Presentation.KART_SPRITES = {
+    goblin_drag_car = {
+        path = "Interface\\AddOns\\AzerothKart\\Assets\\Karts\\GoblinDragCar.tga",
+        textureWidth = 64, textureHeight = 128, -- texels; power-of-two TGA
+        quadWidth = 20, quadHeight = 40,        -- world units; 3.2 texels per unit
+    },
+}
+
 if type(namespace) == "table" then namespace.Presentation = Presentation end
 return Presentation
