@@ -3,7 +3,7 @@
 local _, namespace = ...
 
 local Physics = {}
-Physics.VERSION = 6
+Physics.VERSION = 7
 Physics.FIXED_DT = 1/60
 Physics.MAX_SPEED = 200
 Physics.REVERSE_MAX = 55
@@ -156,7 +156,11 @@ function Physics.step(state, input, dt, track)
     local nx = state.x + math.cos(travelHeading) * speed * dt
     local ny = state.y + math.sin(travelHeading) * speed * dt
     local hit
-    if track.constrainPosition then
+    if track.resolveMovement then
+        -- Optional swept solids receive the whole fixed-step segment. The
+        -- render pose is never used for collision or written back into it.
+        nx,ny,hit = track.resolveMovement(state.x,state.y,nx,ny)
+    elseif track.constrainPosition then
         -- Clamp each axis, preserving any valid tangential displacement.
         nx,ny,hit = track.constrainPosition(nx,ny)
     else

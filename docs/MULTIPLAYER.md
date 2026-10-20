@@ -1,6 +1,6 @@
 # Multiplayer experience & uncertainty
 
-**Current priority:** genuine multiplayer precedes dedicated ghosts/time trials under [ADR0010](adr/0010-multiplayer-release-priority.md). Release targets Codex's required work through verified multiplayer plus Claude's three ready maps/eight ready karts; roster size does not promise eight simultaneous racers. All live transport gates remain open.
+**Current priority:** genuine multiplayer precedes dedicated ghosts/time trials under [ADR 0010](adr/0010-multiplayer-release-priority.md). Release targets Codex's required work through verified multiplayer plus Claude's three ready maps/eight ready karts; roster size does not promise eight simultaneous racers. All live transport gates remain open.
 
 ## Realistic risk model
 A smooth eight-racer kart game is a high-frequency interactive simulation. WoW addon messaging is a throttled control/message bus, not a dedicated UDP game-state networking API. A host with eight players can easily exceed aggregate message budget if naïvely sending one message per racer per render frame. Never build multiplayer architecture from imaginary 60Hz packet service.

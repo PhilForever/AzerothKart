@@ -1,5 +1,11 @@
 # Track pipeline and validation
 
+## Implemented Test Oval solid fixtures
+
+Test Oval is `id="test_oval"`, geometry version 2. Its ordered `obstacles` array contains bottom-left rectangles (270,400,32,24) and (490,60,32,24), painted as two pooled red primitives. The road/spawn/gates remain unchanged. Physical obstacle footprints classify as wall; movement sweeps against 18-unit expanded rectangles and the perimeter. Tangential movement is retained, and contact uses the existing wall response. Clearance is conservative and square; these fixtures do not establish arbitrary prop/polygon/vehicle collision support. Keep geometry read-only during a run. `constrainPosition` remains perimeter-only; Physics v7 prefers the optional `resolveMovement(previousX,previousY,targetX,targetY)` hook. See [physics details](PHYSICS.md#implemented-test-oval-solid-fixtures).
+
+Mirage Raceway stays geometry version 1 and receives **no solid obstacles**. Its scenery is visual only. The two Oval markers are hidden there; existing camera/gates/physics behavior is retained.
+
 ## Track data v1 (proposed)
 ```lua
 return {

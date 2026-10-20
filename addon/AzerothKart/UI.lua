@@ -395,6 +395,14 @@ local function drawTrack(canvas)
         line:SetPoint("CENTER",canvas,"BOTTOMLEFT",(gate.ax+gate.bx)/2,(gate.ay+gate.by)/2)
         UI.gateTextures[index] = line
     end
+    -- Two Test Oval collision fixtures, pooled once and driven by the same
+    -- physical rectangles as the solver. Mirage has no solid props.
+    UI.obstacleTextures = {}
+    for index in ipairs(Oval.obstacles) do
+        local piece = texture(canvas,"ARTWORK")
+        piece:SetColorTexture(0.88,0.25,0.12,1)
+        UI.obstacleTextures[index] = piece
+    end
 end
 
 local function drawWalls(canvas)
@@ -452,6 +460,13 @@ local function layoutTrack()
     UI.mirageBackground:SetPoint("BOTTOMLEFT",UI.canvas,"BOTTOMLEFT",0,0)
     UI.mirageBackground:SetSize(800,480)
     placeTrackMarkers()
+    for index,piece in ipairs(UI.obstacleTextures) do
+        if mirage then piece:Hide()
+        else
+            local obstacle = Oval.obstacles[index]
+            placeWorldRect(piece,obstacle.x,obstacle.y,obstacle.width,obstacle.height)
+        end
+    end
     -- A loaded sprite draws its padded quad; its visible body keeps the
     -- primitive's 17x31 footprint. Both share the view's uniform scale.
     local sprite = UI.kartSprite

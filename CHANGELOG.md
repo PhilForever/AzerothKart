@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — Test Oval swept solids and multiplayer priority (2026-10-20)
+- Add two geometry-backed red solid-barrier fixtures to Test Oval only; Mirage gains no obstacles. Sweep whole movement segments with conservative 18-unit clearance, bounded recovery and sliding; retain the existing once-per-step wall scrub/cancel response.
+- Physics compatibility v7 and Oval geometry v2; fifteen state fields, handling constants, input/race/clock logic and Mirage geometry remain unchanged.
+- Pool two additional Texture regions at creation, hidden on Mirage: current explicit counts 9 frames/113 textures/13 font strings. No per-tick UI creation or asset loads. Client appearance/feel remains NOT RUN.
+- Record multiplayer ahead of dedicated ghosts/time trials and the owner's release target of verified multiplayer, three ready maps and eight ready karts. Keep actual-client transport gates and explicit release authorization.
+
 ## Unreleased — first Goblin Drag Car sprite (2026-10-20, `claude/track-ui`)
 - Add an original strict-overhead, north-facing goblin dragster. The runtime file `Assets/Karts/GoblinDragCar.tga` is a 64×128 straight-alpha TGA, 32,786 bytes, bottom-left origin. It shows a long red nose, a big-eared goblin pilot, explosive canisters, an oversized supercharged engine, huge slicks and a rocket bell.
 - The sprite is drawn as a 20×40 world-unit quad whose visible body stays inside the existing 17×31 footprint. Transparent padding has bled edge colors.

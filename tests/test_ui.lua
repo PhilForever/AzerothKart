@@ -285,7 +285,7 @@ withMock(nil, false, function(env,UI)
             "thin wall strips follow the canvas perimeter")
         assert(wall.item.colorWrites==1,"static wall color is configured once")
     end
-    assert(UI.objects.frames==9 and UI.objects.textures==111 and UI.objects.fontStrings==13,
+    assert(UI.objects.frames==9 and UI.objects.textures==113 and UI.objects.fontStrings==13,
         "pooled run summary, lap/checkpoint HUD, drift meter and walls match the explicit UI object budget")
     local function covered(rectangles,x,y)
         for _,rect in ipairs(rectangles) do
@@ -323,6 +323,51 @@ withMock(nil, false, function(env,UI)
         :format(#outer,#inner,checked)
 end)
 originalPrint(renderSummary.." (client appearance still pending)")
+
+-- Solid fixtures are visible only on Oval. Their physical rectangles come
+-- from Track data; the 18-unit center clearance belongs to collision.
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    local Oval=env.namespace.Track
+    local markers=UI.obstacleTextures
+    assert(#Oval.obstacles==2 and #markers==2,"two pooled Oval obstacle markers")
+    local counts={}
+    for kind,value in pairs(env.counts) do counts[kind]=value end
+    for index,obstacle in ipairs(Oval.obstacles) do
+        local piece=markers[index]
+        assert(piece.layer=="ARTWORK" and piece:IsShown(),"solid markers draw over road")
+        assert(piece.point[1]=="BOTTOMLEFT" and piece.point[4]==obstacle.x
+            and piece.point[5]==obstacle.y and piece.width==obstacle.width
+            and piece.height==obstacle.height,"marker uses physical geometry at scale one")
+        assert(Oval.isDrivable(obstacle.x+obstacle.width/2,obstacle.y+obstacle.height/2)
+            and Oval.surfaceAt(obstacle.x+obstacle.width/2,obstacle.y+obstacle.height/2)=="wall",
+            "solid footprint overrides road surface without repainting the road mask")
+    end
+    UI.Toggle(); UI.Start(); finishCountdown(UI)
+    local obstacle=Oval.obstacles[1]
+    UI.state.x=obstacle.x+obstacle.width/2
+    UI.state.y=obstacle.y-Oval.wallInset-0.5
+    UI.state.heading,UI.state.speed=math.pi/2,200
+    UI.previousState=UI.state
+    local impacts=UI.state.impacts
+    UI.OnUpdate(1/60)
+    assert(UI.state.surface=="wall" and UI.state.impacts==impacts+1
+        and UI.state.y<=obstacle.y-Oval.wallInset,"UI fixed step resolves the visible solid")
+    UI.Stop("obstacle fixture")
+    for _=1,3 do
+        assert(UI.SelectTrack("mirage_raceway"),"select scenery without solid props")
+        assert(UI.track.obstacles==nil and UI.track.resolveMovement==nil,
+            "Mirage keeps original geometry and movement hook")
+        for _,piece in ipairs(markers) do assert(not piece:IsShown(),"Oval solids hidden on Mirage") end
+        UI.Start(); UI.OnUpdate(1/60); UI.Stop("Mirage visibility")
+        for _,piece in ipairs(markers) do assert(not piece:IsShown(),"camera cannot reshow Oval solids") end
+        assert(UI.SelectTrack("test_oval"),"return to Oval")
+        for _,piece in ipairs(markers) do assert(piece:IsShown(),"same solid markers reused") end
+    end
+    for kind,value in pairs(counts) do
+        assert(env.counts[kind]==value,"map switches/steps cannot create obstacle UI objects")
+    end
+end)
 
 -- Mirage uses one cropped image and a closer, north-up follow camera. The same
 -- uniform transform controls the readable kart and clipped geometry markers.
@@ -1325,7 +1370,7 @@ for _,mode in ipairs({"missing", "throws"}) do
         env.fire("ADDON_LOADED","AzerothKart")
         UI.Toggle(); UI.Start(); UI.OnUpdate(1/60)
         assert(UI.active and UI.state.tick==1,"optional snapping APIs cannot block driving: "..mode)
-        assert(UI.objects.frames==9 and UI.objects.textures==111 and UI.objects.fontStrings==13,
+        assert(UI.objects.frames==9 and UI.objects.textures==113 and UI.objects.fontStrings==13,
             "snapping fallback preserves UI object budget: "..mode)
         assert(env.drawLayerCalls==1,"grass priority remains explicit when snapping is unavailable: "..mode)
     end,nil,mode)
@@ -1677,7 +1722,7 @@ withMock(nil, false, function(env,UI)
     assert(math.abs(sample.simulationMs-6)<1e-8 and math.abs(sample.renderMs-6)<1e-8 and
            math.abs(sample.totalMs-12)<1e-8,"profile phases accumulate known mock milliseconds")
     assert(#env.output==before,"sampling/completion never prints per-frame chat")
-    assert(UI.objects.frames==9 and UI.objects.textures==111 and UI.objects.fontStrings==13,
+    assert(UI.objects.frames==9 and UI.objects.textures==113 and UI.objects.fontStrings==13,
         "profiling creates no UI objects")
     local state={}
     for key,value in pairs(UI.state) do state[key]=value end
@@ -1943,7 +1988,7 @@ withMock(nil,false,function(env,UI)
     UI.Start(); UI.Stop("sprite reuse fixture")
     assert(loads(env,KART_PATH)==1 and UI.kart.textureWrites==1 and rawget(UI.kart,"color")==nil,
         "starts and map switches reuse the loaded sprite; no per-run or per-frame texture load")
-    assert(UI.objects.frames==9 and UI.objects.textures==111 and UI.objects.fontStrings==13,
+    assert(UI.objects.frames==9 and UI.objects.textures==113 and UI.objects.fontStrings==13,
         "the sprite reuses the existing kart texture without new UI objects")
     sameCounts(env,counts,"sprite tints and switches allocate no UI objects")
 end)
@@ -1983,7 +2028,7 @@ for _,mode in ipairs({"false","nil","throws","missing","tint missing","tint thro
         UI.Stop("fallback fixture done")
         assert(loads(env,KART_PATH)==attempts and rawget(UI.kart,"vertexColor")==nil,
             "no sprite retry per frame, run or map: "..mode)
-        assert(UI.objects.frames==9 and UI.objects.textures==111 and UI.objects.fontStrings==13,
+        assert(UI.objects.frames==9 and UI.objects.textures==113 and UI.objects.fontStrings==13,
             "fallback keeps the explicit UI object budget: "..mode)
     end)
 end

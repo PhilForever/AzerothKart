@@ -1,6 +1,6 @@
 # Implemented simulation and rendering contracts
 
-**Checkpoint:** 2026-10-20; source baseline `main` at `f923d15`, runtime last changed in `7acab18`. Physics compatibility version is **6**. This document describes the implemented local solo prototype, not a released engine or a claim that pending client tests passed. See [PROGRESS](PROGRESS.md) for evidence and [the latest handoff](handoffs/codex-latest.md) for integration instructions.
+**Checkpoint:** 2026-10-20; feature branch `codex/oval-obstacle-collision`, based on reviewed `1f8f208`; main remains `f923d15`. Physics compatibility version is **7** (v6 handling retained). This document describes the implemented local solo prototype, not a released engine or a claim that pending client tests passed. See [PROGRESS](PROGRESS.md) for evidence and [the latest handoff](handoffs/codex-latest.md) for integration instructions.
 
 ## Status and ownership
 
@@ -25,7 +25,7 @@ The current render path reads `AK.UI.state`, `.previousState`, `.race`, `.laps`,
 Implemented in [`Physics.lua`](../addon/AzerothKart/Physics.lua):
 
 ```lua
-Physics.VERSION = 6
+Physics.VERSION = 7
 Physics.FIXED_DT = 1/60
 Physics.new(track) -> state
 Physics.step(state, input, dt, track) -> nextState
@@ -54,7 +54,7 @@ There are **15 fields**; no `vx`, `vy`, acceleration vector, collision normal, d
 
 Current limits: road speed 200, reverse 55, boosted speed 260; rough-ground forward/reverse targets 70/30, reached by gradual drag. Drift requires road, no brake and forward speed at least 90. Drift yaw is 0.75 times ordinary yaw. Releasing Space spends a ready tier if still eligible, including correction grace; braking, low speed, rough ground and wall contact clear charge. Read exported Physics constants for visual thresholds rather than inventing new ones.
 
-Collision is point-center movement constrained to a rectangular perimeter with an 18-unit inset, sufficient for the current 17×31 world-unit placeholder. On contact speed is multiplied by 0.25, steering/slip/drift/boost clear, and valid tangential displacement remains. There are no road-edge solid walls, prop colliders, vehicle-to-vehicle contacts or swept collision shapes. To animate impacts, rendering may compare consecutive `impacts`; it must not increment it or treat it as a trustworthy network event.
+Test Oval now sweeps center movement against its perimeter and two axis-aligned solid rectangles expanded by 18 units on each side. This conservative square clearance encloses the rotated 17×31 body; it is not an exact oriented-body or rounded-corner collision shape. Earliest contacts remove inward normal displacement while retaining tangent motion, using at most three movement iterations and no temporary tables. Recovery from a starting overlap is deterministic and bounded to four passes for these disjoint, perimeter-contained fixtures; arbitrary overlapping obstacle clusters are unsupported. Mirage retains its original endpoint perimeter clamp and no obstacles. Contact multiplies speed by 0.25 once per Physics step, clears steering/slip/drift/grace/boost and reports `surface="wall"`; `impacts` still counts contact ticks. No state fields, collision-normal stream, road-edge walls or vehicle-to-vehicle collision were added. Rendering may compare consecutive `impacts`, but must not increment it or treat it as a trustworthy network event.
 
 ## Input and fixed-step ownership
 
@@ -75,12 +75,14 @@ track.spawn() -> {x, y, heading}       -- fresh spawn table
 track.isDrivable(x, y) -> boolean     -- road mask, not all traversable ground
 track.surfaceAt(x, y) -> "road" | "grass" | "wall"
 track.constrainPosition(x, y) -> constrainedX, constrainedY, hitBoolean
+-- Optional on Test Oval; preferred by Physics when present:
+track.resolveMovement(previousX, previousY, targetX, targetY) -> x, y, hit
 track.crossesGate(previous, current, gate) -> boolean
 ```
 
 Physics also supports small test tracks without `surfaceAt`/`constrainPosition`; that fixture fallback is not a replacement production track interface. Gate records use `name`, endpoints `ax,ay,bx,by`, and perpendicular forward normal `nx,ny`. Crossing requires negative to nonnegative signed side and an intersection inside the finite segment. Starting on/departing the line, reverse crossings and invalid geometry do not award.
 
-- [`Track.lua`](../addon/AzerothKart/Track.lua) is the singleton Test Oval: 800×480, elliptical road, spawn (666,240), north-facing. `UI.trackId` is `"test_oval"`; this module itself has no `id`/`version` fields.
+- [`Track.lua`](../addon/AzerothKart/Track.lua) is singleton Test Oval, `id="test_oval"`, `version=2`: 800×480, elliptical road, spawn (666,240), north-facing. `obstacles` is a read-only-by-convention ordered array of physical rectangles `{id,x,y,width,height}` with bottom-left origin: (270,400,32,24) and (490,60,32,24). `isDrivable` remains the road mask; `surfaceAt` additionally classifies physical obstacle footprints including edges as wall. Only `resolveMovement` adds kart clearance. `constrainPosition` remains perimeter-only for compatibility. Finite endpoints/displacements are required. Exact arrival at a clearance face or isolated corner graze is free; inward movement from a face contacts. Keep geometry fixed during a run.
 - [`MirageRaceway.new(crossesGate)`](../addon/AzerothKart/MirageRaceway.lua) returns a fresh track: `id="mirage_raceway"`, `version=1`, 1024×1024, a closed 16-point `centerline`, `roadWidth=112`, `roadRadius=56`, derived `length`, spawn (700,360), north-facing. The road is a union of capsules. Internal segment/radius caches are built once; mutating centerline/radius afterward would not rebuild them. Treat all geometry as immutable during use.
 - Both have four ordered gates North, West, South, Start; `checkpointMaxStep=5`. Perimeter walls are separate from road/rough-ground boundaries. Scenery guide markers are not colliders.
 
@@ -154,7 +156,7 @@ The visual path reads state only. An offline scripted drive compares every retur
 
 Rendering currently runs once per delivered active `OnUpdate`, after zero or more fixed steps; it is not locked to 60 FPS and has no separate render timer. Meter, gate colors and countdown update through the render path with cached values. The numeric HUD refreshes every ≥0.25 **simulated** seconds, on lap/status changes and immediately at Start/Stop/selection. UI lifecycle events may draw outside `OnUpdate`; inactive updates do no work.
 
-The window is 856×762 with an 800×480 canvas. Explicit UI allocations are **9 frames, 111 textures, 13 font strings**. This includes the 96 retained Oval bands, four gate strips, four perimeter strips, one Mirage background, one kart and pooled meter/result/cue elements. Counts exclude Core's event frame, template/native internals and other addons. They are an observed baseline, not a guaranteed client memory/FPS budget or a ban on reviewed pool changes.
+The window is 856×762 with an 800×480 canvas. Explicit UI allocations are **9 frames, 113 textures, 13 font strings** (two additional pooled Oval obstacle markers; no additional Frames). This includes the 96 retained Oval bands, four gate strips, four perimeter strips, one Mirage background, one kart, two solid-fixture markers and pooled meter/result/cue elements. Markers render the physical rectangles in ARTWORK at Oval's fixed scale and stay hidden on Mirage, including camera updates. Counts exclude Core's event frame, template/native internals and other addons. They are offline-checked explicit allocations; the prior 9/111/13 baseline has scoped client observations. Neither count is a guaranteed client memory/FPS budget or a ban on reviewed pool changes.
 
 Preserve creation-time pooling: no `CreateFrame`/`CreateTexture`/font-string creation, texture file loads or chat output per simulation tick or render callback. Current snapshots allocate bounded Lua tables per tick; there is no promise of zero Lua allocation. Profile before replacing their immutable-style behavior. Opt-in Performance collects at most 600 callback spans and includes instrumentation overhead; it is not exclusive CPU/GPU cost.
 
@@ -164,6 +166,6 @@ Capture/release safeguards, combat handling, unknown-key/click stop paths and ev
 
 ## Proposed changes require coordination
 
-Possible future work includes an explicit render snapshot/scene boundary, collision feedback events, sprite metadata/atlases, foreground occlusion, track hashes, saved records and multiplayer snapshots. None is a callable contract today. Do not implement an architecture sketch as though its fields already exist. Agree a contract/ADR update and compatibility impact before adding or renaming authoritative fields, changing units/tick semantics, track geometry or lifecycle callbacks. This checkpoint introduces no runtime/API changes.
+Possible future work includes an explicit render snapshot/scene boundary, collision feedback events, additional sprite atlases/animation, foreground occlusion, track hashes, saved records and multiplayer snapshots. None is a callable contract today. Do not implement an architecture sketch as though its fields already exist. Agree a contract/ADR update and compatibility impact before adding or renaming authoritative fields, changing units/tick semantics, track geometry or lifecycle callbacks. The optional Test Oval movement hook and version changes described above are implemented in this slice; the future boundaries listed here are not.
 
-Offline state/geometry/UI-mock checks are evidence of those scopes only. Opaque Mirage texture loading and the stopped close-camera view are observed in the client; moving camera edges, v6 handling acceptance, production transparent sprites and sustained performance remain pending. No multiplayer transport measurements or replication architecture have been established.
+Offline state/geometry/UI-mock checks are evidence of those scopes only. Opaque Mirage texture loading and the stopped close-camera view are observed in the client; moving camera edges, latest handling acceptance, production transparent sprites and sustained performance remain pending. No multiplayer transport measurements or replication architecture have been established.
