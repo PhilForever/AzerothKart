@@ -1,5 +1,9 @@
 # Azeroth Kart — developer installation
 
+The stopped/finished result panel has its own **Close results** button. It hides the panel while retaining your lap times, track and stopped sample. The top-right **Close** still hides the whole addon. Start Test Drive begins a fresh run.
+
+Connection testing currently uses chat commands, not a menu button: type `/akart net help` for the short you-and-a-friend steps. **Print Probe** prints driving statistics. The source checkout has [a plain connection-test guide](../../docs/NETWORK_QUICK_START.md); no second client is required for solo racing.
+
 The integrated build includes an opt-in WHISPER experiment, not multiplayer gameplay. After both clients install its new Lua files, two consenting testers can use `/akart net listen Peer-Realm ABC123` and `/akart net start Peer-Realm ABC123`, matching fresh IDs/configuration; defaults are 0.5 DATA/s,16bytes,120seconds. Stop with `/akart net stop`; explicit `net report` and `net evidence` retain bounded diagnostics. Follow the source checkout's [precise network checklist](../../tests/MANUAL_NETWORK_CHECKLIST.md) before running it. Nothing registers/sends on addon load; all real transport checks remain NOT RUN.
 
 Test Oval: Test Oval adds two red solid barriers at (270,400) and (490,60), each 32×24 world units. Swept movement allows sliding and keeps the kart center 18 units clear on each axis; impacts scrub speed and cancel drift/boost. Mirage gains no obstacles. Current explicit counts are 9 frames/113 textures/13 font strings; prior live 9/111/13 samples describe the earlier source. Physics compatibility is v7 with unchanged v6 handling tuning. Obstacle client appearance/feel is NOT RUN.

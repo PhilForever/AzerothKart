@@ -13,6 +13,7 @@ The owner reported accidental stops from stray mouse clicks and unassigned keys,
 - Enter/numpad Enter deliberately releases capture for chat. Actual text focus, available application-focus readback, hiding, world leave/logout and combat retain their existing stop behavior. Combat keeps ADR 0006's terminal interruption.
 - Global mouse-down registration is no longer needed for capture. Stop stays enabled during countdown/driving; track switching stays disabled until the run ends.
 - Results offer Restart, track selection or Close rather than describing a pause as "Controls released".
+- Owner follow-up, 2026-10-21: the result panel has its own **Close results** button. Dismissal changes presentation only and survives ordinary Stop/Close/reopen or refused Start; a successful new run or map selection clears it. The outer Close button continues to hide the entire addon.
 
 ## Evidence and limits
 

@@ -115,7 +115,29 @@ withMock(function(env,t,p)
     assert(#env.sends == 2); quiet(env,afterStop)
 end)
 
-for _,argument in ipairs({"", "help", "start", "start Tester-Realm",
+withMock(function(env,t,p)
+    assert(t.Command("help") and #env.output==6,"explicit help prints the short connection-test steps")
+    assert(not t.state and t.usedCount==0 and env.registerCalls==0 and #env.sends==0 and
+           env.eventCalls==0 and env.scriptCalls==0,"help never arms, registers or sends")
+    local guide=table.concat(env.output,"\n")
+    assert(guide:find("listen YourName-YourRealm",1,true) and
+           guide:find("start FriendName-FriendRealm",1,true) and
+           guide:find("20 seconds",1,true) and guide:find("2 minutes 15 seconds",1,true) and guide:find("BOTH say Stopped",1,true) and
+           guide:find("net evidence",1,true) and guide:find("net stop",1,true),
+        "help explains both roles, ordering, waiting, output and cancellation")
+    for _,line in ipairs(env.output) do assert(#line<=256,"help remains bounded") end
+    assert(t.Command("start Tester-Realm ABC123"))
+    local state,used,events,scripts=t.state,t.usedCount,env.eventCalls,env.scriptCalls
+    local before=p.summary(state)
+    assert(t.Command("help"))
+    assert(t.state==state and t.usedCount==used and env.registerCalls==1 and #env.sends==0 and
+           env.eventCalls==events and env.scriptCalls==scripts and
+           p.summary(state).data_attempts==before.data_attempts,
+        "reading help cannot reset or interrupt an existing experiment")
+    t.Stop()
+end)
+
+for _,argument in ipairs({"", "start", "start Tester-Realm",
     "start Tester ABC123", "start Tester-Realm abc123", "start Tester-Realm ABC123 8",
     "start Tester-Realm ABC123 1 255", "start Tester-Realm ABC123 1 16 9",
     "start Tester-Realm ABC123 1 16 121", "start Tester-Realm ABC123 1 16 10.5",

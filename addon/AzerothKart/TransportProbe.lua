@@ -233,6 +233,15 @@ function Transport.Evidence()
     report("Evidence: sent/acks_sent 1=accepted f=failed u=unknown .=not attempted; received 1=seen; acks_received 1=matched")
 end
 
+function Transport.Help()
+    report("Connection test: you + a friend with the same addon build. Chat commands only; not a multiplayer race.")
+    report("Stop driving, stay out of combat. Replace the full Name-Realm names below; agree on a NEW 6-character uppercase letter/digit code (example AKT721).")
+    report("1. Friend first: /akart net listen YourName-YourRealm AKT721")
+    report("2. You within 20 seconds: /akart net start FriendName-FriendRealm AKT721")
+    report("3. Wait about 2 minutes 15 seconds, until BOTH say Stopped. Then BOTH run /akart net report and /akart net evidence. Save all output before reload.")
+    report("Cancel: /akart net stop. If either side says Refused or stops early, stop and keep the message; do not retry at a higher rate.")
+end
+
 function Transport.Command(argument)
     if type(argument) ~= "string" or #argument > 256 then report("Invalid net command"); return false end
     local words = {}
@@ -241,12 +250,13 @@ function Transport.Command(argument)
         words[#words+1] = word
     end
     if #words == 1 then
+        if words[1] == "help" then Transport.Help(); return true end
         if words[1] == "stop" then Transport.Stop("manual stop"); return true end
         if words[1] == "report" then Transport.Report(); return true end
         if words[1] == "evidence" then Transport.Evidence(); return true end
     end
     if (words[1] ~= "start" and words[1] ~= "listen") or #words < 3 then
-        report("/akart net start|listen Peer-Realm ABC123 [pps] [bytes] [seconds]; stop|report|evidence")
+        report("/akart net help for steps; start|listen Peer-Realm ABC123 [pps] [bytes] [seconds]; stop|report|evidence")
         return false
     end
     local rate,bytes,duration = 0.5,16,120

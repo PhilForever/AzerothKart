@@ -1,3 +1,13 @@
+# Codex active task — dismiss results and explain connection testing
+
+Reserved 2026-10-21, Europe/Oslo. Base `bdb44d1`; branch `codex/results-dismiss` in the existing Codex Review worktree. Owner explicitly assigned the results-panel close control and plain connection-test instructions. No new networking engine or experiment run.
+
+Scope also includes the Codex-owned TransportProbe explicit chat-help output and focused no-side-effect adapter test; no send/accounting behavior changes.
+
+Scope: `UI.lua` summary presentation/dismiss callback, successful Start/SelectTrack dismissal reset; shared `test_ui.lua` dismissal behavior/count assertions; API/pool documentation, short network quick-start, README links, PROGRESS and this handoff. Claude's active reservation around VFX pool after the kart, sprite loading/layout/rendering, Presentation and assets remains untouched. The new control is in the separate results-panel construction block. No edits to Claude's worktree or named handoff.
+
+Previous completed integration/evidence follows for context.
+
 # Codex handoff — explicit run exits and reviewed Claude integration
 
 Prepared 2026-10-20 18:22 UTC. M1 input/menu correction and M2 integration checkpoint; M0/M1/M3 and all actual transport gates remain open.

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — close results and plain connection-test help (2026-10-21)
+- Add a separate Close results button to stopped/finished summaries. Dismissal retains the track, lap times and stopped sample, and survives window close/reopen until a fresh run or map change.
+- Add `/akart net help` and a plain guide for a test with a friend. No connection-test GUI or automatic traffic is added; the existing first-window defaults and transport gates remain unchanged.
+- One pooled button changes explicit allocations to 10 frames/113 textures/13 font strings. No new per-frame UI objects or authoritative simulation fields.
+
 ## Unreleased — explicit run exits and reviewed visual integration (2026-10-20)
 - Keep driving through incidental mouse clicks and unassigned keys without clearing held input or drift. Remove the global mouse-down exit that disabled Stop before its OnClick. Explicit Stop/Escape ends the run; Close and chat/focus/lifecycle handling remain deliberate exits.
 - Keep partial results frozen and replace "Controls released" with concrete next actions. Start/Restart creates a new countdown; no pause/resume state is added.

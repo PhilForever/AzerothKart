@@ -332,7 +332,7 @@ withMock(nil, false, function(env,UI)
             "thin wall strips follow the canvas perimeter")
         assert(wall.item.colorWrites==1,"static wall color is configured once")
     end
-    assert(UI.objects.frames==9 and UI.objects.textures==113 and UI.objects.fontStrings==13,
+    assert(UI.objects.frames==10 and UI.objects.textures==113 and UI.objects.fontStrings==13,
         "pooled run summary, lap/checkpoint HUD, drift meter and walls match the explicit UI object budget")
     local function covered(rectangles,x,y)
         for _,rect in ipairs(rectangles) do
@@ -980,6 +980,80 @@ withMock(nil,false,function(env,UI)
     end
 end)
 
+-- Closing results dismisses presentation only, and stays dismissed for that
+-- ended run while its final pose, timing and lap feedback remain available.
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    UI.Toggle(); UI.Start()
+    local counts={}
+    for key,value in pairs(env.counts) do counts[key]=value end
+    local activeRace=UI.race
+    UI.DismissSummary()
+    assert(UI.active and UI.race==activeRace and UI.window.keyboard and
+           not UI.summary:IsShown(),"dismissal cannot end an active countdown")
+    finishCountdown(UI)
+    env.key(UI,"OnKeyDown","W")
+    for _=1,8 do UI.OnUpdate(1/60) end
+    UI.Stop("dismissal fixture")
+    assert(UI.summary:IsShown() and UI.summaryTitle.text=="RUN STOPPED",
+        "stopping a run presents its partial result")
+    local button=UI.dismissSummaryButton
+    assert(button and button.parent==UI.summary and button.text=="Close results" and
+           type(button.scripts.OnClick)=="function","results have a reachable close control")
+    local race,pose,clock,laps,checkpoints=UI.race,UI.state,UI.clock,UI.laps,UI.checkpoints
+    local previous,result=UI.previousState,UI.result
+    local lapHud,checkpointHud,detail=UI.lapHud.text,UI.checkpointHud.text,UI.summaryDetail.text
+    local snapshots={}
+    for _,sample in ipairs({race,pose,clock,laps,checkpoints}) do
+        local values={}
+        for key,value in pairs(sample) do values[key]=value end
+        snapshots[#snapshots+1]={sample=sample,values=values}
+    end
+    button.scripts.OnClick(button)
+    assert(UI.window:IsShown() and not UI.summary:IsShown() and not UI.active and
+           UI.startButton:IsEnabled() and UI.trackButton:IsEnabled() and
+           not UI.stopButton:IsEnabled() and not UI.window.keyboard and UI.window.propagate,
+        "Close results leaves the track and idle menu available without recapturing input")
+    UI.OnUpdate(1); UI.Stop("repeated stop"); UI.Toggle(); UI.Toggle()
+    local closeButton
+    for _,item in ipairs(env.frames) do if item.text=="Close" then closeButton=item end end
+    closeButton.scripts.OnClick(closeButton); UI.Start(); UI.Toggle()
+    env.focus={}; UI.Start(); env.focus=nil
+    env.combat=true; UI.Start(); env.combat=false
+    assert(UI.window:IsShown() and not UI.summary:IsShown() and not UI.active and
+           UI.race==race and UI.state==pose and UI.clock==clock and UI.laps==laps and
+           UI.checkpoints==checkpoints and UI.previousState==previous and UI.result==result and
+           UI.lapHud.text==lapHud and UI.checkpointHud.text==checkpointHud and
+           UI.summaryDetail.text==detail,
+        "repeated Stop, close/reopen and rejected Starts cannot resurrect dismissed results")
+    for _,snapshot in ipairs(snapshots) do
+        for key,value in pairs(snapshot.values) do
+            assert(snapshot.sample[key]==value,"dismissed result sample changed: "..key)
+        end
+        for key,value in pairs(snapshot.sample) do
+            assert(snapshot.values[key]==value,"dismissed result sample gained a field: "..key)
+        end
+    end
+    UI.Start()
+    local nextRace=UI.race
+    assert(UI.active and nextRace~=race and nextRace.status=="countdown" and
+           not UI.summary:IsShown(),"Start creates a fresh run after dismissing results")
+    UI.DismissSummary()
+    assert(UI.active and UI.race==nextRace and UI.window.keyboard,
+        "result dismissal cannot interfere with the next active run")
+    UI.Stop("next ended run")
+    assert(UI.summary:IsShown() and UI.summaryTitle.text=="RUN STOPPED",
+        "the next ended run presents a new summary")
+    button.scripts.OnClick(button)
+    assert(UI.SelectTrack("mirage_raceway") and UI.race==nil and not UI.summary:IsShown(),
+        "track selection clears the ended session after results are dismissed")
+    UI.Start(); UI.Stop("new track run")
+    assert(UI.summary:IsShown(),"a run on the newly selected track still presents results")
+    for key,value in pairs(counts) do
+        assert(env.counts[key]==value,"result dismissal/restart allocated UI objects: "..key)
+    end
+end)
+
 -- The third ordered circuit is terminal, including when the finish lands in a
 -- multi-tick render callback. Results and the pooled restart flow stay usable.
 withMock(nil,false,function(env,UI)
@@ -1428,7 +1502,7 @@ for _,mode in ipairs({"missing", "throws"}) do
         env.fire("ADDON_LOADED","AzerothKart")
         UI.Toggle(); UI.Start(); UI.OnUpdate(1/60)
         assert(UI.active and UI.state.tick==1,"optional snapping APIs cannot block driving: "..mode)
-        assert(UI.objects.frames==9 and UI.objects.textures==113 and UI.objects.fontStrings==13,
+        assert(UI.objects.frames==10 and UI.objects.textures==113 and UI.objects.fontStrings==13,
             "snapping fallback preserves UI object budget: "..mode)
         assert(env.drawLayerCalls==1,"grass priority remains explicit when snapping is unavailable: "..mode)
     end,nil,mode)
@@ -1819,7 +1893,7 @@ withMock(nil, false, function(env,UI)
     assert(math.abs(sample.simulationMs-6)<1e-8 and math.abs(sample.renderMs-6)<1e-8 and
            math.abs(sample.totalMs-12)<1e-8,"profile phases accumulate known mock milliseconds")
     assert(#env.output==before,"sampling/completion never prints per-frame chat")
-    assert(UI.objects.frames==9 and UI.objects.textures==113 and UI.objects.fontStrings==13,
+    assert(UI.objects.frames==10 and UI.objects.textures==113 and UI.objects.fontStrings==13,
         "profiling creates no UI objects")
     local state={}
     for key,value in pairs(UI.state) do state[key]=value end
@@ -2101,7 +2175,7 @@ withMock(nil,false,function(env,UI)
     UI.Start(); UI.Stop("sprite reuse fixture")
     assert(loads(env,KART_PATH)==1 and UI.kart.textureWrites==1 and rawget(UI.kart,"color")==nil,
         "starts and map switches reuse the loaded sprite; no per-run or per-frame texture load")
-    assert(UI.objects.frames==9 and UI.objects.textures==113 and UI.objects.fontStrings==13,
+    assert(UI.objects.frames==10 and UI.objects.textures==113 and UI.objects.fontStrings==13,
         "the sprite reuses the existing kart texture without new UI objects")
     sameCounts(env,counts,"sprite tints and switches allocate no UI objects")
 end)
@@ -2162,7 +2236,7 @@ for _,mode in ipairs({"false","nil","throws","missing","tint missing","tint thro
         UI.Stop("fallback fixture done")
         assert(loads(env,KART_PATH)==attempts and rawget(UI.kart,"vertexColor")==nil,
             "no sprite retry per frame, run or map: "..mode)
-        assert(UI.objects.frames==9 and UI.objects.textures==113 and UI.objects.fontStrings==13,
+        assert(UI.objects.frames==10 and UI.objects.textures==113 and UI.objects.fontStrings==13,
             "fallback keeps the explicit UI object budget: "..mode)
     end)
 end

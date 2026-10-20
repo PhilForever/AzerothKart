@@ -1,6 +1,6 @@
 # Implemented simulation and rendering contracts
 
-**Checkpoint:** 2026-10-20; reviewed integration on `codex/menu-integration`, combining Codex `de7a63e` and Claude `812d132`; main remains `f923d15`. Physics compatibility version is **7** (v6 handling retained). This document describes the implemented local solo prototype and bounded transport experiment, not a released engine or a claim that pending client tests passed. See [PROGRESS](PROGRESS.md) for evidence and [the latest handoff](handoffs/codex-latest.md) for integration instructions.
+**Checkpoint:** 2026-10-21; results-dismiss follow-up on `codex/results-dismiss`, based on reviewed integration `bdb44d1` on `codex/menu-integration`, combining Codex `de7a63e` and Claude `812d132`; main remains `f923d15`. Physics compatibility version is **7** (v6 handling retained). This document describes the implemented local solo prototype and bounded transport experiment, not a released engine or a claim that pending client tests passed. See [PROGRESS](PROGRESS.md) for evidence and [the latest handoff](handoffs/codex-latest.md) for integration instructions.
 
 ## Status and ownership
 
@@ -21,6 +21,8 @@ The current render path reads `AK.UI.state`, `.previousState`, `.race`, `.laps`,
 `UI.laps` aliases `UI.race.laps` during a run; `UI.checkpoints` aliases `UI.laps.checkpoints`. A fresh state replaces those references after each accepted step. Cache scalar values for visuals when useful; do not retain an old table and assume it is live. `UI.result` is a small terminal summary (`status`, `reason`, `tick`, and terminal `totalTicks`/`completedLaps`), not the full race object. `UI.race` remains the source for lap details. `UI.previousState = UI.state` on Stop ensures an exact terminal pose.
 
 ## Implemented opt-in transport experiment
+
+`/akart net help` prints six bounded local guide lines through `TransportProbe.Help()` without arming, registering, sending, or changing an existing experiment. There is no connection-test GUI. The [human-facing guide](NETWORK_QUICK_START.md) separates the two player roles from developer evidence requirements.
 
 `NetworkProbe.lua` is pure injected-time/accounting code: `new(options, now) -> state,error`, `update(state,now,sendFn)`, `receive(state,now,prefix,payload,channel,eventSender,sendFn)`, `stop(state,now,reason)`, `encode/decode`, `summary(state)` and `evidence(state,kind)`. Unlike immutable Physics snapshots, experiment state mutates bounded counters/maps in place. `sendFn(kind,payload)` returns explicit accepted/failed/unknown/throttled outcome plus a sanitized raw API result; the engine contains callback errors. Summary uses nearest-rank RTT/gap percentiles, sample counts and `NA` with no samples. Receipt, local enqueue and deadline evidence remain separate.
 
@@ -121,6 +123,8 @@ Race fields: `status`, `laps`, `targetLaps`, `countdownTicks`, `startTick`, `las
 
 Countdown starts at 180. Cues show 3 for remaining 180–121, 2 for 120–61, 1 for 60–1. At physics tick 180, Race becomes running and resets the lap origin; the kart remains at spawn. Held driving input first applies at tick 181. GO displays for `totalTicks` 0–59. Race/lap seconds are integer durations multiplied by `Physics.FIXED_DT`, excluding countdown, dropped time and stopped time; physics/loop/probe ticks include countdown. The third accepted lap fixes `finishTick`, returns finished and stops catch-up before another physics step. Terminal step/stop calls retain the same race object.
 
+`UI.DismissSummary()` hides the terminal result panel without changing the retained race, pose, sample, HUD or input. The pooled **Close results** button calls it. The same terminal race stays dismissed across Stop, rejected Start and window close/reopen. A successful fresh Start or map change clears this presentation-only dismissal. This is not resume or an authoritative race field.
+
 UI Start/Restart always creates a fresh countdown; there is no resume. Stop retains actual partial progress; combat interrupts, closes the window, releases controls and announces once. Reopen and rejected Start preserve the result. Successful map change or Start resets it. Rendering may show these results but must not infer extra laps, interpolate progress counters, count gate crossings itself or advance race time from wall clock.
 
 ## Presentation and camera
@@ -171,7 +175,7 @@ The visual path reads simulation state only. An offline scripted drive compares 
 
 Rendering currently runs once per delivered active `OnUpdate`, after zero or more fixed steps; it is not locked to 60 FPS and has no separate render timer. Meter, gate colors and countdown update through the render path with cached values. The numeric HUD refreshes every ≥0.25 **simulated** seconds, on lap/status changes and immediately at Start/Stop/selection. UI lifecycle events may draw outside `OnUpdate`; inactive updates do no work.
 
-The window is 856×762 with an 800×480 canvas. Explicit UI allocations are **9 frames, 113 textures, 13 font strings** (two additional pooled Oval obstacle markers; no additional Frames). This includes the 96 retained Oval bands, four gate strips, four perimeter strips, one Mirage background, one kart, two solid-fixture markers and pooled meter/result/cue elements. Markers render the physical rectangles in ARTWORK at Oval's fixed scale and stay hidden on Mirage, including camera updates. Counts exclude Core's event frame, template/native internals and other addons. They are offline-checked explicit allocations; the prior 9/111/13 baseline has scoped client observations. Neither count is a guaranteed client memory/FPS budget or a ban on reviewed pool changes.
+The window is 856×762 with an 800×480 canvas. Explicit UI allocations are **10 frames, 113 textures, 13 font strings** (two pooled Oval obstacle markers and one new pooled Close results button). This includes the 96 retained Oval bands, four gate strips, four perimeter strips, one Mirage background, one kart, two solid-fixture markers and pooled meter/result/cue elements. Markers render the physical rectangles in ARTWORK at Oval's fixed scale and stay hidden on Mirage, including camera updates. Counts exclude Core's event frame, template/native internals and other addons. They are offline-checked explicit allocations; the prior 9/111/13 baseline has scoped client observations. Neither count is a guaranteed client memory/FPS budget or a ban on reviewed pool changes.
 
 Preserve creation-time pooling: no `CreateFrame`/`CreateTexture`/font-string creation, texture file loads or chat output per simulation tick or render callback. Current snapshots allocate bounded Lua tables per tick; there is no promise of zero Lua allocation. Profile before replacing their immutable-style behavior. Opt-in Performance collects at most 600 callback spans and includes instrumentation overhead; it is not exclusive CPU/GPU cost.
 

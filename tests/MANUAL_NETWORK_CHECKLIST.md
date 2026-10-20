@@ -1,5 +1,7 @@
 # Manual network experiment — F4 (probe prepared; transport windows NOT RUN)
 
+For the human-facing explanation and command order, start with [Connection test — you and a friend](../docs/NETWORK_QUICK_START.md), also summarized by `/akart net help` in-game. There is no GUI connection-test button. Print Probe is the separate driving-statistics report. The compatibility readbacks below still precede the first actual arm on both clients.
+
 The branch implements a bounded opt-in `WHISPER` probe, not a multiplayer engine. **No actual transport measurements are recorded.** Claude's scenery/trike and Codex's probe are reviewed together on `codex/menu-integration`. Install that combined source on both clients; serialize deployment and retain backups. The owner confirmed only one client is available on 2026-10-20, so the first window remains NOT RUN. The [60-column CSV](../docs/experiments/network-ledger.csv) stays header-only until real measurements exist. M0's deferred long manual matrix does not prohibit this focused experiment under ADR 0007; observe the probe's own stop guards.
 
 ## Two consenting testers: first window

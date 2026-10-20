@@ -135,7 +135,7 @@ Read-only inspection of the same pinned build-70450 source above found `Blizzard
 
 ## Transport probe API contract — source evidence, not a live pass
 
-The current branch adds `/akart net listen|start ...`, `stop`, `report` and `evidence`; [the manual checklist](../tests/MANUAL_NETWORK_CHECKLIST.md) gives the exact two-client procedure. There is no load-time prefix registration or automatic traffic. Arming is explicit, private-WHISPER-only and refused while a drive/combat is active or required API/event/clock/result semantics are missing. The probe reuses the Core frame; it adds no input-capture API, network-per-simulation-tick loop or new UI objects. No new prefix registration/send calls were executed in the actual client during this implementation task.
+The current branch adds `/akart net listen|start ...`, `stop`, `report`, `evidence` and local-only `help`; [the manual checklist](../tests/MANUAL_NETWORK_CHECKLIST.md) gives the exact two-client procedure. There is no load-time prefix registration or automatic traffic. Arming is explicit, private-WHISPER-only and refused while a drive/combat is active or required API/event/clock/result semantics are missing. The probe reuses the Core frame; it adds no input-capture API, network-per-simulation-tick loop or new UI objects. No new prefix registration/send calls were executed in the actual client during this implementation task.
 
 Inspected primary source is the parent-workspace tree `research/upstream/wow-ui-source-forever-70450`, whose `version.txt` reads `1.60.1.70450`. In `Interface/AddOns/Blizzard_APIDocumentationGenerated/`:
 

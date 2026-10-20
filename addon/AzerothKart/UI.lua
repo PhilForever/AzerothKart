@@ -201,7 +201,8 @@ end
 local function refreshSummary()
     if not UI.summary then return end
     local race = UI.race
-    if not race or race.status == "countdown" or race.status == "running" then
+    if not race or race.status == "countdown" or race.status == "running"
+        or UI.dismissedSummaryRace == race then
         UI.summary:Hide(); return
     end
     if UI.summaryRace ~= race then
@@ -218,9 +219,18 @@ local function refreshSummary()
                 race.laps.completedLaps,race.totalTicks*Physics.FIXED_DT,
                 race.laps.currentLapTicks*Physics.FIXED_DT,bestLapText(race.laps)))
         end
-        UI.summaryHint:SetText("Restart, choose a track, or Close")
+        UI.summaryHint:SetText("Restart or close results to view the track")
     end
     UI.summary:Show()
+end
+
+function UI.DismissSummary()
+    local race = UI.race
+    if UI.active or not race or race.status == "countdown" or race.status == "running" then return end
+    -- Dismiss presentation only. Retain the stopped race, pose, clock and HUD;
+    -- repeated Stop/Close/reopen must not resurrect this same result panel.
+    UI.dismissedSummaryRace = race
+    if UI.summary then UI.summary:Hide() end
 end
 
 local function refreshCountdown()
@@ -560,6 +570,7 @@ function UI.SelectTrack(id)
     UI.laps = Laps.new(Track,Checkpoints,UI.state.tick)
     UI.checkpoints,UI.previousState = UI.laps.checkpoints,UI.state
     UI.race,UI.result,UI.clock,UI.performance,UI.summaryRace = nil,nil,nil,nil,nil
+    UI.dismissedSummaryRace = nil
     UI.hudElapsed = 0
     UI.stopReason = "Track selected"
     UI.summary:Hide()
@@ -718,6 +729,11 @@ function UI.Create()
     UI.restartButton:SetPoint("BOTTOMLEFT",24,16)
     UI.restartButton:SetText("Restart")
     UI.restartButton:SetScript("OnClick",function() UI.Start() end)
+    UI.dismissSummaryButton = frame("Button",nil,UI.summary,"UIPanelButtonTemplate")
+    UI.dismissSummaryButton:SetSize(130,24)
+    UI.dismissSummaryButton:SetPoint("BOTTOMRIGHT",-24,16)
+    UI.dismissSummaryButton:SetText("Close results")
+    UI.dismissSummaryButton:SetScript("OnClick",function() UI.DismissSummary() end)
     UI.summary:Hide()
     UI.countdownCue = text(UI.canvas,"CENTER",0,0,"",
         GameFontNormalHuge and "GameFontNormalHuge" or "GameFontNormal")
@@ -745,6 +761,7 @@ function UI.Start()
     UI.hudElapsed = 0
     UI.result = nil
     UI.summaryRace = nil
+    UI.dismissedSummaryRace = nil
     UI.summary:Hide()
     UI.stopReason = "Countdown"
     UI.window:SetPropagateKeyboardInput(false)
