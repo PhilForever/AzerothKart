@@ -187,7 +187,19 @@ Presentation.KART_SPRITES = {
         quadWidth = 41, quadHeight = 41,           -- world units per frame; 3.12 texels per unit
         frames = 64, columns = 8,                  -- 5.625 degrees between headings
         pivotX = 3, pivotY = 0,                    -- frame centre offset; room for the south-east shadow
+        -- Effect anchors from the model: the rear tyres' trailing edge (the
+        -- model's own wheel-dust emitters) and its two exhaust stacks.
+        effects = {
+            wheels = {{-5.9, 6.0}, {-5.9, -6.0}},
+            exhausts = {{-13.9, 5.4, 10.6}, {-14.8, -4.9, 10.5}},
+            view = {0.8, 0.6},                     -- the sheet camera's tilt (cos, sin)
+        },
     },
+}
+-- The drag car's slicks end 14 units behind its centre; its rocket bell's lip
+-- is at 15.3 (scripts/build_kart_sprites.py). Overhead art has no tilt.
+Presentation.KART_SPRITES.goblin_drag_car.effects = {
+    wheels = {{-14.0, 6.6}, {-14.0, -6.6}}, exhausts = {{-15.3, 0, 0}}, view = {1, 0},
 }
 
 -- Nearest directional frame (0-based) for a heading in radians.
@@ -203,6 +215,237 @@ function Presentation.kartFrameCoords(sprite, frame)
     local rows = sprite.frames / columns
     local column, row = frame % columns, math.floor(frame / columns)
     return column / columns, (column + 1) / columns, row / rows, (row + 1) / rows
+end
+
+-- Drift and boost effects. Presentation-only particles: dust and sparks in the
+-- meter's tier colours from the rear tyres while drifting, a flame and soot
+-- from the exhausts while boosting. advanceEffects reads two simulation states
+-- and never writes them. Effect time is the interpolated tick, so effects
+-- freeze with the race and the same states always give the same particles.
+-- Positions and sizes are world units. Anchors are in the kart's own frame
+-- (+x forward, +y left, z up); `view` is the art's camera tilt (cos, sin), so
+-- an anchor lands where the sprite draws that point.
+Presentation.EFFECTS = {
+    particlesPath = "Interface\\AddOns\\AzerothKart\\Assets\\Effects\\Particles.tga",
+    flamePath = "Interface\\AddOns\\AzerothKart\\Assets\\Effects\\Flame.tga",
+    particlesWidth = 256, particlesHeight = 128, -- smoke row, then two spark rows
+    smokeCell = 64, smokeVariants = 4,
+    sparkCell = 32, sparkDirections = 16, sparkColumns = 8, sparkTop = 64,
+    flameWidth = 512, flameHeight = 256,         -- flame k points along heading k * 2pi/32
+    flameCell = 64, flameDirections = 32, flameColumns = 8,
+    smokeCount = 20, sparkCount = 14, flameCount = 2, -- pools; each flame has two layers
+    sparkColors = {[0] = {0.40, 0.68, 1.00}, {1.00, 0.80, 0.16}, {1.00, 0.36, 0.78}}, -- charging, tier 1, tier 2
+    sootColor = {0.24, 0.22, 0.21},
+    flameOuter = {1.00, 0.52, 0.12}, flameInner = {1.00, 0.93, 0.62}, flameInnerScale = 0.6,
+    flameReach = 14,                             -- pipe to cell edge at full boost, world units
+}
+-- Overhead art without effect data (the primitive kart): the rear corners.
+Presentation.DEFAULT_EFFECT_ANCHORS = {
+    wheels = {{-13, 7}, {-13, -7}}, exhausts = {{-15.5, 0, 0}}, view = {1, 0},
+}
+
+local atan2 = math.atan2 or math.atan
+local EFFECT_GAP = 30 -- a longer jump between ticks (new run, track change) restarts effects
+
+local function cellCoords(x, y, size, width, height)
+    return x / width, (x + size) / width, y / height, (y + size) / height
+end
+
+-- Texture coordinates (left, right, top, bottom) of one effect cell.
+function Presentation.effectCoords(kind, cell)
+    local E = Presentation.EFFECTS
+    if kind == "smoke" then
+        return cellCoords(cell * E.smokeCell, 0, E.smokeCell, E.particlesWidth, E.particlesHeight)
+    elseif kind == "spark" then
+        return cellCoords((cell % E.sparkColumns) * E.sparkCell,
+            E.sparkTop + math.floor(cell / E.sparkColumns) * E.sparkCell, E.sparkCell,
+            E.particlesWidth, E.particlesHeight)
+    end
+    assert(kind == "flame", "smoke, spark or flame cell required")
+    return cellCoords((cell % E.flameColumns) * E.flameCell,
+        math.floor(cell / E.flameColumns) * E.flameCell, E.flameCell, E.flameWidth, E.flameHeight)
+end
+
+local function newParticle()
+    return {on=false, born=0, life=1, x=0, y=0, vx=0, vy=0, rise=0,
+            s0=1, s1=1, a0=1, r=1, g=1, b=1, cell=0, spark=false}
+end
+
+function Presentation.clearEffects(fx)
+    for _,p in ipairs(fx.smoke) do p.on = false end
+    for _,p in ipairs(fx.sparks) do p.on = false end
+    for _,f in ipairs(fx.flames) do f.on = false end
+    fx.tick, fx.seed, fx.puffs, fx.boost = nil, 20261020, 0, 0
+end
+
+-- Fixed pools, allocated once; spawning reuses the oldest slot.
+function Presentation.newEffects()
+    local E = Presentation.EFFECTS
+    local fx = {smoke={}, sparks={}, flames={}, nextSmoke=1, nextSpark=1, now=0}
+    for i = 1, E.smokeCount do fx.smoke[i] = newParticle() end
+    for i = 1, E.sparkCount do fx.sparks[i] = newParticle() end
+    for i = 1, E.flameCount do
+        fx.flames[i] = {on=false, ox=0, oy=0, cell=0, size=0, alpha=0, front=true}
+    end
+    Presentation.clearEffects(fx)
+    return fx
+end
+
+-- Park-Miller steps: exact in Lua 5.1 doubles and Lua 5.4 integers alike.
+local function random(fx)
+    fx.seed = fx.seed * 16807 % 2147483647
+    return fx.seed / 2147483647
+end
+
+local function hash01(n)
+    local value = (n % 2147483646 + 1) * 16807 % 2147483647
+    return value * 16807 % 2147483647 / 2147483647
+end
+
+local function take(fx, list, key)
+    local index = fx[key]
+    fx[key] = index % #list + 1
+    return list[index]
+end
+
+-- Where the art shows a kart-frame anchor, plus the anchor's northward offset.
+local function anchorAt(anchor, x, y, c, s, view)
+    local wx, wy = anchor[1] * c - anchor[2] * s, anchor[1] * s + anchor[2] * c
+    return x + wx, y + wy * view[1] + (anchor[3] or 0) * view[2], wy
+end
+
+local function puff(fx, born, x, y, vx, vy, rise, s0, s1, life, a0, color)
+    local p = take(fx, fx.smoke, "nextSmoke")
+    p.on, p.born, p.life, p.spark = true, born, life, false
+    p.x, p.y, p.vx, p.vy, p.rise = x, y, vx, vy, rise
+    p.s0, p.s1, p.a0 = s0, s1, a0
+    p.r, p.g, p.b = color[1], color[2], color[3]
+    fx.puffs = fx.puffs + 1
+    p.cell = fx.puffs % Presentation.EFFECTS.smokeVariants
+end
+
+local function spark(fx, born, x, y, vx, vy, life, size, color)
+    local E = Presentation.EFFECTS
+    local p = take(fx, fx.sparks, "nextSpark")
+    p.on, p.born, p.life, p.spark = true, born, life, true
+    p.x, p.y, p.vx, p.vy, p.rise = x, y, vx, vy, 0
+    p.s0, p.s1, p.a0 = size, size, 1
+    p.r, p.g, p.b = color[1], color[2], color[3]
+    p.cell = math.floor(atan2(vy, vx) % tau / tau * E.sparkDirections + 0.5) % E.sparkDirections
+end
+
+-- One simulation step's emission; `born` is the step's start, (x, y, heading)
+-- the pose there and (kvx, kvy) the kart's travel per tick.
+local function emit(fx, tick, x, y, heading, kvx, kvy, state, options)
+    local E, anchors = Presentation.EFFECTS, options.anchors
+    local view, c, s = anchors.view, math.cos(heading), math.sin(heading)
+    local born = tick - 1
+    if state.drifting then
+        local tier = state.driftTier or 0
+        if tick % 2 == 0 then                              -- one wheel per tick, alternating
+            local wheels = anchors.wheels
+            local wheel = wheels[math.floor(tick / 2) % #wheels + 1]
+            local px, py = anchorAt(wheel, x, y, c, s, view)
+            puff(fx, born, px, py, -c * 0.35 + kvx * 0.18 + (random(fx) - 0.5) * 0.3,
+                -s * 0.35 + kvy * 0.18 + (random(fx) - 0.5) * 0.3, 0,
+                5 + random(fx), 15 + 4 * random(fx), 24 + 8 * random(fx), 0.7, options.dust)
+        end
+        -- A denser, bigger spray as the charge grows; sparse while a steering
+        -- correction holds it.
+        local every = (state.driftGraceTicks or 0) > 0 and 4 or (tier == 2 and 1 or (tier == 1 and 2 or 3))
+        if tick % every == 0 then
+            local wheels = anchors.wheels
+            local wheel = wheels[math.floor(tick / every) % #wheels + 1]
+            local px, py = anchorAt(wheel, x, y, c, s, view)
+            local back = 0.6 + 0.6 * random(fx)
+            local side = (wheel[2] >= 0 and 1 or -1) * (0.15 + 0.45 * random(fx))
+                - (state.driftDirection or 0) * 0.3        -- lean to the outside of the turn
+            spark(fx, born, px, py, -c * back - s * side + kvx * 0.35, -s * back + c * side + kvy * 0.35,
+                8 + 4 * random(fx), 8 + 1.5 * tier, E.sparkColors[tier] or E.sparkColors[0])
+        end
+    end
+    local boost = state.boostTicks or 0
+    if boost > 0 then
+        local pipes = anchors.exhausts
+        local burst = fx.boost == 0                         -- the boost just fired
+        for n = 1, burst and 2 * #pipes or (tick % 2 == 0 and 1 or 0) do
+            local pipe = pipes[(burst and n or math.floor(tick / 2)) % #pipes + 1]
+            local px, py = anchorAt(pipe, x, y, c, s, view)
+            puff(fx, born, px, py, -c * 0.8 + kvx * 0.3 + (random(fx) - 0.5) * 0.25,
+                -s * 0.8 + kvy * 0.3 + (random(fx) - 0.5) * 0.25, 0.06,
+                4, (burst and 17 or 13) + 2 * random(fx), 30 + 8 * random(fx), burst and 0.7 or 0.6, E.sootColor)
+        end
+    end
+    fx.boost = boost
+end
+
+local function updateFlames(fx, state, heading, now, options)
+    local E, anchors = Presentation.EFFECTS, options.anchors
+    local boost = state.boostTicks or 0
+    local view, c, s = anchors.view, math.cos(heading), math.sin(heading)
+    local cell = math.floor((heading + pi) % tau / tau * E.flameDirections + 0.5) % E.flameDirections
+    local strength = 0.55 + 0.45 * math.min(1, boost / (options.boostFullTicks or 48))
+    local tick = math.floor(now)
+    for i,flame in ipairs(fx.flames) do
+        local pipe = anchors.exhausts[i]
+        flame.on = boost > 0 and pipe ~= nil
+        if flame.on then
+            local ox, oy, north = anchorAt(pipe, 0, 0, c, s, view)
+            local flicker = hash01(tick * 4 + i)
+            flame.ox, flame.oy, flame.cell = ox, oy, cell
+            flame.size = 2 * E.flameReach * strength * (0.9 + 0.2 * flicker)
+            flame.alpha = 0.85 + 0.15 * hash01(tick * 4 + i + 2)
+            -- A pipe on the kart's far (north) side burns behind the body;
+            -- overhead art has no near side.
+            flame.front = view[2] > 0 and north < 1.5
+        end
+    end
+end
+
+-- Advance effects to the drawn pose; returns the effect time in ticks.
+-- options: anchors, dust colour and boostFullTicks (the boost that shows the
+-- full flame). Only `fx` is written.
+function Presentation.advanceEffects(fx, previous, current, alpha, options)
+    assert(type(fx) == "table" and type(current) == "table" and type(options) == "table"
+        and type(options.anchors) == "table", "effects, current state and options required")
+    local tick = current.tick or 0
+    if fx.tick == nil or tick < fx.tick or tick - fx.tick > EFFECT_GAP then
+        Presentation.clearEffects(fx)
+        fx.tick, fx.x, fx.y, fx.heading = tick, current.x, current.y, current.heading
+        fx.boost = current.boostTicks or 0
+    elseif tick > fx.tick then
+        local steps = tick - fx.tick
+        local kvx, kvy = (current.x - fx.x) / steps, (current.y - fx.y) / steps
+        local turn = (current.heading - fx.heading + pi) % tau - pi
+        for j = 1, steps do
+            emit(fx, fx.tick + j, fx.x + kvx * (j - 1), fx.y + kvy * (j - 1),
+                fx.heading + turn * (j - 1) / steps, kvx, kvy, current, options)
+        end
+        fx.tick, fx.x, fx.y, fx.heading = tick, current.x, current.y, current.heading
+    end
+    local _, _, heading = Presentation.pose(previous, current, alpha)
+    local now = tick
+    if previous and previous ~= current and previous.tick == tick - 1 and type(alpha) == "number"
+        and alpha == alpha and alpha < 1 then
+        now = tick - 1 + math.max(0, alpha)
+    end
+    fx.now = now
+    updateFlames(fx, current, heading, now, options)
+    return now
+end
+
+-- A particle's world position, size and opacity at effect time `now`, or nil.
+function Presentation.particleAt(p, now)
+    if not p.on then return nil end
+    local age = now - p.born
+    if age < 0 or age >= p.life then return nil end
+    local k = age / p.life
+    local travel = age * (1 - 0.5 * k)            -- eases to half speed
+    local size = p.s0 + (p.s1 - p.s0) * math.sqrt(k)
+    local alpha
+    if p.spark then alpha = p.a0 * (1 - k * k * k)
+    else alpha = p.a0 * math.min(1, age / 3) * (1 - k) * (1 - k) end
+    return p.x + p.vx * travel, p.y + p.vy * travel + p.rise * age, size, alpha
 end
 
 if type(namespace) == "table" then namespace.Presentation = Presentation end

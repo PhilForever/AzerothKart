@@ -1,3 +1,7 @@
+# Integration preservation follow-up (2026-10-21 00:22 CEST)
+
+Claude installed effects `c6e1b5e` at22:18:43UTC after our prior-build hash check and before the00:19 CEST menu install. Our installer preserved the two extra atlases and full prior files, but replaced its UI/Presentation/README. Stop deploying standalone branches: this is a shared-target overlap, not an API failure. Reviewed `7fcdd89..c6e1b5e` with no authoritative-state/input/lifecycle changes; preserve the already-installed effects by merging Claude handoff `1004e73` into this same feature branch before the final serialized installation. Scope now also includes review/merge reconciliation of Claude's immutable runtime, additive Presentation effect contract and shared counts/tests. Do not modify either other worktree, raw art or gameplay. Combined expected pool10/151/13; first actual connection test remains NOT RUN.
+
 # Codex active task — dismiss results and explain connection testing
 
 Reserved 2026-10-21, Europe/Oslo. Base `bdb44d1`; branch `codex/results-dismiss` in the existing Codex Review worktree. Owner explicitly assigned the results-panel close control and plain connection-test instructions. No new networking engine or experiment run.

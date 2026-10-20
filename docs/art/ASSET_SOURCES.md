@@ -60,6 +60,8 @@ The current runtime `addon/AzerothKart/Assets/Tracks/SaltFlats/Background.tga` i
 
 The first runtime vehicle, `addon/AzerothKart/Assets/Karts/GoblinDragCar.tga`, is also original project art. It is painted procedurally by `scripts/build_kart_sprites.py` from its own shapes, palette and integer noise, with no Blizzard, WC3Vault, other third-party, concept-board or generated-image input. Authorship/source: Claude for Azeroth Kart; intended use: default runtime kart sprite, 2026-10-20. [Its asset sheet](karts/goblin-drag-car.md) records format, SHA-256, provenance and the pending client check.
 
+The drift and boost effect atlases, `addon/AzerothKart/Assets/Effects/Particles.tga` and `Flame.tga` (2026-10-21), are also original project art. `scripts/build_effect_sprites.py` paints them procedurally from formulas and integer noise, with no Blizzard, WC3Vault, other third-party, concept-board or generated-image input. Authorship/source: Claude for Azeroth Kart; intended use: runtime drift sparks, tyre dust, exhaust flames and soot. The trike's effect anchors are positions read from its published model's emitters, not pixels from it. [Its asset sheet](effects/drift-boost.md) records format, layout and the pending client check.
+
 The default runtime kart since 2026-10-20, `addon/AzerothKart/Assets/Karts/GoblinMortarTrike.tga`, is rendered from the Warcraft III **Goblin Mortar Trike** model and texture by erwtenpeller and Chriz (Vast Graphics). It was fetched from the WC3Vault listing above on the owner's request.
 
 - **Files and hashes:** archive `GoblinMortarTrike_Updated_.rar`, SHA-256 `f0b4341c…b86b`; `GoblinMortarTrike[unit].MDX` and `GoblinMortarTrike.blp` are used.

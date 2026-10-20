@@ -97,10 +97,12 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     function methods:SetTexCoord(...)
         env.texCoordCalls=env.texCoordCalls+1
         self.texCoords={...}
+        self.texCoordWrites=(rawget(self,"texCoordWrites") or 0)+1
     end
     function methods:SetDrawLayer(layer,sublevel)
         env.drawLayerCalls=env.drawLayerCalls+1
         self.layer,self.sublevel=layer,sublevel or 0
+        self.drawLayerWrites=(rawget(self,"drawLayerWrites") or 0)+1
     end
     local function geometryReady(item)
         return type(rawget(item,"color"))=="table" and
@@ -245,6 +247,29 @@ local function loads(env,path)
     return count
 end
 
+-- Drift/boost effects add pooled textures: 20 smoke, 14 sparks and two
+-- exhaust flames of two layers each, created and loaded once with the window.
+local EFFECT_TEXTURES=20+14+2*2
+local UI_TEXTURES=113+EFFECT_TEXTURES
+local PARTICLES_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Effects\\Particles.tga"
+local FLAME_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Effects\\Flame.tga"
+local function effectPieces(UI)
+    local pieces={}
+    for _,list in ipairs({UI.fxSmoke,UI.fxSparks,UI.fxFlames}) do
+        for _,piece in ipairs(list) do pieces[#pieces+1]=piece end
+    end
+    return pieces
+end
+-- Explicit draw-layer writes on everything except the effect pools.
+local function sceneLayerCalls(env,UI)
+    local effect,total={},0
+    for _,piece in ipairs(effectPieces(UI)) do effect[piece]=true end
+    for _,item in ipairs(env.textures) do
+        if not effect[item] then total=total+(rawget(item,"drawLayerWrites") or 0) end
+    end
+    return total
+end
+
 local countdownTicks=180
 local function finishCountdown(UI)
     assert(UI.active and UI.race.status=="countdown","fixture must enter the real countdown")
@@ -316,7 +341,8 @@ withMock(nil, false, function(env,UI)
         "full-canvas grass must be explicitly below the outer bands")
     assert(rawget(grass,"snappingBias")==nil and rawget(grass,"snapToGrid")==nil,
         "grass snapping stays unchanged; explicit draw priority separates it from the road")
-    assert(env.drawLayerCalls==1,"only the grass configures an explicit draw sublevel once")
+    assert(sceneLayerCalls(env,UI)==1 and env.drawLayerCalls==1+EFFECT_TEXTURES,
+        "only the grass and the once-created effect pools configure explicit draw sublevels")
     assert(env.snappingCalls==192,"only the 96 road bands configure snapping once")
     assert(#walls==4,"four preallocated wall strips mark the play boundary")
     local thickness=4
@@ -332,7 +358,7 @@ withMock(nil, false, function(env,UI)
             "thin wall strips follow the canvas perimeter")
         assert(wall.item.colorWrites==1,"static wall color is configured once")
     end
-    assert(UI.objects.frames==10 and UI.objects.textures==113 and UI.objects.fontStrings==13,
+    assert(UI.objects.frames==10 and UI.objects.textures==UI_TEXTURES and UI.objects.fontStrings==13,
         "pooled run summary, lap/checkpoint HUD, drift meter and walls match the explicit UI object budget")
     local function covered(rectangles,x,y)
         for _,rect in ipairs(rectangles) do
@@ -423,9 +449,10 @@ withMock(nil,false,function(env,UI)
     local Oval,Physics=env.namespace.Track,env.namespace.Physics
     assert(UI.track==Oval and UI.view.scale==1 and not UI.mirageBackground:IsShown(),
         "cold load retains the working Test Oval and hides the unloaded image")
-    assert(env.textureCalls==1 and env.texturePaths[1]==KART_PATH and UI.kartSprite and
-           UI.kart.texturePath==KART_PATH and loads(env,BACKGROUND_PATH)==0,
-        "creation loads only the small kart sprite; the background waits for deliberate Mirage selection")
+    assert(env.textureCalls==1+EFFECT_TEXTURES and env.texturePaths[1]==KART_PATH and UI.kartSprite and
+           UI.kart.texturePath==KART_PATH and loads(env,BACKGROUND_PATH)==0 and
+           loads(env,PARTICLES_PATH)==34 and loads(env,FLAME_PATH)==4,
+        "creation loads the kart sheet and effect atlases; the background waits for deliberate Mirage selection")
     UI.Toggle()
     local counts={}
     for key,value in pairs(env.counts) do counts[key]=value end
@@ -434,7 +461,7 @@ withMock(nil,false,function(env,UI)
     assert(Mirage.id=="mirage_raceway" and UI.view.scale==1.5 and UI.view.follow==true,
         "Mirage uses the closer uniform follow camera")
     assert(UI.canvas.width==800 and UI.canvas.height==480 and
-           UI.mirageBackground:IsShown() and env.textureCalls==2 and
+           UI.mirageBackground:IsShown() and env.textureCalls==2+EFFECT_TEXTURES and
            loads(env,BACKGROUND_PATH)==1 and
            UI.mirageBackground.texturePath==
                "Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\SaltFlats\\Background.tga",
@@ -588,14 +615,14 @@ withMock(nil,false,function(env,UI)
     local finishedState,finishedRace,finishedClock=UI.state,UI.race,UI.clock
     local offsetX,offsetY=UI.view.offsetX,UI.view.offsetY
     local crop=table.concat(UI.mirageBackground.texCoords,",")
-    local cameraWrites=env.texCoordCalls
+    local cameraWrites=UI.mirageBackground.texCoordWrites
     for _=1,3 do UI.OnUpdate(1) end
     UI.Toggle(); UI.Toggle()
     assert(UI.state==finishedState and UI.race==finishedRace and UI.clock==finishedClock and
            UI.view.offsetX==offsetX and UI.view.offsetY==offsetY and
            table.concat(UI.mirageBackground.texCoords,",")==crop and UI.summary:IsShown(),
         "inactive updates and close/reopen retain the finished camera, sample and result")
-    assert(env.texCoordCalls<=cameraWrites+1,
+    assert(UI.mirageBackground.texCoordWrites<=cameraWrites+1,
         "inactive updates cannot repeatedly rewrite the background crop")
     UI.restartButton.scripts.OnClick(UI.restartButton)
     assert(UI.active and UI.race.status=="countdown" and UI.state.tick==0 and
@@ -617,8 +644,8 @@ withMock(nil,false,function(env,UI)
         assert(UI.SelectTrack("mirage_raceway"))
         assert(UI.SelectTrack("test_oval"))
     end
-    assert(env.textureCalls==2 and loads(env,BACKGROUND_PATH)==1 and loads(env,KART_PATH)==1,
-        "background and kart sprite each load once and are reused across all later selections")
+    assert(env.textureCalls==2+EFFECT_TEXTURES and loads(env,BACKGROUND_PATH)==1 and loads(env,KART_PATH)==1,
+        "background, kart sprite and effect atlases each load once and are reused across later selections")
     UI.Start()
     env.fire("GLOBAL_MOUSE_DOWN","LeftButton")
     local activeState,activeRace,activeClock=UI.state,UI.race,UI.clock
@@ -1502,9 +1529,9 @@ for _,mode in ipairs({"missing", "throws"}) do
         env.fire("ADDON_LOADED","AzerothKart")
         UI.Toggle(); UI.Start(); UI.OnUpdate(1/60)
         assert(UI.active and UI.state.tick==1,"optional snapping APIs cannot block driving: "..mode)
-        assert(UI.objects.frames==10 and UI.objects.textures==113 and UI.objects.fontStrings==13,
+        assert(UI.objects.frames==10 and UI.objects.textures==UI_TEXTURES and UI.objects.fontStrings==13,
             "snapping fallback preserves UI object budget: "..mode)
-        assert(env.drawLayerCalls==1,"grass priority remains explicit when snapping is unavailable: "..mode)
+        assert(sceneLayerCalls(env,UI)==1,"grass priority remains explicit when snapping is unavailable: "..mode)
     end,nil,mode)
 end
 
@@ -1530,9 +1557,9 @@ withMock({schemaVersion=1, custom={keep=true}}, false, function(env,UI)
     assert(UI.objects.fontStrings==env.counts.fontStrings,"font counter matches wrappers")
     local counts={frames=env.counts.frames,textures=env.counts.textures,
                   fontStrings=env.counts.fontStrings}
-    local snappingCalls,drawLayerCalls=env.snappingCalls,env.drawLayerCalls
+    local snappingCalls,drawLayerCalls=env.snappingCalls,sceneLayerCalls(env,UI)
     local function assertPooled()
-        assert(env.snappingCalls==snappingCalls and env.drawLayerCalls==drawLayerCalls,
+        assert(env.snappingCalls==snappingCalls and sceneLayerCalls(env,UI)==drawLayerCalls,
             "updates/reopen never reconfigure snapping or draw priority")
         for kind,count in pairs(counts) do
             assert(env.counts[kind]==count,"UI object count grew: "..kind)
@@ -1893,7 +1920,7 @@ withMock(nil, false, function(env,UI)
     assert(math.abs(sample.simulationMs-6)<1e-8 and math.abs(sample.renderMs-6)<1e-8 and
            math.abs(sample.totalMs-12)<1e-8,"profile phases accumulate known mock milliseconds")
     assert(#env.output==before,"sampling/completion never prints per-frame chat")
-    assert(UI.objects.frames==10 and UI.objects.textures==113 and UI.objects.fontStrings==13,
+    assert(UI.objects.frames==10 and UI.objects.textures==UI_TEXTURES and UI.objects.fontStrings==13,
         "profiling creates no UI objects")
     local state={}
     for key,value in pairs(UI.state) do state[key]=value end
@@ -2144,11 +2171,11 @@ withMock(nil,false,function(env,UI)
     local step=2*math.pi/64
     for _,heading in ipairs({0,0.2*step,0.6*step,math.pi/2,math.pi,-math.pi/2,3*math.pi,-0.51*step}) do
         UI.state.heading=heading; UI.previousState=UI.state
-        local calls=env.texCoordCalls
+        local calls=UI.kart.texCoordWrites
         local frameBefore=UI.kartFrame
         UI.Stop("heading fixture")
         assert(kartFaces(env,UI,heading),"heading "..heading.." shows its nearest frame")
-        assert(env.texCoordCalls==calls+(UI.kartFrame==frameBefore and 0 or 1),
+        assert(UI.kart.texCoordWrites==calls+(UI.kartFrame==frameBefore and 0 or 1),
             "the frame crop is written only when the frame changes")
     end
     assert(UI.kartFrame==63 and rawget(UI.kart,"rotation")==nil,"slightly clockwise of east is the last frame")
@@ -2175,7 +2202,7 @@ withMock(nil,false,function(env,UI)
     UI.Start(); UI.Stop("sprite reuse fixture")
     assert(loads(env,KART_PATH)==1 and UI.kart.textureWrites==1 and rawget(UI.kart,"color")==nil,
         "starts and map switches reuse the loaded sprite; no per-run or per-frame texture load")
-    assert(UI.objects.frames==10 and UI.objects.textures==113 and UI.objects.fontStrings==13,
+    assert(UI.objects.frames==10 and UI.objects.textures==UI_TEXTURES and UI.objects.fontStrings==13,
         "the sprite reuses the existing kart texture without new UI objects")
     sameCounts(env,counts,"sprite tints and switches allocate no UI objects")
 end)
@@ -2236,20 +2263,120 @@ for _,mode in ipairs({"false","nil","throws","missing","tint missing","tint thro
         UI.Stop("fallback fixture done")
         assert(loads(env,KART_PATH)==attempts and rawget(UI.kart,"vertexColor")==nil,
             "no sprite retry per frame, run or map: "..mode)
-        assert(UI.objects.frames==10 and UI.objects.textures==113 and UI.objects.fontStrings==13,
+        assert(UI.objects.frames==10 and UI.objects.textures==UI_TEXTURES and UI.objects.fontStrings==13,
             "fallback keeps the explicit UI object budget: "..mode)
     end)
 end
 
+-- Drift/boost effects: pooled textures on the canvas, hidden while idle, shown
+-- for a real Mirage drift and boost (sparks in every tier colour, flames only
+-- while boosting, on either side of the kart), always whole inside the canvas,
+-- never reloaded or reallocated, and cleared by a map change.
+local effectsSummary
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    local E=env.namespace.Presentation.EFFECTS
+    local pieces=effectPieces(UI)
+    assert(UI.fx and #pieces==EFFECT_TEXTURES,"effect pools are created and loaded with the window")
+    for _,piece in ipairs(pieces) do
+        assert(piece.parent==UI.canvas and not piece:IsShown(),"effects start hidden on the canvas")
+    end
+    for _,piece in ipairs(UI.fxSmoke) do
+        assert(piece.layer=="ARTWORK" and piece.sublevel==6 and piece.texturePath==PARTICLES_PATH,
+            "smoke sits above the track markers, below the kart")
+    end
+    for _,piece in ipairs(UI.fxSparks) do
+        assert(piece.layer=="OVERLAY" and piece.sublevel==-2 and piece.texturePath==PARTICLES_PATH,
+            "sparks sit just below the kart")
+    end
+    for index,piece in ipairs(UI.fxFlames) do
+        assert(piece.layer=="OVERLAY" and piece.sublevel==(index%2==1 and 2 or 3) and piece.texturePath==FLAME_PATH,
+            "each flame's inner layer sits above its outer layer")
+    end
+    UI.Toggle()
+    assert(UI.SelectTrack("mirage_raceway"))
+    local counts={}
+    for key,value in pairs(env.counts) do counts[key]=value end
+    local loadsBefore=env.textureCalls
+    UI.Start()
+    env.key(UI,"OnKeyDown","W")
+    local seen,colors,front,behind,shownMost={},{},false,false,0
+    local script={{340,"OnKeyDown","A"},{340,"OnKeyDown","SPACE"},{415,"OnKeyUp","SPACE"},{450,"OnKeyUp","A"},
+        {548,"OnKeyDown","D"},{548,"OnKeyDown","SPACE"},{622,"OnKeyUp","SPACE"},{650,"OnKeyUp","D"}}
+    local done={}
+    for _=1,760 do
+        for index,step in ipairs(script) do
+            if UI.state.tick>=step[1] and not done[index] then done[index]=true; env.key(UI,step[2],step[3]) end
+        end
+        UI.OnUpdate(1/60)
+        local shown=0
+        for _,piece in ipairs(pieces) do
+            if piece:IsShown() then
+                shown=shown+1
+                local x,y,half=piece.point[4],piece.point[5],piece.width/2
+                assert(piece.point[1]=="CENTER" and piece.point[2]==UI.canvas and piece.width==piece.height and
+                       x-half>=0 and y-half>=0 and x+half<=800 and y+half<=480,
+                    "a shown effect quad lies whole inside the canvas")
+            end
+        end
+        shownMost=math.max(shownMost,shown)
+        for _,piece in ipairs(UI.fxSmoke) do if piece:IsShown() then seen.smoke=true end end
+        for _,piece in ipairs(UI.fxSparks) do
+            if piece:IsShown() then
+                seen.spark=true
+                local c=piece.vertexColor
+                colors[c[1]..","..c[2]..","..c[3]]=true
+            end
+        end
+        for _,piece in ipairs(UI.fxFlames) do
+            if piece:IsShown() then
+                assert(UI.state.boostTicks>0,"flames burn only while boosting")
+                seen.flame=true
+                if piece.sublevel>=2 then front=true else behind=true end
+            end
+        end
+    end
+    assert(seen.smoke and seen.spark and seen.flame,"a Mirage drift and boost shows dust, sparks and flames")
+    for tier=0,2 do
+        local c=E.sparkColors[tier]
+        assert(colors[c[1]..","..c[2]..","..c[3]],"drift tier "..tier.." sparks use the meter's colour")
+    end
+    assert(front and behind,"flames move between the kart's near and far side as it turns")
+    assert(env.textureCalls==loadsBefore,"effects never reload a texture during play")
+    sameCounts(env,counts,"effects allocate no UI objects during play")
+    UI.Stop("effects fixture")
+    assert(UI.SelectTrack("test_oval"))
+    for _,piece in ipairs(pieces) do assert(not piece:IsShown(),"a map change clears every effect") end
+    effectsSummary=("mock effects: %d pooled textures, at most %d shown; dust, three spark tiers and "..
+        "boost flames on both sides of the kart during a Mirage drive"):format(#pieces,shownMost)
+end)
+
+-- A refused effect atlas leaves every effect hidden and the drive unchanged.
+withMock(nil,false,function(env,UI)
+    env.textureModes={[FLAME_PATH]="throws"}
+    env.fire("ADDON_LOADED","AzerothKart")
+    assert(UI.fx==nil and UI.kartSprite and UI.objects.textures==UI_TEXTURES,
+        "a refused effect atlas disables effects, keeps the kart sheet and the texture budget")
+    UI.Toggle()
+    UI.Start()
+    for _=1,3 do UI.OnUpdate(1/60) end
+    assert(UI.active and UI.state.tick==3,"the drive runs without effects")
+    for _,piece in ipairs(effectPieces(UI)) do assert(not piece:IsShown(),"refused effects stay hidden") end
+    UI.Stop("refused effects fixture")
+end)
+
 -- The visual path cannot alter simulation: an identical scripted Mirage drive
 -- with irregular frame times yields identical state in sprite and primitive
 -- mode, while every rendered frame shows the tint for the actual state.
-local function scriptedDrive(mode)
+local function scriptedDrive(mode,effectsOff)
     local trace,seen={}, {}
     withMock(nil,false,function(env,UI)
-        if mode then env.textureModes={[KART_PATH]=mode} end
+        env.textureModes={}
+        if mode then env.textureModes[KART_PATH]=mode end
+        if effectsOff then env.textureModes[PARTICLES_PATH]="false" end
         env.fire("ADDON_LOADED","AzerothKart")
         assert((UI.kartSprite~=nil)==(mode==nil),"fixture selects the intended kart visual")
+        assert((UI.fx~=nil)==(not effectsOff),"fixture selects the intended effects state")
         UI.Toggle()
         assert(UI.SelectTrack("mirage_raceway"))
         UI.Start()
@@ -2288,11 +2415,14 @@ local function scriptedDrive(mode)
 end
 local spriteTrace,spriteSeen=scriptedDrive(nil)
 local primitiveTrace=scriptedDrive("false")
-assert(#spriteTrace==900 and #primitiveTrace==900,"both scripted drives complete")
+local quietTrace=scriptedDrive(nil,true)
+assert(#spriteTrace==900 and #primitiveTrace==900 and #quietTrace==900,"all scripted drives complete")
 for frame,snapshot in ipairs(spriteTrace) do
     for field,value in pairs(snapshot) do
         assert(primitiveTrace[frame][field]==value,
             ("kart visual changed simulation field %s at frame %d"):format(field,frame))
+        assert(quietTrace[frame][field]==value,
+            ("drift/boost effects changed simulation field %s at frame %d"):format(field,frame))
     end
 end
 local last=spriteTrace[#spriteTrace]
@@ -2300,9 +2430,11 @@ assert(spriteSeen[0] and spriteSeen[1] and spriteSeen[2] and spriteSeen[3],
     "the scripted drive exercises charge and both ready tiers on Mirage")
 spriteSummary=("mock kart sheet: 1 creation load, nearest-heading frames unrotated, vertex tints only, "..
     "8 refused-load fallbacks; single-image rotation path kept; "..
-    "900-frame Mirage drive identical in sprite/primitive mode through tick %d (tints seen:%s%s%s%s%s)")
+    "900-frame Mirage drive identical in sprite/primitive and effects on/off modes through tick %d "..
+    "(tints seen:%s%s%s%s%s)")
     :format(last.tick,spriteSeen[0] and " 0" or "",spriteSeen[1] and " 1" or "",
         spriteSeen[2] and " 2" or "",spriteSeen[3] and " 3" or "",spriteSeen[4] and " 4/boost" or "")
 originalPrint(spriteSummary)
+originalPrint(effectsSummary)
 
 originalPrint(summary.." (mock regression only; live-client probes pending)")

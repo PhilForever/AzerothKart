@@ -3,7 +3,14 @@
 ## Unreleased — close results and plain connection-test help (2026-10-21)
 - Add a separate Close results button to stopped/finished summaries. Dismissal retains the track, lap times and stopped sample, and survives window close/reopen until a fresh run or map change.
 - Add `/akart net help` and a plain guide for a test with a friend. No connection-test GUI or automatic traffic is added; the existing first-window defaults and transport gates remain unchanged.
-- One pooled button changes explicit allocations to 10 frames/113 textures/13 font strings. No new per-frame UI objects or authoritative simulation fields.
+- One pooled button plus the reviewed effect integration gives 10 frames/151 textures/13 font strings. No new per-frame UI objects or authoritative simulation fields.
+
+## Unreleased — drift and boost effects (2026-10-21, `claude/track-ui`)
+- Drifting throws pale tyre dust and a spark spray from the rear wheels in the drift meter's colours: blue while charging, gold at tier 1 and magenta at tier 2. The spray thickens as the charge grows and thins while a correction holds it. Boosting lights a flickering two-layer flame at every exhaust and trails goblin soot, with a burst on the tick the boost fires; the flame shrinks as the boost runs out.
+- Add two original atlases under `Assets/Effects/` (Particles 256×128, Flame 512×256), painted by the new `scripts/build_effect_sprites.py` with byte-identical output on any platform. Directions are pre-rendered cells, so drawing never uses `SetRotation` or `SetBlendMode`.
+- `Presentation` gains pure effect helpers (`EFFECTS`, `newEffects`, `clearEffects`, `advanceEffects`, `particleAt`, `effectCoords`) and per-kart effect anchors. The trike's anchors are its model's own wheel-dust and exhaust emitters (`build_wc3_kart.py --emitters`). Effect time is the interpolated tick, and identical sampled-state and effect-update sequences give identical particles.
+- UI pools 38 textures created once and hidden while idle: explicit counts become 9 frames/151 textures/13 font strings. A refused atlas disables effects only. Offline drives keep the simulation identical with effects on, refused or under the primitive kart. Client appearance and cost are NOT RUN; see `docs/art/effects/drift-boost.md`.
+- Add `scripts/preview_effects.py`, which runs the addon Lua against a recording widget mock and composites a review image of a scripted Mirage drive.
 
 ## Unreleased — explicit run exits and reviewed visual integration (2026-10-20)
 - Keep driving through incidental mouse clicks and unassigned keys without clearing held input or drift. Remove the global mouse-down exit that disabled Stop before its OnClick. Explicit Stop/Escape ends the run; Close and chat/focus/lifecycle handling remain deliberate exits.

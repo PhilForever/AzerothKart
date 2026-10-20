@@ -3,6 +3,7 @@
 python scripts/build_wc3_kart.py --source DIR            # write the runtime TGA
 python scripts/build_wc3_kart.py --source DIR --check    # verify exact bytes/invariants, write nothing
 python scripts/build_wc3_kart.py --source DIR --preview  # also write a review sheet under docs/art/karts/
+python scripts/build_wc3_kart.py --source DIR --emitters # list the model's effect emitters (kart frame)
 
 DIR holds the extracted files of `GoblinMortarTrike_Updated_.rar` from
 WC3Vault (see docs/art/karts/goblin-mortar-trike.md). The model and texture
@@ -568,6 +569,29 @@ def pose(source):
     return model, samplers, triangles, fit, cx, cy
 
 
+def emitters(source, posed):
+    """The model's particle emitters in the kart's frame (+x forward, +y left, z up), world units.
+
+    Presentation.KART_SPRITES places drift and boost effects at these points:
+    the rear-wheel dust emitters set where tire effects start and the exhaust
+    emitters are the boost flames' pipes. Not part of the sheet's bytes."""
+    model, samplers, triangles, fit, cx, cy = posed
+    interval = model["sequences"][TRIKE["sequence"]]
+    world = world_matrices(model, interval[0], interval)
+    raw, o, found = chunks((source / TRIKE["model"]).read_bytes()).get("PRE2", b""), 0, []
+    while o < len(raw):
+        inclusive = struct.unpack_from("<I", raw, o)[0]
+        name = cstring(raw[o + 8:o + 88])
+        object_id, parent = struct.unpack_from("<II", raw, o + 88)
+        p = model["pivots"][object_id]
+        if parent != 0xFFFFFFFF and parent in model["nodes"]:
+            m = world(parent)
+            p = [m[i][0] * p[0] + m[i][1] * p[1] + m[i][2] * p[2] + m[i][3] for i in range(3)]
+        found.append((name, (p[0] - cx) * fit, (p[1] - cy) * fit, p[2] * fit))
+        o += inclusive
+    return found
+
+
 def window_bounds(posed):
     """Screen-space extent of trike plus shadow over all headings, in world units."""
     model, samplers, triangles, fit, cx, cy = posed
@@ -702,8 +726,14 @@ def main():
     parser.add_argument("--source", required=True, type=Path, help="folder with the extracted model files")
     parser.add_argument("--check", action="store_true", help="verify exact runtime bytes without writing")
     parser.add_argument("--preview", action="store_true", help="also write a review PNG under docs/art/karts/")
+    parser.add_argument("--emitters", action="store_true",
+                        help="list the model's particle emitters in the kart's frame and exit")
     args = parser.parse_args()
     verify_sources(args.source)
+    if args.emitters:
+        for name, x, y, z in emitters(args.source, pose(args.source)):
+            print(f"{name}: forward {x:.2f}, left {y:.2f}, up {z:.2f}")
+        return
     sheet, frames, fit, bounds = build(args.source)
     image = encode_tga(sheet)
     fewest, most = validate(image)
