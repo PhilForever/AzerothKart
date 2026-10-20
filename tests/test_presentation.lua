@@ -307,7 +307,8 @@ for id, sprite in pairs(P.KART_SPRITES) do
                     if a == 255 then solid = solid + 1 end
                 end
             end
-            assert(solid > 0.12 * fw * fh, id .. ": frame " .. frame .. " shows the vehicle")
+            -- Flyers' thin wings and larger windows cover less of a frame.
+            assert(solid > 0.06 * fw * fh, id .. ": frame " .. frame .. " shows the vehicle")
             fewest, most = math.min(fewest, solid), math.max(most, solid)
             local l, r, top, b = P.kartFrameCoords(sprite, frame)
             assert(math.abs(l - ox / w) < 1e-12 and math.abs(r - (ox + fw) / w) < 1e-12 and

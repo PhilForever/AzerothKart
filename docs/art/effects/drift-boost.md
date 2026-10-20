@@ -1,6 +1,6 @@
 # Drift and boost effects
 
-**Status (2026-10-21):** original procedural effects on `claude/track-ui`, wired to the default Goblin Mortar Trike, the drag car and the primitive kart. Offline tests pass. Their appearance in WoW Forever is **NOT RUN**; see [the client check](#client-check-not-run).
+**Status (2026-10-21):** original procedural effects on `claude/track-ui`, wired to every registered kart (see [the roster](../karts/roster.md)) and to the primitive kart. Offline tests pass. Their appearance in WoW Forever is **NOT RUN**; see [the client check](#client-check-not-run).
 
 ![Seven moments of a scripted Mirage drive](drift-boost-review.png)
 
@@ -16,7 +16,7 @@ The image shows seven moments of a scripted Mirage drive, at two canvas pixels p
 6. a right-hand drift at tier 2;
 7. its boost.
 
-The kart's existing phase tint is visible too. This is a review picture, not a client screenshot. WoW's own filtering, blending and pixel snapping are not reproduced.
+The kart itself is no longer tinted: the owner retired the phase washes on 2026-10-21, as placeholders until real effects existed. This is a review picture, not a client screenshot. WoW's own filtering, blending and pixel snapping are not reproduced.
 
 ## What players see
 
@@ -82,7 +82,7 @@ The anchors are positions read from the published model, not pixels from it; the
 - 14 sparks;
 - two flames of two layers each.
 
-They are hidden while idle. Explicit UI allocations become 9 frames, 151 textures and 13 font strings (113 before the effects). Nothing is created or loaded per tick or frame, and the oldest particle is reused when a pool is full. Offline, at most 31 effect textures were shown at once.
+They are hidden while idle. Explicit UI allocations become 151 textures (113 before the effects); with the Kart button, the counts are 10 frames, 151 textures and 13 font strings. Nothing is created or loaded per tick or frame, and the oldest particle is reused when a pool is full. Offline, at most 31 effect textures were shown at once.
 
 **Layers.**
 
@@ -113,7 +113,7 @@ Fully restart the client after installing: the atlases are new files. On Mirage:
 2. On release, both exhaust pipes flame backward and puff dark soot. The flame shrinks as the boost runs out and stops when it ends.
 3. Facing away from the camera, the flames burn in front of the kart's rear. Facing the camera, they are hidden behind the body, not drawn over the driver.
 4. No effect shows a box, a dark fringe or a neighbouring cell's slice, and none spills outside the canvas.
-5. No hitch when drifting starts, and Print Probe shows 9/151/13.
+5. No hitch when drifting starts, and Print Probe shows 10/151/13.
 6. On Test Oval the same effects appear at the smaller scale, with gray tyre smoke.
 
 Open question: these are the first `SetDrawLayer` calls with sublevels other than the grass's −1. The creation-time calls are guarded, and a refusal disables the effects; the flames' later front/behind switches are not guarded.

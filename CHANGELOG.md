@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — four more karts and a Kart button (2026-10-21, `claude/track-ui`)
+- Add the Steam Tank, Dwarven Biker, Gryphon Rider and Gyrocopter: 1024×1024 sheets of 64 three-quarter headings under `Assets/Karts/`, rendered by `scripts/build_wc3_kart.py` from Warcraft III models of the wc3c ITE project archived on WC3Vault (authors unknown; redistribution unresolved). Flyers hover with detached shadows; the Gyrocopter's rotor is an original translucent disc. See `docs/art/karts/roster.md`.
+- Add `scripts/wc3jpeg.py`, a pure-Python baseline JPEG decoder for JPEG BLP1 textures with libjpeg's integer inverse DCT; its samples matched libjpeg's (through Pillow) exactly on all five shipped textures. `build_wc3_kart.py` now builds every registered vehicle (`--all ROOT`) with byte-identical output on any platform; the trike's sheet is unchanged.
+- A stopped-only **Kart** button cycles six cosmetic karts (`Presentation.KART_ORDER`, `nextKart`, `UI.SelectKart`). A choice loads with the creation-time guards, a refusal keeps the current kart, and it never touches the run, result, track or simulation; every kart drives the same 17×31 body. It is disabled during a run and not saved. Explicit counts become 10 frames/151 textures/13 font strings.
+- Per-kart effect anchors from each model's own emitters. The Gryphon Rider has no exhaust: it trails wingtip wind puffs while boosting.
+- Loaded kart art is no longer tinted per drift/boost phase (owner direction): the effects carry that feedback. The primitive fallback keeps its phase colours. Client appearance is NOT RUN.
+
 ## Unreleased — drift and boost effects (2026-10-21, `claude/track-ui`)
 - Drifting throws pale tyre dust and a spark spray from the rear wheels in the drift meter's colours: blue while charging, gold at tier 1 and magenta at tier 2. The spray thickens as the charge grows and thins while a correction holds it. Boosting lights a flickering two-layer flame at every exhaust and trails goblin soot, with a burst on the tick the boost fires; the flame shrinks as the boost runs out.
 - Add two original atlases under `Assets/Effects/` (Particles 256×128, Flame 512×256), painted by the new `scripts/build_effect_sprites.py` with byte-identical output on any platform. Directions are pre-rendered cells, so drawing never uses `SetRotation` or `SetBlendMode`.

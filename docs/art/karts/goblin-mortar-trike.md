@@ -7,7 +7,7 @@
 The left of the image is the runtime sheet of 64 headings at half size. The right composites the trike on the real Mirage background:
 
 - the first two rows show eight headings at about 1080p and 1440p UI sizes;
-- the last row shows the five drift/boost tints, then three more headings.
+- the last row shows eight in-between headings at the larger size.
 
 These are offline previews, not client screenshots.
 
@@ -47,7 +47,7 @@ The mesh, UVs and texture are used as published. Nothing is edited, repainted or
 
 UI loads the sheet once at creation. The load counts only if `SetTexture` returns `true`, a frame crop with `SetTexCoord` succeeds, and a neutral `SetVertexColor` succeeds; otherwise the orange primitive is kept.
 
-While drawing, UI asks `Presentation.kartFrame` for the nearest frame. It rewrites the crop with `SetTexCoord` only when the frame changes, anchors the quad at the kart position plus the pivot times the view scale, and never rotates the texture. Drift/boost phases tint it with `SetVertexColor`. Explicit UI counts stay 9/111/13: the sheet reuses the existing kart texture.
+While drawing, UI asks `Presentation.kartFrame` for the nearest frame. It rewrites the crop with `SetTexCoord` only when the frame changes, anchors the quad at the kart position plus the pivot times the view scale, and never rotates the texture. Explicit UI counts stayed 9/111/13: the sheet reuses the existing kart texture. Since 2026-10-21 the art is never tinted: the [drift and boost effects](../effects/drift-boost.md) show the phase, and the [Kart button](roster.md#kart-button) can swap the sheet while stopped.
 
 Near the very top map edge, a frame's top can reach about 1.4 world units past the edge, roughly 2 canvas pixels at Mirage scale. This is visual only.
 
@@ -81,7 +81,7 @@ Headings come from half-angle square roots rather than libm trigonometry, and on
 - nearest-frame display at several headings, with no rotation;
 - crop writes only on frame changes;
 - pivot anchoring and quad scaling on both maps;
-- tints;
+- untinted art in every drift/boost phase (originally phase tints, removed 2026-10-21);
 - the unchanged single-image rotation path;
 - identical simulation in sprite and primitive mode.
 
@@ -94,7 +94,7 @@ For a re-check after a future change, install it and fully restart the client; `
 1. The kart is the goblin trike in three-quarter view (red-hatted goblin, big rear wheels, front mortar), not the orange rectangle or the old drag car.
 2. Turning steps smoothly through the headings. The mortar leads in the driving direction, with no mirroring, flipping, or slivers of neighboring frames at the edges.
 3. The shadow falls south-east, like the scenery's.
-4. Blue, gold, magenta and cyan phase washes appear while drifting and boosting.
-5. No hitch when the 4 MiB sheet loads at creation; Print Probe still shows 9/111/13.
+4. The kart keeps its own colours while drifting and boosting; the effects show the phase. (The approved build still had phase washes; the owner retired them on 2026-10-21.)
+5. No hitch when the 4 MiB sheet loads at creation; Print Probe shows 10/151/13 since the effects and Kart button (9/111/13 at the approval).
 
 This is the first use of `SetTexCoord` on the kart texture; the background already uses it, and it was observed working there. A refused crop leaves the orange primitive, so the approved trike suggests the crop also works on the kart, but no probe output records it.

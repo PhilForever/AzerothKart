@@ -210,6 +210,7 @@ def crop(image, cx, cy, width, height, zoom):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--out", type=Path, default=ROOT / "docs" / "art" / "effects" / "drift-boost-review.png")
+    parser.add_argument("--kart", help="a Presentation.KART_SPRITES id to drive instead of the default")
     args = parser.parse_args()
     local_deps = ROOT / "local-artifacts" / "python-deps"
     if local_deps.is_dir():
@@ -222,6 +223,8 @@ def main():
     ui = mock.load(names)
     ui.Toggle()
     assert ui.SelectTrack("mirage_raceway"), "Mirage selection refused"
+    if args.kart:
+        assert ui.SelectKart(args.kart), f"kart {args.kart} refused"
     ui.Start()
     mock.key("OnKeyDown", "W")
     # Ticks to capture, with the reason; the drive follows tests/test_ui.lua's script.
