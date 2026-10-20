@@ -12,6 +12,7 @@
 - **First production map and vehicles (owner confirmed 2026-10-20):** Mirage Raceway on the dry, pre-flood Shimmering Flats replaces the planned Tinker Speedway. Use precomposed static track art with separate geometry and pooled dynamic sprites; vehicles should be recognizable Warcraft III-like fantasy archetypes, preserving both Siege Tank and Steam Tank. Strict overhead sprites may rotate; angled art needs directional frames. Aircraft initially share ground collision with cosmetic hover. This accepts the direction, without claiming assets cleared or runtime migration tested. See [ADR 0008](adr/0008-mirage-raceway-art-direction.md).
 
 - **Warcraft III asset reuse (owner confirmed, Codex reviewed 2026-10-20):** [ADR 0009](adr/0009-warcraft-iii-asset-reuse.md) supersedes the original-only preference for Warcraft III material while preserving Mirage styling, geometry, pooling and per-file provenance. Another addon's use does not establish a general redistribution grant; source-specific status remains documented for release review.
+- **Multiplayer and release priority (owner confirmed 2026-10-20):** [ADR 0010](adr/0010-multiplayer-release-priority.md) places verified multiplayer ahead of dedicated time trials/ghosts. Codex completes the needed mechanics/race/network work through measured multiplayer; Claude supplies three ready maps and eight ready karts. New solid obstacles belong on Test Oval only, not Mirage Raceway. Failed transport gates require owner review rather than automatic ghost substitution; eight karts does not promise eight-player support. The release target is not publishing authorization.
 
 ## Questions that require evidence / product owner approval
 
@@ -19,7 +20,7 @@
 2. Can focused keyboard input coexist cleanly with user keybindings and combat on this build?
 3. What is sustained addon message throughput in actual party/whisper in cities, dungeons and raids?
 4. Does world zoning and `/reload` disrupt frames and transport in ways affecting race resumption?
-5. Is usable simultaneous racing feasible at 2, 4 or 8 players, or should asynchronous time-trial ghost races be the first social mode?
+5. Is usable simultaneous racing feasible at 2, 4 or 8 players? Establish the supported count from actual-client evidence. If transport fails the gate, the owner must review a scope change; ghosts are not currently the first social-mode priority.
 6. Per-asset provenance, final illustration treatment, export dimensions and viewport framing within the accepted Mirage Raceway/Warcraft III-like direction; see ADR 0008.
 7. Cross-realm support: test, do not assume.
 

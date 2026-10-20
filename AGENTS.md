@@ -8,6 +8,10 @@ You are a development agent for **Azeroth Kart**, a top-down 2D WoW Forever arca
 3. Select one small vertical slice under the owner's current priority. Per [ADR 0007](docs/adr/0007-build-first-development.md), remaining M0 manual validation does not block local M1 development. Prepare a focused probe only when an actual uncertainty blocks implementation; record deferred client checks without inventing results.
 4. Make a short plan before changes. Respect acceptance criteria when declaring completion and retain the measured multiplayer gate. No uncontrolled scope expansion.
 
+## Current owner priority
+
+Per [ADR 0010](docs/adr/0010-multiplayer-release-priority.md), multiplayer takes priority over dedicated time trials and ghosts. Finish the needed driving/collision/race foundations, then advance the actual-client transport gate and verified multiplayer; do not insert ghost/time-trial features as prerequisites. New solid-obstacle fixtures belong only on **Test Oval**; **Mirage Raceway needs no obstacles**. The release target combines Codex's mechanical/race/network responsibilities through verified multiplayer with Claude's **three ready maps and eight ready karts**. Eight karts is a content target, not evidence of eight-player capacity. A failed transport gate requires owner review; a ghost fallback does not satisfy this release target. This target authorizes neither a release nor automatic pushes/integration.
+
 ## Ownership and parallel development
 
 Codex owns physics/handling, collision, deterministic simulation, race rules/checkpoints, multiplayer/synchronization and simulation tests. Claude owns rendering, track presentation, UI/HUD, animation/VFX, sprites/assets and visual feedback. Public interfaces, architecture decisions, integration tests and performance budgets are shared responsibilities. A file owner does not have unilateral permission to change a shared interface.
@@ -18,7 +22,7 @@ Codex owns physics/handling, collision, deterministic simulation, race rules/che
 | `addon/AzerothKart/Presentation.lua` | Claude implementation; its public functions and simulation-facing semantics are shared contracts. |
 | `addon/AzerothKart/UI.lua` | Shared file with the function boundaries below. Reserve a non-overlapping edit scope before either agent edits it. |
 | `addon/AzerothKart/Assets/`, visual art/source/provenance in `docs/art/`, `scripts/build_mirage_background.py` | Claude. Geometry, asset registration/origin and performance-budget changes require shared review. An art change never silently changes collision data. |
-| Simulation tests (`test_physics`, `test_handling`, `test_steering`, `test_drift`, `test_surface`, `test_track`, `test_mirage`, `test_input`, `test_loop`, `test_performance`, `test_checkpoints`, `test_laps`, `test_race`, `test_determinism`) | Codex. Do not relax mechanics assertions to accommodate a visual change. |
+| Simulation tests (`test_physics`, `test_handling`, `test_steering`, `test_drift`, `test_surface`, `test_track`, `test_obstacles`, `test_mirage`, `test_input`, `test_loop`, `test_performance`, `test_checkpoints`, `test_laps`, `test_race`, `test_determinism`) | Codex. Do not relax mechanics assertions to accommodate a visual change. |
 | `tests/test_presentation.lua` | Claude, preserving the agreed public-interface assertions. |
 | `tests/test_ui.lua`, `tests/run.lua`, validation/install scripts, `scripts/build_mirage_layout.py`, both TOCs | Shared. Visual assertion edits may accompany visual work; capture/lifecycle/clock/race assertions require Codex coordination. Never disable them to make integration pass. |
 | Contracts, architecture/ADRs, README, roadmap, progress, API/feasibility evidence and test-plan docs | Shared; coordinate edits and retain historical evidence. |

@@ -1,5 +1,19 @@
 # Packaging, deployment and release policy
 
+## Current release target (PENDING)
+
+The owner confirmed [ADR 0010](adr/0010-multiplayer-release-priority.md) on 2026-10-20: release follows Codex's mechanical/race/network responsibilities through verified multiplayer and Claude's three ready maps and eight ready karts. Dedicated time trials and ghosts have lower priority and are not prerequisites. This is a scope target, not a release, push, tag, upload or merge authorization. None of the criteria below is marked passed by this planning update.
+
+- [ ] Codex: required deterministic handling, collision, checkpoints/race lifecycle and result reconciliation complete and validated in the integrated release candidate. New solid-obstacle fixtures remain on Test Oval; Mirage Raceway gets none.
+- [ ] Codex: actual Forever `C_ChatInfo` transport evidence records sends/receives, loss, throttling, message ordering, latency and a two-client disconnect/reconnect trial. Choose a bounded replication architecture only after the measured gate; no per-frame broadcast assumption.
+- [ ] Codex: genuine multiplayer host/join/start/racing/finish behavior and failure handling verified with real clients at the advertised participant count. Test higher counts before advertising them; eight kart assets do not establish eight-player support.
+- [ ] Claude: three maps ready, registered to the agreed deterministic track geometry and verified in the target client. The owner-requested three-map count is not fulfilled by an assumed count of current blockouts; record which maps are accepted.
+- [ ] Claude: eight selectable karts ready, with correct facing, alpha, animation/tints as applicable and preserved agreed collision footprint. Record the accepted roster; do not infer readiness from files existing.
+- [ ] Shared: reviewed integration, required client acceptance, UI/performance budget, compatibility and per-file asset-source/credit review complete; remaining risks stated in the release notes.
+- [ ] Shared: clean package/install checks, matching version/TOCs/changelog and explicit owner authorization to publish the reviewed release candidate.
+
+If the real transport gate fails, report the evidence and stop for owner review of the release scope. Ghost challenges are a possible contingency, not completion of this multiplayer release target. The existing [roadmap](ROADMAP.md) retains open acceptance criteria; this checklist does not waive them.
+
 ## Developer install
 
 `scripts/install_local.ps1` copies the tested `addon/AzerothKart/` files beneath an explicit, existing **Forever flavor** `Interface/AddOns/` directory. Its target is the `AzerothKart/` child. Supply the parent `AddOns` folder, not the addon folder. The observed developer setup uses `_classic_beta_`; discover the intended installation on the user's machine rather than assuming this path. The helper creates no game path by default and refuses an existing AzerothKart target unless `-Overwrite` is supplied.
@@ -54,4 +68,4 @@ SemVer for releases and protocol version separately. Pre-alpha `0.0.1` is only a
 No automatic push/upload/release in timed continuation runs unless explicitly configured and authorized. Keep changelog, manual smoke checklist, and rollback instructions.
 
 ## IP/trademarks
-Use original art, music and track designs. "Azeroth" is Warcraft-related IP; name is a fan-addon working title and should be checked for compatibility with platform policies prior to promotion. State not affiliated with Blizzard.
+Original art and Warcraft III game/community material are accepted project sources under [ADR 0009](adr/0009-warcraft-iii-asset-reuse.md). Follow the per-file provenance, source terms, credit and permission-status ledger; owner direction or another addon's precedent is not a general redistribution grant. Keep unresolved status explicit in the release review. "Azeroth" is Warcraft-related IP; the name is a fan-addon working title and should be checked for compatibility with platform policies prior to promotion. State not affiliated with Blizzard.

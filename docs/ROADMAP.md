@@ -4,6 +4,8 @@
 
 **Owner priority, 2026-10-19:** build playable local mechanics with roughly 80% implementation / 20% focused validation. M0's remaining manual checks are deferred and stay open; they no longer block M1 development. Long probe sessions and repeated broad test matrices wait for a concrete blocker or integration checkpoint. [ADR 0007](adr/0007-build-first-development.md) records this change; multiplayer still requires measured feasibility.
 
+**Owner priority, 2026-10-20:** multiplayer takes priority over dedicated time trials/ghosts. Build the needed M1/M3 mechanical and race foundations, then prioritize M2 transport evidence and M6/M7 live-race work when supported by that evidence. M4/M11 are deferred rather than prerequisites. The release target is Codex's responsibilities through **verified multiplayer**, plus Claude's **three ready maps and eight ready karts**; eight karts does not imply eight simultaneous players. New solid-obstacle fixtures are for **Test Oval only**, with none added to Mirage Raceway. [ADR 0010](adr/0010-multiplayer-release-priority.md) records this direction; the pending checklist is in [RELEASE.md](RELEASE.md#current-release-target-pending). Milestone numbers and phase groupings below are identifiers, not a required execution order.
+
 ## Phase 0 — prove the client + game loop
 
 ### M0. Repository and API proof (OPEN — remaining validation deferred)
@@ -22,13 +24,13 @@
 - [ ] Wire input loss and combat-interrupted final results/release (ADR 0006); gamepad only if client-proven.
 **Exit:** 10k-tick replay equivalence, manual game-feel trials, no unintended inputs.
 
-Current slice: Space-held drift charge, release boost and visible feedback. Implementation progress does not mark the manual game-feel or remaining M0 criteria passed.
+Current slice: deterministic solid-obstacle collision with visible fixtures on Test Oval only. Mirage geometry remains obstacle-free. Implementation progress does not mark the manual game-feel or remaining M0 criteria passed.
 
 ### M2. Network feasibility and social handshake
 - [ ] `AZKART1` channel capability probe with two real clients.
 - [ ] Test 2, 4 and 8 participant budgets when testers are available; record p95 RTT/loss/throttle.
 - [ ] Reliable low-rate `INVITE/JOIN/READY/START` control-plane with duplicates/disconnect tests.
-- [ ] Document live-race go/no-go and an ADR; if not feasible, switch to Ghost Challenge branch.
+- [ ] Document live-race go/no-go and an ADR; if not feasible, stop and review scope with the owner. Ghost Challenge is a contingency, not automatic fulfillment of the current multiplayer release target.
 **Exit:** evidence-based transport decision, not mere addon-message compatibility.
 
 ## Phase 1 — full solo racer
@@ -41,7 +43,7 @@ Current slice: Space-held drift charge, release boost and visible feedback. Impl
 - [ ] Safe persistence v1 + schema/migrations and corrupted-save tests.
 **Exit:** 20-minute solo session without errors; race cannot be completed by skipping gates.
 
-### M4. Time Trial, ghosts, replay
+### M4. Time Trial, ghosts, replay (DEFERRED — multiplayer has priority)
 - [ ] Input tape recording with deterministic seed and physics/track version.
 - [ ] Record personal best, show translucent prior run, lap/time differences.
 - [ ] Cap save size; import/export with strong validation and user consent.
@@ -61,7 +63,7 @@ Current slice: Space-held drift charge, release boost and visible feedback. Impl
 - [ ] Host/join, state sync, prediction/interpolation, guarded snapshot cadence.
 - [ ] Disconnect, resume/rehost policy, desync reporting, finish reconciliation.
 - [ ] Test under real in-game transport in several scenarios.
-**Exit:** peer-tested lap agreement and acceptable corrections; otherwise remain experimental and pivot to ghosts.
+**Exit:** peer-tested lap agreement and acceptable corrections. If the gate fails, remain experimental and request owner review; do not relabel a ghost fallback as completed live multiplayer.
 
 ### M7. Private rooms and four-player beta
 - [ ] Private room UX, friend invite, ready checks and race configuration.
@@ -78,7 +80,7 @@ Current slice: Space-held drift charge, release boost and visible feedback. Impl
 **Exit:** identical seeded item test results and no infinite stun chains.
 
 ### M9. Garage, unlocks, visuals and polish
-- [ ] Original kart sprites, cosmetics, particle pooling, animations, UI scaling.
+- [ ] Original or accepted Warcraft III kart sprites (ADR 0009), cosmetics, particle pooling, animations, UI scaling.
 - [ ] Garage, selection previews, accessibility options, sounds.
 - [ ] No gambling/transferable coin system.
 **Exit:** consistently readable and performant UI, assets provenance documented.
@@ -88,7 +90,7 @@ Current slice: Space-held drift charge, release boost and visible feedback. Impl
 - [ ] Results and achievements/local stats; unverified multiplayer results flagged.
 **Exit:** complete tournament survives expected state transitions; no duplicate awards.
 
-### M11. Ghost challenge social mode (independent of live GO)
+### M11. Ghost challenge social mode (DEFERRED — possible contingency after owner review)
 - [ ] Share bounded ghost challenges by approved messaging or manual codes.
 - [ ] Remote version compatibility, validation and player privacy.
 - [ ] Asynchronous leaderboard and result comparison without false trust claims.
@@ -108,5 +110,7 @@ Current slice: Space-held drift charge, release boost and visible feedback. Impl
 
 ## Prioritization policy
 - Remaining M0 manual validation does not block local M1 mechanics development (ADR 0007). M0/M1 acceptance stays open until supported by executed checks; M2 gates live multiplayer investment. M3 is required for any public 'racer' claim.
-- If real-time racing is technically infeasible, choose M3/M4/M5/M11, not fabricated netcode.
+- Follow ADR 0010: multiplayer precedes M4/M11. Finish necessary local race foundations without expanding into unrelated solo features as prerequisites.
+- If real-time racing is technically infeasible, stop and flag the evidence for owner review. M3/M4/M5/M11 remain possible alternatives; none silently substitutes for the agreed multiplayer release target.
+- The release target includes three ready maps and eight ready karts from Claude alongside verified multiplayer from Codex; acceptance and explicit release authorization remain separate.
 - Do not claim milestones completed because code exists; require actual tests and product-owner acceptance where relevant.
