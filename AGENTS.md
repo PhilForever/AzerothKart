@@ -18,11 +18,11 @@ Codex owns physics/handling, collision, deterministic simulation, race rules/che
 
 | Files/area | Owner and boundary |
 |---|---|
-| `addon/AzerothKart/{Physics,Track,MirageRaceway,Input,Loop,Checkpoints,Laps,Race,Performance,Core}.lua` | Codex. This includes authoritative geometry, input semantics, bootstrap/events and timing diagnostics. Future transport/protocol implementation is Codex-owned and remains feasibility-gated. |
+| `addon/AzerothKart/{Physics,Track,MirageRaceway,Input,Loop,Checkpoints,Laps,Race,Performance,NetworkProbe,TransportProbe,Core}.lua` | Codex. This includes authoritative geometry, input semantics, bootstrap/events and timing diagnostics. The experimental codec/transport probe is Codex-owned; production synchronization remains feasibility-gated. |
 | `addon/AzerothKart/Presentation.lua` | Claude implementation; its public functions and simulation-facing semantics are shared contracts. |
 | `addon/AzerothKart/UI.lua` | Shared file with the function boundaries below. Reserve a non-overlapping edit scope before either agent edits it. |
 | `addon/AzerothKart/Assets/`, visual art/source/provenance in `docs/art/`, `scripts/build_mirage_background.py` | Claude. Geometry, asset registration/origin and performance-budget changes require shared review. An art change never silently changes collision data. |
-| Simulation tests (`test_physics`, `test_handling`, `test_steering`, `test_drift`, `test_surface`, `test_track`, `test_obstacles`, `test_mirage`, `test_input`, `test_loop`, `test_performance`, `test_checkpoints`, `test_laps`, `test_race`, `test_determinism`) | Codex. Do not relax mechanics assertions to accommodate a visual change. |
+| Simulation tests (`test_physics`, `test_handling`, `test_steering`, `test_drift`, `test_surface`, `test_track`, `test_obstacles`, `test_mirage`, `test_input`, `test_loop`, `test_performance`, `test_checkpoints`, `test_laps`, `test_race`, `test_determinism`, `test_network_probe`, `test_transport_probe`) | Codex. Do not relax mechanics assertions to accommodate a visual change. |
 | `tests/test_presentation.lua` | Claude, preserving the agreed public-interface assertions. |
 | `tests/test_ui.lua`, `tests/run.lua`, validation/install scripts, `scripts/build_mirage_layout.py`, both TOCs | Shared. Visual assertion edits may accompany visual work; capture/lifecycle/clock/race assertions require Codex coordination. Never disable them to make integration pass. |
 | Contracts, architecture/ADRs, README, roadmap, progress, API/feasibility evidence and test-plan docs | Shared; coordinate edits and retain historical evidence. |

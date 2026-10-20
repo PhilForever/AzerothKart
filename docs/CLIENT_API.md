@@ -129,9 +129,33 @@ Read-only inspection of the same pinned build-70450 source above found `Blizzard
 | `debugprofilestop` | Generated elapsed-ms contract plus actual guarded arming, 600 valid samples and retained/off output | Sustained/load-varied cost and full performance acceptance; fresh unprofiled reset remains live follow-up |
 | Texture snapping/draw priority | Failed history preserved; grass isolation and independent sublevel test; creation-only grass -1/band bias0/snapfalse verified after normal reload | Native batching cause not established; supported-scale/stress matrix remains pending |
 | Normal UI scale / geometry | Control discovered; attempted 100% apply auto-reverted; original CVars restored, effective-scale mismatch recorded | Accepted changed-scale readbacks/renderer, restoration review and guarded geometry snapshot remain pending; no native-scale explanation established |
-| `C_ChatInfo` availability | Live function types for prefix registration, `SendAddonMessage`, `SendAddonMessageLogged`; `Enum.SendAddonMessageResult` is a table | Prefix registration/result semantics and transport measurements; no prefix registered or network traffic sent |
-| Message payload/rate behavior | Proposed experiment only | Measured private-channel send/receive, throttle, RTT/recovery |
+| `C_ChatInfo` availability | Historical live function types for prefix registration, `SendAddonMessage`, `SendAddonMessageLogged`; `Enum.SendAddonMessageResult` is a table. Build-matched local source declares prefix/send result enums and addon-event fields | Actual prefix registration, raw result values and transport measurements NOT RUN; source presence does not confirm runtime semantics |
+| Message payload/rate behavior | Bounded opt-in two-peer WHISPER harness authored; exact 16/64/128/220-byte DATA, 16-byte ACK and deterministic offline accounting are distinct from network evidence | Actual send/receive, throttle, RTT, order, loss reconciliation and reconnect NOT RUN; PARTY and multi-peer gate remain future |
 | SavedVariables | Minimal schema authored | Isolated sentinel across reload/logout/full restart |
+
+## Transport probe API contract — source evidence, not a live pass
+
+The current branch adds `/akart net listen|start ...`, `stop`, `report` and `evidence`; [the manual checklist](../tests/MANUAL_NETWORK_CHECKLIST.md) gives the exact two-client procedure. There is no load-time prefix registration or automatic traffic. Arming is explicit, private-WHISPER-only and refused while a drive/combat is active or required API/event/clock/result semantics are missing. The probe reuses the Core frame; it adds no input-capture API, network-per-simulation-tick loop or new UI objects. No new prefix registration/send calls were executed in the actual client during this implementation task.
+
+Inspected primary source is the parent-workspace tree `research/upstream/wow-ui-source-forever-70450`, whose `version.txt` reads `1.60.1.70450`. In `Interface/AddOns/Blizzard_APIDocumentationGenerated/`:
+
+- `ChatInfoDocumentation.lua:469` declares `C_ChatInfo.RegisterAddonMessagePrefix(prefix)` returning `RegisterAddonMessagePrefixResult`, not a boolean.
+- `ChatInfoDocumentation.lua:516` declares `C_ChatInfo.SendAddonMessage(prefix, message, chatType, target)` returning `SendAddonMessageResult`, with `SecretArguments = "NotAllowed"`. The adapter sends only its own literal/validated printable payload, channel and explicitly supplied peer; it must not inspect/coerce secret values or bypass a refused call.
+- `ChatInfoDocumentation.lua:803` declares `CHAT_MSG_ADDON` payload order: prefix, text, channel, sender, target, zoneChannelID, localID, name, instanceID. Peer scoping uses the event `sender`, never a payload identity or the event `target` field.
+- `ChatConstantsDocumentation.lua` declares `Enum.RegisterAddonMessagePrefixResult.Success=0`, `DuplicatePrefix=1`, `InvalidPrefix=2`, `MaxPrefixes=3`; `Enum.SendAddonMessageResult.Success=0`, `AddonMessageThrottle=3`, `ChannelThrottle=8`, and other failures within 1–12. These source values are expectations to compare with the real client's enum tables, not hard-coded proof of installed behavior.
+
+Read these on **both** clients before any explicit arm. They only read availability/enum values; they do not register or send:
+
+```text
+/dump GetBuildInfo()
+/dump type(C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix), type(C_ChatInfo and C_ChatInfo.SendAddonMessage)
+/dump Enum and Enum.RegisterAddonMessagePrefixResult
+/dump Enum and Enum.SendAddonMessageResult
+```
+
+Capture exact values and absence/errors. Stop for review if they contradict the build-matched source or are protected/secret; do not substitute another API or assume legacy `true`/`nil` success. The guarded adapter requires the expected enum contract, retains the raw registration/send results and classifies only recognized values. `Success` or an existing matching `DuplicatePrefix` permits registration; a recognized send `Success` is **local acceptance**, not delivery. Failure, unknown result, throw or throttle stops the session without retries. Prefix registration remains in the client after Stop if the API has no corresponding unregister action; stopped code sends nothing.
+
+Local full `Name-Realm` identity spelling must match the actual addon-event sender, with ASCII case folding only. Non-ASCII spelling must match exactly; Unicode case folding is not claimed. Sender realm omission/normalization behavior and cross-realm WHISPER reachability remain client uncertainties. A mismatch refuses the packet rather than silently broadening trust. The fixed rejection-reason report counts sender/session and other failures without printing identities. Session IDs are public correlation tokens, not credentials. This narrow harness proves no authorization, anti-cheat, reliable delivery, participant capacity or playable racing; all real two-client checks are **NOT RUN**.
 
 ## Reference material to verify against the client
 

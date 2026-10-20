@@ -16,4 +16,6 @@ Checkpoints.lua
 Laps.lua
 Race.lua
 UI.lua
+NetworkProbe.lua
+TransportProbe.lua
 Core.lua

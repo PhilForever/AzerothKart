@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — bounded two-client transport experiment (2026-10-20)
+- Add pure NetworkProbe accounting/codec and a guarded WHISPER adapter, explicitly armed with `/akart net start|listen`; no registration or traffic on load and no gameplay replication.
+- Cap DATA at 4/s, 120 seconds / 480 sequences, exact 16/64/128/220-byte payloads; ACK-once16bytes with 4-token/4-per-second burst guard, no retries or catch-up bursts. Anchor deadlines/drains across client hitches and stop on unknown/failed/throttled sends, malformed floods and lifecycle/clock errors.
+- Add explicit counters/nearest-rank timing summaries and four bounded DATA/ACK sequence maps for reconciliation. Local enqueue acceptance and missing ACKs do not establish delivery/loss. No SavedVariables/CSV export or peer identities in output.
+- Reuse the existing bootstrap event frame and preserve the 9/113/13 UI pool and all vehicle/race/render behavior. Real API calls, two-client measurements, PARTY/bidirectional/scale/reconnect gates and replication architecture remain NOT RUN.
+
 ## Unreleased — Test Oval swept solids and multiplayer priority (2026-10-20)
 - Add two geometry-backed red solid-barrier fixtures to Test Oval only; Mirage gains no obstacles. Sweep whole movement segments with conservative 18-unit clearance, bounded recovery and sliding; retain the existing once-per-step wall scrub/cancel response.
 - Physics compatibility v7 and Oval geometry v2; fifteen state fields, handling constants, input/race/clock logic and Mirage geometry remain unchanged.

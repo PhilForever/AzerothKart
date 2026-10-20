@@ -1,5 +1,9 @@
 # Verification and QA plan
 
+## Current bounded transport experiment
+
+Focused command: `python scripts/test_lua.py --runtime lua51 --tests network_probe transport_probe ui`. It checks exact codecs, capped schedules/no catch-up, send outcome classes, same-clock deadlines/hitch-anchored drain, timing percentiles, sender/session/version/size validation, duplicates/reorder/flood limits, ACK-once/burst cap, four sequence maps and stale/fresh sessions. Adapter doubles cover no startup calls/UI allocation, guarded enum/prefix failures, lifecycle/error cleanup/no resume and bounded explicit output. Core/UI integration checks the real slash/event routing and unchanged race/input/pooling regressions. No synthetic result is a measured transport-capacity or client pass. See [the actual two-client checklist](../tests/MANUAL_NETWORK_CHECKLIST.md); PARTY/bidirectional/4/8-client and playable replication remain future work.
+
 ## Current Oval collision slice
 
 Focused command: `python scripts/test_lua.py --runtime lua51 --tests track obstacles physics drift surface determinism mirage ui`. The obstacle module checks long-segment tunneling, head-on/reverse contact, tangent/corner/graze cases, stable release/recovery, perimeter compatibility, immutable geometry and a nonvacuous 900-tick tape with actual obstacle hits at 30/60/144 simulated render Hz across all fifteen fields. Existing 10k-tick replay remains in `determinism`. UI checks physical marker registration, actual fixed-step contact, hiding on Mirage and reuse through switches/updates. Explicit pooled counts are now 9/113/13, two textures above the prior observed baseline; no new Frames or per-update UI objects. These are offline checks. Actual obstacle appearance/handling and integrated Claude art are NOT RUN. Multiplayer has priority over dedicated ghosts/time trials under ADR0010.

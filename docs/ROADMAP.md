@@ -26,7 +26,9 @@
 
 Current slice: deterministic solid-obstacle collision with visible fixtures on Test Oval only. Mirage geometry remains obstacle-free. Implementation progress does not mark the manual game-feel or remaining M0 criteria passed.
 
-### M2. Network feasibility and social handshake
+### M2. Network feasibility and social handshake (CURRENT EXPERIMENT)
+
+Implemented on `codex/transport-probe`: a bounded opt-in directed-WHISPER probe with offline accounting/adapter coverage. Actual client enum/result behavior, two-peer traffic/reconnect, all capacity gates and architecture selection remain NOT RUN/PENDING. This does not complete M1 or any M2 acceptance item.
 - [ ] `AZKART1` channel capability probe with two real clients.
 - [ ] Test 2, 4 and 8 participant budgets when testers are available; record p95 RTT/loss/throttle.
 - [ ] Reliable low-rate `INVITE/JOIN/READY/START` control-plane with duplicates/disconnect tests.

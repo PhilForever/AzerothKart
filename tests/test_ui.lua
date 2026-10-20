@@ -178,7 +178,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     end
     local ok, err=pcall(function()
         local namespace={}
-        for _,name in ipairs({"Track", "MirageRaceway", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "UI", "Core"}) do
+        for _,name in ipairs({"Track", "MirageRaceway", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "UI", "NetworkProbe", "TransportProbe", "Core"}) do
             assert(loadfile("addon/AzerothKart/"..name..".lua"))("AzerothKart",namespace)
         end
         env.namespace=namespace
@@ -190,6 +190,30 @@ end
 
 local KART_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Karts\\GoblinDragCar.tga"
 local BACKGROUND_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\SaltFlats\\Background.tga"
+
+-- Core reuses its bootstrap for the opt-in probe and forwards the real event
+-- payload, while net commands leave the racing window/capture untouched.
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    local transport=env.namespace.TransportProbe
+    local bootstrap=env.frames[1]
+    assert(transport.frame==bootstrap and not bootstrap.events.CHAT_MSG_ADDON
+        and not bootstrap.scripts.OnUpdate,"cold bootstrap has no network event/update work")
+    local before=#env.output
+    SlashCmdList.AZEROTHKART(" net report ")
+    assert(#env.output==before+1 and env.output[#env.output]:find("Idle:",1,true)
+        and not UI.window:IsShown() and not UI.active,"net slash routes without toggling the kart")
+    local received
+    transport.Message=function(...) received={...} end
+    bootstrap.scripts.OnEvent(bootstrap,"CHAT_MSG_ADDON","AZKART1","payload","WHISPER","Tester-Realm","target")
+    assert(received[1]=="AZKART1" and received[2]=="payload" and received[3]=="WHISPER"
+        and received[4]=="Tester-Realm" and received[5]=="target","Core forwards addon event arguments")
+    local stoppedEvent
+    transport.HandleEvent=function(event) stoppedEvent=event end
+    env.fire("PLAYER_LEAVING_WORLD")
+    assert(stoppedEvent=="PLAYER_LEAVING_WORLD" and not UI.active,"probe and UI share lifecycle routing")
+end)
+
 local function loads(env,path)
     local count=0
     for _,value in ipairs(env.texturePaths) do
