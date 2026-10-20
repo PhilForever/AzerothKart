@@ -222,7 +222,7 @@ withMock(nil,false,function(env,UI)
     env.fire("ADDON_LOADED","AzerothKart")
     local transport=env.namespace.TransportProbe
     local bootstrap=env.frames[1]
-    assert(transport.frame==bootstrap and not bootstrap.events.CHAT_MSG_ADDON
+    assert(transport.frame==bootstrap and not bootstrap.events.CHAT_MSG_ADDON_LOGGED
         and not bootstrap.scripts.OnUpdate,"cold bootstrap has no network event/update work")
     local before=#env.output
     SlashCmdList.AZEROTHKART(" net report ")
@@ -230,7 +230,9 @@ withMock(nil,false,function(env,UI)
         and not UI.window:IsShown() and not UI.active,"net slash routes without toggling the kart")
     local received
     transport.Message=function(...) received={...} end
-    bootstrap.scripts.OnEvent(bootstrap,"CHAT_MSG_ADDON","AZKART1","payload","WHISPER","Tester-Realm","target")
+    bootstrap.scripts.OnEvent(bootstrap,"CHAT_MSG_ADDON","AZKART1","payload","WHISPER","Tester-Realm")
+    assert(not received,"unlogged events cannot enter the logged transport")
+    bootstrap.scripts.OnEvent(bootstrap,"CHAT_MSG_ADDON_LOGGED","AZKART1","payload","WHISPER","Tester-Realm","target")
     assert(received[1]=="AZKART1" and received[2]=="payload" and received[3]=="WHISPER"
         and received[4]=="Tester-Realm" and received[5]=="target","Core forwards addon event arguments")
     local stoppedEvent

@@ -12,9 +12,14 @@ local counterNames = {"data_attempts","ack_attempts","data_enqueue_accepted","da
 local function finite(n) return type(n)=="number" and n==n and n~=math.huge and n~=-math.huge end
 local function sessionOK(s) return type(s)=="string" and #s==6 and not s:find("[^A-Z0-9]") end
 local function integer(n) return finite(n) and n==math.floor(n) end
-local function peerOK(p)
-    return type(p)=="string" and #p<=128 and p:match("^[^%s|%-]+%-.+$")
-        and not p:find("[%c%s|]")
+function Probe.canonicalName(value)
+    if type(value)~="string" or #value>96 or value:find("[%z\001-\031\127|]") then return nil end
+    local name=value:gsub(" +"," "):match("^ *(.-) *$")
+    return name~="" and name or nil
+end
+local function nameKey(name)
+    -- Fold only ASCII letters; preserve every surname, hyphen and UTF-8 byte.
+    return (name:gsub("[A-Z]",function(letter) return string.char(letter:byte()+32) end))
 end
 
 function Probe.encode(kind, session, sequence, bytes)
@@ -44,11 +49,12 @@ end
 function Probe.new(options, now)
     if type(options)~="table" or not finite(now) or now<0 then return nil,"invalid_options" end
     local mode,rate,bytes,duration=options.mode,options.rate or 0.5,options.bytes or 16,options.duration or 120
-    if (mode~="send" and mode~="listen") or not peerOK(options.peer) or not sessionOK(options.session)
+    local peer=Probe.canonicalName(options.peer)
+    if (mode~="send" and mode~="listen") or not peer or not sessionOK(options.session)
         or not rates[rate] or not sizes[bytes] or not integer(duration) or duration<10 or duration>120 then
         return nil,"invalid_options"
     end
-    local state={options={mode=mode,peer=options.peer,session=options.session,rate=rate,bytes=bytes,duration=duration},
+    local state={options={mode=mode,peer=peer,session=options.session,rate=rate,bytes=bytes,duration=duration},
         phase=mode=="send" and "sending" or "listening",reason=nil,start=now,last_now=now,
         max_sequence=math.floor(rate*duration),last_slot=0,highest_rx=0,highest_ack=0,
         sent={},seen={},acks={},ack_sent={},ack_tokens=4,ack_refill_at=now,
@@ -203,8 +209,8 @@ function Probe.receive(state,now,prefix,payload,channel,eventSender,sendFn)
     if state.rx_total>=Probe.MAX_EVENTS then finish(state,now,"receive_limit"); return false end
     state.rx_total=state.rx_total+1
     if channel~="WHISPER" then return reject(state,now,"channel") end
-    if type(eventSender)~="string" or #eventSender>128
-        or eventSender:lower()~=state.options.peer:lower() then return reject(state,now,"sender") end
+    local sender=Probe.canonicalName(eventSender)
+    if not sender or nameKey(sender)~=nameKey(state.options.peer) then return reject(state,now,"sender") end
     local packet,err=Probe.decode(payload,state.options.bytes)
     if not packet then return reject(state,now,err) end
     if packet.session~=state.options.session then return reject(state,now,"session") end

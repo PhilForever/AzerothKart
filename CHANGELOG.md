@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — Forever full names and IOU transport reuse (2026-10-21)
+- Fix `net listen/start First Surname CODE`: the surname/code no longer become session/numeric options. Prefer quoted full names; unquoted names and six-digit codes also work. Reject ambiguous commands with a quoting hint.
+- Replace the erroneous realm requirement with complete Forever-name matching; preserve surnames, punctuation and UTF-8, normalize only ASCII spaces/case.
+- Reuse IOU's previously tested `SendAddonMessageLogged` / `CHAT_MSG_ADDON_LOGGED` route with no fallback. Report `WHISPER_LOGGED`, respect actual chat lockdown, and preserve pacing/accounting/abort bounds. No sustained transport result or multiplayer capacity is inferred from IOU's four round trips.
+- Correct the in-game help and two-player guide. Both testers need this updated build and a fresh code. No visual, physics or race changes.
+
 ## Unreleased — close results and plain connection-test help (2026-10-21)
 - Add a separate Close results button to stopped/finished summaries. Dismissal retains the track, lap times and stopped sample, and survives window close/reopen until a fresh run or map change.
 - Add `/akart net help` and a plain guide for a test with a friend. No connection-test GUI or automatic traffic is added; the existing first-window defaults and transport gates remain unchanged.

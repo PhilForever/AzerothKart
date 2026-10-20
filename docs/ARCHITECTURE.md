@@ -38,7 +38,7 @@ SavedVariables -> Schema/Migrations -> settings/personal-bests/ghosts
 - `Diagnostics`: opt-in perf/FPS statistics, protocol rate metrics, error logs, feature gates.
 
 ## API interaction restrictions
-Current WoW API calls live in `UI`, `Core` and the explicitly armed `TransportProbe` experiment. Pure modules, including `NetworkProbe`, do not call them. Production synchronization is still proposed; the probe neither reads nor writes vehicle/race state. No math library calls UI setters. Do not call secure/protected APIs or rely on secret-value readback. No special treatment of combat information is needed.
+Current WoW API calls live in `UI`, `Core` and the explicitly armed `TransportProbe` experiment. The experiment reuses IOU's client-tested logged WHISPER route (`SendAddonMessageLogged` / `CHAT_MSG_ADDON_LOGGED`) and complete Forever first-name/surname identities, with no realms or fallback; see [ADR 0012](adr/0012-forever-logged-transport.md). Pure modules, including `NetworkProbe`, do not call them. Production synchronization is still proposed; the probe neither reads nor writes vehicle/race state. No math library calls UI setters. Do not call secure/protected APIs or rely on secret-value readback. No special treatment of combat information is needed.
 
 ## Simulation clock
 - Fixed dt = 1/60s; `OnUpdate` adds elapsed; execute at most 5 catch-up iterations/frame, then bound accumulator and record dropped simulation time.

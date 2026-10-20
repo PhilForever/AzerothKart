@@ -21,7 +21,7 @@ eventFrame:SetScript("OnEvent",function(_,event,...)
         if AzerothKartDB.schemaVersion == nil then AzerothKartDB.schemaVersion = 1 end
         AK.UI.Create()
         eventFrame:UnregisterEvent("ADDON_LOADED")
-    elseif event == "CHAT_MSG_ADDON" then
+    elseif event == "CHAT_MSG_ADDON_LOGGED" then
         AK.TransportProbe.Message(...)
     else
         AK.TransportProbe.HandleEvent(event)

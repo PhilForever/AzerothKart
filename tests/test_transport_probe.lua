@@ -15,7 +15,7 @@ local function withMock(test)
     env.frame = {events={},scripts={OnEvent=onEvent}}
     function env.frame:RegisterEvent(event)
         env.eventCalls = env.eventCalls+1
-        assert(event == "CHAT_MSG_ADDON")
+        assert(event == "CHAT_MSG_ADDON_LOGGED")
         if env.eventThrows then error("mock event refusal") end
         if env.eventResult == false then return false end
         self.events[event] = true
@@ -23,7 +23,7 @@ local function withMock(test)
     end
     function env.frame:UnregisterEvent(event)
         env.unregisterCalls = env.unregisterCalls+1
-        assert(event == "CHAT_MSG_ADDON")
+        assert(event == "CHAT_MSG_ADDON_LOGGED")
         self.events[event] = nil
     end
     function env.frame:SetScript(name,callback)
@@ -58,11 +58,16 @@ local function withMock(test)
             if env.registerThrows then error("mock registration refusal") end
             return env.registerResult
         end,
-        SendAddonMessage=function(prefix,payload,channel,target)
-            assert(prefix == "AZKART1" and channel == "WHISPER" and target == "Tester-Realm")
+        SendAddonMessageLogged=function(prefix,payload,channel,target)
+            assert(prefix == "AZKART1" and channel == "WHISPER" and target == (env.expectedPeer or "Tester-Realm"))
             env.sends[#env.sends+1] = {payload=payload,channel=channel,target=target}
             if env.sendThrows then error("private mock API error must not enter evidence") end
             return env.sendResult
+        end,
+        SendAddonMessage=function() error("unlogged route must never be used") end,
+        InChatMessagingLockdown=function()
+            if env.chatThrows then error("mock chat state unavailable") end
+            return env.chatLocked == true
         end,
     }
     local ok,err = pcall(function()
@@ -84,7 +89,7 @@ end
 
 local function stopped(env,transport)
     assert(transport.state and transport.state.phase == "stopped")
-    assert(env.frame.scripts.OnUpdate == nil and env.frame.events.CHAT_MSG_ADDON == nil,
+    assert(env.frame.scripts.OnUpdate == nil and env.frame.events.CHAT_MSG_ADDON_LOGGED == nil,
         "all terminal paths release the update callback and receive event")
 end
 local function quiet(env,count)
@@ -96,7 +101,7 @@ withMock(function(env,t,p)
     local o = t.state.options
     assert(o.mode == "send" and o.peer == "Tester-Realm" and o.session == "ABC123")
     assert(o.rate == 0.5 and o.bytes == 16 and o.duration == 120)
-    assert(env.registerCalls == 1 and env.frame.events.CHAT_MSG_ADDON)
+    assert(env.registerCalls == 1 and env.frame.events.CHAT_MSG_ADDON_LOGGED)
     assert(env.frame.scripts.OnUpdate == t.Update and #env.sends == 0 and t.usedCount == 1)
     local count = #env.output
     env.now=1.999; t.Update(); assert(#env.sends == 0)
@@ -115,13 +120,42 @@ withMock(function(env,t,p)
     assert(#env.sends == 2); quiet(env,afterStop)
 end)
 
+-- Real failure shape: the surname must not be consumed as the session, and
+-- the session must not become a numeric rate. No invented realm is required.
+for _,case in ipairs({
+    {command="listen Amber Stone AKT722",peer="Amber Stone",session="AKT722"},
+    {command='listen "Amber Stone" AKT722',peer="Amber Stone",session="AKT722"},
+    {command='start "  Amber   Stone " 123456',peer="Amber Stone",session="123456"},
+    {command="start Amber Stone 123456 1",peer="Amber Stone",session="123456",rate=1},
+    {command="start Amber Stone AKT722 2 64",peer="Amber Stone",session="AKT722",rate=2,bytes=64},
+    {command='start "Amber Rune-Smith" AKT722 4 128 10',peer="Amber Rune-Smith",session="AKT722",rate=4,bytes=128,duration=10},
+    {command="listen Amber Rune-Smith AKT722 0.5 220 120",peer="Amber Rune-Smith",session="AKT722",bytes=220},
+    {command="listen Tester ABC123",peer="Tester",session="ABC123"},
+}) do
+    withMock(function(env,t,p)
+        env.expectedPeer=case.peer
+        assert(t.Command(case.command))
+        local o=t.state.options
+        assert(o.peer==case.peer and o.session==case.session)
+        assert(o.rate==(case.rate or 0.5) and o.bytes==(case.bytes or 16) and o.duration==(case.duration or 120))
+        assert(env.output[1]:find("WHISPER_LOGGED",1,true),"arming identifies the transport route")
+        if o.mode=="listen" then
+            t.Message(p.PREFIX,assert(p.encode("D",o.session,1,o.bytes)),"WHISPER",case.peer)
+        else env.now=1/o.rate; t.Update() end
+        assert(#env.sends==1 and env.sends[1].target==case.peer,"native API receives the complete canonical target")
+        t.Stop(); stopped(env,t)
+        local before=#env.output; t.Report()
+        assert(env.output[before+1]:find("route=WHISPER_LOGGED",1,true))
+    end)
+end
+
 withMock(function(env,t,p)
     assert(t.Command("help") and #env.output==6,"explicit help prints the short connection-test steps")
     assert(not t.state and t.usedCount==0 and env.registerCalls==0 and #env.sends==0 and
            env.eventCalls==0 and env.scriptCalls==0,"help never arms, registers or sends")
     local guide=table.concat(env.output,"\n")
-    assert(guide:find("listen YourName-YourRealm",1,true) and
-           guide:find("start FriendName-FriendRealm",1,true) and
+    assert(guide:find('listen "Your Firstname Surname"',1,true) and
+           guide:find('start "Friend Firstname Surname"',1,true) and
            guide:find("20 seconds",1,true) and guide:find("2 minutes 15 seconds",1,true) and guide:find("BOTH say Stopped",1,true) and
            guide:find("net evidence",1,true) and guide:find("net stop",1,true),
         "help explains both roles, ordering, waiting, output and cancellation")
@@ -138,10 +172,17 @@ withMock(function(env,t,p)
 end)
 
 for _,argument in ipairs({"", "start", "start Tester-Realm",
-    "start Tester ABC123", "start Tester-Realm abc123", "start Tester-Realm ABC123 8",
+    "start Tester-Realm abc123", "start Tester-Realm ABC123 8",
     "start Tester-Realm ABC123 1 255", "start Tester-Realm ABC123 1 16 9",
     "start Tester-Realm ABC123 1 16 121", "start Tester-Realm ABC123 1 16 10.5",
     "start Tester-Realm ABC123 nope", "start Tester-Realm ABC123 1 16 10 extra",
+    'listen "Amber Stone AKT722', 'listen Amber "Stone" AKT722',
+    'listen "Amber Stone" AKT722 extra', 'listen "" AKT722',
+    'listen "Amber Stone" AKT722 1 16 10 extra',
+    'listen Amber ABCDEF AKT722', -- ambiguous: quote the name rather than guess.
+    'listen Amber Stone AKT722 123456',
+    'listen Amber|Stone AKT722', 'listen Amber\tStone AKT722',
+    'listen "'..string.rep("x",97)..'" AKT722',
     string.rep("x",257)}) do
     withMock(function(env,t)
         assert(not t.Command(argument), "invalid command must be refused")
@@ -157,7 +198,7 @@ end)
 local unavailable = {
     function() _G.C_ChatInfo=nil end,
     function() C_ChatInfo.RegisterAddonMessagePrefix=nil end,
-    function() C_ChatInfo.SendAddonMessage=nil end,
+    function() C_ChatInfo.SendAddonMessageLogged=nil end,
     function() _G.Enum=nil end,
     function() Enum.RegisterAddonMessagePrefixResult=nil end,
     function() Enum.SendAddonMessageResult=nil end,
@@ -170,6 +211,8 @@ local unavailable = {
     function(env) env.combatThrows=true end,
     function(env) env.combat=true end,
     function(env) env.combat=nil end,
+    function(env) env.chatLocked=true end,
+    function(env) env.chatThrows=true end,
     function(env,_,namespace) namespace.UI.active=true end,
 }
 for _,refuse in ipairs(unavailable) do
@@ -177,9 +220,19 @@ for _,refuse in ipairs(unavailable) do
         refuse(env,t,namespace)
         assert(not t.Command("start Tester-Realm ABC123"))
         assert(not t.state and #env.sends == 0 and t.usedCount == 0)
-        assert(env.frame.scripts.OnUpdate == nil and not env.frame.events.CHAT_MSG_ADDON)
+        assert(env.frame.scripts.OnUpdate == nil and not env.frame.events.CHAT_MSG_ADDON_LOGGED)
     end)
 end
+withMock(function(env,t)
+    -- IOU's tested route does not depend on the unlogged function or the
+    -- broad outgoing-restriction diagnostic. Actual chat lockdown still wins.
+    C_ChatInfo.SendAddonMessage=nil
+    C_ChatInfo.AreOutgoingAddonChatMessagesRestricted=function() return true end
+    assert(t.Command("start Tester-Realm ABC123"))
+    env.now=2; t.Update(); assert(#env.sends==1)
+    env.chatLocked=true; env.now=3; t.Update(); stopped(env,t)
+    env.chatLocked=false; env.now=4; t.Update(); assert(#env.sends==1)
+end)
 for _,kind in ipairs({"false", "nil", "throws"}) do
     withMock(function(env,t)
         if kind == "throws" then env.registerThrows=true
@@ -203,7 +256,7 @@ for _,kind in ipairs({"eventFalse", "eventError", "updateError"}) do
         if kind == "eventFalse" then env.eventResult=false end
         assert(not t.Command("start Tester-Realm ABC123"))
         assert(#env.sends == 0 and not t.state and t.usedCount == 0)
-        assert(env.frame.scripts.OnUpdate == nil and not env.frame.events.CHAT_MSG_ADDON)
+        assert(env.frame.scripts.OnUpdate == nil and not env.frame.events.CHAT_MSG_ADDON_LOGGED)
     end)
 end
 
@@ -327,7 +380,7 @@ withMock(function(env,t)
     end
     assert(t.usedCount == 64 and env.registerCalls == 1 and #env.sends == 0)
     assert(not t.Command("listen Tester-Realm NEW123"), "session-ID history must remain bounded")
-    assert(t.usedCount == 64 and not env.frame.events.CHAT_MSG_ADDON and not env.frame.scripts.OnUpdate)
+    assert(t.usedCount == 64 and not env.frame.events.CHAT_MSG_ADDON_LOGGED and not env.frame.scripts.OnUpdate)
 end)
 
 originalPrint("Opt-in transport adapter: guarded capabilities/enums, bounded traffic/evidence and terminal cleanup verified with mocks")

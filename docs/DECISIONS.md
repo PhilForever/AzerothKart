@@ -24,7 +24,7 @@ The owner-directed [ADR 0011](adr/0011-explicit-drive-exits.md) replaces inciden
 4. Does world zoning and `/reload` disrupt frames and transport in ways affecting race resumption?
 5. Is usable simultaneous racing feasible at 2, 4 or 8 players? Establish the supported count from actual-client evidence. If transport fails the gate, the owner must review a scope change; ghosts are not currently the first social-mode priority.
 6. Per-asset provenance, final illustration treatment, export dimensions and viewport framing within the accepted Mirage Raceway/Warcraft III-like direction; see ADR 0008.
-7. Cross-realm support: test, do not assume.
+7. Forever has no realms; complete first-name/surname identity and the logged transport follow [ADR 0012](adr/0012-forever-logged-transport.md), reusing IOU's verified compatibility evidence. Sustained racing delivery and recovery still need measurements.
 
 ## Change process
 New decisions enter `docs/adr/NNNN-...md` when architecture or product feasibility changes. Link the empirical test and update impacted acceptance criteria, rather than leaving contradictory docs.

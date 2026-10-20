@@ -1,8 +1,9 @@
--- Guarded, opt-in WHISPER experiment adapter. No traffic or registration on load.
+-- Guarded, opt-in logged WHISPER adapter, following IOU's tested Forever route.
+-- No traffic or registration on load. No unlogged/ordinary-whisper fallback.
 local _, AK = ...
 assert(type(AK) == "table", "addon namespace required")
 local Probe = assert(AK.NetworkProbe, "pure network probe required")
-local Transport = {used={}, usedCount=0}
+local Transport = {used={}, usedCount=0, ROUTE="WHISPER_LOGGED"}
 AK.TransportProbe = Transport
 
 local function report(message)
@@ -30,13 +31,17 @@ local function blocked()
     if type(InCombatLockdown) ~= "function" then return "combat API unavailable" end
     local ok,clear = pcall(function() return InCombatLockdown() == false end)
     if not ok or not clear then return "combat or unavailable combat state" end
+    if type(C_ChatInfo) == "table" and type(C_ChatInfo.InChatMessagingLockdown) == "function" then
+        local readable,unlocked = pcall(function() return C_ChatInfo.InChatMessagingLockdown() == false end)
+        if not readable or not unlocked then return "chat messaging locked or unavailable" end
+    end
 end
 
 local function cleanup()
     local frame = Transport.frame
     if not frame then return end
     pcall(frame.SetScript,frame,"OnUpdate",nil)
-    pcall(frame.UnregisterEvent,frame,"CHAT_MSG_ADDON")
+    pcall(frame.UnregisterEvent,frame,"CHAT_MSG_ADDON_LOGGED")
 end
 
 local function finished()
@@ -117,7 +122,7 @@ local sendNames = {"Success","InvalidPrefix","InvalidMessage","AddonMessageThrot
 local function capabilities()
     if not Transport.frame or type(C_ChatInfo) ~= "table"
         or type(C_ChatInfo.RegisterAddonMessagePrefix) ~= "function"
-        or type(C_ChatInfo.SendAddonMessage) ~= "function" or type(Enum) ~= "table"
+        or type(C_ChatInfo.SendAddonMessageLogged) ~= "function" or type(Enum) ~= "table"
         or type(Enum.RegisterAddonMessagePrefixResult) ~= "table"
         or type(Enum.SendAddonMessageResult) ~= "table" then return false end
     local register,results = Enum.RegisterAddonMessagePrefixResult,Enum.SendAddonMessageResult
@@ -134,7 +139,7 @@ local function capabilities()
         if name ~= "Success" then failed[value] = true end
     end
     throttled[results.AddonMessageThrottle],throttled[results.ChannelThrottle] = true,true
-    Transport.sendAPI,Transport.sendSuccess = C_ChatInfo.SendAddonMessage,results.Success
+    Transport.sendAPI,Transport.sendSuccess = C_ChatInfo.SendAddonMessageLogged,results.Success
     Transport.failureCodes,Transport.throttleCodes = failed,throttled
     if not Transport.registered then
         local ok,raw = pcall(C_ChatInfo.RegisterAddonMessagePrefix,Probe.PREFIX)
@@ -173,14 +178,14 @@ local function arm(options)
             (Transport.registrationError and "error" or rawTag(Transport.registrationResult))..")")
         return false
     end
-    local eventOK,result = pcall(Transport.frame.RegisterEvent,Transport.frame,"CHAT_MSG_ADDON")
-    if not eventOK or result == false then cleanup(); report("Refused: CHAT_MSG_ADDON unavailable"); return false end
+    local eventOK,result = pcall(Transport.frame.RegisterEvent,Transport.frame,"CHAT_MSG_ADDON_LOGGED")
+    if not eventOK or result == false then cleanup(); report("Refused: CHAT_MSG_ADDON_LOGGED unavailable"); return false end
     local updateOK = pcall(Transport.frame.SetScript,Transport.frame,"OnUpdate",Transport.Update)
     if not updateOK then cleanup(); report("Refused: probe update unavailable"); return false end
     Transport.state,Transport.lastNow,Transport.notified = state,now,false
     Transport.used[state.options.session],Transport.usedCount = true,Transport.usedCount+1
-    report(("Armed %s session=%s WHISPER %.1f DATA/s bytes=%d seconds=%d; peer must opt in")
-        :format(options.mode,state.options.session,state.options.rate,state.options.bytes,state.options.duration))
+    report(("Armed %s session=%s %s %.1f DATA/s bytes=%d seconds=%d; peer must opt in")
+        :format(options.mode,state.options.session,Transport.ROUTE,state.options.rate,state.options.bytes,state.options.duration))
     return true
 end
 
@@ -200,9 +205,9 @@ function Transport.Report()
     if not Transport.state then report("Idle: no experiment run"); return end
     local s = Probe.summary(Transport.state)
     local o = Transport.state.options
-    report(("session=%s phase=%s reason=%s rate=%.1f bytes=%d seconds=%d elapsedSeconds=%.3f prefixRaw=%s")
+    report(("session=%s phase=%s reason=%s rate=%.1f bytes=%d seconds=%d elapsedSeconds=%.3f prefixRaw=%s route=%s")
         :format(o.session,Transport.state.phase,tostring(Transport.state.reason or "none"),
-            o.rate,o.bytes,o.duration,s.elapsed_seconds,rawTag(Transport.registrationResult)))
+            o.rate,o.bytes,o.duration,s.elapsed_seconds,rawTag(Transport.registrationResult),Transport.ROUTE))
     report(("DATA calls=%d accepted=%d failed=%d unknown=%d planned=%d missedSlots=%d; ACK calls=%d accepted=%d failed=%d unknown=%d")
         :format(s.data_attempts,s.data_enqueue_accepted,s.data_enqueue_failed,s.data_enqueue_unknown,
             s.scheduled_data_attempts,s.missed_slots,s.ack_attempts,s.ack_enqueue_accepted,
@@ -235,18 +240,19 @@ end
 
 function Transport.Help()
     report("Connection test: you + a friend with the same addon build. Chat commands only; not a multiplayer race.")
-    report("Stop driving, stay out of combat. Replace the full Name-Realm names below; agree on a NEW 6-character uppercase letter/digit code (example AKT721).")
-    report("1. Friend first: /akart net listen YourName-YourRealm AKT721")
-    report("2. You within 20 seconds: /akart net start FriendName-FriendRealm AKT721")
+    report("Stop driving, stay out of combat. Use full Forever first + surname, no realm. Agree on a NEW 6-character uppercase letter/digit code (example AKT722). Route: WHISPER_LOGGED.")
+    report('1. Friend first: /akart net listen "Your Firstname Surname" AKT722')
+    report('2. You within 20 seconds: /akart net start "Friend Firstname Surname" AKT722')
     report("3. Wait about 2 minutes 15 seconds, until BOTH say Stopped. Then BOTH run /akart net report and /akart net evidence. Save all output before reload.")
     report("Cancel: /akart net stop. If either side says Refused or stops early, stop and keep the message; do not retry at a higher rate.")
 end
 
 function Transport.Command(argument)
-    if type(argument) ~= "string" or #argument > 256 then report("Invalid net command"); return false end
+    if type(argument) ~= "string" or #argument > 256 or argument:find("[%c|]") then
+        report("Invalid net command"); return false
+    end
     local words = {}
     for word in argument:gmatch("%S+") do
-        if #words >= 6 then report("Too many net arguments"); return false end
         words[#words+1] = word
     end
     if #words == 1 then
@@ -255,17 +261,52 @@ function Transport.Command(argument)
         if words[1] == "report" then Transport.Report(); return true end
         if words[1] == "evidence" then Transport.Evidence(); return true end
     end
-    if (words[1] ~= "start" and words[1] ~= "listen") or #words < 3 then
-        report("/akart net help for steps; start|listen Peer-Realm ABC123 [pps] [bytes] [seconds]; stop|report|evidence")
+    local function usage()
+        report('/akart net help for steps; start|listen "First Surname" ABC123 [pps] [bytes] [seconds]; stop|report|evidence')
+        return false
+    end
+    if (words[1] ~= "start" and words[1] ~= "listen") or #words < 3 then return usage() end
+
+    local peer,tail
+    if argument:find('"',1,true) then
+        local role,quoted,rest = argument:match('^ *(%S+) +"([^"]+)" +([^"\r\n]+) *$')
+        if not role or role ~= words[1] then return usage() end
+        peer,tail = quoted,{}
+        for word in rest:gmatch("%S+") do tail[#tail+1] = word end
+        if #tail < 1 or #tail > 4 then return usage() end
+    else
+        -- A session may itself be six digits. Do not strip numeric suffixes or
+        -- silently turn a malformed option into part of a different peer name.
+        local sessionIndex
+        for index=3,#words do
+            local word = words[index]
+            if #word == 6 and not word:find("[^A-Z0-9]") then
+                if sessionIndex then
+                    report('Ambiguous net command; put the full character name in double quotes')
+                    return false
+                end
+                sessionIndex = index
+            end
+        end
+        if not sessionIndex or #words-sessionIndex > 3 then return usage() end
+        peer = table.concat(words," ",2,sessionIndex-1)
+        tail = {}
+        for index=sessionIndex,#words do tail[#tail+1] = words[index] end
+    end
+    if not Probe.canonicalName(peer) then
+        report("Invalid full character name"); return false
+    end
+    if #tail[1] ~= 6 or tail[1]:find("[^A-Z0-9]") then
+        report("Use a fresh 6-character uppercase letter/digit session code")
         return false
     end
     local rate,bytes,duration = 0.5,16,120
-    if words[4] then rate = tonumber(words[4]) end
-    if words[5] then bytes = tonumber(words[5]) end
-    if words[6] then duration = tonumber(words[6]) end
+    if tail[2] then rate = tonumber(tail[2]) end
+    if tail[3] then bytes = tonumber(tail[3]) end
+    if tail[4] then duration = tonumber(tail[4]) end
     if not rate or not bytes or not duration then report("Invalid numeric net argument"); return false end
-    return arm({mode=words[1] == "start" and "send" or "listen",peer=words[2],
-        session=words[3],rate=rate,bytes=bytes,duration=duration})
+    return arm({mode=words[1] == "start" and "send" or "listen",peer=peer,
+        session=tail[1],rate=rate,bytes=bytes,duration=duration})
 end
 
 return Transport

@@ -38,13 +38,45 @@ config.peer,config.rate="SomeoneElse-Realm",4
 assert(frozen.options.peer=="Tester-Realm" and frozen.options.rate==1,"copy experiment configuration")
 for _,field in ipairs({"mode","peer","session","rate","bytes","duration"}) do
     local bad=options()
-    bad[field]=({mode="race",peer="Tester",session="abc123",rate=8,bytes=255,duration=121})[field]
+    bad[field]=({mode="race",peer="",session="abc123",rate=8,bytes=255,duration=121})[field]
     assert(not P.new(bad,0),"reject invalid option "..field)
 end
 assert(not P.new(options(),0/0) and not P.new(options(),math.huge) and not P.new(options(),-1))
 assert(not P.new(options("send",1,16,10.5),0))
 local defaults=assert(P.new({mode="listen",peer="Tester-Realm",session="ABC123"},0))
 assert(defaults.options.rate==0.5 and defaults.options.bytes==16 and defaults.options.duration==120)
+
+-- Forever identities are full names, not guessed retail realm suffixes.
+local utf8Name="Bj\195\184rn Iron-Hammer"
+for _,name in ipairs({"Tester", "Amber Stone", "Anna-Marie O'Rourke", utf8Name, string.rep("x",96)}) do
+    assert(P.canonicalName(name)==name,"preserve full name bytes and punctuation")
+    local configured=options("listen")
+    configured.peer="  "..name.."  "
+    if #configured.peer<=96 then
+        assert(assert(P.new(configured,0)).options.peer==name,"store canonical full name")
+    end
+end
+assert(P.canonicalName("  Amber   Stone  ")=="Amber Stone","normalize only ASCII spaces")
+assert(not P.canonicalName(nil) and not P.canonicalName(false) and not P.canonicalName({}))
+for _,name in ipairs({"", "   ", "Amber\tStone", "Amber\nStone", "Amber\rStone", "Amber\000Stone",
+    "Amber\001Stone", "Amber\031Stone", "Amber\127Stone", "|Hplayer:Amber|h", string.rep("x",97),
+    " "..string.rep("x",96)}) do
+    assert(not P.canonicalName(name),"reject malformed names before normalization")
+    local configured=options("listen"); configured.peer=name
+    assert(not P.new(configured,0),"reject malformed configured peer")
+end
+local identity=options("listen"); identity.peer="  Bj\195\184rn   Iron-Hammer  "
+local namedListener=assert(P.new(identity,0))
+assert(namedListener.options.peer==utf8Name)
+for _,sender in ipairs({"Bj\195\184rn", "Bj\195\184rn Different", "Bj\195\184rn Iron Hammer",
+    utf8Name.."-Realm", "Bj\195\152rn Iron-Hammer", "Bj\195\184rn\tIron-Hammer", utf8Name.."|r",
+    string.rep("x",97)}) do
+    assert(not receive(namedListener,0,packet("D",1),sender),"full native sender identity must match")
+end
+assert(namedListener.rx_unique==0 and namedListener.ack_attempts==0,"wrong identities cannot trigger ACKs")
+assert(receive(namedListener,0.1,packet("D",1),"  bJ\195\184RN   iRON-hAMMER  "),
+    "native sender comparison normalizes spaces and ASCII case, preserving UTF-8")
+assert(namedListener.rx_unique==1 and namedListener.ack_attempts==1)
 
 -- Full 4/s window: no first-frame burst; final slot at 120s; synchronous ACK is safe.
 local full=fresh("send",4,220,120)
