@@ -16,6 +16,8 @@
 
 ## Questions that require evidence / product owner approval
 
+The owner-directed [ADR 0011](adr/0011-explicit-drive-exits.md) replaces incidental click/unassigned-key stops with explicit run exits. Stop must receive its own click; stopped results retain progress and offer a fresh run, track choice or Close. Historical input observations refer to the earlier policy.
+
 1. What exact installed Forever client build and TOC flavor path are present?
 2. Can focused keyboard input coexist cleanly with user keybindings and combat on this build?
 3. What is sustained addon message throughput in actual party/whisper in cities, dungeons and raids?

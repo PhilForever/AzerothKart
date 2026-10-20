@@ -1,6 +1,6 @@
 # Manual network experiment — F4 (probe prepared; live checks NOT RUN)
 
-The branch implements a bounded opt-in `WHISPER` probe, not a multiplayer engine. **No actual transport measurements are recorded.** Installation and the two-client input window must be coordinated with Claude's current build; do not overwrite its newer artwork. The [60-column CSV](../docs/experiments/network-ledger.csv) stays header-only until real measurements exist. M0's deferred long manual matrix does not prohibit this focused experiment under ADR 0007; observe the probe's own stop guards.
+The branch implements a bounded opt-in `WHISPER` probe, not a multiplayer engine. **No actual transport measurements are recorded.** Claude's scenery/trike and Codex's probe are reviewed together on `codex/menu-integration`. Install that combined source on both clients; serialize deployment and retain backups. The owner confirmed only one client is available on 2026-10-20, so the first window remains NOT RUN. The [60-column CSV](../docs/experiments/network-ledger.csv) stays header-only until real measurements exist. M0's deferred long manual matrix does not prohibit this focused experiment under ADR 0007; observe the probe's own stop guards.
 
 ## Two consenting testers: first window
 

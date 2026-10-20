@@ -159,23 +159,51 @@ function Presentation.meter(state, config)
     return math.min(1, ticks / config.DRIFT_TIER2_TICKS), phase
 end
 
--- Kart art metadata: pure data, read-only by convention. Each sprite is a
--- strict-overhead, north-facing image centred on the kart's physical centre.
--- Its visible texels stay inside the 17x31 world-unit body of the original
--- primitive (the clearance assumed by the 18-unit perimeter inset); the rest
--- of the quad is transparent padding for filtering. Quad and body scale with
--- the same uniform view transform and rotate by heading - pi/2. Art never
--- feeds collision, gates, input or race timing.
+-- Kart art metadata: pure data, read-only by convention. Art never feeds
+-- collision, gates, input or race timing; quads scale with the same uniform
+-- view transform as the world.
+-- * A single image (no `frames`) is a strict-overhead, north-facing sprite
+--   centred on the kart's physical centre and rotated by heading - pi/2. Its
+--   visible texels stay inside the 17x31 world-unit body of the primitive.
+-- * A directional sheet (`frames`, `columns`) holds pre-rendered headings:
+--   frame k faces heading k * 2pi / frames, counter-clockwise from east, read
+--   left to right and top to bottom. The nearest frame is shown unrotated; one
+--   frame covers quadWidth x quadHeight world units, and its centre sits
+--   (pivotX, pivotY) world units east/north of the kart's position on screen.
 Presentation.KART_FOOTPRINT_WIDTH = 17
 Presentation.KART_FOOTPRINT_HEIGHT = 31
-Presentation.DEFAULT_KART = "goblin_drag_car"
+Presentation.DEFAULT_KART = "goblin_mortar_trike"
 Presentation.KART_SPRITES = {
     goblin_drag_car = {
         path = "Interface\\AddOns\\AzerothKart\\Assets\\Karts\\GoblinDragCar.tga",
         textureWidth = 64, textureHeight = 128, -- texels; power-of-two TGA
         quadWidth = 20, quadHeight = 40,        -- world units; 3.2 texels per unit
     },
+    -- Rendered from the Warcraft III Goblin Mortar Trike model by erwtenpeller
+    -- and Chriz (Vast Graphics); see docs/art/karts/goblin-mortar-trike.md.
+    goblin_mortar_trike = {
+        path = "Interface\\AddOns\\AzerothKart\\Assets\\Karts\\GoblinMortarTrike.tga",
+        textureWidth = 1024, textureHeight = 1024, -- texels; 8x8 sheet of 128x128 frames
+        quadWidth = 41, quadHeight = 41,           -- world units per frame; 3.12 texels per unit
+        frames = 64, columns = 8,                  -- 5.625 degrees between headings
+        pivotX = 3, pivotY = 0,                    -- frame centre offset; room for the south-east shadow
+    },
 }
+
+-- Nearest directional frame (0-based) for a heading in radians.
+function Presentation.kartFrame(sprite, heading)
+    assert(type(sprite) == "table" and type(sprite.frames) == "number" and finite(heading),
+        "directional sprite and finite heading required")
+    return math.floor((heading % tau) / tau * sprite.frames + 0.5) % sprite.frames
+end
+
+-- Texture coordinates (left, right, top, bottom) of one frame of a sheet.
+function Presentation.kartFrameCoords(sprite, frame)
+    local columns = sprite.columns
+    local rows = sprite.frames / columns
+    local column, row = frame % columns, math.floor(frame / columns)
+    return column / columns, (column + 1) / columns, row / rows, (row + 1) / rows
+end
 
 if type(namespace) == "table" then namespace.Presentation = Presentation end
 return Presentation

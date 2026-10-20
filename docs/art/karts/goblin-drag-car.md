@@ -10,7 +10,7 @@ The image shows the actual 64×128 runtime texture at 4× on a checkerboard (lef
 - Row 2: the same poses at 1.36 pixels per UI unit (roughly 1440p).
 - Row 3: the normal, drift-charge, Tier 1, Tier 2 and boost tints, then the scale-1 Test Oval kart on its primitive road, then rough salt.
 
-Tiles are enlarged 2× with nearest-neighbor sampling. This is an offline preview, not a client screenshot. [4× master](goblin-drag-car-master.png).
+Tiles are enlarged 2× with nearest-neighbor sampling. This is an offline preview, not a client screenshot. The sheet was regenerated over [Mirage scenery v1](../mirage-background.md); the TGA bytes did not change. [4× master](goblin-drag-car-master.png).
 
 ## Design
 
@@ -63,7 +63,7 @@ python scripts/build_kart_sprites.py --check    # exact bytes + invariants, writ
 python scripts/build_kart_sprites.py --preview  # also rewrite the PNG master/review sheet here
 ```
 
-The generator uses only the Python standard library and `addon/.../Background.tga` for previews. Every part is a layered signed-distance shape in world units, with procedural materials (overhead form shading, painted rim highlights, value-noise mottling, rust and grime from integer hashing). Each texel receives 4×4 supersamples, then an exact integer box filter. Pixel values use only IEEE-exact operations (`+ - * /`, `sqrt`, `floor`), so the TGA bytes are platform-independent.
+The generator uses only the Python standard library, the shared painting toolkit `scripts/paintkit.py` and, for previews, `addon/.../Background.tga`. Every part is a layered signed-distance shape in world units, with procedural materials (overhead form shading, painted rim highlights, value-noise mottling, rust and grime from integer hashing). Each texel receives 4×4 supersamples, then an exact integer box filter. Pixel values use only IEEE-exact operations (`+ - * /`, `sqrt`, `floor`), so the TGA bytes are platform-independent.
 
 Built twice — Python 3.13 in the cloud workspace and Python 3.10 on the developer's Linux shell — both produced the SHA-256 above. Previews and the master are review aids: their PNG bytes depend on the local zlib, and `--check` does not compare them.
 
@@ -93,6 +93,8 @@ Inputs are the generator's own shapes, palette and integer noise. The review she
 The silhouette follows the written [map/vehicle brief](../MIRAGE_RACEWAY.md#recognizable-roster) and the owner's request: an oversized engine, exaggerated proportions and Warcraft III-flavored goblin engineering. A goblin dragster is a generic fan-fantasy subject. As the [source ledger](../ASSET_SOURCES.md) notes, newly drawn fan art does not clear underlying Warcraft IP.
 
 ## Client check (NOT RUN)
+
+**Owner observation, 2026-10-20:** the owner's [in-game screenshot](../../evidence/2026-10-20-mirage-scenery-owner-check.md) shows the sprite instead of the orange primitive, nose north and centered on the Mirage start checkers, with no visible box or halo. Probe counts, rotation while driving and phase tints (steps 3 and 5–7 below) were not recorded and remain open.
 
 Run only after an authorized, coordinated install: the WoW AddOns folder is shared with Codex. Use the verified installer; do not hand-copy.
 

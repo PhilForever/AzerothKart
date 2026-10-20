@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — explicit run exits and reviewed visual integration (2026-10-20)
+- Keep driving through incidental mouse clicks and unassigned keys without clearing held input or drift. Remove the global mouse-down exit that disabled Stop before its OnClick. Explicit Stop/Escape ends the run; Close and chat/focus/lifecycle handling remain deliberate exits.
+- Keep partial results frozen and replace "Controls released" with concrete next actions. Start/Restart creates a new countdown; no pause/resume state is added.
+- Integrate reviewed Claude scenery, attached shadows and the Goblin Mortar Trike with Physics v7, Test Oval-only solids and the opt-in transport probe. Directional sprite helpers are implemented contracts; the combined explicit pool is 9/113/13. Neither Mirage geometry nor vehicle handling changes.
+
 ## Unreleased — bounded two-client transport experiment (2026-10-20)
 - Add pure NetworkProbe accounting/codec and a guarded WHISPER adapter, explicitly armed with `/akart net start|listen`; no registration or traffic on load and no gameplay replication.
 - Cap DATA at 4/s, 120 seconds / 480 sequences, exact 16/64/128/220-byte payloads; ACK-once16bytes with 4-token/4-per-second burst guard, no retries or catch-up bursts. Anchor deadlines/drains across client hitches and stop on unknown/failed/throttled sends, malformed floods and lifecycle/clock errors.
@@ -11,6 +16,25 @@
 - Physics compatibility v7 and Oval geometry v2; fifteen state fields, handling constants, input/race/clock logic and Mirage geometry remain unchanged.
 - Pool two additional Texture regions at creation, hidden on Mirage: current explicit counts 9 frames/113 textures/13 font strings. No per-tick UI creation or asset loads. Client appearance/feel remains NOT RUN.
 - Record multiplayer ahead of dedicated ghosts/time trials and the owner's release target of verified multiplayer, three ready maps and eight ready karts. Keep actual-client transport gates and explicit release authorization.
+
+## Unreleased — Goblin Mortar Trike kart (2026-10-20, `claude/track-ui`)
+- Make the Warcraft III Goblin Mortar Trike (erwtenpeller and Chriz, Vast Graphics) the default kart, at the owner's request. The new `scripts/build_wc3_kart.py` reads the published MDX model and paletted BLP texture with the standard library. It poses the Stand frame and renders 64 three-quarter-view headings into a 1024×1024 sheet, lit and shadowed like the Mirage scenery. The mesh and texture are not edited, and output bytes are identical on Python 3.10 and 3.13.
+- `Presentation.KART_SPRITES` gains optional directional-sheet fields (`frames`, `columns`, `pivotX`, `pivotY`) plus `Presentation.kartFrame` and `Presentation.kartFrameCoords`.
+- UI shows the nearest heading unrotated, rewrites the crop only when the frame changes, anchors by the pivot, and keeps the primitive if `SetTexture`, `SetTexCoord` or `SetVertexColor` refuse at load. The Goblin Drag Car stays registered as a single-image kart with the rotated path.
+- Physics, race, input, capture and UI object counts (9/111/13) are unchanged; the kart texture grows to 4 MiB of raw pixels. Lua tests cover the sheet layout, nearest-frame lookup, refused crops, pivot anchoring and simulation equivalence.
+- Credits are in the addon README and `docs/art/karts/goblin-mortar-trike.md`. The archive's Read Me asks for permission before modification, and the owner says it is outdated; redistribution stays unresolved for release review. The owner approved the trike as installed; no Print Probe or timing figures were recorded (`docs/evidence/2026-10-20-trike-and-shadows-owner-approval.md`).
+
+## Unreleased — Mirage scenery shadows (2026-10-20, `claude/track-ui`)
+- Replace the scenery's offset-copy shadows, which the owner's in-game screenshot showed as detached gray shapes, with attached soft shadows. Objects are described by convex volumes with real heights. Each shadow is their convex hull projected away from the north-west light, so it touches the object's base. Raised parts (banner cloth, crane boom, fuel drum, rotor) cast lifted shadows joined to the ground by their poles, legs or cable.
+- Shadows multiply the painted color toward a cool tint, with a contact rim and a widening, fading penumbra; overlaps combine by maximum instead of stacking. `paintkit.Shadow` and `Canvas.cast` implement this, and the kart output stays byte-identical.
+- Banners become swallowtail flags with trim stripes, and oil stains become crisp lobed splats instead of gray blobs. The build still fails if scenery or shadow touches a road texel; registration, contrast and landmark checks are unchanged.
+- Same path, size and format; UI code and counts unchanged. The owner's screenshot of the previous build is recorded in `docs/evidence/2026-10-20-mirage-scenery-owner-check.md`, and his approval of the shadow pass in `docs/evidence/2026-10-20-trike-and-shadows-owner-approval.md`.
+
+## Unreleased — Mirage scenery v1 (2026-10-20, `claude/track-ui`)
+- Repaint `Assets/Tracks/SaltFlats/Background.tga` from flat blockout art into original procedural scenery at the same path, size and format. It shows crusted salt flats and a packed-dirt lane with tire streaks, berms, red/cream apex kerbs and start/finish checkers. Set pieces include the goblin pit and gnome camp, a timing tower, bleachers, tents, wrecks, a kodo skeleton and a boulder rim.
+- Road and salt still come from the Lua `isDrivable` predicate at each pixel center. The build fails if scenery touches a road texel, and objects keep 20 units off the road. A contrast check requires a light salt rim around the darker lane, and ten landmarks verify orientation.
+- Add `scripts/paintkit.py`, shared by both generators; the kart generator now uses it with byte-identical output. Add review PNGs under `docs/art/` and an independent background check in `tests/test_presentation.lua`.
+- Geometry, physics, UI code, TOCs and simulation tests are unchanged. Explicit UI counts stay 9/111/13 and the raw texture payload stays 4 MiB. Client appearance is NOT RUN; see `docs/art/mirage-background.md`.
 
 ## Unreleased — first Goblin Drag Car sprite (2026-10-20, `claude/track-ui`)
 - Add an original strict-overhead, north-facing goblin dragster. The runtime file `Assets/Karts/GoblinDragCar.tga` is a 64×128 straight-alpha TGA, 32,786 bytes, bottom-left origin. It shows a long red nose, a big-eared goblin pilot, explosive canisters, an oversized supercharged engine, huge slicks and a rocket bell.

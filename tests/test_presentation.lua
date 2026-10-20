@@ -284,44 +284,150 @@ for id, sprite in pairs(P.KART_SPRITES) do
     local function alpha(column, rowFromTop)
         return data:byte(18 + ((h - 1 - rowFromTop) * w + column) * 4 + 4)
     end
-    local perUnit = w / sprite.quadWidth
-    local halfW, halfH = P.KART_FOOTPRINT_WIDTH * perUnit / 2, P.KART_FOOTPRINT_HEIGHT * perUnit / 2
-    local visible, solid = 0, 0
-    local left, right, top, bottom = w, -1, h, -1
-    for row = 0, h - 1 do
-        for column = 0, w - 1 do
-            local a = alpha(column, row)
-            if a > 0 then
-                assert(math.abs(column + 0.5 - w / 2) <= halfW and math.abs(row + 0.5 - h / 2) <= halfH,
-                       id .. ": visible texels stay inside the 17x31 body")
-                assert(column > 0 and column < w - 1 and row > 0 and row < h - 1,
-                       id .. ": a transparent border protects filtered edges")
-                visible = visible + 1
-                if a == 255 then solid = solid + 1 end
-                left, right = math.min(left, column), math.max(right, column)
-                top, bottom = math.min(top, row), math.max(bottom, row)
+    if sprite.frames then
+        -- Directional sheet: an even grid of square frames, each with a
+        -- transparent border so filtering never pulls in a neighbor, a
+        -- substantial vehicle, and distinct pictures for opposite headings.
+        local columns, frames = sprite.columns, sprite.frames
+        local rows = frames / columns
+        assert(frames % columns == 0 and w % columns == 0 and h % rows == 0, id .. ": even frame grid")
+        local fw, fh = w / columns, h / rows
+        assert(fw == fh and fw / sprite.quadWidth == fh / sprite.quadHeight, id .. ": square frames and texels")
+        assert(type(sprite.pivotX) == "number" and type(sprite.pivotY) == "number", id .. ": frame pivot")
+        local fewest, most = fw * fh, 0
+        for frame = 0, frames - 1 do
+            local ox, oy = (frame % columns) * fw, math.floor(frame / columns) * fh
+            local solid = 0
+            for row = 0, fh - 1 do
+                for column = 0, fw - 1 do
+                    local a = alpha(ox + column, oy + row)
+                    if row == 0 or column == 0 or row == fh - 1 or column == fw - 1 then
+                        assert(a == 0, id .. ": frame " .. frame .. " keeps a transparent border")
+                    end
+                    if a == 255 then solid = solid + 1 end
+                end
+            end
+            assert(solid > 0.12 * fw * fh, id .. ": frame " .. frame .. " shows the vehicle")
+            fewest, most = math.min(fewest, solid), math.max(most, solid)
+            local l, r, top, b = P.kartFrameCoords(sprite, frame)
+            assert(math.abs(l - ox / w) < 1e-12 and math.abs(r - (ox + fw) / w) < 1e-12 and
+                   math.abs(top - oy / h) < 1e-12 and math.abs(b - (oy + fh) / h) < 1e-12,
+                   id .. ": frame " .. frame .. " crop matches the sheet layout")
+        end
+        for frame = 0, frames / 2 - 1 do
+            local other = frame + frames / 2
+            local ox, oy = (frame % columns) * fw, math.floor(frame / columns) * fh
+            local px, py = (other % columns) * fw, math.floor(other / columns) * fh
+            local differs = false
+            for row = 0, fh - 1 do
+                for column = 0, fw - 1 do
+                    if alpha(ox + column, oy + row) ~= alpha(px + column, py + row) then differs = true end
+                end
+            end
+            assert(differs, id .. ": opposite headings " .. frame .. "/" .. other .. " are different pictures")
+        end
+        -- Heading lookup: east is frame 0, counter-clockwise, nearest frame, any turn count.
+        local step = 2 * math.pi / frames
+        assert(P.kartFrame(sprite, 0) == 0 and P.kartFrame(sprite, math.pi / 2) == frames / 4 and
+               P.kartFrame(sprite, math.pi) == frames / 2 and P.kartFrame(sprite, -math.pi / 2) == 3 * frames / 4,
+               id .. ": cardinal headings map to their frames")
+        assert(P.kartFrame(sprite, 0.49 * step) == 0 and P.kartFrame(sprite, 0.51 * step) == 1 and
+               P.kartFrame(sprite, -0.49 * step) == 0 and P.kartFrame(sprite, -0.51 * step) == frames - 1 and
+               P.kartFrame(sprite, 2 * math.pi + step) == 1 and P.kartFrame(sprite, -4 * math.pi + 2 * step) == 2,
+               id .. ": nearest frame with wrap-around")
+        spriteFiles = spriteFiles + 1
+        print(("offline kart sheet %s: %dx%d TGA, %d frames of %dx%d, %d-%d opaque texels per frame")
+            :format(id, w, h, frames, fw, fh, fewest, most))
+    else
+        local perUnit = w / sprite.quadWidth
+        local halfW, halfH = P.KART_FOOTPRINT_WIDTH * perUnit / 2, P.KART_FOOTPRINT_HEIGHT * perUnit / 2
+        local visible, solid = 0, 0
+        local left, right, top, bottom = w, -1, h, -1
+        for row = 0, h - 1 do
+            for column = 0, w - 1 do
+                local a = alpha(column, row)
+                if a > 0 then
+                    assert(math.abs(column + 0.5 - w / 2) <= halfW and math.abs(row + 0.5 - h / 2) <= halfH,
+                           id .. ": visible texels stay inside the 17x31 body")
+                    assert(column > 0 and column < w - 1 and row > 0 and row < h - 1,
+                           id .. ": a transparent border protects filtered edges")
+                    visible = visible + 1
+                    if a == 255 then solid = solid + 1 end
+                    left, right = math.min(left, column), math.max(right, column)
+                    top, bottom = math.min(top, row), math.max(bottom, row)
+                end
             end
         end
-    end
-    assert(solid > 0.4 * 4 * halfW * halfH, id .. ": substantial opaque silhouette")
-    assert(math.abs((left + right + 1) / 2 - w / 2) <= 0.5 and math.abs((top + bottom + 1) / 2 - h / 2) <= 1,
-           id .. ": silhouette centered on the quad (kart pivot)")
-    if id == "goblin_drag_car" then
-        -- North-facing landmarks: pointed nose up, open front corners, wide rear slicks.
-        assert(alpha(w / 2, 16) > 0 and alpha(w / 2 - 1, 16) > 0, id .. ": nose points north")
-        for row = 15, 21 do
-            for column = 5, 21 do
-                assert(alpha(column, row) == 0 and alpha(w - 1 - column, row) == 0,
-                       id .. ": front corners stay open")
+        assert(solid > 0.4 * 4 * halfW * halfH, id .. ": substantial opaque silhouette")
+        assert(math.abs((left + right + 1) / 2 - w / 2) <= 0.5 and math.abs((top + bottom + 1) / 2 - h / 2) <= 1,
+               id .. ": silhouette centered on the quad (kart pivot)")
+        if id == "goblin_drag_car" then
+            -- North-facing landmarks: pointed nose up, open front corners, wide rear slicks.
+            assert(alpha(w / 2, 16) > 0 and alpha(w / 2 - 1, 16) > 0, id .. ": nose points north")
+            for row = 15, 21 do
+                for column = 5, 21 do
+                    assert(alpha(column, row) == 0 and alpha(w - 1 - column, row) == 0,
+                           id .. ": front corners stay open")
+                end
             end
+            assert(alpha(8, 96) == 255 and alpha(w - 9, 96) == 255, id .. ": wide rear slicks sit south")
         end
-        assert(alpha(8, 96) == 255 and alpha(w - 9, 96) == 255, id .. ": wide rear slicks sit south")
+        spriteFiles = spriteFiles + 1
+        print(("offline kart sprite %s: %dx%d TGA, %d visible/%d opaque texels inside %dx%d body")
+            :format(id, w, h, visible, solid, P.KART_FOOTPRINT_WIDTH, P.KART_FOOTPRINT_HEIGHT))
     end
-    spriteFiles = spriteFiles + 1
-    print(("offline kart sprite %s: %dx%d TGA, %d visible/%d opaque texels inside %dx%d body")
-        :format(id, w, h, visible, solid, P.KART_FOOTPRINT_WIDTH, P.KART_FOOTPRINT_HEIGHT))
 end
 assert(spriteFiles >= 1, "at least one kart sprite is validated")
+
+-- Mirage background registration: the shipped TGA against the actual Lua
+-- geometry. Interior road texels must stay darker than the 0.5-3 unit salt rim
+-- outside every edge, so the painted boundary matches isDrivable. Offline bytes
+-- only; client appearance is a separate in-game check.
+do
+    local Oval = dofile("addon/AzerothKart/Track.lua")
+    local Mirage = dofile("addon/AzerothKart/MirageRaceway.lua").new(Oval.crossesGate)
+    local file = assert(io.open("addon/AzerothKart/Assets/Tracks/SaltFlats/Background.tga", "rb"))
+    local data = file:read("*a")
+    file:close()
+    local size = 1024
+    assert(#data == 18 + size * size * 4 and data:byte(3) == 2 and data:byte(17) == 32
+           and data:byte(18) == 8, "background stays an uncompressed bottom-left BGRA32 TGA")
+    local line = Mirage.centerline
+    local function centerDistance(px, py)
+        local best = math.huge
+        for i = 1, #line do
+            local a, b = line[i], line[i % #line + 1]
+            local dx, dy = b.x - a.x, b.y - a.y
+            local u = math.max(0, math.min(1, ((px - a.x) * dx + (py - a.y) * dy) / (dx * dx + dy * dy)))
+            local ox, oy = px - (a.x + u * dx), py - (a.y + u * dy)
+            best = math.min(best, ox * ox + oy * oy)
+        end
+        return math.sqrt(best)
+    end
+    local function luma(x, y)
+        local offset = 18 + (y * size + x) * 4
+        return 0.299 * data:byte(offset + 3) + 0.587 * data:byte(offset + 2) + 0.114 * data:byte(offset + 1)
+    end
+    local road, rim = 0, 0
+    for y = 0, size - 1, 3 do
+        for x = 0, size - 1, 3 do
+            local px, py = x + 0.5, y + 0.5
+            local d = centerDistance(px, py)
+            if Mirage.isDrivable(px, py) then
+                local startLine = y >= 351 and y <= 368 and x >= 643 and x <= 756
+                if d <= 44 and not startLine then
+                    assert(luma(x, y) <= 180, ("painted road too light at (%d,%d)"):format(x, y))
+                    road = road + 1
+                end
+            elseif d - 56 >= 0.5 and d - 56 <= 3 then
+                assert(luma(x, y) >= 190, ("salt rim too dark at (%d,%d)"):format(x, y))
+                rim = rim + 1
+            end
+        end
+    end
+    assert(road > 15000 and rim > 900, "registration samples cover the whole circuit")
+    print(("offline Mirage background: %d road / %d rim samples agree with isDrivable"):format(road, rim))
+end
 
 assert(_G.AzerothKart == beforeGlobal, "offline import must not create or replace an addon global")
 local namespace = {sentinel=marker}

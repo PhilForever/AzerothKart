@@ -188,7 +188,30 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     assert(ok,err)
 end
 
-local KART_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Karts\\GoblinDragCar.tga"
+local KART_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Karts\\GoblinMortarTrike.tga"
+local DRAG_CAR_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Karts\\GoblinDragCar.tga"
+-- Where the active kart visual is anchored for a projected kart position, and
+-- whether it faces a heading: a directional sheet shows the nearest frame,
+-- unrotated, offset by its pivot; a single image or the primitive rotates.
+local function kartAnchor(UI,x,y)
+    local sprite=UI.kartSprite
+    if sprite and sprite.frames then
+        return x+sprite.pivotX*UI.view.scale,y+sprite.pivotY*UI.view.scale
+    end
+    return x,y
+end
+local function kartFaces(env,UI,heading)
+    local sprite=UI.kartSprite
+    if sprite and sprite.frames then
+        local P=env.namespace.Presentation
+        local frame=P.kartFrame(sprite,heading)
+        local l,r,t,b=P.kartFrameCoords(sprite,frame)
+        local uv=rawget(UI.kart,"texCoords")
+        return UI.kartFrame==frame and type(uv)=="table" and uv[1]==l and uv[2]==r and
+            uv[3]==t and uv[4]==b and rawget(UI.kart,"rotation")==nil
+    end
+    return UI.kart.rotation==heading-math.pi/2
+end
 local BACKGROUND_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\SaltFlats\\Background.tga"
 
 -- Core reuses its bootstrap for the opt-in probe and forwards the real event
@@ -430,14 +453,15 @@ withMock(nil,false,function(env,UI)
     local scale=UI.view.scale
     local spawn=Mirage.spawn()
     local Presentation=env.namespace.Presentation
-    close(UI.kart.width,30,"closer sprite quad keeps its uniform padding at play size")
-    close(UI.kart.height,60,"closer sprite quad keeps its uniform padding at play size")
+    close(UI.kart.width,UI.kartSprite.quadWidth*scale,"closer sprite quad keeps its uniform padding at play size")
+    close(UI.kart.height,UI.kartSprite.quadHeight*scale,"closer sprite quad keeps its uniform padding at play size")
     close(Presentation.KART_FOOTPRINT_WIDTH*scale,25.5,"closer kart body width is readable at play size")
     close(Presentation.KART_FOOTPRINT_HEIGHT*scale,46.5,"closer kart body height is readable at play size")
     close(Mirage.roadWidth*scale,168,"road and kart magnify by the same scale")
-    close(UI.kart.point[4],400,"spawn kart is centered across the camera")
-    close(UI.kart.point[5],150,"spawn camera leaves room ahead of the kart")
-    close(UI.kart.rotation,spawn.heading-math.pi/2,"kart keeps the tested heading convention")
+    local spawnX,spawnY=kartAnchor(UI,400,150)
+    close(UI.kart.point[4],spawnX,"spawn kart is centered across the camera")
+    close(UI.kart.point[5],spawnY,"spawn camera leaves room ahead of the kart")
+    assert(kartFaces(env,UI,spawn.heading),"kart keeps the tested heading convention")
     local expectedWalls={
         {0,0,1024,4},{0,1020,1024,4},{0,4,4,1016},{1020,4,4,1016},
     }
@@ -451,8 +475,10 @@ withMock(nil,false,function(env,UI)
         local bottom=math.max(0,math.min(1024-480/scale,targetY-240/scale))
         close(view.offsetX,-left*scale,label..": camera follows interpolated x with lookahead")
         close(view.offsetY,-bottom*scale,label..": camera follows interpolated y with lookahead")
-        close(UI.kart.point[4],view.offsetX+x*scale,label..": kart uses the same camera x")
-        close(UI.kart.point[5],view.offsetY+y*scale,label..": kart uses the same camera y")
+        local anchorX,anchorY=kartAnchor(UI,view.offsetX+x*scale,view.offsetY+y*scale)
+        close(UI.kart.point[4],anchorX,label..": kart uses the same camera x")
+        close(UI.kart.point[5],anchorY,label..": kart uses the same camera y")
+        assert(kartFaces(env,UI,heading),label..": kart shows the interpolated heading")
         local uv=rawget(UI.mirageBackground,"texCoords")
         assert(type(uv)=="table" and #uv==4,label..": crop calls the four-coordinate texture API")
         assert(uv[1]>=0 and uv[1]<uv[2] and uv[2]<=1 and
@@ -579,7 +605,8 @@ withMock(nil,false,function(env,UI)
     markersMatchGeometry("restarted spawn")
     UI.Stop("camera restart fixture")
     assert(UI.SelectTrack("test_oval") and UI.track==Oval and UI.view.scale==1 and
-           not UI.mirageBackground:IsShown() and UI.kart.width==20 and UI.kart.height==40,
+           not UI.mirageBackground:IsShown() and UI.kart.width==UI.kartSprite.quadWidth and
+           UI.kart.height==UI.kartSprite.quadHeight,
         "Test Oval remains selectable with its original projection and unscaled sprite quad")
     for _,piece in ipairs(UI.ovalTextures) do
         assert(piece:IsShown(),"returning to Test Oval restores its pooled bands")
@@ -594,12 +621,13 @@ withMock(nil,false,function(env,UI)
         "background and kart sprite each load once and are reused across all later selections")
     UI.Start()
     env.fire("GLOBAL_MOUSE_DOWN","LeftButton")
-    local stoppedState,stoppedRace,stoppedClock=UI.state,UI.race,UI.clock
+    local activeState,activeRace,activeClock=UI.state,UI.race,UI.clock
     UI.OnUpdate(0)
     UI.trackButton.scripts.OnClick(UI.trackButton)
-    assert(not UI.active and UI.track==Oval and UI.state==stoppedState and
-           UI.race==stoppedRace and UI.clock==stoppedClock,
-        "the click releasing capture cannot also discard that run by changing maps")
+    assert(UI.active and UI.track==Oval and UI.state==activeState and
+           UI.race==activeRace and UI.clock==activeClock and not UI.trackButton:IsEnabled(),
+        "an active track click neither stops the run nor changes maps")
+    UI.stopButton.scripts.OnClick(UI.stopButton)
     env.fire("GLOBAL_MOUSE_DOWN","LeftButton")
     UI.trackButton.scripts.OnClick(UI.trackButton)
     assert(UI.track.id=="mirage_raceway" and UI.race==nil and UI.clock==nil,
@@ -1007,8 +1035,9 @@ withMock(nil,false,function(env,UI)
     assert(UI.window.keyboard==false and UI.window.propagate and next(UI.keys)==nil and
            not UI.input.accelerate and not UI.input.drift and not UI.countdownCue:IsShown(),
         "automatic finish releases held/sampled controls and hides the start cue")
-    assert(UI.previousState==pose and UI.kart.point[4]==pose.x and UI.kart.point[5]==pose.y and
-           UI.kart.rotation==pose.heading-math.pi/2,
+    local poseX,poseY=kartAnchor(UI,pose.x,pose.y)
+    assert(UI.previousState==pose and UI.kart.point[4]==poseX and UI.kart.point[5]==poseY and
+           kartFaces(env,UI,pose.heading),
         "automatic finish renders the exact terminal pose")
     assert(UI.checkpointHud.text:find("Checkpoints: 3-lap run complete",1,true),
         "terminal checkpoint HUD explains completion instead of requesting another circuit")
@@ -1099,7 +1128,11 @@ end)
 -- without a simulation tick. Stop/reopen displays the exact frozen sample.
 withMock(nil,false,function(env,UI)
     UI.Stop("before creation")
+    -- The single-image kart rotates continuously, so it exposes the exact
+    -- interpolated heading; the directional sheet is covered separately.
+    env.namespace.Presentation.DEFAULT_KART="goblin_drag_car"
     env.fire("ADDON_LOADED","AzerothKart")
+    assert(UI.kart.texturePath==DRAG_CAR_PATH and not UI.kartSprite.frames,"rotating kart fixture")
     UI.Toggle(); UI.Start()
     local function close(actual,expected,label)
         assert(math.abs(actual-expected)<1e-10,label)
@@ -1178,7 +1211,8 @@ for _,fps in ipairs({30,60,144}) do
         env.key(UI,"OnKeyDown","SPACE")
         for _=1,2*fps do
             UI.OnUpdate(1/fps)
-            local x,y=UI.kart.point[4],UI.kart.point[5]
+            local offsetX,offsetY=kartAnchor(UI,0,0)
+            local x,y=UI.kart.point[4]-offsetX,UI.kart.point[5]-offsetY
             assert(x>=Track.wallInset and x<=Track.width-Track.wallInset and
                    y>=Track.wallInset and y<=Track.height-Track.wallInset,
                 "interpolated kart stays inside wall clearance at "..fps.." FPS")
@@ -1414,7 +1448,7 @@ withMock({schemaVersion=1, custom={keep=true}}, false, function(env,UI)
         "valid unknown save fields must survive initialization")
     assert(not env.frames[1].events.ADDON_LOADED,"load event unregisters after own load")
     for _,event in ipairs({"PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED",
-                          "GLOBAL_MOUSE_DOWN", "PLAYER_LEAVING_WORLD", "PLAYER_LOGOUT"}) do
+                          "PLAYER_LEAVING_WORLD", "PLAYER_LOGOUT"}) do
         assert(env.frames[1].events[event],"missing lifecycle registration: "..event)
     end
     assert(UI.objects.frames==env.counts.frames-bootstrapFrames,"frame counter matches wrappers")
@@ -1465,7 +1499,7 @@ withMock({schemaVersion=1, custom={keep=true}}, false, function(env,UI)
     env.key(UI,"OnKeyUp","UP")
     UI.OnUpdate(1/60)
     assert(not UI.input.accelerate,"releasing both aliases clears throttle")
-    for _,key in ipairs({"ESCAPE","ENTER","F"}) do
+    for _,key in ipairs({"ESCAPE","ENTER","NUMPADENTER"}) do
         start(); env.key(UI,"OnKeyDown","W"); UI.OnUpdate(1/60)
         env.key(UI,"OnKeyDown",key)
         assertReleased("keyboard exit "..key)
@@ -1473,7 +1507,26 @@ withMock({schemaVersion=1, custom={keep=true}}, false, function(env,UI)
     start(); env.key(UI,"OnKeyDown","A"); UI.Stop("test")
     assertReleased("Stop")
     start(); UI.window:Hide(); assertReleased("OnHide")
-    start(); UI.stopButton.scripts.OnClick(UI.stopButton); assertReleased("Stop button")
+    start(); finishCountdown(UI)
+    env.key(UI,"OnKeyDown","W"); UI.OnUpdate(1/60)
+    local stopState,stopClock,stopTicks=UI.state,UI.clock,UI.race.totalTicks
+    assert(UI.stopButton:IsEnabled() and not UI.startButton:IsEnabled(),
+        "Stop is enabled while racing and Start cannot discard the active run")
+    env.fire("GLOBAL_MOUSE_DOWN","LeftButton")
+    -- Also exercise the old callback directly: even a stray forwarded event
+    -- cannot disable Stop before its actual OnClick.
+    UI.HandleEvent("GLOBAL_MOUSE_DOWN","LeftButton")
+    assert(UI.active and UI.stopButton:IsEnabled(),"mouse-down leaves Stop clickable")
+    UI.stopButton.scripts.OnClick(UI.stopButton); assertReleased("Stop button")
+    assert(UI.race.status=="stopped" and UI.state==stopState and UI.clock==stopClock and
+           UI.race.totalTicks==stopTicks and UI.summary:IsShown() and
+           UI.startButton:IsEnabled() and not UI.stopButton:IsEnabled() and
+           UI.trackButton:IsEnabled(),"Stop ends the run and retains its partial result")
+    assert(not UI.summaryHint.text:find("Controls released",1,true),
+        "results offer deliberate next actions without a misleading pause label")
+    UI.OnUpdate(1)
+    assert(UI.state==stopState and UI.clock==stopClock and UI.race.totalTicks==stopTicks,
+        "stopped updates cannot advance race or replace the sample")
     local closeButton
     for _,frame in ipairs(env.frames) do
         if frame.text=="Close" then closeButton=frame end
@@ -1482,10 +1535,32 @@ withMock({schemaVersion=1, custom={keep=true}}, false, function(env,UI)
     start(); closeButton.scripts.OnClick(closeButton); assertReleased("Close button")
     assert(not UI.window:IsShown(),"Close hides window")
     start(); UI.Toggle(); assertReleased("toggle closed")
-    start(); env.mouseInside=true; env.fire("GLOBAL_MOUSE_DOWN","LeftButton")
-    assertReleased("click inside or overlapping other UI")
-    start(); env.mouseInside=false; env.fire("GLOBAL_MOUSE_DOWN","LeftButton")
-    assertReleased("click outside window")
+    start(); finishCountdown(UI); env.key(UI,"OnKeyDown","W")
+    env.key(UI,"OnKeyDown","SPACE")
+    local retainedClock=UI.clock
+    local retainedRace=UI.race
+    local retainedState=UI.state
+    for _,key in ipairs({"F","M","1","TAB","LSHIFT","RSHIFT","LCTRL","RCTRL","LALT","RALT","UNKNOWN"}) do
+        env.key(UI,"OnKeyDown",key); env.key(UI,"OnKeyUp",key)
+        assert(UI.active and UI.window.keyboard and UI.window.propagate==false and
+               UI.keys.W and UI.keys.SPACE and UI.clock==retainedClock and
+               UI.race==retainedRace and UI.state==retainedState and not UI.summary:IsShown(),
+            "unassigned key preserves run and held input: "..key)
+    end
+    for _,inside in ipairs({true,false}) do
+        env.mouseInside=inside
+        for _,button in ipairs({"LeftButton","RightButton","MiddleButton","Button4"}) do
+            env.fire("GLOBAL_MOUSE_DOWN",button); UI.HandleEvent("GLOBAL_MOUSE_DOWN",button)
+            assert(UI.active and UI.stopButton:IsEnabled() and UI.keys.W and UI.keys.SPACE and
+                   UI.state==retainedState and UI.race==retainedRace and UI.clock==retainedClock,
+                "incidental click keeps controls and run: "..button)
+        end
+    end
+    UI.OnUpdate(1/60)
+    assert(UI.active and UI.input.accelerate and UI.input.drift and UI.state.speed>0 and
+           UI.race.totalTicks==retainedRace.totalTicks+1,"run continues after incidental input")
+    env.key(UI,"OnKeyUp","W"); env.key(UI,"OnKeyUp","SPACE"); UI.OnUpdate(1/60)
+    assert(not UI.input.accelerate and not UI.input.drift,"held keys still release normally")
     start(); env.focus={}; UI.OnUpdate(1/60); assertReleased("chat edit box focus")
     start(); env.focus={}; env.key(UI,"OnKeyDown","W")
     assertReleased("chat focus noticed by keyboard callback")
@@ -1580,9 +1655,6 @@ withMock({schemaVersion=1, custom={keep=true}}, false, function(env,UI)
     env.focus={}
     refusedStart("text focus Start refusal","Close text input before starting")
     env.focus=nil
-    env.namespace.events.GLOBAL_MOUSE_DOWN=false
-    refusedStart("mouse event Start refusal","Input safety APIs unavailable")
-    env.namespace.events.GLOBAL_MOUSE_DOWN=true
     local textFocusAPI=GetCurrentKeyBoardFocus
     _G.GetCurrentKeyBoardFocus=nil
     refusedStart("missing text focus Start refusal","Input safety APIs unavailable")
@@ -1620,8 +1692,9 @@ withMock({schemaVersion=1, custom={keep=true}}, false, function(env,UI)
         UI.OnCombatEnded()
     end
     env.namespace.events.GLOBAL_MOUSE_DOWN=false
+    if not UI.window:IsShown() then UI.Toggle() end
     UI.Start()
-    assert(not UI.active,"missing click-away event prevents capture")
+    assert(UI.active,"global mouse event is no longer a capture dependency")
     env.namespace.events.GLOBAL_MOUSE_DOWN=true
     for _,method in ipairs({"EnableKeyboard","SetPropagateKeyboardInput"}) do
         UI.Stop("keyboard capability probe")
@@ -1893,9 +1966,9 @@ end
 withMock(nil, false, function(env,UI)
     env.fire("ADDON_LOADED","AzerothKart")
     assert(not env.namespace.events.GLOBAL_MOUSE_DOWN,"unsupported event not claimed available")
-    assert(env.namespace.eventFailures=="GLOBAL_MOUSE_DOWN","unsupported event reported")
+    assert(not env.namespace.eventFailures,"unused mouse event is never registered")
     UI.Toggle(); UI.Start()
-    assert(not UI.active,"unsupported global mouse event fails closed")
+    assert(UI.active,"unsupported global mouse event cannot block a drive")
 end, "GLOBAL_MOUSE_DOWN")
 
 -- Cold load and toggle in combat may construct ordinary UI, but cannot capture
@@ -1976,20 +2049,36 @@ withMock(nil,false,function(env,UI)
     env.fire("ADDON_LOADED","AzerothKart")
     local P=env.namespace.Presentation
     local sprite=P.KART_SPRITES[P.DEFAULT_KART]
-    assert(UI.kartSprite==sprite and sprite.path==KART_PATH,
-        "the goblin drag car is the active default kart visual")
+    assert(P.DEFAULT_KART=="goblin_mortar_trike" and UI.kartSprite==sprite and sprite.path==KART_PATH and
+           sprite.frames==64 and sprite.columns==8,
+        "the Goblin Mortar Trike directional sheet is the active default kart visual")
     assert(UI.kart.texturePath==KART_PATH and UI.kart.textureWrites==1 and loads(env,KART_PATH)==1,
-        "creation loads the kart sprite once from its declared addon path")
+        "creation loads the kart sheet once from its declared addon path")
     assert(rawget(UI.kart,"color")==nil and sameRGB(UI.kart.vertexColor,spriteTints[0]),
         "the loaded sprite starts untinted and is never filled with a solid color")
     assert(UI.kart.layer=="OVERLAY" and UI.kart.parent==UI.canvas,
         "the sprite stays on the canvas above background, road and marker layers")
-    assert(UI.kart.width==20 and UI.kart.height==40,"Test Oval draws the padded quad at scale 1")
+    assert(UI.kart.width==41 and UI.kart.height==41,"Test Oval draws one 41-unit frame at scale 1")
     local spawn=UI.state
     assert(UI.kart.point[1]=="CENTER" and UI.kart.point[2]==UI.canvas and
-           UI.kart.point[3]=="BOTTOMLEFT" and UI.kart.point[4]==spawn.x and
-           UI.kart.point[5]==spawn.y and UI.kart.rotation==spawn.heading-math.pi/2,
-        "the quad is centered on the physical kart center with the north-facing rotation")
+           UI.kart.point[3]=="BOTTOMLEFT" and UI.kart.point[4]==spawn.x+3 and
+           UI.kart.point[5]==spawn.y and kartFaces(env,UI,spawn.heading) and
+           rawget(UI.kart,"rotation")==nil,
+        "the frame for the spawn heading sits at its pivot offset from the kart center, unrotated")
+    -- Every heading shows its nearest frame; the crop is only rewritten when
+    -- the frame changes, and the image is never rotated.
+    local step=2*math.pi/64
+    for _,heading in ipairs({0,0.2*step,0.6*step,math.pi/2,math.pi,-math.pi/2,3*math.pi,-0.51*step}) do
+        UI.state.heading=heading; UI.previousState=UI.state
+        local calls=env.texCoordCalls
+        local frameBefore=UI.kartFrame
+        UI.Stop("heading fixture")
+        assert(kartFaces(env,UI,heading),"heading "..heading.." shows its nearest frame")
+        assert(env.texCoordCalls==calls+(UI.kartFrame==frameBefore and 0 or 1),
+            "the frame crop is written only when the frame changes")
+    end
+    assert(UI.kartFrame==63 and rawget(UI.kart,"rotation")==nil,"slightly clockwise of east is the last frame")
+    UI.state.heading=spawn.heading; UI.previousState=UI.state; UI.Stop("heading fixture done")
     local counts={}
     for key,value in pairs(env.counts) do counts[key]=value end
     UI.Toggle()
@@ -2004,10 +2093,10 @@ withMock(nil,false,function(env,UI)
     UI.Stop("unchanged phase"); UI.Stop("unchanged phase")
     assert(UI.kart.vertexColorWrites==writes,"an unchanged phase does not rewrite the sprite tint")
     assert(UI.SelectTrack("mirage_raceway"))
-    assert(math.abs(UI.kart.width-30)<1e-9 and math.abs(UI.kart.height-60)<1e-9,
-        "Mirage scales the whole sprite quad uniformly")
+    assert(math.abs(UI.kart.width-61.5)<1e-9 and math.abs(UI.kart.height-61.5)<1e-9,
+        "Mirage scales the whole frame quad uniformly")
     UI.Start(); UI.OnUpdate(1/60); UI.Stop("sprite reuse fixture")
-    assert(UI.SelectTrack("test_oval") and UI.kart.width==20 and UI.kart.height==40,
+    assert(UI.SelectTrack("test_oval") and UI.kart.width==41 and UI.kart.height==41,
         "returning to Test Oval restores the unscaled quad")
     UI.Start(); UI.Stop("sprite reuse fixture")
     assert(loads(env,KART_PATH)==1 and UI.kart.textureWrites==1 and rawget(UI.kart,"color")==nil,
@@ -2017,20 +2106,41 @@ withMock(nil,false,function(env,UI)
     sameCounts(env,counts,"sprite tints and switches allocate no UI objects")
 end)
 
+-- A single-image sprite (the original drag car) keeps the rotated path: one
+-- north-facing image centered on the kart and turned by heading - pi/2.
+withMock(nil,false,function(env,UI)
+    local P=env.namespace.Presentation
+    P.DEFAULT_KART="goblin_drag_car"
+    env.fire("ADDON_LOADED","AzerothKart")
+    assert(UI.kartSprite==P.KART_SPRITES.goblin_drag_car and UI.kart.texturePath==DRAG_CAR_PATH and
+           loads(env,DRAG_CAR_PATH)==1 and loads(env,KART_PATH)==0 and UI.kartFrame==nil,
+        "a single-image default loads only its own file")
+    assert(UI.kart.width==20 and UI.kart.height==40 and UI.kart.point[4]==UI.state.x and
+           UI.kart.point[5]==UI.state.y and UI.kart.rotation==UI.state.heading-math.pi/2 and
+           rawget(UI.kart,"texCoords")==nil,
+        "the single image is centered on the kart and rotated, never cropped")
+    UI.Toggle()
+    assert(UI.SelectTrack("mirage_raceway") and math.abs(UI.kart.width-30)<1e-9 and
+           math.abs(UI.kart.height-60)<1e-9,"Mirage scales the single-image quad uniformly")
+end)
+
 -- Each refused sprite path keeps the primitive, its 17x31 footprint and the
 -- original drift/boost colors, with no load retry per frame, run or map.
-for _,mode in ipairs({"false","nil","throws","missing","tint missing","tint throws"}) do
+for _,mode in ipairs({"false","nil","throws","missing","tint missing","tint throws","uv missing","uv throws"}) do
     withMock(nil,false,function(env,UI)
-        if mode=="missing" or mode=="tint missing" or mode=="tint throws" then
+        if mode~="false" and mode~="nil" and mode~="throws" then
             env.onCreateTexture=function(item,parent,layer)
                 if parent~=UI.canvas or layer~="OVERLAY" then return end
                 if mode=="missing" then item.SetTexture=false
                 elseif mode=="tint missing" then item.SetVertexColor=false
-                else item.SetVertexColor=function() error("mock tint API refuses") end end
+                elseif mode=="tint throws" then
+                    item.SetVertexColor=function() error("mock tint API refuses") end
+                elseif mode=="uv missing" then item.SetTexCoord=false
+                else item.SetTexCoord=function() error("mock crop API refuses") end end
             end
         else env.textureModes={[KART_PATH]=mode} end
         env.fire("ADDON_LOADED","AzerothKart")
-        local attempts=(mode=="missing" or mode=="tint missing") and 0 or 1
+        local attempts=(mode=="missing" or mode=="tint missing" or mode=="uv missing") and 0 or 1
         assert(UI.kartSprite==nil and loads(env,KART_PATH)==attempts,
             "refused sprite selects the primitive after one guarded attempt: "..mode)
         assert(UI.kart.width==17 and UI.kart.height==31,"primitive keeps its 17x31 body: "..mode)
@@ -2114,7 +2224,8 @@ end
 local last=spriteTrace[#spriteTrace]
 assert(spriteSeen[0] and spriteSeen[1] and spriteSeen[2] and spriteSeen[3],
     "the scripted drive exercises charge and both ready tiers on Mirage")
-spriteSummary=("mock kart sprite: 1 creation load, vertex tints only, 6 refused-load fallbacks; "..
+spriteSummary=("mock kart sheet: 1 creation load, nearest-heading frames unrotated, vertex tints only, "..
+    "8 refused-load fallbacks; single-image rotation path kept; "..
     "900-frame Mirage drive identical in sprite/primitive mode through tick %d (tints seen:%s%s%s%s%s)")
     :format(last.tick,spriteSeen[0] and " 0" or "",spriteSeen[1] and " 1" or "",
         spriteSeen[2] and " 2" or "",spriteSeen[3] and " 3" or "",spriteSeen[4] and " 4/boost" or "")

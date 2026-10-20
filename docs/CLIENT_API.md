@@ -43,7 +43,7 @@ Run before driving, out of combat. `/akart` must have created its window for met
 /akart probe
 ```
 
-The prototype reports build/interface/selected TOC, input capabilities and unavailable registered events. Capture must remain disabled if a required input capability is missing. Every mouse-down while driving releases capture, including clicks inside the canvas and on overlapping UI; this does not depend on a guessed mouse-over focus owner. On the tested build, Start successfully captured input and advanced ticks; clicking Stop released through the earlier global mouse-down event. Held-input and overlapping-UI cases remain pending.
+The prototype reports build/interface/selected TOC, input capabilities and unavailable registered events. Capture remains disabled if a required keyboard/text-focus capability is missing. Under [ADR 0011](adr/0011-explicit-drive-exits.md), incidental mouse clicks and unassigned keys keep the run active; Stop/Escape/Close and Enter/chat, actual text focus, available application-focus readback and lifecycle handling are explicit exits. Global mouse-down is no longer registered or required. Earlier live Stop/canvas/map-key observations used the superseded all-click/unknown-key policy; they do not validate the revised Stop OnClick or held-input Alt-Tab behavior.
 
 Both `IsGameWindowFocused` and `IsWindowFocused` returned `nil` on this build. Idle Alt-Tab released through the unknown/Alt-key route, but Alt-Tab with throttle held and released outside the game remains unverified. Do not use the unrelated unit-focus event as an application-focus substitute. An API returning `function` is availability evidence only: semantics, restrictions and complete release behavior still require the manual matrix.
 

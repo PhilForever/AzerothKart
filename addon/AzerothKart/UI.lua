@@ -218,7 +218,7 @@ local function refreshSummary()
                 race.laps.completedLaps,race.totalTicks*Physics.FIXED_DT,
                 race.laps.currentLapTicks*Physics.FIXED_DT,bestLapText(race.laps)))
         end
-        UI.summaryHint:SetText("Controls released | Restart for a fresh run")
+        UI.summaryHint:SetText("Restart, choose a track, or Close")
     end
     UI.summary:Show()
 end
@@ -317,7 +317,7 @@ function UI.Stop(reason)
     -- Inactive OnUpdate does no work; a fresh Start creates a new clock.
     refreshHud()
     refreshSummary()
-    if UI.status then UI.status:SetText(UI.stopReason .. " | Click Start to capture again") end
+    if UI.status then UI.status:SetText(UI.stopReason .. " | Start a new run or choose a track") end
     if UI.startButton then UI.startButton:Enable() end
     if UI.stopButton then UI.stopButton:Disable() end
     if UI.trackButton then UI.trackButton:Enable() end
@@ -351,10 +351,14 @@ local function keyEvent(key, down)
     if type(key) ~= "string" then return end
     key = string.upper(key)
     if key == "ESCAPE" then UI.Stop("Exited test drive"); return end
-    if not Input.set(UI.keys, key, down) and down then
-        -- Enter/chat/menu bindings release capture before normal UI handling.
-        UI.Stop("Other key released controls")
+    if key == "ENTER" or key == "NUMPADENTER" then
+        -- Deliberate chat entry releases capture before normal chat handling.
+        if down then UI.Stop("Chat opened") end
+        return
     end
+    -- Unassigned keys are consumed without ending the run or clearing held
+    -- controls. Active capture still prevents their normal WoW bindings.
+    Input.set(UI.keys, key, down)
 end
 
 local function drawEllipse(canvas, radiusX, radiusY, rows, layer, r, g, b)
@@ -467,15 +471,15 @@ local function layoutTrack()
             placeWorldRect(piece,obstacle.x,obstacle.y,obstacle.width,obstacle.height)
         end
     end
-    -- A loaded sprite draws its padded quad; its visible body keeps the
-    -- primitive's 17x31 footprint. Both share the view's uniform scale.
+    -- A loaded sprite draws its padded quad (one frame of a directional
+    -- sheet); the primitive keeps its 17x31 body. Both share the view's scale.
     local sprite = UI.kartSprite
     UI.kart:SetSize((sprite and sprite.quadWidth or Presentation.KART_FOOTPRINT_WIDTH)*UI.view.scale,
         (sprite and sprite.quadHeight or Presentation.KART_FOOTPRINT_HEIGHT)*UI.view.scale)
     UI.gatePassed,UI.gateStopped = nil,nil
 end
 
--- Kart visual: one pooled Texture shows the goblin drag-car sprite, or the
+-- Kart visual: one pooled Texture shows the default kart sprite, or the
 -- original primitive when the guarded creation-time load fails. Tint indices
 -- follow render: 0 normal, 1 charging, 2/3 tier ready, 4 boost. SetColorTexture
 -- replaces a texture's image with a solid color, so only the primitive may use
@@ -488,14 +492,19 @@ local kartSpriteTints = {
 }
 
 local function loadKartSprite()
-    -- Once, at creation. A true load result plus a working vertex tint select
-    -- the sprite; a missing, erroring, false or nil result keeps the primitive.
+    -- Once, at creation. A true load result plus a working vertex tint (and,
+    -- for a directional sheet, a working frame crop) select the sprite; a
+    -- missing, erroring, false or nil result keeps the primitive.
     local kart,sprite = UI.kart,Presentation.KART_SPRITES[Presentation.DEFAULT_KART]
-    UI.kartSprite = nil
+    UI.kartSprite,UI.kartFrame = nil,nil
     if not sprite or type(kart.SetTexture) ~= "function"
         or type(kart.SetVertexColor) ~= "function" then return end
+    if sprite.frames and type(kart.SetTexCoord) ~= "function" then return end
     local ok,loaded = pcall(kart.SetTexture,kart,sprite.path)
-    if not ok or loaded ~= true or not pcall(kart.SetVertexColor,kart,1,1,1,1) then return end
+    if not ok or loaded ~= true then return end
+    if sprite.frames and not pcall(kart.SetTexCoord,kart,Presentation.kartFrameCoords(sprite,0)) then return end
+    if not pcall(kart.SetVertexColor,kart,1,1,1,1) then return end
+    UI.kartFrame = sprite.frames and 0 or nil
     UI.kartSprite = sprite
 end
 
@@ -559,7 +568,7 @@ function UI.SelectTrack(id)
     render()
     refreshHud()
     UI.status:SetText(id == "mirage_raceway" and
-        "Mirage Raceway blockout | Start for 3 laps | Off-road: rough salt" or
+        "Mirage Raceway | Start for 3 laps | Off-road: rough salt" or
         "Test Oval | Start for 3 laps")
     return true
 end
@@ -578,8 +587,21 @@ render = function()
     end
     x,y = Presentation.project(UI.view,x,y)
     UI.kart:ClearAllPoints()
-    UI.kart:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x,y)
-    UI.kart:SetRotation(heading - math.pi/2)
+    local sprite = UI.kartSprite
+    if sprite and sprite.frames then
+        -- Directional sheet: show the nearest pre-rendered heading, unrotated,
+        -- and only touch its crop when the frame changes.
+        local frame = Presentation.kartFrame(sprite,heading)
+        if frame ~= UI.kartFrame then
+            UI.kartFrame = frame
+            UI.kart:SetTexCoord(Presentation.kartFrameCoords(sprite,frame))
+        end
+        local scale = UI.view.scale
+        UI.kart:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x + sprite.pivotX*scale,y + sprite.pivotY*scale)
+    else
+        UI.kart:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x,y)
+        UI.kart:SetRotation(heading - math.pi/2)
+    end
     local state = UI.state
     local tint = state.boostTicks > 0 and 4 or (state.drifting and (1 + state.driftTier) or 0)
     if tint ~= UI.kartTint then
@@ -672,8 +694,6 @@ function UI.Create()
     UI.trackButton:SetPoint("BOTTOMLEFT",280,12)
     UI.trackButton:SetText("Track: Test Oval")
     UI.trackButton:SetScript("OnClick",function()
-        -- A mouse-down that stopped a drive must not also discard its result.
-        if UI.trackClickBlocked then return end
         UI.SelectTrack(UI.trackId == "test_oval" and "mirage_raceway" or "test_oval")
     end)
     UI.probeButton = frame("Button",nil,window,"UIPanelButtonTemplate")
@@ -710,8 +730,7 @@ function UI.Start()
     if inCombat() then refuseStart("Cannot start while in combat"); return end
     if type(GetCurrentKeyBoardFocus) ~= "function"
         or type(UI.window.EnableKeyboard) ~= "function"
-        or type(UI.window.SetPropagateKeyboardInput) ~= "function"
-        or not (AK.events and AK.events.GLOBAL_MOUSE_DOWN) then
+        or type(UI.window.SetPropagateKeyboardInput) ~= "function" then
         refuseStart("Input safety APIs unavailable; run /akart probe"); return
     end
     if GetCurrentKeyBoardFocus() then refuseStart("Close text input before starting"); return end
@@ -733,7 +752,7 @@ function UI.Start()
     UI.active = true
     render()
     refreshHud()
-    UI.status:SetText("3 laps | Hold W/Up for GO | A/D or arrows: steer | Esc: release controls")
+    UI.status:SetText("3 laps | Hold W/Up for GO | A/D or arrows: steer | Stop / Esc: end run")
     UI.startButton:Disable()
     UI.stopButton:Enable()
     UI.trackButton:Disable()
@@ -752,7 +771,7 @@ local function step(dt)
     UI.checkpoints = UI.laps.checkpoints
     if countdown and UI.race.status == "running" then
         UI.stopReason = "Driving"
-        UI.status:SetText("3 laps | W/A/S/D or arrows | Space + turn: drift | Esc: release controls")
+        UI.status:SetText("3 laps | W/A/S/D or arrows | Space + turn: drift | Stop / Esc: end run")
     end
     return UI.race.status ~= "finished"
 end
@@ -806,15 +825,8 @@ end
 function UI.HandleEvent(event)
     if event == "PLAYER_REGEN_ENABLED" then UI.OnCombatEnded(); return end
     if event == "PLAYER_REGEN_DISABLED" then UI.InterruptCombat(); return end
-    if event == "GLOBAL_MOUSE_DOWN" then
-        UI.trackClickBlocked = UI.active
-    end
     if not UI.active then return end
-    if event == "GLOBAL_MOUSE_DOWN" then
-        -- Bounds cannot identify which overlapping UI owns the click. M0 gives
-        -- up capture on every click; the Start click's down precedes OnClick.
-        UI.Stop("Mouse click released controls")
-    elseif event == "PLAYER_LEAVING_WORLD" or event == "PLAYER_LOGOUT" then
+    if event == "PLAYER_LEAVING_WORLD" or event == "PLAYER_LOGOUT" then
         UI.Stop(event)
     end
 end

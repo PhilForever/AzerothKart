@@ -8,7 +8,7 @@ local eventFrame = CreateFrame("Frame")
 AK.TransportProbe.Init(eventFrame) -- Reuse bootstrap; no network registration/traffic on load.
 local failures = {}
 for _,event in ipairs({"ADDON_LOADED","PLAYER_REGEN_DISABLED","PLAYER_REGEN_ENABLED",
-    "GLOBAL_MOUSE_DOWN","PLAYER_LEAVING_WORLD","PLAYER_LOGOUT"}) do
+    "PLAYER_LEAVING_WORLD","PLAYER_LOGOUT"}) do
     local ok, result = pcall(eventFrame.RegisterEvent,eventFrame,event)
     if ok and result ~= false then AK.events[event] = true else failures[#failures+1] = event end
 end
