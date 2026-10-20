@@ -6,7 +6,7 @@
 
 **Product priority:** accepted [ADR 0010](adr/0010-multiplayer-release-priority.md) keeps multiplayer ahead of ghosts/time trials. Release still targets verified multiplayer plus Claude's three ready maps/eight ready karts; roster size is not participant capacity. [ADR 0011](adr/0011-explicit-drive-exits.md) records the owner's explicit drive-exit policy. Milestone acceptance stays open.
 
-**Coordination:** main/local origin/main remain `f923d15`; canonical checkout stays `5570968`. Claude is at `1004e73`, with its VFX included in combined runtime `8195da9`; its next vehicle reservation and untracked `Claude outputs/` are preserved. This correction starts from combined documented state `8e34e75`. Before deployment, all 22 installed files matched the prior combined manifest. No other checkout is switched or modified. **Next single task:** after both testers install the corrected build, run the first fresh two-client 0.5 DATA/s, 16-byte, 120-second `WHISPER_LOGGED` window and reconcile evidence. IOU's basic logged round trips are already established; capacity/reconnect remain NOT RUN and the AK CSV stays header-only. [Current handoff](handoffs/codex-latest.md).
+**Coordination:** main/local origin/main remain `f923d15`; canonical checkout stays `5570968`. Claude is at `1004e73`, with its VFX included in combined runtime `8195da9`; its next vehicle reservation and untracked `Claude outputs/` are preserved. This correction starts from combined documented state `8e34e75`. Installed correction `8f66c5a`: all 22 source hashes verified after preserving a full backup. No other checkout is switched or modified. **Next single task:** after both testers install the corrected build, run the first fresh two-client 0.5 DATA/s, 16-byte, 120-second `WHISPER_LOGGED` window and reconcile evidence. IOU's basic logged round trips are already established; capacity/reconnect remain NOT RUN and the AK CSV stays header-only. [Current handoff](handoffs/codex-latest.md).
 
 ## Canonical checkout and commits
 
@@ -1003,3 +1003,17 @@ Merged preservation commit **`8195da9`** contains the button/help plus reviewed 
 **Deployment/client:** preflight22/22 hashes match combined8195da9 and target has22files; Claude handoff/status checked. New install and local no-send help/readback check follow, with their actual results recorded separately. Two-client registration/send returns, sustained RTT/loss/throttle/reconnect are NOT RUN; no new CSV row. Both testers must update before the next attempt.
 
 **Next exact task:** use a fresh shared code and the corrected full-name commands for the lowest-rate logged window, then reconcile both reports and four sequence maps. No capacity or multiplayer architecture decision yet.
+
+### 2026-10-21 00:53 CEST — correction installed; friend package prepared
+
+Implementation commit **`8f66c5a`**, branch `codex/forever-probe`. Immediately before installation, Claude remained1004e73 and the target again matched all22files in the prior combined8195da9 manifest. Authorized `scripts/install_local.ps1 -AddOnsDirectory <Forever AddOns> -Overwrite` completed: backup verified,22/22 source hashes verified, no extra target files. New ignored manifest:
+`local-artifacts/install-backups/20261021-005314-298-f5ce5642e61b4729a8ed4e8b3d553eb0/install.json`.
+No other addon, player data or WTF/SavedVariables was changed.
+
+Prepared local friend-install ZIP only (not published/released): `local-artifacts/bundles/AzerothKart-forever-fix-8f66c5a.zip`,22 addon files under one `AzerothKart/` directory,2,975,544bytes. Every decompressed file hash matches source; archive SHA256 `8bfc6a11d462b65190352fa9fe4e03531b605acb43461d9845a1183d19745a99`. The owner can share it with the consenting tester; this agent sent nothing externally. Both must reload the updated build before testing.
+
+The final documentation check initially caught three files written in mixed encoding. Normalized those files to UTF-8, reran structural validation successfully, and corrected the unpublished own implementation commit before deployment. Final Lua focused results remain PASS; no runtime code changed after them.
+
+**Client checks NOT RUN:** only the app/window inventory was read. Owner requested less computer use, so no activation/input/reload/help/API readback or network arm/send followed. New source is installed but not proven loaded in the running client. Actual two-client results, sustained traffic and reconnect remain NOT RUN; CSV unchanged/header-only. No milestone completion or push/release.
+
+**Next exact task:** both clients update/reload, listener then sender using opposite complete character names and a new shared code; execute the first default `WHISPER_LOGGED` window and collect both reports/evidence. The final user instructions supply personalized commands without committing identities to Git.

@@ -1,6 +1,6 @@
 # Codex handoff — Forever full names and IOU logged transport
 
-2026-10-21, Europe/Oslo. Existing Codex Review worktree, branch `codex/forever-probe`, base `8e34e75` (combined runtime `8195da9`, Claude `1004e73`/effects `c6e1b5e`). Resolve the final commit with `git log -1 codex/forever-probe`.
+2026-10-21, Europe/Oslo. Existing Codex Review worktree, branch `codex/forever-probe`, base `8e34e75` (combined runtime `8195da9`, Claude `1004e73`/effects `c6e1b5e`). Implementation **`8f66c5a`**; final deployment documentation follows. Resolve the tip with `git log -1 codex/forever-probe`.
 
 ## Reservation and coordination
 
@@ -16,11 +16,11 @@ Use only `C_ChatInfo.SendAddonMessageLogged` / `CHAT_MSG_ADDON_LOGGED`, native `
 
 - Python3.14/pinned Lupa2.8 Lua5.1: `scripts/test_lua.py --runtime lua51 --tests network_probe transport_probe ui` PASS34parsed/three modules, including parsing/identity/logged-only routing/chatlockdown and original pacing/accounting/UI invariants. UI remains10frames/151textures/13fonts.
 - `scripts/validate_project.py`: STATIC PASS61 paths. `git diff --check`: PASS. Independent read-only runtime review found no actionable defect.
-- Full/both-runtime matrix NOT RUN; no reason to repeat it for this adapter correction. No actual two-client sends, return codes, sustained RTT/loss/throttle/reconnect or capacity result; CSV header-only.
+- One intermediate docs encoding check failed; corrected UTF-8 and final structural check PASS. Full/both-runtime matrix NOT RUN; no reason to repeat it for this adapter correction. No actual two-client sends, return codes, sustained RTT/loss/throttle/reconnect or capacity result; CSV header-only.
 
 ## Deployment and client window
 
-Preflight: all22files match combined8195da9 via prior manifest `local-artifacts/install-backups/20261021-002417-215-569e7e1336304203b52dae42c3cc8849/install.json`; no extra target files. Claude still1004e73, handoff read, untracked outputs preserved. Install/new manifest and actual no-send reload/help readbacks will be recorded after execution. Never deploy an older standalone rendering/runtime branch over this combined build; recheck both handoffs and live target immediately before installation.
+Preflight: all22files match combined8195da9 via prior manifest `local-artifacts/install-backups/20261021-002417-215-569e7e1336304203b52dae42c3cc8849/install.json`; no extra target files. Claude still1004e73, handoff read, untracked outputs preserved. Installed source **8f66c5a** with verified backup and22/22 matching hashes at00:53 CEST. Manifest `local-artifacts/install-backups/20261021-005314-298-f5ce5642e61b4729a8ed4e8b3d553eb0/install.json`. Local friend ZIP `local-artifacts/bundles/AzerothKart-forever-fix-8f66c5a.zip`:22 source-matching files,2,975,544bytes; SHA256 `8bfc6a11d462b65190352fa9fe4e03531b605acb43461d9845a1183d19745a99`. No publication or sending. Owner requested less computer use: only inventory was read, no activation/input/reload/help/readback/arm/send. Client loading and two-client traffic remain NOT RUN. Both testers need this update and reload. Never deploy an older standalone rendering/runtime branch over this combined build; recheck both handoffs and live target immediately before installation.
 
 ## Next single task
 

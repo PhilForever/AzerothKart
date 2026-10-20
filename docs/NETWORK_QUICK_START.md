@@ -8,7 +8,7 @@ Both players need the same updated Azeroth Kart build with full-name support. Fo
 
 ## The test
 
-1. Both log into WoW, stop the kart and stay out of combat. Confirm each other's exact full first name and surname, as used for whispers.
+1. Both install the same updated addon build and type `/reload`, then stop the kart and stay out of combat. Confirm each other's exact full first name and surname, as used for whispers.
 2. Agree on a new six-character uppercase letter/number code. `AKT721` below is an example: use the same fresh code on both sides, and a different code for each attempt.
 3. **Your friend types this first**, using **your** full name:
 
