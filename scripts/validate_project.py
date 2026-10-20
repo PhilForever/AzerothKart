@@ -14,7 +14,7 @@ REQUIRED=[
  'addon/AzerothKart/Track.lua','addon/AzerothKart/Physics.lua',
  'addon/AzerothKart/MirageRaceway.lua','tests/test_mirage.lua',
  'scripts/build_mirage_layout.py','docs/art/mirage-layout.json','docs/art/mirage-layout.svg',
- 'scripts/build_mirage_background.py',
+ 'scripts/build_mirage_background.py','scripts/paintkit.py',
  'docs/art/mirage-background.md',
  'addon/AzerothKart/Assets/Tracks/SaltFlats/Background.tga',
  'scripts/build_kart_sprites.py','docs/art/karts/goblin-drag-car.md',

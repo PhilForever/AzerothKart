@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — Mirage scenery v1 (2026-10-20, `claude/track-ui`)
+- Repaint `Assets/Tracks/SaltFlats/Background.tga` from flat blockout art into original procedural scenery at the same path, size and format. It shows crusted salt flats and a packed-dirt lane with tire streaks, berms, red/cream apex kerbs and start/finish checkers. Set pieces include the goblin pit and gnome camp, a timing tower, bleachers, tents, wrecks, a kodo skeleton and a boulder rim.
+- Road and salt still come from the Lua `isDrivable` predicate at each pixel center. The build fails if scenery touches a road texel, and objects keep 20 units off the road. A contrast check requires a light salt rim around the darker lane, and ten landmarks verify orientation.
+- Add `scripts/paintkit.py`, shared by both generators; the kart generator now uses it with byte-identical output. Add review PNGs under `docs/art/` and an independent background check in `tests/test_presentation.lua`.
+- Geometry, physics, UI code, TOCs and simulation tests are unchanged. Explicit UI counts stay 9/111/13 and the raw texture payload stays 4 MiB. Client appearance is NOT RUN; see `docs/art/mirage-background.md`.
+
 ## Unreleased — first Goblin Drag Car sprite (2026-10-20, `claude/track-ui`)
 - Add an original strict-overhead, north-facing goblin dragster. The runtime file `Assets/Karts/GoblinDragCar.tga` is a 64×128 straight-alpha TGA, 32,786 bytes, bottom-left origin. It shows a long red nose, a big-eared goblin pilot, explosive canisters, an oversized supercharged engine, huge slicks and a rocket bell.
 - The sprite is drawn as a 20×40 world-unit quad whose visible body stays inside the existing 17×31 footprint. Transparent padding has bled edge colors.

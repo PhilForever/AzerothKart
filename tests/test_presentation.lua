@@ -323,6 +323,56 @@ for id, sprite in pairs(P.KART_SPRITES) do
 end
 assert(spriteFiles >= 1, "at least one kart sprite is validated")
 
+-- Mirage background registration: the shipped TGA against the actual Lua
+-- geometry. Interior road texels must stay darker than the 0.5-3 unit salt rim
+-- outside every edge, so the painted boundary matches isDrivable. Offline bytes
+-- only; client appearance is a separate in-game check.
+do
+    local Oval = dofile("addon/AzerothKart/Track.lua")
+    local Mirage = dofile("addon/AzerothKart/MirageRaceway.lua").new(Oval.crossesGate)
+    local file = assert(io.open("addon/AzerothKart/Assets/Tracks/SaltFlats/Background.tga", "rb"))
+    local data = file:read("*a")
+    file:close()
+    local size = 1024
+    assert(#data == 18 + size * size * 4 and data:byte(3) == 2 and data:byte(17) == 32
+           and data:byte(18) == 8, "background stays an uncompressed bottom-left BGRA32 TGA")
+    local line = Mirage.centerline
+    local function centerDistance(px, py)
+        local best = math.huge
+        for i = 1, #line do
+            local a, b = line[i], line[i % #line + 1]
+            local dx, dy = b.x - a.x, b.y - a.y
+            local u = math.max(0, math.min(1, ((px - a.x) * dx + (py - a.y) * dy) / (dx * dx + dy * dy)))
+            local ox, oy = px - (a.x + u * dx), py - (a.y + u * dy)
+            best = math.min(best, ox * ox + oy * oy)
+        end
+        return math.sqrt(best)
+    end
+    local function luma(x, y)
+        local offset = 18 + (y * size + x) * 4
+        return 0.299 * data:byte(offset + 3) + 0.587 * data:byte(offset + 2) + 0.114 * data:byte(offset + 1)
+    end
+    local road, rim = 0, 0
+    for y = 0, size - 1, 3 do
+        for x = 0, size - 1, 3 do
+            local px, py = x + 0.5, y + 0.5
+            local d = centerDistance(px, py)
+            if Mirage.isDrivable(px, py) then
+                local startLine = y >= 351 and y <= 368 and x >= 643 and x <= 756
+                if d <= 44 and not startLine then
+                    assert(luma(x, y) <= 180, ("painted road too light at (%d,%d)"):format(x, y))
+                    road = road + 1
+                end
+            elseif d - 56 >= 0.5 and d - 56 <= 3 then
+                assert(luma(x, y) >= 190, ("salt rim too dark at (%d,%d)"):format(x, y))
+                rim = rim + 1
+            end
+        end
+    end
+    assert(road > 15000 and rim > 900, "registration samples cover the whole circuit")
+    print(("offline Mirage background: %d road / %d rim samples agree with isDrivable"):format(road, rim))
+end
+
 assert(_G.AzerothKart == beforeGlobal, "offline import must not create or replace an addon global")
 local namespace = {sentinel=marker}
 local loaded = assert(loadfile("addon/AzerothKart/Presentation.lua"))("AzerothKart", namespace)

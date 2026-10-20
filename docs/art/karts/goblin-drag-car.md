@@ -10,7 +10,7 @@ The image shows the actual 64×128 runtime texture at 4× on a checkerboard (lef
 - Row 2: the same poses at 1.36 pixels per UI unit (roughly 1440p).
 - Row 3: the normal, drift-charge, Tier 1, Tier 2 and boost tints, then the scale-1 Test Oval kart on its primitive road, then rough salt.
 
-Tiles are enlarged 2× with nearest-neighbor sampling. This is an offline preview, not a client screenshot. [4× master](goblin-drag-car-master.png).
+Tiles are enlarged 2× with nearest-neighbor sampling. This is an offline preview, not a client screenshot. The sheet was regenerated over [Mirage scenery v1](../mirage-background.md); the TGA bytes did not change. [4× master](goblin-drag-car-master.png).
 
 ## Design
 
@@ -63,7 +63,7 @@ python scripts/build_kart_sprites.py --check    # exact bytes + invariants, writ
 python scripts/build_kart_sprites.py --preview  # also rewrite the PNG master/review sheet here
 ```
 
-The generator uses only the Python standard library and `addon/.../Background.tga` for previews. Every part is a layered signed-distance shape in world units, with procedural materials (overhead form shading, painted rim highlights, value-noise mottling, rust and grime from integer hashing). Each texel receives 4×4 supersamples, then an exact integer box filter. Pixel values use only IEEE-exact operations (`+ - * /`, `sqrt`, `floor`), so the TGA bytes are platform-independent.
+The generator uses only the Python standard library, the shared painting toolkit `scripts/paintkit.py` and, for previews, `addon/.../Background.tga`. Every part is a layered signed-distance shape in world units, with procedural materials (overhead form shading, painted rim highlights, value-noise mottling, rust and grime from integer hashing). Each texel receives 4×4 supersamples, then an exact integer box filter. Pixel values use only IEEE-exact operations (`+ - * /`, `sqrt`, `floor`), so the TGA bytes are platform-independent.
 
 Built twice — Python 3.13 in the cloud workspace and Python 3.10 on the developer's Linux shell — both produced the SHA-256 above. Previews and the master are review aids: their PNG bytes depend on the local zlib, and `--check` does not compare them.
 
