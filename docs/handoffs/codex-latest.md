@@ -1,67 +1,48 @@
-# Integration preservation follow-up (2026-10-21 00:22 CEST)
+# Codex handoff — close results and plain connection-test help
 
-Claude installed effects `c6e1b5e` at22:18:43UTC after our prior-build hash check and before the00:19 CEST menu install. Our installer preserved the two extra atlases and full prior files, but replaced its UI/Presentation/README. Stop deploying standalone branches: this is a shared-target overlap, not an API failure. Reviewed `7fcdd89..c6e1b5e` with no authoritative-state/input/lifecycle changes; preserve the already-installed effects by merging Claude handoff `1004e73` into this same feature branch before the final serialized installation. Scope now also includes review/merge reconciliation of Claude's immutable runtime, additive Presentation effect contract and shared counts/tests. Do not modify either other worktree, raw art or gameplay. Combined expected pool10/151/13; first actual connection test remains NOT RUN.
+Completed 2026-10-21, Europe/Oslo (live check around 00:24–00:28 CEST).
 
-# Codex active task — dismiss results and explain connection testing
+## Branch, source and ownership
 
-Reserved 2026-10-21, Europe/Oslo. Base `bdb44d1`; branch `codex/results-dismiss` in the existing Codex Review worktree. Owner explicitly assigned the results-panel close control and plain connection-test instructions. No new networking engine or experiment run.
+- Existing `../AzerothKart-Codex-Review`, branch `codex/results-dismiss`.
+- Base `bdb44d1`; button/help implementation `5f03716`; reviewed effects-preservation merge **`8195da9`**, parents `5f03716` and Claude `1004e73` (effects runtime `c6e1b5e`). Final docs follow in a separate commit.
+- Main/local origin/main remain `f923d15`; canonical checkout `5570968` and all untracked placeholders/output folders preserved. Claude owns its unchanged worktree and next-vehicles reservation. No push, tag, release, reset or other-checkout merge.
+- Scope: UI summary/dismiss callback and successful run/map reset; shared UI regression/count assertions; Codex TransportProbe local help/test; contracts and human-facing instructions. No Physics/Race/Input/Loop/geometry or packet/accounting changes. The result-panel UI.Create block is separate from Claude's effect pool/render/loading work.
 
-Scope also includes the Codex-owned TransportProbe explicit chat-help output and focused no-side-effect adapter test; no send/accounting behavior changes.
+## Implemented
 
-Scope: `UI.lua` summary presentation/dismiss callback, successful Start/SelectTrack dismissal reset; shared `test_ui.lua` dismissal behavior/count assertions; API/pool documentation, short network quick-start, README links, PROGRESS and this handoff. Claude's active reservation around VFX pool after the kart, sprite loading/layout/rendering, Presentation and assets remains untouched. The new control is in the separate results-panel construction block. No edits to Claude's worktree or named handoff.
+**Close results** beside Restart hides only the result panel. It retains race/lap/result/pose/clock/HUD data, does not recapture input, and stays dismissed across Stop, idle updates, rejected Starts and window close/reopen. Successful Start/map selection clears the presentation-only marker so the next ended run shows results. Outer Close still hides the addon.
 
-Previous completed integration/evidence follows for context.
+`/akart net help` prints six bounded local lines: you+friend, full names/new uppercase code, listener first, sender within 20 seconds, wait about 2m15 until BOTH say Stopped, reports/evidence/cancel. It never arms/registers/sends or resets an existing experiment. No network GUI exists. [The plain guide](../NETWORK_QUICK_START.md) separates human steps from first-run compatibility review and the developer procedure. Print Probe remains driving statistics.
 
-# Codex handoff — explicit run exits and reviewed Claude integration
+Claude's already-installed effects are preserved through reviewed integration: additive Presentation helpers and 38 fixed effect textures, read-only simulation access, guarded atlas fallback. Explicit combined pool **10 frames / 151 textures / 13 font strings**. Effects repeatability means identical sampled-state/effect-update sequences, not invariant particles across rendering cadences. Client drift/boost appearance and cost remain unverified.
 
-Prepared 2026-10-20 18:22 UTC. M1 input/menu correction and M2 integration checkpoint; M0/M1/M3 and all actual transport gates remain open.
+## Shared deployment overlap and recovery
 
-## Branch and scope
+Our old-build 20-file preflight matched before Claude's 22:18:43UTC effects deployment. The 00:19 CEST install then backed up all prior files/preserved both atlases but replaced Claude's UI/Presentation/README. Detected on the next handoff read, before any reload, and restored it by reviewing/merging immutable `1004e73`. No prior files lost; both full backups retained.
 
-- Canonical remote: `https://github.com/PhilForever/AzerothKart.git`.
-- Worktree: existing `../AzerothKart-Codex-Review`, feature `codex/menu-integration`.
-- Parents: Codex `de7a63e9f77b6df43b6ba42a4f8513977ed9bd8f` and reviewed Claude `812d132` (runtime `cf71394`). Implementation result: `7fcdd8919831c6e453bb81a21debc8a190f8b9df`; a later documentation commit records live evidence.
-- Owner now explicitly authorized this reviewed merge and menu fix. Scope: UI/Core capture and Stop callbacks/shared tests, merge conflict reconciliation, implemented contracts and policy/handoff docs. No new gameplay/network architecture.
-- Main/local origin/main remain `f923d15`; canonical checkout remains `5570968`. Claude worktree/branch and its untracked `Claude outputs/`, canonical empty untracked handoff placeholders and unrelated content are preserved. No reset/rebase/prune/GC/push/release.
-- Current shared installation before this checkpoint is Claude `cf71394`, manifest `../AzerothKart-Claude/local-artifacts/installs/20261020-173759/install.json`. Combined deployment must preserve the same trike/background bytes and record its own backup/hash manifest.
-
-## Implemented and reviewed
-
-Incidental mouse clicks/unassigned keys keep drive/capture/held input active. Stop's mouse-down no longer ends/disables it before OnClick. Stop/Escape ends/fixes partial progress; Close also hides; Enter/numpad Enter deliberately opens chat. Actual text focus/available appfocus/hide/world/logout/combat guards remain. No new pause/resume state; Start/Restart is a fresh run. Result text offers concrete next actions; active track changes stay refused. Global mouse subscription and capture dependency removed. [ADR 0011](../adr/0011-explicit-drive-exits.md) records the owner direction.
-
-Claude scenery, attached shadows and 64-heading Goblin Mortar Trike are reviewed and integrated. Presentation sheet fields/helpers/anchoring and guarded crop behavior are implemented contracts in [API_CONTRACTS](../API_CONTRACTS.md), distinct from centered/rotated single images. Physics v7 / 15 fields, Oval v2 solids only, Mirage geometry, race rules/timing and bounded transport are retained. Explicit pooled UI count 9/113/13. Read Claude's preserved handoff and per-asset provenance; its historical 9/111/13 counts describe that earlier source.
+Final combined install **`8195da9`**,00:24 CEST: `install_local.ps1 -Overwrite` backed up all prior files and verified **22/22** source hashes, no extras. Manifest:
+`local-artifacts/install-backups/20261021-002417-215-569e7e1336304203b52dae42c3cc8849/install.json`.
+Earlier overlap backup:
+`local-artifacts/install-backups/20261021-001921-521-8d0ecbd65dd043d9a5cd8b2728077aab/install.json`.
+Both are ignored local artifacts. No other addon or WTF/SavedVariables was modified by deployment. Before another install, read BOTH handoffs and compare the actual target immediately; standalone branch deployment can overwrite the other agent's newer runtime. Coordinate one deployment window.
 
 ## Tests actually executed
 
-- Windows Python 3.14 + pinned Lupa 2.8 from canonical ignored dependency directory; `scripts/test_lua.py --runtime lua51 --tests input presentation ui network_probe transport_probe`: final PASS: 34 parsed / five modules. First attempt uncovered a hidden test window after combat; corrected fixture to show it before positive Start assertion.
-- `scripts/test_lua.py --runtime lua51`: PASS: all 19 modules at this integration checkpoint, including 10k-tick deterministic replay, obstacle/race/input/visual/probe checks.
-- `scripts/validate_project.py`: STATIC PASS: 56 paths before final docs; no Lua executed by it.
-- `tests/test_install_local.ps1`: PASS: 18 / SKIP: 3 (junction creation denied), workspace fixtures retained.
-- Independent read-only Claude review found no blocking source issue; sheet/background hashes match handoff. Asset generators and live installation/menu check recorded below when executed.
-- Lua5.4/nativeLua, broad performance, held-key Alt-Tab, all two-client measurements/reconnect: NOT RUN. Old policy's click/Alt observations do not validate revised behavior.
+- Windows Python3.14 / pinned Lupa2.8, canonical ignored dependency path.
+- `scripts/test_lua.py --runtime lua51 --tests ui transport_probe`: PASS: 34 parsed, both modules before effects integration; earlier UI-only run also PASS.
+- Adapter-only rerun after uppercase/finish-wait wording: PASS.
+- **Combined:** `scripts/test_lua.py --runtime lua51 --tests presentation ui transport_probe`: PASS: 34 parsed, three modules. Result dismissal snapshots/retention/new-run reset, bounded idle/active help with no side effects, original lifecycle/race tests, sprite/effects on/off simulation equivalence, pooled 10/ 151/ 13 through 1,001 updates.
+- `scripts/build_effect_sprites.py --check`: PASS Particles SHA 15bf541f…2341 and Flame 98254d4b…f98f, matching Claude's files.
+- `scripts/validate_project.py`: STATIC PASS: 61 paths after merge; `git diff --check`/staged equivalent PASS.
+- No repeated full/Lua5.4 suite or installer matrix. Earlier source-install fixture checks remain historical.
 
-## Limits and next task
+## Actual-client check
 
-Build 70450 lacks observed application-focus getters, so held-input Alt-Tab stays pending after removing generic Alt/unknown-key stops. Trike overhang / 4 MiB raw sheet and runtime load/FPS cost remain explicit. Imported WC3 author terms/redistribution remain release-review debt, not an asserted clearance.
+Reload completed, `/akart` opened the combined build. Started a stationary Oval run, clicked Stop: tick 812, lap/current 10.53s, stopped sample 13.5s displayed. New button and hint fit. Clicking **Close results** hid the panel while the main window, track, kart, HUD values and idle Start/Track controls remained visible; tick 812/time 10.53s stayed unchanged through later help entry. `/akart net help` printed the six expected lines. Final observed state: addon open/inactive, result panel hidden, chat closed. No character movement/combat, state injection or network arm/send.
 
-Owner confirmed no second client is available in this run. No probe is armed/sends issued, no capacity inferred, ledger remains header-only. **Next single task:** first consenting two-client 0.5 DATA/s, 16-byte, 120-second WHISPER window using [the checklist](../../tests/MANUAL_NETWORK_CHECKLIST.md), fresh ID / exact peer names, both reports and all four evidence maps. Keep multiplayer above ghosts; don't choose broad replication or escalate rate before that evidence.
+Live close/reopen dismissal, full finished/combat variants, moving effects/edge/handling acceptance and performance are NOT RUN in this short check (retention paths covered offline). First two-client traffic, prefix/send returns, RTT/loss/throttle/reconnect and all multiplayer capacity gates remain **NOT RUN**. Network CSV stays header-only; no milestone boxes completed.
 
-Claude should continue visuals from its own branch; review integration diffs before synchronizing. Do not overwrite this combined installation with the older standalone visual runtime. No request for another combat matrix.
+## Next single task
 
-
-## Asset reproducibility checks (18:21:46–18:23:52 UTC)
-
-All check-only commands passed with Windows Python3.14: `scripts/build_kart_sprites.py --check`, `scripts/build_mirage_background.py --check`, and `scripts/build_wc3_kart.py --source ../AzerothKart-Claude/local-artifacts/third-party/goblin-mortar-trike --check`. Drag car SHA `cc7c1c69…126a`, scenery `cd5aecb9…c567e`, trike `a723b067…3208`. Background's first invocation lacked the pinned Lupa path; retry with canonical PYTHONPATH passed. No generated file changed. Trike private sources remain ignored in Claude's worktree; no new download or source redistribution.
-
-
-## Deployment and live evidence completed
-
-Installed `7fcdd89` at 18:25 UTC with a verified full prior backup and 20/20 hashes; independent resumed comparison also matched 20/20. Manifest under ignored `local-artifacts/install-backups/20261020-202526-131-567cfd9612074e2d957df74433a02f53/install.json`. No other addons or WTF data were changed by deployment.
-
-[Exact live menu evidence](../evidence/2026-10-20-menu-integration-client.md): reload/load, Oval/trike, Mirage switch, stationary M/left/right clicks retaining the run, actual Stop reason/frozen sample, fresh Restart, explicit Escape and Close observed. Counts 9/113/13, no registration failures; first Stop at 2715 ticks / 42.25 s race time. Escape also opens the normal WoW menu on release; a second Escape dismissed it. No held-driving-input, motion/edge/handling/performance acceptance inferred.
-
-No-send API types/five selected constants matched `function function 0 1 0 3 8`. Actual registration/send results and delivery remain untested. At 21:59 UTC, after work resumed, `/akart net report` confirmed `Idle: no experiment run`. No experiment or capacity result; second client unavailable. Final observed addon hidden, chat closed.
-
-On resumed inspection Claude had adopted `7fcdd89` and advanced to docs-only `f675610`, reserving effects/vehicles. Read its latest handoff before the next shared edit/deployment. This documentation checkpoint does not merge that reservation or modify its checkout. No continuous work is claimed across the interruption.
-
-**Next live task:** first consenting two-client 0.5 DATA/s, 16-byte, 120-second WHISPER window with complete reports/four maps. **If still one client:** build the offline reconciliation helper against existing report/evidence formats; keep actual transport pending and do not begin broad replication or ghosts.
+When a consenting friend/second client is available, confirm both builds/API setup and exact full names, give personalized commands, then perform the first lowest-rate directed WHISPER window using [the plain guide](../NETWORK_QUICK_START.md) and [developer checklist](../../tests/MANUAL_NETWORK_CHECKLIST.md). No immediate manual test is requested while only one client is available. Multiplayer remains above ghosts; do not select broad replication architecture from offline tests.
