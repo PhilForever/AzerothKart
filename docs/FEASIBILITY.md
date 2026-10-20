@@ -113,7 +113,7 @@ The probe reports optional game-window focus API availability and unavailable ev
 
 ## F3: deterministic local simulation
 
-For identical initial state/seed and tick-indexed input vectors, compare state at every tick over at least 10,000 fixed steps, including final state. Compare varied render schedules and bounded hitch behavior separately. Record commands and runtime version in `PROGRESS.md`. Offline determinism applies to the tested runtime; it does not establish cross-client floating-point compatibility or good handling. M1 still requires direct play and handling metrics. There is no production lap/checkpoint system to accept yet.
+For identical initial state/seed and tick-indexed input vectors, compare state at every tick over at least 10,000 fixed steps, including final state. Compare varied render schedules and bounded hitch behavior separately. Record commands and runtime version in `PROGRESS.md`. Offline determinism applies to the tested runtime; it does not establish cross-client floating-point compatibility or good handling. M1 still requires direct play and handling metrics. Local checkpoints, lap timing and three-lap lifecycle are implemented; full route/production acceptance remains open. The 2026-10-20 handoff checkpoint executed the full Lua 5.1 suite, including all fifteen Physics-v6 fields over 10,000 ticks at 30/60/144 simulated render Hz. This is same-runtime evidence only; no new client result follows.
 
 ## F4: transport capacity — no architecture decision yet
 

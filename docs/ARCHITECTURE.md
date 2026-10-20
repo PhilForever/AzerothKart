@@ -1,12 +1,14 @@
 # Technical architecture
 
+For implemented signatures, state fields and the Codex/Claude boundary, use [API_CONTRACTS.md](API_CONTRACTS.md) and [AGENTS.md](../AGENTS.md). The system diagram includes future components; it is not evidence of a separate Renderer/GameSession/network API. This handoff checkpoint changes documentation only.
+
 ## System boundaries
 
 ```
 User input (WoW UI events)
         |
         v
- InputAdapter -> InputSample (bitmask per fixed tick)
+ InputAdapter -> InputSample (five booleans per fixed tick)
         |                         |
         v                         v
  UIController/Scene        Pure Simulation (Physics/Track/Race/Items/PRNG)
@@ -36,7 +38,7 @@ SavedVariables -> Schema/Migrations -> settings/personal-bests/ghosts
 - `Diagnostics`: opt-in perf/FPS statistics, protocol rate metrics, error logs, feature gates.
 
 ## API interaction restrictions
-`UI` and `Transport` are the **only layers** that call WoW APIs. No math library calls UI setters. Do not call secure/protected APIs or rely on secret-value readback. No special treatment of combat information is needed.
+Current WoW API calls live in `UI` and `Core` (bootstrap, events, slash commands and the minimal schema marker). Pure modules do not call them. A future Transport adapter is proposed, not implemented. No math library calls UI setters. Do not call secure/protected APIs or rely on secret-value readback. No special treatment of combat information is needed.
 
 ## Simulation clock
 - Fixed dt = 1/60s; `OnUpdate` adds elapsed; execute at most 5 catch-up iterations/frame, then bound accumulator and record dropped simulation time.
@@ -61,17 +63,17 @@ Mirage uses a north-up follow camera at uniform scale 1.5 across the existing 80
 
 Optional foreground/preview layers and vehicle sprites are future work. Editable PNG/source art stays outside runtime. Strict overhead north-facing sprites can rotate; angled three-quarter artwork requires directional frames. Aircraft initially share ground collision with cosmetic hover and separate shadows. The owner's screenshot establishes the earlier whole-map background load/orientation; a separate stopped build-70450 check confirmed the close UV crop, larger kart and Start/West strip alignment/clipping with counts 9/111/13. Camera motion/edges, transparent sprite alpha and new rotation/pivot checks are **NOT RUN**. No rendering-performance claim follows from offline integration. See [ASSETS.md](ASSETS.md), [the map brief](art/MIRAGE_RACEWAY.md) and [ADR 0008](adr/0008-mirage-raceway-art-direction.md).
 
-## Public module APIs (proposed)
-- `Physics.new(config, startPose)` -> state
-- `Physics.step(state, heldInputs, dt, track)` -> state, collision flags
+## Public module APIs (implemented unless marked future)
+- `Physics.new(track)` -> state
+- `Physics.step(state, heldInputs, dt, track)` -> new state only; contact feedback is in `impacts` and `surface`, with no separate flags/event return
 - Current `Track.isDrivable(x, y)` -> boolean; `Track.crossesGate(previous, current, gate)` -> boolean
 - Current `MirageRaceway.new(crossesGate)` -> independent Mirage track instance; `Presentation.fitViewport` -> overview, `.cameraViewport` -> bounded close view, `.follow` -> updates its reusable offsets from an injected pose, `.project`/`.unproject` -> uniform world/canvas mapping, `.texCoords` -> background UV crop, `.clipRect` -> visible projected rectangle or nil
 - Current `Checkpoints.new(track, tick)` -> progress; `Checkpoints.step(progress, previous, current, track)` -> progress
 - Current `Laps.new(track, Checkpoints, tick)` -> laps; `Laps.step(laps, previous, current, track, Checkpoints)` -> laps
 - Current `Race.new(track, Checkpoints, Laps, tick)` -> race; `Race.step(race, previous, current, track, Checkpoints, Laps)` -> race; `Race.stop(race, reason, interrupted)` -> race
-- `Protocol.encode(event)`/`decode(text)` validated under 255 bytes
-- `Transport.send(session,msg,target)` with queue budget
-- `Replay.record(inputs,seed,trackHash)` and `Replay.play(...)`
+- Future: `Protocol.encode(event)`/`decode(text)` with bounded validation; no runtime codec exists
+- Future: `Transport.send(session,msg,target)` with queue budget; measurements/architecture remain gated
+- Future: `Replay.record(inputs,seed,trackHash)` and `Replay.play(...)`; no gameplay replay API exists
 
 ## Source map
 

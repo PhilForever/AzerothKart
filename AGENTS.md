@@ -1,12 +1,41 @@
-# Codex instructions — Azeroth Kart
+# Shared agent instructions — Azeroth Kart
 
-You are the implementation engineer for **Azeroth Kart**, a top-down 2D WoW Forever arcade racer. Follow the repo's canonical documents. Never treat chat memory as the source of truth.
+You are a development agent for **Azeroth Kart**, a top-down 2D WoW Forever arcade racer. Codex and Claude Code share these rules; use the ownership boundaries below. Follow the repo's canonical documents. Never treat chat memory as the source of truth.
 
 ## Session-start protocol (mandatory)
 1. Inspect working tree (`git status --short`, recent commits) and existing files. **Do not reset, delete, overwrite uncommitted user work, or force push.**
-2. Read: `README.md`, `docs/PROGRESS.md`, `docs/ROADMAP.md`, `docs/FEASIBILITY.md`, `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, relevant ADRs and tests.
+2. Read: `README.md`, `docs/PROGRESS.md`, `docs/ROADMAP.md`, `docs/FEASIBILITY.md`, `docs/ARCHITECTURE.md`, `docs/API_CONTRACTS.md`, `docs/DECISIONS.md`, both `docs/handoffs/*-latest.md` files when present, relevant ADRs and tests. Inspect `git branch -vv` and `git worktree list` as well as status; another checkout can contain ongoing work.
 3. Select one small vertical slice under the owner's current priority. Per [ADR 0007](docs/adr/0007-build-first-development.md), remaining M0 manual validation does not block local M1 development. Prepare a focused probe only when an actual uncertainty blocks implementation; record deferred client checks without inventing results.
 4. Make a short plan before changes. Respect acceptance criteria when declaring completion and retain the measured multiplayer gate. No uncontrolled scope expansion.
+
+## Ownership and parallel development
+
+Codex owns physics/handling, collision, deterministic simulation, race rules/checkpoints, multiplayer/synchronization and simulation tests. Claude owns rendering, track presentation, UI/HUD, animation/VFX, sprites/assets and visual feedback. Public interfaces, architecture decisions, integration tests and performance budgets are shared responsibilities. A file owner does not have unilateral permission to change a shared interface.
+
+| Files/area | Owner and boundary |
+|---|---|
+| `addon/AzerothKart/{Physics,Track,MirageRaceway,Input,Loop,Checkpoints,Laps,Race,Performance,Core}.lua` | Codex. This includes authoritative geometry, input semantics, bootstrap/events and timing diagnostics. Future transport/protocol implementation is Codex-owned and remains feasibility-gated. |
+| `addon/AzerothKart/Presentation.lua` | Claude implementation; its public functions and simulation-facing semantics are shared contracts. |
+| `addon/AzerothKart/UI.lua` | Shared file with the function boundaries below. Reserve a non-overlapping edit scope before either agent edits it. |
+| `addon/AzerothKart/Assets/`, visual art/source/provenance in `docs/art/`, `scripts/build_mirage_background.py` | Claude. Geometry, asset registration/origin and performance-budget changes require shared review. An art change never silently changes collision data. |
+| Simulation tests (`test_physics`, `test_handling`, `test_steering`, `test_drift`, `test_surface`, `test_track`, `test_mirage`, `test_input`, `test_loop`, `test_performance`, `test_checkpoints`, `test_laps`, `test_race`, `test_determinism`) | Codex. Do not relax mechanics assertions to accommodate a visual change. |
+| `tests/test_presentation.lua` | Claude, preserving the agreed public-interface assertions. |
+| `tests/test_ui.lua`, `tests/run.lua`, validation/install scripts, `scripts/build_mirage_layout.py`, both TOCs | Shared. Visual assertion edits may accompany visual work; capture/lifecycle/clock/race assertions require Codex coordination. Never disable them to make integration pass. |
+| Contracts, architecture/ADRs, README, roadmap, progress, API/feasibility evidence and test-plan docs | Shared; coordinate edits and retain historical evidence. |
+| `docs/handoffs/codex-latest.md`, `docs/handoffs/claude-latest.md` | The named agent writes its own handoff. Read the other's handoff; do not replace it. Root-level similarly named placeholders are not canonical handoffs. |
+
+`UI.lua` has no separate Renderer/GameSession API yet. Claude may work on texture/font creation, `drawEllipse/drawTrack/drawWalls`, `placeWorldRect/placeTrackMarkers/layoutTrack`, the visual body of `render`, and HUD/summary/countdown/meter presentation. Keep simulation inputs read-only. Codex owns `step`, `UI.Start/Stop/InterruptCombat/ReleaseInput/OnUpdate/HandleEvent/OnCombatEnded`, `keyEvent`, Start refusals, clock/profiling wiring and the state/reset/failure transaction in `UI.SelectTrack`. `UI.Create` mixes both areas: visual layout is Claude's scope, while event scripts, control callbacks, initial state and capture behavior require coordination. `UI.SelectTrack` visual layout/loading hooks also cross the boundary. A visual change must not write physics/race/track state, award laps/boosts or alter stop/finish timing. Review the contract before sprite tint or animation changes.
+
+## Branch, review and integration protocol
+
+1. Use separate `codex/<task>` and `claude/<task>` feature branches in separate worktrees for parallel work. Reuse a suitable existing checkout; do not reset, repoint, remove or switch the other agent's worktree. Do not implement directly on `main`.
+2. Before editing, state the task, base commit and exact files/function regions reserved in the agent's handoff. If a file or region is already claimed or has unexpected changes, report the conflict and coordinate first; independent work may continue elsewhere. There is no automatic lock or enforcement service.
+3. Do not edit another owner's systems without explicit coordination/assignment. Propose contract changes in `docs/API_CONTRACTS.md` and an ADR when warranted; obtain the other owner's review before integration. Do not introduce a breaking API as part of unrelated visual work.
+4. Commit only the task's reviewed files. No blanket staging of untracked files, rewriting/amending another agent's commits, resets, rebases of their branch or force pushes. Preserve unexpected/uncommitted work and report it.
+5. No automatic merges, cherry-picks, rebases or fast-forwards between agent branches or into `main`. After review and explicit integration authorization, the designated integrator may apply the reviewed change. Provide exact synchronization commands without executing them in the other worktree on its owner's behalf.
+6. Review the diff, public contract, source load order, asset provenance and affected lifecycle/geometry invariants before integration. Run the focused tests required below, then the agreed integration checks on the combined state. An offline pass never replaces a pending Forever check. Shared performance-count changes need measured/clearly scoped documentation, not a silent budget increase.
+7. Finish each task with the named agent's handoff: base/result branch and commits, file/function scope, executed tests/results, unrun client checks, blockers, proposed interface changes and next task. `docs/PROGRESS.md` is the shared integration ledger: coordinate its writer and append verified evidence without overwriting the other agent's entry. If it is actively reserved, put the pending ledger entry in your own handoff and flag it for the integrator.
+8. The installed WoW addon directory is one shared deployment target even when source worktrees differ. Coordinate the source commit, backup/verification and client-input window before any authorized install/reload; do not race deployments or control the client concurrently. A prior one-off push does not authorize future automatic pushes/releases.
 
 ## Engineering non-negotiables
 - Pure Lua `Physics`, `Track`, `Race`, PRNG and protocol state should not depend on `_G`, WoW globals, wall clock, or rendering. Pass explicit inputs and deterministic seeds; favor dependency injection.
@@ -33,7 +62,7 @@ You are the implementation engineer for **Azeroth Kart**, a top-down 2D WoW Fore
 - Commits: atomic and descriptive if a Git repo and permission/workflow exist; otherwise leave coherent changes and describe them. No silent deployments. Respect environment limitations.
 
 ## End-of-session handoff (required)
-End every agent run with a concise report: milestone, files changed, tests run + results, any client tests pending, blockers, next exact task. Persist the same in `docs/PROGRESS.md` **before** ending.
+End every agent run with a concise report: milestone, files changed, tests run + results, any client tests pending, blockers, next exact task. Update your named `docs/handoffs/*-latest.md` before ending, and persist verified evidence in `docs/PROGRESS.md` under the shared-writer protocol above.
 
 ## Precedence
 User instructions > `AGENTS.md` > confirmed live-client findings in `docs/FEASIBILITY.md` and `docs/PROGRESS.md` > accepted ADRs > scoped design docs > generic WoW advice. If these conflict, document the conflict; don't silently rewrite all docs.
