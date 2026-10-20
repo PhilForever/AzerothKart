@@ -379,6 +379,168 @@ for id, sprite in pairs(P.KART_SPRITES) do
 end
 assert(spriteFiles >= 1, "at least one kart sprite is validated")
 
+-- Drift and boost effects: the shipped atlases match Presentation.EFFECTS, and
+-- the particle logic follows drift/boost state without writing it. Offline
+-- only; client loading, blending and look are in-game checks.
+do
+    local E = P.EFFECTS
+    local function atlas(path, w, h)
+        assert(path:sub(1, #addonPrefix) == addonPrefix and path:find("\\Assets\\Effects\\[%w]+%.tga$"),
+               path .. ": addon effect TGA path")
+        assert(powerOfTwo(w) and powerOfTwo(h), path .. ": power-of-two texture")
+        local file = assert(io.open("addon/AzerothKart/" .. (path:sub(#addonPrefix + 1):gsub("\\", "/")), "rb"),
+                            path .. ": declared effect atlas exists in the addon")
+        local data = file:read("*a")
+        file:close()
+        local function u16(index) return data:byte(index) + 256 * data:byte(index + 1) end
+        assert(data:byte(1) == 0 and data:byte(3) == 2 and u16(13) == w and u16(15) == h and data:byte(17) == 32
+               and data:byte(18) == 8 and #data == 18 + w * h * 4, path .. ": BGRA32, bottom-left, declared size")
+        return function(column, rowFromTop) return data:byte(18 + ((h - 1 - rowFromTop) * w + column) * 4 + 4) end
+    end
+    local particleAlpha = atlas(E.particlesPath, E.particlesWidth, E.particlesHeight)
+    local flameAlpha = atlas(E.flamePath, E.flameWidth, E.flameHeight)
+    -- Each cell: the crop matches the layout, a transparent border, paint, and
+    -- (for sparks and flames) alpha weighted toward the cell's direction.
+    local function cell(alpha, kind, index, size, w, h, dx, dy)
+        local l, r, top, b = P.effectCoords(kind, index)
+        local ox, oy = l * w, top * h
+        assert(ox % 1 == 0 and oy % 1 == 0 and math.abs((r - l) * w - size) < 1e-9
+               and math.abs((b - top) * h - size) < 1e-9, kind .. " " .. index .. ": crop matches the atlas layout")
+        local covered, mx, my = 0, 0, 0
+        for row = 0, size - 1 do
+            for column = 0, size - 1 do
+                local a = alpha(ox + column, oy + row)
+                if row == 0 or column == 0 or row == size - 1 or column == size - 1 then
+                    assert(a == 0, kind .. " " .. index .. ": cell keeps a transparent border")
+                end
+                if a > 0 then
+                    covered = covered + 1
+                    mx = mx + ((column + 0.5) / size * 2 - 1) * a
+                    my = my + (1 - (row + 0.5) / size * 2) * a
+                end
+            end
+        end
+        assert(covered > size * size / 40, kind .. " " .. index .. ": cell is painted")
+        if dx then assert(mx * dx + my * dy > 0, kind .. " " .. index .. ": cell points along its direction") end
+    end
+    for index = 0, E.smokeVariants - 1 do
+        cell(particleAlpha, "smoke", index, E.smokeCell, E.particlesWidth, E.particlesHeight)
+    end
+    for index = 0, E.sparkDirections - 1 do
+        local angle = index * tau / E.sparkDirections
+        cell(particleAlpha, "spark", index, E.sparkCell, E.particlesWidth, E.particlesHeight,
+             math.cos(angle), math.sin(angle))
+    end
+    for index = 0, E.flameDirections - 1 do       -- the sheet camera foreshortens north by 0.8
+        local angle = index * tau / E.flameDirections
+        cell(flameAlpha, "flame", index, E.flameCell, E.flameWidth, E.flameHeight,
+             math.cos(angle), 0.8 * math.sin(angle))
+    end
+
+    local trike = P.KART_SPRITES.goblin_mortar_trike.effects
+    local options = {anchors = trike, dust = {0.9, 0.85, 0.8}, boostFullTicks = 48}
+    local function live(fx, now)
+        local smoke, sparks, newestSpark = 0, 0, nil
+        for _, p in ipairs(fx.smoke) do if P.particleAt(p, now) then smoke = smoke + 1 end end
+        for _, p in ipairs(fx.sparks) do
+            if P.particleAt(p, now) then
+                sparks = sparks + 1
+                if not newestSpark or p.born > newestSpark.born then newestSpark = p end
+            end
+        end
+        return smoke, sparks, newestSpark
+    end
+    -- Drive the effects tick by tick through a state script, checking that
+    -- no state is ever written.
+    local function run(fx, from, ticks, fields)
+        local previous
+        for tick = from, from + ticks - 1 do
+            local state = {x = 500, y = 200 + 3 * tick, heading = math.pi / 2, tick = tick, speed = 180,
+                           drifting = false, driftTier = 0, driftTicks = 0, driftGraceTicks = 0,
+                           driftDirection = 0, boostTicks = 0, surface = "road"}
+            for key, value in pairs(fields) do state[key] = type(value) == "function" and value(tick) or value end
+            local before = {}
+            for key, value in pairs(state) do before[key] = value end
+            local now = P.advanceEffects(fx, previous, state, 1, options)
+            assert(now == tick, "a stopped or exact frame draws at the current tick")
+            for key, value in pairs(before) do assert(state[key] == value, "effects never write state: " .. key) end
+            for key in pairs(state) do assert(before[key] ~= nil, "effects add no state fields: " .. key) end
+            previous = state
+        end
+        return previous
+    end
+    local fx = P.newEffects()
+    assert(#fx.smoke == E.smokeCount and #fx.sparks == E.sparkCount and #fx.flames == E.flameCount,
+           "fixed effect pools")
+    local last = run(fx, 1, 20, {})
+    local smoke, sparks = live(fx, last.tick)
+    assert(smoke == 0 and sparks == 0 and not fx.flames[1].on, "plain driving emits nothing")
+    for tier = 0, 2 do
+        last = run(fx, last.tick + 1, 12, {drifting = true, driftTier = tier, driftDirection = 1})
+        local smokeNow, sparksNow, newest = live(fx, last.tick)
+        assert(smokeNow > 0 and sparksNow > 0, "drift tier " .. tier .. " shows dust and sparks")
+        local color = E.sparkColors[tier]
+        assert(newest.r == color[1] and newest.g == color[2] and newest.b == color[3],
+               "drift tier " .. tier .. " sparks use the meter's colour")
+    end
+    local _, sparks2 = live(fx, last.tick)
+    -- Release: the first boost tick bursts soot from every exhaust; flames burn.
+    local puffsBefore = fx.puffs
+    last = run(fx, last.tick + 1, 1, {boostTicks = 48})
+    assert(fx.puffs == puffsBefore + 2 * #trike.exhausts, "a fired boost bursts soot from every pipe")
+    assert(fx.flames[1].on and fx.flames[2].on and fx.flames[1].cell == 24,
+           "both pipes burn, pointing behind a north-facing kart (heading 3pi/2)")
+    assert(fx.flames[1].front and fx.flames[2].front, "a north-facing kart shows its exhausts in front")
+    -- Same tick (same flicker), less boost left: a smaller flame.
+    local fading = P.newEffects()
+    run(fading, last.tick, 1, {boostTicks = 6})
+    assert(fading.flames[1].size < fx.flames[1].size, "the flame shrinks as the boost runs out")
+    last = run(fx, last.tick + 1, 40, {boostTicks = 30})
+    last = run(fx, last.tick + 1, 1, {boostTicks = 20, heading = -math.pi / 2})
+    assert(fx.flames[1].cell == 8 and not fx.flames[1].front and not fx.flames[2].front,
+           "a south-facing kart's flames point north, behind its body")
+    last = run(fx, last.tick + 1, 1, {})
+    assert(not fx.flames[1].on and not fx.flames[2].on, "flames stop with the boost")
+    -- Effects age with ticks and fade out; the pools never grow.
+    for _, p in ipairs(fx.smoke) do
+        if p.on then
+            local x, y, size, a = P.particleAt(p, p.born + 1)
+            local x2, y2, size2, a2 = P.particleAt(p, p.born + p.life - 1)
+            assert(size2 > size and a2 < a and P.particleAt(p, p.born + p.life + 0.001) == nil,
+                   "puffs grow, fade and expire")
+        end
+    end
+    assert(#fx.smoke == E.smokeCount and #fx.sparks == E.sparkCount, "pools keep their size")
+    -- Interpolated frames sit between ticks; a new run (tick going back) clears.
+    local previous = {x = 0, y = 0, heading = 0, tick = 99}
+    local current = {x = 3, y = 0, heading = 0, tick = 100, boostTicks = 0}
+    assert(P.advanceEffects(fx, previous, current, 0.25, options) == 99.25, "effect time follows the drawn pose")
+    P.advanceEffects(fx, nil, {x = 0, y = 0, heading = 0, tick = 0}, 1, options)
+    smoke, sparks = live(fx, 0)
+    assert(smoke == 0 and sparks == 0 and not fx.flames[1].on, "a restarted run clears all effects")
+    -- The same states give the same particles.
+    local a, b = P.newEffects(), P.newEffects()
+    for _, f in ipairs({a, b}) do
+        run(f, 1, 30, {drifting = true, driftTier = 2, driftDirection = -1})
+        run(f, 31, 10, {boostTicks = 48})
+    end
+    for _, pool in ipairs({"smoke", "sparks"}) do
+        for i, p in ipairs(a[pool]) do
+            for key, value in pairs(p) do assert(b[pool][i][key] == value, "deterministic effects: " .. key) end
+        end
+    end
+    -- Overhead art has no near side; its flames burn behind the kart.
+    local overhead = P.newEffects()
+    local overheadOptions = {anchors = P.DEFAULT_EFFECT_ANCHORS, dust = options.dust, boostFullTicks = 48}
+    P.advanceEffects(overhead, nil, {x = 0, y = 0, heading = math.pi / 2, tick = 1, boostTicks = 0}, 1, overheadOptions)
+    P.advanceEffects(overhead, nil, {x = 0, y = 3, heading = math.pi / 2, tick = 2, boostTicks = 30}, 1, overheadOptions)
+    assert(overhead.flames[1].on and not overhead.flames[1].front and not overhead.flames[2].on,
+           "the primitive kart's single rear exhaust burns behind it")
+    print(("offline effects: %dx%d particle and %dx%d flame atlases; %d smoke/%d spark pools; "
+        .. "tier colours, boost flames and soot follow state without writing it (%d sparks at tier 2)")
+        :format(E.particlesWidth, E.particlesHeight, E.flameWidth, E.flameHeight, E.smokeCount, E.sparkCount, sparks2))
+end
+
 -- Mirage background registration: the shipped TGA against the actual Lua
 -- geometry. Interior road texels must stay darker than the 0.5-3 unit salt rim
 -- outside every edge, so the painted boundary matches isDrivable. Offline bytes

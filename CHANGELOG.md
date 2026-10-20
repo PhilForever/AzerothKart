@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — drift and boost effects (2026-10-21, `claude/track-ui`)
+- Drifting throws pale tyre dust and a spark spray from the rear wheels in the drift meter's colours: blue while charging, gold at tier 1 and magenta at tier 2. The spray thickens as the charge grows and thins while a correction holds it. Boosting lights a flickering two-layer flame at every exhaust and trails goblin soot, with a burst on the tick the boost fires; the flame shrinks as the boost runs out.
+- Add two original atlases under `Assets/Effects/` (Particles 256×128, Flame 512×256), painted by the new `scripts/build_effect_sprites.py` with byte-identical output on any platform. Directions are pre-rendered cells, so drawing never uses `SetRotation` or `SetBlendMode`.
+- `Presentation` gains pure effect helpers (`EFFECTS`, `newEffects`, `clearEffects`, `advanceEffects`, `particleAt`, `effectCoords`) and per-kart effect anchors. The trike's anchors are its model's own wheel-dust and exhaust emitters (`build_wc3_kart.py --emitters`). Effect time is the interpolated tick, and identical states give identical particles.
+- UI pools 38 textures created once and hidden while idle: explicit counts become 9 frames/151 textures/13 font strings. A refused atlas disables effects only. Offline drives keep the simulation identical with effects on, refused or under the primitive kart. Client appearance and cost are NOT RUN; see `docs/art/effects/drift-boost.md`.
+- Add `scripts/preview_effects.py`, which runs the addon Lua against a recording widget mock and composites a review image of a scripted Mirage drive.
+
 ## Unreleased — explicit run exits and reviewed visual integration (2026-10-20)
 - Keep driving through incidental mouse clicks and unassigned keys without clearing held input or drift. Remove the global mouse-down exit that disabled Stop before its OnClick. Explicit Stop/Escape ends the run; Close and chat/focus/lifecycle handling remain deliberate exits.
 - Keep partial results frozen and replace "Controls released" with concrete next actions. Start/Restart creates a new countdown; no pause/resume state is added.

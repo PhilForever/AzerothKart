@@ -449,6 +449,139 @@ local function placeTrackMarkers()
     placeWorldRect(UI.wallTextures[4],Track.width-thickness,thickness,thickness,Track.height-2*thickness)
 end
 
+-- Drift/boost effects: pooled textures created once and hidden while idle.
+-- Presentation owns the particles; UI only places, crops and tints them, and
+-- never writes simulation state. Smoke sits above the track markers, sparks
+-- just below the kart, and each exhaust flame (outer and inner layer) burns
+-- just behind or just in front of the kart, as its pipe faces the camera.
+local FLAME_FRONT, FLAME_BEHIND = 2, -4
+local OVAL_DUST, MIRAGE_DUST = {0.86,0.86,0.84}, {0.95,0.90,0.81}
+
+local function createEffects(canvas)
+    local E = Presentation.EFFECTS
+    UI.fx,UI.fxShown,UI.fxCells,UI.fxLayers = nil,{},{},{}
+    local pools = {
+        {count=E.smokeCount, layer="ARTWORK", sublevel=6, path=E.particlesPath},
+        {count=E.sparkCount, layer="OVERLAY", sublevel=-2, path=E.particlesPath},
+        {count=2*E.flameCount, layer="OVERLAY", sublevel=FLAME_FRONT, path=E.flamePath},
+    }
+    local ready = true
+    for _,pool in ipairs(pools) do
+        pool.list = {}
+        for i = 1, pool.count do
+            local piece = texture(canvas,pool.layer)
+            pool.list[i] = piece
+            -- Flames alternate outer/inner; an inner layer sits one sublevel up.
+            local sublevel = pool.sublevel + ((pool.path == E.flamePath and i % 2 == 0) and 1 or 0)
+            if type(piece.SetDrawLayer) ~= "function"
+                or not pcall(piece.SetDrawLayer,piece,pool.layer,sublevel) then ready = false end
+            UI.fxLayers[piece] = sublevel
+            piece:Hide()
+            UI.fxShown[piece] = false
+        end
+    end
+    UI.fxSmoke,UI.fxSparks,UI.fxFlames = pools[1].list,pools[2].list,pools[3].list
+    -- All or nothing: a refused load, crop or tint leaves every effect
+    -- hidden; the kart and race are unaffected.
+    for _,pool in ipairs(pools) do
+        for _,piece in ipairs(pool.list) do
+            if ready then
+                if type(piece.SetTexture) ~= "function" or type(piece.SetTexCoord) ~= "function"
+                    or type(piece.SetVertexColor) ~= "function" then ready = false
+                else
+                    local ok,loaded = pcall(piece.SetTexture,piece,pool.path)
+                    ready = ok and loaded == true and pcall(piece.SetTexCoord,piece,0,1,0,1)
+                        and pcall(piece.SetVertexColor,piece,1,1,1,0)
+                end
+            end
+        end
+    end
+    if ready then UI.fx = Presentation.newEffects() end
+end
+
+local function hideEffect(piece)
+    if UI.fxShown[piece] then
+        piece:Hide()
+        UI.fxShown[piece] = false
+    end
+end
+
+-- A particle quad must fit the canvas whole; there is no clipping API.
+local function placeEffect(piece, kind, cell, x, y, size, r, g, b, a)
+    local view,half = UI.view,size/2
+    if a <= 0 or x-half < 0 or y-half < 0 or x+half > view.canvasWidth or y+half > view.canvasHeight then
+        hideEffect(piece)
+        return
+    end
+    if UI.fxCells[piece] ~= cell then
+        UI.fxCells[piece] = cell
+        piece:SetTexCoord(Presentation.effectCoords(kind,cell))
+    end
+    piece:ClearAllPoints()
+    piece:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x,y)
+    piece:SetSize(size,size)
+    piece:SetVertexColor(r,g,b,a)
+    if not UI.fxShown[piece] then
+        piece:Show()
+        UI.fxShown[piece] = true
+    end
+end
+
+local function resetEffects()
+    if UI.fx then Presentation.clearEffects(UI.fx) end
+    for _,piece in ipairs(UI.fxSmoke) do hideEffect(piece) end
+    for _,piece in ipairs(UI.fxSparks) do hideEffect(piece) end
+    for _,piece in ipairs(UI.fxFlames) do hideEffect(piece) end
+    UI.fxOptions = {
+        anchors=UI.kartSprite and UI.kartSprite.effects or Presentation.DEFAULT_EFFECT_ANCHORS,
+        dust=UI.trackId == "mirage_raceway" and MIRAGE_DUST or OVAL_DUST,
+        boostFullTicks=Physics.BOOST_TIER2_TICKS,
+    }
+end
+
+-- (kartX, kartY) is the drawn kart pose on the canvas.
+local function renderEffects(kartX, kartY, alpha)
+    local fx = UI.fx
+    if not fx then return end
+    local now = Presentation.advanceEffects(fx,UI.previousState,UI.state,alpha,UI.fxOptions)
+    local view = UI.view
+    local scale = view.scale
+    for i,p in ipairs(fx.smoke) do
+        local x,y,size,a = Presentation.particleAt(p,now)
+        if x then
+            x,y = Presentation.project(view,x,y)
+            placeEffect(UI.fxSmoke[i],"smoke",p.cell,x,y,size*scale,p.r,p.g,p.b,a)
+        else hideEffect(UI.fxSmoke[i]) end
+    end
+    for i,p in ipairs(fx.sparks) do
+        local x,y,size,a = Presentation.particleAt(p,now)
+        if x then
+            x,y = Presentation.project(view,x,y)
+            placeEffect(UI.fxSparks[i],"spark",p.cell,x,y,size*scale,p.r,p.g,p.b,a)
+        else hideEffect(UI.fxSparks[i]) end
+    end
+    local E = Presentation.EFFECTS
+    for i,flame in ipairs(fx.flames) do
+        local outer,inner = UI.fxFlames[2*i-1],UI.fxFlames[2*i]
+        if flame.on then
+            local layer = flame.front and FLAME_FRONT or FLAME_BEHIND
+            if UI.fxLayers[outer] ~= layer then
+                outer:SetDrawLayer("OVERLAY",layer)
+                inner:SetDrawLayer("OVERLAY",layer+1)
+                UI.fxLayers[outer],UI.fxLayers[inner] = layer,layer+1
+            end
+            local x,y,size = kartX+flame.ox*scale,kartY+flame.oy*scale,flame.size*scale
+            placeEffect(outer,"flame",flame.cell,x,y,size,
+                E.flameOuter[1],E.flameOuter[2],E.flameOuter[3],flame.alpha)
+            placeEffect(inner,"flame",flame.cell,x,y,size*E.flameInnerScale,
+                E.flameInner[1],E.flameInner[2],E.flameInner[3],flame.alpha)
+        else
+            hideEffect(outer)
+            hideEffect(inner)
+        end
+    end
+end
+
 local function layoutTrack()
     local mirage = UI.trackId == "mirage_raceway"
     UI.view = mirage and Presentation.cameraViewport(Track.width,Track.height,800,480,1.5) or
@@ -477,6 +610,7 @@ local function layoutTrack()
     UI.kart:SetSize((sprite and sprite.quadWidth or Presentation.KART_FOOTPRINT_WIDTH)*UI.view.scale,
         (sprite and sprite.quadHeight or Presentation.KART_FOOTPRINT_HEIGHT)*UI.view.scale)
     UI.gatePassed,UI.gateStopped = nil,nil
+    resetEffects()
 end
 
 -- Kart visual: one pooled Texture shows the default kart sprite, or the
@@ -602,6 +736,7 @@ render = function()
         UI.kart:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x,y)
         UI.kart:SetRotation(heading - math.pi/2)
     end
+    renderEffects(x,y,alpha)
     local state = UI.state
     local tint = state.boostTicks > 0 and 4 or (state.drifting and (1 + state.driftTier) or 0)
     if tint ~= UI.kartTint then
@@ -658,6 +793,7 @@ function UI.Create()
     UI.mirageBackground:Hide()
     UI.kart = texture(UI.canvas,"OVERLAY")
     loadKartSprite()
+    createEffects(UI.canvas)
     layoutTrack()
     UI.state = Physics.new(Track)
     UI.laps = Laps.new(Track,Checkpoints,UI.state.tick)

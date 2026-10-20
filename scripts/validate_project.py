@@ -21,6 +21,8 @@ REQUIRED=[
  'scripts/build_wc3_kart.py','docs/art/karts/goblin-mortar-trike.md',
  'addon/AzerothKart/Assets/Karts/GoblinMortarTrike.tga',
  'addon/AzerothKart/Assets/Karts/GoblinDragCar.tga',
+ 'scripts/build_effect_sprites.py','scripts/preview_effects.py','docs/art/effects/drift-boost.md',
+ 'addon/AzerothKart/Assets/Effects/Particles.tga','addon/AzerothKart/Assets/Effects/Flame.tga',
  'addon/AzerothKart/Input.lua','addon/AzerothKart/Loop.lua',
  'addon/AzerothKart/Performance.lua','tests/test_performance.lua',
  'addon/AzerothKart/Presentation.lua','tests/test_presentation.lua',

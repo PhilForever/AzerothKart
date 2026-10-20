@@ -167,11 +167,43 @@ The guarded fallback covers creation-time refusal only. Later crop and tint call
 
 The visual path reads simulation state only. An offline scripted drive compares every returned Physics field and selected race/checkpoint fields between sprite and primitive modes; it is not an exhaustive comparison of all nested race state. The owner approved the installed trike and scenery shadows at `cf71394`, without itemized timing or probe output ([evidence](evidence/2026-10-20-trike-and-shadows-owner-approval.md)). That approval does not establish combined-build counts, moving-camera edge behavior or sustained performance.
 
+**Proposed on `claude/track-ui` (Claude, 2026-10-21; awaiting Codex review): drift and boost effects.** See [the effects sheet](art/effects/drift-boost.md).
+
+- `Presentation.EFFECTS` is read-only data:
+  - the two atlas paths and their cell layout;
+  - pool sizes: 20 puffs, 14 sparks, and two flames of two layers;
+  - spark colours per drift tier (the meter's blue, gold and magenta), and the soot and flame colours;
+  - the flame's reach in world units.
+- A kart sprite may carry `effects = {wheels, exhausts, view}`: anchors in the kart's frame (+x forward, +y left, z up; world units) and the art's camera tilt `(cos, sin)`. `Presentation.DEFAULT_EFFECT_ANCHORS` covers the primitive kart.
+- `Presentation.newEffects() -> fx` allocates the fixed pools. `Presentation.clearEffects(fx)` deactivates every particle and flame.
+- `Presentation.advanceEffects(fx, previous, current, alpha, options) -> now`:
+  - emits for every new simulation tick from `drifting`, `driftTier`, `driftGraceTicks`, `driftDirection` and `boostTicks`, placing particles along the path travelled since the last tick;
+  - updates the flames for the drawn heading;
+  - returns the effect time: `previous.tick + alpha` while interpolating, otherwise `current.tick`. A tick that goes backward, or jumps by more than 30, restarts the effects;
+  - takes `options = {anchors, dust, boostFullTicks}`;
+  - writes only `fx`; both states are read-only.
+- `Presentation.particleAt(p, now) -> x, y, size, alpha` (or nil) evaluates one particle in world units. `Presentation.effectCoords(kind, cell)` returns `SetTexCoord` arguments for a `"smoke"`, `"spark"` or `"flame"` cell.
+- Effect randomness is a seeded Park–Miller sequence, exact in Lua 5.1 and 5.4, so the same states give the same particles.
+- UI owns 38 effect textures, created once in `UI.Create`:
+
+  | Texture | Layer and sublevel |
+  |---|---|
+  | Smoke | ARTWORK 6 |
+  | Sparks | OVERLAY −2 |
+  | Flames, pipe facing the camera | OVERLAY 2/3 |
+  | Flames, pipe on the far side | OVERLAY −4/−3 |
+
+  - Each atlas loads through guarded `SetTexture == true` plus `SetTexCoord`/`SetVertexColor` probes; any refusal disables all effects without touching the kart or race.
+  - Drawing uses pre-rendered directional cells, never `SetRotation`, and normal alpha blending, never `SetBlendMode`.
+  - Quads that would cross the canvas edge are hidden.
+  - Map selection clears all effects.
+- Offline drives give identical returned Physics and selected race fields with effects on, refused or under the primitive kart. Client appearance and cost are NOT RUN.
+
 ## Rendering cadence, resources and lifecycle
 
 Rendering currently runs once per delivered active `OnUpdate`, after zero or more fixed steps; it is not locked to 60 FPS and has no separate render timer. Meter, gate colors and countdown update through the render path with cached values. The numeric HUD refreshes every ≥0.25 **simulated** seconds, on lap/status changes and immediately at Start/Stop/selection. UI lifecycle events may draw outside `OnUpdate`; inactive updates do no work.
 
-The window is 856×762 with an 800×480 canvas. Explicit UI allocations are **9 frames, 113 textures, 13 font strings** (two additional pooled Oval obstacle markers; no additional Frames). This includes the 96 retained Oval bands, four gate strips, four perimeter strips, one Mirage background, one kart, two solid-fixture markers and pooled meter/result/cue elements. Markers render the physical rectangles in ARTWORK at Oval's fixed scale and stay hidden on Mirage, including camera updates. Counts exclude Core's event frame, template/native internals and other addons. They are offline-checked explicit allocations; the prior 9/111/13 baseline has scoped client observations. Neither count is a guaranteed client memory/FPS budget or a ban on reviewed pool changes.
+The window is 856×762 with an 800×480 canvas. Explicit UI allocations are **9 frames, 113 textures, 13 font strings** (two additional pooled Oval obstacle markers; no additional Frames). The proposed drift/boost effects on `claude/track-ui` add 38 pooled textures: **9 frames, 151 textures, 13 font strings**. This includes the 96 retained Oval bands, four gate strips, four perimeter strips, one Mirage background, one kart, two solid-fixture markers and pooled meter/result/cue elements. Markers render the physical rectangles in ARTWORK at Oval's fixed scale and stay hidden on Mirage, including camera updates. Counts exclude Core's event frame, template/native internals and other addons. They are offline-checked explicit allocations; the prior 9/111/13 baseline has scoped client observations. Neither count is a guaranteed client memory/FPS budget or a ban on reviewed pool changes.
 
 Preserve creation-time pooling: no `CreateFrame`/`CreateTexture`/font-string creation, texture file loads or chat output per simulation tick or render callback. Current snapshots allocate bounded Lua tables per tick; there is no promise of zero Lua allocation. Profile before replacing their immutable-style behavior. Opt-in Performance collects at most 600 callback spans and includes instrumentation overhead; it is not exclusive CPU/GPU cost.
 
