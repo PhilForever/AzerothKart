@@ -24,7 +24,7 @@ from pathlib import Path
 import struct
 import sys
 
-from paintkit import (Shape, Canvas, clamp, flat, hash2, hash32, mix3, sd_box, sd_circle,
+from paintkit import (Shadow, Shape, Canvas, clamp, flat, hash2, hash32, mix3, prism, sd_box, sd_circle,
                       sd_ellipse, sd_polygon, sd_segment, smooth, value_noise)
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -292,17 +292,24 @@ def paint_ground(canvas, geo):
 
 
 # ---------------------------------------------------------------------------
-# Scenery: static, lit from the north-west (the map never rotates), with soft
-# south-east cast shadows. Every object keeps CLEARANCE units off the road.
+# Scenery: static, lit from the north-west (the map never rotates). Each object
+# casts one soft shadow toward the south-east before it is drawn: its footprint
+# swept by its height, so the shadow stays attached, plus a darker contact rim
+# (paintkit.Shadow). Shadows multiply what is already painted and overlapping
+# shadows never stack; low props are queued before tall ones so taller shadows
+# fall across them. Every object keeps CLEARANCE units off the road.
 
 CLEARANCE = 20.0
 _L = (-0.45, 0.56, 0.70)
 _N = sqrt(_L[0] * _L[0] + _L[1] * _L[1] + _L[2] * _L[2])
 LX, LY, LZ = _L[0] / _N, _L[1] / _N, _L[2] / _N
-SHADOW = (0.26, 0.19, 0.14)
+SHADOW_VECTOR = (0.57, -0.76)     # ground offset per unit of height: 0.95 x (0.6, -0.8), away from the light
+SHADOW_TINT = (0.46, 0.42, 0.55)  # color multiplier at full shadow: darker and slightly cool
 OUTLINE = (0.17, 0.11, 0.08)
 SQ3 = sqrt(3.0) / 2.0          # cos 30 degrees, exact under IEEE sqrt
+SQ2 = sqrt(0.5)                # cos 45 degrees
 ROT = (24.0 / 25.0, 7.0 / 25.0)  # exact ~16 degree rotation for crooked goblin carpentry
+OCTAGON = ((1.0, 0.0), (SQ2, SQ2), (0.0, 1.0), (-SQ2, SQ2), (-1.0, 0.0), (-SQ2, -SQ2), (0.0, -1.0), (SQ2, -SQ2))
 
 SANDSTONE = (0.760, 0.520, 0.300)
 SANDSTONE_DARK = (0.560, 0.360, 0.210)
@@ -415,8 +422,38 @@ def rotated(cx, cy, rot=ROT):
     return local
 
 
+def corners(cx, cy, hx, hy, rot=(1.0, 0.0)):
+    """World corners of a rectangle rotated by (cos, sin), counter-clockwise."""
+    c, s = rot
+    return [(cx + dx * c - dy * s, cy + dx * s + dy * c) for dx, dy in ((-hx, -hy), (hx, -hy), (hx, hy), (-hx, hy))]
+
+
+# Shadow pieces: convex volumes as (x, y, z) vertices plus a rounding radius.
+
+def column(cx, cy, r, z0, z1):
+    """Upright cylinder: barrel, post, stack."""
+    return prism([(cx, cy)], z0, z1, r)
+
+
+def beam(ax, ay, bx, by, r, z0, z1):
+    """Capsule outline (log, pipe, boom, cloth strip) spanning heights z0..z1."""
+    return prism([(ax, ay), (bx, by)], z0, z1, r)
+
+
+def block(cx, cy, hx, hy, z0, z1, rot=(1.0, 0.0)):
+    """Rectangular prism."""
+    return prism(corners(cx, cy, hx, hy, rot), z0, z1)
+
+
+def mound(cx, cy, rx, ry, height, crown=0.5):
+    """Dome-like frustum: an octagon at the ground narrowing to `crown` of its size on top."""
+    points = [(cx + 1.03 * rx * ox, cy + 1.03 * ry * oy, 0.0) for ox, oy in OCTAGON]
+    points += [(cx + 1.03 * crown * rx * ox, cy + 1.03 * crown * ry * oy, height) for ox, oy in OCTAGON]
+    return points, 0.0
+
+
 class Scene:
-    """Collects shapes in painter order with clearance and shadow helpers."""
+    """Collects shadows and shapes in painter order, with a road-clearance check."""
 
     def __init__(self, geo):
         self.geo, self.shapes = geo, []
@@ -425,17 +462,32 @@ class Scene:
         gap = self.geo.road_distance(x, y) - radius
         assert gap >= clearance, f"scenery at {(x, y)} r={radius} is {gap:.1f} from the road"
 
-    def add(self, sdf, bbox, paint, outline=0.8, shadow=0.0, soft=None, opacity=1.0,
-            shadow_soft=3.0, shadow_alpha=0.30, ink=OUTLINE):
-        if shadow > 0.0:
-            x0, x1, y0, y1 = bbox
-            self.shapes.append(Shape(lambda x, y: sdf(x - shadow, y + shadow),
-                                     (x0 + shadow, x1 + shadow, y0 - shadow, y1 - shadow),
-                                     flat(SHADOW), 0.0, opacity=shadow_alpha, soft=shadow_soft))
+    def cast(self, pieces, **style):
+        """Queue one object's ground shadow; call it before adding the object's shapes."""
+        style.setdefault("strength", 0.64)
+        self.shapes.append(Shadow(pieces, **style))
+
+    def add(self, sdf, bbox, paint, outline=0.8, soft=None, opacity=1.0, ink=OUTLINE, cast=None, **style):
+        if cast:
+            self.cast(cast, **style)
         self.shapes.append(Shape(sdf, bbox, paint, outline, ink, opacity, soft))
 
     def ground(self, sdf, bbox, color, opacity, soft=6.0):
         self.shapes.append(Shape(sdf, bbox, flat(color), 0.0, opacity=opacity, soft=soft))
+
+    def oil(self, cx, cy, r, seed):
+        """Flat oil splat soaked into the salt: crisp lobed edge, brown body, darker pooled middle.
+
+        The hard, lobed edge keeps it from reading as a shadow."""
+        def sdf(x, y):
+            lobes = 0.45 * r * (value_noise(x, y, 0.3 * r, seed) - 0.5)
+            return sd_ellipse(x, y, cx, cy, 1.4 * r, r) + lobes + 0.2 * r * (value_noise(x, y, 0.9 * r, seed + 1) - 0.5)
+
+        def paint(x, y, d):
+            return mix3((0.34, 0.25, 0.16), (0.12, 0.09, 0.07), smooth(-d / (0.5 * r)))
+        reach = 1.9 * r + 2.0
+        self.shapes.append(Shape(sdf, (cx - reach, cx + reach, cy - reach, cy + reach), paint, 0.0,
+                                 opacity=0.7, soft=1.0))
 
     def rock(self, cx, cy, rx, ry, seed, color=SANDSTONE, top=0.35, height=None):
         """Chiseled sandstone: jagged outline, flat lit facets, crevices, bleached top."""
@@ -485,10 +537,10 @@ class Scene:
                 strata *= 0.78 + 0.22 * gap / 0.55
             v = strata * (1.0 + 0.06 * (value_noise(x, y, 2.5, seed + 3) - 0.5))
             return r * v, g * v, b * v
-        h = 0.35 * small if height is None else height
+        h = 0.6 * small if height is None else height
         pad = jag
-        self.add(sdf, (cx - rx - pad, cx + rx + pad, cy - ry - pad, cy + ry + pad), paint,
-                 outline=0.8, shadow=h, shadow_soft=2.0 + 0.15 * h, shadow_alpha=0.36)
+        self.add(sdf, (cx - rx - pad, cx + rx + pad, cy - ry - pad, cy + ry + pad), paint, outline=0.8,
+                 cast=[mound(cx, cy, rx, ry, h, crown=0.35 + 0.5 * top)], reach=1.8 + 0.04 * small)
 
     def barrel(self, cx, cy, r, body=GOB_RED, band=HAZARD):
         def paint(x, y, d):
@@ -498,7 +550,7 @@ class Scene:
                 c = mix3(c, IRON, 0.6)
             return lit(c, n_dome(cx, cy, r * 1.4, r * 1.4), grain=0.04)(x, y, d)
         self.add(lambda x, y: sd_circle(x, y, cx, cy, r), (cx - r, cx + r, cy - r, cy + r), paint,
-                 outline=0.7, shadow=r * 0.8, shadow_soft=2.0)
+                 outline=0.7, cast=[column(cx, cy, r, 0.0, 1.6 * r)], reach=1.6)
 
     def crate(self, cx, cy, h, rot=(1.0, 0.0)):
         local = rotated(cx, cy, rot)
@@ -514,7 +566,7 @@ class Scene:
             return k
         self.add(sdf, (cx - h * 1.5, cx + h * 1.5, cy - h * 1.5, cy + h * 1.5),
                  lit(WOOD, n_flat, pattern=pattern, seed=int(cx) + 7), outline=0.7,
-                 shadow=h * 0.9, shadow_soft=1.8)
+                 cast=[block(cx, cy, h, h, 0.0, 1.8 * h, rot)], reach=1.6)
 
     def shrub(self, cx, cy, r, seed):
         def sdf(x, y):
@@ -524,7 +576,7 @@ class Scene:
             k = 0.75 + 0.5 * value_noise(x, y, 1.2, seed + 1)
             return SHRUB[0] * k, SHRUB[1] * k, SHRUB[2] * k
         self.add(sdf, (cx - r * 1.3, cx + r * 1.3, cy - r * 1.3, cy + r * 1.3), paint, outline=0.5,
-                 shadow=r * 0.6, shadow_soft=1.5, shadow_alpha=0.25)
+                 cast=[mound(cx, cy, r, r, 1.1 * r, crown=0.5)], strength=0.5, reach=1.5)
 
 
 def perimeter(scene):
@@ -560,7 +612,7 @@ def perimeter(scene):
             pos += r * 1.05
             k += 1
     for i, (cx, cy) in enumerate(((10.0, 10.0), (SIZE - 12.0, 14.0), (SIZE - 10.0, SIZE - 12.0), (14.0, SIZE - 10.0))):
-        scene.rock(cx, cy, 44.0, 38.0, seed=4100 + i, top=0.5, height=14.0)
+        scene.rock(cx, cy, 44.0, 38.0, seed=4100 + i, top=0.5, height=24.0)
         scene.rock(cx + (18.0 if cx < 100 else -18.0), cy + (16.0 if cy < 100 else -16.0), 20.0, 16.0,
                    seed=4110 + i, top=0.4)
 
@@ -579,7 +631,7 @@ def rock_mound(scene):
             (-46, -2, 13, 11))
     for i, (dx, dy, rx, ry) in enumerate(ring):
         scene.rock(cx + dx, cy + dy, rx, ry, seed=620 + i, top=0.3)
-    scene.rock(cx - 4, cy - 2, 44.0, 34.0, seed=611, top=0.6, height=16.0)
+    scene.rock(cx - 4, cy - 2, 44.0, 34.0, seed=611, top=0.6, height=18.0)
     scene.rock(cx + 12, cy + 8, 22.0, 16.0, seed=612, top=0.5, height=11.0,
                color=mix3(SANDSTONE, (0.82, 0.62, 0.40), 0.45))
     scene.rock(cx - 18, cy - 10, 12.0, 9.0, seed=613, top=0.4, height=7.0,
@@ -634,20 +686,24 @@ def goblin_workshop(scene, cx, cy, hx=54.0, hy=40.0):
         return mix3((r * v, g * v, b * v), (r * 0.6, g * 0.55, b * 0.45), streak * 0.5)
     reach = hx * c + hy * s + 3.0
     scene.need(cx, cy, reach + 10.0)
-    scene.add(sdf, (cx - reach, cx + reach, cy - reach, cy + reach), paint, outline=1.1, shadow=9.0,
-              shadow_soft=3.0, shadow_alpha=0.38)
-    # Chimney pipe with soot.
+    # Gable volume: eaves at 14, ridge (along local x) at 24.
+    gable = [(x, y, z) for x, y in corners(cx, cy, hx, hy, ROT) for z in (0.0, 14.0)]
+    gable += [(cx + dx * c, cy + dx * s, 24.0) for dx in (-hx, hx)]
+    scene.add(sdf, (cx - reach, cx + reach, cy - reach, cy + reach), paint, outline=1.1,
+              cast=[(gable, 0.0)], reach=4.0, contact=0.55)
+    # Chimney pipe with soot, on the roof: its shadow is cast onto the roof (heights from the roof).
     px, py = cx + 0.55 * hx * c - 0.45 * hy * s, cy + 0.55 * hx * s + 0.45 * hy * c
     scene.ground(lambda x, y: sd_circle(x, y, px + 4.0, py + 3.0, 9.0), (px - 12, px + 16, py - 10, py + 16),
                  (0.10, 0.09, 0.08), 0.45, soft=5.0)
     scene.add(lambda x, y: sd_circle(x, y, px, py, 5.5), (px - 6, px + 6, py - 6, py + 6),
-              lit(IRON, n_dome(px, py, 7.0, 7.0), spec=0.4), outline=0.8, shadow=12.0, shadow_soft=2.5)
+              lit(IRON, n_dome(px, py, 7.0, 7.0), spec=0.4), outline=0.8,
+              cast=[column(px, py, 5.0, 0.0, 10.0)], reach=2.0)
     scene.add(lambda x, y: sd_circle(x, y, px, py, 3.2), (px - 4, px + 4, py - 4, py + 4),
               flat((0.06, 0.05, 0.05)), outline=0.0)
 
 
-def striped_canopy(scene, cx, cy, hx, hy, colors, rot=(1.0, 0.0), stripe=6.0, shadow=7.0):
-    """Market-style awning: stripes across a shallow gable, seen from above."""
+def striped_canopy(scene, cx, cy, hx, hy, colors, rot=(1.0, 0.0), stripe=6.0, raised=False):
+    """Striped gable seen from above: a tent on the ground, or a raised awning on four poles."""
     c, s = rot
     local = rotated(cx, cy, rot)
     plus = unit(-s * 0.45, c * 0.45, 1.0)
@@ -670,8 +726,14 @@ def striped_canopy(scene, cx, cy, hx, hy, colors, rot=(1.0, 0.0), stripe=6.0, sh
     reach = abs(hx * c) + abs(hy * s) + 2.0
     reach_y = abs(hx * s) + abs(hy * c) + 2.0
     scene.need(cx, cy, max(reach, reach_y) + 6.0)
-    scene.add(sdf, (cx - reach, cx + reach, cy - reach_y, cy + reach_y), paint, outline=0.9, shadow=shadow,
-              shadow_soft=2.5, shadow_alpha=0.32)
+    eave, ridge = (8.0, 8.0 + 0.5 * hy) if raised else (0.0, 0.9 * hy + 2.0)
+    roof = [(x, y, eave) for x, y in corners(cx, cy, hx, hy, rot)]
+    roof += [(cx + dx * c, cy + dx * s, ridge) for dx in (-hx, hx)]
+    pieces = [(roof, 0.0)]
+    if raised:
+        pieces += [column(x, y, 0.8, 0.0, eave) for x, y in corners(cx, cy, hx - 1.5, hy - 1.5, rot)]
+    scene.add(sdf, (cx - reach, cx + reach, cy - reach_y, cy + reach_y), paint, outline=0.9,
+              cast=pieces, reach=2.5)
 
 
 def scrap_heap(scene, cx, cy, r, seed):
@@ -687,26 +749,35 @@ def scrap_heap(scene, cx, cy, r, seed):
                    seed=seed + 4)(x, y, d)
     scene.need(cx, cy, r * 1.3)
     scene.add(sdf, (cx - r * 1.3, cx + r * 1.3, cy - r * 1.3, cy + r * 1.3), paint, outline=0.9,
-              shadow=r * 0.35, shadow_soft=3.0)
+              cast=[mound(cx, cy, r, r, 0.55 * r, crown=0.35)], reach=2.5)
 
 
-def wheel(scene, cx, cy, r, seed):
+def wheel(scene, cx, cy, r, seed, height=2.0):
+    """A tire lying flat, or a stack of them when `height` is larger."""
     scene.add(lambda x, y: abs(sd_circle(x, y, cx, cy, r * 0.72)) - r * 0.28,
               (cx - r, cx + r, cy - r, cy + r),
               lit((0.13, 0.12, 0.12), n_dome(cx, cy, r * 1.2, r * 1.2), seed=seed), outline=0.6,
-              shadow=r * 0.5, shadow_soft=1.5)
+              cast=[column(cx, cy, r, 0.0, height)], reach=1.4)
 
 
 def rocket_on_rack(scene, ax, ay, bx, by, r):
     """A spare goblin rocket lying on wooden cradles (axis along a->b)."""
     length = sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay))
     ux, uy = (bx - ax) / length, (by - ay) / length
-    for f in (0.25, 0.75):
-        mx, my = ax + (bx - ax) * f, ay + (by - ay) * f
+    tx, ty = ax + ux * 3.0, ay + uy * 3.0
+    cradles = [(ax + (bx - ax) * f, ay + (by - ay) * f) for f in (0.25, 0.75)]
+    fins = [(tx - uy * side * r * 1.9 - ux * 4, ty + ux * side * r * 1.9 - uy * 4) for side in (-1.0, 1.0)]
+    # One shadow for the whole rocket: cradles on the ground, body resting on them, upright fins.
+    pieces = [beam(mx - uy * r * 1.6, my + ux * r * 1.6, mx + uy * r * 1.6, my - ux * r * 1.6, 1.8, 0.0, 4.0)
+              for mx, my in cradles]
+    pieces.append(beam(ax, ay, bx, by, 0.9 * r, 3.0 + 0.4 * r, 3.0 + 1.6 * r))
+    pieces += [beam(tx, ty, fx, fy, 1.4, 3.0, 3.0 + 2.0 * r) for fx, fy in fins]
+    scene.need((ax + bx) / 2, (ay + by) / 2, length / 2 + r)
+    scene.cast(pieces, reach=1.8)
+    for mx, my in cradles:
         scene.add(lambda x, y, mx=mx, my=my: sd_segment(x, y, mx - uy * r * 1.6, my + ux * r * 1.6,
                                                         mx + uy * r * 1.6, my - ux * r * 1.6, 1.8),
-                  (mx - r * 2, mx + r * 2, my - r * 2, my + r * 2), lit(WOOD, n_flat), outline=0.6,
-                  shadow=2.0, shadow_soft=1.5)
+                  (mx - r * 2, mx + r * 2, my - r * 2, my + r * 2), lit(WOOD, n_flat), outline=0.6)
 
     def paint(x, y, d):
         along = ((x - ax) * ux + (y - ay) * uy) / length
@@ -714,14 +785,11 @@ def rocket_on_rack(scene, ax, ay, bx, by, r):
         if 0.48 < along < 0.53:
             base = HAZARD
         return lit(base, n_cyl(ax, ay, ux, uy, r), spec=0.5)(x, y, d)
-    scene.need((ax + bx) / 2, (ay + by) / 2, length / 2 + r)
     scene.add(lambda x, y: sd_segment(x, y, ax, ay, bx, by, r), (min(ax, bx) - r, max(ax, bx) + r,
-              min(ay, by) - r, max(ay, by) + r), paint, outline=0.9, shadow=6.0, shadow_soft=2.5)
-    for side in (-1.0, 1.0):                    # tail fins
-        tx, ty = ax + ux * 3.0, ay + uy * 3.0
-        scene.add(lambda x, y, side=side, tx=tx, ty=ty: sd_segment(x, y, tx, ty, tx - uy * side * r * 1.9 - ux * 4,
-                                                                   ty + ux * side * r * 1.9 - uy * 4, 1.4),
-                  (tx - r * 3, tx + r * 3, ty - r * 3, ty + r * 3), lit(IRON, n_flat), outline=0.5, shadow=4.0)
+              min(ay, by) - r, max(ay, by) + r), paint, outline=0.9)
+    for fx, fy in fins:                         # tail fins
+        scene.add(lambda x, y, fx=fx, fy=fy: sd_segment(x, y, tx, ty, fx, fy, 1.4),
+                  (tx - r * 3, tx + r * 3, ty - r * 3, ty + r * 3), lit(IRON, n_flat), outline=0.5)
 
 
 def crane(scene, bx, by, ex, ey):
@@ -737,21 +805,22 @@ def crane(scene, bx, by, ex, ey):
         base = (0.35, 0.28, 0.12) if brace and abs(lateral) < 2.0 else HAZARD
         return lit(base, n_cyl(bx, by, ux, uy, 3.0))(x, y, d)
     scene.need((bx + ex) / 2, (by + ey) / 2, length / 2 + 6.0)
+    # Squat tower, raised boom, and a hook block hanging on its cable.
+    scene.cast([block(bx, by, 8.0, 8.0, 0.0, 20.0), beam(bx, by, ex, ey, 2.6, 19.0, 22.0),
+                column(ex, ey - 6.0, 0.4, 10.0, 21.0), block(ex, ey - 6.0, 3.0, 3.0, 6.0, 10.0)], reach=2.5)
     scene.add(lambda x, y: sd_box(x, y, bx, by, 8.0, 8.0, 1.0), (bx - 9, bx + 9, by - 9, by + 9),
-              lit(IRON, n_dome(bx, by, 14.0, 14.0)), outline=0.9, shadow=14.0, shadow_soft=3.0)
+              lit(IRON, n_dome(bx, by, 14.0, 14.0)), outline=0.9)
     scene.add(lambda x, y: sd_segment(x, y, bx, by, ex, ey, 3.0), (min(bx, ex) - 4, max(bx, ex) + 4,
-              min(by, ey) - 4, max(by, ey) + 4), paint, outline=0.8, shadow=18.0, shadow_soft=3.5,
-              shadow_alpha=0.28)
+              min(by, ey) - 4, max(by, ey) + 4), paint, outline=0.8)
     scene.add(lambda x, y: sd_box(x, y, ex, ey - 6.0, 3.0, 3.0, 0.6), (ex - 4, ex + 4, ey - 10, ey - 2),
-              lit(IRON, n_flat), outline=0.6, shadow=10.0)
+              lit(IRON, n_flat), outline=0.6)
 
 
 def hazard_pad(scene, x0, y0, x1, y1):
     """Flat pit box painted on the salt: hazard-striped frame, oily center."""
     cx, cy, hx, hy = (x0 + x1) / 2, (y0 + y1) / 2, (x1 - x0) / 2, (y1 - y0) / 2
     scene.need(cx, cy, sqrt(hx * hx + hy * hy))
-    scene.ground(lambda x, y: sd_ellipse(x, y, cx + 4, cy - 2, hx * 0.7, hy * 0.6) +
-                 6.0 * value_noise(x, y, 7.0, 820), (x0, x1, y0, y1), (0.16, 0.13, 0.11), 0.35, soft=5.0)
+    scene.oil(cx + 5.0, cy - 3.0, 6.0, 820)
 
     def frame(x, y):
         return max(sd_box(x, y, cx, cy, hx, hy), -sd_box(x, y, cx, cy, hx - 3.5, hy - 3.5))
@@ -764,46 +833,82 @@ def hazard_pad(scene, x0, y0, x1, y1):
     scene.add(frame, (x0 - 1, x1 + 1, y0 - 1, y1 + 1), paint, outline=0.0, opacity=0.9)
 
 
-def banner_pole(scene, x, y, color, wind=(1.0, 0.0), length=16.0, clearance=CLEARANCE):
-    """Pole (seen end-on) with a cloth banner streaming in the wind."""
+def banner_pole(scene, x, y, color, trim, wind=(1.0, 0.0), length=15.0, clearance=CLEARANCE, base=0.0,
+                seed=830):
+    """Pole (a dot from above) flying a swallowtail banner that streams flat downwind.
+
+    The banner's shadow is the same shape lifted to the pole top, joined to
+    the pole's base by the pole's own thin shadow. `base` raises the pole (a
+    pennant on a roof); `trim` colors the stripe down the cloth.
+    """
     scene.need(x, y, length + 4.0, clearance)
     wx, wy = wind
-    ex, ey = x + wx * length, y + wy * length
-    scene.add(lambda px, py: sd_segment(px, py, x + wx * 2, y + wy * 2, ex, ey, 2.6),
-              (min(x, ex) - 4, max(x, ex) + 4, min(y, ey) - 4, max(y, ey) + 4),
-              lit(color, n_cyl(x, y, wx, wy, 2.6),
-                  pattern=lambda px, py: 1.0 - 0.15 * smooth((value_noise(px, py, 3.0, 830) - 0.5) / 0.3)),
-              outline=0.6, shadow=13.0, shadow_soft=2.5, shadow_alpha=0.26)
+    nx, ny = -wy, wx
+    top = base + 16.0
+    hw, notch = 3.8, length - 4.0
+    cloth = [(1.2, hw), (length, hw), (notch, 0.0), (length, -hw), (1.2, -hw)]   # (along, across)
+
+    def world(u, w):
+        return x + u * wx + w * nx, y + u * wy + w * ny
+
+    def local(px, py):
+        dx, dy = px - x, py - y
+        u = dx * wx + dy * wy
+        ripple = 1.1 * (value_noise(u, 0.0, 4.5, seed) - 0.5) * clamp(u / 5.0)
+        return u, dx * nx + dy * ny - ripple
+
+    def sdf(px, py):
+        u, w = local(px, py)
+        return sd_polygon(u, w, cloth) - 0.3
+    light = 0.52 + 0.62 * LZ
+
+    def paint(px, py, d):
+        u, w = local(px, py)
+        c = trim if abs(w) < 0.9 else color
+        if u < 3.0:
+            c = mix3(c, (0.10, 0.08, 0.06), 0.35)        # sleeve around the pole
+        k = light * (1.0 - 0.18 * smooth((value_noise(u, 7.0, 3.0, seed + 1) - 0.4) / 0.4))
+        return c[0] * k, c[1] * k, c[2] * k
+    rect = [world(1.2, hw), world(notch, hw), world(notch, -hw), world(1.2, -hw)]
+    tails = [[world(notch, 0.0), world(notch, s * hw), world(length, s * hw)] for s in (1.0, -1.0)]
+    scene.cast([column(x, y, 0.9, base, top), prism(rect, top - 1.5, top)] +
+               [prism(t, top - 1.5, top) for t in tails], strength=0.55, reach=1.2)
+    ex, ey = world(length, 0.0)
+    reach = hw + 2.0
+    scene.add(sdf, (min(x, ex) - reach, max(x, ex) + reach, min(y, ey) - reach, max(y, ey) + reach), paint,
+              outline=0.6)
     scene.add(lambda px, py: sd_circle(px, py, x, y, 1.8), (x - 2, x + 2, y - 2, y + 2),
-              lit(WOOD_DARK, n_dome(x, y, 2.5, 2.5)), outline=0.4, shadow=15.0, shadow_soft=2.0)
+              lit(WOOD_DARK, n_dome(x, y, 2.5, 2.5)), outline=0.4)
+    scene.add(lambda px, py: sd_circle(px, py, x - 0.4, y + 0.4, 0.7), (x - 2, x + 2, y - 2, y + 2),
+              lit(BRASS, n_dome(x - 0.4, y + 0.4, 1.0, 1.0), spec=0.8), outline=0.0)
 
 
 def tire_stack(scene, x, y, seed):
     scene.need(x, y, 7.0, clearance=24.0)
-    wheel(scene, x, y, 5.6, seed)
+    wheel(scene, x, y, 5.6, seed, height=9.0)
 
 
 def goblin_camp(scene):
     """East pit camp: crooked workshop, crane, fuel, scrap, rocket, tent, pit box."""
     scene.ground(lambda x, y: sd_ellipse(x, y, 892.0, 400.0, 96.0, 138.0) + 22.0 * value_noise(x, y, 30.0, 840),
                  (780.0, 1000.0, 250.0, 550.0), (0.82, 0.74, 0.58), 0.35, soft=14.0)
-    for i, (sx, sy, r) in enumerate(((850, 320, 10), (905, 360, 8), (870, 470, 9), (940, 300, 7))):
-        scene.ground(lambda x, y, sx=sx, sy=sy, r=r: sd_circle(x, y, sx, sy, r) + 4.0 * value_noise(x, y, 5.0, 850 + i),
-                     (sx - r - 6, sx + r + 6, sy - r - 6, sy + r + 6), (0.12, 0.10, 0.09), 0.40, soft=4.0)
+    for i, (sx, sy, r) in enumerate(((905, 356, 5), (872, 474, 4))):   # drips by the crates and awning
+        scene.oil(float(sx), float(sy), float(r), 850 + i)
     hazard_pad(scene, 792.0, 300.0, 846.0, 342.0)
-    goblin_workshop(scene, 905.0, 428.0)
-    striped_canopy(scene, 836.0, 470.0, 18.0, 12.0, (GOB_LIME, GOB_TEAL), rot=ROT)
+    # Low props first, so the taller workshop, crane and banners shade them.
     for i, (bx, by) in enumerate(((830, 368), (844, 362), (834, 354), (848, 376), (822, 382))):
         scene.barrel(float(bx), float(by), 5.8)
     for i, (bx, by, h) in enumerate(((878, 370, 6.0), (889, 364, 5.0), (884, 352, 4.5))):
         scene.crate(float(bx), float(by), h, rot=ROT if i % 2 else (1.0, 0.0))
     scrap_heap(scene, 952.0, 330.0, 21.0, 860)
-    wheel(scene, 924.0, 312.0, 6.5, 861)
+    wheel(scene, 924.0, 312.0, 6.5, 861)       # tires leaning on the heap
     wheel(scene, 966.0, 362.0, 5.5, 862)
+    striped_canopy(scene, 836.0, 470.0, 18.0, 12.0, (GOB_LIME, GOB_TEAL), rot=ROT, raised=True)
     rocket_on_rack(scene, 930.0, 492.0, 982.0, 506.0, 6.0)
+    goblin_workshop(scene, 905.0, 428.0)
     crane(scene, 848.0, 520.0, 930.0, 548.0)
-    banner_pole(scene, 796.0, 448.0, GOB_RED, wind=(0.8, 0.6))
-    banner_pole(scene, 796.0, 392.0, GOB_GREEN, wind=(0.8, 0.6))
+    banner_pole(scene, 796.0, 448.0, GOB_RED, HAZARD, wind=(0.8, 0.6), seed=831)
+    banner_pole(scene, 796.0, 392.0, GOB_GREEN, HAZARD, wind=(0.8, 0.6), seed=832)
 
 
 def gnome_dome(scene, cx, cy, r):
@@ -833,8 +938,11 @@ def gnome_dome(scene, cx, cy, r):
                 r_, g, b = mix3((r_, g, b), (1.0, 0.93, 0.70), 0.6)
         return r_, g, b
     scene.need(cx, cy, r + 8.0)
-    scene.add(lambda x, y: sd_circle(x, y, cx, cy, r), (cx - r, cx + r, cy - r, cy + r), paint,
-              outline=1.1, shadow=r * 0.28, shadow_soft=5.0, shadow_alpha=0.40)
+    # Stepped dome volume (26 units high) and the glass lantern on top.
+    scene.add(lambda x, y: sd_circle(x, y, cx, cy, r), (cx - r, cx + r, cy - r, cy + r), paint, outline=1.1,
+              cast=[column(cx, cy, r, 0.0, 9.0), column(cx, cy, 0.82 * r, 9.0, 19.0),
+                    column(cx, cy, 0.5 * r, 19.0, 26.0), column(cx, cy, 0.22 * r, 26.0, 30.0)],
+              reach=4.0, contact=0.55)
 
 
 def diamond(x, y):
@@ -856,7 +964,8 @@ def gear(scene, cx, cy, r, seed):
         return max(d, -sd_circle(x, y, cx, cy, r * 0.22))
     scene.need(cx, cy, r + 2.0)
     scene.add(sdf, (cx - r - 2, cx + r + 2, cy - r - 2, cy + r + 2),
-              lit(BRASS, n_flat, spec=0.3, grain=0.08, seed=seed), outline=0.8, shadow=2.5, shadow_soft=1.5)
+              lit(BRASS, n_flat, spec=0.3, grain=0.08, seed=seed), outline=0.8,
+              cast=[column(cx, cy, r, 0.0, 2.0)], strength=0.5, reach=1.5)
 
 
 def gnome_camp(scene):
@@ -864,71 +973,77 @@ def gnome_camp(scene):
     scene.ground(lambda x, y: sd_ellipse(x, y, 205.0, 400.0, 118.0, 128.0) + 22.0 * value_noise(x, y, 30.0, 880),
                  (70.0, 340.0, 260.0, 540.0), (0.80, 0.74, 0.60), 0.32, soft=14.0)
     for i, (px0, py0, px1, py1) in enumerate(((168, 470, 205, 452), (240, 430, 262, 470), (262, 470, 262, 470))):
-        if (px0, py0) != (px1, py1):
+        if (px0, py0) != (px1, py1):            # brass pipes on low trestles
             scene.add(lambda x, y, a=(px0, py0, px1, py1): sd_segment(x, y, a[0], a[1], a[2], a[3], 2.4),
                       (min(px0, px1) - 3, max(px0, px1) + 3, min(py0, py1) - 3, max(py0, py1) + 3),
-                      lit(BRASS, n_flat, spec=0.4), outline=0.5, shadow=3.0, shadow_soft=1.5)
-    gnome_dome(scene, 205.0, 405.0, 54.0)
-    # Boiler tank and chimney.
-    scene.add(lambda x, y: sd_segment(x, y, 128.0, 470.0, 168.0, 470.0, 11.0), (115, 181, 457, 483),
-              lit(COPPER, n_cyl(128.0, 470.0, 1.0, 0.0, 11.0), spec=0.5,
-                  pattern=lambda x, y: 0.72 if abs((x - 128.0) % 10.0 - 5.0) < 0.9 else 1.0),
-              outline=0.9, shadow=8.0, shadow_soft=2.5)
-    scene.ground(lambda x, y: sd_circle(x, y, 268.0, 477.0, 12.0), (250, 286, 460, 496), (0.08, 0.07, 0.06),
-                 0.40, soft=7.0)
-    scene.add(lambda x, y: sd_circle(x, y, 262.0, 470.0, 8.0), (253, 271, 461, 479),
-              lit(IRON, n_dome(262.0, 470.0, 10.0, 10.0), spec=0.5), outline=0.9, shadow=18.0, shadow_soft=3.0)
-    scene.add(lambda x, y: sd_circle(x, y, 262.0, 470.0, 4.8), (256, 268, 464, 476), flat((0.05, 0.05, 0.05)),
-              outline=0.0)
-    striped_canopy(scene, 300.0, 330.0, 20.0, 14.0, (GNOME_BLUE, (0.90, 0.88, 0.80)), stripe=5.0)
+                      lit(BRASS, n_flat, spec=0.4), outline=0.5,
+                      cast=[beam(px0, py0, px1, py1, 2.2, 2.0, 5.0)], strength=0.5, reach=1.2)
+    # Low workbenches, tools, gears and crates before the tall dome and chimney.
     for bx, by, hx, hy in ((132.0, 330.0, 17.0, 6.0), (112.0, 360.0, 6.0, 14.0)):
         scene.add(lambda x, y, bx=bx, by=by, hx=hx, hy=hy: sd_box(x, y, bx, by, hx, hy, 1.0),
                   (bx - hx - 1, bx + hx + 1, by - hy - 1, by + hy + 1),
                   lit(WOOD, n_flat, pattern=lambda x, y: 1.0 - 0.15 * smooth(1.0 - abs((y % 3.0) - 1.5) / 0.4)),
-                  outline=0.8, shadow=4.0, shadow_soft=1.5)
+                  outline=0.8, cast=[block(bx, by, hx, hy, 0.0, 6.0)], reach=1.8)
     for tx, ty, tr in ((126.0, 331.0, 2.5), (140.0, 328.0, 2.0), (112.0, 366.0, 2.2)):
         scene.add(lambda x, y, tx=tx, ty=ty, tr=tr: sd_circle(x, y, tx, ty, tr), (tx - 3, tx + 3, ty - 3, ty + 3),
-                  lit(IRON, n_dome(tx, ty, tr * 1.3, tr * 1.3), spec=0.6), outline=0.4, shadow=1.0)
+                  lit(IRON, n_dome(tx, ty, tr * 1.3, tr * 1.3), spec=0.6), outline=0.4)
     gear(scene, 112.0, 432.0, 15.0, 890)
     gear(scene, 136.0, 444.0, 8.0, 891)
     for i, (bx, by) in enumerate(((278.0, 286.0), (290.0, 296.0), (282.0, 300.0))):
         scene.crate(bx, by, 5.0 + i, rot=(SQ3, 0.5) if i % 2 else (1.0, 0.0))
-    banner_pole(scene, 292.0, 448.0, GNOME_BLUE, wind=(0.8, 0.6))
-    banner_pole(scene, 292.0, 392.0, BRASS, wind=(0.8, 0.6))
+    # Boiler drum lying on the ground.
+    scene.add(lambda x, y: sd_segment(x, y, 128.0, 470.0, 168.0, 470.0, 11.0), (115, 181, 457, 483),
+              lit(COPPER, n_cyl(128.0, 470.0, 1.0, 0.0, 11.0), spec=0.5,
+                  pattern=lambda x, y: 0.72 if abs((x - 128.0) % 10.0 - 5.0) < 0.9 else 1.0),
+              outline=0.9, cast=[beam(128.0, 470.0, 168.0, 470.0, 10.0, 0.0, 16.0)], reach=2.5)
+    striped_canopy(scene, 300.0, 330.0, 20.0, 14.0, (GNOME_BLUE, (0.90, 0.88, 0.80)), stripe=5.0, raised=True)
+    gnome_dome(scene, 205.0, 405.0, 54.0)
+    # Tall smokestack: a long, thin shadow.
+    scene.add(lambda x, y: sd_circle(x, y, 262.0, 470.0, 8.0), (253, 271, 461, 479),
+              lit(IRON, n_dome(262.0, 470.0, 10.0, 10.0), spec=0.5), outline=0.9,
+              cast=[column(262.0, 470.0, 7.0, 0.0, 34.0)], reach=2.5)
+    scene.add(lambda x, y: sd_circle(x, y, 262.0, 470.0, 4.8), (256, 268, 464, 476), flat((0.05, 0.05, 0.05)),
+              outline=0.0)
+    banner_pole(scene, 292.0, 448.0, GNOME_BLUE, BRASS, wind=(0.8, 0.6), seed=833)
+    banner_pole(scene, 292.0, 392.0, BRASS, GNOME_BLUE, wind=(0.8, 0.6), seed=834)
 
 
 def kodo_skeleton(scene, cx, cy):
     """Bleached kodo bones: curved spine, rib pairs, skull with tusks."""
     scene.need(cx, cy, 70.0)
     spine = [(cx - 52.0 + 8.0 * i, cy - 10.0 + 0.9 * i * i - 0.0) for i in range(13)]
+    bones = {"strength": 0.5, "reach": 1.4}
     for i, (sx, sy) in enumerate(spine):
         r = 3.2 if 2 < i < 10 else 2.4
         scene.add(lambda x, y, sx=sx, sy=sy, r=r: sd_ellipse(x, y, sx, sy, r * 1.2, r),
                   (sx - r * 1.3, sx + r * 1.3, sy - r, sy + r), lit(BONE, n_dome(sx, sy, r * 1.6, r * 1.4)),
-                  outline=0.5, shadow=2.0, shadow_soft=1.5, shadow_alpha=0.26)
+                  outline=0.5, cast=[beam(sx - 0.2 * r, sy, sx + 0.2 * r, sy, r, 0.0, 4.0)], **bones)
     for i in range(3, 10):
         sx, sy = spine[i]
-        for side in (-1.0, 1.0):
+        for side in (-1.0, 1.0):                # ribs arch up from the spine and back down
             reach = 17.0 - abs(i - 6) * 1.6
             ex, ey = sx + 4.0, sy + side * reach
             mx, my = sx + 1.5, sy + side * reach * 0.55
             for (ax, ay, bx, by) in ((sx, sy, mx, my), (mx, my, ex, ey)):
                 scene.add(lambda x, y, a=(ax, ay, bx, by): sd_segment(x, y, a[0], a[1], a[2], a[3], 1.3),
                           (min(ax, bx) - 2, max(ax, bx) + 2, min(ay, by) - 2, max(ay, by) + 2),
-                          lit(BONE, n_flat), outline=0.45, shadow=2.5, shadow_soft=1.5, shadow_alpha=0.24)
+                          lit(BONE, n_flat), outline=0.45, cast=[beam(ax, ay, bx, by, 1.2, 0.0, 6.0)], **bones)
     hx, hy = spine[-1][0] + 10.0, spine[-1][1] + 2.0
     skull = [(hx - 9, hy - 6), (hx + 6, hy - 7), (hx + 12, hy - 2), (hx + 12, hy + 3), (hx + 6, hy + 7),
              (hx - 9, hy + 6)]
     scene.add(lambda x, y: sd_polygon(x, y, skull) - 1.0, (hx - 11, hx + 14, hy - 9, hy + 9),
-              lit(BONE, n_dome(hx, hy, 14.0, 10.0), spec=0.2), outline=0.6, shadow=3.0, shadow_soft=1.5)
+              lit(BONE, n_dome(hx, hy, 14.0, 10.0), spec=0.2), outline=0.6, cast=[prism(skull, 0.0, 7.0, 1.0)],
+              **bones)
     for side in (-1.0, 1.0):
         scene.add(lambda x, y, side=side: sd_segment(x, y, hx + 8, hy + side * 5, hx + 20, hy + side * 12, 1.4),
-                  (hx + 6, hx + 22, hy - 14, hy + 14), lit(BONE, n_flat), outline=0.4, shadow=3.0)
+                  (hx + 6, hx + 22, hy - 14, hy + 14), lit(BONE, n_flat), outline=0.4,
+                  cast=[beam(hx + 8, hy + side * 5, hx + 20, hy + side * 12, 1.3, 2.0, 5.0)], **bones)
         scene.add(lambda x, y, side=side: sd_circle(x, y, hx + 1, hy + side * 2.8, 1.6),
                   (hx - 1, hx + 3, hy - 5, hy + 5), flat((0.25, 0.20, 0.16)), outline=0.0)
     for i, (bx, by) in enumerate(((cx - 70, cy - 18), (cx - 64, cy + 20), (cx + 40, cy - 30))):
         scene.add(lambda x, y, bx=bx, by=by: sd_segment(x, y, bx, by, bx + 9, by + 3, 1.6),
-                  (bx - 2, bx + 11, by - 2, by + 5), lit(BONE, n_flat), outline=0.45, shadow=2.0)
+                  (bx - 2, bx + 11, by - 2, by + 5), lit(BONE, n_flat), outline=0.45,
+                  cast=[beam(bx, by, bx + 9, by + 3, 1.5, 0.0, 1.5)], **bones)
 
 
 def wreck(scene, cx, cy):
@@ -947,7 +1062,9 @@ def wreck(scene, cx, cy):
         n = value_noise(x, y, 4.0, 901)
         base = (0.16, 0.14, 0.13) if n < 0.55 else (mix3(GOB_RED, (0.2, 0.1, 0.08), 0.5) if n < 0.8 else RUST)
         return lit(base, n_dome(cx, cy, 30.0, 30.0, bump=1.2, seed=902), grain=0.12, seed=903)(x, y, d)
-    scene.add(chassis, (cx - 30, cx + 30, cy - 30, cy + 30), paint, outline=1.0, shadow=5.0, shadow_soft=2.5)
+    scene.add(chassis, (cx - 30, cx + 30, cy - 30, cy + 30), paint, outline=1.0,
+              cast=[block(cx, cy, 22.0, 9.0, 0.0, 8.0, rot), block(cx - 16.0 * rot[0], cy - 16.0 * rot[1],
+                                                                    6.0, 15.0, 0.0, 6.0, rot)], reach=2.5)
     wheel(scene, cx + 38.0, cy + 18.0, 6.5, 904)
     wheel(scene, cx - 34.0, cy - 26.0, 5.5, 905)
     for i in range(9):
@@ -957,7 +1074,7 @@ def wreck(scene, cx, cy):
         r = 1.5 + 2.5 * ((h >> 16) & 15) / 15.0
         scene.add(lambda x, y, px=px, py=py, r=r: sd_box(x, y, px, py, r, r * 0.6, 0.4),
                   (px - r - 1, px + r + 1, py - r, py + r), lit(IRON if i % 2 else RUST, n_flat), outline=0.4,
-                  shadow=1.5, shadow_soft=1.0)
+                  cast=[block(px, py, r, r * 0.6, 0.0, 1.5)], strength=0.5, reach=1.0)
 
 
 def bleachers(scene, cx, cy, hx, hy, rot):
@@ -981,8 +1098,14 @@ def bleachers(scene, cx, cy, hx, hy, rot):
         return base[0] * k * grain, base[1] * k * grain, base[2] * k * grain
     reach = sqrt(hx * hx + hy * hy) + 2.0
     scene.need(cx, cy, reach)
-    scene.add(sdf, (cx - reach, cx + reach, cy - reach, cy + reach), paint, outline=1.0, shadow=10.0,
-              shadow_soft=3.0, shadow_alpha=0.36)
+    # Stepped wedge: plank rows rise from the front (local -y) to a 13-unit back rail.
+    c, s = rot
+    wedge = []
+    for lx, ly, z in ((-hx, -hy, 0.0), (hx, -hy, 0.0), (-hx, -hy, 2.0), (hx, -hy, 2.0),
+                      (-hx, hy, 0.0), (hx, hy, 0.0), (-hx, hy, 13.0), (hx, hy, 13.0)):
+        wedge.append((cx + lx * c - ly * s, cy + lx * s + ly * c, z))
+    scene.add(sdf, (cx - reach, cx + reach, cy - reach, cy + reach), paint, outline=1.0,
+              cast=[(wedge, 0.0)], reach=3.0)
 
 
 def timing_tower(scene, cx, cy, half):
@@ -1002,9 +1125,11 @@ def timing_tower(scene, cx, cy, half):
         light *= 1.0 - 0.35 * hip
         return base[0] * light, base[1] * light, base[2] * light
     scene.need(cx, cy, half * 1.5)
+    # Walls to 20, pyramid apex at 28; the pennant pole stands on the apex.
+    tower = [(x, y, z) for x, y in corners(cx, cy, half, half) for z in (0.0, 20.0)] + [(cx, cy, 28.0)]
     scene.add(lambda x, y: sd_box(x, y, cx, cy, half, half, 0.8), (cx - half, cx + half, cy - half, cy + half),
-              paint, outline=1.0, shadow=22.0, shadow_soft=3.5, shadow_alpha=0.34)
-    banner_pole(scene, cx, cy, HAZARD, wind=(0.8, 0.6), length=12.0, clearance=0.0)
+              paint, outline=1.0, cast=[(tower, 0.0)], reach=3.0, contact=0.55)
+    banner_pole(scene, cx, cy, HAZARD, GOB_RED, wind=(0.8, 0.6), length=10.0, clearance=0.0, base=28.0, seed=835)
 
 
 def campfire(scene, cx, cy):
@@ -1025,11 +1150,16 @@ def campfire(scene, cx, cy):
 def fuel_tower(scene, cx, cy, r):
     """Goblin fuel tank on stilts: banded drum, legs, hose, very long shadow."""
     scene.need(cx, cy, r + 30.0)
-    for ux, uy in ((0.7071, 0.7071), (-0.7071, 0.7071), (-0.7071, -0.7071), (0.7071, -0.7071)):
-        lx, ly = cx + ux * (r + 3.0), cy + uy * (r + 3.0)
+    legs = [(cx + ux * (r + 3.0), cy + uy * (r + 3.0))
+            for ux, uy in ((0.7071, 0.7071), (-0.7071, 0.7071), (-0.7071, -0.7071), (0.7071, -0.7071))]
+    hose = (cx - r * 0.7, cy - r * 0.7, cx - r - 14.0, cy - r - 10.0)
+    # Drum raised on four stilts: its shadow lifts away, joined to the ground by the legs'.
+    scene.cast([column(lx, ly, 2.0, 0.0, 15.0) for lx, ly in legs] +
+               [column(cx, cy, r, 14.0, 32.0), beam(hose[0], hose[1], hose[2], hose[3], 1.5, 0.0, 1.5)],
+               reach=1.6)
+    for lx, ly in legs:
         scene.add(lambda x, y, lx=lx, ly=ly: sd_circle(x, y, lx, ly, 2.2), (lx - 3, lx + 3, ly - 3, ly + 3),
-                  lit(IRON, n_dome(lx, ly, 3.0, 3.0)), outline=0.4, shadow=26.0, shadow_soft=2.0,
-                  shadow_alpha=0.22)
+                  lit(IRON, n_dome(lx, ly, 3.0, 3.0)), outline=0.4)
 
     def paint(x, y, d):
         rr = sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy)) / r
@@ -1039,10 +1169,9 @@ def fuel_tower(scene, cx, cy, r):
         if rr < 0.18:
             base = BRASS
         return lit(base, n_dome(cx, cy, r * 1.25, r * 1.25), spec=0.35, grain=0.05, seed=951)(x, y, d)
-    scene.add(lambda x, y: sd_circle(x, y, cx, cy, r), (cx - r, cx + r, cy - r, cy + r), paint, outline=1.0,
-              shadow=24.0, shadow_soft=4.0, shadow_alpha=0.32)
-    scene.add(lambda x, y: sd_segment(x, y, cx - r * 0.7, cy - r * 0.7, cx - r - 14.0, cy - r - 10.0, 1.6),
-              (cx - r - 16, cx, cy - r - 12, cy), lit((0.12, 0.12, 0.12), n_flat), outline=0.3, shadow=3.0)
+    scene.add(lambda x, y: sd_circle(x, y, cx, cy, r), (cx - r, cx + r, cy - r, cy + r), paint, outline=1.0)
+    scene.add(lambda x, y: sd_segment(x, y, hose[0], hose[1], hose[2], hose[3], 1.6),
+              (cx - r - 16, cx, cy - r - 12, cy), lit((0.12, 0.12, 0.12), n_flat), outline=0.3)
 
 
 def gyrocopter_crash(scene, cx, cy):
@@ -1050,19 +1179,23 @@ def gyrocopter_crash(scene, cx, cy):
     scene.need(cx, cy, 52.0)
     scene.ground(lambda x, y: sd_ellipse(x, y, cx + 4, cy - 6, 30.0, 22.0) + 10.0 * value_noise(x, y, 8.0, 960),
                  (cx - 40, cx + 40, cy - 34, cy + 34), (0.12, 0.10, 0.08), 0.42, soft=9.0)
+    rotors = ((-30.0, 8.0, 24.0, -6.0), (-6.0, -26.0, 8.0, 30.0))
+    # Tail boom and cockpit on the ground; the crossed rotor still rides its mast.
+    scene.cast([beam(cx, cy, cx + 30.0, cy - 22.0, 2.2, 0.0, 4.0), mound(cx, cy, 10.0, 8.0, 9.0, crown=0.6)] +
+               [beam(cx + ax, cy + ay, cx + bx, cy + by, 2.4, 9.0, 11.0) for ax, ay, bx, by in rotors],
+               reach=2.0)
     scene.add(lambda x, y: sd_segment(x, y, cx, cy, cx + 30.0, cy - 22.0, 2.4),
-              (cx - 3, cx + 33, cy - 25, cy + 3), lit(IRON, n_cyl(cx, cy, 0.8, -0.6, 2.4)), outline=0.6,
-              shadow=4.0)
+              (cx - 3, cx + 33, cy - 25, cy + 3), lit(IRON, n_cyl(cx, cy, 0.8, -0.6, 2.4)), outline=0.6)
     scene.add(lambda x, y: sd_ellipse(x, y, cx, cy, 10.0, 8.0), (cx - 11, cx + 11, cy - 9, cy + 9),
-              lit(GNOME_BLUE, n_dome(cx, cy, 11.0, 9.0), spec=0.4), outline=0.9, shadow=5.0)
+              lit(GNOME_BLUE, n_dome(cx, cy, 11.0, 9.0), spec=0.4), outline=0.9)
     scene.add(lambda x, y: sd_circle(x, y, cx + 2.0, cy + 2.0, 3.6), (cx - 2, cx + 6, cy - 2, cy + 6),
               lit(GLASS, n_dome(cx + 2, cy + 2, 4.0, 4.0), spec=0.9), outline=0.4)
-    for ax, ay, bx, by in ((-30.0, 8.0, 24.0, -6.0), (-6.0, -26.0, 8.0, 30.0)):
+    for ax, ay, bx, by in rotors:
         scene.add(lambda x, y, a=(ax, ay, bx, by): sd_segment(x, y, cx + a[0], cy + a[1], cx + a[2], cy + a[3], 2.6),
                   (cx - 34, cx + 34, cy - 30, cy + 34),
                   lit(WOOD, n_flat,
                       pattern=lambda x, y: 1.0 - 0.12 * smooth((value_noise(x, y, 2.0, 961) - 0.6) / 0.2)),
-                  outline=0.7, shadow=4.0, shadow_soft=1.8)
+                  outline=0.7)
     scene.add(lambda x, y: sd_circle(x, y, cx, cy, 3.0), (cx - 4, cx + 4, cy - 4, cy + 4),
               lit(BRASS, n_dome(cx, cy, 3.5, 3.5), spec=0.6), outline=0.4)
 
@@ -1091,7 +1224,8 @@ def scatter(scene):
             scene.shrub(x, y, r * 0.8, seed=960 + k)
         else:
             scene.add(lambda px, py, x=x, y=y, r=r: sd_segment(px, py, x - r, y, x + r, y + r * 0.3, 1.2),
-                      (x - r - 2, x + r + 2, y - 2, y + r + 2), lit(BONE, n_flat), outline=0.4, shadow=1.5)
+                      (x - r - 2, x + r + 2, y - 2, y + r + 2), lit(BONE, n_flat), outline=0.4,
+                      cast=[beam(x - r, y, x + r, y + r * 0.3, 1.1, 0.0, 1.5)], strength=0.5, reach=1.0)
         placed += 1
         if placed >= 30:
             break
@@ -1109,20 +1243,24 @@ def paint_scenery(canvas, geo):
     timing_tower(scene, 556.0, 330.0, 15.0)
     for i, (tx, ty) in enumerate(((850.0, 170.0), (902.0, 132.0), (858.0, 118.0))):
         striped_canopy(scene, tx, ty, 12.0, 9.0, ((0.86, 0.80, 0.66), GOB_RED if i % 2 else GNOME_BLUE),
-                       rot=ROT if i % 2 else (1.0, 0.0), stripe=4.0, shadow=6.0)
+                       rot=ROT if i % 2 else (1.0, 0.0), stripe=4.0)
     campfire(scene, 884.0, 160.0)
     fuel_tower(scene, 880.0, 628.0, 20.0)
     gnome_camp(scene)
     goblin_camp(scene)
     # Start-line poles flank the checkers on purpose: a smaller, explicit clearance.
-    banner_pole(scene, 618.0, 360.0, GNOME_BLUE, wind=(0.0, 1.0), length=14.0, clearance=6.0)
-    banner_pole(scene, 782.0, 360.0, GOB_RED, wind=(0.0, 1.0), length=14.0, clearance=6.0)
+    banner_pole(scene, 618.0, 360.0, GNOME_BLUE, BRASS, wind=(0.0, 1.0), clearance=6.0, seed=836)
+    banner_pole(scene, 782.0, 360.0, GOB_RED, HAZARD, wind=(0.0, 1.0), clearance=6.0, seed=837)
     for i, (x, y) in enumerate(((792.0, 214.0), (800.0, 228.0), (786.0, 228.0), (790.0, 880.0),
                                 (802.0, 868.0), (296.0, 214.0), (306.0, 202.0))):
         tire_stack(scene, x, y, 970 + i)
     canvas.touched = bytearray(canvas.columns * canvas.rows)
-    for shape in scene.shapes:
-        canvas.draw(shape)
+    canvas.enable_shadows(SHADOW_VECTOR, SHADOW_TINT)
+    for item in scene.shapes:
+        if isinstance(item, Shadow):
+            canvas.cast(item)
+        else:
+            canvas.draw(item)
     touched, road = canvas.touched, geo.road
     for y in range(SIZE):
         row = (SIZE - 1 - y) * SIZE

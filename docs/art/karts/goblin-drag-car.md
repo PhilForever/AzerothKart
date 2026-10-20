@@ -94,6 +94,8 @@ The silhouette follows the written [map/vehicle brief](../MIRAGE_RACEWAY.md#reco
 
 ## Client check (NOT RUN)
 
+**Owner observation, 2026-10-20:** the owner's [in-game screenshot](../../evidence/2026-10-20-mirage-scenery-owner-check.md) shows the sprite instead of the orange primitive, nose north and centered on the Mirage start checkers, with no visible box or halo. Probe counts, rotation while driving and phase tints (steps 3 and 5–7 below) were not recorded and remain open.
+
 Run only after an authorized, coordinated install: the WoW AddOns folder is shared with Codex. Use the verified installer; do not hand-copy.
 
 1. Fully restart the client after installing. The sprite is a new file, and clients commonly discover new addon files only at startup, not on `/reload`.

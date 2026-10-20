@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — Mirage scenery shadows (2026-10-20, `claude/track-ui`)
+- Replace the scenery's offset-copy shadows, which the owner's in-game screenshot showed as detached gray shapes, with attached soft shadows. Objects are described by convex volumes with real heights. Each shadow is their convex hull projected away from the north-west light, so it touches the object's base. Raised parts (banner cloth, crane boom, fuel drum, rotor) cast lifted shadows joined to the ground by their poles, legs or cable.
+- Shadows multiply the painted color toward a cool tint, with a contact rim and a widening, fading penumbra; overlaps combine by maximum instead of stacking. `paintkit.Shadow` and `Canvas.cast` implement this, and the kart output stays byte-identical.
+- Banners become swallowtail flags with trim stripes, and oil stains become crisp lobed splats instead of gray blobs. The build still fails if scenery or shadow touches a road texel; registration, contrast and landmark checks are unchanged.
+- Same path, size and format; UI code and counts unchanged. The shadow pass is NOT RUN in the client. The owner's screenshot of the previous build is recorded in `docs/evidence/2026-10-20-mirage-scenery-owner-check.md`.
+
 ## Unreleased — Mirage scenery v1 (2026-10-20, `claude/track-ui`)
 - Repaint `Assets/Tracks/SaltFlats/Background.tga` from flat blockout art into original procedural scenery at the same path, size and format. It shows crusted salt flats and a packed-dirt lane with tire streaks, berms, red/cream apex kerbs and start/finish checkers. Set pieces include the goblin pit and gnome camp, a timing tower, bleachers, tents, wrecks, a kodo skeleton and a boulder rim.
 - Road and salt still come from the Lua `isDrivable` predicate at each pixel center. The build fails if scenery touches a road texel, and objects keep 20 units off the road. A contrast check requires a light salt rim around the darker lane, and ten landmarks verify orientation.

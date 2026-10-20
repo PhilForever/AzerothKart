@@ -114,6 +114,36 @@ def sd_polygon(px, py, points):
     return sign * sqrt(best)
 
 
+def convex_hull(points):
+    """Counter-clockwise convex hull (monotone chain); collinear points dropped."""
+    pts = sorted(set(points))
+    if len(pts) <= 2:
+        return pts
+
+    def cross(o, a, b):
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+    lower, upper = [], []
+    for p in pts:
+        while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0.0:
+            lower.pop()
+        lower.append(p)
+    for p in reversed(pts):
+        while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 0.0:
+            upper.pop()
+        upper.append(p)
+    return lower[:-1] + upper[:-1]
+
+
+def sd_hull(px, py, hull):
+    """Signed distance to a convex_hull() result; one or two points give a dot or a segment."""
+    if len(hull) == 1:
+        dx, dy = px - hull[0][0], py - hull[0][1]
+        return sqrt(dx * dx + dy * dy)
+    if len(hull) == 2:
+        return sd_segment(px, py, hull[0][0], hull[0][1], hull[1][0], hull[1][1], 0.0)
+    return sd_polygon(px, py, hull)
+
+
 # ---------------------------------------------------------------------------
 # Layered painter.
 
@@ -130,6 +160,31 @@ class Shape:
     def __init__(self, sdf, bbox, paint, outline=0.0, ink=INK, opacity=1.0, soft=None):
         self.sdf, self.bbox, self.paint = sdf, bbox, paint
         self.outline, self.ink, self.opacity, self.soft = outline, ink, opacity, soft
+
+
+class Shadow:
+    """Soft ground shadow of one object; cast it before drawing the object.
+
+    `pieces` are convex parts, each a (points, radius) pair: `points` are
+    (x, y, z) vertices in world units, z being the height above the ground,
+    and `radius` rounds the part. A part's shadow is the convex hull of its
+    vertices projected along the canvas shadow vector, so it stays attached
+    to grounded objects and lifts away from raised ones. Parts resting on the
+    ground (lowest z == 0) also darken a contact rim `reach` units wide.
+    `strength` is the darkening at the core (0-1), `fade` lightens it toward
+    the far tip, and the penumbra widens from `soft` by `spread` per world
+    unit beyond the object.
+    """
+
+    def __init__(self, pieces, strength=0.6, contact=0.5, reach=2.5, soft=1.2, spread=0.1, fade=0.35):
+        self.pieces = pieces
+        self.strength, self.contact, self.reach = strength, contact, reach
+        self.soft, self.spread, self.fade = soft, spread, fade
+
+
+def prism(outline, z0, z1, radius=0.0):
+    """Shadow piece: a 2D convex outline extruded from height z0 up to z1."""
+    return [(x, y, z0) for x, y in outline] + [(x, y, z1) for x, y in outline], radius
 
 
 class Canvas:
@@ -153,6 +208,7 @@ class Canvas:
         self.alpha = array.array("d", bytes(8 * size))
         self.step = world_width / self.columns  # world units per sample
         self.touched = None  # optional bytearray marking samples any shape covered
+        self.shade = None    # per-sample shadow level once enable_shadows() is called
         # Sample centers: column 0 is the left edge, row 0 is the top edge.
         self.xs = [left + (c + 0.5) * self.step for c in range(self.columns)]
         self.ys = [self.top - (r + 0.5) * self.step for r in range(self.rows)]
@@ -169,6 +225,7 @@ class Canvas:
         outline, ink, opacity = shape.outline, shape.ink, shape.opacity
         red, green, blue, alpha = self.red, self.green, self.blue, self.alpha
         xs, ys, columns, touched = self.xs, self.ys, self.columns, self.touched
+        shade = self.shade
         # Coverage ramps across one sample (or `soft` units); the box filter
         # in resolve() then anti-aliases each texel. Contours stay in world units.
         inv = 1.0 / step
@@ -202,6 +259,84 @@ class Canvas:
                 green[i] = clamp(cg) * a + green[i] * keep
                 blue[i] = clamp(cb) * a + blue[i] * keep
                 alpha[i] = a + alpha[i] * keep
+                if shade is not None:
+                    shade[i] *= keep  # fresh paint is unshadowed
+
+    def enable_shadows(self, vector, tint):
+        """Allow cast(): `vector` is the ground offset per unit of height and
+        `tint` the color multiplier at full shadow."""
+        self.shade = array.array("d", bytes(8 * self.columns * self.rows))
+        self.shadow_vector, self.shadow_tint = vector, tint
+
+    def cast(self, shadow):
+        """Multiply what is painted so far by the shadow's tint.
+
+        Each sample keeps its strongest shadow level, so overlapping shadows
+        combine by maximum instead of stacking; drawing a shape over a sample
+        clears it again.
+        """
+        vx, vy = self.shadow_vector
+        vlen = sqrt(vx * vx + vy * vy)
+        ux, uy = vx / vlen, vy / vlen
+        kr, kg, kb = (1.0 - t for t in self.shadow_tint)
+        top = max(z for points, radius in shadow.pieces for x, y, z in points)
+        length = top * vlen if top > 0.0 else 1.0
+        widest = shadow.soft + shadow.spread * length
+        parts = []
+        xmin = ymin = 1e18
+        xmax = ymax = -1e18
+        for points, radius in shadow.pieces:
+            hull = convex_hull([(x + z * vx, y + z * vy) for x, y, z in points])
+            foot = convex_hull([(x, y) for x, y, z in points])
+            grounded = min(z for x, y, z in points) == 0.0
+            front = max(x * ux + y * uy for x, y in foot)
+            parts.append((hull, foot if grounded and shadow.contact > 0.0 else None, radius, front))
+            margin = radius + 0.5 * widest + shadow.reach + 2.0 * self.step
+            for x, y in hull + foot:
+                xmin, xmax = min(xmin, x - margin), max(xmax, x + margin)
+                ymin, ymax = min(ymin, y - margin), max(ymax, y + margin)
+        step = self.step
+        c0 = max(0, int((xmin - self.left) / step))
+        c1 = min(self.columns, int((xmax - self.left) / step) + 1)
+        r0 = max(0, int((self.top - ymax) / step))
+        r1 = min(self.rows, int((self.top - ymin) / step) + 1)
+        strength, contact, reach = shadow.strength, shadow.contact, shadow.reach
+        soft, spread, fade = shadow.soft, shadow.spread, shadow.fade
+        red, green, blue, shade = self.red, self.green, self.blue, self.shade
+        xs, ys, columns, touched = self.xs, self.ys, self.columns, self.touched
+        for r in range(r0, r1):
+            y = ys[r]
+            base = r * columns
+            for c in range(c0, c1):
+                x = xs[c]
+                value = 0.0
+                for hull, foot, radius, front in parts:
+                    beyond = x * ux + y * uy - front
+                    if beyond < 0.0:
+                        beyond = 0.0
+                    coverage = 0.5 - (sd_hull(x, y, hull) - radius) / (soft + spread * beyond)
+                    if coverage > 0.0:
+                        if coverage > 1.0:
+                            coverage = 1.0
+                        t = beyond / length
+                        v = strength * coverage * (1.0 - fade * (t if t < 1.0 else 1.0))
+                        if v > value:
+                            value = v
+                    if foot is not None and contact > value:
+                        d = sd_hull(x, y, foot) - radius
+                        if d < reach:
+                            v = contact if d <= 0.0 else contact * (1.0 - smooth(d / reach))
+                            if v > value:
+                                value = v
+                i = base + c
+                old = shade[i]
+                if value > old:
+                    red[i] *= (1.0 - value * kr) / (1.0 - old * kr)
+                    green[i] *= (1.0 - value * kg) / (1.0 - old * kg)
+                    blue[i] *= (1.0 - value * kb) / (1.0 - old * kb)
+                    shade[i] = value
+                    if touched is not None:
+                        touched[i] = 1
 
     def resolve(self):
         """Exact box filter to output texels; returns top-down [r, g, b, a] rows.
