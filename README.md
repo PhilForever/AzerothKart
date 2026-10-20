@@ -22,7 +22,7 @@
 - Pure Lua math and simulation are independent of WoW UI and network code.
 - No protected-action automation, combat advantage, bypass of secret values, external control software, or in-game money/stakes.
 - Local solo/time-trial remains valuable and shippable even if realtime networking is not.
-- The original project's UI, assets, and code must not copy Nintendo/Activision/Blizzard art, branding, music or tracks. Warcraft setting is fan-addon context, not affiliation.
+- Original art and Warcraft III game/community assets are accepted sources under [ADR 0009](docs/adr/0009-warcraft-iii-asset-reuse.md), with per-file provenance, source terms and credits. Other commercial racing assets remain excluded. Warcraft fan-addon context does not imply affiliation or a general redistribution grant.
 - No misleading "tested" claims. Tests must be recorded with evidence, client build, and environment.
 
 ## Repo layout

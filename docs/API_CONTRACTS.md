@@ -137,7 +137,7 @@ Test Oval uses a fixed fit overview (800×480 into 800×480, scale 1). Mirage us
 
 Kart anchoring is centered at the projected pose; rotation is `heading - math.pi/2`, for a north-facing source image. Art does not enlarge collision clearance.
 
-**Proposed on `claude/track-ui` (Claude, pending Codex review):**
+**Implemented on `claude/track-ui` in `520275e`; Codex review approved on `codex/claude-assets-review` (not yet integrated into main):**
 
 - The kart body stays 17×31 **world** units, published as `Presentation.KART_FOOTPRINT_WIDTH/HEIGHT` (25.5×46.5 UI units on Mirage).
 - `Presentation.KART_SPRITES[id]` is pure, read-only data: `path`, power-of-two `textureWidth/textureHeight`, and `quadWidth/quadHeight` in world units with square texels.
@@ -146,7 +146,9 @@ Kart anchoring is centered at the projected pose; rotation is `heading - math.pi
 - Phase changes tint the sprite with `SetVertexColor`.
 - Any refused load keeps the primitive: a 17×31 quad and `SetColorTexture` phase colors, with no retry. Only that path calls `SetColorTexture`, which would replace a loaded image.
 
-The visual path reads state only. An offline scripted drive produces identical simulation state in both modes. See [the asset sheet](art/karts/goblin-drag-car.md).
+The guarded fallback covers creation-time load/neutral-tint refusal. Once initialized, later `SetVertexColor` phase calls use the normal client API directly; recovery from a newly throwing tint API is not implemented or tested. The new registry is additive presentation data; it adds no field to Physics/Race and changes no existing function signature.
+
+The visual path reads state only. An offline scripted drive compares every returned Physics field and selected race/checkpoint fields between sprite and primitive modes; it is not an exhaustive comparison of all nested race state. See [the asset sheet](art/karts/goblin-drag-car.md). Sprite load/alpha/facing/filtering/tint behavior in the actual Forever client remains NOT RUN.
 
 ## Rendering cadence, resources and lifecycle
 

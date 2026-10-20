@@ -1,120 +1,86 @@
-# Codex handoff — shared visual-development baseline
+# Codex handoff — Claude sprite review and Warcraft III source direction
 
-Prepared 2026-10-20, Europe/Oslo. This task is documentation/contract preparation only; no gameplay, runtime API, asset or installed-addon change.
+Prepared 2026-10-20, Europe/Oslo. Scope: review Claude's committed sprite/shared changes and reconcile the owner's Warcraft III asset direction. This review adds documentation only; no gameplay change, imported asset, install, client input, merge or push.
 
-## Branches and starting point
+## Branches, scope and integration state
 
 | Item | Verified value |
 |---|---|
 | Canonical repository | `https://github.com/PhilForever/AzerothKart.git` |
-| Published implementation baseline | `f923d15f5cc8f306a0b47ad082587474abd1af8d` on `main`/local `origin/main`; last runtime change `7acab18` |
-| Preparation branch | `codex/handoff-contracts`; use its completed documentation checkpoint commit as Claude's starting point |
-| Codex checkout | `C:/Users/bakke/Downloads/Forever_Addons/AzerothKart_Codex_Project_Pack/AzerothKart` |
-| Existing Claude checkout | `C:/Users/bakke/Downloads/Forever_Addons/AzerothKart_Codex_Project_Pack/AzerothKart-Claude`, branch `claude/track-ui`, inspected at `f923d15` with clean status |
+| Main / local origin/main | `f923d15f5cc8f306a0b47ad082587474abd1af8d`; last published runtime `7acab18` |
+| Codex prior checkpoint | `55709687f39103c5dad0acbbfe4bba147a47356f` on `codex/handoff-contracts` in `../AzerothKart` |
+| Claude reviewed implementation | `520275e07990a626ac25818402eeee55ab956d0d` |
+| Claude reviewed tip | `46931e16de940e0ab0dc59057b0484c93f78670e` on `claude/track-ui`, inspected clean in `../AzerothKart-Claude` |
+| Isolated review worktree | `../AzerothKart-Codex-Review`, branch `codex/claude-assets-review`, created from immutable `46931e1` |
+| Review result commit | Resolve with `git log -1 --format="%H %s" codex/claude-assets-review`; use the completed reviewed hash, not a later moving tip |
 
-The final report gives the preparation commit hash. It can also be resolved with `git log -1 --format="%H %s" codex/handoff-contracts`; use the reviewed commit, not a moving branch tip after later work begins. Main and the Claude worktree were not merged, switched or reset by this preparation. The checkpoint remains local until a separately authorized push/integration.
+Reserved review edits: AGENTS, README, API_CONTRACTS, DECISIONS, ASSETS, INDEX, asset-source ledger, ADRs 0005/0009, PROGRESS and this Codex handoff. No runtime/test edits were needed. Claude's own handoff is retained as received; its pending-policy and older branch descriptions are historical and superseded by the review here.
 
-At entry, the Codex checkout had untracked `CLAUDE.md` and four empty handoff placeholders: root `codex-latest.md`/`claude-latest.md`, plus `docs/handoffs/codex-latest.md`/`claude-latest.md`. The relevant Claude instructions are retained and extended; this requested Codex handoff fills its canonical placeholder. The other three empty placeholders remain untouched/untracked and are excluded from the checkpoint. They contain no hidden implementation work. Do not blindly stage or delete them.
+The canonical checkout's three zero-byte untracked placeholders remain preserved: root `codex-latest.md`, root `claude-latest.md` and `docs/handoffs/claude-latest.md`. Do not stage/delete them blindly. The last collides with Claude's new tracked handoff if an integrator later updates that checkout; inspect and preserve it before changing branches. Neither the canonical checkout nor Claude's checkout was switched, reset or edited here. No milestone is promoted.
 
-## Verified implementation and evidence scope
+## Review disposition
 
-| Area | Implemented/offline checked | Actual client evidence / limitation |
+**Approved, no blocking regression found in the reviewed diff:**
+
+- Shared `tests/test_ui.lua`: texture-load assertions now count per path; sprite padding changes the drawn quad while body footprint assertions remain; tint-cache assertions watch vertex-color writes. Capture, lifecycle, clock and race assertions were not relaxed. New cases cover creation-time sprite refusals and scripted sprite/primitive equivalence.
+- Mixed `UI.Create`: one `loadKartSprite()` call after the existing pooled kart Texture is created and before sizing/initial render. Event scripts, controls, capture and initial-state transaction are unchanged.
+- `Presentation.KART_SPRITES`, `DEFAULT_KART` and footprint metadata are additive presentation data, now documented as implemented/review-approved in [API_CONTRACTS](../API_CONTRACTS.md). No Physics/Race field or existing function signature changed.
+- The sprite, reproducible generator, source sheet/preview and structural manifest changes align. Protected Physics, collision geometry, Race/Laps/Checkpoints, Input/Loop/Core and TOC loading remain unchanged from `5570968`.
+
+The fallback covers creation-time failure/refusal, including initial vertex-tint failure. Later phase `SetVertexColor` calls are direct calls; do not describe this as recovery from any future API failure. The 900-frame equivalence check compares all returned Physics fields and selected race/checkpoint fields (status, totalTicks, nextGate, completedLaps), not every nested UI/race field.
+
+## Accepted asset policy
+
+[ADR 0009](../adr/0009-warcraft-iii-asset-reuse.md) is **accepted project direction**, following the owner's confirmation to Claude and Codex. Original art and Warcraft III game/community material are allowed sources. AGENTS, ADR 0005, README, decisions and the source ledger now agree. Claude need not ask again whether WC3 is an allowed source.
+
+Keep Mirage's established overhead style, geometry registration, footprint, pooling and performance budget. Prefer suitable textures already in the WoW client. Each imported file needs source/author, applicable terms and permission status, date, modifications, use and credits; honor community author conditions. Owner authorization and WIIIUI's precedent do not establish a general third-party redistribution grant. Keep unresolved status explicit for release review. No third-party WC3 file was imported in this review, and no suitable drag-car source being found is not proof that none exists.
+
+WIIIUI's README/implementation demonstrates faction-themed UI and bundled texture paths. No applicable general asset license or Blizzard grant was established in the inspected root/README. Avoid the earlier categorical statement that the entire repository has no license. The ADR links the inspected primary sources and WoW addon policy.
+
+## Current implementation and evidence limits
+
+| Area | Implementation / evidence | Still pending |
 |---|---|---|
-| Simulation | Pure Physics v6, fifteen state fields, fixed 60 Hz and five-step catch-up; progressive steering, drift tiers/correction grace, boosts, rough-ground slowdown, perimeter constraints | Earlier human drives were observed. New v6 handling acceptance remains pending; the owner found prior v5 drift difficult. |
-| Race | Ordered directional gates, repeated laps, 180-tick 3–2–1, GO, exact three-lap finish, retained partial/interrupted results and current-run best lap | Latest countdown/full circuit/finish/restart play is NOT RUN. No persisted best, remote placing or competitive route guarantee. |
-| Tracks | Test Oval default; Mirage v1 pure 1024-square capsule road, four gates, stopped selection and load-failure fallback | Opaque Mirage loading and stopped camera crop observed on 70450. Scenery/production track acceptance incomplete. |
-| Presentation | Interpolated pose, meter/cues, pooled markers, clamped north-up Mirage camera with 60-world heading look-ahead at scale 1.5 | The stopped close view, larger kart, Start alignment and clipped West strip were observed; moving camera/edges and sustained performance NOT RUN. |
-| Input/combat | Alias-aware booleans, deliberate Start, release paths, no automatic resume, once-only active combat interruption, guarded propagation | Prior owner combat smoke confirmed closure/message/normal controls. Full held-input Alt-Tab, repeated-event/taint and stopped-window combat follow-up remain pending; no new combat test is requested. |
-| Networking/persistence | No runtime transport, lobby, synchronization, gameplay replay/PRNG, ghosts, AI, item engine or saved records. Core only initializes/preserves a minimal schema marker. | Two-client throughput/latency/loss/throttle/reconnect are unmeasured. A schema value is not persistence acceptance. |
+| Simulation | Physics v6, fifteen fields; 60 Hz, bounded five-step catch-up; steering, drift tiers/correction grace, boosts, rough-ground slowdown and point-center perimeter clamp | v6 human handling acceptance; arbitrary swept/prop/kart collisions absent |
+| Race | Ordered directional checkpoints/laps, 180-tick countdown, three-lap finish and retained partial/interrupted results; offline regressions | Current full race UI/finish/restart play; persisted records absent |
+| Tracks/camera | Oval default; selectable 1024-square Mirage blockout, separate geometry, scale-1.5 north-up follow camera with 60-world look-ahead and cropped UVs | Moving camera/edge/scale/performance acceptance; scenery remains blockout |
+| Kart | Original 64×128 BGRA32 straight-alpha Goblin Drag Car; 20×40 padded world quad, visible body inside 17×31. Mirage quad 30×60, body 25.5×46.5. One load at creation; cached multiplicative phase tints; primitive fallback | Actual client alpha/filtering/facing/rotation/tints/new-file loading; roster, shadow and VFX absent |
+| UI budget | Same explicit 9 frames / 111 textures / 13 font strings; no per-tick UI creation, asset loading or chat | Client CPU/GPU/FPS/memory limits not measured |
+| Networking | No transport/lobby/sync, ghosts, AI or items | Two-client throughput/loss/throttle/order/latency/reconnect gate entirely unmeasured |
 
-M0/M1/M3 acceptance remains open. The build-first policy permits independent local visual work while manual gaps remain pending; it does not establish multiplayer viability. The owner said the closer view was better, without supplying a scoped moving-camera/handling acceptance result.
+Existing build-70450 evidence confirms opaque background load, stopped camera crop, larger primitive kart, aligned Start strip and clipped West strip. Earlier owner combat smoke confirmed closure/message/normal controls; it does not prove every held-input/taint case. On 1.60.1/70450, interface16001/project18/Camelot, public `IsGameWindowFocused` and `IsWindowFocused` are absent. Do not invent a getter, automate WoW character movement or change UI scale/CVars for this visual task.
 
-## Existing rendering implementation
+UI still mixes presentation and controller. State/previous-state/race/track tables are borrowed read-only by convention, not protected snapshots. Physics speed is signed, heading radians with +X east/+Y north; no stored vx/vy or collision-normal stream exists. Preserve integer race timing, finishing callback, capture/release behavior, stopped map-selection transaction and failure retention. Camera/art never feeds geometry or authoritative state. See [contracts](../API_CONTRACTS.md), [AGENTS](../../AGENTS.md), [FEASIBILITY](../FEASIBILITY.md) and [prior static evidence](../evidence/2026-10-20-mirage-camera-static.md).
 
-- Twelve modules load in the same order in both TOCs; `_G.AzerothKart` is exported by Core for diagnostics. Read [API_CONTRACTS](../API_CONTRACTS.md) before using any state.
-- `UI.lua` currently mixes the local simulation controller with rendering; there is no separate `Renderer` module or immutable render-snapshot API. Treat `UI.state`, previous state, race/lap/checkpoint aliases and track data as borrowed read-only values.
-- Window 856×762, canvas 800×480. Test Oval retains 64 outer and 32 island raster Texture bands; they remain allocated but hidden on Mirage.
-- Mirage uses one original opaque `Assets/Tracks/SaltFlats/Background.tga`, cropped through reusable camera offsets/UVs. Uniform scale 1.5 gives a 25.5×46.5 displayed placeholder kart and 168-wide road. Art is a geometry blockout, not final scenery.
-- Kart is one orange/tinted primitive Texture, centered on the projected pose and rotated by `heading - math.pi/2`. **Sprite hazard:** `render` calls `SetColorTexture` when drift/boost phase changes; merely setting a sprite file will be overwritten. Adapt only the visual tint/fallback path when integrating the first sprite.
-- Gates/walls reuse pooled Texture regions and manually clip projected axis-aligned rectangles. No general sprite clipping, atlas/animation, foreground or VFX subsystem exists.
-- Explicit allocation baseline is 9 frames/111 textures/13 font strings, excluding Core's event frame, templates/native internals and other addons. No per-tick/render UI creation, asset loads or chat output. No measured general CPU/GPU/FPS limit has been established.
+## Tests actually executed by Codex in this review
 
-## Ownership and interfaces to preserve
+Windows Python `C:/Python314/python.exe`; Lua 5.1 through pinned Lupa 2.8. The existing ignored dependency directory from the canonical checkout was supplied via this shell's PYTHONPATH; no global runtime was installed.
 
-[AGENTS.md](../../AGENTS.md) is the shared authority; `CLAUDE.md` begins with a valid `@AGENTS.md` reference to it. Import/reference was checked statically; no Claude Code session was launched for this checkpoint.
+| Command / check | Result |
+|---|---|
+| `scripts/test_lua.py --runtime lua51 --tests presentation ui` | PASS — 29 Lua files parsed, both selected modules executed. Once-only sprite load, cached tints, six creation-time refusal cases; 900-frame Mirage sprite/primitive check identical on all Physics and selected race fields through tick1275. Existing camera/lifecycle/countdown/race/capture/pooling assertions remain passing. |
+| `scripts/build_kart_sprites.py --check` | CHECK PASS — 32,786 bytes, 64×128, 3,190 visible / 2,562 opaque pixels; SHA-256 `cc7c1c6928501bcb9943040c13c478efb7ac08ddab47e7fa527e11f7d3bb126a`. |
+| `scripts/validate_project.py` | STATIC PASS — 48 expected paths, TOCs, links, protocol and header-only network ledger. Windows executes the links that failed under Claude's Linux shell. |
+| Review PNG inspection / protected-source diff | Original overhead sprite/review board inspected; no blocking source/interface issue found. This is not a client appearance pass. |
+| `git diff --check` / staged equivalent | Whitespace checks recorded with the review commit. |
+| Actual Forever sprite check, deployment/reload/restart, full current suite / Lua5.4, broad performance/scale and multiplayer | NOT RUN by Codex this review. No client availability claim or milestone pass inferred. |
 
-Claude owns Presentation math, artwork, drawing, HUD/layout, animation/VFX and visual feedback. Codex owns Physics/Track/Mirage collision geometry, Input, Loop, Race/Laps/Checkpoints, Core, timing diagnostics and future networking. Contract/architecture, integration coverage and performance budgets are shared.
+Claude separately reports a full 29-file/16-module Lua5.1+5.4 pass, sprite/background/layout reproduction and clean whitespace in its Linux environment; its static validator had two pre-existing Windows-path link failures. These are attributed reports in [Claude's handoff](claude-latest.md), not reruns by Codex. The prior Codex checkpoint independently passed all sixteen Lua5.1 modules including 10k-tick replay, on the pre-sprite state.
 
-`UI.lua` requires a function-level reservation: Claude may improve drawing/layout/render/HUD bodies; Codex owns `step`, `Start`, `Stop`, `InterruptCombat`, `ReleaseInput`, `OnUpdate`, key/event handlers and authoritative state/reset/failure behavior. `Create` and `SelectTrack` mix these scopes and need explicit coordination for cross-boundary edits. Do not silently refactor the controller into a new API during a sprite task.
+## Integration and next task
 
-Preserve these invariants:
+This branch is review-approved but **not merged to main or Claude's branch**. AGENTS requires explicit integration authorization after review. No push/release/install is implied by this review.
 
-- Physics state has `x/y/heading/speed` and drift/contact fields, **no** stored `vx/vy` or collision-normal/event API. `speed` is signed; heading is radians, +X east/+Y north and counterclockwise. Travel is heading minus slip; cosmetic derived velocity can differ from actual clamped displacement.
-- Rendering never changes authoritative fields, input samples, gate order, geometry, lap awards, tick accounting or finish/stop rules. Camera and interpolated coordinates never feed simulation.
-- Use 60 Hz, bounded catch-up and the existing previous/current interpolation; count race time from integer ticks, not UI elapsed or animation frames. Preserve the false callback on the exact finishing step.
-- Track dimensions/origin, single uniform scale, north-facing art/pivot and directional gate semantics remain as documented. Painted terrain/props do not become colliders; Mirage's cached geometry cannot be safely edited in-place.
-- Preserve failed map/sprite load fallbacks, deliberately stopped selection, active button guard and `trackClickBlocked` mouse-down latch. A click releasing capture must not discard its result by also switching maps.
-- Preserve input/combat guards and existing tests. A new image/VFX cannot award boosts/laps, consume WoW movement or bypass restricted/secret APIs.
-
-## Known bugs, debt and client limits
-
-- Flat blockout and primitive vehicle are intentional unfinished visuals; no roster, production sprite alpha/pivot validation, animation, minimap or foreground layers.
-- UI/controller coupling and public mutable diagnostic tables are integration hazards; the documented read-only rule is convention, not runtime access enforcement.
-- Collision is a point-center perimeter clamp with an 18-unit inset; road edges are traversable rough terrain. No swept arbitrary shape/prop/kart collision. `impacts` counts contact ticks, not unique crashes.
-- Latest v6 handling, moving camera/edge transitions, full current race UI, long driving sessions, memory/CPU/GPU/FPS and supported-scale matrix remain unaccepted. Same-runtime replay is not cross-client determinism or anti-cheat.
-- On verified build 1.60.1/70450, interface16001/project18/Camelot, `IsGameWindowFocused` and `IsWindowFocused` are absent. Idle Alt-Tab is scoped historical evidence; held throttle released outside the app is not proven safe. Do not invent another focus API.
-- Combat/text-focus/keyboard/propagation APIs and registered events were observed, but availability is not unrestricted call permission or a full taint pass. Keep propagation setters out of combat and defer restoration correctly.
-- An earlier normal-scale attempt restored original CVars but changed effective scale; exact restoration review is unresolved. Do not change UI scale/CVars for visual work without a separate scoped review.
-- Opaque TGA loading/cropping and primitive rotation have evidence; transparent-sprite alpha, atlas UVs, new asset formats/sizes and production pivot/facing need a small guarded actual-client check. File/API names alone do not prove semantics.
-- WC3Vault/source candidates have unresolved individual import permissions; reference/tool licenses are not model rights. Author one original sprite and record provenance before runtime integration.
-
-Evidence: [camera static](../evidence/2026-10-20-mirage-camera-static.md), [owner background screenshot scope](../evidence/2026-10-20-mirage-static-background.md), [FEASIBILITY](../FEASIBILITY.md), [CLIENT_API](../CLIENT_API.md), [scale finding](../evidence/2026-10-19-m0-scale.md). No personal screenshot was added to Git.
-
-## Tests and reproducibility
-
-Executed during this checkpoint on unchanged runtime baseline using Python 3.14 and pinned local Lupa:
+After the owner authorizes synchronization, first verify Claude's branch and clean status, resolve the immutable completed review hash, then apply it in Claude's worktree only if it is still based on the reviewed tip:
 
 ```powershell
-& C:/Python314/python.exe scripts/test_lua.py --runtime lua51
-```
-
-**PASS:** 29 Lua source/test files parsed; all 16 test modules executed. Includes the Physics-v6 10,000-tick seeded input tape comparing all fifteen state fields at 30/60/144 simulated render Hz, exact drift/grace boundaries and oval bend metrics, race/countdown/lap/checkpoint cadence tests, camera/clipping/UV tests and mocked lifecycle/pooling. These are offline assertions, not client FPS, game feel or multiplayer measurements.
-
-Additional executed checks passed: `scripts/validate_project.py` (45 expected paths and existing structure), static `CLAUDE.md` import/local Markdown-link resolution, `scripts/build_mirage_layout.py --check`, `scripts/build_mirage_background.py --check`, and documentation whitespace checks. The background reproduces SHA-256 `27a5e56ac98bd5ef6185b10ba734cd90ba483887d8e17b64d6ed6c35075c7714`; the guide is still an authoring overview, not the camera framing. Independent source-to-contract review found no blocking mismatch. `git diff f923d15 -- addon scripts tests` was empty: runtime, assets and tests are unchanged. No new gameplay tests were added or weakened. Lua5.4/native CLI, actual Forever checks, two-client tests and broad performance/scale matrices were **NOT RUN** here. Use [TEST_PLAN](../TEST_PLAN.md) for integration scope and retain pending labels.
-
-For a visual-only task, the normal focused commands are:
-
-```powershell
-python scripts/test_lua.py --runtime lua51 --tests presentation ui
-python scripts/validate_project.py
-git diff --check
-```
-
-Other machines need the pinned dependency from `requirements-dev.txt` (the `local-artifacts/python-deps` runtime is deliberately not tracked). Read `scripts/test_lua.py` for setup; missing runtimes mean NOT RUN, not pass. Run broader tests only when the changed scope or integration checkpoint warrants them.
-
-## Recommended first Claude task
-
-Reserve only Presentation/visual UI regions, the new kart asset/provenance and focused visual tests in `docs/handoffs/claude-latest.md`. Create/integrate **one original strict-overhead, north-facing Goblin drag-car sprite** at the current close-camera play size, stable center/padding/pivot and guarded once-only loading. Preserve primitive fallback and drift/boost feedback without replacing the image with `SetColorTexture`. Keep physics, collision clearance, camera/gameplay dimensions, tick/race logic, map geometry and capture behavior unchanged. Record provenance and offline alpha/format checks; mark the actual sprite client check pending unless executed. No full roster, new gameplay feature or milestone promotion.
-
-No simulation feature blocks this bounded visual task. Operational dependencies are the reviewed documentation checkpoint in Claude's worktree, scoped shared-file reservation, rights-cleared/original art and the Lua dependency if testing. Deployment and actual client input must be scheduled with the other agent because the installed addon directory is shared.
-
-## Manual synchronization after review
-
-Both registered worktrees share the Git object database, so the local preparation commit needs no network fetch. Do **not** run these during another agent's work or with unexpected changes. First review the checkpoint and confirm the target branch/status:
-
-```powershell
-git log -1 --format="%H %s" codex/handoff-contracts
-git diff f923d15..codex/handoff-contracts --stat
+git -C ../AzerothKart-Claude status --short
 git -C ../AzerothKart-Claude branch --show-current
-git -C ../AzerothKart-Claude status --short
+git log -1 --format="%H %s" codex/claude-assets-review
+# After inspecting those results, substitute the reviewed hash:
+git -C ../AzerothKart-Claude merge --ff-only <reviewed-commit-hash>
 ```
 
-Only when status is empty, the branch is still `claude/track-ui`, Claude is idle and integration is explicitly approved, use the exact reviewed checkpoint hash from the final report:
+These are instructions, not executed synchronization. If Claude has diverged or has uncommitted work, stop and coordinate; do not force, reset, rebase or auto-merge. Do not run `git worktree prune` or `git gc` from the Linux mount environment (see Claude's reported metadata caveat). Main integration is separately coordinated and must preserve the canonical untracked handoff placeholder.
 
-```powershell
-git -C ../AzerothKart-Claude merge --ff-only <reviewed-checkpoint-hash>
-git -C ../AzerothKart-Claude log -1 --oneline
-git -C ../AzerothKart-Claude status --short
-```
-
-These are manual commands, **not executed by this handoff**. A non-fast-forward or untracked-file conflict means stop and coordinate; never reset/clean/rebase to force it. Then Claude should read `CLAUDE.md`/shared contracts and record its task scope in its own canonical handoff before editing. No automatic merge into main, push or release is configured.
+**Next single task:** coordinated short client check of this sprite's load/alpha/facing/rotation and phase tints, using [Claude's precise procedure](claude-latest.md). No repeated combat/long profiling matrix. While awaiting a client slot, Claude may build Mirage scenery v1 under accepted ADR0009 against unchanged geometry, with per-file provenance; no new source-policy approval is required. Codex continues simulation ownership. M0/M1/M3 acceptance and the multiplayer gate remain open.
