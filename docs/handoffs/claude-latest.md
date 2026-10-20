@@ -1,6 +1,12 @@
-# Claude handoff — Mirage scenery v1
+# Claude handoff — Mirage scenery and shadows
 
-Prepared 2026-10-20, Europe/Oslo, by Claude (rendering/UI/sprites owner). This session repainted the Mirage background from flat blockout art into original procedural scenery at the same path, size, format and registration. M0/M1/M3 acceptance and the multiplayer gate are unchanged and remain open. The previous handoff, for the first Goblin Drag Car sprite, is in Git at `46931e1`.
+Prepared 2026-10-20, Europe/Oslo, by Claude (rendering/UI/sprites owner). This session continued Mirage Raceway in three steps:
+
+1. scenery v1 (`76af4aa`);
+2. the owner's in-game check of it;
+3. a shadow pass fixing what that check flagged (`0bf6fd0`).
+
+M0/M1/M3 acceptance and the multiplayer gate are unchanged and remain open. Earlier handoffs are in Git: the first Goblin Drag Car sprite at `46931e1`, and scenery v1 in full detail at `55c542d`.
 
 ## Owner instructions this session
 
@@ -8,169 +14,182 @@ Prepared 2026-10-20, Europe/Oslo, by Claude (rendering/UI/sprites owner). This s
 - Follow-up answers:
   - fast-forward `claude/track-ui` to Codex's review commit;
   - push **only** `claude/track-ui`, leaving `main` untouched;
-  - the owner runs the in-game checks personally, so Claude sent no client input.
+  - the owner runs the in-game checks personally, so Claude sends no client input.
+- After checking scenery v1 in the game: "Looks aight. I added github to claude - let me know if you still dont have access. Everything else looks and feels good, some issues with shadows on the assets around as you can see on the screenshot. Feel free to fix that next."
 
 ## Branch, commits and deployment
 
 | Item | Value |
 |---|---|
 | Worktree / branch | `AzerothKart-Claude` / `claude/track-ui` |
-| Base | `1f8f208` (`docs: approve Claude sprite review and Warcraft III asset direction`), fast-forwarded from `46931e1` with owner approval; clean at entry |
-| Feature commit | `76af4aa71e1f6a310f2d6d3729e781abb1f5b9dd` — `feat: paint Mirage scenery v1 background` |
-| Handoff commit | The commit containing this file; resolve with `git log -1 claude/track-ui` |
-| Installs (owner-authorized) | 1) `1f8f208` at 11:41 UTC: 17 files hash-verified, backup in `local-artifacts/installs/20261020-114116/`. 2) `76af4aa` at 12:24 UTC: `Background.tga` and `README_ADDON.md` copied, all 17 installed hashes match the source, backup in `local-artifacts/installs/20261020-122432/`. Each folder holds an `install.json` manifest and is git-ignored. An independent `diff -rq` found the installed folder identical to `addon/AzerothKart` at `76af4aa` |
-| Push (owner-authorized, branch only) | **Blocked:** neither the Linux shell on the developer machine nor the cloud workspace has a GitHub credential for `PhilForever/AzerothKart`. The owner can run `git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/track-ui` |
+| Base | `1f8f208` (Codex's review commit), fast-forwarded from `46931e1` with owner approval |
+| Commits | `76af4aa` `feat: paint Mirage scenery v1 background`; `55c542d` `docs: hand off Mirage scenery v1`; `0bf6fd0` `feat: attach soft shadows to Mirage scenery`; then the commit containing this file (`git log -1 claude/track-ui`) |
+| Installs (owner-authorized) | Each install backed up the target and hash-verified it. The backup folders sit under `local-artifacts/installs/`, each with an `install.json`, and are git-ignored. 1) `1f8f208` at 11:41 UTC: 17 files, backup `20261020-114116`. 2) `76af4aa` at 12:24 UTC: `Background.tga` and `README_ADDON.md`, backup `20261020-122432`. 3) `0bf6fd0` at 16:50 UTC: `Background.tga`, backup `20261020-165006`. `diff -rq` found the installed folder identical to `addon/AzerothKart` at `0bf6fd0` |
+| Push (owner-authorized, branch only) | **Still blocked.** The owner connected GitHub to Claude, but this running session's git proxy still refuses `PhilForever/AzerothKart` as "not in this session's authorized repository set", and `gh` reports access is not enabled for this session. The owner can push from Windows with `git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/track-ui`. A new session started with the repository attached should also be able to push |
 | Not done | No merge into `main` (still `f923d15`), no tag or release, no client input. Codex's branches and worktree were not touched |
 
-**Shared deployment note for Codex:** the live AddOns folder now carries `claude/track-ui` at `76af4aa`, including the sprite and scenery that are not on `main`. Installing from another checkout replaces them, so read the latest `install.json` first.
+**Shared deployment note for Codex:** the live AddOns folder carries `claude/track-ui` at `0bf6fd0`, including the sprite, scenery and shadows that are not on `main`. Installing from another checkout replaces them, so read the latest `install.json` first.
 
-**Git environment note:** commits come from a Linux shell on the developer machine. It mounts this worktree and the shared `.git` folder and runs Git with `--git-dir=.git/worktrees/AzerothKart-Claude`, `core.createObject=rename`, `gc.auto=0`, `maintenance.auto=false` and `gc.worktreePruneExpire=never`. `git worktree list` there marks this worktree prunable because its recorded gitdir is a Windows path. **Never run `git worktree prune` or `git gc` from that shell.** No lock file or temp object was left this session.
+**Git environment note:**
+
+- Commits come from a Linux shell on the developer machine. It mounts this worktree and the shared `.git` folder and runs Git with `--git-dir=.git/worktrees/AzerothKart-Claude`, `core.createObject=rename`, `gc.auto=0`, `maintenance.auto=false` and `gc.worktreePruneExpire=never`.
+- `git worktree list` there marks this worktree prunable because its recorded gitdir is a Windows path. **Never run `git worktree prune` or `git gc` from that shell.**
+- Without delete permission in `.git`, a commit there leaves a stale `HEAD.lock`. The one left by `0bf6fd0` was removed after the owner allowed deletion; it was empty and created by that command.
+
+## Owner's in-game check of scenery v1
+
+Recorded in [the evidence note](../evidence/2026-10-20-mirage-scenery-owner-check.md), from one owner screenshot (Mirage selected, stopped at spawn) and the owner's words:
+
+- scenery v1 and the Goblin Drag Car sprite render in WoW Forever;
+- the sprite faces north on the start checkers, with no box or halo;
+- the view matches the offline play-camera preview;
+- the owner reports that everything apart from the shadows looks and feels good;
+- the shadows were detached gray offset copies of their objects, which prompted the shadow pass.
+
+The screenshot records no probe numbers, FPS, tints or rotation while driving.
 
 ## Completed work
 
-- **Scenery v1** ([asset sheet](../art/mirage-background.md)):
-  - Ivory salt flats: domain-warped Voronoi crust plates with fading ridges and cracks, plus a bright crust and dust along the lane.
-  - Packed-dirt lane: a worn center, berms, two wobbling racing lines of tire streaks, red/cream apex kerbs on sharp bends, and pebbles.
-  - Two rows of start/finish checkers under the Start gate.
-  - Static set pieces lit from the north-west, with south-east shadows and ink outlines:
-    - the boulder rim and the north rock mound;
-    - the goblin pit east of the start straight and the gnome dome camp west of the west straight;
-    - an infield timing tower, start banners, bleachers, a tent camp with a campfire and a fuel tank tower;
-    - a drag-car wreck, a crashed gyrocopter, a kodo skeleton, tire stacks and sparse rocks, shrubs and bones.
-- **Build-time guarantees:**
-  - road or salt for each pixel comes from the actual Lua `isDrivable`;
-  - the build fails if scenery covers a road texel;
-  - objects keep a 20-unit clearance (the start poles 6);
-  - road interior luma must stay ≤ 180 and the rim ≥ 190 (actual ≤ 168 and ≥ 201);
-  - ten landmarks must match their exact color.
-- **Pipeline:**
-  - New shared `scripts/paintkit.py`:
-    - SDF shapes, a coverage-tracking canvas and soft ground decals;
-    - materials and `hash32`, a full 32-bit hash (`hash2` keeps 16 bits, which had collapsed scattered props onto a line);
-    - the exact integer resolve, TGA/PNG encoding and decoding, and bilinear sampling.
-  - `scripts/build_kart_sprites.py` now imports it, and `--check` still passes byte-identically.
-  - `scripts/build_mirage_background.py` was rewritten. It does one Lua geometry scan, giving the road flag, signed lateral offset and arc length for each pixel. Then come the ground layers, scenery, validation and previews.
-- **Test:** `tests/test_presentation.lua` has a new background-registration block. It loads Track and MirageRaceway, reads `Background.tga` and samples every third texel against `isDrivable`. Interior road must be dark and the rim light, with minimum sample counts. A deliberately flipped image fails it.
+**Scenery v1 (`76af4aa`)** repainted `Assets/Tracks/SaltFlats/Background.tga` from flat blockout art into procedural scenery. The path, size, format and registration stayed the same: road or salt for every pixel still comes from the Lua `isDrivable`. The `55c542d` handoff and the [background sheet](../art/mirage-background.md) cover it.
+
+**Shadow pass (`0bf6fd0`):**
+
+- **`scripts/paintkit.py`:**
+  - `convex_hull`, `sd_hull`, `prism`, a `Shadow` piece set and `Canvas.enable_shadows`/`Canvas.cast`.
+  - A shadow is the convex hull of an object's volume vertices, each moved along the shadow vector by its height.
+  - It multiplies already-painted color toward a tint, with a contact rim and a penumbra that widens and fades toward the tip.
+  - Each sample keeps its strongest shadow level, so overlaps never stack; `Canvas.draw` clears the level where it paints.
+  - The kart canvas never enables shadows, and its output is byte-identical.
+- **`scripts/build_mirage_background.py`:**
+  - Every object now declares volumes with real heights: rocks as octagon frustums, barrels and stacks as columns, the workshop, tents and tower as gable or pyramid volumes, the bleachers as a wedge.
+  - Shadow vector 0.95 × (0.6, −0.8) per unit of height, away from the north-west light; tint (0.46, 0.42, 0.55); core strength 0.64.
+  - Raised parts lift away, joined to the ground by their poles, legs or cable: the banner cloth, crane boom, hook, fuel drum, raised awnings and gyrocopter rotor.
+  - The chimney on the workshop roof casts onto the roof.
+  - Multi-part objects (rocket, crane, fuel tower, gyrocopter, banners, wreck) cast one shadow each.
+  - The goblin and gnome camps queue low props before tall ones.
+  - Banners became swallowtail flags with trim stripes.
+  - Oil stains became two drips and one pit-box splat with crisp lobed edges; the old soft gray blobs read as shadows.
+  - The gnome chimney's soot blob was removed; the contact rim grounds it instead.
 - **Docs:**
-  - a rewritten [background sheet](../art/mirage-background.md) with an overview and four play-view previews;
-  - sentence-level current-state updates in README, README_ADDON, ASSETS, INDEX, MIRAGE_RACEWAY, ASSET_SOURCES and the drag-car sheet;
-  - a CHANGELOG entry, and one more required path in `validate_project.py`.
+  - a new [evidence note](../evidence/2026-10-20-mirage-scenery-owner-check.md);
+  - a Shadows section, new SHA and status in the [background sheet](../art/mirage-background.md);
+  - the owner observation added to the [drag-car sheet](../art/karts/goblin-drag-car.md);
+  - status sentences in README, ASSETS, MIRAGE_RACEWAY and INDEX;
+  - a CHANGELOG entry;
+  - regenerated previews and the kart review sheet.
 
-## Files changed (feature commit `76af4aa`)
+## Files changed by `0bf6fd0`
 
-- **Runtime:**
-  - `addon/AzerothKart/Assets/Tracks/SaltFlats/Background.tga` (same path, size and format);
-  - `addon/AzerothKart/README_ADDON.md` (text only).
-- **Tools:**
-  - `scripts/paintkit.py` (new);
-  - `scripts/build_mirage_background.py`;
-  - `scripts/build_kart_sprites.py` (refactor, identical output);
-  - `scripts/validate_project.py` (shared: +1 path).
-- **Tests:** `tests/test_presentation.lua`.
-- **Docs:**
-  - `docs/art/mirage-background.md`;
-  - `docs/art/mirage-background-overview.png` and `docs/art/mirage-background-views.png` (new);
-  - `docs/art/karts/goblin-drag-car-review.png` (regenerated over the new background; the kart TGA is unchanged);
-  - `docs/art/karts/goblin-drag-car.md`, `docs/art/MIRAGE_RACEWAY.md` and `docs/art/ASSET_SOURCES.md`;
-  - `docs/ASSETS.md`, `docs/INDEX.md`, `README.md` and `CHANGELOG.md`.
+- **Runtime:** `addon/AzerothKart/Assets/Tracks/SaltFlats/Background.tga`. Same path, size and format; SHA-256 `cd5aecb95daca106e3494c8ed72a2a6b227f49ca51680a8c6b403f766a1c567e`.
+- **Tools:** `scripts/paintkit.py`, `scripts/build_mirage_background.py`.
+- **Docs and review images:**
+  - `docs/evidence/2026-10-20-mirage-scenery-owner-check.md` (new);
+  - `docs/art/mirage-background.md`, `docs/art/mirage-background-overview.png` and `docs/art/mirage-background-views.png`;
+  - `docs/art/karts/goblin-drag-car.md` and `docs/art/karts/goblin-drag-car-review.png`;
+  - `docs/art/MIRAGE_RACEWAY.md`, `docs/ASSETS.md`, `docs/INDEX.md`, `README.md` and `CHANGELOG.md`.
 
-`git diff --stat 1f8f208` confirms these are unchanged:
+`git diff --stat 1f8f208` confirms these are unchanged across the session:
 
-- every Lua module, including `UI.lua` and `Presentation.lua`;
-- both TOCs, `tests/run.lua`, `tests/test_ui.lua` and every simulation test;
+- every Lua module, both TOCs, `tests/run.lua`, `tests/test_ui.lua` and every simulation test;
 - `docs/PROGRESS.md`, `docs/API_CONTRACTS.md` and the Codex handoff;
 - AGENTS.md and CLAUDE.md.
 
 ## Tests performed
 
-These ran in the Linux shell on the developer machine (Python 3.10.12, pinned `lupa==2.8` outside the repo). The cloud workspace (Python 3.13) was used only for byte reproducibility.
+These ran in the Linux shell on the developer machine (Python 3.10.12, pinned `lupa==2.8` outside the repo) and in the cloud workspace (Python 3.13, `lupa` 2.8).
 
 | Command / check | Result |
 |---|---|
-| `python3 scripts/test_lua.py --runtime both` on committed `76af4aa` | **PASS**: 29 files parsed and the suite passed in both Lua 5.1 and 5.4. Includes `offline Mirage background: 18887 road / 1191 rim samples agree with isDrivable` |
-| `python3 scripts/build_mirage_background.py --check` | **CHECK PASS**: 4,194,322 bytes; 10 landmarks; road ≤ 168 (169,984 px) vs rim ≥ 201 (11,089 px); no scenery on road; SHA-256 `470773847ebc9d4fbfed14d6656eccd5dd9726bfd996b672450c1d1f1802ac37` |
-| The same build with Python 3.13 in the cloud workspace | Identical SHA-256 |
-| `python3 scripts/build_kart_sprites.py --check` after the paintkit refactor | **CHECK PASS**, unchanged `cc7c1c69…126a` |
-| `python3 scripts/build_mirage_layout.py --check` | CHECK PASS (unchanged) |
-| Negative check during development | A vertically flipped `Background.tga` fails the Lua registration block |
-| `python3 scripts/validate_project.py` | Only the **2 pre-existing** failures: absolute `C:/Users/bakke/.codex/...` links in PROGRESS.md that resolve only on Windows. Every other path and doc link passes, now including `scripts/paintkit.py` |
+| `python3 scripts/build_mirage_background.py --preview` (both environments) | **GENERATED**, identical SHA-256 `cd5aecb9…c567e` on Python 3.10 and 3.13. Covers 10 registration landmarks; road ≤ 168 (169,984 px) vs rim ≥ 201 (11,089 px); no scenery **or shadow** on any road texel |
+| `python3 scripts/build_mirage_background.py --check` (cloud) | CHECK PASS |
+| `python3 scripts/test_lua.py --runtime both` (developer machine, final code) | **PASS**: 29 files parsed; suites pass in Lua 5.1 and 5.4. Includes `offline Mirage background: 18887 road / 1191 rim samples agree with isDrivable` |
+| `python3 scripts/test_lua.py --runtime lua51 --tests presentation ui` (cloud) | PASS; counts 9/111/13 |
+| `python3 scripts/build_kart_sprites.py --check` after the paintkit change | **CHECK PASS**, unchanged `cc7c1c69…126a` |
+| `python3 scripts/build_mirage_layout.py --check` | CHECK PASS |
+| `python3 scripts/validate_project.py` | Only the **2 pre-existing** absolute Windows-path links in PROGRESS.md fail; every other path and doc link passes |
 | `git diff --check`, `git diff --cached --check` | Clean |
-| Visual review (offline emulation, not the client) | Inspected the whole-map overview and four emulated play views. No scenery on the lane, kerbs on the bend insides, checkers under the Start gate, a readable lane edge, and gates and kart unobstructed |
-| Install verification | `install_ak.py`: backup verified, 2 files copied, 17/17 source hashes matched; independent `sha256sum` and `diff -rq` agree |
+| Visual review (offline, not the client) | Zoomed crops of the goblin pit, start area, gnome camp, rock mound, fuel tower, wreck, gyrocopter, kodo skeleton, tents and bleachers, plus the four play views. A before/after of the owner's screenshot view shows the detached gray squares and streaks replaced by attached soft shadows |
+| Install verification | `install_ak.py`: backup verified, 1 file copied, 17/17 source hashes matched; independent `sha256sum` and `diff -rq` agree |
 
 **NOT RUN:**
 
-- WoW Forever checks (below);
-- `tests/test_install_local.ps1` (no PowerShell in this shell);
+- the shadow pass in WoW Forever;
+- `tests/test_install_local.ps1` (no PowerShell here);
 - `validate_project.py` on Windows;
 - FPS or performance measurement;
 - multiplayer.
 
-## Tests requiring WoW Forever (all NOT RUN; the owner is checking)
+## Tests requiring WoW Forever (NOT RUN; the owner checks)
 
-Both slices are installed. The kart sprite was a new file and the background is a replaced one, so **fully restart the client**. Detailed steps are in [the sprite check](../art/karts/goblin-drag-car.md#client-check-not-run) and [the scenery check](../art/mirage-background.md#client-check-not-run). In short:
+The background was replaced at an existing path, so **fully restart the client**, because `/reload` may show the cached image. Select **Track: Mirage Raceway**, drive a lap and follow [the scenery client check](../art/mirage-background.md#client-check-not-run). In short:
 
-1. The sprite shows on Test Oval and Mirage instead of the orange rectangle: transparent corners, nose leading in every direction, phase washes while drifting and boosting.
-2. Mirage shows scenery v1, not the flat blockout, with no flip or offset.
-3. The lane edge matches where the kart starts slowing on salt.
-4. The checkers sit under the Start strip, and kerbs mark the bend insides.
-5. Nothing covers the lane, a gate strip or the kart, and the gray wall strips sit over the boulder rim.
-6. No seams, banding or blur appear while the camera moves or at the map edges.
-7. Print Probe shows 9/111/13.
+1. Shadows touch their objects: the timing tower, workshop, crates and barrels.
+2. The banners' and crane boom's shadows sit offset but joined by thin pole or cable lines, with no detached gray squares or streaks.
+3. The lane edge, checkers and kerbs still line up.
+4. No seams appear while the camera moves.
+5. Print Probe shows 9/111/13.
+
+Sprite rotation and tints while driving ([drag-car check](../art/karts/goblin-drag-car.md#client-check-not-run), steps 3 and 5–7) also remain open.
 
 ## Known limitations
 
-- Static scenery only: no foreground occlusion layer, no animated props such as campfire smoke or flags, no VFX.
-- Kerbs are placed from the turn sharpness at centerline vertices, so gentle bends have none.
-- At scale 1.5 one texel spans 1.5 canvas units, so the art can look slightly soft on high-resolution displays. A 2048 master would need a reviewed memory change (16 MiB raw).
-- The gray perimeter wall strips (inset 18) now overlay the painted boulder rim and read as a frame in previews. Restyling them is a `drawWalls` change for a later slice.
-- `UI.SelectTrack` is Codex-owned and still shows `Mirage Raceway blockout | Start for 3 laps | Off-road: rough salt`. Proposed: `Mirage Raceway | Start for 3 laps | Off-road: rough salt`. No test asserts the string, and Claude did not edit it.
-- Camp positions follow the brief's composition; this is not a surveyed reconstruction of the Shimmering Flats.
+- Shadows fall only on what is painted before them. A low prop never shades a taller roof drawn earlier, and object-on-object shading depends on queue order.
+- The flat, top-down banners are a stylization of cloth streaming in the wind; the shadow carries the flag shape.
+- Kerbs are placed from centerline-vertex sharpness, so gentle bends have none.
+- One texel spans 1.5 canvas units at scale 1.5, so the art can look slightly soft on large displays.
+- `UI.SelectTrack` is Codex-owned and still shows `Mirage Raceway blockout | Start for 3 laps | Off-road: rough salt` (visible in the owner's screenshot). Proposed: `Mirage Raceway | Start for 3 laps | Off-road: rough salt`. No test asserts the string, and Claude did not edit it.
+- The gray perimeter wall strips still overlay the boulder rim. Restyling them is a later `drawWalls` slice.
 
 ## Recommended next visual milestone
 
-1. Record the owner's client results for the sprite and scenery in PROGRESS.
-2. **Kart grounding and VFX:** a separate world-oriented shadow plus a pooled exhaust/boost flame. This adds 1–3 textures, a count change that needs review.
-3. **Mirage polish:**
-   - the status-text change above (Codex);
-   - wall strips restyled to suit the boulder rim;
-   - optionally a small foreground layer that never hides gates or the kart.
+1. The owner's client look at the shadow pass, recorded in PROGRESS.
+2. **Kart grounding and VFX:** a world-oriented kart shadow consistent with this light (offset south-east), plus a pooled exhaust/boost flame. This adds 1–3 textures, a count change that needs review.
+3. **Mirage polish:** the status-text change (Codex), and wall strips restyled to suit the boulder rim.
 4. The contrasting Gnome Drag Car, through the same generator and registry.
 5. Warcraft III material for props and VFX, after a specific source is inspected and logged in ASSET_SOURCES.
 
 ## Changes Codex must review
 
-- `scripts/paintkit.py`, a new shared module, and the `build_kart_sprites.py` refactor. `--check` proves the output is byte-identical.
-- `tests/test_presentation.lua`. The new block loads `Track.lua` and `MirageRaceway.lua` read-only and asserts only the art. No mechanics assertion was added or changed.
-- `scripts/validate_project.py` (shared): one more required path.
-- Shared docs: sentence-level updates in README, README_ADDON, ASSETS, INDEX and CHANGELOG.
+- `scripts/paintkit.py`: the shadow caster is new shared toolkit code. The kart `--check` proves its output is unchanged.
+- The evidence note and the status sentences in shared docs (README, ASSETS, INDEX, MIRAGE_RACEWAY, CHANGELOG) now cite the owner's screenshot.
 - The status-text proposal above, which touches Codex's code.
-- Deployment state: the AddOns folder is at `76af4aa`.
-- Asset budget: the same 1024×1024 RGBA32 file (4 MiB raw). No texture, frame or region was added; counts stay 9/111/13.
+- Deployment state: the AddOns folder is at `0bf6fd0`.
+- Asset budget: the same 1024×1024 RGBA32 file (4 MiB raw); no texture, frame or region added; counts stay 9/111/13.
 
-## Pending PROGRESS ledger entry (integrator to append; PROGRESS.md was deliberately not edited)
+## Pending PROGRESS ledger entries (integrator to append; PROGRESS.md was deliberately not edited)
 
 > ### 2026-10-20 ~13:45–14:30 CEST — Claude / `claude/track-ui`, Mirage scenery v1
 >
 > **Implemented:**
-> - Original procedural `Assets/Tracks/SaltFlats/Background.tga` at the same path, size and format: salt flats, a dirt lane with apex kerbs and start checkers, the goblin pit, the gnome camp and set dressing.
-> - Registered per pixel to the Lua `isDrivable`. The build asserts no scenery on road, a 20-unit clearance, contrast limits and ten landmarks.
-> - Shared `scripts/paintkit.py`; the kart generator was refactored with identical bytes.
-> - An independent Lua background check.
-> - Geometry, physics, UI code, TOCs, simulation tests and counts 9/111/13 unchanged.
+> - Original procedural `Background.tga` at the same path, size and format, registered per pixel to the Lua `isDrivable`.
+> - Build assertions: no scenery on road, a 20-unit clearance, contrast limits and ten landmarks.
+> - Shared `scripts/paintkit.py` (the kart generator keeps identical bytes) and an independent Lua background check.
 >
-> **Executed (Linux shell, Python 3.10, lupa 2.8):**
-> - `test_lua.py --runtime both` PASS: 29 files; the background check covered 18,887 road and 1,191 rim samples.
-> - `build_mirage_background.py --check` PASS (`47077384…2ac37`), with identical bytes on Python 3.13.
+> **Executed:**
+> - `test_lua.py --runtime both` PASS.
+> - `build_mirage_background.py --check` PASS (`47077384…2ac37`, identical on Python 3.13 and 3.10).
 > - Kart and layout checks PASS.
 > - `validate_project.py`: only the 2 pre-existing Windows-link failures.
-> - `git diff --check` clean.
 >
-> **Deployment (owner-authorized):** `1f8f208` (17 files verified; backup `20261020-114116`), then `76af4aa` (2 files copied, 17 verified; backup `20261020-122432`).
+> **Deployment (owner-authorized, verified):** `1f8f208`, then `76af4aa`.
 >
-> **NOT RUN:** client sprite and scenery appearance (the owner is checking), installer fixtures, performance. The `claude/track-ui` push is blocked by missing credentials in Claude's environments; the owner can push from Windows.
+> **Owner client check:** a screenshot shows scenery v1 and the sprite rendering at the Mirage start. The owner said "Everything else looks and feels good" and flagged the shadows (evidence: `docs/evidence/2026-10-20-mirage-scenery-owner-check.md`).
 >
-> **Next:** record the owner's client results, then kart shadow and exhaust VFX.
+> ### 2026-10-20 ~16:00–17:00 CEST — Claude / `claude/track-ui`, Mirage scenery shadows
+>
+> **Implemented:** attached shadows from height-swept convex volumes, with a contact rim, a fading penumbra, a multiplicative tint and max-combined overlaps (`paintkit.Shadow`/`Canvas.cast`). Swallowtail banners and crisp oil splats. Registration and road checks unchanged.
+>
+> **Executed:**
+> - Builds identical on Python 3.10 and 3.13 (`cd5aecb9…c567e`).
+> - `test_lua.py --runtime both` PASS.
+> - Kart (unchanged bytes) and layout checks PASS.
+> - `validate_project.py`: only the 2 pre-existing failures.
+>
+> **Deployment:** `0bf6fd0` (1 file copied, 17 verified; backup `20261020-165006`).
+>
+> **NOT RUN:** the shadow pass in the client. The push stays blocked by session credentials; the owner can push from Windows.
+>
+> **Next:** the owner's look at the shadows, then the kart shadow and exhaust VFX.
 
 ## Integration (manual, after review; not executed)
 
