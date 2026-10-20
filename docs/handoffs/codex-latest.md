@@ -1,27 +1,32 @@
-# Codex handoff — Forever full names and IOU logged transport
+# Codex handoff — first live window; targeted next trial
 
-2026-10-21, Europe/Oslo. Existing Codex Review worktree, branch `codex/forever-probe`, base `8e34e75` (combined runtime `8195da9`, Claude `1004e73`/effects `c6e1b5e`). Implementation **`8f66c5a`**; final deployment documentation follows. Resolve the tip with `git log -1 codex/forever-probe`.
+2026-10-21 01:13 CEST (Europe/Oslo). Existing `AzerothKart-Codex-Review`, branch `codex/network-window-akt722`, base `177e8f4`. Resolve final checkpoint with `git log -1 codex/network-window-akt722`.
 
-## Reservation and coordination
+## Scope and coordination
 
-Complete source correction: NetworkProbe name validation/matching; TransportProbe command/API/event/report/help; Core forwarding; focused network/adapter/UI integration tests; affected contracts/guides/ADR0012/progress. No UI.lua, Presentation, assets, track, physics or race edits. IOU is read-only compatibility evidence. Claude's next vehicles reservation remains intact. Main/local origin/main `f923d15`, canonical checkout `5570968`; no other checkout changed, no push/tag/release or automatic integration.
+Docs/evidence only: sanitized AKT722 capture, endpoint CSV rows, evidence report, current network contracts/status, plain guide/checklist, ROADMAP, PROGRESS and this handoff. No runtime/renderer/physics/input/race/art changes. Claude still `1004e73`, vehicles reservation/untracked outputs intact; main/local origin/main `f923d15`, canonical `5570968`. No other checkout modified, no push/release/install/client automation.
 
-## What changed
+## Verified advance
 
-The user's actual unquoted first-name/surname command failed in the old parser before any network call; pure validation also wrongly demanded a realm. Forever has no realms. Full names now retain surname, punctuation/hyphen/UTF-8, canonicalizing ASCII spaces and ASCII case for matching only (96rawbyte cap; controls/DEL/pipe refused). Prefer quotes; unquoted names and all-numeric six-character sessions work; ambiguous commands require quotes.
+One completed `WHISPER_LOGGED` window: `AKT722`, 0.5 DATA/s, 16-byte DATA/ACK, 120-second schedule. 59 DATA accepted ->59 listener unique receipts ->59 ACKs accepted ->59 sender matches. Prefix raw0 and all actual send returns0; no reported rejection/duplicate/reordered DATA/timeout/late/outstanding/throttle/error. RTT n=59: median 697,p95 779,p99/max 881 ms. Listener gaps n=58:1995/2094/2124/max2124ms. A elapsed130s,B147.325s include local wait/drain; do not infer one-way delay.
 
-Use only `C_ChatInfo.SendAddonMessageLogged` / `CHAT_MSG_ADDON_LOGGED`, native `WHISPER`, explicit report/CSV route `WHISPER_LOGGED`. No unlogged or ordinary-whisper fallback. Actual chat lockdown is respected if present. Pacing, wire format, DATA/ACK budgets, result classification, lifecycle cleanup and UI pool remain unchanged. No load-time registration/send. Reuse IOU's 16October/build70425 four successful round trips, including UTF-8 and239/240byte packets; do not redo basic connection research or count it as sustained racing capacity. See [ADR0012](../adr/0012-forever-logged-transport.md).
+[Evidence](../evidence/2026-10-21-akt722-network-window.md), `docs/experiments/AKT722-capture.json` and two endpoint-local CSV rows (one window, not two trials). Owner is A, friend B. Sender maps partly obscured, listener complete1–59 then absent60; no full sender bitmap transcription invented. Exact test UTC/build/interface/location/commit attestation unknown. Names/chat/screenshots not committed; attachment SHA hashes preserve correlation.
 
-## Executed checks
+Only M2's two-client capability checkbox completed; higher-budget/recovery/architecture/gameplay/scale gates open. No numeric RTT threshold previously accepted; roughly 0.7–0.9s is a material design risk, not production racing approval.
 
-- Python3.14/pinned Lupa2.8 Lua5.1: `scripts/test_lua.py --runtime lua51 --tests network_probe transport_probe ui` PASS34parsed/three modules, including parsing/identity/logged-only routing/chatlockdown and original pacing/accounting/UI invariants. UI remains10frames/151textures/13fonts.
-- `scripts/validate_project.py`: STATIC PASS61 paths. `git diff --check`: PASS. Independent read-only runtime review found no actionable defect.
-- One intermediate docs encoding check failed; corrected UTF-8 and final structural check PASS. Full/both-runtime matrix NOT RUN; no reason to repeat it for this adapter correction. No actual two-client sends, return codes, sustained RTT/loss/throttle/reconnect or capacity result; CSV header-only.
+## Executed checks and debt
 
-## Deployment and client window
+- Independent screenshot/source review and counter reconciliation.
+- Real Lua5.1 in-memory boundary reproduction: exact120s final callback60/60,missed0; +1microsecond or regular60 Hz offset1ms gives59/59,missed1,terminal60unattempted. Normal stops/no failures. Local scheduler limitation, not network loss or a measured client hitch. No runtime fix now; avoid forcing a friend reinstall for an accounting edge.
+- Python capture/ledger consistency assertions PASS: raw-code/local-byte totals, complete listener maps, timing sample semantics and unknown metadata.
+- Structural validator PASS61 paths/TOCs/links/60-column ledger; `git diff --check` PASS. No broad repeated runtime/UI matrix for docs-only change.
 
-Preflight: all22files match combined8195da9 via prior manifest `local-artifacts/install-backups/20261021-002417-215-569e7e1336304203b52dae42c3cc8849/install.json`; no extra target files. Claude still1004e73, handoff read, untracked outputs preserved. Installed source **8f66c5a** with verified backup and22/22 matching hashes at00:53 CEST. Manifest `local-artifacts/install-backups/20261021-005314-298-f5ce5642e61b4729a8ed4e8b3d553eb0/install.json`. Local friend ZIP `local-artifacts/bundles/AzerothKart-forever-fix-8f66c5a.zip`:22 source-matching files,2,975,544bytes; SHA256 `8bfc6a11d462b65190352fa9fe4e03531b605acb43461d9845a1183d19745a99`. No publication or sending. Owner requested less computer use: only inventory was read, no activation/input/reload/help/readback/arm/send. Client loading and two-client traffic remain NOT RUN. Both testers need this update and reload. Never deploy an older standalone rendering/runtime branch over this combined build; recheck both handoffs and live target immediately before installation.
+## Existing installation
+
+Runtime **`8f66c5a`**, previously backed up/hash-verified 22/22. Prior docs177e8f4. Manifest `local-artifacts/install-backups/20261021-005314-298-f5ce5642e61b4729a8ed4e8b3d553eb0/install.json`; friend ZIP `local-artifacts/bundles/AzerothKart-forever-fix-8f66c5a.zip` still valid. No reinstall/reload needed for next trial. Before any future install, recheck both handoffs and actual target; do not overwrite newer agent work.
 
 ## Next single task
 
-Both testers install the same corrected build/reload, use fresh code and exact opposite full names, listener first then sender within20seconds. See [the plain guide](../NETWORK_QUICK_START.md). Execute first0.5DATA/s16byte120second `WHISPER_LOGGED` window and reconcile both reports/evidence. No replication architecture selected. Original M0/M1/M3 acceptance and measured multiplayer gate remain open. Close-results behavior/combined-effect installation evidence remains in PROGRESS and previous handoff commit8e34e75; this task does not change visuals.
+Same build, **reverse roles**: owner listens, friend starts within 20 seconds, fresh `AKT723`,2 DATA/s,128-byte DATA, 120 seconds. [Plain guide](../NETWORK_QUICK_START.md) has generic commands; final user response supplies actual names. Wait BOTH stopped; preserve both report/evidence outputs. Existing stop guards remain; do not rerun merely for239 instead of 240 planned opportunities. Nominal aggregate 4 calls/s,316 payload+prefix bytes/s before unknown overhead.
+
+One combined direction/rate/size scenario replaces the full exploratory matrix for this immediate two-player candidate. It is not an isolated-cause experiment or four/eight-player approval. After reconciliation, perform short explicit reload/fresh-session recovery, then review live-race synchronization architecture. No broad engine before that evidence; multiplayer stays above ghosts.

@@ -28,8 +28,8 @@ Current slice: deterministic solid-obstacle collision with visible fixtures on T
 
 ### M2. Network feasibility and social handshake (CURRENT EXPERIMENT)
 
-Implemented on `codex/transport-probe`: a bounded opt-in directed-WHISPER probe with offline accounting/adapter coverage. Actual client enum/result behavior, two-peer traffic/reconnect, all capacity gates and architecture selection remain NOT RUN/PENDING. This does not complete M1 or any M2 acceptance item.
-- [ ] `AZKART1` channel capability probe with two real clients.
+Implemented: bounded opt-in logged-WHISPER probe, corrected for Forever full names on `codex/forever-probe`. First actual two-client window AKT722 is complete: 59 accepted DATA, 59 unique peer receipts, 59 accepted/matched ACKs, no reported errors/throttles/timeouts; p95 RTT 779 ms. [Evidence](evidence/2026-10-21-akt722-network-window.md). The unattempted terminal schedule slot is local, not network loss. Higher-budget reverse DATA, recovery, gameplay acceptability, architecture selection and M2 overall remain pending. Focus the next trial on the two-player candidate; the full rate/size/PARTY/4/8-player matrix is deferred reference work.
+- [x] `AZKART1` channel capability probe with two real clients. (AKT722, reviewed 2026-10-21; logged WHISPER, 0.5 DATA/s, 16 bytes, 120-second schedule; capability only.)
 - [ ] Test 2, 4 and 8 participant budgets when testers are available; record p95 RTT/loss/throttle.
 - [ ] Reliable low-rate `INVITE/JOIN/READY/START` control-plane with duplicates/disconnect tests.
 - [ ] Document live-race go/no-go and an ADR; if not feasible, stop and review scope with the owner. Ghost Challenge is a contingency, not automatic fulfillment of the current multiplayer release target.
