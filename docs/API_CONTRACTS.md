@@ -150,6 +150,20 @@ The guarded fallback covers creation-time load/neutral-tint refusal. Once initia
 
 The visual path reads state only. An offline scripted drive compares every returned Physics field and selected race/checkpoint fields between sprite and primitive modes; it is not an exhaustive comparison of all nested race state. See [the asset sheet](art/karts/goblin-drag-car.md). Sprite load/alpha/facing/filtering/tint behavior in the actual Forever client remains NOT RUN.
 
+**Proposed on `claude/track-ui` (Claude, 2026-10-20; awaiting Codex review): directional kart sheets.**
+
+- `Presentation.KART_SPRITES[id]` may add `frames`, `columns`, `pivotX` and `pivotY`. With them, `path` is a sheet of `frames` square frames, `columns` per row. Frame k faces heading `k * 2pi / frames`, counter-clockwise from east, read left to right and top to bottom.
+- One frame covers `quadWidth x quadHeight` world units. Its center sits `pivotX/pivotY` world units east/north of the kart's position on screen.
+- Entries without `frames` keep the single-image contract above.
+- New pure helpers:
+  - `Presentation.kartFrame(sprite, heading)` returns the nearest 0-based frame for any finite heading, wrapping turns.
+  - `Presentation.kartFrameCoords(sprite, frame)` returns `left, right, top, bottom` for `SetTexCoord`.
+- `Presentation.DEFAULT_KART` becomes `"goblin_mortar_trike"`: a 1024×1024 sheet of 64 frames of 128×128 texels, quad 41×41, pivot (3, 0). It is rendered three-quarter view from a Warcraft III model ([asset sheet](art/karts/goblin-mortar-trike.md)). `goblin_drag_car` stays registered.
+- UI loading for a sheet also requires `SetTexCoord` to exist and accept frame 0 before `SetVertexColor`. Otherwise the primitive is kept, as for any refused load.
+- While drawing, UI shows the nearest frame and calls `SetTexCoord` only when the frame changes. It anchors at the projected pose plus the pivot times the view scale and never calls `SetRotation` for a sheet.
+- A sheet's visible art (height and baked shadow) extends past the 17×31 body. The trike reaches about 22 world units from the kart, against the 18-unit wall inset, so its top can show up to about 2 canvas pixels past the map edge. This is visual only.
+- No Physics/Race field, signature or UI object count changes.
+
 ## Rendering cadence, resources and lifecycle
 
 Rendering currently runs once per delivered active `OnUpdate`, after zero or more fixed steps; it is not locked to 60 FPS and has no separate render timer. Meter, gate colors and countdown update through the render path with cached values. The numeric HUD refreshes every ≥0.25 **simulated** seconds, on lap/status changes and immediately at Start/Stop/selection. UI lifecycle events may draw outside `OnUpdate`; inactive updates do no work.

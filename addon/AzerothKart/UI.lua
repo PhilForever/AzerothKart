@@ -452,15 +452,15 @@ local function layoutTrack()
     UI.mirageBackground:SetPoint("BOTTOMLEFT",UI.canvas,"BOTTOMLEFT",0,0)
     UI.mirageBackground:SetSize(800,480)
     placeTrackMarkers()
-    -- A loaded sprite draws its padded quad; its visible body keeps the
-    -- primitive's 17x31 footprint. Both share the view's uniform scale.
+    -- A loaded sprite draws its padded quad (one frame of a directional
+    -- sheet); the primitive keeps its 17x31 body. Both share the view's scale.
     local sprite = UI.kartSprite
     UI.kart:SetSize((sprite and sprite.quadWidth or Presentation.KART_FOOTPRINT_WIDTH)*UI.view.scale,
         (sprite and sprite.quadHeight or Presentation.KART_FOOTPRINT_HEIGHT)*UI.view.scale)
     UI.gatePassed,UI.gateStopped = nil,nil
 end
 
--- Kart visual: one pooled Texture shows the goblin drag-car sprite, or the
+-- Kart visual: one pooled Texture shows the default kart sprite, or the
 -- original primitive when the guarded creation-time load fails. Tint indices
 -- follow render: 0 normal, 1 charging, 2/3 tier ready, 4 boost. SetColorTexture
 -- replaces a texture's image with a solid color, so only the primitive may use
@@ -473,14 +473,19 @@ local kartSpriteTints = {
 }
 
 local function loadKartSprite()
-    -- Once, at creation. A true load result plus a working vertex tint select
-    -- the sprite; a missing, erroring, false or nil result keeps the primitive.
+    -- Once, at creation. A true load result plus a working vertex tint (and,
+    -- for a directional sheet, a working frame crop) select the sprite; a
+    -- missing, erroring, false or nil result keeps the primitive.
     local kart,sprite = UI.kart,Presentation.KART_SPRITES[Presentation.DEFAULT_KART]
-    UI.kartSprite = nil
+    UI.kartSprite,UI.kartFrame = nil,nil
     if not sprite or type(kart.SetTexture) ~= "function"
         or type(kart.SetVertexColor) ~= "function" then return end
+    if sprite.frames and type(kart.SetTexCoord) ~= "function" then return end
     local ok,loaded = pcall(kart.SetTexture,kart,sprite.path)
-    if not ok or loaded ~= true or not pcall(kart.SetVertexColor,kart,1,1,1,1) then return end
+    if not ok or loaded ~= true then return end
+    if sprite.frames and not pcall(kart.SetTexCoord,kart,Presentation.kartFrameCoords(sprite,0)) then return end
+    if not pcall(kart.SetVertexColor,kart,1,1,1,1) then return end
+    UI.kartFrame = sprite.frames and 0 or nil
     UI.kartSprite = sprite
 end
 
@@ -563,8 +568,21 @@ render = function()
     end
     x,y = Presentation.project(UI.view,x,y)
     UI.kart:ClearAllPoints()
-    UI.kart:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x,y)
-    UI.kart:SetRotation(heading - math.pi/2)
+    local sprite = UI.kartSprite
+    if sprite and sprite.frames then
+        -- Directional sheet: show the nearest pre-rendered heading, unrotated,
+        -- and only touch its crop when the frame changes.
+        local frame = Presentation.kartFrame(sprite,heading)
+        if frame ~= UI.kartFrame then
+            UI.kartFrame = frame
+            UI.kart:SetTexCoord(Presentation.kartFrameCoords(sprite,frame))
+        end
+        local scale = UI.view.scale
+        UI.kart:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x + sprite.pivotX*scale,y + sprite.pivotY*scale)
+    else
+        UI.kart:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x,y)
+        UI.kart:SetRotation(heading - math.pi/2)
+    end
     local state = UI.state
     local tint = state.boostTicks > 0 and 4 or (state.drifting and (1 + state.driftTier) or 0)
     if tint ~= UI.kartTint then

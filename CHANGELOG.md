@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Goblin Mortar Trike kart (2026-10-20, `claude/track-ui`)
+- Make the Warcraft III Goblin Mortar Trike (erwtenpeller and Chriz, Vast Graphics) the default kart, at the owner's request. The new `scripts/build_wc3_kart.py` reads the published MDX model and paletted BLP texture with the standard library. It poses the Stand frame and renders 64 three-quarter-view headings into a 1024×1024 sheet, lit and shadowed like the Mirage scenery. The mesh and texture are not edited, and output bytes are identical on Python 3.10 and 3.13.
+- `Presentation.KART_SPRITES` gains optional directional-sheet fields (`frames`, `columns`, `pivotX`, `pivotY`) plus `Presentation.kartFrame` and `Presentation.kartFrameCoords`.
+- UI shows the nearest heading unrotated, rewrites the crop only when the frame changes, anchors by the pivot, and keeps the primitive if `SetTexture`, `SetTexCoord` or `SetVertexColor` refuse at load. The Goblin Drag Car stays registered as a single-image kart with the rotated path.
+- Physics, race, input, capture and UI object counts (9/111/13) are unchanged; the kart texture grows to 4 MiB of raw pixels. Lua tests cover the sheet layout, nearest-frame lookup, refused crops, pivot anchoring and simulation equivalence.
+- Credits are in the addon README and `docs/art/karts/goblin-mortar-trike.md`. The archive's Read Me asks for permission before modification, and the owner says it is outdated; redistribution stays unresolved for release review. Client appearance is NOT RUN.
+
 ## Unreleased — Mirage scenery shadows (2026-10-20, `claude/track-ui`)
 - Replace the scenery's offset-copy shadows, which the owner's in-game screenshot showed as detached gray shapes, with attached soft shadows. Objects are described by convex volumes with real heights. Each shadow is their convex hull projected away from the north-west light, so it touches the object's base. Raised parts (banner cloth, crane boom, fuel drum, rotor) cast lifted shadows joined to the ground by their poles, legs or cable.
 - Shadows multiply the painted color toward a cool tint, with a contact rim and a widening, fading penumbra; overlaps combine by maximum instead of stacking. `paintkit.Shadow` and `Canvas.cast` implement this, and the kart output stays byte-identical.

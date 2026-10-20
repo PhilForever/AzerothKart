@@ -18,6 +18,8 @@ REQUIRED=[
  'docs/art/mirage-background.md',
  'addon/AzerothKart/Assets/Tracks/SaltFlats/Background.tga',
  'scripts/build_kart_sprites.py','docs/art/karts/goblin-drag-car.md',
+ 'scripts/build_wc3_kart.py','docs/art/karts/goblin-mortar-trike.md',
+ 'addon/AzerothKart/Assets/Karts/GoblinMortarTrike.tga',
  'addon/AzerothKart/Assets/Karts/GoblinDragCar.tga',
  'addon/AzerothKart/Input.lua','addon/AzerothKart/Loop.lua',
  'addon/AzerothKart/Performance.lua','tests/test_performance.lua',
