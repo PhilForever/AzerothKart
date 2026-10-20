@@ -10,6 +10,31 @@ Prepared 2026-10-20, Europe/Oslo, by Claude (rendering/UI/sprites owner). This s
 
 M0/M1/M3 acceptance and the multiplayer gate are unchanged and remain open. Earlier handoffs are in Git: the drag-car sprite at `46931e1`, scenery v1 at `55c542d` and the shadow pass at `5734335`.
 
+## Active reservation (2026-10-20, from about 21:05 CEST)
+
+**Task:** drift and boost effects for the kart, then more roster vehicles. Owner request: "Start with drift and boost effects, then implement more vehicles." Owner answers: fast-forward `claude/track-ui` onto Codex's integration commit `7fcdd89` (done; it is the build installed in the AddOns folder), and the effects style "Sparks, smoke and flame".
+
+**Base:** `7fcdd89` (`codex/menu-integration`), which already contains every earlier Claude commit.
+
+**Reserved for Claude:**
+
+- `addon/AzerothKart/Presentation.lua`: new pure effect helpers, plus emitter data in `KART_SPRITES`.
+- `addon/AzerothKart/UI.lua`:
+  - the visual layout part of `UI.Create`, where an effect texture pool is created after the kart texture;
+  - `loadKartSprite`, for the effect texture loads;
+  - `layoutTrack`, for effect sizes;
+  - the kart block of `render`.
+  - Not touched: `step`, Start/Stop, capture, events, the state transaction in `SelectTrack`, and race logic.
+- New files under `addon/AzerothKart/Assets/Effects/`, a new effect-sprite build script, and `scripts/build_wc3_kart.py` (emitter points).
+- `tests/test_presentation.lua`; visual assertions and the explicit counts in `tests/test_ui.lua` (shared).
+- Docs:
+  - a new effects art sheet;
+  - ASSETS, CHANGELOG, an API_CONTRACTS proposal and README_ADDON;
+  - required paths in `validate_project.py`;
+  - this handoff.
+
+The vehicles that follow will need a stopped-only kart selector next to the Track button. That control callback in `UI.Create` will be proposed for Codex review before integration.
+
 ## Owner instructions this session
 
 - "You can update the addon directly here: C:\Program Files (x86)\World of Warcraft\_classic_beta_\Interface\AddOns\AzerothKart And feel free to push to github as well https://github.com/PhilForever/AzerothKart Now, continue work on Mirage Raceway"
@@ -28,10 +53,10 @@ M0/M1/M3 acceptance and the multiplayer gate are unchanged and remain open. Earl
 | Worktree / branch | `AzerothKart-Claude` / `claude/track-ui`, base `1f8f208` (Codex's review commit) |
 | Commits | `76af4aa` scenery v1, `55c542d` docs, `0bf6fd0` scenery shadows, `5734335` docs, `cf71394` `feat: make the Warcraft III Goblin Mortar Trike the default kart`, `064105f` the trike handoff, then the commit containing this revision |
 | Installs (owner-authorized) | Each install backed up the target and hash-verified it; backups sit under git-ignored `local-artifacts/installs/`, each with an `install.json`. 1) `1f8f208` (backup `20261020-114116`). 2) `76af4aa` (backup `20261020-122432`). 3) `0bf6fd0` (backup `20261020-165006`). 4) `cf71394` at 17:37 UTC: the trike sheet, `Presentation.lua`, `UI.lua` and `README_ADDON.md` copied, 18 files verified, backup `20261020-173759`. `diff -rq` found the installed folder identical to `addon/AzerothKart` at `cf71394` |
-| Push (owner-authorized, branch only) | **Still blocked** (last tried about 20:15 CEST, after the owner reported GitHub ready). This session's git proxy still refuses `PhilForever/AzerothKart` as "not in this session's authorized repository set", and the Linux shell on the developer machine reaches GitHub but has no credentials. The owner can push from Windows with `git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/track-ui`; a session that has the repository among its sources should also be able to |
+| Push (owner-authorized, branch only) | The owner pushed `claude/track-ui` from Windows; `origin/claude/track-ui` was `812d132`. This session's git proxy refuses `PhilForever/AzerothKart` ("not in this session's authorized repository set"), so later commits also need the owner's push: `git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push origin claude/track-ui` |
 | Not done | No merge into `main` (still `f923d15`), no tag or release, no client input. Codex's branches and worktree were not touched |
 
-**Shared deployment note for Codex:** the live AddOns folder carries `claude/track-ui` at `cf71394`: the trike kart, scenery and shadows, none of them on `main`. Installing from another checkout replaces them, so read the latest `install.json` first.
+**Shared deployment note:** Codex then installed its combined build. At the start of this task, every file in the live AddOns folder matched `addon/AzerothKart` at `7fcdd89`. Claude installs only from commits that contain `7fcdd89`.
 
 **Workspace notes:**
 
