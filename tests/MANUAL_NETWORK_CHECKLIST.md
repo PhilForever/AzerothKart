@@ -1,6 +1,6 @@
-# Manual network experiment — F4 (first lowest-rate window complete; gate open)
+# Manual network experiment — F4 (two scoped windows complete; gate open)
 
-For the human-facing explanation and command order, start with [Connection test — you and a friend](../docs/NETWORK_QUICK_START.md), also summarized by `/akart net help` in-game. There is no GUI connection-test button. Print Probe is the separate driving-statistics report. The initial-window procedure below remains a reference; the next requested measurement is the single reverse window described first.
+For the human-facing explanation and command order, start with [Connection test — you and a friend](../docs/NETWORK_QUICK_START.md), also summarized by `/akart net help` in-game. There is no GUI connection-test button. Print Probe is the separate driving-statistics report. The initial-window procedure below remains a reference; the next requested check is the short reload/fresh-rearm pair described first.
 
 The branch implements a bounded opt-in **logged addon whisper** probe, not a multiplayer engine. The send API is explicitly `C_ChatInfo.SendAddonMessageLogged`, the receive event is `CHAT_MSG_ADDON_LOGGED`, and the native channel argument remains `WHISPER`. Use the ledger label **`WHISPER_LOGGED`** to distinguish it from unlogged addon messages. There is no fallback to `SendAddonMessage`, `CHAT_MSG_ADDON` or ordinary chat whispers.
 
@@ -8,27 +8,43 @@ IOU already established the basic logged route: on 2026-10-16, two live IOU 0.3.
 
 **First window complete:** [AKT722 evidence](../docs/evidence/2026-10-21-akt722-network-window.md) records 0.5 DATA/s, 16-byte DATA and 120 configured seconds; both peers stopped with `window_complete`. The counts reconcile: 59 accepted DATA sends, 59 unique listener receipts, 59 accepted ACK sends and 59 matched sender ACKs. Rejection/duplicate/reorder/timeout/late/outstanding/throttle/error counters were zero, with numeric `0` prefix/send returns on both sides. Sender RTT had 59 samples (p50 697, p95 779, p99/max 881 ms); listener gaps had 58 (p50 1995, p95 2094, p99/max 2124 ms). Sender/listener elapsed was 130/147.325 seconds including different waiting periods. Exact build/interface/location/test UTC were not supplied; do not copy historical build 70450 into this run. One of 60 scheduled opportunities was unattempted at the local end boundary, not lost. Listener receipt/ACK maps show 1–59 then absent 60; owner map portions are obscured, so retain the count-reconciliation limitation. No numeric RTT threshold is accepted and this sample is not approval for live racing. Recovery/replication/scale gates remain open.
 
-Claude's scenery/trike and Codex's probe were reviewed together on `codex/menu-integration`; the corrected existing build is `177e8f4` from `codex/forever-probe`. The earlier `Invalid numeric net argument` report was a command-parse refusal, not transport evidence. Keep the same corrected build on both clients for the next window; no reinstall is required for this documentation checkpoint. The [60-column CSV](../docs/experiments/network-ledger.csv) records measured evidence only. M0's deferred long manual matrix does not prohibit this focused experiment under ADR 0007; observe the probe's own stop guards.
+**Second window complete:** [AKT723 evidence](../docs/evidence/2026-10-21-akt723-network-window.md), owner A listening and friend B sending, used 2 DATA/s, 128-byte DATA, 16-byte ACK and 120 seconds. All 240 DATA calls were accepted/received uniquely and all 240 ACKs accepted/matched, with zero failed/unknown sends, throttles, errors, rejects, duplicates, reported DATA reorder, timeouts, late/outstanding ACKs and missed slots. B RTT n240:701/771/913/max1012ms; A gaps n239:500/551/667/max767ms, nearest-rank p50/p95/p99/max. B/A elapsed 130/134.788 seconds includes waits/drain. Builds/exact UTC remain unknown and partially obscured maps are not transcribed as fully readable. Different zones, no group and US beta servers are user-reported context, not verified causes of RTT. This completes one combined direction/rate/size scenario, not an isolated-variable comparison or a production racing approval.
 
-## Next single measurement — reverse direction, NOT RUN
+Claude's scenery/trike and Codex's probe were reviewed together on `codex/menu-integration`; the corrected existing build is `177e8f4` from `codex/forever-probe`. The earlier `Invalid numeric net argument` report was a command-parse refusal, not transport evidence. Keep the same corrected build on both clients for the next check; no reinstall is required for this documentation checkpoint. The [60-column CSV](../docs/experiments/network-ledger.csv) records measured evidence only. M0's deferred long manual matrix does not prohibit this focused experiment under ADR 0007; observe the probe's own stop guards.
 
-Reverse the AKT722 roles: **owner listens, friend starts**. Use fresh `AKT723` only if unused. Substitute full actual character names for these generic names; in this example owner is Amber Stone and friend is Birch Vale.
+## Next single check — reload and fresh rearm, NOT RUN
 
-1. Owner types first:
+Use the existing build with **friend B listening and owner A starting**. Names below are placeholders: owner Amber Stone, friend Birch Vale. Use fresh IDs; if either suggested ID is already used, agree on a different six-character uppercase alphanumeric ID. The pair checks addon reload and explicit recovery, not a full socket disconnect. It is **NOT RUN**; do not add planned zero ledger rows.
 
-   ```text
-   /akart net listen "Birch Vale" AKT723 2 128 120
-   ```
-
-2. Within 20 seconds, friend types:
+1. Friend types first:
 
    ```text
-   /akart net start "Amber Stone" AKT723 2 128 120
+   /akart net listen "Amber Stone" AKT724 2 128 20
    ```
 
-3. Let both reach `Stopped`, then both retain `/akart net report` and every `/akart net evidence` range before reloading or starting another session. Cancel with `/akart net stop` if needed; stop immediately on throttle, error, deadline, hitching or other disruption and preserve the reason. A local terminal missed opportunity alone is not a reason to rerun or claim loss.
+2. Within 20 seconds, owner types:
 
-This is one combined direction/rate/size scenario: nominal **2 DATA + 2 ACK calls/s**, 288 payload bytes/s plus 28 prefix bytes/s, **316 bytes/s before overhead**. It does not isolate which changed variable explains a difference. The schedule has 240 opportunities; actual attempted calls can be lower, including the known local final-slot boundary. Do not change the existing stop guards or require the full matrix before a bounded two-person candidate. Disconnect/reload recovery and a measured architecture decision remain open.
+   ```text
+   /akart net start "Birch Vale" AKT724 2 128 20
+   ```
+
+3. Once owner sees **Armed**, friend waits five seconds, then types `/reload`. Owner leaves the probe alone until its normal ACK deadline and drain finish, about 20 seconds after the reload. This deliberate missing-ACK stop is expected. Owner runs `/akart net report` and saves that report **before arming anything else**. Friend can run `/akart net report` after reload: it should show **Idle: no experiment run**; capturing that line is optional. Friend's pre-reload counters are lost and must not be invented.
+
+4. After saving the owner's first report, explicitly rearm the same roles with fresh `AKT725`. Friend types:
+
+   ```text
+   /akart net listen "Amber Stone" AKT725 2 128 10
+   ```
+
+   Within 20 seconds, owner types:
+
+   ```text
+   /akart net start "Birch Vale" AKT725 2 128 10
+   ```
+
+5. Wait until both say **Stopped**, about 20 seconds after owner starts, then both run `/akart net report` and save those reports. `/akart net evidence` is optional if counts disagree. Preserve all failures or unusual stop reasons; do not rerun merely to obtain every planned opportunity. Cancel with `/akart net stop` for an unexpected error, throttle, client hitch or unrelated disruption. Do not cancel the expected AKT724 ACK deadline/drain.
+
+The interrupted first session demonstrates whether DATA stops without retry/automatic resume; the short fresh session checks explicit rearm. No per-sequence loss claim is required for deliberate reload. The existing schedule is nominally 2 DATA+2 ACK calls/s across the pair, 288 payload bytes/s plus 28 prefix bytes/s before overhead. Full disconnect, gameplay latency acceptance, replication architecture and expanded participants remain separate pending gates.
 
 ## Reference: first lowest-rate window procedure (AKT722 completed)
 
@@ -88,13 +104,13 @@ RTT and arrival-gap percentiles use sorted samples and **nearest rank**, rank `c
 
 ## Rate/size matrix — deferred reference, remaining cells NOT RUN
 
-The exhaustive 16/64/128/220-byte × 0.5/1/2/4-DATA/s × direction matrix is deferred. AKT722 covers one lowest-rate, 16-byte direction; the next requested scenario is the reverse 2-DATA/s, 128-byte window above. Run additional cells only when a concrete remaining budget/transport uncertainty needs them, using a fresh ID per size/rate/direction. Simultaneous bidirectional DATA requires a later harness extension; two `start` peers are not a supported setup. A result at 0.5 does not establish 4 packets/s. Do not proceed to a higher rate if the earlier window throttles, errors, backlogs or disrupts the client; preserve evidence and flag the failed gate for owner review.
+The exhaustive 16/64/128/220-byte × 0.5/1/2/4-DATA/s × direction matrix is deferred. AKT722 covers one lowest-rate, 16-byte direction; AKT723 covers the reverse 2-DATA/s, 128-byte scenario. Run additional cells only when a concrete remaining budget/transport uncertainty needs them, using a fresh ID per size/rate/direction. Simultaneous bidirectional DATA requires a later harness extension; two `start` peers are not a supported setup. These two samples do not establish 4 packets/s or fan-out. Do not proceed to a higher rate if the earlier window throttles, errors, backlogs or disrupts the client; preserve evidence and flag the failed gate for owner review.
 
 One ACK per unique DATA means a nominal one-direction rate `r` can produce `2r` messages/s across the pair. A future simultaneous bidirectional rate `r` per peer could produce `4r` total, before any later control-plane overhead; the current sender/listener modes do not implement that trial. Record actual calls, bytes, sizes and every participant. This probe has no PARTY mode, public room scan, multi-peer fan-out, retries or race-state stream.
 
 ## Recovery, scoping and lifecycle — all client checks NOT RUN
 
-- Start a fresh 1-DATA/s, 64-byte window. After approximately 30 seconds, reload B. B returns inactive; A must stop new DATA at its deadline, retain a bounded drain/report and never retry or auto-restart. Copy A's report/evidence before its reload. Record that B's unsaved pre-reload counters were lost rather than inventing receiver totals. Explicitly arm both peers with a fresh ID after reload and record recovery time/context.
+- First perform the short AKT724/AKT725 reload/fresh-rearm pair above on the existing build. Preserve owner A's interrupted-session report before replacing it, then both fresh-session reports; sequence evidence is optional if counts disagree. B's unsaved pre-reload counters are lost. This checks reload only, not a socket disconnect.
 - Repeat as separate windows with B logging out/disconnecting for about 20 seconds, then A interrupted. Record actual interruption times, partial schedule, stop/drain reasons and fresh-session recovery. An observation of no old-session packet is not proof stale traffic can never arrive; offline rejection coverage is separate evidence.
 - Check `/akart net stop`, entering combat, leaving world/instance, logout/reload and starting a kart drive. The probe must stop and never resume automatically. Copy available reports before counters are replaced. No new UI focus/capture API is part of transport testing.
 - Coordinate a mismatched sender/session/parameter test only between the same consenting peers at the lowest rate; malformed, stale, out-of-range or wrong-length messages must not become ACK amplification or race commands. There is no security/authentication guarantee. A mismatch should stop under the normal timeout/idle cap, not retry forever.

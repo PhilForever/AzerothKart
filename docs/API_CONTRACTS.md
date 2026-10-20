@@ -22,7 +22,7 @@ The current render path reads `AK.UI.state`, `.previousState`, `.race`, `.laps`,
 
 ## Implemented opt-in transport experiment
 
-**Measured checkpoint, 2026-10-21:** AKT722 completed on two real clients; p95 RTT779ms, zero reported throttles/errors/timeouts. This establishes the lowest-rate route only. [Evidence and limits](evidence/2026-10-21-akt722-network-window.md). No runtime/renderer interface changed during this evidence checkpoint.
+**Measured checkpoint, 2026-10-21:** AKT722 and [AKT723](evidence/2026-10-21-akt723-network-window.md) completed on two real clients. AKT723 demonstrates reverse 2 DATA/s, 128-byte DATA/16-byte ACK, 120 seconds, 240 accepted/received DATA and 240 accepted/matched ACKs, zero reported throttles/errors/timeouts, p95 RTT 771 ms. Reload/fresh-session recovery remains pending. No runtime/renderer interface changed in these evidence checkpoints.
 
 `/akart net help` prints six bounded local guide lines through `TransportProbe.Help()` without arming, registering, sending, or changing an existing experiment. There is no connection-test GUI. The [human-facing guide](NETWORK_QUICK_START.md) separates the two player roles from developer evidence requirements.
 

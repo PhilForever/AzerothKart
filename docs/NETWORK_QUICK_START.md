@@ -1,45 +1,52 @@
-# Connection test — you and a friend
+# Connection test — short reload and fresh-session recovery
 
-This measures how steadily Azeroth Kart can exchange messages with a friend. It is **not a multiplayer race**. A friend counts as the second client; you do not need two accounts yourself. There is no connection-test button yet: use chat commands. **Print Probe** in the kart window prints driving statistics, not this test.
+The two longer windows are complete. [AKT722](evidence/2026-10-21-akt722-network-window.md) delivered/acknowledged 59 of 59 attempts; reverse [AKT723](evidence/2026-10-21-akt723-network-window.md) delivered/acknowledged all 240 at 2 DATA/s,128 bytes,120 seconds. No reported throttle/error/timeout in either window. AKT723 p95 RTT was 771 ms. The owner reports different zones, no group and US beta servers; this does not isolate the cause of the RTT.
 
-IOU already demonstrated that Forever's logged addon whispers work: two clients completed four exact round trips on 16 October 2026. We are reusing that route. The remaining test measures a longer, paced exchange for racing; it does not repeat IOU's basic connection check.
+**Use your existing build. No download is needed.** The next step checks that reloading one addon stops its peer's sends safely, then a fresh session works. It uses two short windows, not another two-minute budget trial. Both stop the kart and remain out of combat. Keep any unexpected refusal/error instead of repeating the test.
 
-Both players need the same updated Azeroth Kart build with full-name support. Forever characters use **first name and surname**, such as `Amber Stone`, with **no realm suffix**. In the examples below, you are Amber Stone and your friend is Birch Vale. Replace those names with your actual full names and keep the quotes.
+Generic names here: owner **Amber Stone**, friend **Birch Vale**. Replace them with complete actual first names/surnames; no realm suffix. Chat's personalized instructions contain the actual names.
 
-## Next test — reverse direction, larger packets
+## 1. Interrupt a short session
 
-**AKT722 is complete.** Both clients exchanged all 59 attempted DATA/ACKs with no reported throttles/errors/timeouts; p95 round-trip time 779 ms. [Recorded evidence](evidence/2026-10-21-akt722-network-window.md). No repeat of the basic connection test is needed. The missing final opportunity was local scheduling, not a lost packet.
-
-Use your **current installed build**; no new download or reload is needed for this next window. Reverse the roles and use a fresh code. In these generic examples, you are Amber Stone and your friend is Birch Vale. The owner receives personalized commands in chat.
-
-1. Both stop the kart and stay out of combat. **You type first** (your friend's full name):
+1. Friend types first:
 
    ```text
-   /akart net listen "Birch Vale" AKT723 2 128 120
+   /akart net listen "Amber Stone" AKT724 2 128 20
    ```
 
-2. **Within 20 seconds, your friend types** (your full name):
+2. Within 20 seconds, owner types:
 
    ```text
-   /akart net start "Amber Stone" AKT723 2 128 120
+   /akart net start "Birch Vale" AKT724 2 128 20
    ```
 
-3. Both should see `Armed`. Wait about **2 minutes 15 seconds**, until both see `Stopped`. This tests two 128-byte DATA messages per second in the reverse direction, with a 16-byte reply to each. If either refuses, stops early or the client becomes sluggish, cancel the other side with `/akart net stop` and keep the message.
-4. **Both type**, one at a time, and save all output before reload/another attempt:
+3. Once owner sees `Armed`, tell the friend to wait about **5 seconds**, then type `/reload`. After loading, friend types `/akart net report`; expected result is **Idle: no experiment run**. Keep that result. Pre-reload friend counters are lost and must not be invented.
+4. Owner does **not** reload or manually stop. Wait for `Stopped` (roughly 15–20 seconds after the friend's reload), then type `/akart net report`. Save a screenshot **before** the next session replaces it. `ack_deadline` is the expected stop reason. Intentional missing replies here are part of the interruption test, not unexplained packet loss. If a different stop/error occurs, preserve it for review.
+
+## 2. Prove a fresh session works
+
+After the owner has saved the first report and the friend has loaded back in, explicitly arm both with new code `AKT725`:
+
+1. Friend:
 
    ```text
-   /akart net report
-   /akart net evidence
+   /akart net listen "Amber Stone" AKT725 2 128 10
    ```
 
-5. Give both sets of output to Codex. The sender can report 239 attempts out of 240 planned because of the known terminal-slot scheduling edge; do not rerun merely to chase 240/240. We compare actual attempts/receipts, not just the planned count.
+2. Owner within 20 seconds:
 
-This replaces an exhaustive rate/size matrix for the immediate two-player candidate. A short reload/fresh-session recovery check remains before selecting the live-race synchronization design; higher participant counts are separate work.
+   ```text
+   /akart net start "Birch Vale" AKT725 2 128 10
+   ```
 
-For the short reminder inside WoW, type **`/akart net help`**. Reading help never starts the test, registers the prefix or sends a message.
+3. Let both say `Stopped` (about 20 seconds from sender start). **Both type `/akart net report` and save a screenshot.** Do not reload during this second window.
 
-## Developer notes
+Give Codex the owner's AKT724 report, the friend's post-reload Idle result and both AKT725 reports. Sequence evidence is optional if counts disagree; it is not required for this focused lifecycle check. None of these recovery results has been run or marked passed yet.
 
-Quoted full names are recommended; unquoted full names also work, for example `/akart net listen Amber Stone AKT721`. Optional arguments after the code are `pps bytes seconds`, defaulting to `0.5 16 120`. Supported rates are `0.5`, `1`, `2`, `4`; DATA sizes are `16`, `64`, `128`, `220` bytes; duration is an integer from `10` to `120` seconds. Start with the defaults.
+This tests addon `/reload` and explicit rearming, not a full logout/socket disconnect. Larger rooms, PARTY and the full rate/size matrix remain separate expansion work. After this recovery evidence, review the measured budget and first two-player synchronization design; actual racing still needs direct play.
 
-The transport is explicitly `C_ChatInfo.SendAddonMessageLogged` / `CHAT_MSG_ADDON_LOGGED`, using `WHISPER`. It never falls back to unlogged addon messages or ordinary chat whispers. Record this path as `WHISPER_LOGGED` in the experiment ledger. IOU's live evidence was on build 70425; Azeroth Kart AKT722 now records actual logged success codes and a completed lowest-rate exchange. Exact build/interface metadata for those screenshots was not supplied; higher-rate delivery and recovery remain pending. Coordinate the [capability readbacks](CLIENT_API.md#transport-probe-api-contract-source-evidence-not-a-live-pass) before arming. These send nothing. The detailed measurement and reconciliation procedure is in the [network checklist](../tests/MANUAL_NETWORK_CHECKLIST.md).
+## Reference commands
+
+`/akart net stop` cancels. `/akart net report` prints retained local counters; `/akart net evidence` prints sequence maps. `/akart net help` describes the initial generic two-minute test, not this current recovery procedure. Reading help/report sends nothing. The detailed [developer checklist](../tests/MANUAL_NETWORK_CHECKLIST.md) retains counter definitions and expansion procedures.
+
+Forever names can be quoted or unquoted; prefer quotes. Settings after the fresh six-uppercase-letter/digit code are `pps bytes seconds`: rates0.5/1/2/4, DATA bytes16/64/128/220, integer duration10–120. The native route is `SendAddonMessageLogged` / `CHAT_MSG_ADDON_LOGGED`, channel WHISPER; reports/ledger say WHISPER_LOGGED. No unlogged/ordinary-whisper fallback exists. Existing clock/lifecycle/lockdown/error/throttle guards stay active.
