@@ -1,11 +1,12 @@
 # Claude handoff — Goblin Mortar Trike kart
 
-Prepared 2026-10-20, Europe/Oslo, by Claude (rendering/UI/sprites owner). This session made four changes on `claude/track-ui`:
+Prepared 2026-10-20, Europe/Oslo, by Claude (rendering/UI/sprites owner). This session made five changes on `claude/track-ui`:
 
 1. Mirage scenery v1 (`76af4aa`);
 2. its shadow pass (`0bf6fd0`), after the owner's in-game check;
 3. at the owner's request, the Warcraft III **Goblin Mortar Trike** as the default kart (`cf71394`);
-4. this handoff.
+4. this handoff (`064105f`);
+5. this revision, recording the owner's approval of the trike and shadows.
 
 M0/M1/M3 acceptance and the multiplayer gate are unchanged and remain open. Earlier handoffs are in Git: the drag-car sprite at `46931e1`, scenery v1 at `55c542d` and the shadow pass at `5734335`.
 
@@ -18,15 +19,16 @@ M0/M1/M3 acceptance and the multiplayer gate are unchanged and remain open. Earl
 - Answers to Claude's questions:
   - camera: **three-quarter view** with 32 or more directional frames (64 implemented);
   - the model's Read Me ("meant for use, not modification"): "Use it and do your intended edits to it, that readme is outdated."
+- Then: "Github is good now, you can push. The trike and shadows are approved by me."
 
 ## Branch, commits and deployment
 
 | Item | Value |
 |---|---|
 | Worktree / branch | `AzerothKart-Claude` / `claude/track-ui`, base `1f8f208` (Codex's review commit) |
-| Commits | `76af4aa` scenery v1, `55c542d` docs, `0bf6fd0` scenery shadows, `5734335` docs, `cf71394` `feat: make the Warcraft III Goblin Mortar Trike the default kart`, then the commit containing this file |
+| Commits | `76af4aa` scenery v1, `55c542d` docs, `0bf6fd0` scenery shadows, `5734335` docs, `cf71394` `feat: make the Warcraft III Goblin Mortar Trike the default kart`, `064105f` the trike handoff, then the commit containing this revision |
 | Installs (owner-authorized) | Each install backed up the target and hash-verified it; backups sit under git-ignored `local-artifacts/installs/`, each with an `install.json`. 1) `1f8f208` (backup `20261020-114116`). 2) `76af4aa` (backup `20261020-122432`). 3) `0bf6fd0` (backup `20261020-165006`). 4) `cf71394` at 17:37 UTC: the trike sheet, `Presentation.lua`, `UI.lua` and `README_ADDON.md` copied, 18 files verified, backup `20261020-173759`. `diff -rq` found the installed folder identical to `addon/AzerothKart` at `cf71394` |
-| Push (owner-authorized, branch only) | **Still blocked.** Even after the owner connected GitHub and restarted Claude, this session's git proxy refuses `PhilForever/AzerothKart` as "not in this session's authorized repository set". The owner can push from Windows with `git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/track-ui`. A new session started with the repository attached should also be able to |
+| Push (owner-authorized, branch only) | **Still blocked** (last tried about 20:15 CEST, after the owner reported GitHub ready). This session's git proxy still refuses `PhilForever/AzerothKart` as "not in this session's authorized repository set", and the Linux shell on the developer machine reaches GitHub but has no credentials. The owner can push from Windows with `git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/track-ui`; a session that has the repository among its sources should also be able to |
 | Not done | No merge into `main` (still `f923d15`), no tag or release, no client input. Codex's branches and worktree were not touched |
 
 **Shared deployment note for Codex:** the live AddOns folder carries `claude/track-ui` at `cf71394`: the trike kart, scenery and shadows, none of them on `main`. Installing from another checkout replaces them, so read the latest `install.json` first.
@@ -97,13 +99,15 @@ The scenery and shadow checks from earlier this session also passed: the backgro
 
 **NOT RUN:**
 
-- WoW Forever checks of the trike and the scenery shadows;
+- a Claude-observed WoW Forever run (the owner's own approval of the trike and shadows is recorded below);
 - `tests/test_install_local.ps1`;
 - Windows `validate_project.py`;
 - FPS, memory or load-time measurement of the 4 MiB sheet;
 - multiplayer.
 
-## Tests requiring WoW Forever (NOT RUN; the owner checks)
+## WoW Forever checks (owner-approved; itemized results not reported)
+
+**Owner approval, recorded 2026-10-20 ~20:15 CEST:** "The trike and shadows are approved by me." Evidence: [the approval record](../evidence/2026-10-20-trike-and-shadows-owner-approval.md). The items below were not reported one by one, and no Print Probe output or timing came with the approval, so item 5's counts and load cost stay unmeasured. The list stays as the re-check procedure for later kart or scenery changes.
 
 **Fully restart the client**: a new file was added and Lua changed. On Mirage and Test Oval:
 
@@ -114,7 +118,7 @@ The scenery and shadow checks from earlier this session also passed: the backgro
 5. No hitch at load; Print Probe shows 9/111/13.
 6. The scenery shadows touch their objects (the earlier check).
 
-Details: [trike check](../art/karts/goblin-mortar-trike.md#client-check-not-run), [scenery check](../art/mirage-background.md#client-check-not-run).
+Details: [trike check](../art/karts/goblin-mortar-trike.md#client-check), [scenery check](../art/mirage-background.md#client-check).
 
 ## Known limitations
 
@@ -126,12 +130,11 @@ Details: [trike check](../art/karts/goblin-mortar-trike.md#client-check-not-run)
 
 ## Recommended next visual milestone
 
-1. Record the owner's in-game look at the trike and shadows in PROGRESS.
-2. Kart polish:
+1. Kart polish:
    - a few wheel and exhaust frames per heading, or pooled smoke and boost VFX (counts need review);
-   - a multiplicative shadow, if it shows in the client.
-3. More roster vehicles through the same renderer, for example the Steam Tank, Gyrocopter or Gryphon Rider candidates in ASSET_SOURCES. It handles MDX v800 with paletted BLP1; JPEG-compressed BLPs would need a decoder.
-4. Mirage polish: the status text (Codex) and wall-strip styling.
+   - optionally, a multiplicative kart shadow like the scenery's (the owner approved the current one).
+2. More roster vehicles through the same renderer, for example the Steam Tank, Gyrocopter or Gryphon Rider candidates in ASSET_SOURCES. It handles MDX v800 with paletted BLP1; JPEG-compressed BLPs would need a decoder.
+3. Mirage polish: the status text (Codex) and wall-strip styling.
 
 ## Changes Codex must review
 
@@ -163,7 +166,12 @@ Details: [trike check](../art/karts/goblin-mortar-trike.md#client-check-not-run)
 > - Default kart rendered from the Warcraft III model by erwtenpeller and Chriz (WC3Vault) as 64 three-quarter headings in a 1024×1024 sheet. No mesh or texture edits; credits given. The Read Me requests permission for modification and the owner calls it outdated; redistribution unresolved.
 > - Presentation directional-sheet fields and helpers; UI nearest-frame display with guarded `SetTexCoord`.
 > - Sheet `a723b067…3208` identical on Python 3.10 and 3.13; `test_lua.py --runtime both` PASS; installed `cf71394` (verified).
-> - **NOT RUN:** client appearance. The push stays blocked by session credentials.
+> - Claude did not run the client; the owner's approval follows. The push stays blocked by session credentials.
+>
+> ### 2026-10-20 ~20:15 CEST — Owner approval: Goblin Mortar Trike and scenery shadows
+>
+> - After the verified install of `cf71394`, the owner wrote: "The trike and shadows are approved by me." Evidence: `docs/evidence/2026-10-20-trike-and-shadows-owner-approval.md`.
+> - Owner acceptance only: no screenshot, Print Probe output or timing figures, and Claude did not run the client. Camera motion, map edges and handling stay NOT RUN; redistribution of the Warcraft III model stays open for release review.
 
 ## Integration (manual, after review; not executed)
 

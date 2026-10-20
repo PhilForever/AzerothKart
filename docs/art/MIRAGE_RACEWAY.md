@@ -1,6 +1,6 @@
 # Mirage Raceway — map and vehicle brief
 
-Owner direction accepted 2026-10-20 in [ADR 0008](../adr/0008-mirage-raceway-art-direction.md). This replaces the proposed Tinker Speedway as the first production map. The geometry blockout is now selectable with one original salt-flat background, painted as [scenery v1](mirage-background.md); the kart is now the [Goblin Mortar Trike](karts/goblin-mortar-trike.md), rendered from a Warcraft III model as 64 three-quarter-view headings, with the primitive as fallback. The owner's in-game screenshot showed the earlier drag-car sprite and the scenery at the Mirage start; the trike, the scenery shadow pass and moving checks are pending. This is the art/geometry brief, not completed production art or an acceptance result.
+Owner direction accepted 2026-10-20 in [ADR 0008](../adr/0008-mirage-raceway-art-direction.md). This replaces the proposed Tinker Speedway as the first production map. The geometry blockout is now selectable with one original salt-flat background, painted as [scenery v1](mirage-background.md); the kart is now the [Goblin Mortar Trike](karts/goblin-mortar-trike.md), rendered from a Warcraft III model as 64 three-quarter-view headings, with the primitive as fallback. The owner's in-game screenshot showed the earlier drag-car sprite and the scenery at the Mirage start, and he later [approved the trike and the scenery shadow pass](../evidence/2026-10-20-trike-and-shadows-owner-approval.md); itemized moving checks are pending. This is the art/geometry brief, not completed production art or an acceptance result.
 
 ## Place and composition
 
@@ -41,10 +41,10 @@ Runtime paths below distinguish delivered files from future art:
 
 ```text
 addon/AzerothKart/Assets/
-  Tracks/SaltFlats/Background.tga   # delivered original scenery v1 (client check pending)
+  Tracks/SaltFlats/Background.tga   # delivered original scenery v1 (owner-approved 2026-10-20)
   Tracks/SaltFlats/Foreground.tga   # optional transparent occlusion
   Tracks/SaltFlats/Preview.tga
-  Karts/GoblinMortarTrike.tga       # default kart: 64-heading sheet from the WC3 model (client check pending)
+  Karts/GoblinMortarTrike.tga       # default kart: 64-heading sheet from the WC3 model (owner-approved 2026-10-20)
   Karts/GoblinDragCar.tga           # original single-image sprite, now an alternative
   Karts/GnomeDragCar.tga
   Props/OilBarrel.tga

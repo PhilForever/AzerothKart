@@ -1,6 +1,6 @@
 # Goblin Mortar Trike — default kart (Warcraft III model)
 
-**Status (2026-10-20):** rendered from a published Warcraft III model and wired in as the default kart on `claude/track-ui`. Its appearance in WoW Forever is **NOT RUN**; see [the client check](#client-check-not-run).
+**Status (2026-10-20):** rendered from a published Warcraft III model and wired in as the default kart on `claude/track-ui`. The owner [approved it](../../evidence/2026-10-20-trike-and-shadows-owner-approval.md) as installed at `cf71394`; [the client check](#client-check) notes what that approval does not record.
 
 ![Directional sheet and in-context views](goblin-mortar-trike-review.png)
 
@@ -85,9 +85,11 @@ Headings come from half-angle square roots rather than libm trigonometry, and on
 - the unchanged single-image rotation path;
 - identical simulation in sprite and primitive mode.
 
-## Client check (NOT RUN)
+## Client check
 
-Fully restart the client after installing: the sheet is a new file and Lua changed. Then:
+**Owner approval, 2026-10-20:** after the install of `cf71394`, the owner wrote "The trike and shadows are approved by me." ([evidence](../../evidence/2026-10-20-trike-and-shadows-owner-approval.md)). He did not report the items below one by one, and no Print Probe output or timing came with the approval, so item 5 stays unmeasured. Claude did not run the client.
+
+For a re-check after a future change, install it and fully restart the client; `/reload` may not pick up new files or replaced textures. Then:
 
 1. The kart is the goblin trike in three-quarter view (red-hatted goblin, big rear wheels, front mortar), not the orange rectangle or the old drag car.
 2. Turning steps smoothly through the headings. The mortar leads in the driving direction, with no mirroring, flipping, or slivers of neighboring frames at the edges.
@@ -95,4 +97,4 @@ Fully restart the client after installing: the sheet is a new file and Lua chang
 4. Blue, gold, magenta and cyan phase washes appear while drifting and boosting.
 5. No hitch when the 4 MiB sheet loads at creation; Print Probe still shows 9/111/13.
 
-Open question: this is the first use of `SetTexCoord` on the kart texture. The background already uses it, and it was observed working there.
+This is the first use of `SetTexCoord` on the kart texture; the background already uses it, and it was observed working there. A refused crop leaves the orange primitive, so the approved trike suggests the crop also works on the kart, but no probe output records it.

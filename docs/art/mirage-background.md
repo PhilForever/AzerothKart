@@ -1,6 +1,6 @@
 # Mirage Raceway background — scenery v1
 
-**Status (2026-10-20):** original procedural scenery on `claude/track-ui`. The owner's [in-game screenshot](../evidence/2026-10-20-mirage-scenery-owner-check.md) showed the first version rendering at the Mirage start and flagged detached shadows; the [shadow pass](#shadows) replaces them. The revised shadows' appearance in WoW Forever is **NOT RUN**; see [the client check](#client-check-not-run).
+**Status (2026-10-20):** original procedural scenery on `claude/track-ui`. The owner's [in-game screenshot](../evidence/2026-10-20-mirage-scenery-owner-check.md) showed the first version rendering at the Mirage start and flagged detached shadows; the [shadow pass](#shadows) replaces them. The owner [approved the revised shadows](../evidence/2026-10-20-trike-and-shadows-owner-approval.md) as installed at `cf71394`; see [the client check](#client-check).
 
 ![Mirage scenery v1, whole map at half size](mirage-background-overview.png)
 
@@ -86,9 +86,9 @@ No screenshot, concept-board crop, Blizzard or Warcraft III file, WC3Vault model
 
 The earlier blockout used the same path and format: a flat tan road on pale cracked salt, generated from the same predicate. It remains in Git history.
 
-## Client check (NOT RUN)
+## Client check
 
-Offline checks establish bytes, registration and contrast, not appearance in WoW Forever. The owner's [in-game screenshot](../evidence/2026-10-20-mirage-scenery-owner-check.md) showed the first version of this scenery loading with the expected orientation and crop at spawn. It predates the shadow pass, which is **NOT RUN** in the client.
+Offline checks establish bytes, registration and contrast, not appearance in WoW Forever. The owner's [in-game screenshot](../evidence/2026-10-20-mirage-scenery-owner-check.md) showed the first version of this scenery loading with the expected orientation and crop at spawn. After the install of `cf71394`, he approved the revised shadows: "The trike and shadows are approved by me." ([evidence](../evidence/2026-10-20-trike-and-shadows-owner-approval.md)). He did not report the items below one by one, and no screenshot or Print Probe output came with the approval, so item 6 stays unmeasured. Claude did not run the client.
 
 After an authorized install, fully restart the client, because a replaced texture may stay cached through `/reload`. Select **Track: Mirage Raceway** and drive one lap, then check:
 

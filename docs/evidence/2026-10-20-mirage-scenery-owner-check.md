@@ -12,3 +12,5 @@ Reported by the owner on 2026-10-20, after the verified install of `claude/track
 **Owner's words:** "Looks aight." Then: "Everything else looks and feels good, some issues with shadows on the assets around as you can see on the screenshot. Feel free to fix that next."
 
 **What this establishes:** the replaced `Background.tga` and the new `GoblinDragCar.tga` load and render in the owner's WoW Forever client, with the expected orientation and crop at spawn, and the owner reports that everything apart from the shadows looks and feels good. It records no build or Print Probe numbers, frame rate, drift/boost tints or sprite rotation while driving; those stay unmeasured. The shadow issue is addressed by the shadow pass that follows on `claude/track-ui`, whose client appearance is **NOT RUN**.
+
+**Update, 2026-10-20:** the owner later approved the shadow pass; see [the approval record](2026-10-20-trike-and-shadows-owner-approval.md).
