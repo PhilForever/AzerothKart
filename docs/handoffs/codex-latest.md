@@ -1,3 +1,12 @@
+# Active integration reservation — preserve both agent histories
+
+2026-10-21 07:31+02:00, Europe/Oslo. User asks Codex to handle Claude/Codex coordination without overwriting or deleting work. Codex is the designated integrator for this checkpoint. Integration branch `codex/roster-integration` starts at latest Codex `3644084`, not stale AKT723. Preserve `codex/peer-session` at3644084 and `claude/track-ui` atb0b1f2e and all existing authors/hashes. No reset/rebase/force push, other-worktree edits, pruning/gc, install or client input.
+
+Scope: reviewed merge of Claude b0b1f2e; resolve only shared count/docs/test conflicts while retaining Codex transport/results/protocol/PeerSession. Codex reserves the specific reviewed `UI.SelectKart`/sprite rollback and coverage regressions as integrator (no new visual design); Claude's source branch remains unchanged. Verify imported art bytes and untouched mechanical/transport modules. Document one integration/deployment path, progress/own handoff; preserve Claude's latest handoff verbatim as branch-history evidence. No new gameplay or live transport feature this checkpoint.
+
+Plan: create and verify local recovery bundle plus pre-merge branch/worktree inventory; merge on this branch with no automatic commit; resolve source/contract conflicts manually; fix reviewed late-load rollback and per-kart coverage; run focused combined Lua5.1 checks and structural/provenance preservation checks; commit reviewed combined candidate. Native/manual client checks remain NOT RUN; deployment stays separate.
+
+---
 # Codex handoff — reviewed roster, UI ownership, pure PeerSession
 
 2026-10-21 07:23+02:00 (Europe/Oslo). Branch `codex/peer-session`, base `d857ce2`, existing AzerothKart-Codex-Review checkout. Resulting focused implementation commit: resolve with `git log -1 codex/peer-session` (this handoff is part of that commit).
