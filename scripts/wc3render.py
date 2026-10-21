@@ -263,7 +263,7 @@ def posed_triangles(model, sequence):
             blended = []
             for bones in geo["bones"]:
                 mats = [world(b) for b in bones]
-                blended.append([[sum(m[i][j] for m in mats) / len(mats) for j in range(4)] for i in range(4)])
+                blended.append([[kart.total(m[i][j] for m in mats) / len(mats) for j in range(4)] for i in range(4)])
         pos, nor = [], []
         for k in range(len(v) // 3):
             x, y, z = v[3 * k], v[3 * k + 1], v[3 * k + 2]

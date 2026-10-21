@@ -946,7 +946,7 @@ def paint_wall_row(pic, city, y, columns):
 
 
 def sprite_for(wc3, city, item, cache):
-    key = ("sprite-v2", item["model"], item["sequence"], item["yaw"], item["scale"], item.get("tint"),
+    key = ("sprite-v3", item["model"], item["sequence"], item["yaw"], item["scale"], item.get("tint"),
            tuple(item.get("recolor") or ()), item.get("team"), city["lean"], city.get("supersample", 3),
            tuple(sorted((city.get("replaceables") or {}).items())), item.get("team") or city["team"])
     if item.get("stone"):
