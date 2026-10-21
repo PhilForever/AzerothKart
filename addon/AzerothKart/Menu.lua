@@ -468,7 +468,9 @@ local function buildTracks()
             local track, course = row.track, row.soon
             local label = track and track.name or (course.name .. "  |cffff8c26(soon)|r")
             local button = newButton(box, label, 310, 30, "TOPLEFT", 34, y, track and function()
-                if UI.SelectTrack(track.id) then toast("tracks", "") -- Sync remembers it
+                if UI.SelectTrack(track.id) then
+                    Menu.Chose("track", track.id)
+                    toast("tracks", "")
                 elseif inCombat() then toast("tracks", "Leave combat to change tracks.")
                 else toast("tracks", UI.status and UI.status:GetText() or "That track is unavailable.") end
                 refresh.tracks()
@@ -618,7 +620,8 @@ end
 
 function Menu.ChooseKart(id)
     local screen = Menu.screen == "garage" and "garage" or "karts"
-    if UI.SelectKart(id) then -- OnKartChanged remembers it
+    if UI.SelectKart(id) then
+        Menu.Chose("kart", UI.kartId)
         toast(screen, "")
     else
         local sprite = Presentation.KART_SPRITES[id]
@@ -980,15 +983,31 @@ end
 -- Deliberate kart and track changes are remembered however they are made
 -- (menus or the bar's quick buttons). Restoration at load and on first open
 -- sets the baseline, so a failed restore never overwrites the saved choice.
+-- The player's deliberate, successful choice of a track or kart on a menu
+-- screen is remembered even when it was already current (a saved choice that
+-- failed to load leaves the default showing), and a track choice replaces a
+-- saved-track restore still waiting for an open out of combat.
+function Menu.Chose(kind, id)
+    if Menu.disabled or not Menu.prefs then return end
+    if kind == "track" then
+        Menu.seenTrack, Menu.prefs.track, Menu.trackRestored = UI.trackId, id, true
+    else
+        Menu.seenKart, Menu.prefs.kart = UI.kartId, id
+    end
+    save()
+end
+
 function Menu.OnKartChanged()
     if Menu.disabled or Menu.seenKart == nil or not UI.kartId or UI.kartId == Menu.seenKart then return end
     Menu.seenKart, Menu.prefs.kart = UI.kartId, UI.kartId
     save()
 end
 
+-- A track change made elsewhere (the bar's Track button) is the player's
+-- choice too, and also replaces a waiting restore.
 local function rememberTrack()
-    if Menu.seenTrack == nil or UI.trackId == Menu.seenTrack then return end
-    Menu.seenTrack, Menu.prefs.track = UI.trackId, UI.trackId
+    if Menu.restoring or Menu.seenTrack == nil or UI.trackId == Menu.seenTrack then return end
+    Menu.seenTrack, Menu.prefs.track, Menu.trackRestored = UI.trackId, UI.trackId, true
     save()
 end
 
@@ -1055,7 +1074,9 @@ function Menu.OnWindowShown()
     if not Menu.trackRestored and not inCombat() then
         Menu.trackRestored = true
         local track = Menu.prefs.track
+        Menu.restoring = true
         if track and track ~= UI.trackId and not UI.active then UI.SelectTrack(track) end
+        Menu.restoring = false
         Menu.seenTrack = UI.trackId
     end
     Menu.Play("open")
@@ -1150,6 +1171,7 @@ function Menu.Create(ui)
     if UI.SetEffectsEnabled then UI.SetEffectsEnabled(Menu.prefs.effects) end
     if Menu.prefs.kart and Menu.prefs.kart ~= UI.kartId then UI.SelectKart(Menu.prefs.kart) end
     Menu.seenKart = UI.kartId or false
+    Menu.seenTrack = UI.trackId
     Menu.wasActive = UI.active
     Menu.RefreshRaceHud()
     Menu.Sync()

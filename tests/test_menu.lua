@@ -491,6 +491,50 @@ withMock(nil, function(env, UI, Menu)
         "a coming-soon city is listed, disabled and inert")
 end)
 
+-- A deliberate choice is remembered even when it was already current, and it
+-- replaces a saved-track restore still waiting for an open out of combat.
+withMock({schemaVersion=1, preferences={version=1, track="mirage_raceway"}}, function(env, UI, Menu)
+    env.combat = true
+    UI.Toggle()
+    env.combat = false
+    assert(UI.trackId == "test_oval" and not Menu.trackRestored, "the restore waits for an open out of combat")
+    click(Menu.view.homeButtons[1]); click(Menu.view.trackButtons.test_oval)
+    assert(UI.trackId == "test_oval" and AzerothKartDB.preferences.track == "test_oval",
+        "choosing the current track is remembered")
+    UI.Toggle(); UI.Toggle()
+    assert(UI.trackId == "test_oval" and AzerothKartDB.preferences.track == "test_oval",
+        "the player's choice is not overridden by the old saved track")
+end)
+withMock({schemaVersion=1, preferences={version=1, track="mirage_raceway", kart="gyrocopter"}},
+    function(env, UI, Menu, AK)
+    UI.Toggle()
+    assert(UI.trackId == "test_oval" and UI.kartId == "goblin_mortar_trike", "both saved choices failed to load")
+    UI.Toggle(); UI.Toggle()
+    assert(AzerothKartDB.preferences.track == "mirage_raceway" and AzerothKartDB.preferences.kart == "gyrocopter",
+        "an untouched failed restore keeps the saved choices")
+    click(Menu.view.homeButtons[1]); click(Menu.view.trackButtons.test_oval)
+    assert(AzerothKartDB.preferences.track == "test_oval", "choosing the fallback track replaces the failed one")
+    click(Menu.view.trackNext); click(Menu.view.kartButtons.goblin_mortar_trike)
+    assert(UI.kartId == "goblin_mortar_trike" and AzerothKartDB.preferences.kart == "goblin_mortar_trike",
+        "choosing the fallback kart replaces the failed one")
+end, function(env, AK)
+    env.textureModes[AK.Presentation.KART_SPRITES.gyrocopter.path] = "false"
+    env.textureModes[BACKGROUND] = "false"
+end)
+withMock({schemaVersion=1, preferences={version=1, track="mirage_raceway"}}, function(env, UI, Menu)
+    env.combat = true
+    UI.Toggle()
+    env.combat = false
+    Menu.Show(nil)
+    click(UI.trackButton)
+    assert(UI.trackId == "mirage_raceway" and AzerothKartDB.preferences.track == "mirage_raceway", "the bar's choice")
+    click(UI.trackButton)
+    assert(UI.trackId == "stormwind_city" and AzerothKartDB.preferences.track == "stormwind_city",
+        "the bar's Track button is remembered before any restore")
+    UI.Toggle(); UI.Toggle()
+    assert(UI.trackId == "stormwind_city", "and a waiting restore no longer replaces it")
+end)
+
 -- Saving keeps what this version does not know and never replaces a newer record.
 withMock({schemaVersion=1, preferences={version=1, kart="steam_tank", futureField="keep"}}, function(env, UI, Menu)
     UI.Toggle(); click(Menu.view.homeButtons[3]); click(Menu.view.kartButtons.gyrocopter)
