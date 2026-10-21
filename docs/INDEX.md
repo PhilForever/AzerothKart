@@ -4,6 +4,8 @@
 
 **Engineering:** `CLIENT_API.md`, `PHYSICS.md`, `TRACKS.md`, `MULTIPLAYER.md`, `PROTOCOL.md`, `TEST_PLAN.md`, `SECURITY.md`.
 
+**Current two-player checkpoint:** [accepted experiment scope, ADR 0013](adr/0013-two-player-experiment-scope.md), [reload/fresh-session evidence](evidence/2026-10-21-akt724-akt725-recovery.md) and [implemented control codec](API_CONTRACTS.md#implemented-pure-race-control-codec). No new manual probe is requested; session-state implementation is next.
+
 **Parallel development:** [shared instructions](../AGENTS.md), [implemented API contracts](API_CONTRACTS.md), [Codex handoff](handoffs/codex-latest.md) and the Claude-specific `CLAUDE.md` entry point. Agent handoffs are canonical under `docs/handoffs/`; read Claude's latest handoff there when it exists.
 
 **Product delivery:** `UI_UX.md`, `ASSETS.md`, `RELEASE.md`, `AUTOMATION.md`, `DECISIONS.md`, `adr/`.

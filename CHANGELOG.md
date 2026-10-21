@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — recovery evidence and race-control codec (2026-10-21)
+- Record listener addon reload to Idle, the sender's bounded ACK-deadline stop and successful fresh-session recovery (19/19 DATA and replies). Unknown reload timing and lost receiver counters remain explicit.
+- Add pure RaceProtocol encoding/decoding for INVITE/JOIN/READY/START/CANCEL/ACK. Exact bounded messages, compatibility metadata, sequence/session fields, malformed-input refusal and ACK-of-ACK rejection; both TOCs load it without any API calls or traffic.
+- Begin the bounded experimental two-peer control implementation under ADR 0013. Session policy, retries, clock alignment, menu integration and live race synchronization are not implemented by the codec. No client update or new manual probe is requested yet.
+
 ## Unreleased — Forever full names and IOU transport reuse (2026-10-21)
 - Fix `net listen/start First Surname CODE`: the surname/code no longer become session/numeric options. Prefer quoted full names; unquoted names and six-digit codes also work. Reject ambiguous commands with a quoting hint.
 - Replace the erroneous realm requirement with complete Forever-name matching; preserve surnames, punctuation and UTF-8, normalize only ASCII spaces/case.

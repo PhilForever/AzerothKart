@@ -1,0 +1,103 @@
+{
+  "test_time_utc": null,
+  "test_builds": null,
+  "test_interfaces": null,
+  "location_context": null,
+  "expected_source_commit": "8f66c5a",
+  "client_commit_attested": false,
+  "received_date_local": "2026-10-21",
+  "timezone": "Europe/Oslo",
+  "source_kind": "User-supplied screenshots and explicit post-reload Idle report; names/chat omitted",
+  "run_id": "2026-10-21-AKT724-AtoB",
+  "endpoints": [
+    {
+      "session": "AKT724",
+      "route": "WHISPER_LOGGED",
+      "phase": "stopped",
+      "stop_reason": "ack_deadline",
+      "rate": 2,
+      "data_bytes": 128,
+      "ack_bytes": 16,
+      "duration_seconds": 20,
+      "scheduled_data_attempts": 40,
+      "registration_raw": "number:0",
+      "data_enqueue_failed": 0,
+      "data_enqueue_unknown": 0,
+      "ack_enqueue_failed": 0,
+      "ack_enqueue_unknown": 0,
+      "throttle_events": 0,
+      "send_errors": 0,
+      "rx_total": 22,
+      "rx_rejected": 0,
+      "duplicates": 0,
+      "reordered_unique": 0,
+      "ack_timeouts_at_deadline": 11,
+      "late_acks": 0,
+      "outstanding_after_drain": 11,
+      "aggregate_attempted_bytes": 4224,
+      "prefix_bytes": 231,
+      "reject_reasons": {},
+      "alias": "A",
+      "mode": "send",
+      "elapsed_seconds": 26.522,
+      "data_attempts": 33,
+      "data_enqueue_accepted": 33,
+      "data_codes": {
+        "number:0": 33
+      },
+      "ack_attempts": 0,
+      "ack_enqueue_accepted": 0,
+      "ack_codes": {},
+      "missed_slots": 0,
+      "rx_unique": 0,
+      "ack_matched_unique": 22,
+      "rtt_samples": 22,
+      "rtt_p50_ms": 700.0,
+      "rtt_p95_ms": 767.0,
+      "rtt_p99_ms": 767.0,
+      "rtt_max_ms": 767.0,
+      "gap_samples": 0,
+      "gap_p50_ms": null,
+      "gap_p95_ms": null,
+      "gap_p99_ms": null,
+      "gap_max_ms": null,
+      "evidence": {
+        "source": "attachment_1",
+        "bitmap_readability": "Report only; sequence evidence not requested",
+        "sent": null,
+        "received": null,
+        "acks_sent": null,
+        "acks_received": null
+      }
+    },
+    {
+      "alias": "B",
+      "mode": "idle_after_reload",
+      "observed_report": "Idle: no experiment run",
+      "pre_reload_counters": null,
+      "source": "attachment_2 and owner statement"
+    }
+  ],
+  "interruption": {
+    "kind": "listener_addon_reload",
+    "requested_reload_delay_seconds": 5,
+    "observed_reload_time_seconds": null,
+    "receiver_pre_reload_counters_available": false
+  },
+  "reconciliation": {
+    "accepted_data": 33,
+    "sender_matched_acks": 22,
+    "ack_timeouts_at_deadline": 11,
+    "outstanding_after_drain": 11,
+    "forward_data_loss": null,
+    "receiver_unique_data": null,
+    "receiver_accepted_acks": null,
+    "planned_unattempted_after_abort": 7,
+    "reported_missed_slots": 0,
+    "status": "Expected bounded sender ACK-deadline stop and post-reload listener Idle; not packet-loss or socket-disconnect evidence"
+  },
+  "attachment_sha256": {
+    "attachment_1": "f19b4da8ffbf342c613c87a2c117748cbdd921010701dc5805f43eb9ea31aba8",
+    "attachment_2": "498e9fb1ca48dea19b2d5ee63c379a8d06b91ad845882828ec4fdd57430c40c3"
+  }
+}

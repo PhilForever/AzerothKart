@@ -1,12 +1,12 @@
 # Implemented simulation and rendering contracts
 
-**Checkpoint:** 2026-10-21; Forever full-name/logged-route correction on `codex/forever-probe`, based on `8e34e75` with combined runtime `8195da9` (including Claude effects `c6e1b5e`); main remains `f923d15`. Physics compatibility version is **7** (v6 handling retained). This document describes the implemented local solo prototype and bounded transport experiment, not a released engine or a claim that pending client tests passed. See [PROGRESS](PROGRESS.md) for evidence and [the latest handoff](handoffs/codex-latest.md) for integration instructions.
+**Checkpoint:** 2026-10-21, `codex/two-player-control` based on `47f43bd`, retaining combined rendering/runtime `8195da9` and Forever transport correction `8f66c5a`, plus the new pure control codec. Physics compatibility version remains **7** (v6 handling retained). This describes the local solo prototype, measured transport experiment and offline control foundation; it does not claim a released engine or playable multiplayer. See [PROGRESS](PROGRESS.md) and [the latest handoff](handoffs/codex-latest.md).
 
 ## Status and ownership
 
-The interfaces below exist in source today. `Renderer`, `GameSession`, collision-event streams, velocity vectors, a replay API and production synchronization adapters do **not** exist. The standalone NetworkProbe/TransportProbe experiment described below is implemented; it does not feed authoritative simulation state. Proposed architecture sketches in [ARCHITECTURE](ARCHITECTURE.md) must not override the signatures here.
+The interfaces below exist in source today. `Renderer`, `GameSession`, collision-event streams, velocity vectors, a replay API and production synchronization adapters do **not** exist. The standalone NetworkProbe/TransportProbe experiment and the pure RaceProtocol control codec described below are implemented; neither feeds authoritative simulation state. A session controller is not implemented. Proposed architecture sketches in [ARCHITECTURE](ARCHITECTURE.md) must not override the signatures here.
 
-- **Codex:** Physics, collision/surface queries, Input sampling, Loop, Checkpoints, Laps, Race, deterministic simulation and their tests; experimental transport/accounting and future synchronization.
+- **Codex:** Physics, collision/surface queries, Input sampling, Loop, Checkpoints, Laps, Race, deterministic simulation and their tests; experimental transport/accounting, RaceProtocol and future synchronization.
 - **Claude:** visual rendering, camera/presentation helpers, track imagery, HUD, sprites, animations/VFX, asset tooling and their focused visual tests.
 - **Shared:** public interface changes, accepted architecture decisions, integration coverage, performance budgets and TOC load-order changes. Coordinate explicitly before editing the other owner's code.
 
@@ -14,7 +14,7 @@ The interfaces below exist in source today. `Renderer`, `GameSession`, collision
 
 ## Modules and data access
 
-The two TOCs load `Track`, `MirageRaceway`, `Physics`, `Input`, `Loop`, `Performance`, `Presentation`, `Checkpoints`, `Laps`, `Race`, `UI`, `NetworkProbe`, `TransportProbe`, `Core` in that order. Pure modules receive `local _, namespace = ...`, optionally register their module on that explicit table, and return it for offline loading. They do not access WoW globals. Core exports the same namespace as `_G.AzerothKart` for diagnostics.
+The two TOCs load `Track`, `MirageRaceway`, `Physics`, `Input`, `Loop`, `Performance`, `Presentation`, `Checkpoints`, `Laps`, `Race`, `UI`, `RaceProtocol`, `NetworkProbe`, `TransportProbe`, `Core` in that order. Pure modules receive `local _, namespace = ...`, optionally register their module on that explicit table, and return it for offline loading. They do not access WoW globals. Core exports the same namespace as `_G.AzerothKart` for diagnostics.
 
 The current render path reads `AK.UI.state`, `.previousState`, `.race`, `.laps`, `.checkpoints`, `.track`, `.trackId`, `.clock` and `.active`. These are mutable Lua tables exposed for integration/diagnostics, **not enforced read-only objects or security boundaries**. Treat them as borrowed read-only references in rendering: do not add, remove or alter authoritative fields, normalize headings in place, alter input, call a simulation step, or assign interpolated/camera coordinates back to them.
 
@@ -22,7 +22,7 @@ The current render path reads `AK.UI.state`, `.previousState`, `.race`, `.laps`,
 
 ## Implemented opt-in transport experiment
 
-**Measured checkpoint, 2026-10-21:** AKT722 and [AKT723](evidence/2026-10-21-akt723-network-window.md) completed on two real clients. AKT723 demonstrates reverse 2 DATA/s, 128-byte DATA/16-byte ACK, 120 seconds, 240 accepted/received DATA and 240 accepted/matched ACKs, zero reported throttles/errors/timeouts, p95 RTT 771 ms. Reload/fresh-session recovery remains pending. No runtime/renderer interface changed in these evidence checkpoints.
+**Measured checkpoint, 2026-10-21:** AKT722/723 completed the scoped directed traffic windows. [AKT724/725](evidence/2026-10-21-akt724-akt725-recovery.md) then demonstrated listener addon reload to Idle, sender ACK-deadline stop and successful explicit fresh-session rearming (19 accepted DATA/unique receipts and 19 accepted/matched ACKs). This is not full socket-disconnect or automatic-rejoin evidence. [ADR 0013](adr/0013-two-player-experiment-scope.md) permits the bounded control implementation; production replication and gameplay acceptance remain open.
 
 `/akart net help` prints six bounded local guide lines through `TransportProbe.Help()` without arming, registering, sending, or changing an existing experiment. There is no connection-test GUI. The [human-facing guide](NETWORK_QUICK_START.md) separates the two player roles from developer evidence requirements.
 
@@ -34,9 +34,37 @@ Options: directed `send` or `listen`, complete Forever first-name/surname peer (
 
 The adapter explicitly uses `C_ChatInfo.SendAddonMessageLogged` and `CHAT_MSG_ADDON_LOGGED`, following IOU's previously client-tested Forever route ([ADR 0012](adr/0012-forever-logged-transport.md)). `TransportProbe.ROUTE` and reports use `WHISPER_LOGGED`, also the CSV `channel` label; the native API channel remains `WHISPER`. There is no fallback. Actual chat lockdown, when available, refuses/stops the probe; absent APIs, unreadable/unknown results and native failures retain fail-closed behavior. IOU's basic round trips are not Azeroth Kart sustained capacity evidence.
 
-At most 480 sequences, one due DATA per update/no catch-up bursts, one 16-byte ACK per unique valid DATA, four-token ACK bucket refilling 4/s, no retries. Codec/envelope details are in [PROTOCOL](PROTOCOL.md). Five-second ACK deadlines stop DATA and allow ten seconds of drain, anchored to original send/window time even after a callback hitch. Listener arming expires 30 seconds without first DATA; active unique-DATA idle expires 5 seconds, while normal completion has a separately bounded drain. Source-matched enum failures, unknown/throwing results, throttle, flood limits, invalid/backwards clocks, cancel, combat/world/logout/reload or local driving stop the probe. The [first completed live window](evidence/2026-10-21-akt722-network-window.md) demonstrates raw prefix/send success0 and 59 reconciled DATA/ACKs at 0.5/s,16 bytes; higher-rate/error-result/recovery semantics and racing acceptance remain unverified.
+At most 480 sequences, one due DATA per update/no catch-up bursts, one 16-byte ACK per unique valid DATA, four-token ACK bucket refilling 4/s, no retries. Codec/envelope details are in [PROTOCOL](PROTOCOL.md). Five-second ACK deadlines stop DATA and allow ten seconds of drain, anchored to original send/window time even after a callback hitch. Listener arming expires 30 seconds without first DATA; active unique-DATA idle expires 5 seconds, while normal completion has a separately bounded drain. Source-matched enum failures, unknown/throwing results, throttle, flood limits, invalid/backwards clocks, cancel, combat/world/logout/reload or local driving stop the probe. The [first completed live window](evidence/2026-10-21-akt722-network-window.md) demonstrates raw prefix/send success0 and 59 reconciled DATA/ACKs at 0.5/s,16 bytes; the later 2-DATA/s window and addon reload/fresh rearming are recorded in the current checkpoint below; unobserved result paths, full socket recovery and racing acceptance remain unverified.
 
 Explicit reports contain raw registration/send categories and rejection reasons without peer identities, counters and timing aggregates/sample counts. `aggregate_attempted_bytes` is DATA+ACK **payload bytes** only; reported prefixBytes adds 7 bytes per API call separately, and transport overhead is unmeasured. Four evidence kinds `sent/received/acks_sent/acks_received` hold at most 480 positions, output in 160-character chunks. No packet logs, CSV/SavedVariables export, auto-output per packet or room discovery exists. Rendering must not mutate this accounting or use it as race state. Missing ACK is not proven DATA loss; reconcile both directions' sequence sets after the observation window.
+
+## Implemented pure race-control codec
+
+`RaceProtocol.lua` is an additive Codex-owned module, registered as `AK.RaceProtocol` and returned for offline loading. It has no clock, WoW API, transport, session-controller or renderer dependency. Loading it registers no prefix/event and sends nothing. Both TOCs include it before NetworkProbe.
+
+```lua
+Protocol.VERSION = 2
+Protocol.PREFIX = "AZKART2"
+Protocol.MAX_BYTES = 128
+Protocol.MAX_SEQUENCE = 46655
+Protocol.encode(message) -> payload | nil, errorCode
+Protocol.decode(payload) -> message | nil, errorCode
+```
+
+Common fields are `kind` (the full uppercase kind name below), `session` (six uppercase ASCII letters/digits), and `sequence` (integer 1–46655). All input tables are borrowed read-only. Encode refuses metatables and unknown fields. Decode checks type, size, alphabet, version, kind, exact kind length and field bounds before returning a fresh table. Refusal codes are fixed bounded strings and do not echo packet contents.
+
+| Kind | Additional fields | Exact payload bytes |
+|---|---|---:|
+| `INVITE` | `physicsVersion`, `trackId`, `trackVersion`, `laps` | 17 |
+| `JOIN` | none | 11 |
+| `READY` | `ready` (strict boolean) | 12 |
+| `START` | `startTick`, `seed` | 23 |
+| `CANCEL` | `reason` | 12 |
+| `ACK` | `ackKind`, `ackSequence` | 15 |
+
+Version fields are integers 1–1295; valid future values remain decodable for later explicit compatibility refusal. Track IDs are `test_oval` or `mirage_raceway`; laps are 1–9 at the wire layer (this adds no lap setting to the current three-lap game). `startTick` is 0 through 36^6-1; `seed` is 0 through 2147483647. Cancel reasons are `left`, `timeout`, `incompatible`, `combat`, `world_leave`, `error`. ACK accepts one of the five non-ACK kinds and a sequence 1–46655.
+
+The 11-byte header and body use fixed uppercase base36 with no pipes, whitespace or user text. Prefix bytes are additional. [ADR 0013](adr/0013-two-player-experiment-scope.md) defines this experimental envelope. No deduplication, peer authentication, retry scheduler, rate limiter, clock agreement, automatic start or live synchronization is supplied by a codec. `START.startTick` is encoded data, not permission to mutate a race. The next controller must enforce identity/session/version/phase/sequence policy before acting. The existing AZKART1 probe and rendering contracts are unchanged.
 
 ## Authoritative vehicle state
 

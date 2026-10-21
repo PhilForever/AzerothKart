@@ -14,6 +14,8 @@
 - **Warcraft III asset reuse (owner confirmed, Codex reviewed 2026-10-20):** [ADR 0009](adr/0009-warcraft-iii-asset-reuse.md) supersedes the original-only preference for Warcraft III material while preserving Mirage styling, geometry, pooling and per-file provenance. Another addon's use does not establish a general redistribution grant; source-specific status remains documented for release review.
 - **Multiplayer and release priority (owner confirmed 2026-10-20):** [ADR 0010](adr/0010-multiplayer-release-priority.md) places verified multiplayer ahead of dedicated time trials/ghosts. Codex completes the needed mechanics/race/network work through measured multiplayer; Claude supplies three ready maps and eight ready karts. New solid obstacles belong on Test Oval only, not Mirage Raceway. Failed transport gates require owner review rather than automatic ghost substitution; eight karts does not promise eight-player support. The release target is not publishing authorization.
 
+- **Bounded two-peer implementation (2026-10-21):** [ADR 0013](adr/0013-two-player-experiment-scope.md) permits control-protocol/session development after measured traffic and addon reload/fresh rearming. It does not approve production replication, socket recovery or release. RaceProtocol is a pure codec; live session behavior remains next.
+
 ## Questions that require evidence / product owner approval
 
 The owner-directed [ADR 0011](adr/0011-explicit-drive-exits.md) replaces incidental click/unassigned-key stops with explicit run exits. Stop must receive its own click; stopped results retain progress and offer a fresh run, track choice or Close. Historical input observations refer to the earlier policy.
@@ -24,7 +26,7 @@ The owner-directed [ADR 0011](adr/0011-explicit-drive-exits.md) replaces inciden
 4. Does world zoning and `/reload` disrupt frames and transport in ways affecting race resumption?
 5. Is usable simultaneous racing feasible at 2, 4 or 8 players? Establish the supported count from actual-client evidence. If transport fails the gate, the owner must review a scope change; ghosts are not currently the first social-mode priority.
 6. Per-asset provenance, final illustration treatment, export dimensions and viewport framing within the accepted Mirage Raceway/Warcraft III-like direction; see ADR 0008.
-7. Forever has no realms; complete first-name/surname identity and the logged transport follow [ADR 0012](adr/0012-forever-logged-transport.md), reusing IOU's verified compatibility evidence. Sustained racing delivery and recovery still need measurements.
+7. Forever has no realms; complete first-name/surname identity and the logged transport follow [ADR 0012](adr/0012-forever-logged-transport.md), reusing IOU's verified compatibility evidence. AKT722–725 now record scoped traffic and addon reload/fresh rearming. Production racing capacity and full socket recovery remain open under ADR 0013.
 
 ## Change process
 New decisions enter `docs/adr/NNNN-...md` when architecture or product feasibility changes. Link the empirical test and update impacted acceptance criteria, rather than leaving contradictory docs.
