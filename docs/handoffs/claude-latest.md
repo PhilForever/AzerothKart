@@ -1,4 +1,43 @@
-# Claude handoff — four more karts, a Kart button and untinted kart art
+# Claude handoff — front-end UI (reserved, in progress)
+
+Prepared 2026-10-21 about 09:00 CEST (Europe/Oslo) by Claude (rendering/UI/sprites owner). This reservation precedes the work; a full handoff replaces it when the task ends.
+
+**Base:** `83c611c`, Codex's reviewed combined commit on `codex/roster-integration`. Following [INTEGRATION_STATUS](../INTEGRATION_STATUS.md), the work happens on a new branch, `claude/ui-flow`, created from that commit in Claude's own worktree. `claude/track-ui` is preserved at `b0b1f2e`, and its handoff (below this section) is historical.
+
+## Owner instructions
+
+- "You've been assigned the UI task. Please create the ready to ship UI for the game/addon \"Azeroth Kart\". Take inspiration from other racing games like Mario Kart, Team Crash Racing if necessary. Clear menu choices single player and multiplayer, selecting maps, selecting karts, etc. Start working on this."
+- Answers to Claude's questions:
+  - base: "Merge Codex's latest first (Recommended)", applied as the new branch from Codex's combined commit;
+  - multiplayer: "Coming-soon lobby (Recommended)";
+  - style: "Classic WoW dialogs";
+  - saving: "Yes, remember them (Recommended)".
+
+## Active reservation
+
+**Task:** front-end menus (Home; Single Player track and kart select; Garage; a coming-soon Multiplayer lobby; How to Play; Settings), the race HUD and results restyle, and saved track, kart and settings.
+
+**Reserved for Claude:**
+
+- New files: `addon/AzerothKart/Menu.lua`, `tests/test_menu.lua`, `docs/art/ui/`, and a layout-preview script.
+- `addon/AzerothKart/UI.lua`:
+  - the visual layout of `UI.Create`: window chrome, header, HUD, bottom bar and results placement and fonts;
+  - the presentation in `refreshHud`, `refreshSummary`, `refreshCountdown`, the meter and `render`'s visual body;
+  - the kart and effect helpers;
+  - additive presentation hooks: window `OnShow`, results `OnShow`/`OnHide`, an effects toggle.
+  - **Not touched:** `step`, `UI.Start/Stop/InterruptCombat/ReleaseInput/OnUpdate/HandleEvent/OnCombatEnded`, `keyEvent`, Start refusals, clock and profiling wiring, `UI.SelectTrack`'s transaction, `UI.DismissSummary`'s semantics, and all RaceProtocol, PeerSession and transport code.
+- `addon/AzerothKart/Presentation.lua`: menu copy or data only if needed.
+- **Shared, for Codex review:**
+  - both TOCs (`Menu.lua` right after `UI.lua`), `tests/run.lua`, `tests/test_ui.lua` (mock loader list, counts, layout assertions) and `scripts/validate_project.py`;
+  - a proposed SavedVariables field, `AzerothKartDB.preferences`;
+  - docs: the API_CONTRACTS proposal, UI_UX, ARCHITECTURE, README, README_ADDON, CHANGELOG, TEST_PLAN, MANUAL_CLIENT_CHECKLIST and INDEX.
+- **Multiplayer:** presentation only. The lobby maps the copied `PeerSession.view` to screens; no command is wired, no adapter or traffic is added, and Host/Join stay disabled as Coming soon until Codex's bridge exists ([UI_FLOW_OWNERSHIP](../UI_FLOW_OWNERSHIP.md)).
+
+**Deployment:** Claude installs nothing. Per INTEGRATION_STATUS, Codex prepares coordinated installs; the owner decides.
+
+---
+
+# Previous handoff (historical, `claude/track-ui` at `b0b1f2e`)
 
 Prepared 2026-10-21 about 01:45 CEST (Europe/Oslo) by Claude (rendering/UI/sprites owner).
 
