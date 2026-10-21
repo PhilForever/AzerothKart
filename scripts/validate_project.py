@@ -22,6 +22,8 @@ REQUIRED=[
  'addon/AzerothKart/Assets/Karts/GoblinMortarTrike.tga',
  'addon/AzerothKart/Assets/Karts/GoblinDragCar.tga',
  'scripts/wc3jpeg.py','docs/art/karts/roster.md',
+ 'addon/AzerothKart/Menu.lua','tests/test_menu.lua','scripts/build_ui_art.py','scripts/preview_ui.py',
+ 'addon/AzerothKart/Assets/UI/TrackPreviews.tga','docs/art/ui/front-end.md',
  'addon/AzerothKart/Assets/Karts/SteamTank.tga','addon/AzerothKart/Assets/Karts/DwarvenBiker.tga',
  'addon/AzerothKart/Assets/Karts/GryphonRider.tga','addon/AzerothKart/Assets/Karts/Gyrocopter.tga',
  'scripts/build_effect_sprites.py','scripts/preview_effects.py','docs/art/effects/drift-boost.md',
@@ -51,7 +53,7 @@ for tocname in ('AzerothKart.toc','AzerothKart_Camelot.toc'):
  if '## Interface: 16001' not in lines: errors.append(f'{tocname}: unexpected interface')
  if '## SavedVariables: AzerothKartDB' not in lines: errors.append(f'{tocname}: missing SavedVariables')
  loads=[x.strip() for x in lines if x.strip() and not x.startswith('##')]
- if loads!=['Track.lua','MirageRaceway.lua','Physics.lua','Input.lua','Loop.lua','Performance.lua','Presentation.lua','Checkpoints.lua','Laps.lua','Race.lua','UI.lua','RaceProtocol.lua','PeerSession.lua','NetworkProbe.lua','TransportProbe.lua','Core.lua']:
+ if loads!=['Track.lua','MirageRaceway.lua','Physics.lua','Input.lua','Loop.lua','Performance.lua','Presentation.lua','Checkpoints.lua','Laps.lua','Race.lua','UI.lua','Menu.lua','RaceProtocol.lua','PeerSession.lua','NetworkProbe.lua','TransportProbe.lua','Core.lua']:
   errors.append(f'{tocname}: unexpected source load order: {loads}')
  for f in loads:
   if not (ADDON/f).is_file():errors.append(f'{tocname}: missing {f}')

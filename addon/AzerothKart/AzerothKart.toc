@@ -16,6 +16,7 @@ Checkpoints.lua
 Laps.lua
 Race.lua
 UI.lua
+Menu.lua
 RaceProtocol.lua
 PeerSession.lua
 NetworkProbe.lua

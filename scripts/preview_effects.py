@@ -26,7 +26,7 @@ from paintkit import decode_tga, encode_png  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 ADDON = ROOT / "addon" / "AzerothKart"
 MODULES = ("Track", "MirageRaceway", "Physics", "Input", "Loop", "Performance", "Presentation",
-           "Checkpoints", "Laps", "Race", "UI", "NetworkProbe", "TransportProbe", "Core")
+           "Checkpoints", "Laps", "Race", "UI", "Menu", "NetworkProbe", "TransportProbe", "Core")
 
 MOCK = r"""
 local methods = {}
