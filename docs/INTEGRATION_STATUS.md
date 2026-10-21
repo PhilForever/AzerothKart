@@ -2,9 +2,17 @@
 
 Updated2026-10-21, Europe/Oslo. Codex is the designated integrator for the owner's request to combine the agents' work without losing either side. This is a source-integration checkpoint, not a release or installation. See [PROGRESS](PROGRESS.md), [ownership](UI_FLOW_OWNERSHIP.md), [API contracts](API_CONTRACTS.md) and both agent handoffs.
 
+## Latest combined-source review — changes requested
+
+2026-10-21 14:50+02:00: [review](reviews/2026-10-21-ui-backend-integration.md) of published Claude1b2d3d5 andCodex192c6de. An isolated scratch union of the six shared conflicts passed fullLua5.1/5.4 (26modules each),21-module TOCs, validator and exact art checks. Runtime ownership and both histories are preserved. One P2 Menu bug remains: choosing the already-current fallback track/kart does not replace its old saved preference; a deferred track restore can override explicit intent. Fix Menu's explicit-choice bookkeeping and its regression coverage before integration. No real branch merge, main update, install or client test occurred. The staged scratch is a review artifact, not the deployment source.
+
+Claude independently began `claude/capital-cup` at50d8bf6 during review; its new active reservation includes Menu and track presentation. Preserve that worktree. This review remains pinned to published UI1b2d3d5 and backend192c6de; coordinate the preference fix with the new reservation instead of editing over it.
+
+The two approved feature branches were published and exact-ref verified at14:07+02:00 on2026-10-21; main staysf923d15. Subsequent publication still needs owner authorization. This review does not perform another push.
+
 ## GitHub and worktree safety checkpoint
 
-2026-10-21: [audit](reviews/2026-10-21-github-safety.md) verified Claude1b2d3d5 and Codexe10d3ef independently descend from83c611c; both histories, other worktrees and untracked outputs are preserved. A verified ignored all-ref recovery bundle exists. Native Windows Git live refs and explicit dry-run push succeed; no actual push/merge/install occurred. Claude's session allowlist and Linux-shell credential errors are separate from this working Windows path. Publication requires explicit owner authorization; reviewed source integration remains a separate action.
+2026-10-21: [audit](reviews/2026-10-21-github-safety.md) verified Claude1b2d3d5 and Codexe10d3ef independently descend from83c611c; both histories, other worktrees and untracked outputs are preserved. A verified ignored all-ref recovery bundle exists. Native Windows Git live refs and explicit dry-run push succeed; no actual push/merge/install occurred. Claude's session allowlist and Linux-shell credential errors are separate from this working Windows path. The owner subsequently authorized the two explicit feature-branch publications; the14:07 receipt verifies them. Reviewed source integration remains a separate action.
 
 Codex's review accepts Claude's guarded first-open saved-track restoration for integration. Menu/UI Lua5.1, Windows structural validation and exact preview-art check pass on Claude's source. Actual client and a Codex-run combined integration check remain pending. Do not install either standalone branch over the shared target.
 
