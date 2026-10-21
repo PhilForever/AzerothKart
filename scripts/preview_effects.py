@@ -25,8 +25,9 @@ from paintkit import decode_tga, encode_png  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 ADDON = ROOT / "addon" / "AzerothKart"
-MODULES = ("Track", "MirageRaceway", "Physics", "Input", "Loop", "Performance", "Presentation",
-           "Checkpoints", "Laps", "Race", "UI", "Menu", "NetworkProbe", "TransportProbe", "Core")
+# The addon's files, in the TOC's order, as the client loads them.
+MODULES = tuple(line.strip()[:-4] for line in (ADDON / "AzerothKart_Camelot.toc").read_text().splitlines()
+                if not line.startswith("##") and line.strip().endswith(".lua"))
 
 MOCK = r"""
 local methods = {}

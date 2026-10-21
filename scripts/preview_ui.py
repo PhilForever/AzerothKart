@@ -25,9 +25,9 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 ADDON = ROOT / "addon" / "AzerothKart"
-MODULES = ("Track", "MirageRaceway", "Physics", "Input", "Loop", "Performance", "Presentation",
-           "Checkpoints", "Laps", "Race", "UI", "Menu", "RaceProtocol", "PeerSession",
-           "NetworkProbe", "TransportProbe", "Core")
+# The addon's files, in the TOC's order, as the client loads them.
+MODULES = tuple(line.strip()[:-4] for line in (ADDON / "AzerothKart_Camelot.toc").read_text().splitlines()
+                if not line.startswith("##") and line.strip().endswith(".lua"))
 FONTS = {  # client font object -> (face, pixel height, default colour, outline)
     "GameFontNormal": ("friz", 12, (1, .82, 0), False), "GameFontHighlight": ("friz", 12, (1, 1, 1), False),
     "GameFontDisable": ("friz", 12, (.5, .5, .5), False), "GameFontRed": ("friz", 12, (1, .1, .1), False),

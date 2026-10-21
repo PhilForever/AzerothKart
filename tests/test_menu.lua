@@ -1,9 +1,13 @@
 -- Front-end checks (Menu.lua) against a Lua-only widget mock. This is NOT proof
 -- of the client's templates, fonts, layout or input safety; the actual client
 -- check is in docs/art/ui/front-end.md.
-local namespaceNames = {"Track", "MirageRaceway", "Physics", "Input", "Loop", "Performance", "Presentation",
-    "Checkpoints", "Laps", "Race", "UI", "Menu", "RaceProtocol", "PeerSession", "NetworkProbe",
-    "TransportProbe", "Core"}
+-- The addon's files, in the TOC's order, as the client loads them.
+local namespaceNames = {}
+for line in io.lines("addon/AzerothKart/AzerothKart_Camelot.toc") do
+    local name = line:match("^%s*([%w_]+)%.lua%s*$")
+    if name then namespaceNames[#namespaceNames + 1] = name end
+end
+assert(namespaceNames[1] == "Track" and namespaceNames[#namespaceNames] == "Core", "TOC load order read")
 local globalNames = {"CreateFrame", "UIParent", "InCombatLockdown", "GetCurrentKeyBoardFocus",
     "IsGameWindowFocused", "GetBuildInfo", "GetFramerate", "GetTime", "debugprofilestop",
     "DEFAULT_CHAT_FRAME", "C_AddOns", "SlashCmdList", "SLASH_AZEROTHKART1", "SLASH_AZEROTHKART2",
