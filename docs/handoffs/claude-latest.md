@@ -1,4 +1,38 @@
-# Claude handoff — front-end menus, race HUD and results (`claude/ui-flow`)
+# Claude handoff — Capital Cities Cup (reserved, in progress)
+
+Prepared 2026-10-21 about 14:30 CEST (Europe/Oslo) by Claude (rendering/UI/sprites owner). This reservation precedes the work; a full handoff replaces it when the task ends.
+
+**Base:** `claude/ui-flow` at `1b2d3d5` (the front end, reviewed by Codex in `codex/github-safety`), because the track screen and saved track live there. New branch: `claude/capital-cup`, in Claude's own worktree.
+
+## Owner instructions
+
+- "Your next task is Capital Cities Cup maps: Stormwind City Circuit, Ironforge Grand Prix, Darnassus Canopy Run, Orgrimmar Canyon Rush, Thunder Bluff Skyway, Undercity Slime Circuit. I'll include an image of each map from WoW. Feel free to look them up yourself and I'm giving you creative freedom to design the tracks yourself of course with wc3 assets where possible - and it's important that players recognize where they are when they're playing the track."
+- Answers to Claude's questions:
+  - rollout: "Stormwind first (Recommended)": the shared pipeline and Stormwind end to end for the owner's in-game check, then the other five;
+  - Warcraft III source: the owner's own Reforged install (`C:\Program Files (x86)\Warcraft III`), read-only folder access granted for this session;
+  - buildings: "Solid landmarks (Recommended)". This changes the Test-Oval-only obstacle rule for the city maps; Codex reviews the collision;
+  - cup: "Track group for now (Recommended)": the track screen groups the six cities; a Grand Prix can follow.
+
+## Active reservation
+
+**Task:** the Capital Cities Cup track pipeline and Stormwind City Circuit; then Ironforge, Darnassus, Orgrimmar, Thunder Bluff and Undercity on the same pipeline.
+
+**Reserved for Claude:**
+
+- New files: a pure circuit factory and the city track data (`addon/AzerothKart/Circuit.lua`, `addon/AzerothKart/CapitalCities.lua`), `addon/AzerothKart/Assets/Tracks/<City>/`, `tests/test_circuit.lua`, `scripts/wc3casc.py` (a read-only reader for the owner's Warcraft III archives), the city-scenery and building-render scripts, `docs/art/tracks/`.
+- `addon/AzerothKart/UI.lua`, visual regions: `layoutTrack`, `placeTrackMarkers`, the gate/wall pools in `UI.Create`'s visual layout, `render`'s camera branch, the effects' dust colour, the HUD's off-road label.
+- **Shared, for Codex review:** `UI.SelectTrack`'s id check and background load, generalised from two hard-coded tracks to a track list, keeping its stopped/out-of-combat/failure transaction unchanged; the Track button's cycling; both TOCs, `tests/run.lua`, `tests/test_ui.lua` (counts, gates), `scripts/validate_project.py`; docs (API_CONTRACTS proposal, TRACKS, ARCHITECTURE, README, README_ADDON, CHANGELOG, TEST_PLAN, MANUAL_CLIENT_CHECKLIST, ASSETS, ASSET_SOURCES, INDEX).
+- `addon/AzerothKart/Menu.lua` (Claude): the track screen grouped by cups, the preview atlas and saved-track validation.
+- **Not touched:** Physics, Track, MirageRaceway, Input, Loop, Checkpoints, Laps, Race, PeerSession, RaceProtocol, the clock and transport modules, Core, `step`, `UI.Start/Stop/InterruptCombat/ReleaseInput/OnUpdate/HandleEvent/OnCombatEnded`, `keyEvent`, Start refusals and clock/profiling wiring. City tracks reuse Physics through the existing track interface (`spawn`, `surfaceAt`, `resolveMovement`).
+- **Multiplayer:** SessionTransport's supported track list is Codex's; new track ids are offered for it, not wired.
+
+**Deployment:** Claude installs nothing; Codex prepares coordinated installs and the owner decides.
+
+---
+
+# Previous handoff (`claude/ui-flow` at `1b2d3d5`)
+
+Front-end menus, race HUD and results, as handed off:
 
 Prepared 2026-10-21 about 12:45 CEST (Europe/Oslo) by Claude (rendering/UI/sprites owner).
 
