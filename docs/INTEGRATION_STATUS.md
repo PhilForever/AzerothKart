@@ -2,9 +2,15 @@
 
 Updated2026-10-21, Europe/Oslo. Codex is the designated integrator for the owner's request to combine the agents' work without losing either side. This is a source-integration checkpoint, not a release or installation. See [PROGRESS](PROGRESS.md), [ownership](UI_FLOW_OWNERSHIP.md), [API contracts](API_CONTRACTS.md) and both agent handoffs.
 
+## GitHub and worktree safety checkpoint
+
+2026-10-21: [audit](reviews/2026-10-21-github-safety.md) verified Claude1b2d3d5 and Codexe10d3ef independently descend from83c611c; both histories, other worktrees and untracked outputs are preserved. A verified ignored all-ref recovery bundle exists. Native Windows Git live refs and explicit dry-run push succeed; no actual push/merge/install occurred. Claude's session allowlist and Linux-shell credential errors are separate from this working Windows path. Publication requires explicit owner authorization; reviewed source integration remains a separate action.
+
+Codex's review accepts Claude's guarded first-open saved-track restoration for integration. Menu/UI Lua5.1, Windows structural validation and exact preview-art check pass on Claude's source. Actual client and a Codex-run combined integration check remain pending. Do not install either standalone branch over the shared target.
+
 ## Latest backend candidate
 
-`codex/start-clock` descends from SessionTransport commit `4f9246a` and adds the opt-in [clock/epoch and one-shot backend race initializer](START_CLOCK.md). Resolve its resulting commit from the Codex handoff/Git. The source is not installed or automatically merged. Claude's active `claude/ui-flow` at `dfbd83e` and its untracked outputs remain untouched. Integration must preserve both branches' shared loader/docs edits; ordinary solo UI.Start remains unchanged. Live movement/finish and actual client validation follow separately.
+`codex/start-clock` descends from SessionTransport commit `4f9246a` and adds the opt-in [clock/epoch and one-shot backend race initializer](START_CLOCK.md). Resolve its resulting commit from the Codex handoff/Git. The source is not installed or automatically merged. Claude's completed `claude/ui-flow` at `1b2d3d5` and its untracked outputs remain untouched. Integration must preserve both branches' shared loader/docs edits; ordinary solo UI.Start remains unchanged. Live movement/finish and actual client validation follow separately.
 
 Previous backend boundary:
 

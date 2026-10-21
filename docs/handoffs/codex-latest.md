@@ -1,3 +1,12 @@
+# Latest checkpoint — GitHub and parallel-work safety
+
+2026-10-21 13:52+02:00, Europe/Oslo. Documentation-only `codex/github-safety` from `e10d3ef`; result is the accompanying commit. [Audit](../reviews/2026-10-21-github-safety.md) records exact source refs, preserved hashes, verified all-ref recovery bundle and Windows Git access. Claude is1b2d3d5, source tracked clean with existing untracked outputs; sharedbase83c611c intact. Native Windows explicit claude/ui-flow dry-run publication succeeds; no actual push/merge/reset/config/auth/install changes. Repo connectivity PASS. Three worktrees' complete tracked/untracked snapshots unchanged after read-only checks.
+
+Executed against Claude source: real Lua5.1 menu/ui PASS40parsed/counts65/160/79; structural validator PASS77paths on Windows (Linux link issue not reproduced); preview --check PASS/exact bytes. Codex approves first-open saved-track restore through the inactive/out-of-combat transaction for later integration. Source mechanics/Core/transport and mechanical assertions preserved. Current Lua5.4/fullbroad/combinedscratch/client checks NOT RUN by Codex; multiplayer remains unwired. Shared loader/UI/docs integration remains reviewed work, not a whole-file replacement or standalone install.
+
+Only this handoff, PROGRESS, INTEGRATION_STATUS and the safety review changed. No Claude/canonical file changed. Next: owner-authorized feature-branch publication if requested, separately reviewed UI/backend integration, then live-race controller/paced remote state. The source implementation remains2232f82 with Gemini-review documentatione10d3ef; previous handoffs below retain their scoped evidence. A prior push authorization is not reused automatically.
+
+---
 # Latest review — Gemini feedback
 
 2026-10-21 12:25+02:00, Europe/Oslo. Documentation-only `codex/gemini-feedback` from `2232f82`; result is the accompanying review commit. [Assessment](../reviews/2026-10-21-gemini-feedback.md) records useful suggestions and corrected networking/timing/asset claims. Only this handoff, the review note and the appended PROGRESS entry changed. No gameplay/API/art/Claude/install changes. Actual Lua5.1 Loop micro-experiment demonstrates dropped hitch time; broad suite/client checks NOT RUN for this review. Structural validator PASS82paths/TOCs/links/ledger; whitespace PASS. Next development task is unchanged: bounded live-race control and paced remote snapshots, preserving budgets and a read-only Claude render boundary. The implementation handoff below remains authoritative for source2232f82.
