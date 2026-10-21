@@ -746,7 +746,9 @@ def _disk_cache(key, value=None):
     if value is None:
         return pickle.loads(path.read_bytes()) if path.is_file() else None
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(pickle.dumps(value, protocol=4))
+    partial = path.with_name(path.name + ".part")     # an interrupted build leaves no torn entry
+    partial.write_bytes(pickle.dumps(value, protocol=4))
+    os.replace(partial, path)
     return value
 
 
