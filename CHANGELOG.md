@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — front-end menus, race HUD and results (2026-10-21, `claude/ui-flow`)
+- Add `Menu.lua` (presentation only), loaded after `UI` in both TOCs. Opening the window shows a main menu in the client's own dialog style: **Single Player**, **Multiplayer** (a disabled coming-soon lobby preview), **Garage**, **How to Play** and **Settings**. See `docs/art/ui/front-end.md`.
+- Single Player goes Choose a Track (preview pictures and facts) → Choose Your Kart (a turntable of the kart's own heading sheet, the six-kart grid and model credits) → **Race!**. Only **Race!**, **Start Race** and **Restart** call `UI.Start`; menus refuse to open over a live run and never write run, race, physics, input or session state.
+- The race view gets a large LAP/gate HUD, the clock and best lap, and a big gold 3-2-1-GO. The bar's Start reads **Start Race**, and Stop moves away from it. The results panel becomes a 460×312 dark dialog listing every lap, the fastest in green, with **Change Kart**, **Change Track** and **Main Menu** added to Restart and Close results.
+- Save the track, kart and settings in `AzerothKartDB.preferences` (version 1, validated on read; unknown fields kept; a newer record is never overwritten). Settings: window size 80–125% (sizes that do not fit are disabled), drift/boost effects (`UI.SetEffectsEnabled`), sound effects and developer info (the timing line and Print Probe). The window can be dragged by its title.
+- Client sounds through `SOUNDKIT`: menu open/click/check, 3-2-1-GO beeps and one fanfare per finished run.
+- Add one original atlas, `Assets/UI/TrackPreviews.tga` (1024×512, 2 MiB, loaded on the first track-screen visit), built by `scripts/build_ui_art.py` from scenery v1 and `Track.lua` geometry. `scripts/preview_ui.py` draws a layout review of every screen.
+- Explicit UI counts become 65 frames/160 textures/79 font strings, all created with the window. If the front end fails to build, it reports once in chat and the basic bar remains. New `tests/test_menu.lua`; `tests/test_ui.lua` keeps Codex's assertions, with updated counts and summary size and a Lua 5.4 `unpack` fix. Client appearance, sounds and fonts are NOT RUN; the saved-track restore without a click awaits Codex's review.
+
 ## Unreleased — preserved-history roster integration (2026-10-21)
 - Combine Claude's six-kart selector/neutral artwork with Codex's Close results, Forever transport, measured evidence and pure PeerSession foundation. No installation or new live-race feature.
 - Fix late kart-load rollback to restore the entire previous visual; failed restoration uses Basic without altering the stopped run. Retain per-kart opacity floors rather than weakening all existing art for flyers.

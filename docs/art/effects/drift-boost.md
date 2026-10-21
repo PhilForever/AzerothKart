@@ -82,7 +82,7 @@ The anchors are positions read from the published model, not pixels from it; the
 - 14 sparks;
 - two flames of two layers each.
 
-They are hidden while idle. Explicit UI allocations become 151 textures (113 before the effects); with the Kart and Close results buttons, the combined counts are 11 frames, 151 textures and 13 font strings. Nothing is created or loaded per tick or frame, and the oldest particle is reused when a pool is full. Offline, at most 31 effect textures were shown at once.
+They are hidden while idle. Explicit UI allocations become 151 textures (113 before the effects); with the Kart and Close results buttons, the combined counts are 11 frames, 151 textures and 13 font strings ([the front end](../ui/front-end.md#budget) brings them to 65/160/79). Nothing is created or loaded per tick or frame, and the oldest particle is reused when a pool is full. Offline, at most 31 effect textures were shown at once.
 
 **Layers.**
 
@@ -113,7 +113,7 @@ Fully restart the client after installing: the atlases are new files. On Mirage:
 2. On release, both exhaust pipes flame backward and puff dark soot. The flame shrinks as the boost runs out and stops when it ends.
 3. Facing away from the camera, the flames burn in front of the kart's rear. Facing the camera, they are hidden behind the body, not drawn over the driver.
 4. No effect shows a box, a dark fringe or a neighbouring cell's slice, and none spills outside the canvas.
-5. No hitch when drifting starts, and Print Probe shows 11/151/13.
+5. No hitch when drifting starts, and Print Probe shows 65/160/79 with the front end (11/151/13 without it).
 6. On Test Oval the same effects appear at the smaller scale, with gray tyre smoke.
 
 Open question: these are the first `SetDrawLayer` calls with sublevels other than the grass's −1. The creation-time calls are guarded, and a refusal disables the effects; the flames' later front/behind switches are not guarded.

@@ -6,7 +6,7 @@
 
 **Current two-player checkpoint:** [accepted experiment scope, ADR 0013](adr/0013-two-player-experiment-scope.md), [reload/fresh-session evidence](evidence/2026-10-21-akt724-akt725-recovery.md) and [implemented control codec](API_CONTRACTS.md#implemented-pure-race-control-codec). No new manual probe is requested; the pure session controller is implemented, and guarded transport/menu wiring is next.
 
-**UI/flow:** [ownership assignment](UI_FLOW_OWNERSHIP.md) and [Claude roster review](reviews/2026-10-21-claude-roster.md). Claude owns presentation/visual flow; Codex owns session semantics and lifecycle.
+**UI/flow:** [ownership assignment](UI_FLOW_OWNERSHIP.md), [Claude roster review](reviews/2026-10-21-claude-roster.md) and the proposed [front-end menus, race HUD and results](art/ui/front-end.md) on `claude/ui-flow` (offline-tested; client NOT RUN; [contract](API_CONTRACTS.md#proposed-front-end-menus-race-hud-and-results)). Claude owns presentation/visual flow; Codex owns session semantics and lifecycle.
 
 **Integration/deployment checkpoint:** [current combined source and synchronization rules](INTEGRATION_STATUS.md). Read this before following an older branch handoff or preparing an install.
 

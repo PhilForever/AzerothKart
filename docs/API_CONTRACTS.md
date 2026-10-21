@@ -14,7 +14,7 @@ The interfaces below exist in source today. `Renderer`, `GameSession`, collision
 
 ## Modules and data access
 
-The two TOCs load `Track`, `MirageRaceway`, `Physics`, `Input`, `Loop`, `Performance`, `Presentation`, `Checkpoints`, `Laps`, `Race`, `UI`, `RaceProtocol`, `PeerSession`, `NetworkProbe`, `TransportProbe`, `Core` in that order. Pure modules receive `local _, namespace = ...`, optionally register their module on that explicit table, and return it for offline loading. They do not access WoW globals. Core exports the same namespace as `_G.AzerothKart` for diagnostics.
+The two TOCs load `Track`, `MirageRaceway`, `Physics`, `Input`, `Loop`, `Performance`, `Presentation`, `Checkpoints`, `Laps`, `Race`, `UI`, `RaceProtocol`, `PeerSession`, `NetworkProbe`, `TransportProbe`, `Core` in that order. Claude's proposed front end on `claude/ui-flow` adds `Menu` right after `UI` ([below](#proposed-front-end-menus-race-hud-and-results)). Pure modules receive `local _, namespace = ...`, optionally register their module on that explicit table, and return it for offline loading. They do not access WoW globals. Core exports the same namespace as `_G.AzerothKart` for diagnostics.
 
 The current render path reads `AK.UI.state`, `.previousState`, `.race`, `.laps`, `.checkpoints`, `.track`, `.trackId`, `.clock` and `.active`. These are mutable Lua tables exposed for integration/diagnostics, **not enforced read-only objects or security boundaries**. Treat them as borrowed read-only references in rendering: do not add, remove or alter authoritative fields, normalize headings in place, alter input, call a simulation step, or assign interpolated/camera coordinates back to them.
 
@@ -289,19 +289,57 @@ The visual path reads simulation state only. An offline scripted drive compares 
   - It loads the art with the creation-time guarded checks. On refusal it restores the previous art, exact frame/full UVs, rotation, dimensions, neutral tint, effect anchors and label, returning false. If restoration also refuses, it clears sprite/frame/id metadata and uses the17×31 Basic primitive/default effect anchors; stopped run/result/track/physics remain unchanged.
   - It resets rotation when changing to a sheet and the crop when changing to a single image.
   - It resizes the quad, moves the effect anchors and redraws.
-  - It never writes the run, result, track or simulation state. The choice is not saved.
+  - It never writes the run, result, track or simulation state. The choice is not saved by UI; the proposed front end remembers it through `Menu.OnKartChanged`.
 - `UI.Create` adds a **Kart** button (one Frame) beside the Track button, whose click selects `nextKart(UI.kartId)`. The callback is reviewed and integrated alongside Close results; session/navigation ownership stays as documented above. `refreshHud`, Claude's HUD region, disables the button whenever `UI.active` is true.
 - Every kart drives the same 17×31 body; the art may overhang it as the trike's does. The four new sheets add 16 MiB of raw texture data when all are loaded.
+
+### Proposed: front-end menus, race HUD and results
+
+On `claude/ui-flow` (Claude, 2026-10-21; awaiting Codex review). See [the front-end sheet](art/ui/front-end.md).
+
+- **Module.** `Menu.lua` (Claude, presentation) loads after `UI` in both TOCs and registers `AK.Menu`. `UI.Create` ends with `pcall(AK.Menu.Create, UI)`. On failure, `Menu.Disable(err)` reports once in chat and leaves the basic bar.
+- **Notifications added to `UI.lua`.** None changes UI's behaviour:
+  - `refreshHud` → `Menu.Sync()` (scene, bar visibility, lap times, track memory);
+  - the end of `render` → `Menu.RefreshRaceHud()`;
+  - a changed countdown cue → `Menu.OnCue(cue)` (sounds);
+  - the end of `UI.SelectKart` → `Menu.OnKartChanged()` (memory);
+  - a new window `OnShow` script → `Menu.OnWindowShown()`.
+- **`UI.SetEffectsEnabled(enabled)`** (Claude, visual). Off clears and hides every effect and skips emission; on resumes from the next simulation tick. Simulation never reads it.
+- **Commands the menus call:**
+  - `UI.Start()` only from a **Race!**, **Start Race** or **Restart** click;
+  - `UI.SelectKart(id)`;
+  - `UI.DismissSummary()` before leaving results for a menu;
+  - `UI.SelectTrack(id)` from the track screen, and once per session to restore the saved track at the first out-of-combat open. **Needs Codex sign-off:** that restore runs the selection transaction without a click.
+  - Menus refuse to open over a live run and never write run, race, physics, input or session state.
+- **Window.** It becomes movable by a top drag handle and takes its scale from Settings. A child watcher frame's `OnHide` tells a real close from a hidden parent (Alt+Z). It is not added to `UISpecialFrames`: the Escape that stops a run can reach the game's Escape binding.
+- **Bar.**
+  - Start is relabelled **Start Race**, and Stop moves to x=618, away from it.
+  - Track, Kart and a new **Main Menu** show only in the track view.
+  - Print Probe and the timing line show only with developer info.
+  - Codex's Start/Stop still enable and disable the same buttons; their callbacks are unchanged.
+- **Results.** `UI.summary` grows to 460×312 and sits above the race overlay.
+  - Three new buttons, **Change Kart**, **Change Track** and **Main Menu**, each call `UI.DismissSummary` and then open a menu.
+  - Title, detail and hint text, Restart and Close results are unchanged.
+- **SavedVariables (schema addition for review).** `AzerothKartDB.preferences` is `{version=1, track, kart, effects, devInfo, scale, sound}`.
+  - Values are validated on read.
+  - A save keeps unknown fields; a record with a newer `version` is read but never overwritten.
+  - Saves happen only when a choice changes, never per tick.
+- **Multiplayer.**
+  - `Menu.lobbyPresentation(view)` maps a copied PeerSession view (the fields in [the controller contract](#implemented-pure-peer-session-controller)) to copy and enabled flags.
+  - `Menu.SetSessionBridge({view=function})` is a proposed registration point for Codex's adapter.
+  - No command is wired. Without a bridge, Host, Join, Ready, Start and Leave stay disabled and marked Coming soon.
+- **Sounds.** `PlaySound(SOUNDKIT[name])`, guarded and muted by a setting: menu open/click/check, 3-2-1-GO, and one fanfare per finished run.
+- **Counts.** 65 frames, 160 textures and 79 font strings, all created with the window.
 
 ## Rendering cadence, resources and lifecycle
 
 Rendering currently runs once per delivered active `OnUpdate`, after zero or more fixed steps; it is not locked to 60 FPS and has no separate render timer. Meter, gate colors and countdown update through the render path with cached values. The numeric HUD refreshes every ≥0.25 **simulated** seconds, on lap/status changes and immediately at Start/Stop/selection. UI lifecycle events may draw outside `OnUpdate`; inactive updates do no work.
 
-The window is 856×762 with an 800×480 canvas. Explicit UI allocations are **11 frames, 151 textures, 13 font strings** (two pooled Oval obstacle markers and both pooled Close results/Kart buttons and 38 effect textures). This includes the 96 retained Oval bands, four gate strips, four perimeter strips, one Mirage background, one kart, two solid-fixture markers and pooled meter/result/cue elements. Markers render the physical rectangles in ARTWORK at Oval's fixed scale and stay hidden on Mirage, including camera updates. Counts exclude Core's event frame, template/native internals and other addons. They are offline-checked explicit allocations; the prior 9/111/13 baseline has scoped client observations. Neither count is a guaranteed client memory/FPS budget or a ban on reviewed pool changes.
+The window is 856×762 with an 800×480 canvas. Explicit UI allocations are **11 frames, 151 textures, 13 font strings** (two pooled Oval obstacle markers and both pooled Close results/Kart buttons and 38 effect textures). This includes the 96 retained Oval bands, four gate strips, four perimeter strips, one Mirage background, one kart, two solid-fixture markers and pooled meter/result/cue elements. Markers render the physical rectangles in ARTWORK at Oval's fixed scale and stay hidden on Mirage, including camera updates. Counts exclude Core's event frame, template/native internals and other addons. They are offline-checked explicit allocations; the prior 9/111/13 baseline has scoped client observations. Neither count is a guaranteed client memory/FPS budget or a ban on reviewed pool changes. Claude's proposed front end ([above](#proposed-front-end-menus-race-hud-and-results)) brings the explicit counts to **65 frames, 160 textures, 79 font strings**, still created once with the window.
 
 Preserve creation-time pooling: no `CreateFrame`/`CreateTexture`/font-string creation, texture file loads or chat output per simulation tick or render callback. Current snapshots allocate bounded Lua tables per tick; there is no promise of zero Lua allocation. Profile before replacing their immutable-style behavior. Opt-in Performance collects at most 600 callback spans and includes instrumentation overhead; it is not exclusive CPU/GPU cost.
 
-`UI.SelectTrack(id) -> boolean` accepts `"test_oval"` or `"mirage_raceway"` only with an existing shown window, while stopped and out of combat. Mirage's guarded `SetTexture` must return true; a guarded UV capability check must succeed before committing the switch. Failure preserves the old track/run/sample. Successful selection clears samples and creates a new spawn/lap state; loaded artwork is reused. The Track button is disabled while active; clicking a disabled selector does not stop a run. Test Oval is the default after reload; selection is not persisted.
+`UI.SelectTrack(id) -> boolean` accepts `"test_oval"` or `"mirage_raceway"` only with an existing shown window, while stopped and out of combat. Mirage's guarded `SetTexture` must return true; a guarded UV capability check must succeed before committing the switch. Failure preserves the old track/run/sample. Successful selection clears samples and creates a new spawn/lap state; loaded artwork is reused. The Track button is disabled while active; clicking a disabled selector does not stop a run. Test Oval is the default after reload; `UI` itself does not persist the selection. The proposed front end saves the choice and restores it through this function ([above](#proposed-front-end-menus-race-hud-and-results)).
 
 Capture/release safeguards and combat/lifecycle handling remain controller-owned. Under the owner's revised input policy, incidental mouse clicks and unassigned keys leave the run active; there is no global-mouse event requirement for Start. Stop, Escape and Close deliberately end the run; Enter and detected chat/text focus release racing input, as do supported focus-loss and lifecycle paths. Required keyboard capture/propagation and text-focus capabilities still gate Start, and capture never automatically resumes. Build 70450 lacks `IsGameWindowFocused`/`IsWindowFocused`; full held-input focus-loss behavior remains unverified. Do not substitute guessed protected APIs or make global WoW movement bindings part of rendering. See [FEASIBILITY](FEASIBILITY.md) and [ADR 0006](adr/0006-combat-interrupted-results.md).
 
