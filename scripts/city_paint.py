@@ -451,9 +451,9 @@ def water_masks(city, geometry, street):
     the course the canals follow the street: inside the loop, the band
     beside the street's wall is water only where a canal runs (`canals`:
     loop arc ranges, the side and the band's width) and dry elsewhere, so the
-    traced basins never leave slivers by the street. `crossings` carry a
-    canal under the course: a strip across the street at a loop arc, the
-    street passing over it on a bridge. The street and its walls are dry."""
+    traced basins never leave slivers by the street. `bridges` carry a canal
+    under the course: a strip across the street at a loop arc, the street
+    passing over it on a bridge. The street and its walls are dry."""
     w, h = street.w, street.h
     thick = city["wall"]["thickness"]
     water = bytearray(w * h)
@@ -493,10 +493,10 @@ def water_masks(city, geometry, street):
         elif inner[i] and gap <= thick + widest + 0.5:
             water[i] = 0
     bridge = bytearray(w * h)
-    for c in city.get("crossings", []):
+    for c in city.get("bridges", []):
         px, py, tx, ty = course_point(street, c["at"])
         nx, ny = -ty, tx                       # left of travel
-        half = c["width"] / 2
+        half = c["length"] / 2 - 10            # the ends rest on the banks
         left = street.wall + street.kart + thick + c.get("left", 0)
         right = street.wall + street.kart + thick + c.get("right", 0)
         corners = [(px + tx * half + nx * left, py + ty * half + ny * left),
@@ -586,13 +586,91 @@ def paint_water(pic, city, water, tiles, bridge):
 # The street surface.
 
 
-def paint_street(pic, city, geometry, street, tiles):
-    """Pave every texel inside the street: road, kerbs, sidewalks, plazas, the
-    walls' shadows and the finish line."""
+class Course:
+    """Where along the course a street texel is: its loop arc, whether it is
+    on a bridge, its paving section, which side of the street it lies, and
+    the closed-off alleys. Arcs come from the city's map-anchored layout."""
+
+    def __init__(self, city, geometry, street):
+        self.street = street
+        self.loop = len(geometry["centerline"])
+        self.loop_length = street.cum[self.loop - 1] + sqrt(
+            (street.segs[self.loop - 1][1][0] - street.segs[self.loop - 1][0][0]) ** 2 +
+            (street.segs[self.loop - 1][1][1] - street.segs[self.loop - 1][0][1]) ** 2)
+        self.bridges = [(b["at"] - b["length"] / 2, b["at"] + b["length"] / 2, b) for b in city.get("bridges", [])]
+        self.sections = city.get("sections", [])
+        self.default = city["road_default"]
+        self.alleys = []
+        for a in city.get("alleys", []):
+            self.alleys.append((a["at"] - a["width"] / 2, a["at"] + a["width"] / 2, a["side"], a))
+
+    def arc(self, i):
+        """(loop arc or None for a branch, branch number) of texel i's nearest road point."""
+        k = self.street.seg[i]
+        if k < 0:
+            return None, 0
+        if k < self.loop:
+            return self.street.along(i), 0
+        return None, 1
+
+    def side(self, i, x, y):
+        street = self.street
+        k = street.seg[i]
+        (ax, ay), (bx, by) = street.segs[k]
+        t = street.at[i]
+        cross = (bx - ax) * (y + 0.5 - (ay + (by - ay) * t)) - (by - ay) * (x + 0.5 - (ax + (bx - ax) * t))
+        return "left" if cross > 0 else "right"
+
+    def bridge(self, arc):
+        if arc is None:
+            return None
+        for lo, hi, b in self.bridges:
+            if lo <= arc <= hi:
+                return b
+        return None
+
+    def road(self, arc, branch):
+        for s in self.sections:
+            if branch and s.get("branch") == branch:
+                return s["road"]
+            if arc is not None and "from" in s and _within(arc, s["from"], s["to"], self.loop_length):
+                return s["road"]
+        return self.default
+
+    def alley(self, arc, side):
+        if arc is None:
+            return None
+        for lo, hi, s, a in self.alleys:
+            if s == side and lo <= arc <= hi:
+                return a
+        return None
+
+
+def _within(arc, lo, hi, total):
+    if lo <= hi:
+        return lo <= arc <= hi
+    return arc >= lo or arc <= hi            # wraps past the loop's start
+
+
+def deck_color(arc, offset, seed):
+    """A bridge deck's stone slabs, laid across the street."""
+    slab = int(arc // 20)
+    along = arc % 20
+    across = offset + 400.0 + (slab % 2) * 13
+    stone = hash32(slab, int(across // 26), seed) % 21 - 10
+    r, g, b = 196 + stone, 186 + stone, 166 + stone
+    if along < 1.3 or across % 26 < 1.3:
+        r, g, b = r * 3 // 4, g * 3 // 4, b * 3 // 4
+    return r, g, b
+
+
+def paint_street(pic, city, geometry, street, tiles, course):
+    """Pave every texel inside the street: each district's road paving with a
+    stone kerb and pavement to the walls, bridge decks over the canals,
+    plazas, the walls' shadows and the finish line."""
     w, h = pic.w, pic.h
     road = street.road
-    kerb_a, kerb_b, edge = city["kerb_colors"]
-    gutter = city["gutter_color"]
+    curb, joint = city["curb_color"], city["gutter_color"]
     sun_x, sun_y = -0.6, 0.8         # toward the sun (north-west): walls there shade the street
     for (bi, bj) in sorted(street.buckets):
         for y in range(bj * BUCKET, min(h, (bj + 1) * BUCKET)):
@@ -603,14 +681,16 @@ def paint_street(pic, city, geometry, street, tiles):
                 if gap > 0.5:
                     continue
                 lane = street.lane[i]
-                if lane <= road + 0.5:
-                    r, g, b, _ = tiles.whole(city["road_tile"], x, y, shade=city.get("road_shade", 1.0))
-                    if road - lane < 4.5:
-                        k_seg = street.seg[i]
-                        if abs(street.turn[k_seg]) > 0.10:
-                            r, g, b = kerb_a if int(street.along(i) // 14) % 2 else kerb_b
-                        else:
-                            r, g, b = edge
+                arc, branch = course.arc(i)
+                deck = course.bridge(arc) if not street.plaza[i] else None
+                if deck is not None:
+                    offset = lane if course.side(i, x, y) == "left" else -lane
+                    r, g, b = deck_color(arc, offset, 31)
+                elif street.plaza[i] and lane <= road - 1.0:
+                    tile, shade = course.road(arc, branch)
+                    r, g, b, _ = tiles.whole(tile, x, y, shade=shade)
+                elif street.plaza[i] and lane <= road + 1.5:
+                    r, g, b = city["gutter_color"]
                 elif street.plaza[i]:
                     r, g, b, _ = tiles.whole(city["plaza_tile"], x, y, seed=5, shade=city.get("plaza_shade", 1.0))
                     k = 256
@@ -621,11 +701,16 @@ def paint_street(pic, city, geometry, street, tiles):
                     if -10.0 < gap <= -4.0:          # the square's darker border
                         k = min(k, 212)
                     r, g, b = r * k >> 8, g * k >> 8, b * k >> 8
+                elif lane <= road - 1.0:
+                    tile, shade = course.road(arc, branch)
+                    r, g, b, _ = tiles.whole(tile, x, y, shade=shade)
+                elif lane <= road + 1.0:
+                    r, g, b = curb
+                elif lane <= road + 2.5:
+                    r, g, b = joint
                 else:
                     r, g, b, _ = tiles.whole(city["sidewalk_tile"], x, y, seed=9,
                                              shade=city.get("sidewalk_shade", 1.0))
-                    if lane <= road + 2.5:
-                        r, g, b = gutter
                 # Shade under the walls between the street and the sun.
                 facing = street.nx[i] * sun_x + street.ny[i] * sun_y
                 if gap > -7.0 and facing > 0.2:
@@ -635,6 +720,120 @@ def paint_street(pic, city, geometry, street, tiles):
                 pic.over(i, r, g, b, cover)
     finish = geometry["gates"][-1]
     paint_line(pic, street, finish, 8, ((28, 28, 28), (232, 232, 232)), 16)
+
+
+def paint_alleys(pic, city, street, course, tiles, taken):
+    """Side streets closed off for the race: paving out between the houses,
+    kept clear of buildings."""
+    w, h = pic.w, pic.h
+    edge = street.wall + street.kart + city["wall"]["thickness"]
+    for a in city.get("alleys", []):
+        px, py, tx, ty = course_point(street, a["at"])
+        nx, ny = (-ty, tx) if a["side"] == "left" else (ty, -tx)
+        half = a["width"] / 2
+        near, far = edge - 2, edge + a["length"]
+        corners = [(px + tx * half + nx * near, py + ty * half + ny * near),
+                   (px - tx * half + nx * near, py - ty * half + ny * near),
+                   (px - tx * half + nx * far, py - ty * half + ny * far),
+                   (px + tx * half + nx * far, py + ty * half + ny * far)]
+        mask = bytearray(w * h)
+        fill_polygon(mask, w, h, corners)
+        tile, shade = course.road(a["at"], 0)
+        for i in range(w * h):
+            if not mask[i] or street.gap[i] <= city["wall"]["thickness"] + 0.5:
+                continue
+            row, x = divmod(i, w)
+            y = h - 1 - row
+            # Distance across the alley from its middle line: a kerb each side.
+            across = abs((x + 0.5 - px) * tx + (y + 0.5 - py) * ty)
+            if across > half - 8:
+                r, g, b, _ = tiles.whole(city["sidewalk_tile"], x, y, seed=9, shade=city.get("sidewalk_shade", 1.0))
+                if across <= half - 6:
+                    r, g, b = city["curb_color"]
+            else:
+                r, g, b, _ = tiles.whole(tile, x, y, shade=shade)
+            pic.r[i], pic.g[i], pic.b[i] = r, g, b
+            taken[i] = 1
+
+
+STEP_STONE = (232, 226, 212)      # treads in the sun
+STEP_RISER = (176, 170, 158)      # risers face south, away from the sun
+CARPET, CARPET_RISER, CARPET_EDGE = (36, 70, 156), (26, 50, 116), (214, 172, 72)
+
+
+def paint_steps(pic, city, street, taken):
+    """A grand stair from the street's edge up to a landmark's doors: pale
+    treads and shaded risers across it, a carpet with gold edges up the
+    middle, stone cheeks at both sides. The stair runs on under the
+    landmark's front (`under` units), which hides its top. Returns the
+    stair's texels: no wall is built in front of it and no model stands on
+    its visible part."""
+    w, h = pic.w, pic.h
+    mask = bytearray(w * h)
+    edge = street.wall + street.kart
+    for spec in city.get("steps", []):
+        px, py, tx, ty = course_point(street, spec["at"])
+        nx, ny = (-ty, tx) if spec["side"] == "left" else (ty, -tx)
+        half, depth, carpet = spec["width"] / 2, spec["depth"], spec["carpet"] / 2
+        tread, under = spec.get("tread", 6), spec.get("under", 16)
+        reach = int(edge + depth + under + half + 4)
+        for y in range(int(py - reach), int(py + reach) + 1):
+            for x in range(int(px - reach), int(px + reach) + 1):
+                if not (0 <= x < w and 0 <= y < h):
+                    continue
+                dx, dy = x + 0.5 - px, y + 0.5 - py
+                across = dx * tx + dy * ty
+                out = dx * nx + dy * ny
+                i = (h - 1 - y) * w + x
+                gap = street.gap[i]
+                if abs(across) > half or out < edge - 2 or gap > depth + under or gap <= -0.5:
+                    continue
+                mask[i] = 1
+                if gap <= depth + 1.0:
+                    taken[i] = 1
+                rise = (gap if gap > 0.0 else 0.0) % tread
+                riser = rise < 2.0
+                if abs(across) > half - 5:                       # the cheeks
+                    r, g, b = (206, 200, 186) if abs(across) <= half - 1 else (150, 144, 132)
+                elif abs(across) <= carpet:
+                    r, g, b = CARPET_RISER if riser else CARPET
+                elif abs(across) <= carpet + 2:
+                    r, g, b = CARPET_EDGE
+                else:
+                    r, g, b = STEP_RISER if riser else STEP_STONE
+                    v = hash32(int(across // 9), int(gap // tread), 61) % 13 - 6
+                    r, g, b = r + v, g + v, b + v
+                cover = 255 if gap > 0.5 else int((gap + 0.5) * 255)
+                pic.over(i, r, g, b, cover)
+    return mask
+
+
+def paint_squares(pic, city, street, tiles):
+    """Open squares beside the street, outside its walls: marble paving, a
+    darker border and inlaid rings. Returns their texels."""
+    w, h = pic.w, pic.h
+    mask = bytearray(w * h)
+    for square in city.get("squares", []):
+        own = bytearray(w * h)
+        fill_polygon(own, w, h, square["shape"])
+        outside = bytearray(1 if not v else 0 for v in own)
+        border = dilate(outside, w, h, 6)
+        for i in range(w * h):
+            if not own[i] or street.gap[i] <= 0.5:
+                continue
+            mask[i] = 1
+            row, x = divmod(i, w)
+            y = h - 1 - row
+            r, g, b, _ = tiles.whole(city["plaza_tile"], x, y, seed=5, shade=city.get("plaza_shade", 1.0))
+            k = 256
+            for cx, cy, radius, width in square.get("rings", ()):
+                d = abs(sqrt((x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2) - radius)
+                if d < width / 2:
+                    k = 200 if d < width / 2 - 1 else 236
+            if border[i]:
+                k = min(k, 212)
+            pic.r[i], pic.g[i], pic.b[i] = r * k >> 8, g * k >> 8, b * k >> 8
+    return mask
 
 
 def paint_line(pic, street, gate, cells, colors, thickness):
@@ -660,12 +859,15 @@ def paint_line(pic, street, gate, cells, colors, thickness):
 # Scenery with height: walls and models, painted north to south.
 
 
-def wall_columns(city, street):
-    """The balustrade along both street edges: per world row, the texels of
-    its footprint (just outside the karts' reach) with each column's height."""
+def wall_columns(city, street, course, water, steps=None, squares=None):
+    """The street's edge walls, by what lies beyond them: a stone parapet
+    over a canal or along an open square, crenellated parapets on a bridge, a
+    hedge along the Park, a timber barrier across a closed alley, low house
+    foundations elsewhere, nothing at the foot of a grand stair. Per world
+    row, the texels of each wall's footprint just outside the karts' reach,
+    with each column's height and style."""
     w, h = street.w, street.h
     thick = city["wall"]["thickness"]
-    low, high, every = city["wall"]["height"], city["wall"]["pillar_height"], city["wall"]["pillar_every"]
     rows = {}
     for (bi, bj) in street.buckets:
         for y in range(bj * BUCKET, min(h, (bj + 1) * BUCKET)):
@@ -675,18 +877,51 @@ def wall_columns(city, street):
                 gap = street.gap[i]
                 if not (0.5 < gap <= thick + 0.5):
                     continue
-                pillar = street.seg[i] >= 0 and street.along(i) % every < 6.0
-                rows.setdefault(y, []).append((x, high if pillar else low, pillar))
+                if steps is not None and steps[i]:
+                    continue
+                arc, branch = course.arc(i)
+                along = street.along(i) if street.seg[i] >= 0 else 0.0
+                px = int(x + street.nx[i] * 5)
+                py = int(y + street.ny[i] * 5)
+                wet = 0 <= px < w and 0 <= py < h and water[(h - 1 - py) * w + px]
+                square = (squares is not None and 0 <= px < w and 0 <= py < h and
+                          squares[(h - 1 - py) * w + px])
+                side = course.side(i, x, y) if street.seg[i] >= 0 else "left"
+                if course.bridge(arc) is not None:
+                    style = "bridge"
+                    height = 15 if along % 14 < 8 else 10
+                elif wet or square:
+                    style = "parapet"
+                    height = 13 if along % 48 < 6 else 9
+                elif course.alley(arc, side) is not None:
+                    style = "barrier"
+                    height = 9
+                elif district_at(city, x, y)["name"] in city.get("hedged", ()):
+                    style = "hedge"
+                    height = 9 + hash32(x // 3, y // 3, 41) % 4
+                else:
+                    style = "land"
+                    height = 5
+                rows.setdefault(y, []).append((x, height, style))
     return rows
 
 
+WALL_STYLES = {   # face, coping, foot
+    "parapet": ((176, 170, 156), (228, 222, 208), (98, 94, 88)),
+    "bridge": ((188, 180, 162), (234, 228, 212), (104, 98, 90)),
+    "land": ((122, 114, 102), (156, 148, 134), (78, 74, 68)),
+    "barrier": ((112, 78, 46), (150, 110, 70), (64, 46, 30)),
+    "hedge": ((44, 92, 40), (70, 126, 58), (30, 60, 28)),
+}
+
+
 def paint_wall_row(pic, city, y, columns):
-    """One world row of balustrade columns: a stone face rising lean x height
-    from the ground point, the coping lighter on top."""
+    """One world row of wall columns: a face rising lean x height from the
+    ground point, the coping lighter on top."""
     w, h = pic.w, pic.h
     lean = city["lean"]
-    face, cap, dark = city["wall"]["face"], city["wall"]["cap"], city["wall"]["shadow"]
-    for x, height, pillar in columns:
+    for x, height, style in columns:
+        face, cap, dark = WALL_STYLES[style]
         rise = int(lean * height + 0.5)
         base = h - 1 - y
         for k in range(rise + 1):
@@ -700,9 +935,12 @@ def paint_wall_row(pic, city, y, columns):
                 r, g, b = dark
             else:
                 r, g, b = face
-                if pillar:
-                    r, g, b = min(255, r + 14), min(255, g + 14), min(255, b + 12)
-                elif (k == rise // 2 and (x // 6) % 2 == 0):
+                if style == "barrier" and x % 5 == 0:
+                    r, g, b = dark
+                elif style == "hedge":
+                    v = hash32(x, row, 43) % 24
+                    r, g, b = r + v // 2, g + v, b + v // 3
+                elif k == rise // 2 and (x // 6) % 2 == 0:
                     r, g, b = r * 7 // 8, g * 7 // 8, b * 7 // 8
             pic.r[i], pic.g[i], pic.b[i] = r, g, b
 
@@ -711,6 +949,8 @@ def sprite_for(wc3, city, item, cache):
     key = ("sprite-v2", item["model"], item["sequence"], item["yaw"], item["scale"], item.get("tint"),
            tuple(item.get("recolor") or ()), item.get("team"), city["lean"], city.get("supersample", 3),
            tuple(sorted((city.get("replaceables") or {}).items())), item.get("team") or city["team"])
+    if item.get("stone"):
+        key += (("stone", tuple(item["stone"])),)
     if key not in cache:
         sprite = _disk_cache(key)
         if sprite is None:
@@ -721,7 +961,8 @@ def sprite_for(wc3, city, item, cache):
             if not triangles:
                 raise SystemExit(f"LAYOUT: {item['model']} has nothing this renderer can draw")
             sprite = R.render(loaded, triangles, ss=city.get("supersample", 3), lean=city["lean"],
-                              tint=item.get("tint") or (1.0, 1.0, 1.0), recolor=item.get("recolor"))
+                              tint=item.get("tint") or (1.0, 1.0, 1.0), recolor=item.get("recolor"),
+                              stone=item.get("stone"))
             sprite["textures"] = sorted(set(files))
             # Samples for placement tests: body texels and plan texels.
             sprite["body_points"] = [(i, j) for j, line in enumerate(sprite["body"]) for i, a in enumerate(line)
@@ -807,12 +1048,42 @@ def paint_sprite(pic, sprite, X, Y):
                     pic.over(base + c, r, g, b, a)
 
 
+def front_of(street, water, taken, sprite, front):
+    """Where a model stands facing the street at loop arc front["at"]: out
+    from that course point on front["side"] (shifted front["across"] along
+    the street) until its plan keeps front["gap"] clear of the street, or
+    exactly front["out"] units out (on a stair, say)."""
+    px, py, tx, ty = course_point(street, front["at"])
+    nx, ny = (-ty, tx) if front["side"] == "left" else (ty, -tx)
+    shift = front.get("across", 0.0)
+    if "out" in front:
+        return (int(floor(px + tx * shift + nx * front["out"] + 0.5)),
+                int(floor(py + ty * shift + ny * front["out"] + 0.5)))
+    for out in range(int(street.wall + street.kart), int(street.wall + street.kart) + 400):
+        X = int(floor(px + tx * shift + nx * out + 0.5))
+        Y = int(floor(py + ty * shift + ny * out + 0.5))
+        if plan_clear(street, water, taken, sprite, X, Y, front["gap"]) and body_clear(street, sprite, X, Y):
+            return X, Y
+    raise SystemExit(f"LAYOUT: no room for a model facing the street at arc {front['at']}")
+
+
 def place_landmarks(wc3, city, street, water, taken, cache):
     """The city's authored models; each must keep its body off the street."""
     placed, problems = [], []
     for item in city["props"]:
         sprite = sprite_for(wc3, city, item, cache)
         X, Y = int(floor(item["x"] + 0.5)), int(floor(item["y"] + 0.5))
+        if item.get("front"):
+            X, Y = front_of(street, water, taken, sprite, item["front"])
+            item = dict(item, x=X, y=Y)
+        if item.get("nudge") and not body_clear(street, sprite, X, Y):
+            # Step away from the street until the model's body clears it.
+            _, nx, ny = street.nearest(X + 0.5, Y + 0.5)
+            for push in range(4, 120, 4):
+                QX, QY = int(floor(X + nx * push + 0.5)), int(floor(Y + ny * push + 0.5))
+                if body_clear(street, sprite, QX, QY):
+                    X, Y = QX, QY
+                    break
         if not item["solid"] and not body_clear(street, sprite, X, Y):
             problems.append(f"{item['name']} at ({X}, {Y}) covers the street")
             continue
@@ -924,6 +1195,50 @@ def street_furniture(wc3, city, street, water, taken, cache):
     return placed
 
 
+def bridge_furniture(wc3, city, street, water, taken, cache):
+    """A lamp at each corner of every bridge, just outside its parapets."""
+    placed = []
+    spec = city.get("bridge_posts")
+    if not spec:
+        return placed
+    edge = street.wall + street.kart + city["wall"]["thickness"] + spec["offset"]
+    for b in city.get("bridges", []):
+        for end in (-1, 1):
+            px, py, tx, ty = course_point(street, b["at"] + end * (b["length"] / 2 - spec["inset"]))
+            for side in (-1, 1):
+                X = int(floor(px - ty * side * edge + 0.5))
+                Y = int(floor(py + tx * side * edge + 0.5))
+                item = dict(spec["prop"], x=X, y=Y)
+                sprite = sprite_for(wc3, city, item, cache)
+                for push in range(0, 40, 3):          # out from the street until clear
+                    QX = int(floor(X - ty * side * push + 0.5))
+                    QY = int(floor(Y + tx * side * push + 0.5))
+                    if body_clear(street, sprite, QX, QY):
+                        take(street, taken, sprite, QX, QY, 1)
+                        placed.append((dict(item, x=QX, y=QY), sprite, QX, QY))
+                        break
+    guard = city.get("bridge_guards")
+    if guard:
+        edge = street.wall + street.kart + city["wall"]["thickness"] + guard["offset"]
+        for b in city.get("bridges", []):
+            for end in (-1, 1):
+                px, py, tx, ty = course_point(street, b["at"] + end * (b["length"] / 2 + guard["beyond"]))
+                for side in (-1, 1):
+                    nx, ny = -ty * side, tx * side
+                    yaw = int(floor(atan2(-ny, -nx) * 180.0 / pi / 45.0 + 0.5)) * 45 % 360
+                    item = dict(guard["prop"], yaw=yaw)
+                    sprite = sprite_for(wc3, city, item, cache)
+                    for push in range(0, 40, 3):
+                        QX = int(floor(px + nx * (edge + push) + 0.5))
+                        QY = int(floor(py + ny * (edge + push) + 0.5))
+                        if body_clear(street, sprite, QX, QY) and plan_clear(street, water, taken, sprite, QX, QY,
+                                                                              0.5):
+                            take(street, taken, sprite, QX, QY, 2)
+                            placed.append((dict(item, x=QX, y=QY), sprite, QX, QY))
+                            break
+    return placed
+
+
 def _segment_at(street, s):
     lo, hi = 0, len(street.cum) - 1
     while lo < hi:
@@ -964,19 +1279,35 @@ def build(wc3, city, geometry, check=False, preview=False, log=print):
     water, bridge = water_masks(city, geometry, street)
     paint_water(pic, city, water, tiles, bridge)
     log(f"  ground and water {time.time() - started:.0f}s")
-    paint_street(pic, city, geometry, street, tiles)
+    course = Course(city, geometry, street)
+    paint_street(pic, city, geometry, street, tiles, course)
+    squares = paint_squares(pic, city, street, tiles)
+    taken = bytearray(w * h)
+    steps = paint_steps(pic, city, street, taken)
+    paint_alleys(pic, city, street, course, tiles, taken)
     log(f"  street {time.time() - started:.0f}s")
     cache = {}
-    taken = bytearray(w * h)
     models = place_landmarks(wc3, city, street, water, taken, cache)
+    models += bridge_furniture(wc3, city, street, water, taken, cache)
     models += street_furniture(wc3, city, street, water, taken, cache)
     log(f"  landmarks and furniture {time.time() - started:.0f}s ({len(cache)} sprites)")
+    # Houses keep off the squares; benches and people may stand there.
+    before = bytes(taken)
+    for i in range(w * h):
+        if squares[i]:
+            taken[i] = 1
     models += generate_buildings(wc3, city, street, water, taken, cache)
+    for i in range(w * h):
+        if squares[i]:
+            taken[i] = before[i]
     log(f"  buildings {time.time() - started:.0f}s ({len(models)} models, {len(cache)} sprites)")
     if city.get("trim"):
         models += generate_buildings(wc3, city, street, water, taken, cache, city["trim"], "trim")
         log(f"  trim {time.time() - started:.0f}s ({len(models)} models, {len(cache)} sprites)")
-    walls = wall_columns(city, street)
+    if city.get("people"):
+        models += generate_buildings(wc3, city, street, water, taken, cache, city["people"], "people")
+        log(f"  people {time.time() - started:.0f}s ({len(models)} models, {len(cache)} sprites)")
+    walls = wall_columns(city, street, course, water, steps, squares)
     paint_scenery(pic, city, walls, models)
     log(f"  painted {time.time() - started:.0f}s")
     image = pic.tga()

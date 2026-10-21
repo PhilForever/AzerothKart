@@ -36,7 +36,7 @@ Menu.TRACKS = {
         blurb="Start in the Valley of Heroes, through the gate into the Trade District, then the canals: "
             .. "Old Town, the Dwarven District, Cathedral Square, the Park and the Mage Quarter.",
         facts={"3 laps, 6 gates named for the districts", "The canals stay on your left all lap",
-            "Walls and the fountain are solid; the kerbside slows you"}},
+            "The city's walls are solid; the kerbside slows you"}},
 }
 
 local WC3C = "Model: ITE project (wc3c), author unknown"

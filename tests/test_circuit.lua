@@ -142,19 +142,11 @@ end
 assert(progress.complete and table.concat(names, ",") ==
     "Old Town,Dwarven District,Cathedral Square,The Park,Mage Quarter,Trade District",
     "the course passes the district gates in order: " .. table.concat(names, ","))
--- The centerline meets wall only at Cathedral Square's fountain, which the
--- open square lets karts pass on either side.
-local fountain
-for _,solid in ipairs(stormwind.solids) do
-    if solid.id == "city_fountain" then fountain = solid end
-end
-assert(fountain and #stormwind.solids == 1, "the square's fountain is the city's one solid")
-local fx, fy = fountain.x + fountain.width / 2, fountain.y + fountain.height / 2
-for _,offset in ipairs({-1, 1}) do
-    local px, py = fx + offset * (fountain.width / 2 + 40), fy - offset * (fountain.height / 2 + 40)
-    assert(stormwind.surfaceAt(px, py) == "road", "the square is open paving beside the fountain")
-end
-assert(walls > 0 and walls < 30, "only the fountain stands on the line")
+-- Nothing stands in Stormwind's street: the course runs past the
+-- Cathedral's steps with Cathedral Square and its fountain beyond the far
+-- wall, so the centerline never meets a wall.
+assert(#stormwind.solids == 0 and #data.plazas == 0, "no solids or open plazas in Stormwind's street")
+assert(walls == 0, "the course's centerline never meets a wall")
 
 -- A short drive from the grid in Physics: full throttle up the Valley of
 -- Heroes stays on the road and covers ground.

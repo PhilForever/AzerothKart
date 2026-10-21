@@ -3,55 +3,67 @@
 
 ## Models (placements)
    1  war3.w3mod:buildings/human/arcanesanctum/arcanesanctum.mdx
-  55  war3.w3mod:buildings/human/blacksmith/blacksmith.mdx
-  14  war3.w3mod:buildings/human/humanbarracks/humanbarracks.mdx
-   2  war3.w3mod:buildings/human/humanlumbermill/humanlumbermill.mdx
+  50  war3.w3mod:buildings/human/blacksmith/blacksmith.mdx
+  11  war3.w3mod:buildings/human/humanbarracks/humanbarracks.mdx
+   3  war3.w3mod:buildings/human/humanlumbermill/humanlumbermill.mdx
    6  war3.w3mod:buildings/human/humantower/humantower.mdx
    1  war3.w3mod:buildings/human/townhall/townhall.mdx
-  24  war3.w3mod:buildings/human/workshop/workshop.mdx
-  14  war3.w3mod:buildings/other/citybuildingsmall0_0/citybuildingsmall0_0.mdx
-   3  war3.w3mod:buildings/other/citybuildingsmall0_1/citybuildingsmall0_1.mdx
-   3  war3.w3mod:buildings/other/citybuildingsmall0_2/citybuildingsmall0_2.mdx
-  14  war3.w3mod:buildings/other/citybuildingsmall135_0/citybuildingsmall135_0.mdx
-  17  war3.w3mod:buildings/other/citybuildingsmall135_2/citybuildingsmall135_2.mdx
+  30  war3.w3mod:buildings/human/workshop/workshop.mdx
+   1  war3.w3mod:buildings/other/citybuildinglarge_0/citybuildinglarge_0.mdx
+  16  war3.w3mod:buildings/other/citybuildingsmall0_0/citybuildingsmall0_0.mdx
+   1  war3.w3mod:buildings/other/citybuildingsmall0_1/citybuildingsmall0_1.mdx
+   7  war3.w3mod:buildings/other/citybuildingsmall0_2/citybuildingsmall0_2.mdx
+  15  war3.w3mod:buildings/other/citybuildingsmall135_0/citybuildingsmall135_0.mdx
+  15  war3.w3mod:buildings/other/citybuildingsmall135_2/citybuildingsmall135_2.mdx
    2  war3.w3mod:buildings/other/citybuildingsmall45_0/citybuildingsmall45_0.mdx
-  15  war3.w3mod:buildings/other/citybuildingsmall45_1/citybuildingsmall45_1.mdx
-  30  war3.w3mod:buildings/other/citybuildingsmall45_2/citybuildingsmall45_2.mdx
-   9  war3.w3mod:buildings/other/citybuildingsmall90_0/citybuildingsmall90_0.mdx
-  34  war3.w3mod:buildings/other/citybuildingsmall90_1/citybuildingsmall90_1.mdx
+  12  war3.w3mod:buildings/other/citybuildingsmall45_1/citybuildingsmall45_1.mdx
+  24  war3.w3mod:buildings/other/citybuildingsmall45_2/citybuildingsmall45_2.mdx
+  12  war3.w3mod:buildings/other/citybuildingsmall90_0/citybuildingsmall90_0.mdx
+  33  war3.w3mod:buildings/other/citybuildingsmall90_1/citybuildingsmall90_1.mdx
    1  war3.w3mod:buildings/other/citybuildingsmall90_2/citybuildingsmall90_2.mdx
-   5  war3.w3mod:buildings/other/fruitstand/fruitstand.mdx
-   3  war3.w3mod:buildings/other/grainwarehouse/grainwarehouse.mdx
-   3  war3.w3mod:buildings/other/marketplace/marketplace.mdx
+   4  war3.w3mod:buildings/other/fruitstand/fruitstand.mdx
+   1  war3.w3mod:buildings/other/grainwarehouse/grainwarehouse.mdx
+   2  war3.w3mod:buildings/other/marketplace/marketplace.mdx
    1  war3.w3mod:buildings/other/tavern/tavern.mdx
-  49  war3.w3mod:doodads/cityscape/plants/citybush/citybush.mdx
-   8  war3.w3mod:doodads/cityscape/plants/flowerbedstraight/flowerbedstraight.mdx
+  55  war3.w3mod:doodads/cityscape/plants/citybush/citybush.mdx
+  10  war3.w3mod:doodads/cityscape/plants/flowerbedstraight/flowerbedstraight.mdx
    2  war3.w3mod:doodads/cityscape/plants/pottedplant/pottedplant.mdx
+   1  war3.w3mod:doodads/cityscape/props/banner_long/banner_long.mdx
    2  war3.w3mod:doodads/cityscape/props/city_fountain/city_fountain.mdx
+   3  war3.w3mod:doodads/cityscape/props/city_oblisk/city_oblisk.mdx
    2  war3.w3mod:doodads/cityscape/props/city_statue/city_statue.mdx
-   9  war3.w3mod:doodads/cityscape/props/citystonebench/citystonebench.mdx
+   7  war3.w3mod:doodads/cityscape/props/citystonebench/citystonebench.mdx
    5  war3.w3mod:doodads/cityscape/props/crystallamp/crystallamp.mdx
-   5  war3.w3mod:doodads/cityscape/props/emptycrates/emptycrates0.mdx
+   2  war3.w3mod:doodads/cityscape/props/emptycrates/emptycrates0.mdx
    4  war3.w3mod:doodads/cityscape/props/knightstatuea/knightstatuea.mdx
+   6  war3.w3mod:doodads/cityscape/props/lanternpost/lanternpost.mdx
    1  war3.w3mod:doodads/cityscape/structures/cathedral/cathedral.mdx
+  12  war3.w3mod:doodads/cityscape/structures/city_lowwall_tallendcapwithlantern/city_lowwall_tallendcapwithlantern.mdx
    2  war3.w3mod:doodads/cityscape/structures/citywallentrance/citywallentrance.mdx
-  12  war3.w3mod:doodads/dalaran/structures/dalaranenclavehouse/dalaranenclavehouse.mdx
+  10  war3.w3mod:doodads/dalaran/structures/dalaranenclavehouse/dalaranenclavehouse.mdx
    3  war3.w3mod:doodads/dalaran/structures/dalaranenclavehouseb/dalaranenclavehouseb.mdx
    1  war3.w3mod:doodads/dalaran/structures/dalaranenclavespire/dalaranenclavespire.mdx
    1  war3.w3mod:doodads/dalaran/structures/dalaranmagusturret/dalaranmagusturret.mdx
    1  war3.w3mod:doodads/dalaran/structures/dalaranvioletholdspire/dalaranvioletholdspire.mdx
    5  war3.w3mod:doodads/lordaeronsummer/props/armorrack/armorrack.mdx
    2  war3.w3mod:doodads/lordaeronsummer/props/brazier/brazier.mdx
-  17  war3.w3mod:doodads/lordaeronsummer/props/weapons/weapons.mdx
-   2  war3.w3mod:doodads/lordaeronsummer/props/wheelbarrel/wheelbarrel.mdx
-  74  war3.w3mod:doodads/terrain/cityscapetree/cityscapetree0.mdx
-  24  war3.w3mod:doodads/terrain/cityscapetree/cityscapetree1.mdx
-   3  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree0.mdx
-   1  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree1.mdx
-   6  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree2.mdx
-   9  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree3.mdx
-   4  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree4.mdx
-   1  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree5.mdx
+  16  war3.w3mod:doodads/lordaeronsummer/props/weapons/weapons.mdx
+   4  war3.w3mod:doodads/lordaeronsummer/props/wheelbarrel/wheelbarrel.mdx
+  88  war3.w3mod:doodads/terrain/cityscapetree/cityscapetree0.mdx
+  30  war3.w3mod:doodads/terrain/cityscapetree/cityscapetree1.mdx
+   1  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree0.mdx
+   2  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree1.mdx
+   5  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree2.mdx
+  14  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree3.mdx
+   2  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree4.mdx
+   5  war3.w3mod:units/critters/villagerkid/villagerkid.mdx
+   3  war3.w3mod:units/critters/villagerkid1/villagerkid1.mdx
+  13  war3.w3mod:units/critters/villagerman/villagerman.mdx
+   3  war3.w3mod:units/critters/villagerman1/villagerman1.mdx
+   7  war3.w3mod:units/critters/villagerwoman/villagerwoman.mdx
+   9  war3.w3mod:units/human/footman/footman.mdx
+   4  war3.w3mod:units/human/peasant/peasant.mdx
+   2  war3.w3mod:units/human/priest/priest.mdx
 
 ## Textures
 war3.w3mod:buildings/human/arcanesanctum/arcanesanctum.dds
@@ -64,6 +76,7 @@ war3.w3mod:buildings/other/fruitstand/fruitstand.dds
 war3.w3mod:buildings/other/grainwarehouse/graininfected.dds
 war3.w3mod:buildings/other/marketplace/marketplace.dds
 war3.w3mod:buildings/other/tavern/tavern.dds
+war3.w3mod:doodads/cityscape/props/banner_long/flag1_64.dds
 war3.w3mod:doodads/cityscape/props/crystallamp/crystalsheild.dds
 war3.w3mod:doodads/cityscape/structures/cathedral/cathedral.dds
 war3.w3mod:doodads/cityscape/structures/citywallentrance/largestratholmetower_main_diffuse.dds
@@ -105,9 +118,15 @@ war3.w3mod:textures/dust5.dds
 war3.w3mod:textures/dust5a.dds
 war3.w3mod:textures/dust6.dds
 war3.w3mod:textures/flame4.dds
+war3.w3mod:textures/footman.dds
 war3.w3mod:textures/garrison.dds
+war3.w3mod:textures/genericglow1.dds
 war3.w3mod:textures/genericglow2b.dds
+war3.w3mod:textures/gutz.dds
 war3.w3mod:textures/humanbase.dds
+war3.w3mod:textures/lensflare1ax.dds
+war3.w3mod:textures/peasant.dds
+war3.w3mod:textures/priest.dds
 war3.w3mod:textures/purple_star.dds
 war3.w3mod:textures/ring00.dds
 war3.w3mod:textures/rockparticle.dds
@@ -122,3 +141,9 @@ war3.w3mod:textures/water_particles.dds
 war3.w3mod:textures/waterblobs1.dds
 war3.w3mod:textures/white.dds
 war3.w3mod:textures/yellow_glow.dds
+war3.w3mod:textures/yellow_star_dim.dds
+war3.w3mod:units/critters/villagerkid/villagerkid.dds
+war3.w3mod:units/critters/villagerkid1/villagerkid1.dds
+war3.w3mod:units/critters/villagerman/villagermale.dds
+war3.w3mod:units/critters/villagerman1/villagermale1.dds
+war3.w3mod:units/critters/villagerwoman/villagerwoman.dds

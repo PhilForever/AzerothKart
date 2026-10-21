@@ -364,7 +364,8 @@ def footprint(triangles, below=0.25):
 
 def recolored(color, recolor):
     """`color` with its hue moved by the first matching (low, high, target,
-    min_saturation) rule (degrees): green roofs made Stormwind blue, say."""
+    min_saturation[, saturation_scale, value_scale]) rule (degrees): green
+    roofs made Stormwind blue, say, or a dark moss roof bright gold."""
     r, g, b = color
     hi, lo = max(r, g, b), min(r, g, b)
     if hi <= 0.0 or hi == lo:
@@ -377,8 +378,12 @@ def recolored(color, recolor):
     else:
         h = (r - g) / (hi - lo) + 4.0
     h *= 60.0
-    for low, high, target, min_s in recolor:
+    for rule in recolor:
+        low, high, target, min_s = rule[:4]
         if low <= h < high and s >= min_s:
+            if len(rule) > 4:
+                s = min(1.0, s * rule[4])
+                hi = min(1.0, hi * rule[5])
             h = (target % 360.0) / 60.0
             i = int(floor(h)) % 6
             f = h - floor(h)
@@ -404,14 +409,18 @@ def plan_mask(triangles):
     return left, bottom, width, height, bytes(mask)
 
 
-def render(loaded, triangles, ss=SUPERSAMPLE, shadow=True, lean=LEAN, tint=(1.0, 1.0, 1.0), recolor=None):
+def render(loaded, triangles, ss=SUPERSAMPLE, shadow=True, lean=LEAN, tint=(1.0, 1.0, 1.0), recolor=None,
+           stone=None):
     """Sprite rows (top first, straight RGBA 0-255) plus the texel (ox, oy)
     where the model origin's ground point falls, counted from the top-left.
 
     `lean` is the screen rise per unit of height (the karts' camera: 0.75);
     city scenery uses less, so buildings beside a winding road keep clear of
     it. `tint` multiplies the lit color (a district's roof and stone hue);
-    `recolor` moves texture hues (see recolored). The result also carries
+    `recolor` moves texture hues (see recolored); `stone` = (gain, offset)
+    brightens the lit greyish texels a recolor leaves alone, as gain * c +
+    offset: a dark model's stone made pale, its detail kept, its recoloured
+    roofs untouched. The result also carries
     `body`, the model's own coverage (0-255) per sprite texel without its
     shadow, and `plan`, its top-down silhouette (plan_mask)."""
     model, samplers, team = loaded
@@ -449,8 +458,11 @@ def render(loaded, triangles, ss=SUPERSAMPLE, shadow=True, lean=LEAN, tint=(1.0,
             color = layer_color(model, samplers, team, layers, u, v)
             if color is None:
                 return
+            moved = False
             if recolor:
+                before = color
                 color = recolored(color, recolor)
+                moved = color is not before
             nx = w0 * normals[0][0] + w1 * normals[1][0] + w2 * normals[2][0]
             ny = w0 * normals[0][1] + w1 * normals[1][1] + w2 * normals[2][1]
             nz = w0 * normals[0][2] + w1 * normals[1][2] + w2 * normals[2][2]
@@ -458,9 +470,17 @@ def render(loaded, triangles, ss=SUPERSAMPLE, shadow=True, lean=LEAN, tint=(1.0,
             k = (nx * kart.LX + ny * kart.LY + nz * kart.LZ) / length
             light = kart.AMBIENT + kart.DIFFUSE * (k if k > 0.0 else 0.0)
             depth[i] = z
-            red[i] = min(1.0, color[0] * light * tint[0])
-            green[i] = min(1.0, color[1] * light * tint[1])
-            blue[i] = min(1.0, color[2] * light * tint[2])
+            r = min(1.0, color[0] * light * tint[0])
+            g = min(1.0, color[1] * light * tint[1])
+            b = min(1.0, color[2] * light * tint[2])
+            if stone and not moved:
+                hi, lo = max(r, g, b), min(r, g, b)
+                w = min(1.0, max(0.0, (0.55 - ((hi - lo) / hi if hi > 0.0 else 0.0)) / 0.25))
+                gain, offset = stone
+                r = r + w * (min(1.0, r * gain + offset) - r)
+                g = g + w * (min(1.0, g * gain + offset) - g)
+                b = b + w * (min(1.0, b * gain + offset) - b)
+            red[i], green[i], blue[i] = r, g, b
             alpha[i] = 1.0
         kart.rasterize([to_samples(p[0], p[1] + p[2] * lean) for p in pts], columns, rows, fragment)
     body = canvas.resolve()

@@ -196,7 +196,9 @@ def _segment_distance(px, py, a, b):
 # world (x, y), its front turned to `yaw` degrees (270: facing south, the
 # game's default). solid=True turns its ground extent (shrunk by `margin`)
 # into a collision box: only for models standing inside the street. `recolor`
-# moves texture hues: [(low, high, target, min_saturation)] in degrees.
+# moves texture hues: [(low, high, target, min_saturation[, saturation_scale,
+# value_scale])] in degrees; `stone` = (gain, offset) pales the greyish
+# texels a recolor leaves alone (wc3render.render).
 
 CITY = "war3.w3mod:doodads/cityscape/"
 HUMAN = "war3.w3mod:buildings/human/"
@@ -208,10 +210,13 @@ TERRAINART = "war3.w3mod:terrainart/"
 
 
 def prop(model, x, y, yaw=270, scale=0.25, sequence="Stand", solid=False, margin=4, name=None, tint=None,
-         team=None, recolor=None):
-    return {"model": model, "x": x, "y": y, "yaw": yaw, "scale": scale, "sequence": sequence,
+         team=None, recolor=None, stone=None):
+    item = {"model": model, "x": x, "y": y, "yaw": yaw, "scale": scale, "sequence": sequence,
             "solid": solid, "margin": margin, "name": name or model.rsplit("/", 1)[-1].rsplit(".", 1)[0],
             "tint": tint, "team": team, "recolor": recolor}
+    if stone:
+        item["stone"] = tuple(stone)
+    return item
 
 
 def box(name, x0, y0, x1, y1):
@@ -237,6 +242,10 @@ def kind(model, **kw):
 # or the Mage Quarter's violet.
 BLUE_ROOFS = [(70.0, 175.0, 222.0, 0.16)]
 VIOLET_ROOFS = [(70.0, 175.0, 272.0, 0.16), (195.0, 250.0, 272.0, 0.16)]
+# The Cathedral of Light as Stormwind has it: its dark moss slate made bright
+# gold, its grey stone pale and warm.
+GOLD_ROOFS = [(70.0, 175.0, 40.0, 0.10, 2.4, 2.6)]
+CATHEDRAL_STONE, CATHEDRAL_TINT = (1.5, 0.34), (1.03, 1.0, 0.95)
 
 
 # ---------------------------------------------------------------------------
@@ -271,19 +280,86 @@ def mprop(model, mx, my, **kw):
 
 
 SW_LOOP = [  # driving order, from the main gate north through the Trade District
-    (520, 372), (521, 350), (522, 330), (526, 316), (538, 308), (553, 302), (566, 295), (574, 284),
+    (520, 372), (521, 350), (522, 333), (526, 321), (533, 314), (540, 308), (547, 302), (555, 297),
+    (566, 292), (573, 283),
     (570, 272), (563, 262), (561, 250), (563, 238), (572, 226), (575, 214), (572, 204), (562, 201),
     (548, 205), (536, 205), (525, 198), (514, 185), (504, 170), (496, 160), (486, 156), (476, 159),
-    (471, 169), (473, 181), (467, 194), (455, 201), (442, 205), (432, 212), (424, 225), (416, 237),
-    (400, 241), (380, 242), (362, 250), (348, 262), (343, 277), (344, 290), (335, 302), (324, 318),
-    (316, 333), (303, 345), (295, 357), (297, 369), (307, 373), (320, 366), (338, 359), (360, 358),
-    (382, 362), (400, 370), (413, 381), (425, 386), (436, 382), (446, 375), (458, 371), (472, 372),
-    (487, 378), (500, 385), (511, 387),
+    (471, 169), (473, 181), (467, 194), (455, 201), (443, 205), (430, 208), (416, 210), (400, 211),
+    (384, 211), (369, 213), (357, 219), (349, 230), (345, 245), (343, 261), (343, 276), (342, 286),
+    (339, 294), (335, 302), (331, 310), (324, 320), (316, 333), (303, 345), (295, 357), (297, 369), (307, 373), (320, 366),
+    (338, 359), (360, 358), (382, 362), (400, 370), (413, 377), (426, 380), (439, 379), (451, 375),
+    (462, 372), (474, 373), (487, 378), (500, 385), (511, 387),
 ]
 SW_VALLEY = [(626, 506), (604, 482), (576, 450), (548, 418), (527, 395), (520, 380)]   # start spur
 
+def straighten(line, at, length):
+    """`line` with the stretch of `length` centred on arc `at` made straight:
+    its points move onto the chord between the stretch's ends (a bridge)."""
+    cum = [0.0]
+    for i in range(1, len(line)):
+        cum.append(cum[-1] + sqrt((line[i][0] - line[i - 1][0]) ** 2 + (line[i][1] - line[i - 1][1]) ** 2))
+
+    def point(s):
+        for i in range(1, len(line)):
+            if cum[i] >= s:
+                t = (s - cum[i - 1]) / max(1e-9, cum[i] - cum[i - 1])
+                (ax, ay), (bx, by) = line[i - 1], line[i]
+                return ax + (bx - ax) * t, ay + (by - ay) * t
+        return line[-1]
+    lo, hi = at - length / 2, at + length / 2
+    (ax, ay), (bx, by) = point(lo), point(hi)
+    out = []
+    for i, p in enumerate(line):
+        if lo < cum[i] < hi:
+            t = (cum[i] - lo) / (hi - lo)
+            p = (round(ax + (bx - ax) * t, 1), round(ay + (by - ay) * t, 1))
+        out.append(p)
+    return out
+
+
+# The bridges between districts (map point at the canal, length along the
+# street, how far the canal runs out left and right): the street is made
+# straight across each, with a short straight approach at both ends.
+SW_BRIDGES = [
+    ("Old Town bridge", (540, 308), 132, 96, 170),
+    ("Park bridge", (337, 298), 132, 96, 70),
+    ("Trade District bridge", (432, 380), 132, 96, 140),
+]
 STORMWIND_LINE = catmull_rom([W(*p) for p in smooth(SW_LOOP, passes=2)], step=16.0)
 STORMWIND_SPUR = catmull_rom([W(*p) for p in SW_VALLEY], closed=False, step=16.0)
+
+
+def arc_at(line, mx, my):
+    """Arc length along the closed `line` (from its first point) where it
+    passes nearest the map point (mx, my)."""
+    x, y = W(mx, my)
+    best, at, total = None, 0.0, 0.0
+    for i in range(len(line)):
+        a, b = line[i], line[(i + 1) % len(line)]
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        length = sqrt(dx * dx + dy * dy)
+        t = 0.0 if length == 0 else max(0.0, min(1.0, ((x - a[0]) * dx + (y - a[1]) * dy) / (length * length)))
+        d = (a[0] + dx * t - x) ** 2 + (a[1] + dy * t - y) ** 2
+        if best is None or d < best:
+            best, at = d, total + length * t
+        total += length
+    return round(at, 1)
+
+
+for _name, _point, _length, _left, _right in SW_BRIDGES:
+    STORMWIND_LINE = straighten(STORMWIND_LINE, arc_at(STORMWIND_LINE, *_point), _length + 70)
+
+
+def sw_arc(mx, my):
+    return arc_at(STORMWIND_LINE, mx, my)
+
+
+# Cathedral Square: the course passes right at the foot of the Cathedral's
+# steps (the owner's line on his screenshot of the square), the square and
+# its fountain across the street. World units.
+CATHEDRAL_AT = sw_arc(392, 211)
+CATHEDRAL_SQUARE = [(652.0, 1404.0), (884.0, 1404.0), (884.0, 1184.0), (652.0, 1184.0)]
+CATHEDRAL_FOUNTAIN = (768.0, 1290.0)
 
 
 def along_spur(distance):
@@ -341,6 +417,19 @@ CART = kind(SUMMER + "props/haycart/haycart.mdx", weight=0.4)
 BARROW = kind(SUMMER + "props/wheelbarrel/wheelbarrel.mdx", weight=0.4)
 STREET_TRIM = [BENCH, FLOWERS, BUSH, POT, CRATES]
 
+# Stormwind's people, standing back from the street to watch: citizens,
+# the city guard, priests by the Cathedral (Warcraft III units).
+UNITS = "war3.w3mod:units/"
+MAN = kind(UNITS + "critters/villagerman/villagerman.mdx")
+MAN1 = kind(UNITS + "critters/villagerman1/villagerman1.mdx")
+WOMAN = kind(UNITS + "critters/villagerwoman/villagerwoman.mdx")
+KID = kind(UNITS + "critters/villagerkid/villagerkid.mdx", weight=0.6)
+KID1 = kind(UNITS + "critters/villagerkid1/villagerkid1.mdx", weight=0.6)
+PEASANT = kind(UNITS + "human/peasant/peasant.mdx", weight=0.6)
+GUARD = kind(UNITS + "human/footman/footman.mdx", weight=0.5)
+PRIEST = kind(UNITS + "human/priest/priest.mdx")
+CITIZENS = [MAN, MAN1, WOMAN, KID, KID1, PEASANT, GUARD]
+
 STORMWIND_DISTRICTS = [
     {"name": "Trade District", "ground": "squares",
      "seeds": [W(482, 338), W(512, 372), W(455, 386), W(540, 404)],
@@ -348,7 +437,7 @@ STORMWIND_DISTRICTS = [
          kind(OTHER + "marketplace/marketplace.mdx", reach=70, weight=0.6),
          kind(OTHER + "fruitstand/fruitstand.mdx", reach=70, weight=0.6),
      ],
-     "trim": STREET_TRIM + [CART, BARROW]},
+     "trim": STREET_TRIM + [CART, BARROW], "people": CITIZENS},
     {"name": "Old Town", "ground": "bricks", "tint": OLD_TOWN,
      "seeds": [W(630, 252), W(652, 300), W(612, 330), W(606, 214)],
      "buildings": HOUSES + [
@@ -357,7 +446,7 @@ STORMWIND_DISTRICTS = [
          kind(OTHER + "citybuildingsmall90_2/citybuildingsmall90_2.mdx"),
          kind(HUMAN + "humanbarracks/humanbarracks.mdx"),
      ],
-     "trim": STREET_TRIM + [CART]},
+     "trim": STREET_TRIM + [CART], "people": CITIZENS},
     {"name": "Dwarven District", "ground": "blackmarble", "tint": DWARVEN,
      "seeds": [W(520, 136), W(566, 160), W(470, 132), W(610, 150)],
      "buildings": [
@@ -369,14 +458,16 @@ STORMWIND_DISTRICTS = [
          kind(OTHER + "citybuildingsmall90_0/citybuildingsmall90_0.mdx", recolor=BLUE_ROOFS),
      ],
      "trim": [CRATES, BARROW, kind(SUMMER + "props/armorrack/armorrack.mdx"),
-              kind(SUMMER + "props/weapons/weapons.mdx")]},
+              kind(SUMMER + "props/weapons/weapons.mdx")], "people": [PEASANT, MAN1, GUARD]},
     {"name": "Cathedral Square", "ground": "marble",
      "seeds": [W(380, 206), W(430, 264), W(340, 236), W(470, 232)],
-     "buildings": HOUSES, "trim": [BENCH, FLOWERS, BUSH, kind(CITY + "props/city_oblisk/city_oblisk.mdx")]},
+     "buildings": HOUSES, "trim": [BENCH, FLOWERS, BUSH, kind(CITY + "props/city_oblisk/city_oblisk.mdx")],
+     "people": [PRIEST, PRIEST, MAN, WOMAN, KID, GUARD]},
     {"name": "The Park", "ground": "grass",
      "seeds": [W(244, 300), W(262, 252), W(270, 340)],
      "buildings": TREES + [kind(CITY + "plants/citybush/citybush.mdx")],
-     "trim": [BUSH, FLOWERS, kind(CITY + "plants/flowerbedangled/flowerbedangled.mdx"), BENCH]},
+     "trim": [BUSH, FLOWERS, kind(CITY + "plants/flowerbedangled/flowerbedangled.mdx"), BENCH],
+     "people": [KID, KID1, WOMAN, MAN]},
     {"name": "Mage Quarter", "ground": "dalaran",
      "seeds": [W(322, 440), W(380, 420), W(276, 400), W(350, 395)],
      "buildings": [
@@ -388,13 +479,15 @@ STORMWIND_DISTRICTS = [
          kind(OTHER + "citybuildingsmall45_2/citybuildingsmall45_2.mdx", recolor=VIOLET_ROOFS),
          kind(OTHER + "citybuildingsmall135_0/citybuildingsmall135_0.mdx", recolor=VIOLET_ROOFS),
      ],
-     "trim": [BENCH, POT, kind(CITY + "props/crystallamp/crystallamp.mdx")]},
+     "trim": [BENCH, POT, kind(CITY + "props/crystallamp/crystallamp.mdx")], "people": [MAN, WOMAN, PRIEST]},
     {"name": "Valley of Heroes", "ground": "marble",
-     "seeds": [W(596, 470), W(566, 440), W(620, 500)], "buildings": [], "trim": [BUSH]},
+     "seeds": [W(596, 470), W(566, 440), W(620, 500)], "buildings": [], "trim": [BUSH],
+     "people": [GUARD, MAN, WOMAN]},
     {"name": "Stormwind Keep", "ground": "round",
      "seeds": [W(690, 130)], "buildings": HOUSES},
     {"name": "Canal islands", "ground": "round",
-     "seeds": [W(522, 248), W(370, 330)], "buildings": HOUSES, "trim": [BENCH, FLOWERS, BUSH]},
+     "seeds": [W(522, 248), W(370, 330)], "buildings": HOUSES, "trim": [BENCH, FLOWERS, BUSH],
+     "people": CITIZENS},
 ]
 
 # Canals and lakes (map pixels), then the dry ground inside them.
@@ -496,10 +589,9 @@ STORMWIND = {
     "street_reach": 100,
     "centerline": STORMWIND_LINE,
     "branches": [STORMWIND_SPUR],
-    # Cathedral Square: open paving either side of the line, its fountain in
-    # the middle (solid: karts pass either side).
-    "plazas": [{"ax": W(441, 208)[0], "ay": W(441, 208)[1], "bx": W(391, 242)[0], "by": W(391, 242)[1],
-                "radius": 140}],
+    # No open paving: in Cathedral Square the street runs between the
+    # Cathedral's steps and the square (scenery, below).
+    "plazas": [],
     "gates": [
         gate_on("Old Town", STORMWIND_LINE, *W(561, 252)),
         gate_on("Dwarven District", STORMWIND_LINE, *W(546, 205)),
@@ -519,21 +611,44 @@ STORMWIND = {
     ],
     "water": STORMWIND_WATER,
     "land": STORMWIND_LAND,
-    # Loop arcs (units from the loop's first point, by the Trade District):
-    # the north-east basin on the left from Old Town to Cathedral Square, the
-    # south-west basin's north-west arm on the right below the square, then
-    # the basin on the left past the Park and the Mage Quarter. Bridges carry
-    # the course over the canal into Old Town, onto the Park bank and back
-    # into the Trade District.
+    # Canals beside the street (loop arcs from map points): the north-east
+    # basin on the left from Old Town to Cathedral Square, the south-west
+    # basin's north-west arm on the right below the square, then the basin on
+    # the left past the Park and the Mage Quarter.
     "canals": [
-        {"from": 300, "to": 1640, "side": "left", "width": 92},
-        {"from": 1990, "to": 2330, "side": "right", "width": 64},
-        {"from": 2318, "to": 3305, "side": "left", "width": 92},
+        {"from": sw_arc(546, 304), "to": sw_arc(458, 201), "side": "left", "width": 92},
+        {"from": sw_arc(348, 233), "to": sw_arc(338, 298), "side": "right", "width": 64},
+        {"from": sw_arc(338, 298), "to": sw_arc(426, 380), "side": "left", "width": 92},
     ],
-    "crossings": [
-        {"at": 318, "width": 66, "left": 92, "right": 150},
-        {"at": 2326, "width": 66, "left": 92, "right": 64},
-        {"at": 3300, "width": 66, "left": 92, "right": 120},
+    # Stone bridges between the districts: the street over the canal, its
+    # deck, parapets and lamps (loop arc, length along the street, how far
+    # the canal runs out on each side).
+    "bridges": [{"name": name, "at": sw_arc(*point), "length": length, "left": left, "right": right}
+                for name, point, length, left, right in SW_BRIDGES],
+    # Street paving by stretch (loop arcs from map points; the first match
+    # wins; "branch" paves the start approach): each district its own.
+    "sections": [
+        {"name": "Old Town", "from": sw_arc(546, 304), "to": sw_arc(575, 214),
+         "road": (TERRAINART + "cityscape/city_bricktiles.dds", 0.86)},
+        {"name": "Dwarven District", "from": sw_arc(575, 214), "to": sw_arc(468, 192),
+         "road": (TERRAINART + "cityscape/city_roundtiles.dds", 0.74)},
+        {"name": "Cathedral Square", "from": sw_arc(468, 192), "to": sw_arc(338, 298),
+         "road": (TERRAINART + "cityscape/city_roundtiles.dds", 0.92)},
+        {"name": "The Park", "from": sw_arc(338, 298), "to": sw_arc(298, 368),
+         "road": (TERRAINART + "cityscape/city_roundtiles.dds", 0.96)},
+        {"name": "Mage Quarter", "from": sw_arc(298, 368), "to": sw_arc(432, 380),
+         "road": (TERRAINART + "cityscape/city_roundtiles.dds", 0.88)},
+        {"name": "Valley of Heroes", "branch": 1, "road": (TERRAINART + "cityscape/city_whitemarble.dds", 0.86)},
+    ],
+    "road_default": (TERRAINART + "cityscape/city_roundtiles.dds", 0.96),      # the Trade District
+    # Side streets closed off for the race: a paved alley leaving the street
+    # between the houses, its mouth walled (loop arc, side, width, length).
+    "alleys": [
+        {"at": sw_arc(523, 340), "side": "right", "width": 52, "length": 120},
+        {"at": sw_arc(570, 252), "side": "right", "width": 48, "length": 110},
+        {"at": sw_arc(505, 172), "side": "right", "width": 48, "length": 110},
+        {"at": sw_arc(372, 362), "side": "right", "width": 48, "length": 110},
+        {"at": sw_arc(478, 374), "side": "right", "width": 52, "length": 120},
     ],
     "bridge_depth": 15,
     "arch_every": 34,
@@ -544,30 +659,64 @@ STORMWIND = {
     "quay_depth": 8,
     "road_tile": TERRAINART + "cityscape/city_roundtiles.dds",
     "road_shade": 0.92,
-    "sidewalk_tile": TERRAINART + "cityscape/city_bricktiles.dds",
-    "sidewalk_shade": 0.84,
+    "sidewalk_tile": TERRAINART + "cityscape/city_squaretiles.dds",
+    "sidewalk_shade": 0.86,
     "plaza_tile": TERRAINART + "cityscape/city_whitemarble.dds",
     "plaza_shade": 0.88,
-    # Inlaid rings round the square's fountain (centre, radius, width).
-    "plaza_rings": [(W(416, 225)[0], W(416, 225)[1], 64, 6), (W(416, 225)[0], W(416, 225)[1], 104, 4)],
-    "kerb_colors": ((44, 74, 168), (228, 226, 218), (204, 196, 178)),
-    "gutter_color": (92, 88, 82),
+    # The Cathedral's steps: from the street's edge up to its doors, the
+    # kingdom's blue carpet down the middle (loop arc, side, width across,
+    # depth from the street's edge, carpet width). No wall in front of them.
+    "steps": [{"name": "Cathedral steps", "at": CATHEDRAL_AT, "side": "right", "width": 136, "depth": 20,
+               "tread": 5, "carpet": 28}],
+    # Cathedral Square opposite the steps: white marble round the fountain,
+    # behind a stone balustrade (world polygon, inlaid rings: centre, radius,
+    # width). Houses keep off it; benches and people may stand on it.
+    "squares": [{"name": "Cathedral Square", "shape": CATHEDRAL_SQUARE, "rings": [
+        (CATHEDRAL_FOUNTAIN[0], CATHEDRAL_FOUNTAIN[1], 74, 6), (CATHEDRAL_FOUNTAIN[0], CATHEDRAL_FOUNTAIN[1], 52, 3)]}],
+    "curb_color": (214, 208, 194),
+    "gutter_color": (96, 92, 86),
+    "hedged": ["The Park"],
+    # A lantern-topped stone post at each corner of every bridge.
+    "bridge_posts": {"prop": prop(CITY + "structures/city_lowwall_tallendcapwithlantern/"
+                                  "city_lowwall_tallendcapwithlantern.mdx", 0, 0), "offset": 7, "inset": 10},
     "wall": {"thickness": 4, "height": 10, "pillar_height": 17, "pillar_every": 56,
              "face": (170, 164, 150), "cap": (224, 218, 204), "shadow": (96, 92, 86)},
-    "fill": {"step": 20, "reach": 520, "gap": 4, "spacing": 3},
+    "fill": {"step": 20, "reach": 520, "gap": 2, "spacing": 3},
     "trim": {"step": 22, "reach": 60, "gap": 3, "spacing": 12},
+    "people": {"step": 26, "reach": 34, "gap": 2, "spacing": 7},
+    # The city guard at both ends of every bridge.
+    "bridge_guards": {"prop": prop(UNITS + "human/footman/footman.mdx", 0, 0), "offset": 9, "beyond": 12},
     "furniture": [
-        {"prop": prop(CITY + "props/lanternpost/lanternpost.mdx", 0, 0), "every": 170, "offset": 5,
-         "start": 40},
+        {"prop": prop(CITY + "props/lanternpost/lanternpost.mdx", 0, 0), "every": 150, "offset": 5,
+         "start": 40, "where": "water"},
         {"prop": prop(CITY + "props/banner_long/banner_long.mdx", 0, 0), "every": 230, "offset": 6,
          "start": 120, "where": "land"},
     ],
     "solids": [],
     "props": [
-        # Cathedral Square: the Cathedral of Light north of the plaza and the
-        # plaza's fountain (solid: the course runs round it).
-        mprop(CITY + "structures/cathedral/cathedral.mdx", 378, 172, scale=0.34, recolor=BLUE_ROOFS),
-        mprop(CITY + "props/city_fountain/city_fountain.mdx", 416, 225, solid=True),
+        # Cathedral Square: the Cathedral of Light at the head of its steps,
+        # right beside the street (`front`: placed out from the course point
+        # until its plan clears the steps), lamps either side of the steps;
+        # the square's fountain, lamps and trees across the street.
+        dict(mprop(CITY + "structures/cathedral/cathedral.mdx", 392, 170, scale=0.42, recolor=GOLD_ROOFS,
+                   stone=CATHEDRAL_STONE, tint=CATHEDRAL_TINT),
+             front={"at": CATHEDRAL_AT, "side": "right", "gap": 20}),
+        dict(mprop(CITY + "props/lanternpost/lanternpost.mdx", 392, 196),
+             front={"at": CATHEDRAL_AT, "side": "right", "gap": 3, "across": 78}),
+        dict(mprop(CITY + "props/lanternpost/lanternpost.mdx", 392, 196),
+             front={"at": CATHEDRAL_AT, "side": "right", "gap": 3, "across": -78}),
+        # Two priests of the Light on the upper steps, either side of the carpet.
+        dict(prop(UNITS + "human/priest/priest.mdx", 0, 0),
+             front={"at": CATHEDRAL_AT, "side": "right", "out": 106, "across": 26}),
+        dict(prop(UNITS + "human/priest/priest.mdx", 0, 0),
+             front={"at": CATHEDRAL_AT, "side": "right", "out": 106, "across": -26}),
+        prop(CITY + "props/city_fountain/city_fountain.mdx", *CATHEDRAL_FOUNTAIN),
+        prop(CITY + "props/lanternpost/lanternpost.mdx", CATHEDRAL_FOUNTAIN[0] - 80, CATHEDRAL_FOUNTAIN[1] + 28),
+        prop(CITY + "props/lanternpost/lanternpost.mdx", CATHEDRAL_FOUNTAIN[0] + 80, CATHEDRAL_FOUNTAIN[1] + 28),
+        prop(CITY + "props/lanternpost/lanternpost.mdx", CATHEDRAL_FOUNTAIN[0] - 80, CATHEDRAL_FOUNTAIN[1] - 52),
+        prop(CITY + "props/lanternpost/lanternpost.mdx", CATHEDRAL_FOUNTAIN[0] + 80, CATHEDRAL_FOUNTAIN[1] - 52),
+        prop(TERRAIN + "cityscapetree/cityscapetree0.mdx", CATHEDRAL_FOUNTAIN[0] - 100, CATHEDRAL_FOUNTAIN[1] - 82),
+        prop(TERRAIN + "cityscapetree/cityscapetree1.mdx", CATHEDRAL_FOUNTAIN[0] + 100, CATHEDRAL_FOUNTAIN[1] - 82),
         # The north-east canal island: four blue-roofed guard towers round a fountain.
         mprop(HUMAN + "humantower/humantower.mdx", 511, 236, sequence="Stand Upgrade First"),
         mprop(HUMAN + "humantower/humantower.mdx", 537, 236, sequence="Stand Upgrade First"),
