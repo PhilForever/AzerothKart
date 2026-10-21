@@ -1,13 +1,16 @@
 -- Explicit two-peer control bridge. No registration, output or UI on load.
--- START is a proposal; this adapter never starts or changes a race.
+-- Legacy START is a proposal. Coordinated mode yields a backend race bundle;
+-- it never opens a canvas, captures input or drives the simulation itself.
 local _, AK = ...
 assert(type(AK)=="table", "addon namespace required")
 local Session, Protocol = assert(AK.PeerSession), assert(AK.RaceProtocol)
+local Clock, ClockProtocol, RaceStart = AK.StartClock, AK.ClockProtocol, AK.RaceStart
 local Transport = {ROUTE="WHISPER_LOGGED"}
 AK.SessionTransport = Transport
 
 local frame, control, lastView, lastError, lastNow, busy, drainDeadline
-local registered, sendAPI, sendSuccess, failedCodes, throttleCodes
+local coordinated, clockState, raceGate, trackSet, lastClock
+local registered, sendAPI, sendSuccess, failedCodes, throttleCodes = {}
 local used, usedCount, attempts, lastAttempt = {}, 0, {}, nil
 local traffic = {attempts=0, accepted=0, failed=0, unknown=0, throttled=0,
     payloadBytes=0, prefixBytes=0, windowCalls=0, windowBytes=0}
@@ -44,6 +47,12 @@ end
 local function hardStop(reason)
     reason = stopReasons[reason] and reason or "error"
     if control then closeView(reason) end
+    if clockState then
+        Clock.cancel(clockState,math.floor((lastNow or 0)*1000),"error")
+        lastClock=Clock.view(clockState)
+    end
+    if raceGate then RaceStart.cancel(raceGate) end
+    clockState, raceGate, trackSet = nil,nil,nil
     control, drainDeadline = nil, nil
     lastError = reason
     release()
@@ -86,12 +95,18 @@ local function finish(now)
     if not control then return end
     local view = Session.view(control)
     if view.phase~="closed" then return end
+    if clockState then
+        Clock.cancel(clockState,math.floor(now*1000),"left")
+        lastClock=Clock.view(clockState)
+        clockState=nil
+    end
+    if raceGate then RaceStart.cancel(raceGate); raceGate=nil end
     if view.hasPendingOutput then
         drainDeadline = drainDeadline or now+2
         if now<drainDeadline then return end
         view.hasPendingOutput=false
     end
-    lastView, control, drainDeadline = view, nil, nil
+    lastView, control, drainDeadline, trackSet = view, nil, nil, nil
     release()
 end
 local function readyToSend(now, bytes)
@@ -99,7 +114,7 @@ local function readyToSend(now, bytes)
         and #attempts<2 and traffic.windowBytes+bytes<=158
 end
 
-local function capabilities()
+local function capabilities(wantClock)
     if not owns() or type(C_ChatInfo)~="table"
         or type(C_ChatInfo.RegisterAddonMessagePrefix)~="function"
         or type(C_ChatInfo.SendAddonMessageLogged)~="function" or type(Enum)~="table"
@@ -121,10 +136,15 @@ local function capabilities()
     throttled[results.AddonMessageThrottle], throttled[results.ChannelThrottle]=true,true
     sendAPI, sendSuccess = C_ChatInfo.SendAddonMessageLogged, results.Success
     failedCodes, throttleCodes = failed, throttled
-    if not registered then
-        local raw = C_ChatInfo.RegisterAddonMessagePrefix(Protocol.PREFIX)
-        if raw~=register.Success and raw~=register.DuplicatePrefix then return false,"prefix_registration" end
-        registered=true
+    local prefixes={Protocol.PREFIX}
+    if wantClock then prefixes[2]=ClockProtocol.PREFIX end
+    for _, prefix in ipairs(prefixes) do
+        if not registered[prefix] then
+            local raw = C_ChatInfo.RegisterAddonMessagePrefix(prefix)
+            if raw~=register.Success and raw~=register.DuplicatePrefix then return false,"prefix_registration" end
+            if not owns() then return false,"lease_lost" end
+            registered[prefix]=true
+        end
     end
     return true
 end
@@ -135,25 +155,34 @@ local function classify(raw)
     if failedCodes[raw] then return "failed" end
     return "unknown"
 end
-local function nativeSend(expected, payload, peer)
+local function nativeSend(expected, payload, peer, prefix, stampMS)
     if control~=expected then return "failed" end
     local now, reason = checked()
     if not now then hardStop(reason); return "failed" end
     if control~=expected or not owns() then return "failed" end
-    if type(payload)~="string" or #payload>23 or not readyToSend(now,#payload+#Protocol.PREFIX) then
+    prefix=prefix or Protocol.PREFIX
+    local clockPacket=coordinated and prefix==ClockProtocol.PREFIX
+    local cap=clockPacket and ClockProtocol.MAX_BYTES or 23
+    if (prefix~=Protocol.PREFIX and not clockPacket) or type(payload)~="string"
+        or #payload>cap or not readyToSend(now,#payload+#prefix) then
         hardStop("error"); return "failed"
+    end
+    -- PING/PONG stamps are formed at the paced update, never at enqueue time.
+    -- Refuse a stalled native boundary instead of hiding its timestamp error.
+    if clockPacket and (not stampMS or math.floor(now*1000)-stampMS>2) then
+        hardStop("clock_error"); return "failed"
     end
     -- Charge every attempted native call, including throws/unknown results.
     lastAttempt=now
-    attempts[#attempts+1]={at=now,bytes=#payload+#Protocol.PREFIX}
+    attempts[#attempts+1]={at=now,bytes=#payload+#prefix}
     traffic.attempts=traffic.attempts+1
     traffic.payloadBytes=traffic.payloadBytes+#payload
-    traffic.prefixBytes=traffic.prefixBytes+#Protocol.PREFIX
+    traffic.prefixBytes=traffic.prefixBytes+#prefix
     prune(now)
     local sendingFrame=frame
     sendingFrame.akNetworkSending=Transport
     local ok, outcome = pcall(function()
-        return classify(sendAPI(Protocol.PREFIX,payload,"WHISPER",peer))
+        return classify(sendAPI(prefix,payload,"WHISPER",peer))
     end)
     if sendingFrame.akNetworkSending==Transport then sendingFrame.akNetworkSending=nil end
     if not ok then
@@ -184,7 +213,7 @@ function Transport.Stop(reason)
     return active
 end
 
-local function arm(role, peer, code, trackId)
+local function arm(role, peer, code, trackId, wantClock)
     if busy or control or not frame or frame.akNetworkOwner or frame.akNetworkSending then
         return false,"busy"
     end
@@ -196,8 +225,12 @@ local function arm(role, peer, code, trackId)
         return false,reason
     end
     -- Validate and construct geometry metadata without touching UI.track.
+    if wantClock and (type(Clock)~="table" or type(ClockProtocol)~="table"
+        or type(RaceStart)~="table" or type(AK.Race)~="table") then return fail("invalid_options") end
+    local tracks
     local ok, candidate = pcall(function()
         local mirage = AK.MirageRaceway.new(AK.Track.crossesGate)
+        tracks=wantClock and {test_oval=copy(AK.Track),mirage_raceway=copy(mirage)} or nil
         return {role=role,peer=peer,session=code,physicsVersion=AK.Physics.VERSION,
             trackVersions={test_oval=AK.Track.version,mirage_raceway=mirage.version},laps=3}
     end)
@@ -218,7 +251,7 @@ local function arm(role, peer, code, trackId)
         local invited, why = Session.invite(state,now,trackId)
         if not invited then return fail(why) end
     end
-    local apiOK, capable, why = pcall(capabilities)
+    local apiOK, capable, why = pcall(capabilities,wantClock)
     if not apiOK or not capable then return fail(apiOK and why or "capabilities") end
     if not owns() then return fail("lease_lost") end
     -- Native hook callbacks can call Stop. Keep the candidate private until all
@@ -228,12 +261,15 @@ local function arm(role, peer, code, trackId)
     local updateOK = pcall(frame.SetScript,frame,"OnUpdate",Transport.Update)
     if not updateOK or not owns() then return fail("update_registration") end
     control, lastView, lastError, drainDeadline = state, nil, nil, nil
+    coordinated, clockState, raceGate, lastClock, trackSet = wantClock==true,nil,nil,nil,tracks
     used[code], usedCount=true,usedCount+1
     busy=false
     return true
 end
 function Transport.Host(peer,code,trackId) return arm("host",peer,code,trackId) end
 function Transport.Listen(peer,code) return arm("guest",peer,code) end
+function Transport.HostCoordinated(peer,code,trackId) return arm("host",peer,code,trackId,true) end
+function Transport.ListenCoordinated(peer,code) return arm("guest",peer,code,nil,true) end
 
 local function action(method,...)
     if busy then return false,"busy" end
@@ -251,8 +287,46 @@ local function action(method,...)
 end
 function Transport.Join() return action(Session.join) end
 function Transport.Ready(ready) return action(Session.setReady,ready) end
-function Transport.Start(startTick,seed) return action(Session.start,startTick,seed) end
+function Transport.Start(startTick,seed)
+    if coordinated and control then return false,"coordinated_start_required" end
+    return action(Session.start,startTick,seed)
+end
+function Transport.PrepareStart(seed)
+    if not coordinated then return false,"coordinated_mode_required" end
+    -- Seed is backend metadata until a seeded subsystem exists; no UI setting.
+    if seed==nil then seed=0 end
+    return action(Session.start,AK.Race.COUNTDOWN_TICKS,seed)
+end
 function Transport.Leave() return action(Session.cancel,"left",true) end
+
+local function handoff(now)
+    if not coordinated or not control or clockState then return end
+    local view=Session.view(control)
+    if view.phase~="starting" then return end
+    local proposal=Session.handoffStart(control,now)
+    if not proposal then return end -- Host still waits for the control ACK.
+    if proposal.startTick~=AK.Race.COUNTDOWN_TICKS or not view.offer or view.offer.laps~=3
+        or not trackSet[view.offer.trackId]
+        or trackSet[view.offer.trackId].version~=view.offer.trackVersion then
+        hardStop("controller_error"); return
+    end
+    clockState=Clock.new({role=view.role,session=view.session,seed=proposal.seed},
+        math.floor(now*1000),ClockProtocol)
+    if not clockState then hardStop("clock_error") end
+end
+
+local function clockFailure(now)
+    if not control or not clockState then return end
+    local view=Clock.view(clockState)
+    if view.phase=="closed" then
+        lastClock=copy(view)
+        lastError="clock_"..(view.reason or "error")
+        -- Best effort control CANCEL uses the very same paced budget. No race
+        -- ticket survives a failed or ambiguous local clock negotiation.
+        Session.cancel(control,now,"error",true)
+        finish(now)
+    end
+end
 
 function Transport.Update()
     if busy then return false,"busy" end
@@ -267,24 +341,68 @@ function Transport.Update()
         function(payload,peer) return nativeSend(expected,payload,peer) end,
         readyToSend(now,23+#Protocol.PREFIX))
     if not ok then hardStop("controller_error"); busy=false; return false,"controller_error" end
+    now=lastNow -- Includes validated reentrant receive/native preflight clocks.
     if control==expected then
         local view=Session.view(expected)
         if view.phase=="closed" and view.reason and view.reason:match("^send_") then lastError=view.reason end
         finish(now)
     end
+    if control==expected and coordinated then
+        -- A native callback may deliver a scoped reply at a later GetTime.
+        -- Reconcile that clock before another controller advance or stamp.
+        now,reason=checked()
+        if not now then hardStop(reason); busy=false; return false,reason end
+    end
+    if control==expected then
+        local handed, err=pcall(handoff,now)
+        if not handed then hardStop("controller_error"); busy=false; return false,"controller_error" end
+        if control==expected and clockState then
+            local ms=math.floor(now*1000)
+            local clockOK, clockSent = pcall(Clock.update,clockState,ms,
+                function(payload)
+                    return nativeSend(expected,payload,Session.view(expected).peer,ClockProtocol.PREFIX,ms)
+                end, not sent and readyToSend(now,ClockProtocol.MAX_BYTES+#ClockProtocol.PREFIX))
+            if not clockOK then hardStop("controller_error"); busy=false; return false,"controller_error" end
+            sent=sent or clockSent
+            clockFailure(lastNow)
+        end
+    end
     busy=false
     return sent==true,why
 end
 function Transport.Message(prefix,payload,channel,nativeSender)
-    if not control or prefix~=Protocol.PREFIX then return false,"unrelated" end
+    local clockPacket=coordinated and ClockProtocol and prefix==ClockProtocol.PREFIX
+    if not control or (prefix~=Protocol.PREFIX and not clockPacket) then return false,"unrelated" end
     -- Message may run reentrantly during the native call to defer a matching
     -- ACK; it never invokes Update or sends from the event stack.
     local now, reason = checked()
     if not now then return hardStop(reason) end
     local expected=control
+    if clockPacket then
+        local view=Session.view(expected)
+        local function key(value)
+            if type(value)~="string" or #value>96 or value:find("[%z\001-\031\127|]") then return nil end
+            return (value:gsub(" +"," "):match("^ *(.-) *$"):gsub("[A-Z]",function(c)
+                return string.char(c:byte()+32)
+            end))
+        end
+        if not clockState or channel~="WHISPER" or key(nativeSender)~=key(view.peer) then
+            return false,"unrelated"
+        end
+        local ok,accepted,why=pcall(Clock.receive,clockState,math.floor(now*1000),payload)
+        if not ok then return hardStop("controller_error") end
+        if control==expected then clockFailure(now) end
+        return accepted==true,why
+    end
     local ok, accepted, why = pcall(Session.receive,expected,now,prefix,payload,channel,nativeSender)
     if not ok then return hardStop("controller_error") end
-    if control==expected then finish(now) end
+    if control==expected then
+        finish(now)
+        if control==expected then
+            local handed=pcall(handoff,now)
+            if not handed then return hardStop("controller_error") end
+        end
+    end
     return accepted==true,why
 end
 function Transport.HandleEvent(event)
@@ -301,9 +419,14 @@ function Transport.GetView()
     view.transportBusy = busy==true or (frame~=nil and (frame.akNetworkOwner~=nil
         or frame.akNetworkSending~=nil)) or control~=nil
     view.route, view.lastError, view.traffic = Transport.ROUTE,lastError,copy(traffic)
+    view.coordinated=coordinated==true
+    view.clock=clockState and Clock.view(clockState) or copy(lastClock)
+    view.canPrepareStart=coordinated==true and view.canStart==true
+    if coordinated then view.canStart=false end
     return view
 end
 function Transport.TakeStartProposal()
+    if coordinated then return nil,"coordinated_start_owned" end
     if busy then return nil,"busy" end
     if not control then return nil,"inactive" end
     busy=true
@@ -316,6 +439,50 @@ function Transport.TakeStartProposal()
     local proposal=control and Session.takeStartProposal(control) or nil
     busy=false
     return proposal
+end
+
+-- Backend ownership handoff only. Rendering/menu navigation must never consume
+-- this bundle or launch a simulation just because a screen becomes visible.
+function Transport.TakeRaceStart()
+    if busy then return nil,"busy" end
+    if not coordinated or not control or not clockState then return nil,"inactive" end
+    busy=true
+    local now,reason=checked()
+    if not now then hardStop(reason); busy=false; return nil,reason end
+    local expected=control
+    local ok=pcall(Session.update,expected,now,function() return "failed" end,false)
+    if not ok then hardStop("controller_error"); busy=false; return nil,"controller_error" end
+    finish(now)
+    if control~=expected or not clockState then busy=false; return nil,"closed" end
+    local ms=math.floor(now*1000)
+    local view=Session.view(expected)
+    local initOK,bundle,why=pcall(function()
+        local ticket,ticketWhy=Clock.takeTicket(clockState,ms)
+        clockFailure(now)
+        if not ticket or control~=expected then return nil,ticketWhy end
+        local track=view.offer and trackSet[view.offer.trackId]
+        local gateWhy
+        raceGate,gateWhy=RaceStart.new(ticket,track,view.offer.physicsVersion)
+        if not raceGate then return nil,gateWhy end
+        return RaceStart.take(raceGate,ms,AK.Physics,AK.Race,AK.Checkpoints,AK.Laps)
+    end)
+    if not initOK then hardStop("controller_error"); busy=false; return nil,"controller_error" end
+    if not bundle then
+        if raceGate or (clockState and Clock.view(clockState).phase=="launched") then
+            hardStop("controller_error")
+        end
+        busy=false; return nil,why
+    end
+    if control~=expected or not owns() then busy=false; return nil,"closed" end
+    lastClock=Clock.view(clockState)
+    lastView=view
+    lastView.phase,lastView.hasPendingOutput,lastView.deadline="launched",false,nil
+    lastView.canJoin,lastView.canSetReady,lastView.canStart,lastView.canLeave=false,false,false,false
+    lastView.pendingKind,lastView.pendingAttempts=nil,0
+    control,clockState,raceGate,trackSet=nil,nil,nil,nil
+    release()
+    busy=false
+    return bundle
 end
 
 return Transport

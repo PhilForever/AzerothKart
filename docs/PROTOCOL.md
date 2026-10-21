@@ -16,6 +16,10 @@ Basic compatibility is already evidenced by IOU's four exact two-client logged-w
 
 The separate `AZKART2`/version-2 `RaceProtocol` now encodes and decodes INVITE, JOIN, READY, START, CANCEL and ACK with an 11-byte header and exact 11–23-byte payloads. [Actual signatures, fields and limits](API_CONTRACTS.md#implemented-pure-race-control-codec) and [ADR 0013](adr/0013-two-player-experiment-scope.md) distinguish this unit from the unchanged AZKART1 measurement probe. The codec registers no API/event and sends no traffic. The pure [PeerSession controller](API_CONTRACTS.md#implemented-pure-peer-session-controller) adds scoped phases, idempotent commands, strict readiness, bounded retries/ACKs and terminal cleanup. Its injected send callback is paced at most once every0.5 seconds, including ACKs, with no catch-up bursts; no callback runs at construction. A future transport adapter must apply global budgets across all traffic. START supplies an at-most-once proposal, not clock agreement or permission to initialize a race; lost ACKs cannot be treated as proof that both peers started.
 
+## Opt-in clock envelope and handoff
+
+The separate version-1 `AZKCLK1` [clock codec/coordinator](START_CLOCK.md) now supplies bounded three-sample offset estimation and a future PREPARE/COMMIT epoch through the same native budget. Legacy START parameters are unchanged. A one-shot backend initializer yields actual Physics/Race at mapped GO without opening UI or transmitting movement. A lost final ACK can leave one peer armed; no atomic start or measured clock accuracy is claimed. This supersedes the earlier next-task note only for start-clock scope. Live-race replication/authority/finish and actual clock delivery remain pending.
+
 ## Implemented experiment envelope
 
 Prefix: `AZKART1` (7 bytes). Each message is printable ASCII, with this exact 10-byte envelope followed by `.` padding:

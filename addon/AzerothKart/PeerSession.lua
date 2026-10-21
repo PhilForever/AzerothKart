@@ -388,5 +388,16 @@ function Session.takeStartProposal(state)
     return proposal and copy(proposal) or nil
 end
 
+-- Explicit opt-in ownership transfer to a bounded clock coordinator. Legacy
+-- START remains parameter data and retains its original ten-second deadline.
+function Session.handoffStart(state, now)
+    local ok, why = advance(state, now)
+    if not ok then return nil, why end
+    if state.phase~="starting" or not state.proposal then return nil, "invalid_phase" end
+    local proposal=Session.takeStartProposal(state)
+    state.phase, state.deadline = "coordinating", now+30
+    return proposal
+end
+
 if type(namespace)=="table" then namespace.PeerSession=Session end
 return Session

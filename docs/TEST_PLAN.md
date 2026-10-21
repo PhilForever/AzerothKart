@@ -1,5 +1,9 @@
 # Verification and QA plan
 
+## Current start-clock slice
+
+Executed Lua 5.1 focused commands and outcomes are recorded in PROGRESS. The changed modules use `--tests clock_protocol start_clock race_start race peer_session session_transport`; native lease/UI regression uses `--tests session_transport transport_probe ui`. Codec cases cover exact wire fields/bounds; pure clock cases include asymmetric synthetic 700 ms RTT, independent offsets, queued reply subtraction, retries/duplicates, malformed/conflicting packets, finite deadlines, late callbacks, reentrant outcomes and final-ACK ambiguity. RaceStart checks actual Physics/Race initialization, exactly-once/cancel/error handling and a 900-tick identical input tape. Native doubles cover both prefixes sharing a persistent budget, delayed delivery/five-second offset, scoped sender, exception/Stop cleanup and callback clock advancement. No client synchronization, clock drift, opponent movement, finish agreement or race feel is inferred. See [START_CLOCK](START_CLOCK.md); no new manual probe/download requested.
+
 ## Current session transport slice
 
 Focused command: `python scripts/test_lua.py --runtime lua51 --tests session_transport peer_session transport_probe ui`. Real codec/controller with injected native APIs: explicit two-peer Host/Listen/Join/Ready/Start proposal, complete identity/compatibility, strict enum/capability refusal, bounded retries and copied state, persistent native call/byte pacing, no send from actions/Message, terminal lifecycle/drain and exclusive probe/session ownership. Include cancellation during native setup/send, pre-send guard cancellation and both directions of lease handover. Core routing/local-drive cancellation and unchanged pool/drive trace are covered by UI doubles. Native AZKART2/client menu/start-clock/race feel NOT RUN; no broad repeated matrix or new manual probe requested.

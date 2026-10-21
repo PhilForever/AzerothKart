@@ -30,3 +30,7 @@ The owner-directed [ADR 0011](adr/0011-explicit-drive-exits.md) replaces inciden
 
 ## Change process
 New decisions enter `docs/adr/NNNN-...md` when architecture or product feasibility changes. Link the empirical test and update impacted acceptance criteria, rather than leaving contradictory docs.
+
+## Implemented candidate awaiting shared/client review
+
+[ADR 0014](adr/0014-experimental-start-clock.md) records the opt-in bounded clock/epoch and one-shot Physics/Race initialization foundation under ADR 0013. It is not a production replication or release decision. Actual start skew/drift/feel and live movement/finish remain open.

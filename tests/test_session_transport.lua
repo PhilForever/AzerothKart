@@ -8,7 +8,7 @@ local sendNames = {"Success","InvalidPrefix","InvalidMessage","AddonMessageThrot
     "GeneralError","NotInGuild","AddOnMessageLockdown","TargetOffline"}
 local HOST,GUEST,CODE = "Amber Stone","Birch Vale","ABC123"
 
-local function client(identity)
+local function client(identity,clockTest)
     local e = {identity=identity or HOST,now=0,registerCalls=0,eventCalls=0,scriptCalls=0,
         createdFrames=0,registerResult=0,sendResult=0,sends={},output={},raceCalls=0}
     local originalEvent = function() end
@@ -45,7 +45,7 @@ local function client(identity)
         DEFAULT_CHAT_FRAME={AddMessage=function(_,message) output(message) end},print=output}
     e.globals.C_ChatInfo = {
         RegisterAddonMessagePrefix=function(prefix)
-            assert(prefix=="AZKART2" or prefix=="AZKART1")
+            assert(prefix=="AZKART2" or prefix=="AZKART1" or prefix=="AZKCLK1")
             e.registerCalls=e.registerCalls+1
             if e.registerThrows then error("private registration error") end
             return e.registerResult
@@ -86,9 +86,15 @@ local function client(identity)
             return function() e.raceCalls=e.raceCalls+1; error("session control must not start Race") end
         end})}
         for _,module in ipairs({"Physics","Track","MirageRaceway","RaceProtocol","PeerSession",
-            "NetworkProbe","TransportProbe","SessionTransport"}) do
+            "ClockProtocol","StartClock","RaceStart","NetworkProbe","TransportProbe"}) do
             assert(loadfile("addon/AzerothKart/"..module..".lua"))("AzerothKart",ns)
         end
+        if clockTest then
+            for _,module in ipairs({"Checkpoints","Laps","Race"}) do
+                assert(loadfile("addon/AzerothKart/"..module..".lua"))("AzerothKart",ns)
+            end
+        end
+        assert(loadfile("addon/AzerothKart/SessionTransport.lua"))("AzerothKart",ns)
         e.namespace,e.transport,e.probe=ns,ns.SessionTransport,ns.TransportProbe
         assert(e.transport and e.transport.state==nil,"adapter must not expose mutable session state")
         e.transport.Init(e.frame)
@@ -131,12 +137,13 @@ local function assertPacing(e)
         assert(calls<=2 and bytes<=158,"rolling one-second adapter budget")
     end
 end
-local function pair()
-    local p={host=client(HOST),guest=client(GUEST),now=0,queue={}}
+local function pair(clockTest)
+    local p={host=client(HOST,clockTest),guest=client(GUEST,clockTest),now=0,queue={}}
     for _,role in ipairs({"host","guest"}) do
         p[role].onSend=function(packet)
             if p.drop and p.drop(packet) then return end
-            p.queue[#p.queue+1]={to=role=="host" and "guest" or "host",packet=packet}
+            p.queue[#p.queue+1]={to=role=="host" and "guest" or "host",packet=packet,
+                deliveryAt=p.now+(p.delay or 0)}
         end
     end
     function p:step(amount)
@@ -144,23 +151,25 @@ local function pair()
         for _,role in ipairs({"host","guest"}) do
             local e=self[role]
             local before=#e.sends
-            e:update(self.now)
+            e:update(self.now+(self.offset and self.offset[role] or 0))
             assert(#e.sends-before<=1,"hitches cannot send catch-up bursts")
         end
         local queue=self.queue; self.queue={}
         for _,entry in ipairs(queue) do
-            local e,packet=self[entry.to],entry.packet
-            assert(packet.target==e.identity,"complete full native identity must be preserved")
-            receive(e,packet.payload,packet.sender,packet.prefix,packet.channel)
+            if entry.deliveryAt>self.now then self.queue[#self.queue+1]=entry else
+                local e,packet=self[entry.to],entry.packet
+                assert(packet.target==e.identity,"complete full native identity must be preserved")
+                receive(e,packet.payload,packet.sender,packet.prefix,packet.channel)
+            end
         end
     end
     function p:untilTrue(predicate)
-        for _=1,20 do if predicate() then return end; self:step() end
+        for _=1,clockTest and 60 or 20 do if predicate() then return end; self:step() end
         error("two-client mocked exchange did not reach expected state")
     end
     function p:lobby(track)
-        assert(self.guest:call("Listen",HOST,CODE))
-        assert(self.host:call("Host",GUEST,CODE,track or "test_oval"))
+        assert(self.guest:call(clockTest and "ListenCoordinated" or "Listen",HOST,CODE))
+        assert(self.host:call(clockTest and "HostCoordinated" or "Host",GUEST,CODE,track or "test_oval"))
         self:untilTrue(function() return self.guest:view().canJoin end)
         assert(self.guest:call("Join"))
         self:untilTrue(function()
@@ -170,7 +179,10 @@ local function pair()
     end
     function p:ready()
         assert(self.host:call("Ready",true)); assert(self.guest:call("Ready",true))
-        self:untilTrue(function() return self.host:view().canStart and not self.guest:view().pendingKind end)
+        self:untilTrue(function()
+            return (self.host:view().canStart or self.host:view().canPrepareStart)
+                and not self.guest:view().pendingKind
+        end)
     end
     return p
 end
@@ -448,6 +460,147 @@ do
     e:update(0.5); detached(e)
     assert(#e.sends==0 and e:view().traffic.attempts==0,
         "Stop during a pre-send guard must prevent the native call")
+end
+
+local function armedPair(track)
+    local p=pair(true); p:lobby(track); p:ready()
+    assert(p.host.registerCalls==2 and p.guest.registerCalls==2,"clock mode explicitly registers both prefixes")
+    refusal(p.host,"Start",180,42)
+    assert(p.host:call("TakeStartProposal")==nil,"coordinator alone owns its START proposal")
+    assert(p.host:call("PrepareStart",42))
+    assert(#p.host.sends>0 and p.host:view().clock==nil,"PrepareStart queues only; it does not activate a race")
+    p:untilTrue(function()
+        return p.host:view().clock and p.guest:view().clock
+            and p.host:view().clock.phase=="armed" and p.guest:view().clock.phase=="armed"
+    end)
+    return p
+end
+do
+    local p=armedPair("mirage_raceway")
+    local hv,gv=p.host:view(),p.guest:view()
+    assert(hv.phase=="coordinating" and gv.phase=="coordinating")
+    assert(hv.clock.samples==3 and gv.clock.samples==3 and hv.clock.rttMS==0)
+    assert(hv.clock.peerAcknowledged and not gv.clock.peerAcknowledged,
+        "copied view must preserve the last-ACK ambiguity")
+    hv.clock.localEpochMS=0; hv.clock.sampleDetails[1].t1MS=-1
+    assert(p.host:view().clock.localEpochMS>0 and p.host:view().clock.sampleDetails[1].t1MS>=0)
+    local clockWire=assert(p.host.namespace.ClockProtocol.encode({kind="PING",session=CODE,sequence=300,sample=1,t1=0}))
+    local before=p.guest:view().clock.stats.received
+    assert(not receive(p.guest,clockWire,"Other Person","AZKCLK1"))
+    assert(not receive(p.guest,clockWire,HOST,"AZKCLK1","PARTY"))
+    assert(p.guest:view().clock.stats.received==before,"clock path preserves complete native sender and channel scope")
+    local epoch=p.host:view().clock.localEpochMS/1000
+    assert(p.host:call("TakeRaceStart")==nil and p.guest:call("TakeRaceStart")==nil)
+    p:step(epoch-p.now)
+    local h=assert(p.host:call("TakeRaceStart"))
+    local g=assert(p.guest:call("TakeRaceStart"))
+    for _,bundle in ipairs({h,g}) do
+        assert(bundle.trackId=="mirage_raceway" and bundle.trackVersion==1 and bundle.physicsVersion==7)
+        assert(bundle.seed==42 and bundle.fixedDt==1/60 and bundle.vehicle.tick==0
+            and bundle.race.status=="running" and bundle.race.startTick==0
+            and bundle.race.laps.completedLaps==0,"real Physics/Race begin once at GO without another countdown")
+    end
+    assert(h.vehicle~=g.vehicle and h.race~=g.race and h.track~=g.track)
+    for _,e in ipairs({p.host,p.guest}) do
+        detached(e); assert(e:call("TakeRaceStart")==nil and e:view().phase=="launched")
+        assertPacing(e)
+        assert(e.createdFrames==0 and #e.output==0,"backend creates no UI or chat output")
+    end
+end
+do
+    local p=armedPair()
+    local epoch=p.host:view().clock.localEpochMS/1000
+    p:step(epoch-p.now+0.251)
+    assert(p.host:call("TakeRaceStart")==nil and p.guest:call("TakeRaceStart")==nil)
+    assert(p.host:view().phase=="closed" and p.host:view().clock.reason=="late")
+    assertPacing(p.host); assertPacing(p.guest)
+end
+for _,event in ipairs({"PLAYER_REGEN_DISABLED","PLAYER_LEAVING_WORLD","PLAYER_LOGOUT"}) do
+    local p=armedPair()
+    p.host:call("HandleEvent",event); detached(p.host)
+    assert(p.host:call("TakeRaceStart")==nil and p.host:view().clock.phase=="closed")
+end
+for _,method in ipairs({"new","take"}) do
+    local p=armedPair()
+    local epoch=p.host:view().clock.localEpochMS/1000
+    p:step(epoch-p.now)
+    p.host.namespace.RaceStart[method]=function() error("private initializer failure") end
+    local bundle,why=p.host:call("TakeRaceStart")
+    assert(bundle==nil and why=="controller_error")
+    detached(p.host)
+    assert(p.host:view().canHost,"initializer exceptions cannot retain the native lease or busy guard")
+end
+do
+    local p=armedPair()
+    local epoch=p.host:view().clock.localEpochMS/1000
+    p:step(epoch-p.now)
+    p.host.namespace.Physics.VERSION=8
+    assert(p.host:call("TakeRaceStart")==nil,"launch must retain the negotiated physics version")
+    detached(p.host)
+end
+do
+    local p=armedPair()
+    local epoch=p.host:view().clock.localEpochMS/1000
+    p:step(epoch-p.now)
+    p.host.namespace.Physics.new=function()
+        p.host:call("Stop","error")
+        return {tick=0}
+    end
+    assert(p.host:call("TakeRaceStart")==nil,"a reentrant Stop during initialization cannot return a launch")
+    detached(p.host)
+end
+do
+    -- Complete the control START ACK reentrantly, at a later validated clock.
+    local p=pair(true); p:lobby(); p:ready()
+    local e=p.host
+    local original=e.onSend
+    e.onSend=function(packet)
+        if packet.prefix=="AZKART2" then
+            local message=e.namespace.RaceProtocol.decode(packet.payload)
+            if message.kind=="START" then
+                e.now=e.now+0.125
+                receive(e,wire(e,"ACK",300,{ackKind="START",ackSequence=message.sequence}),GUEST)
+                return
+            end
+        end
+        original(packet)
+    end
+    assert(e:call("PrepareStart",42)); e:update(p.now+0.5)
+    assert(e:view().phase=="coordinating" and e:view().clock.phase=="calibrating"
+        and e:view().clock.reason==nil,"handoff must use the refreshed callback clock")
+    e:call("Stop","error"); detached(e)
+end
+do
+    local e=client(HOST,true)
+    e.globals.C_ChatInfo.RegisterAddonMessagePrefix=function(prefix)
+        e.registerCalls=e.registerCalls+1
+        return prefix=="AZKCLK1" and 99 or 0
+    end
+    refusal(e,"HostCoordinated",GUEST,CODE,"test_oval"); detached(e)
+    assert(#e.sends==0,"failed clock registration never starts control traffic")
+end
+do
+    local p=pair(true)
+    p.delay,p.offset=0.35,{host=0,guest=5}
+    p:lobby(); p:ready(); assert(p.host:call("PrepareStart",42))
+    p:untilTrue(function()
+        return p.host:view().clock and p.guest:view().clock
+            and p.host:view().clock.phase=="armed" and p.guest:view().clock.phase=="armed"
+    end)
+    local h,g=p.host:view().clock,p.guest:view().clock
+    assert(h.rttMS>=700 and h.rttMS<=1000 and h.offsetLowMS<=5000 and h.offsetHighMS>=5000,
+        "native adapter preserves delayed delivery and independent clock offsets")
+    local bundles={}
+    for _=1,120 do
+        p:step(0.1)
+        for _,role in ipairs({"host","guest"}) do
+            if not bundles[role] then bundles[role]=p[role]:call("TakeRaceStart") end
+        end
+        if bundles.host and bundles.guest then break end
+    end
+    assert(bundles.host and bundles.guest and bundles.host.vehicle.tick==0 and bundles.guest.vehicle.tick==0)
+    assert(bundles.guest.localEpochMS-bundles.host.hostEpochMS==math.floor((g.offsetLowMS+g.offsetHighMS)/2))
+    assertPacing(p.host); assertPacing(p.guest); detached(p.host); detached(p.guest)
 end
 
 originalPrint("Session logged-whisper adapter: explicit actions, scoped identities, paced native acceptance and cleanup verified with mocks")

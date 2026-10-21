@@ -18,6 +18,9 @@ Race.lua
 UI.lua
 RaceProtocol.lua
 PeerSession.lua
+ClockProtocol.lua
+StartClock.lua
+RaceStart.lua
 NetworkProbe.lua
 TransportProbe.lua
 SessionTransport.lua

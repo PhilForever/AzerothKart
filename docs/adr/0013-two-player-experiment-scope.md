@@ -46,3 +46,7 @@ The movement-replication/authority model, prediction/reconciliation details, clo
 **Native boundary now implemented (2026-10-21):** SessionTransport supplies the logged route, scoped actions/copied view, persistent2calls/158payload+prefixB local candidate budgets, exclusive probe/session frame lease and lifecycle cleanup. Source/mock checks only; actual AZKART2 client flow is NOT RUN. See [menu bridge](../SESSION_MENU_API.md). The native control layer does not agree clocks or activate a race.
 
 **Next single task:** bounded start-clock/coordinator integration for the two-player candidate, with explicit ambiguity/cancellation handling; Claude wires the menu through the reviewed bridge. Keep AZKART1 separate and all live-race/capacity acceptance open. No new multiplayer controls or playable shared race are claimed by this checkpoint.
+
+## Subsequent candidate: start clock
+
+The opt-in bounded start-clock/race-initialization foundation is now implemented on `codex/start-clock`; [ADR 0014](0014-experimental-start-clock.md) and [START_CLOCK](../START_CLOCK.md) supersede the earlier next-task note for that scope. The legacy control proposal keeps its existing semantics. No production replication, opponent movement, atomic start, client acceptance or release follows. Next is the live-race controller and paced remote snapshot path, with reviewed Claude integration.

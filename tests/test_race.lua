@@ -20,6 +20,19 @@ local function crossing(race,index)
 end
 
 assert(Race.COUNTDOWN_TICKS==180 and Race.GO_CUE_TICKS==60,"fixed countdown and GO cue lengths")
+local coordinated=Race.newRunning(T,C,Laps)
+assert(coordinated.status=="running" and coordinated.startTick==0 and coordinated.lastTick==0
+    and coordinated.totalTicks==0 and coordinated.countdownTicks==0 and Race.cue(coordinated)=="GO"
+    and coordinated.laps.lapStartTick==0,"coordinated GO begins at simulation tick zero")
+local coordinatedFirst=crossing(coordinated,1)
+assert(coordinatedFirst.lastTick==1 and coordinatedFirst.totalTicks==1
+    and coordinatedFirst.laps.checkpoints.passed==1,"first coordinated tick awards its gate once")
+local coordinatedFinish=Race.newRunning(T,C,Laps,50)
+for _=1,3 do for index=1,4 do coordinatedFinish=crossing(coordinatedFinish,index) end end
+assert(coordinatedFinish.status=="finished" and coordinatedFinish.startTick==50
+    and coordinatedFinish.finishTick==62 and coordinatedFinish.totalTicks==12
+    and coordinatedFinish.laps.completedLaps==3,"coordinated path keeps exact three-lap rules")
+assert(crossing(coordinatedFinish,4)==coordinatedFinish,"duplicate finish cannot award another lap")
 local fresh=Race.new(T,C,Laps)
 assert(fresh.status=="countdown" and fresh.targetLaps==3 and fresh.startTick==nil
     and fresh.lastTick==0 and fresh.totalTicks==0 and fresh.finishTick==nil
@@ -102,6 +115,7 @@ assert(offset.status=="finished" and offset.startTick==380 and offset.lastTick==
     "run timing begins at offset GO, excluding the countdown")
 for _,bad in ipairs({-1,0.5,math.huge,-math.huge,0/0,"1",false}) do
     assert(not pcall(Race.new,T,C,Laps,bad),"invalid initial tick delegates rejection to Laps")
+    assert(not pcall(Race.newRunning,T,C,Laps,bad),"coordinated initial tick uses the same validity rules")
     for _,source in ipairs({fresh,running}) do
         assert(Race.step(source,pose(0,0,bad),pose(0,0,source.lastTick+1),T,C,Laps)==source
             and Race.step(source,pose(0,0,source.lastTick),pose(0,0,bad),T,C,Laps)==source,

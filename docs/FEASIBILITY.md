@@ -170,3 +170,7 @@ When recording results include exact command output, build, date, conditions and
 ## F4 implementation checkpoint — native session bridge, 2026-10-21
 
 SessionTransport now wires the pure AZKART2 controller to the same source-verified logged route, with exclusive Core-frame lease/in-flight marker, scoped full-peer identity, local persistent call/byte gate, fixed-result handling and lifecycle cleanup. [Menu actions](SESSION_MENU_API.md) expose copied state; they do not start a live race. Focused mocked native checks are recorded in PROGRESS. Actual AZKART2 registration/delivery, both-client control flow, race-clock agreement/authority/feel and full socket recovery remain **NOT RUN**. This adds no measured traffic result or completed M2 gate and requests no standalone manual probe/download at this checkpoint.
+
+## F4 implementation checkpoint — bounded start clock, 2026-10-21
+
+The opt-in [start-clock candidate](START_CLOCK.md) shares the existing native budget/lease, estimates an offset interval from three paced four-timestamp samples, and gates one actual Physics/Race initialization at future GO. Focused synthetic and mocked native checks passed as recorded in PROGRESS. This adds no measured transport or synchronization result. Clock drift, native AZKCLK1 delivery, launch skew and last-ACK/cancel behavior under actual loss remain NOT RUN. Full race replication, correction/finish agreement and socket recovery remain open. No client update, new download or manual test is needed for this source checkpoint.

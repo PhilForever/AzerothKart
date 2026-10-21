@@ -35,3 +35,9 @@ All session control, ACK, retry and cancellation attempts share a persistent loc
 Combat/world/logout, accepted solo Start, blocked/unreadable APIs/clocks and send refusal stop control, discard pending output/proposals and release only its own lease. No automatic resume/rejoin. Leave/remote cancel may retain the lease for a final bounded best-effort packet; new Host/Listen waits until that drain is done. GUI Close/Leave in the future multiplayer flow should deliberately call Leave; existing local canvas navigation is not a session state write.
 
 Native AZKART2 registration/delivery, both-client menu flow, clocks/authority/start/finish/race feel and full socket recovery remain NOT RUN at this checkpoint. Source tests with mocks do not replace those checks. [API_CONTRACTS](API_CONTRACTS.md), [UI ownership](UI_FLOW_OWNERSHIP.md) and [PROGRESS](PROGRESS.md) remain authoritative.
+
+## Additive coordinated-start candidate
+
+The original actions above remain compatible. [START_CLOCK](START_CLOCK.md) adds explicit `HostCoordinated/ListenCoordinated`, the existing deliberate `Join/Ready`, and host `PrepareStart(seed?)`, with copied `coordinated/clock/canPrepareStart` fields. `canStart` is false in coordinated mode; do not invoke legacy Start there or add raw tick/seed settings. The clock phase reports calibration/prepare/commit/armed or a fixed failure. A lost final ACK does not prove both peers are armed.
+
+`TakeRaceStart()` is reserved for the future backend live controller, never rendering or screen navigation. It yields actual tick-zero state once at mapped GO; it does not open the racing UI or display an opponent. Existing solo UI.Start must not be used to activate it. This candidate is not installed, and Claude's menu work must preserve both branches' shared TOC/loader/docs additions during reviewed integration. Actual clock/menu/racing checks are NOT RUN. No additional manual probe/download is requested.

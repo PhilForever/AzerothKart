@@ -24,6 +24,16 @@ function Race.new(track, checkpoints, laps, tick)
     }
 end
 
+-- A coordinated backend has already waited for GO. Its first driving tick is
+-- tick+1; packet receipt time and the solo countdown never count as race time.
+function Race.newRunning(track, checkpoints, laps, tick)
+    if tick == nil then tick = 0 end
+    assert(validTick(tick), "nonnegative integer initial tick required")
+    local race = Race.new(track,checkpoints,laps,tick)
+    race.status, race.countdownTicks, race.startTick = "running", 0, tick
+    return race
+end
+
 function Race.step(race, previous, current, track, checkpoints, laps)
     assert(type(race) == "table", "race state required")
     if race.status ~= "running" and race.status ~= "countdown" then return race end

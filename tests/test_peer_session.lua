@@ -412,4 +412,24 @@ do
     assert(calls==1,"budget waits must still expire sessions without sending")
 end
 
+do
+    local p=pair(); p:lobby(); p:ready()
+    assert(Session.start(p.host,p.now,180,42))
+    assert(Session.handoffStart(p.host,p.now)==nil,"host cannot hand off an unacknowledged START")
+    p:pump(3)
+    for _,role in ipairs({"host","guest"}) do
+        local state=p[role]
+        local proposal=assert(Session.handoffStart(state,p.now))
+        assert(proposal.seed==42 and proposal.startTick==180)
+        assert(view(state).phase=="coordinating" and view(state).deadline==p.now+30)
+        assert(not view(state).canStart and not view(state).canSetReady)
+        assert(Session.handoffStart(state,p.now)==nil and Session.takeStartProposal(state)==nil,
+            "coordinator ownership consumes the proposal once")
+        Session.update(state,p.now+11,function() error("deadline check must not send") end,false)
+        phase(state,"coordinating")
+        Session.update(state,p.now+30,function() error("expired controller must not send") end,false)
+        closed(state,"timeout")
+    end
+end
+
 print("Pure peer sessions: explicit handshake/readiness, scoped compatibility, bounded delivery and terminal cleanup verified offline")

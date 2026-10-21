@@ -11,6 +11,7 @@ REQUIRED=[
  'README.md','AGENTS.md','PROMPT_01_MASTER.md','PROMPT_02_SCHEDULED_CONTINUE.md',
  'docs/INDEX.md','docs/FEASIBILITY.md','docs/ARCHITECTURE.md',
  'docs/ROADMAP.md','docs/PROGRESS.md','docs/TEST_PLAN.md','docs/CLIENT_API.md','docs/SESSION_MENU_API.md',
+ 'docs/START_CLOCK.md','docs/adr/0014-experimental-start-clock.md',
  'addon/AzerothKart/Track.lua','addon/AzerothKart/Physics.lua',
  'addon/AzerothKart/MirageRaceway.lua','tests/test_mirage.lua',
  'scripts/build_mirage_layout.py','docs/art/mirage-layout.json','docs/art/mirage-layout.svg',
@@ -35,6 +36,9 @@ REQUIRED=[
  'addon/AzerothKart/UI.lua','addon/AzerothKart/Core.lua','tests/run.lua',
  'addon/AzerothKart/RaceProtocol.lua','tests/test_race_protocol.lua',
  'addon/AzerothKart/PeerSession.lua','tests/test_peer_session.lua',
+ 'addon/AzerothKart/ClockProtocol.lua','tests/test_clock_protocol.lua',
+ 'addon/AzerothKart/StartClock.lua','tests/test_start_clock.lua',
+ 'addon/AzerothKart/RaceStart.lua','tests/test_race_start.lua',
  'addon/AzerothKart/SessionTransport.lua','tests/test_session_transport.lua',
  'addon/AzerothKart/NetworkProbe.lua','addon/AzerothKart/TransportProbe.lua',
  'tests/test_network_probe.lua','tests/test_transport_probe.lua',
@@ -52,7 +56,7 @@ for tocname in ('AzerothKart.toc','AzerothKart_Camelot.toc'):
  if '## Interface: 16001' not in lines: errors.append(f'{tocname}: unexpected interface')
  if '## SavedVariables: AzerothKartDB' not in lines: errors.append(f'{tocname}: missing SavedVariables')
  loads=[x.strip() for x in lines if x.strip() and not x.startswith('##')]
- if loads!=['Track.lua','MirageRaceway.lua','Physics.lua','Input.lua','Loop.lua','Performance.lua','Presentation.lua','Checkpoints.lua','Laps.lua','Race.lua','UI.lua','RaceProtocol.lua','PeerSession.lua','NetworkProbe.lua','TransportProbe.lua','SessionTransport.lua','Core.lua']:
+ if loads!=['Track.lua','MirageRaceway.lua','Physics.lua','Input.lua','Loop.lua','Performance.lua','Presentation.lua','Checkpoints.lua','Laps.lua','Race.lua','UI.lua','RaceProtocol.lua','PeerSession.lua','ClockProtocol.lua','StartClock.lua','RaceStart.lua','NetworkProbe.lua','TransportProbe.lua','SessionTransport.lua','Core.lua']:
   errors.append(f'{tocname}: unexpected source load order: {loads}')
  for f in loads:
   if not (ADDON/f).is_file():errors.append(f'{tocname}: missing {f}')
