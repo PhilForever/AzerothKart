@@ -1,12 +1,12 @@
 # Implemented simulation and rendering contracts
 
-**Checkpoint:** 2026-10-21, `codex/two-player-control` based on `47f43bd`, retaining combined rendering/runtime `8195da9` and Forever transport correction `8f66c5a`, plus the new pure control codec. Physics compatibility version remains **7** (v6 handling retained). This describes the local solo prototype, measured transport experiment and offline control foundation; it does not claim a released engine or playable multiplayer. See [PROGRESS](PROGRESS.md) and [the latest handoff](handoffs/codex-latest.md).
+**Checkpoint:** 2026-10-21, `codex/peer-session` based on `d857ce2`, retaining combined rendering/runtime `8195da9` and Forever transport correction `8f66c5a`, plus the pure control codec and session controller. Physics compatibility version remains **7** (v6 handling retained). This describes the local solo prototype, measured transport experiment and offline control foundation; it does not claim a released engine or playable multiplayer. See [PROGRESS](PROGRESS.md) and [the latest handoff](handoffs/codex-latest.md).
 
 ## Status and ownership
 
-The interfaces below exist in source today. `Renderer`, `GameSession`, collision-event streams, velocity vectors, a replay API and production synchronization adapters do **not** exist. The standalone NetworkProbe/TransportProbe experiment and the pure RaceProtocol control codec described below are implemented; neither feeds authoritative simulation state. A session controller is not implemented. Proposed architecture sketches in [ARCHITECTURE](ARCHITECTURE.md) must not override the signatures here.
+The interfaces below exist in source today. `Renderer`, `GameSession`, collision-event streams, velocity vectors, a replay API and production synchronization adapters do **not** exist. The standalone NetworkProbe/TransportProbe experiment and the pure RaceProtocol/PeerSession control foundation described below are implemented; none feeds authoritative simulation state. There is no native session adapter or multiplayer menu yet. Proposed architecture sketches in [ARCHITECTURE](ARCHITECTURE.md) must not override the signatures here.
 
-- **Codex:** Physics, collision/surface queries, Input sampling, Loop, Checkpoints, Laps, Race, deterministic simulation and their tests; experimental transport/accounting, RaceProtocol and future synchronization.
+- **Codex:** Physics, collision/surface queries, Input sampling, Loop, Checkpoints, Laps, Race, deterministic simulation and their tests; experimental transport/accounting, RaceProtocol, PeerSession and future synchronization.
 - **Claude:** visual rendering, camera/presentation helpers, track imagery, HUD, sprites, animations/VFX, asset tooling and their focused visual tests.
 - **Shared:** public interface changes, accepted architecture decisions, integration coverage, performance budgets and TOC load-order changes. Coordinate explicitly before editing the other owner's code.
 
@@ -14,7 +14,7 @@ The interfaces below exist in source today. `Renderer`, `GameSession`, collision
 
 ## Modules and data access
 
-The two TOCs load `Track`, `MirageRaceway`, `Physics`, `Input`, `Loop`, `Performance`, `Presentation`, `Checkpoints`, `Laps`, `Race`, `UI`, `RaceProtocol`, `NetworkProbe`, `TransportProbe`, `Core` in that order. Pure modules receive `local _, namespace = ...`, optionally register their module on that explicit table, and return it for offline loading. They do not access WoW globals. Core exports the same namespace as `_G.AzerothKart` for diagnostics.
+The two TOCs load `Track`, `MirageRaceway`, `Physics`, `Input`, `Loop`, `Performance`, `Presentation`, `Checkpoints`, `Laps`, `Race`, `UI`, `RaceProtocol`, `PeerSession`, `NetworkProbe`, `TransportProbe`, `Core` in that order. Pure modules receive `local _, namespace = ...`, optionally register their module on that explicit table, and return it for offline loading. They do not access WoW globals. Core exports the same namespace as `_G.AzerothKart` for diagnostics.
 
 The current render path reads `AK.UI.state`, `.previousState`, `.race`, `.laps`, `.checkpoints`, `.track`, `.trackId`, `.clock` and `.active`. These are mutable Lua tables exposed for integration/diagnostics, **not enforced read-only objects or security boundaries**. Treat them as borrowed read-only references in rendering: do not add, remove or alter authoritative fields, normalize headings in place, alter input, call a simulation step, or assign interpolated/camera coordinates back to them.
 
@@ -64,7 +64,50 @@ Common fields are `kind` (the full uppercase kind name below), `session` (six up
 
 Version fields are integers 1–1295; valid future values remain decodable for later explicit compatibility refusal. Track IDs are `test_oval` or `mirage_raceway`; laps are 1–9 at the wire layer (this adds no lap setting to the current three-lap game). `startTick` is 0 through 36^6-1; `seed` is 0 through 2147483647. Cancel reasons are `left`, `timeout`, `incompatible`, `combat`, `world_leave`, `error`. ACK accepts one of the five non-ACK kinds and a sequence 1–46655.
 
-The 11-byte header and body use fixed uppercase base36 with no pipes, whitespace or user text. Prefix bytes are additional. [ADR 0013](adr/0013-two-player-experiment-scope.md) defines this experimental envelope. No deduplication, peer authentication, retry scheduler, rate limiter, clock agreement, automatic start or live synchronization is supplied by a codec. `START.startTick` is encoded data, not permission to mutate a race. The next controller must enforce identity/session/version/phase/sequence policy before acting. The existing AZKART1 probe and rendering contracts are unchanged.
+The 11-byte header and body use fixed uppercase base36 with no pipes, whitespace or user text. Prefix bytes are additional. [ADR 0013](adr/0013-two-player-experiment-scope.md) defines this experimental envelope. No deduplication, peer authentication, retry scheduler, rate limiter, clock agreement, automatic start or live synchronization is supplied by a codec. `START.startTick` is encoded data, not permission to mutate a race. PeerSession enforces identity/session/version/phase/sequence policy before accepting a proposal, while transport and live-race coordination remain separate. The existing AZKART1 probe and rendering contracts are unchanged.
+
+## Implemented pure peer-session controller
+
+`PeerSession.lua` registers `AK.PeerSession` and returns the module. It injects RaceProtocol and time; it calls no WoW, UI, Physics or Race API. Loading/constructing a controller creates no traffic. Its mutable internal tables are Codex-owned, private by convention; `view` returns fresh nested copies for Claude's presentation. This is an ownership contract, not enforced read-only storage or peer authentication. See [UI/flow ownership](UI_FLOW_OWNERSHIP.md).
+
+```lua
+Session.new(options, now, RaceProtocol) -> state | nil, errorCode
+Session.invite(state, now, trackId) -> accepted, errorCode?
+Session.join(state, now) -> accepted, errorCode?
+Session.setReady(state, now, readyBoolean) -> accepted, errorCode?
+Session.start(state, now, startTick, seed) -> accepted, errorCode?
+Session.cancel(state, now, reason, notifyPeer?) -> accepted, errorCode?
+Session.update(state, now, sendFn) -> attempted, outcomeCode?
+Session.receive(state, now, prefix, payload, channel, nativeSender) -> handled, errorCode?
+Session.view(state) -> copiedView
+Session.takeStartProposal(state) -> copiedProposal | nil
+-- sendFn(payload, completePeerName) -> "accepted" | "failed" | "unknown" | "throttled"
+```
+
+Options are `role="host"|"guest"`, complete Forever `peer`, fresh six-character uppercase-alphanumeric `session`, integer `physicsVersion`, supported `trackVersions={test_oval=2,mirage_raceway=1}` (one or both), and `laps` default3. Options/track versions are copied. Names cap96 raw bytes, reject controls/DEL/pipe, trim/collapse ASCII spaces and compare the entire native sender with ASCII case folding; punctuation/UTF-8/surnames remain intact, with no realm invention or first-name fallback. Session-ID lifetime/reuse management belongs to the future adapter. A compatible host offer selects track and valid laps1–9; guest default laps/local solo selection does not override it. Physics and offered-track versions must match exactly. The current solo Race still fixes three laps; an eventual live adapter must preserve that supported configuration until Race gains an agreed configurable-laps API.
+
+| Phase | Entry and supported action |
+|---|---|
+| `idle` | New host; `invite(trackId)` queues INVITE. |
+| `listening` | New guest; accepts only the configured peer/session's compatible offer. |
+| `inviting` | Host awaits explicit peer JOIN; an INVITE ACK alone does not join. |
+| `invited` | Guest sees the compatible offer; explicit `join()` is required. |
+| `joining` | Guest awaits JOIN ACK; a later valid host READY can causally confirm a previously sent JOIN. |
+| `lobby` | Both may set readiness, one pending command each. Readiness stays unconfirmed until its ACK. |
+| `starting` | Host proposed parameters; guest received them. No simulation activation occurs. |
+| `closed` | Terminal reason retained; no new action/restart. Create a fresh controller/session deliberately. |
+
+Host `canStart` requires lobby, no pending command, local Ready acknowledged and peer Ready received. Guest cannot originate START. Host `startStatus` is `awaiting_ack`, then `acknowledged`; guest status is `received`. Accepted START can causally confirm the guest's previously sent Ready. A fresh unseen START in starting is refused; an identical retransmission is ACKed without reapplying it.
+
+`takeStartProposal` yields `{session,startTick,seed,peerAcknowledged}` **once**: guest after accepting START (`peerAcknowledged=false`), host only after its matching ACK (`true`). Returned proposal/view edits cannot mutate the controller. Guest receipt does not prove the host received its ACK. These are control parameters, not atomic GO, an agreed clock epoch or permission to start a race. A separate live coordinator must address clocks, cancellation and ambiguous start delivery before any race integration. Both controllers stay starting until cancel/timeout; no running/finished state is claimed here.
+
+The copied view contains `role,peer,session,phase,localReady,peerReady,localReadyConfirmed,startStatus,pendingKind,pendingAttempts,reason,deadline,canInvite,canJoin,canSetReady,canStart,canLeave,hasPendingOutput`, optional `offer/start`, and copied `stats`. Offer fields are physicsVersion/trackId/trackVersion/laps. Stats are sendAttempts/sendsAccepted/retries/received/rejected/duplicates/acksMatched. Capabilities describe permitted commands; pending output includes future retries and is not delivery evidence. Presentation maps capabilities to enabled controls and invokes commands; it never edits phase/readiness or authoritative simulation. Snapshot refresh/formatting must stay outside simulation ticks.
+
+Reliability constants: SEND_INTERVAL0.5 seconds shared across ACK/control/retry output, RETRY_INTERVAL2 seconds, MAX_ATTEMPTS3, MAX_ACK_QUEUE8, MAX_SEEN64, MAX_EVENTS256 scoped decoded receives. One update attempts at most one callback, with no catch-up burst. Exact duplicate commands reuse their ACK and never repeat transitions/proposals. Conflicting accepted sequence payloads close; unseen stale commands are refused. ACK sequence arrival order does not incorrectly stale a later command; ACK must match a command actually attempted. Reentrant ACK is deferred until the send callback returns accepted; nested update cannot send recursively. Failed/unknown/throttled/throwing outcomes stop with a fixed diagnostic. Local acceptance is not remote delivery.
+
+Injected time must be finite/nonnegative/monotonic. Invalid/backward time closes `clock_error`; no new output or automatic resume follows. Guest listening/invited and host inviting have30-second deadlines; joining10, lobby120, starting10. Duplicates/readiness do not extend the lobby deadline. Three unacknowledged attempts close two seconds after the last attempt. Queue/map/event/sequence limits close and clear output. Cancellation clears pending retries/proposals; optional local notification (default false) or remote final ACK gets at most one best-effort paced attempt within2 seconds. Automatic deadlines have no final notification. A future adapter must map fixed reasons to UI copy and lifecycle handling.
+
+Per-controller output cadence is2 calls/s; two peers' current maximum23-byte messages plus7-byte prefix imply at most120 payload-plus-prefixB/s at that cadence. This is not a measured capacity or a global rate limiter: the future native adapter must count other traffic under ADR0013's separate pair-wide4-calls/s and316B/s working ceilings. AZKART1 probe, multiplayer menu, native registration, full socket recovery, live start clocks and race replication are not implemented by this unit.
 
 ## Authoritative vehicle state
 
