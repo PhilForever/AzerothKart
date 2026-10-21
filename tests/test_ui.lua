@@ -180,7 +180,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     end
     local ok, err=pcall(function()
         local namespace={}
-        for _,name in ipairs({"Track", "MirageRaceway", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "UI", "Menu", "NetworkProbe", "TransportProbe", "Core"}) do
+        for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Courses", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "UI", "Menu", "NetworkProbe", "TransportProbe", "Core"}) do
             assert(loadfile("addon/AzerothKart/"..name..".lua"))("AzerothKart",namespace)
         end
         env.namespace=namespace
@@ -253,9 +253,14 @@ end
 -- exhaust flames of two layers each, created and loaded once with the window.
 local EFFECT_TEXTURES=20+14+2*2
 -- The front end (Menu.lua) creates its header, menu screens, race overlay and
--- results buttons once with the window; it replaced the old title line.
-local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=54,9,67
-local UI_TEXTURES=113+EFFECT_TEXTURES+MENU_TEXTURES
+-- results buttons once with the window; it replaced the old title line. The
+-- track list holds eight buttons (three tracks, five coming-soon cities) under
+-- two cup headings.
+local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=60,9,68
+-- City circuits have up to eight gates: the gate pool holds eight strips
+-- (the oval's four plus four kept hidden on the oval and Mirage Raceway).
+local GATE_STRIPS=8
+local UI_TEXTURES=109+GATE_STRIPS+EFFECT_TEXTURES+MENU_TEXTURES
 -- The Close results and Kart buttons add two Frames to the earlier nine.
 local UI_FRAMES=11+MENU_FRAMES
 local UI_FONTS=12+MENU_FONTS
@@ -367,7 +372,9 @@ withMock(nil, false, function(env,UI)
         assert(wall.item.colorWrites==1,"static wall color is configured once")
     end
     assert(UI.objects.frames==UI_FRAMES and UI.objects.textures==UI_TEXTURES and UI.objects.fontStrings==UI_FONTS,
-        "pooled run summary, lap/checkpoint HUD, drift meter and walls match the explicit UI object budget")
+        ("pooled run summary, lap/checkpoint HUD, drift meter and walls match the explicit UI object budget"
+            .." (%d/%d/%d, expected %d/%d/%d)"):format(UI.objects.frames,UI.objects.textures,
+            UI.objects.fontStrings,UI_FRAMES,UI_TEXTURES,UI_FONTS))
     local function covered(rectangles,x,y)
         for _,rect in ipairs(rectangles) do
             if y>=rect.bottom and y<=rect.top and x>=rect.left and x<=rect.right then
@@ -849,7 +856,10 @@ withMock(nil,false,function(env,UI)
         assert(color[1]==r and color[2]==g and color[3]==b and color[4]==a,
             "unexpected checkpoint tint for gate "..index)
     end
-    assert(#Track.gates==4 and #UI.gateTextures==4,"four track gates have pooled strips")
+    assert(#Track.gates==4 and #UI.gateTextures==GATE_STRIPS,"four track gates use pooled strips")
+    for index=#Track.gates+1,GATE_STRIPS do
+        assert(not UI.gateTextures[index]:IsShown(),"strips beyond the track's gates stay hidden")
+    end
     assert(UI.checkpoints.passed==0 and UI.checkpoints.nextGate==1 and
            not UI.checkpoints.complete and UI.checkpoints.lastTick==0,
         "fresh drive starts before the first checkpoint")

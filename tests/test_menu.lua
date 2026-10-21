@@ -245,8 +245,9 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu)
         ("every created object is counted: %d/%d/%d against %d/%d/%d"):format(UI.objects.frames,
             UI.objects.textures, UI.objects.fontStrings, env.counts.frames, env.counts.textures,
             env.counts.fontStrings))
-    assert(UI.objects.frames == 65 and UI.objects.textures == 160 and UI.objects.fontStrings == 79,
-        ("explicit budget 65/160/79, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
+    -- Eight track buttons under two cup headings; eight pooled gate strips.
+    assert(UI.objects.frames == 71 and UI.objects.textures == 164 and UI.objects.fontStrings == 80,
+        ("explicit budget 71/164/80, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
             UI.objects.fontStrings))
     assert(AzerothKartDB.preferences == nil, "creation saves nothing")
     local before = counts(env)
@@ -444,6 +445,9 @@ withMock({schemaVersion=1, preferences={version=1, kart="gyrocopter", track="mir
     assert(UI.trackId == "mirage_raceway" and AzerothKartDB.preferences.track == "mirage_raceway",
         "the bar's track button selects and is remembered")
     click(UI.trackButton)
+    assert(UI.trackId == "stormwind_city" and AzerothKartDB.preferences.track == "stormwind_city",
+        "the bar's track button steps on to the city circuit")
+    click(UI.trackButton)
     assert(UI.trackId == "test_oval" and AzerothKartDB.preferences.track == "test_oval",
         "switching back is remembered too")
 end, function(env, AK)
@@ -477,6 +481,14 @@ withMock({schemaVersion=1, preferences={version=1, track="mirage_raceway"}}, fun
     UI.Toggle(); UI.Toggle()
     assert(UI.trackId == "mirage_raceway" and AzerothKartDB.preferences.track == "mirage_raceway",
         "the saved track returns on the next open out of combat")
+end)
+
+-- The coming-soon cities are listed, disabled and inert.
+withMock(nil, function(env, UI, Menu)
+    UI.Toggle(); click(Menu.view.homeButtons[1])
+    local soon = Menu.view.soonButtons.ironforge_gp
+    assert(soon and not soon:IsEnabled() and not soon.scripts.OnClick and soon.text:find("(soon)", 1, true),
+        "a coming-soon city is listed, disabled and inert")
 end)
 
 -- Saving keeps what this version does not know and never replaces a newer record.

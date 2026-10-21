@@ -14,6 +14,7 @@ local _, AK = ...
 assert(type(AK) == "table", "addon namespace required")
 local Presentation = AK.Presentation
 local Physics = AK.Physics
+local Courses = AK.Courses
 
 local Menu = {screen=nil, screens={}, view={}}
 AK.Menu = Menu
@@ -22,6 +23,8 @@ local UI
 -- ---------------------------------------------------------------------------
 -- Copy and data. Karts are cosmetic: every one drives the same 17x31 body.
 
+-- The track list's copy, in display order within each cup (Courses.CUPS).
+-- Courses marked `soon` in Courses.LIST are listed after these, disabled.
 Menu.TRACKS = {
     {id="mirage_raceway", name="Mirage Raceway", cell=0,
         blurb="A sun-baked salt circuit on the dry Shimmering Flats, run between the rival goblin and gnome camps.",
@@ -29,6 +32,11 @@ Menu.TRACKS = {
     {id="test_oval", name="Test Oval", cell=1,
         blurb="The proving loop: one wide oval to learn the drift, with two solid crates to dodge.",
         facts={"3 laps, 4 gates", "Counterclockwise: North, West, South, Start", "Grass slows you down; crates stop you"}},
+    {id="stormwind_city", name="Stormwind City Circuit", cell="stormwind",
+        blurb="Start in the Valley of Heroes, through the gate into the Trade District, then the canals: "
+            .. "Old Town, the Dwarven District, Cathedral Square, the Park and the Mage Quarter.",
+        facts={"3 laps, 6 gates named for the districts", "The canals stay on your left all lap",
+            "Walls and the fountain are solid; the kerbside slows you"}},
 }
 
 local WC3C = "Model: ITE project (wc3c), author unknown"
@@ -55,7 +63,7 @@ Menu.CONTROLS = {
 }
 
 Menu.RULES = {
-    "Pass the gates in order (North, West, South, Start); each full circuit is a lap. Three laps finish the race.",
+    "Pass the gates in order (the HUD names the next one); each full circuit is a lap. Three laps finish the race.",
     "Hold a drift to charge it: blue, then gold at Tier 1 (0.5 s), then pink at Tier 2 (1 s). Release Space for a boost.",
     "Leaving the road slows you and cancels drift and boost. Walls scrub speed; steer away to recover.",
     "Your best lap is kept for the current run. Entering combat closes the game.",
@@ -66,9 +74,12 @@ Menu.WINDOW_WIDTH, Menu.WINDOW_HEIGHT = 856, 762
 Menu.PREVIEW_PATH = "Interface\\AddOns\\AzerothKart\\Assets\\UI\\TrackPreviews.tga"
 -- TrackPreviews.tga: 1024x512, one 512x512 cell per track. Mirage fills its
 -- cell; the 5:3 Oval painting sits centered in the top 300 rows of its cell.
+-- A city has its own 512x512 Preview.tga beside its scenery (`path`).
 Menu.PREVIEW_CELLS = {
-    [0]={left=0, right=0.5, top=0, bottom=1, width=340, height=340},
-    [1]={left=0.5+6/1024, right=1-6/1024, top=0, bottom=300/512, width=340, height=204},
+    [0]={left=0, right=0.5, top=0, bottom=1, width=320, height=320},
+    [1]={left=0.5+6/1024, right=1-6/1024, top=0, bottom=300/512, width=320, height=192},
+    stormwind={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\Stormwind\\Preview.tga",
+        left=0, right=1, top=0, bottom=1, width=320, height=320},
 }
 
 -- Fixed fonts; each falls back to GameFontNormal when the client lacks it.
@@ -127,7 +138,7 @@ function Menu.readPreferences(db)
     local raw = type(db) == "table" and db.preferences
     if type(raw) ~= "table" then return prefs, true end
     local writable = not (type(raw.version) == "number" and raw.version > 1)
-    if raw.track == "test_oval" or raw.track == "mirage_raceway" then prefs.track = raw.track end
+    if type(raw.track) == "string" and Courses and Courses.available(raw.track) then prefs.track = raw.track end
     if type(raw.kart) == "string" and Presentation.KART_SPRITES[raw.kart] then prefs.kart = raw.kart end
     if type(raw.effects) == "boolean" then prefs.effects = raw.effects end
     if type(raw.devInfo) == "boolean" then prefs.devInfo = raw.devInfo end
@@ -401,7 +412,8 @@ local function buildHome()
     call(logo, "SetShadowOffset", 2, -2)
     call(logo, "SetShadowColor", 0, 0, 0, 1)
     Menu.view.logo = logo
-    Menu.view.tagline = newText(root, FONT.white, "TOP", 0, -90, "Goblin-powered racing on the Shimmering Flats")
+    Menu.view.tagline = newText(root, FONT.white, "TOP", 0, -90,
+        "Goblin-powered racing from the Shimmering Flats to Stormwind")
     local box = panel(root, DIALOG, 300, 270, "TOP", 0, -124)
     Menu.screens.home = box
     box:Hide()
@@ -424,35 +436,62 @@ local function buildHome()
     end
 end
 
+-- The list: each cup's heading, its tracks (Menu.TRACKS order), then its
+-- coming-soon entries (Courses.LIST), disabled.
+function Menu.trackRows()
+    local rows = {}
+    for _,cup in ipairs(Courses and Courses.CUPS or {{id="proving", name="Proving Grounds"}}) do
+        rows[#rows + 1] = {heading=cup.name}
+        for _,track in ipairs(Menu.TRACKS) do
+            local course = Courses and Courses.get(track.id)
+            if (course and course.cup or "proving") == cup.id then rows[#rows + 1] = {track=track} end
+        end
+        for _,course in ipairs(Courses and Courses.LIST or {}) do
+            if course.cup == cup.id and course.soon then rows[#rows + 1] = {soon=course} end
+        end
+    end
+    return rows
+end
+
 local function buildTracks()
-    local box = screenBox("tracks", "Choose a Track")
+    local box = screenBox("tracks", "Choose a Track", 780, 640)
     Menu.view.trackStep = newText(box, FONT.gray, "TOPRIGHT", -30, -34, "Step 1 of 2")
     local glow = newTexture(box, "ARTWORK")
     glow:SetColorTexture(1, 0.82, 0, 0.30)
-    local buttons = {}
-    for index,track in ipairs(Menu.TRACKS) do
-        local button = newButton(box, track.name, 300, 40, "TOPLEFT", 34, -86 - (index - 1) * 50, function()
-            if UI.SelectTrack(track.id) then toast("tracks", "") -- Sync remembers it
-            elseif inCombat() then toast("tracks", "Leave combat to change tracks.")
-            else toast("tracks", UI.status and UI.status:GetText() or "That track is unavailable.") end
-            refresh.tracks()
-        end)
-        fonts(button, "GameFontNormalLarge", "GameFontHighlightLarge", "GameFontDisableLarge")
-        buttons[track.id] = button
+    local buttons, soon = {}, {}
+    local y = -78
+    for _,row in ipairs(Menu.trackRows()) do
+        if row.heading then
+            color(newText(box, FONT.normal, "TOPLEFT", 38, y - 6, row.heading), GOLD)
+            y = y - 26
+        else
+            local track, course = row.track, row.soon
+            local label = track and track.name or (course.name .. "  |cffff8c26(soon)|r")
+            local button = newButton(box, label, 310, 30, "TOPLEFT", 34, y, track and function()
+                if UI.SelectTrack(track.id) then toast("tracks", "") -- Sync remembers it
+                elseif inCombat() then toast("tracks", "Leave combat to change tracks.")
+                else toast("tracks", UI.status and UI.status:GetText() or "That track is unavailable.") end
+                refresh.tracks()
+            end or nil)
+            fonts(button, "GameFontNormal", "GameFontHighlight", "GameFontDisable")
+            if track then buttons[track.id] = button
+            else button:Disable(); soon[course.id] = button end
+            y = y - 34
+        end
     end
-    newText(box, FONT.graySmall, "TOPLEFT", 36, -86 - #Menu.TRACKS * 50 - 4, "More tracks are on the way.")
-    local name = newText(box, FONT.huge, "TOPLEFT", 34, -220)
-    local blurb = wrap(newText(box, FONT.white, "TOPLEFT", 34, -256), 310)
-    local facts = {}
-    for index=1,3 do facts[index] = wrap(newText(box, FONT.normal, "TOPLEFT", 34, -330 - (index - 1) * 26), 310) end
-    local card = panel(box, CARD, 364, 364, "TOPRIGHT", -30, -78, 0.05, 0.05, 0.06, 1)
+    local card = panel(box, CARD, 340, 340, "TOPRIGHT", -32, -72, 0.05, 0.05, 0.06, 1)
     local preview = newTexture(card, "ARTWORK")
     preview:SetPoint("CENTER")
     local missing = newText(card, FONT.gray, "CENTER", 0, 0, "Preview unavailable")
+    local name = wrap(newText(box, FONT.large, "TOPRIGHT", -32, -422), 340)
+    local blurb = wrap(newText(box, FONT.white, "TOPRIGHT", -32, -446), 340)
+    local facts = {}
+    for index=1,3 do facts[index] = wrap(newText(box, FONT.normal, "TOPRIGHT", -32, -510 - (index - 1) * 20), 340) end
     newButton(box, "Back", 150, 30, "BOTTOMLEFT", 30, 26, function() Menu.Show("home") end)
     Menu.view.trackNext = newButton(box, "Next: Choose Kart", 240, 36, "BOTTOMRIGHT", -30, 22,
         function() Menu.Show("karts") end, true)
-    Menu.view.trackButtons, Menu.view.trackPreview = buttons, preview
+    Menu.view.trackButtons, Menu.view.trackPreview, Menu.view.soonButtons = buttons, preview, soon
+    Menu.previewLoaded = {}
     refresh.tracks = function()
         local track = trackInfo(UI.trackId) or Menu.TRACKS[1]
         markSelected(buttons, glow, UI.trackId)
@@ -460,10 +499,14 @@ local function buildTracks()
         blurb:SetText(track.blurb)
         for index,line in ipairs(facts) do line:SetText(track.facts[index] or "") end
         local cell = Menu.PREVIEW_CELLS[track.cell]
-        if Menu.previewReady == nil then -- one guarded load, on first use
-            local ok, loaded = call(preview, "SetTexture", Menu.PREVIEW_PATH)
-            Menu.previewReady = ok and loaded == true
+        local path = cell.path or Menu.PREVIEW_PATH
+        -- A guarded load when the picture changes; one that failed is not retried.
+        if Menu.previewLoaded[path] ~= false and Menu.previewPath ~= path then
+            local ok, loaded = call(preview, "SetTexture", path)
+            Menu.previewLoaded[path] = ok and loaded == true
+            Menu.previewPath = Menu.previewLoaded[path] and path or nil
         end
+        Menu.previewReady = Menu.previewPath == path
         setShown(preview, Menu.previewReady)
         setShown(missing, not Menu.previewReady)
         if Menu.previewReady then

@@ -8,6 +8,9 @@ local Presentation = AK.Presentation
 local Checkpoints = AK.Checkpoints
 local Laps = AK.Laps
 local Race = AK.Race
+local Courses = AK.Courses
+-- Gate strips are pooled for the course with the most gates; unused ones hide.
+local GATE_POOL = 8
 local UI = {
     active=false, keys=Input.new(), input={}, pendingPropagationRelease=false,
     objects={frames=0, textures=0, fontStrings=0}, stopReason="Not started",
@@ -263,12 +266,13 @@ local function refreshHud()
     end
     if UI.driftHud then
         local state = UI.state
-        local salt = UI.trackId == "mirage_raceway"
-        local surface = state.surface == "grass" and (salt and "Rough salt" or "Grass") or
+        local course = Courses and Courses.get(UI.trackId)
+        local rough = course and course.rough
+        local surface = state.surface == "grass" and (rough and rough.label or "Grass") or
             (state.surface == "wall" and "Wall" or "Road")
         local feedback = "Drift: hold Space + turn at speed 90+ | Release Space to boost"
         if state.surface == "grass" then
-            feedback = (salt and "Slowing on rough salt" or "Slowing on grass") ..
+            feedback = (rough and rough.feedback or "Slowing on grass") ..
                 " | Rejoin the road to drift"
         elseif state.surface == "wall" then
             feedback = "Steer away from the barrier and rejoin the road"
@@ -408,12 +412,15 @@ local function drawTrack(canvas)
     drawEllipse(canvas,Track.outerX,Track.outerY,64,"BACKGROUND",0.26,0.25,0.23)
     drawEllipse(canvas,Track.innerX,Track.innerY,32,"BORDER",0.08,0.24,0.12)
     UI.gateTextures = {}
-    for index,gate in ipairs(Track.gates) do
+    for index=1,GATE_POOL do
         local line = texture(canvas,"ARTWORK")
         line:SetColorTexture(0.55,0.58,0.62,0.65)
-        line:SetSize(gate.ax == gate.bx and 5 or math.abs(gate.bx-gate.ax),
-            gate.ay == gate.by and 5 or math.abs(gate.by-gate.ay))
-        line:SetPoint("CENTER",canvas,"BOTTOMLEFT",(gate.ax+gate.bx)/2,(gate.ay+gate.by)/2)
+        local gate = Track.gates[index]
+        if gate then
+            line:SetSize(gate.ax == gate.bx and 5 or math.abs(gate.bx-gate.ax),
+                gate.ay == gate.by and 5 or math.abs(gate.by-gate.ay))
+            line:SetPoint("CENTER",canvas,"BOTTOMLEFT",(gate.ax+gate.bx)/2,(gate.ay+gate.by)/2)
+        else line:Hide() end
         UI.gateTextures[index] = line
     end
     -- Two Test Oval collision fixtures, pooled once and driven by the same
@@ -453,11 +460,13 @@ local function placeWorldRect(piece,x,y,width,height)
 end
 
 local function placeTrackMarkers()
-    for index,gate in ipairs(Track.gates) do
-        local width = gate.ax == gate.bx and 5 or math.abs(gate.bx-gate.ax)
-        local height = gate.ay == gate.by and 5 or math.abs(gate.by-gate.ay)
-        placeWorldRect(UI.gateTextures[index],(gate.ax+gate.bx-width)/2,
-            (gate.ay+gate.by-height)/2,width,height)
+    for index,piece in ipairs(UI.gateTextures) do
+        local gate = Track.gates[index]
+        if gate then
+            local width = gate.ax == gate.bx and 5 or math.abs(gate.bx-gate.ax)
+            local height = gate.ay == gate.by and 5 or math.abs(gate.by-gate.ay)
+            placeWorldRect(piece,(gate.ax+gate.bx-width)/2,(gate.ay+gate.by-height)/2,width,height)
+        else piece:Hide() end
     end
     local thickness = 4
     placeWorldRect(UI.wallTextures[1],0,0,Track.width,thickness)
@@ -551,7 +560,7 @@ local function resetEffects()
     for _,piece in ipairs(UI.fxFlames) do hideEffect(piece) end
     UI.fxOptions = {
         anchors=UI.kartSprite and UI.kartSprite.effects or Presentation.DEFAULT_EFFECT_ANCHORS,
-        dust=UI.trackId == "mirage_raceway" and MIRAGE_DUST or OVAL_DUST,
+        dust=(Courses and Courses.get(UI.trackId) or {}).dust or OVAL_DUST,
         boostFullTicks=Physics.BOOST_TIER2_TICKS,
     }
 end
@@ -617,22 +626,25 @@ local function sizeKart()
 end
 
 local function layoutTrack()
-    local mirage = UI.trackId == "mirage_raceway"
-    UI.view = mirage and Presentation.cameraViewport(Track.width,Track.height,800,480,1.5) or
+    -- A course with a scenery picture uses the follow camera over it; the
+    -- Test Oval is drawn whole with its pooled shapes.
+    local course = Courses and Courses.get(UI.trackId)
+    local follow = course ~= nil and course.background ~= nil
+    UI.view = follow and Presentation.cameraViewport(Track.width,Track.height,800,480,1.5) or
         Presentation.fitViewport(Track.width,Track.height,800,480)
     UI.cameraCropReady = false
     for _,piece in ipairs(UI.ovalTextures) do
-        if mirage then piece:Hide() else piece:Show() end
+        if follow then piece:Hide() else piece:Show() end
     end
-    if mirage then UI.mirageBackground:Show() else UI.mirageBackground:Hide() end
-    UI.grass:SetColorTexture(mirage and 0.12 or 0.08,mirage and 0.11 or 0.24,
-        mirage and 0.09 or 0.12,1)
+    if follow then UI.mirageBackground:Show() else UI.mirageBackground:Hide() end
+    local ground = follow and course.ground or {0.08,0.24,0.12}
+    UI.grass:SetColorTexture(ground[1],ground[2],ground[3],1)
     UI.mirageBackground:ClearAllPoints()
     UI.mirageBackground:SetPoint("BOTTOMLEFT",UI.canvas,"BOTTOMLEFT",0,0)
     UI.mirageBackground:SetSize(800,480)
     placeTrackMarkers()
     for index,piece in ipairs(UI.obstacleTextures) do
-        if mirage then piece:Hide()
+        if Track ~= Oval then piece:Hide()
         else
             local obstacle = Oval.obstacles[index]
             placeWorldRect(piece,obstacle.x,obstacle.y,obstacle.width,obstacle.height)
@@ -733,43 +745,50 @@ end
 
 function UI.SelectTrack(id)
     if not UI.window or not UI.window:IsShown() or UI.active or inCombat() then return false end
-    if id ~= "test_oval" and id ~= "mirage_raceway" then return false end
+    local course = Courses and Courses.get(id)
+    if not course or course.soon then return false end
     if id == UI.trackId then return true end
-    if id == "mirage_raceway" and type(UI.mirageBackground.SetTexCoord) ~= "function" then
-        refuseStart("Mirage camera unavailable | Test Oval remains available")
+    local background = course.background
+    if background and type(UI.mirageBackground.SetTexCoord) ~= "function" then
+        refuseStart(course.name .. " camera unavailable | Test Oval remains available")
         return false
     end
-    if id == "mirage_raceway" and not UI.mirageTextureReady then
-        -- The client documents a boolean load result. Missing/erroring/failed
-        -- texture loads leave the old track and its stopped result untouched.
+    local selected = Courses.build(id,Oval.crossesGate)
+    if not selected then return false end
+    if background and not UI.cameraApiReady then
+        local probe = Presentation.cameraViewport(selected.width,selected.height,800,480,1.5)
+        local spawn = selected.spawn()
+        Presentation.follow(probe,spawn.x,spawn.y,spawn.heading,60)
+        local ok = pcall(UI.mirageBackground.SetTexCoord,UI.mirageBackground,
+            Presentation.texCoords(probe))
+        if not ok then
+            refuseStart(course.name .. " camera unavailable | Test Oval remains available")
+            return false
+        end
+        UI.cameraApiReady = true
+    end
+    if background and UI.backgroundPath ~= background then
+        -- One scenery picture is loaded at a time. The client documents a
+        -- boolean load result. A missing/erroring/failed load restores the
+        -- previous picture and leaves the old track and its stopped result
+        -- untouched.
         local loader = UI.mirageBackground.SetTexture
         local ok,loaded = false,false
         if type(loader) == "function" then
-            ok,loaded = pcall(loader,UI.mirageBackground,
-                "Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\SaltFlats\\Background.tga")
+            ok,loaded = pcall(loader,UI.mirageBackground,background)
         end
         if not ok or loaded ~= true then
-            refuseStart("Mirage background unavailable | Test Oval remains available")
+            if UI.backgroundPath and type(loader) == "function" then
+                pcall(loader,UI.mirageBackground,UI.backgroundPath)
+            end
+            refuseStart(course.name .. " background unavailable | Test Oval remains available")
             return false
         end
-        UI.mirageTextureReady = true
+        UI.backgroundPath = background
+        UI.mirageTextureReady = id == "mirage_raceway"
     end
-    if id == "mirage_raceway" then
-        UI.mirageTrack = UI.mirageTrack or AK.MirageRaceway.new(Oval.crossesGate)
-        if not UI.cameraApiReady then
-            local probe = Presentation.cameraViewport(UI.mirageTrack.width,UI.mirageTrack.height,800,480,1.5)
-            local spawn = UI.mirageTrack.spawn()
-            Presentation.follow(probe,spawn.x,spawn.y,spawn.heading,60)
-            local ok = pcall(UI.mirageBackground.SetTexCoord,UI.mirageBackground,
-                Presentation.texCoords(probe))
-            if not ok then
-                refuseStart("Mirage camera unavailable | Test Oval remains available")
-                return false
-            end
-            UI.cameraApiReady = true
-        end
-        Track = UI.mirageTrack
-    else Track = Oval end
+    if id == "mirage_raceway" then UI.mirageTrack = selected end
+    Track = selected
     UI.ReleaseInput()
     UI.track,UI.trackId = Track,id
     UI.state = Physics.new(Track)
@@ -780,13 +799,11 @@ function UI.SelectTrack(id)
     UI.hudElapsed = 0
     UI.stopReason = "Track selected"
     UI.summary:Hide()
-    UI.trackButton:SetText(id == "mirage_raceway" and "Track: Mirage Raceway" or "Track: Test Oval")
+    UI.trackButton:SetText("Track: " .. (course.short or course.name))
     layoutTrack()
     render()
     refreshHud()
-    UI.status:SetText(id == "mirage_raceway" and
-        "Mirage Raceway | Start for 3 laps | Off-road: rough salt" or
-        "Test Oval | Start for 3 laps")
+    UI.status:SetText(course.status)
     return true
 end
 
@@ -917,7 +934,13 @@ function UI.Create()
     UI.trackButton:SetPoint("BOTTOMLEFT",280,12)
     UI.trackButton:SetText("Track: Test Oval")
     UI.trackButton:SetScript("OnClick",function()
-        UI.SelectTrack(UI.trackId == "test_oval" and "mirage_raceway" or "test_oval")
+        -- The next course that loads; a refused one is skipped this click.
+        local id = UI.trackId
+        for _=1,#Courses.LIST do
+            id = Courses.next(id)
+            if id == UI.trackId or UI.SelectTrack(id) then break end
+            if UI.active or inCombat() then break end
+        end
     end)
     -- Cosmetic kart cycle; refused while a run is active (refreshHud keeps
     -- the button disabled then).
