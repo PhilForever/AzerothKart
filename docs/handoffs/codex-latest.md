@@ -1,3 +1,8 @@
+# Latest review — Gemini feedback
+
+2026-10-21 12:25+02:00, Europe/Oslo. Documentation-only `codex/gemini-feedback` from `2232f82`; result is the accompanying review commit. [Assessment](../reviews/2026-10-21-gemini-feedback.md) records useful suggestions and corrected networking/timing/asset claims. Only this handoff, the review note and the appended PROGRESS entry changed. No gameplay/API/art/Claude/install changes. Actual Lua5.1 Loop micro-experiment demonstrates dropped hitch time; broad suite/client checks NOT RUN for this review. Structural validator PASS82paths/TOCs/links/ledger; whitespace PASS. Next development task is unchanged: bounded live-race control and paced remote snapshots, preserving budgets and a read-only Claude render boundary. The implementation handoff below remains authoritative for source2232f82.
+
+---
 # Codex handoff — start-clock foundation and backend race initialization
 
 2026-10-21 12:18+02:00, Europe/Oslo. Branch `codex/start-clock`, base `4f9246a`; result is the accompanying commit (`git log -1 codex/start-clock`). Protected combined source remains `83c611c`. [START_CLOCK](../START_CLOCK.md) is the exact new contract; [SESSION_MENU_API](../SESSION_MENU_API.md) records the unchanged legacy bridge plus opt-in additions.
