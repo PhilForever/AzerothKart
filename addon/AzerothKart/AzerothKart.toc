@@ -20,4 +20,5 @@ RaceProtocol.lua
 PeerSession.lua
 NetworkProbe.lua
 TransportProbe.lua
+SessionTransport.lua
 Core.lua

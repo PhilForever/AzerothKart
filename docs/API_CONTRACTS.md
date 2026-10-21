@@ -1,10 +1,10 @@
 # Implemented simulation and rendering contracts
 
-**Checkpoint:** 2026-10-21, `codex/roster-integration` from Codex`3644084` and Claude`b0b1f2e`, retaining combined rendering/runtime `8195da9` and Forever transport correction `8f66c5a`, plus the pure control codec/session controller and reviewed six-kart integration. Physics compatibility version remains **7** (v6 handling retained). This describes the local solo prototype, measured transport experiment and offline control foundation; it does not claim a released engine or playable multiplayer. See [PROGRESS](PROGRESS.md) and [the latest handoff](handoffs/codex-latest.md).
+**Checkpoint:** 2026-10-21, `codex/session-transport` from combined`83c611c`, retaining combined rendering/runtime `8195da9` and Forever transport correction `8f66c5a`, plus the pure control codec/session controller and reviewed six-kart integration. Physics compatibility version remains **7** (v6 handling retained). This describes the local solo prototype, measured transport experiment and offline control foundation; it does not claim a released engine or playable multiplayer. See [PROGRESS](PROGRESS.md) and [the latest handoff](handoffs/codex-latest.md).
 
 ## Status and ownership
 
-The interfaces below exist in source today. `Renderer`, `GameSession`, collision-event streams, velocity vectors, a replay API and production synchronization adapters do **not** exist. The standalone NetworkProbe/TransportProbe experiment and the pure RaceProtocol/PeerSession control foundation described below are implemented; none feeds authoritative simulation state. There is no native session adapter or multiplayer menu yet. Proposed architecture sketches in [ARCHITECTURE](ARCHITECTURE.md) must not override the signatures here.
+The interfaces below exist in source today. `Renderer`, `GameSession`, collision-event streams, velocity vectors, a replay API and production synchronization adapters do **not** exist. The standalone NetworkProbe/TransportProbe experiment and the pure RaceProtocol/PeerSession control foundation described below are implemented; none feeds authoritative simulation state. The native SessionTransport boundary is implemented and tested with mocks; there is no multiplayer menu or live-race coordinator yet. Proposed architecture sketches in [ARCHITECTURE](ARCHITECTURE.md) must not override the signatures here.
 
 - **Codex:** Physics, collision/surface queries, Input sampling, Loop, Checkpoints, Laps, Race, deterministic simulation and their tests; experimental transport/accounting, RaceProtocol, PeerSession and future synchronization.
 - **Claude:** visual rendering, camera/presentation helpers, track imagery, HUD, sprites, animations/VFX, asset tooling and their focused visual tests.
@@ -14,7 +14,7 @@ The interfaces below exist in source today. `Renderer`, `GameSession`, collision
 
 ## Modules and data access
 
-The two TOCs load `Track`, `MirageRaceway`, `Physics`, `Input`, `Loop`, `Performance`, `Presentation`, `Checkpoints`, `Laps`, `Race`, `UI`, `RaceProtocol`, `PeerSession`, `NetworkProbe`, `TransportProbe`, `Core` in that order. Pure modules receive `local _, namespace = ...`, optionally register their module on that explicit table, and return it for offline loading. They do not access WoW globals. Core exports the same namespace as `_G.AzerothKart` for diagnostics.
+The two TOCs load `Track`, `MirageRaceway`, `Physics`, `Input`, `Loop`, `Performance`, `Presentation`, `Checkpoints`, `Laps`, `Race`, `UI`, `RaceProtocol`, `PeerSession`, `NetworkProbe`, `TransportProbe`, `SessionTransport`, `Core` in that order. Pure modules receive `local _, namespace = ...`, optionally register their module on that explicit table, and return it for offline loading. They do not access WoW globals. Core exports the same namespace as `_G.AzerothKart` for diagnostics.
 
 The current render path reads `AK.UI.state`, `.previousState`, `.race`, `.laps`, `.checkpoints`, `.track`, `.trackId`, `.clock` and `.active`. These are mutable Lua tables exposed for integration/diagnostics, **not enforced read-only objects or security boundaries**. Treat them as borrowed read-only references in rendering: do not add, remove or alter authoritative fields, normalize headings in place, alter input, call a simulation step, or assign interpolated/camera coordinates back to them.
 
@@ -77,7 +77,7 @@ Session.join(state, now) -> accepted, errorCode?
 Session.setReady(state, now, readyBoolean) -> accepted, errorCode?
 Session.start(state, now, startTick, seed) -> accepted, errorCode?
 Session.cancel(state, now, reason, notifyPeer?) -> accepted, errorCode?
-Session.update(state, now, sendFn) -> attempted, outcomeCode?
+Session.update(state, now, sendFn, sendAllowed?) -> attempted, outcomeCode?
 Session.receive(state, now, prefix, payload, channel, nativeSender) -> handled, errorCode?
 Session.view(state) -> copiedView
 Session.takeStartProposal(state) -> copiedProposal | nil
@@ -103,11 +103,46 @@ Host `canStart` requires lobby, no pending command, local Ready acknowledged and
 
 The copied view contains `role,peer,session,phase,localReady,peerReady,localReadyConfirmed,startStatus,pendingKind,pendingAttempts,reason,deadline,canInvite,canJoin,canSetReady,canStart,canLeave,hasPendingOutput`, optional `offer/start`, and copied `stats`. Offer fields are physicsVersion/trackId/trackVersion/laps. Stats are sendAttempts/sendsAccepted/retries/received/rejected/duplicates/acksMatched. Capabilities describe permitted commands; pending output includes future retries and is not delivery evidence. Presentation maps capabilities to enabled controls and invokes commands; it never edits phase/readiness or authoritative simulation. Snapshot refresh/formatting must stay outside simulation ticks.
 
-Reliability constants: SEND_INTERVAL0.5 seconds shared across ACK/control/retry output, RETRY_INTERVAL2 seconds, MAX_ATTEMPTS3, MAX_ACK_QUEUE8, MAX_SEEN64, MAX_EVENTS256 scoped decoded receives. One update attempts at most one callback, with no catch-up burst. Exact duplicate commands reuse their ACK and never repeat transitions/proposals. Conflicting accepted sequence payloads close; unseen stale commands are refused. ACK sequence arrival order does not incorrectly stale a later command; ACK must match a command actually attempted. Reentrant ACK is deferred until the send callback returns accepted; nested update cannot send recursively. Failed/unknown/throttled/throwing outcomes stop with a fixed diagnostic. Local acceptance is not remote delivery.
+Reliability constants: SEND_INTERVAL0.5 seconds shared across ACK/control/retry output, RETRY_INTERVAL2 seconds, MAX_ATTEMPTS3, MAX_ACK_QUEUE8, MAX_SEEN64, MAX_EVENTS256 scoped decoded receives. One update attempts at most one callback, with no catch-up burst. Additive optional `sendAllowed=false` still advances deadlines/clocks and expires final output, but never invokes the send callback or consumes an attempt; omitted/true retains existing behavior. Non-boolean non-nil flags are refused. Exact duplicate commands reuse their ACK and never repeat transitions/proposals. Conflicting accepted sequence payloads close; unseen stale commands are refused. ACK sequence arrival order does not incorrectly stale a later command; ACK must match a command actually attempted. Reentrant ACK is deferred until the send callback returns accepted; nested update cannot send recursively. Failed/unknown/throttled/throwing outcomes stop with a fixed diagnostic. Local acceptance is not remote delivery.
 
 Injected time must be finite/nonnegative/monotonic. Invalid/backward time closes `clock_error`; no new output or automatic resume follows. Guest listening/invited and host inviting have30-second deadlines; joining10, lobby120, starting10. Duplicates/readiness do not extend the lobby deadline. Three unacknowledged attempts close two seconds after the last attempt. Queue/map/event/sequence limits close and clear output. Cancellation clears pending retries/proposals; optional local notification (default false) or remote final ACK gets at most one best-effort paced attempt within2 seconds. Automatic deadlines have no final notification. A future adapter must map fixed reasons to UI copy and lifecycle handling.
 
-Per-controller output cadence is2 calls/s; two peers' current maximum23-byte messages plus7-byte prefix imply at most120 payload-plus-prefixB/s at that cadence. This is not a measured capacity or a global rate limiter: the future native adapter must count other traffic under ADR0013's separate pair-wide4-calls/s and316B/s working ceilings. AZKART1 probe, multiplayer menu, native registration, full socket recovery, live start clocks and race replication are not implemented by this unit.
+Per-controller output cadence is2 calls/s; two peers' current maximum23-byte messages plus7-byte prefix imply at most120 payload-plus-prefixB/s at that cadence. This pure module is not a measured capacity or global rate limiter. SessionTransport supplies its candidate-wide output gate while holding an exclusive lease against the standalone probe. Multiplayer menu, full socket recovery, live start clocks and race replication are not implemented by PeerSession.
+
+## Implemented logged-whisper session adapter and menu bridge
+
+`SessionTransport.lua` is the Codex-owned WoW boundary over the existing controller and separate AZKART2 prefix. `AK.SessionTransport` exposes dot-call methods below; its raw controller remains private. Loading/Init performs no prefix/event registration, native sends, chat output, race mutation or UI allocation. Actual AZKART2 client traffic is **NOT RUN**; tests inject native APIs. [Claude's menu guide](SESSION_MENU_API.md) records flow and ownership.
+
+```lua
+SessionTransport.Init(coreFrame) -> accepted, errorCode?
+SessionTransport.Host(completePeer, freshCode, trackId) -> accepted, errorCode?
+SessionTransport.Listen(completeHost, freshCode) -> accepted, errorCode?
+SessionTransport.Join() -> accepted, errorCode?
+SessionTransport.Ready(readyBoolean) -> accepted, errorCode?
+SessionTransport.Start(startTick, seed) -> accepted, errorCode?
+SessionTransport.Leave() -> accepted, errorCode?
+SessionTransport.Stop(fixedReason) -> wasActive
+SessionTransport.IsActive() -> boolean
+SessionTransport.Update() -> attempted, outcomeCode?
+SessionTransport.Message(prefix,payload,channel,nativeSender) -> handled, errorCode?
+SessionTransport.HandleEvent(event)
+SessionTransport.GetView() -> copiedView
+SessionTransport.TakeStartProposal() -> copiedProposal | nil, errorCode?
+```
+
+Host/Listen explicitly arm one full native Forever peer/fresh six-character code. Actual Physics.VERSION, Test Oval.version and a separate Mirage factory instance's version populate compatibility; fixed3laps match current Race support. Host queues the invite without sending; Listen alone never accepts it. No room discovery, identity/realm inference, automatic rearm, code generation or new slash command exists. Accepted sessions consume one of64remembered codes per addon lifetime; malformed/refused setup does not consume an ID. Reload clears history but still requires a genuinely fresh code.
+
+The adapter exclusively leases Core's existing frame with addon-owned `akNetworkOwner`. Both adapters mark `akNetworkSending` during native calls, preventing handover even if Stop releases the ordinary lease from a send callback. Only the lease owner may change OnUpdate/CHAT_MSG_ADDON_LOGGED registration; Core retains OnEvent. Probe arming verifies ownership after each native setup step and blocks recursive arm. Inactive Stop cannot detach the other adapter. No two-adapter concurrency or packet sends from Message/actions occur. The separate AZKART1 experiment retains its schedule/measurements; it is not a race channel or simultaneous traffic allowance.
+
+Registration accepts only source-matched Success/DuplicatePrefix enums. Send uses only C_ChatInfo.SendAddonMessageLogged with native WHISPER and full canonical peer, receives CHAT_MSG_ADDON_LOGGED and accepts only the source-matched numeric Success result. Known failure/throttle codes, unknown/nil/opaque results or throwing APIs terminate; there is no ordinary-whisper/unlogged fallback. Combat/actual chat lockdown, unreadable/backwards clocks, capability/hook failures, world/logout and local driving refuse/stop. Data is addon-owned printable control fields only; error strings are fixed and do not echo native failures or packet contents. Logged transport is not promised private or authenticated.
+
+Every attempted native session call—including ACK, retries and final cancellation—is counted before the API invocation. Persistent local spacing0.5seconds, rolling1second2calls and158payload-plus-prefixB caps survive fresh-controller rearming. Current payload limit23bytes plus7prefix; no catch-up bursts. Budget waits advance pure deadlines without consuming attempts. With both endpoints compliant this stays under ADR0013's separate pair4calls/s and316B/s working ceilings before unknown overhead; it does not measure capacity or govern other addons. Standalone probing is exclusive and separate from the candidate.
+
+GetView copies the pure view plus `canHost,canListen,transportBusy,route,lastError,traffic`. Host/Listen are disabled at the64-ID cap, during native calls, active controllers or any adapter's lease. These are structural capabilities; action preflight can still refuse combat/API state. Traffic counters are lifetime `attempts,accepted,failed,unknown,throttled,payloadBytes,prefixBytes,windowCalls,windowBytes`; window values reflect the last validated clock, and snapshots call no native APIs. Refresh at a modest menu cadence outside simulation ticks. None of these counters proves delivery.
+
+Leave queues at most one paced best-effort CANCEL; remote CANCEL similarly gets one bounded final ACK. The lease remains held only through that bounded drain. Hard Stop drops controller/pending output/proposals, retains a copied closed diagnostic and releases owned hooks; no new command or delayed callback resurrects it. Accepted solo UI.Start calls Stop(local_drive) before capture. Core forwards lifecycle events to both adapters. GUI Leave/Close behavior belongs to Claude's future session flow; the existing solo presentation is unchanged.
+
+Start forwards backend parameters and TakeStartProposal is a backend-only one-shot hook. No call activates Race/UI.Start/physics, aligns clocks or guarantees atomic GO; frontend rendering must not consume the proposal. Live-start/clock coordination and actual two-client control acceptance remain pending.
 
 ## Authoritative vehicle state
 

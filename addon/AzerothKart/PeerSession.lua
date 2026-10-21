@@ -221,10 +221,12 @@ function Session.cancel(state, now, reason, notify)
     return true
 end
 
-function Session.update(state, now, sendFn)
+function Session.update(state, now, sendFn, sendAllowed)
     if state.sending then return false, "send_in_progress" end
+    if sendAllowed~=nil and type(sendAllowed)~="boolean" then return false, "invalid_argument" end
     local active = advance(state, now)
     if not active and not state.final then return false end
+    if sendAllowed==false then return false end -- Budget waits still observe deadlines/clocks.
     if state.lastSend and now-state.lastSend<Session.SEND_INTERVAL then return false end
     local payload, pending, final
     if state.phase=="closed" then

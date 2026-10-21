@@ -16,6 +16,10 @@ local function active()
     return Transport.state and Transport.state.phase ~= "stopped"
 end
 
+function Transport.IsActive()
+    return not not (Transport.arming or active() or (Transport.frame and Transport.frame.akNetworkOwner==Transport))
+end
+
 local function clock()
     if type(GetTime) ~= "function" then return nil end
     local ok,value = pcall(function()
@@ -39,9 +43,10 @@ end
 
 local function cleanup()
     local frame = Transport.frame
-    if not frame then return end
+    if not frame or frame.akNetworkOwner~=Transport then return end
     pcall(frame.SetScript,frame,"OnUpdate",nil)
     pcall(frame.UnregisterEvent,frame,"CHAT_MSG_ADDON_LOGGED")
+    if frame.akNetworkOwner==Transport then frame.akNetworkOwner=nil end
 end
 
 local function finished()
@@ -78,7 +83,11 @@ end
 
 local function send(kind,payload)
     -- Every packet is addon-owned printable data, never a secret game value.
-    local raw = Transport.sendAPI(Probe.PREFIX,payload,"WHISPER",Transport.state.options.peer)
+    local frame=Transport.frame
+    frame.akNetworkSending=Transport
+    local sent,raw = pcall(Transport.sendAPI,Probe.PREFIX,payload,"WHISPER",Transport.state.options.peer)
+    if frame.akNetworkSending==Transport then frame.akNetworkSending=nil end
+    if not sent then error("native send refused") end
     local ok,outcome,safeRaw = pcall(classify,raw)
     if not ok then error("opaque send result") end -- Abort; never unwrap protected values.
     return outcome,safeRaw
@@ -163,7 +172,10 @@ local function rawTag(value)
 end
 
 local function arm(options)
-    if active() then report("Stop the existing probe first"); return false end
+    if active() or Transport.arming then report("Stop the existing probe first"); return false end
+    if Transport.frame and (Transport.frame.akNetworkOwner or Transport.frame.akNetworkSending) then
+        report("Refused: another network activity owns the transport"); return false
+    end
     local reason = blocked()
     if reason then report("Refused: "..reason); return false end
     local now = clock()
@@ -172,18 +184,28 @@ local function arm(options)
     if not state then report("Refused: "..tostring(errorMessage)); return false end
     if Transport.used[state.options.session] then report("Refused: use a fresh session ID"); return false end
     if Transport.usedCount >= 64 then report("Refused: 64-session limit; reload and choose a fresh ID"); return false end
+    if not Transport.frame then report("Refused: transport frame unavailable"); return false end
+    Transport.arming=true
+    Transport.frame.akNetworkOwner=Transport
     local ok,ready = pcall(capabilities)
-    if not ok or not ready then
+    if not ok or not ready or Transport.frame.akNetworkOwner~=Transport then
+        cleanup()
+        Transport.arming=false
         report("Refused: ChatInfo APIs/enums/prefix registration unavailable (raw="..
             (Transport.registrationError and "error" or rawTag(Transport.registrationResult))..")")
         return false
     end
     local eventOK,result = pcall(Transport.frame.RegisterEvent,Transport.frame,"CHAT_MSG_ADDON_LOGGED")
-    if not eventOK or result == false then cleanup(); report("Refused: CHAT_MSG_ADDON_LOGGED unavailable"); return false end
-    local updateOK = pcall(Transport.frame.SetScript,Transport.frame,"OnUpdate",Transport.Update)
-    if not updateOK then cleanup(); report("Refused: probe update unavailable"); return false end
+    if not eventOK or result == false or Transport.frame.akNetworkOwner~=Transport then
+        cleanup(); Transport.arming=false; report("Refused: CHAT_MSG_ADDON_LOGGED unavailable"); return false
+    end
+    local updateOK,updateResult = pcall(Transport.frame.SetScript,Transport.frame,"OnUpdate",Transport.Update)
+    if not updateOK or updateResult==false or Transport.frame.akNetworkOwner~=Transport then
+        cleanup(); Transport.arming=false; report("Refused: probe update unavailable"); return false
+    end
     Transport.state,Transport.lastNow,Transport.notified = state,now,false
     Transport.used[state.options.session],Transport.usedCount = true,Transport.usedCount+1
+    Transport.arming=false
     report(("Armed %s session=%s %s %.1f DATA/s bytes=%d seconds=%d; peer must opt in")
         :format(options.mode,state.options.session,Transport.ROUTE,state.options.rate,state.options.bytes,state.options.duration))
     return true

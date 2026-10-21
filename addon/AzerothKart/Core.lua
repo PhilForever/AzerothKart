@@ -6,6 +6,7 @@ AK.events = {}
 
 local eventFrame = CreateFrame("Frame")
 AK.TransportProbe.Init(eventFrame) -- Reuse bootstrap; no network registration/traffic on load.
+AK.SessionTransport.Init(eventFrame) -- Exclusive lease; menu actions opt in later.
 local failures = {}
 for _,event in ipairs({"ADDON_LOADED","PLAYER_REGEN_DISABLED","PLAYER_REGEN_ENABLED",
     "PLAYER_LEAVING_WORLD","PLAYER_LOGOUT"}) do
@@ -23,8 +24,10 @@ eventFrame:SetScript("OnEvent",function(_,event,...)
         eventFrame:UnregisterEvent("ADDON_LOADED")
     elseif event == "CHAT_MSG_ADDON_LOGGED" then
         AK.TransportProbe.Message(...)
+        AK.SessionTransport.Message(...)
     else
         AK.TransportProbe.HandleEvent(event)
+        AK.SessionTransport.HandleEvent(event)
         AK.UI.HandleEvent(event,arg1)
     end
 end)

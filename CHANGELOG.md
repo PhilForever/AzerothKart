@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — logged session transport/menu actions (2026-10-21)
+- Wire PeerSession to the existing Forever logged-whisper route with explicit Host/Listen/Join/Ready/Start-proposal/Leave actions and copied menu views. Startup stays idle and no action starts Race.
+- Add strict native result/lifecycle handling, fresh-code limits and persistent paced call/byte accounting. Exclusive frame/native-call ownership prevents probing and session control from detaching or overlapping each other; solo Start closes control first.
+- Add focused native doubles and menu integration guide. No install, actual AZKART2 traffic or new manual test; live start clocks and race integration remain pending.
+
 ## Unreleased — preserved-history roster integration (2026-10-21)
 - Combine Claude's six-kart selector/neutral artwork with Codex's Close results, Forever transport, measured evidence and pure PeerSession foundation. No installation or new live-race feature.
 - Fix late kart-load rollback to restore the entire previous visual; failed restoration uses Basic without altering the stopped run. Retain per-kart opacity floors rather than weakening all existing art for flyers.

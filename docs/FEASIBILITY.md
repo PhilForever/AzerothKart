@@ -166,3 +166,7 @@ The current addon only initializes a minimal schema table; there are no settings
 | F5 | Installed client | Reload/restart/sentinel persistence | Clean inactive reload observed in section 2; no persistence sentinel/logout/full restart experiment run | PENDING PERSISTENCE |
 
 When recording results include exact command output, build, date, conditions and evidence paths. Screenshots and personal logs belong in local artifacts unless explicitly approved for publication. On failure, record the narrow failing case and any resulting ADR before claiming a workaround.
+
+## F4 implementation checkpoint — native session bridge, 2026-10-21
+
+SessionTransport now wires the pure AZKART2 controller to the same source-verified logged route, with exclusive Core-frame lease/in-flight marker, scoped full-peer identity, local persistent call/byte gate, fixed-result handling and lifecycle cleanup. [Menu actions](SESSION_MENU_API.md) expose copied state; they do not start a live race. Focused mocked native checks are recorded in PROGRESS. Actual AZKART2 registration/delivery, both-client control flow, race-clock agreement/authority/feel and full socket recovery remain **NOT RUN**. This adds no measured traffic result or completed M2 gate and requests no standalone manual probe/download at this checkpoint.

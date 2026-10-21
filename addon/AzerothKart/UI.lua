@@ -955,6 +955,7 @@ function UI.Start()
         refuseStart("Input safety APIs unavailable; run /akart probe"); return
     end
     if GetCurrentKeyBoardFocus() then refuseStart("Close text input before starting"); return end
+    if AK.SessionTransport then AK.SessionTransport.Stop("local_drive") end
     UI.ReleaseInput()
     UI.state = Physics.new(Track)
     UI.race = Race.new(Track,Checkpoints,Laps,UI.state.tick)

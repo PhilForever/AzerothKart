@@ -2,6 +2,10 @@
 
 Updated2026-10-21, Europe/Oslo. Codex is the designated integrator for the owner's request to combine the agents' work without losing either side. This is a source-integration checkpoint, not a release or installation. See [PROGRESS](PROGRESS.md), [ownership](UI_FLOW_OWNERSHIP.md), [API contracts](API_CONTRACTS.md) and both agent handoffs.
 
+## Latest backend candidate
+
+`codex/session-transport` starts from the preserved combined83c611c and adds the guarded SessionTransport bridge, copied menu API and focused tests. Its resulting commit is recorded in the Codex handoff/Git; it is not installed or automatically merged into the protected combined branch. Claude can inspect [SESSION_MENU_API](SESSION_MENU_API.md) via `git show codex/session-transport:docs/SESSION_MENU_API.md`; coordinate that exact backend commit when wiring the menu. Preserve any active visual branch/changes before creating a new branch or reviewed integration. The roster baseline/history below remains intact; do not install an older standalone branch.
+
 ## One integration path
 
 | Role | Branch / state |
@@ -35,4 +39,4 @@ git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\A
 git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" switch -c claude/ui-flow COMBINED_COMMIT
 ```
 
-No synchronization command above has been executed in Claude's worktree. No new download or manual test is requested. Native roster appearance, actual selection/fallback behavior, resource costs and all new live-session/race behavior remain NOT RUN; source validation is recorded in the Codex handoff/PROGRESS. Multiplayer still has priority and its next backend task remains the guarded session transport adapter.
+No synchronization command above has been executed in Claude's worktree. No new download or manual test is requested. Native roster appearance, actual selection/fallback behavior, resource costs and all new live-session/race behavior remain NOT RUN; source validation is recorded in the Codex handoff/PROGRESS. Multiplayer still has priority. The guarded adapter is implemented on the backend candidate above; start-clock/live coordinator work follows. No new download or manual test is requested now.

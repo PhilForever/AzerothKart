@@ -4,7 +4,9 @@
 
 **Engineering:** `CLIENT_API.md`, `PHYSICS.md`, `TRACKS.md`, `MULTIPLAYER.md`, `PROTOCOL.md`, `TEST_PLAN.md`, `SECURITY.md`.
 
-**Current two-player checkpoint:** [accepted experiment scope, ADR 0013](adr/0013-two-player-experiment-scope.md), [reload/fresh-session evidence](evidence/2026-10-21-akt724-akt725-recovery.md) and [implemented control codec](API_CONTRACTS.md#implemented-pure-race-control-codec). No new manual probe is requested; the pure session controller is implemented, and guarded transport/menu wiring is next.
+**Current two-player checkpoint:** [accepted experiment scope, ADR 0013](adr/0013-two-player-experiment-scope.md), [reload/fresh-session evidence](evidence/2026-10-21-akt724-akt725-recovery.md) and [implemented control codec](API_CONTRACTS.md#implemented-pure-race-control-codec). No new manual probe is requested; the pure controller and guarded SessionTransport bridge are implemented; Claude menu wiring and live start-clock coordination follow.
+
+**Session menu bridge:** [public actions and copied view](SESSION_MENU_API.md). Logged two-peer control only; live race follows separately.
 
 **UI/flow:** [ownership assignment](UI_FLOW_OWNERSHIP.md) and [Claude roster review](reviews/2026-10-21-claude-roster.md). Claude owns presentation/visual flow; Codex owns session semantics and lifecycle.
 

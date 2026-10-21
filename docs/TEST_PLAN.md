@@ -1,5 +1,9 @@
 # Verification and QA plan
 
+## Current session transport slice
+
+Focused command: `python scripts/test_lua.py --runtime lua51 --tests session_transport peer_session transport_probe ui`. Real codec/controller with injected native APIs: explicit two-peer Host/Listen/Join/Ready/Start proposal, complete identity/compatibility, strict enum/capability refusal, bounded retries and copied state, persistent native call/byte pacing, no send from actions/Message, terminal lifecycle/drain and exclusive probe/session ownership. Include cancellation during native setup/send, pre-send guard cancellation and both directions of lease handover. Core routing/local-drive cancellation and unchanged pool/drive trace are covered by UI doubles. Native AZKART2/client menu/start-clock/race feel NOT RUN; no broad repeated matrix or new manual probe requested.
+
 ## Current bounded transport experiment
 
 Focused command: `python scripts/test_lua.py --runtime lua51 --tests network_probe transport_probe ui`. It checks exact codecs, capped schedules/no catch-up, send outcome classes, same-clock deadlines/hitch-anchored drain, timing percentiles, sender/session/version/size validation, duplicates/reorder/flood limits, ACK-once/burst cap, four sequence maps and stale/fresh sessions. Adapter doubles cover no startup calls/UI allocation, guarded enum/prefix failures, lifecycle/error cleanup/no resume and bounded explicit output. Core/UI integration checks the real slash/event routing and unchanged race/input/pooling regressions. No synthetic result is a measured transport-capacity or client pass. See [the actual two-client checklist](../tests/MANUAL_NETWORK_CHECKLIST.md); PARTY/bidirectional/4/8-client and playable replication remain future work.

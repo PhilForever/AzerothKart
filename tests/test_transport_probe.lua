@@ -89,11 +89,57 @@ end
 
 local function stopped(env,transport)
     assert(transport.state and transport.state.phase == "stopped")
+    assert(not transport.IsActive() and env.frame.akNetworkOwner==nil,"probe releases its own frame lease")
     assert(env.frame.scripts.OnUpdate == nil and env.frame.events.CHAT_MSG_ADDON_LOGGED == nil,
         "all terminal paths release the update callback and receive event")
 end
+
+withMock(function(env,t)
+    local otherOwner,otherUpdate={},function() end
+    env.frame.akNetworkOwner=otherOwner
+    env.frame.scripts.OnUpdate=otherUpdate
+    env.frame.events.CHAT_MSG_ADDON_LOGGED=true
+    local scripts,events,unregisters=env.scriptCalls,env.eventCalls,env.unregisterCalls
+    t.Stop("inactive probe")
+    assert(not t.IsActive() and not t.Command("listen Amber Stone ABC123"))
+    assert(env.frame.akNetworkOwner==otherOwner and env.frame.scripts.OnUpdate==otherUpdate
+        and env.frame.events.CHAT_MSG_ADDON_LOGGED and env.scriptCalls==scripts
+        and env.eventCalls==events and env.unregisterCalls==unregisters
+        and env.registerCalls==0,"inactive probe never acquires or tears down another adapter's lease")
+end)
 local function quiet(env,count)
     assert(#env.output == count, "packets must not emit automatic per-packet chat output")
+end
+
+for _,hook in ipairs({"prefix","event","update"}) do
+    withMock(function(env,t)
+        local function revoke()
+            t.Stop("cancelled while arming")
+            assert(not t.Command("listen Birch Vale DEF456"),"nested arm cannot replace an in-progress arm")
+        end
+        if hook=="prefix" then
+            local register=C_ChatInfo.RegisterAddonMessagePrefix
+            C_ChatInfo.RegisterAddonMessagePrefix=function(prefix)
+                local result=register(prefix); revoke(); return result
+            end
+        elseif hook=="event" then
+            local register=env.frame.RegisterEvent
+            env.frame.RegisterEvent=function(self,event)
+                local result=register(self,event); revoke(); return result
+            end
+        else
+            local set=env.frame.SetScript
+            env.frame.SetScript=function(self,name,callback)
+                local result=set(self,name,callback)
+                if callback then revoke() end
+                return result
+            end
+        end
+        assert(not t.Command("listen Birch Vale ABC123"),"revoked "..hook.." hook refuses probe startup")
+        assert(not t.IsActive() and not t.state and t.usedCount==0 and env.frame.akNetworkOwner==nil
+            and env.frame.scripts.OnUpdate==nil and not env.frame.events.CHAT_MSG_ADDON_LOGGED,
+            "reentrant cancellation cannot leave a lease-less active probe")
+    end)
 end
 
 withMock(function(env,t,p)

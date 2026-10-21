@@ -26,6 +26,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
         env.counts[kind] = env.counts[kind]+1
         return setmetatable({scripts={}, events={}, shown=true, enabled=true}, {
             __index=function(_,key)
+                if key=="akNetworkOwner" or key=="akNetworkSending" then return nil end
                 return methods[key] or function() end
             end,
         })
@@ -180,7 +181,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     end
     local ok, err=pcall(function()
         local namespace={}
-        for _,name in ipairs({"Track", "MirageRaceway", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "UI", "NetworkProbe", "TransportProbe", "Core"}) do
+        for _,name in ipairs({"Track", "MirageRaceway", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "UI", "RaceProtocol", "PeerSession", "NetworkProbe", "TransportProbe", "SessionTransport", "Core"}) do
             assert(loadfile("addon/AzerothKart/"..name..".lua"))("AzerothKart",namespace)
         end
         env.namespace=namespace
@@ -221,8 +222,10 @@ local BACKGROUND_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\SaltFlats
 withMock(nil,false,function(env,UI)
     env.fire("ADDON_LOADED","AzerothKart")
     local transport=env.namespace.TransportProbe
+    local session=env.namespace.SessionTransport
     local bootstrap=env.frames[1]
-    assert(transport.frame==bootstrap and not bootstrap.events.CHAT_MSG_ADDON_LOGGED
+    assert(transport.frame==bootstrap and not session.IsActive() and not bootstrap.akNetworkOwner
+        and not bootstrap.events.CHAT_MSG_ADDON_LOGGED
         and not bootstrap.scripts.OnUpdate,"cold bootstrap has no network event/update work")
     local before=#env.output
     SlashCmdList.AZEROTHKART(" net report ")
@@ -235,10 +238,24 @@ withMock(nil,false,function(env,UI)
     bootstrap.scripts.OnEvent(bootstrap,"CHAT_MSG_ADDON_LOGGED","AZKART1","payload","WHISPER","Tester-Realm","target")
     assert(received[1]=="AZKART1" and received[2]=="payload" and received[3]=="WHISPER"
         and received[4]=="Tester-Realm" and received[5]=="target","Core forwards addon event arguments")
+    local sessionReceived
+    session.Message=function(...) sessionReceived={...} end
+    bootstrap.scripts.OnEvent(bootstrap,"CHAT_MSG_ADDON_LOGGED","AZKART2","control","WHISPER","Amber Stone","extra")
+    assert(sessionReceived[1]=="AZKART2" and sessionReceived[2]=="control"
+        and sessionReceived[3]=="WHISPER" and sessionReceived[4]=="Amber Stone"
+        and sessionReceived[5]=="extra","Core preserves native full-name logged session event arguments")
     local stoppedEvent
+    local sessionEvent
     transport.HandleEvent=function(event) stoppedEvent=event end
+    session.HandleEvent=function(event) sessionEvent=event end
     env.fire("PLAYER_LEAVING_WORLD")
-    assert(stoppedEvent=="PLAYER_LEAVING_WORLD" and not UI.active,"probe and UI share lifecycle routing")
+    assert(stoppedEvent=="PLAYER_LEAVING_WORLD" and sessionEvent=="PLAYER_LEAVING_WORLD"
+        and not UI.active,"both adapters and UI share lifecycle routing")
+    local reason
+    session.Stop=function(value) reason=value; assert(not UI.active) end
+    UI.Toggle(); UI.Start()
+    assert(reason=="local_drive" and UI.active,"accepted solo Start ends session control before capturing input")
+    UI.Stop("session routing fixture")
 end)
 
 local function loads(env,path)

@@ -7,7 +7,7 @@ The accepted first-map direction is **Mirage Raceway** on the dry, pre-flood Shi
 
 ## Ownership and current scope
 
-[UI/flow ownership](UI_FLOW_OWNERSHIP.md): Claude owns screen layout, navigation, labels and visual polish; Codex owns session transitions, capabilities, command semantics and cleanup. Use the copied PeerSession view and agreed commands in [API_CONTRACTS](API_CONTRACTS.md#implemented-pure-peer-session-controller). Host/Join/Ready/Start currently exists only as an offline controller, with no multiplayer menu or transport adapter. A starting status is a control proposal, not permission to begin simulation.
+[UI/flow ownership](UI_FLOW_OWNERSHIP.md): Claude owns screen layout, navigation, labels and visual polish; Codex owns session transitions, capabilities, command semantics and cleanup. Use the copied PeerSession view and agreed commands in [API_CONTRACTS](API_CONTRACTS.md#implemented-pure-peer-session-controller). Host/Join/Ready/Start has a pure controller plus the guarded [SessionTransport action bridge](SESSION_MENU_API.md), verified with mocks; no multiplayer menu or actual native session test exists yet. A starting status is a control proposal, not permission to begin simulation.
 
 ## Planned scenes
 

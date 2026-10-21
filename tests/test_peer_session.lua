@@ -397,4 +397,19 @@ do
     assert(not view(p.host).hasPendingOutput and not view(p.guest).hasPendingOutput)
 end
 
+do
+    local host=fresh("host")
+    assert(Session.invite(host,0,"test_oval"))
+    local calls=0
+    local function send() calls=calls+1; return "accepted" end
+    assert(not Session.update(host,0,send,false) and not Session.update(host,1,send,false))
+    assert(calls==0 and view(host).pendingAttempts==0,"budget waits do not consume send/retry attempts")
+    assert(Session.update(host,1,send,true) and calls==1)
+    refused(Session.update,host,1,send,"allowed")
+    local guest=fresh("guest")
+    assert(not Session.update(guest,30,send,false))
+    closed(guest,"timeout")
+    assert(calls==1,"budget waits must still expire sessions without sending")
+end
+
 print("Pure peer sessions: explicit handshake/readiness, scoped compatibility, bounded delivery and terminal cleanup verified offline")
