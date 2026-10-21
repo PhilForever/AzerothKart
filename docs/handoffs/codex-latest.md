@@ -1,42 +1,31 @@
-# Active integration reservation — preserve both agent histories
+# Codex handoff — safe combined source; no install
 
-2026-10-21 07:31+02:00, Europe/Oslo. User asks Codex to handle Claude/Codex coordination without overwriting or deleting work. Codex is the designated integrator for this checkpoint. Integration branch `codex/roster-integration` starts at latest Codex `3644084`, not stale AKT723. Preserve `codex/peer-session` at3644084 and `claude/track-ui` atb0b1f2e and all existing authors/hashes. No reset/rebase/force push, other-worktree edits, pruning/gc, install or client input.
+2026-10-21 07:39+02:00 Europe/Oslo. `codex/roster-integration`, from preserved Codex3644084 and Claude b0b1f2e, reservation commit1fd6275. This handoff is part of the reviewed two-parent integration commit; resolve result with `git log -1 codex/roster-integration`. See [INTEGRATION_STATUS](../INTEGRATION_STATUS.md) before following any older branch/deployment instruction.
 
-Scope: reviewed merge of Claude b0b1f2e; resolve only shared count/docs/test conflicts while retaining Codex transport/results/protocol/PeerSession. Codex reserves the specific reviewed `UI.SelectKart`/sprite rollback and coverage regressions as integrator (no new visual design); Claude's source branch remains unchanged. Verify imported art bytes and untouched mechanical/transport modules. Document one integration/deployment path, progress/own handoff; preserve Claude's latest handoff verbatim as branch-history evidence. No new gameplay or live transport feature this checkpoint.
+## Owner request and preserved baseline
 
-Plan: create and verify local recovery bundle plus pre-merge branch/worktree inventory; merge on this branch with no automatic commit; resolve source/contract conflicts manually; fix reviewed late-load rollback and per-kart coverage; run focused combined Lua5.1 checks and structural/provenance preservation checks; commit reviewed combined candidate. Native/manual client checks remain NOT RUN; deployment stays separate.
+Owner asked Codex to handle the older Claude reply without mixing code or losing work. Codex is designated integrator/deployer for this checkpoint. Normal merge of b0b1f2e onto latest Codex; no new gameplay/session transport code. Original codex/peer-session3644084, claude/track-ui b0b1f2e, main/local origin/main f923d15 and canonical5570968 preserved. All original authors/hashes retained under configured PhilForever identity. Both other worktrees, including untracked Claude outputs, are SHA-checked unchanged. No author rewrite, reset/rebase/force push, pruning/gc, cleanup or automatic main integration.
 
----
-# Codex handoff — reviewed roster, UI ownership, pure PeerSession
+Pre-merge complete-history bundle verified; branch/worktree inventories plus source/installed preservation evidence in ignored `local-artifacts/integration/20261021-0732-preservation/`. Do not publish private recovery artifacts. Installed22files still match existing verified8f66c5a installmanifest; README_ADDON's CRLF differs from Git only by line endings. No install/clientinput/newpackage/download/push/tag/release this turn.
 
-2026-10-21 07:23+02:00 (Europe/Oslo). Branch `codex/peer-session`, base `d857ce2`, existing AzerothKart-Codex-Review checkout. Resulting focused implementation commit: resolve with `git log -1 codex/peer-session` (this handoff is part of that commit).
+## What the combined source includes
 
-## Completed order and ownership
+- Claude trike/Mirage/effects plus four more64-heading WC3karts, six-kart stopped picker, neutral loaded artwork, art/source/credit records and JPEG tooling.21art binary hashes exactly matchClaude.
+- Codex Close results and explicit drive exits, Forever full-name logged transport, standalone AZKART1 measurements/evidence including completed AKT722–725, RaceProtocol and pure PeerSession.36mechanical/transport/test/TOC files unchanged from3644084 and all147baseline paths remain. Both TOCs16modules.
+- Shared conflicts manually combine both sides' intended changes, with11/151/13 pool counts. Stronger effect repeatability caveat preserved. No whole-file ours/theirs replacement.
+- Two reviewed fixes completed narrowly by integrator: full visual rollback on late sprite load/setter refusal, consistent Basic fallback if rollback fails; per-kart opaque coverage12%ground/8%gryphon/6%gyro. [Review follow-up](../reviews/2026-10-21-claude-roster.md). No changes to authoritative run/result/track/physics or extra UI objects.
 
-1. Reviewed Claude runtime `abe98f6`/handoff `b0b1f2e` against integrated `1004e73`. [Findings](../reviews/2026-10-21-claude-roster.md): P2 failed sheet switch can restore Drag Car with cropped UVs; P3 retain per-kart opaque coverage floors. Hold roster integration for Claude's rollback fix; no merge/install occurred. Claude's output folder/worktree/handoff untouched.
-2. [UI/flow assignment](../UI_FLOW_OWNERSHIP.md): Claude owns layout/navigation/copy/visual polish; Codex owns session transitions, capability/button command semantics, transport, timing and cleanup. Shared interfaces and integration remain coordinated.
-3. Implemented pure PeerSession and focused tests, both TOCs/runner/validator and matching contracts/status docs. No UI/Presentation/asset/physics/input/race/Core or AZKART1 probe behavior edits.
+Claude's latest handoff is imported verbatim from its original branch as evidence. Its AKT723-next/scratch400590e merge/install directions are historical. Do not follow them; they omit latest backend work. Its source branch is not modified to backport our integration fixes.
 
-No installation, client input, downloads, push, tag or release. Main/local origin/main remains `f923d15`; canonical `5570968`; Claude `b0b1f2e`. Last installed verified runtime `8f66c5a`. Existing live evidence AKT722–725 unchanged. Installed and source are deliberately different here.
+## Tests / evidence actually executed
 
-## Implemented API
+- Real Lua5.1 via pinned Lupa2.8: `scripts/test_lua.py --runtime lua51` PASS,38files parsed,all21test modules. Covers whole existing deterministic/collision/race/input/probe/codec/session behavior and combined roster/UI, new late-failure/rollback-failure/recovery checks. Counts11frames/151textures/13fonts. Earlier focused presentation/ui checks also passed. No repeat broad dual-runtime matrix.
+- `scripts/validate_project.py` STATIC PASS71paths/TOCs/links/ledger; whitespace checks PASS.
+- Preservation PASS:36backend/test/TOC paths retain3644084;21art binaries retainClaude;all147baseline files present. Both other worktrees' full tracked/untracked bytes/path sets/HEADs and preserved refs unchanged. Installed22file hashes/tree unchanged, no missing/extras.
+- NOT RUN: current combinedLua5.4, new roster native appearance/loading/selection/fallback/resource cost, actual session native traffic or live racing. No milestone/client/release pass inferred. Rights/provenance unresolved where documented.
 
-[Full PeerSession contract](../API_CONTRACTS.md#implemented-pure-peer-session-controller). Optional namespace registration/return; injected RaceProtocol and finite monotonic time. `new`, `invite`, `join`, `setReady`, `start`, `cancel`, `update`, `receive`, `view`, `takeStartProposal`. Explicit two-peer phases/readiness, copied presentation view/action capabilities, full Forever native identity/session/version checks, host-selected supported track/laps. One pending command,2-second retries/max3attempts, shared0.5-second ACK/control/retry spacing, one output/update, bounded ACK8/seen64/scoped-receive256 and fixed deadlines. Failed/unknown/throttled/throwing sends and invalid clocks terminate/clear output. Cancel/final ACK is optional/bounded best effort.
+## Single current path / next task
 
-Host Start requires both ready and local Ready ACK. START produces copied parameters once, guest on receipt/host after ACK. It neither calls Race/Physics/UI nor supplies atomic GO/clock agreement. Both stay starting until explicit cancellation or deadline; a separate live coordinator is required. No native session adapter or multiplayer menu exists yet. Both TOCs16modules; UI pool remains10/151/13 on unchanged Codex rendering. Future Claude roster integration must retain Close results and11/151/13 combined.
+Claude owns visual layout/navigation/copy/polish; Codex owns backend session semantics and the next guarded native transport adapter. Shared contracts unchanged except documented additive roster diagnostics/rollback behavior and reviewed counts. [UI_FLOW_OWNERSHIP](../UI_FLOW_OWNERSHIP.md) applies. Both agents create their next separate feature branches from the exact combined commit in their own worktree. Preserve old branches; never merge/update another agent's worktree automatically. Codex alone prepares the next coordinated install from reviewed combined source with backup/hash verification; no independent older-feature-branch installs.
 
-## Tests actually executed
-
-- Lua5.1 via canonical pinned Lupa: `scripts/test_lua.py --runtime lua51 --tests peer_session race_protocol transport_probe ui` PASS,38files parsed/all4modules passed. Root review corrected clock-error arithmetic after actual sends; independent review corrected nested update moving clock before guard. Final relevant tests passed after fixes.
-- Added lost START-ACK retry/proposal-once test, reran `--runtime lua51 --tests peer_session`:PASS38parsed. Two-peer tests also cover strict join/ready, copies, identity/compatibility, duplicate/conflict/stale/reorder, drops/retries/timeouts, native failure/reentry, no bursts and cancellation/ACK queue cap.
-- Structural validator PASS65paths/TOCs/links/ledger; whitespace check PASS. No broad repeated matrix.
-- Claude read-only review: Lua5.1 presentation/ui PASS34parsed;5WC3vehicle source SHA/TGA validation and5JPEG decodes PASS. Actual visual failure reproduced independently. Pillow comparison/regeneration/new-roster install/client checks NOT RUN.
-- Current PeerSession Lua5.4 and all new native/client/two-player integration checks NOT RUN. No claim of full disconnect, simultaneous racing streams, atomic start or M2 acceptance.
-
-## Next single task / coordination
-
-Codex: guarded native two-peer session adapter over PeerSession, fresh-session lifetime and global rate/byte accounting, lifecycle cancellation and copied view/action bridge. Use only existing Forever logged WHISPER route with full first-name/surname, no realm/fallback. Preserve standalone AZKART1 experiment; coordinate subscriptions/update ownership and disallow concurrent traffic bypassing the shared budget. Pair working ceilings4calls/s and316payload+prefixB/s before overhead are exercised schedule ceilings, not measured maxima. PeerSession's local cadence alone does not enforce a global budget.
-
-Claude: fix roster rollback/coverage first, then prepare explicit Host/Join/Ready screen flow against copied views/capabilities. No fake connection/ready activity, unreachable settings or UI-only race activation. Read both ownership/contract docs before editing shared functions. No automatic agent-branch merge. Live-race integration follows the guarded adapter/flow; this checkpoint requests no download or manual test.
-
-Actual racing authority/model/clocks remain proposed, roughly700ms measured RTT material; full socket recovery/scale/finish/feel/release gates remain open. Public WC3 distribution permission remains per-file unresolved where documented; project art-source direction unchanged.
+**Next single task:** Codex branch from combined baseline, guarded native PeerSession adapter/global rate+byte accounting/lifecycle cancellation/copied view-action bridge for Claude's Host/Join/Ready screen. START remains a one-shot parameter proposal, not clock agreement/atomic GO/race activation. Live-race integration follows separately. No new download/manual test requested now; completed AKT723 need not be repeated. Four paircalls/s and316payload+prefixB/s remain working ceilings, not measured maxima; approximately700ms RTT and actual candidate gameplay/socket/scale/finish acceptance remain open.

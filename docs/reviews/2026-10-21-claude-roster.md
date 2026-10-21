@@ -16,3 +16,13 @@ Reviewed 2026-10-21: runtime `abe98f6` and handoff `b0b1f2e`, against integrated
 - Per-file records retain unknown authors/missing archive licenses/unresolved redistribution. The review does not clear public distribution or change the accepted WC3 source policy.
 
 **Disposition:** hold roster integration for the targeted visual rollback fix; keep the coverage improvement in that follow-up. [UI/flow ownership](../UI_FLOW_OWNERSHIP.md): Claude owns presentation/visual flow and these fixes; Codex owns session semantics and lifecycle. PeerSession implementation can proceed independently.
+
+## Follow-up — resolved on the combined integration branch
+
+2026-10-21, owner asked Codex to handle safe integration. Codex reserved the exact two findings on `codex/roster-integration` from3644084 plus Claude b0b1f2e; Claude's original source/handoff/authors were not changed. A normal merge retains both histories and no installation occurs.
+
+- P2 resolved: every deliberate sprite application establishes complete UV/rotation/neutral tint before metadata changes. Late failure restores the previous frame/configuration; failed restoration clears to Basic/default effect anchors. Primitive rotation refusal is contained. Run/result/track/physics and pool counts remain unchanged. Targeted tests cover both sheet/single directions, late setter failures, persistent rollback failures and recovery.
+- P3 resolved:12%opaque coverage for trike/tank/biker,8%gryphon,6%gyro. This matches the asset generator's explicit per-kart quality floors; art bytes unchanged.
+- Combined full Lua5.1 suite PASS:38files parsed,21test modules; counts11/151/13. Structural validator PASS71paths. Preservation checks:36mechanical/transport/test/TOC files match3644084,21art binaries matchClaude and all147baseline tracked paths remain present.
+
+**Disposition now:** source integration approved with those fixes on the combined branch. Native roster appearance, resource cost, new-file client loading and actual gameplay checks remain NOT RUN. Use [INTEGRATION_STATUS](../INTEGRATION_STATUS.md) for the current branch/deployment/synchronization rules rather than the older quoted handoff commands.

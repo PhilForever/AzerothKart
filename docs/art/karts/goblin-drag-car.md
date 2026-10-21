@@ -8,7 +8,7 @@ The image shows the actual 64×128 runtime texture at 4× on a checkerboard (lef
 
 - Row 1: Mirage at about 1 pixel per UI unit (roughly 1080p at the observed 0.72 effective UI scale), eight headings.
 - Row 2: the same poses at 1.36 pixels per UI unit (roughly 1440p).
-- Row 3: the normal, drift-charge, Tier 1, Tier 2 and boost tints, then the scale-1 Test Oval kart on its primitive road, then rough salt.
+- Row 3: five in-between headings, then the scale-1 Test Oval kart on its primitive road, then rough salt.
 
 Tiles are enlarged 2× with nearest-neighbor sampling. This is an offline preview, not a client screenshot. The sheet was regenerated over [Mirage scenery v1](../mirage-background.md); the TGA bytes did not change. [4× master](goblin-drag-car-master.png).
 
@@ -43,7 +43,7 @@ Art never feeds collision, gates, input or timing. The sprite does not change th
 
 [`Presentation.KART_SPRITES`](../../../addon/AzerothKart/Presentation.lua) registers path, texture size and quad. `KART_FOOTPRINT_WIDTH/HEIGHT` record the shared body. `UI.lua` loads the default sprite once at `UI.Create`, with a guarded `SetTexture`. The result must be exactly `true`, and a neutral `SetVertexColor` must succeed, before `UI.kartSprite` is set. Any missing, erroring, `false` or `nil` result keeps the original primitive: 17×31 body, `SetColorTexture` phase colors, no retry per frame, run or map.
 
-`SetColorTexture` replaces a texture's image with a solid color, so only the primitive path calls it. The sprite is tinted multiplicatively instead, only when the phase changes:
+`SetColorTexture` replaces a texture's image with a solid color, so only the primitive path calls it. Until 2026-10-21 the sprite was tinted multiplicatively when the phase changed. The owner then retired those washes as placeholders, so loaded art now stays at the neutral `SetVertexColor` and the [drift and boost effects](../effects/drift-boost.md) show the phase. The primitive keeps its colors. The original table:
 
 | Phase (render tint index) | Primitive `SetColorTexture` | Sprite `SetVertexColor` |
 |---|---|---|
@@ -53,7 +53,7 @@ Art never feeds collision, gates, input or timing. The sprite does not change th
 | 3 Tier 2 ready | 1.00, 0.35, 0.78 | 1.00, 0.62, 0.90 |
 | 4 boost | 0.20, 1.00, 0.88 | 0.56, 1.00, 0.94 |
 
-The meter and HUD text keep carrying the phase in words and color, so the kart wash is supplementary. Explicit UI allocations stay 9 frames/111 textures/13 font strings: the sprite reuses the existing kart Texture. Build-matched API documentation at [the pinned UI source](https://github.com/Gethe/wow-ui-source/blob/172a387e3ab85b26e6640d3058d5ec1e6ccd4c63/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleTextureBaseAPIDocumentation.lua) lists `SetTexture(textureAsset?, wrapModeHorizontal?, wrapModeVertical?, filterMode?) -> success`, `SetColorTexture` and `SetRotation`. `SetVertexColor(colorR, colorG, colorB, a?)` is on `SimpleRegionAPI` in the same tree. Documentation presence is not runtime proof.
+The meter and HUD text keep carrying the phase in words and color. Since 2026-10-21 the drag car is no longer the default but one of the choices of the stopped-only [Kart button](roster.md#kart-button). Explicit UI allocations stayed 9 frames/111 textures/13 font strings: the sprite reuses the existing kart Texture. Build-matched API documentation at [the pinned UI source](https://github.com/Gethe/wow-ui-source/blob/172a387e3ab85b26e6640d3058d5ec1e6ccd4c63/Interface/AddOns/Blizzard_APIDocumentationGenerated/SimpleTextureBaseAPIDocumentation.lua) lists `SetTexture(textureAsset?, wrapModeHorizontal?, wrapModeVertical?, filterMode?) -> success`, `SetColorTexture` and `SetRotation`. `SetVertexColor(colorR, colorG, colorB, a?)` is on `SimpleRegionAPI` in the same tree. Documentation presence is not runtime proof.
 
 ## Reproduction
 
@@ -103,7 +103,7 @@ Run only after an authorized, coordinated install: the WoW AddOns folder is shar
 3. Run `/dump AzerothKart.UI.kartSprite ~= nil` and `/dump AzerothKart.UI.kart:GetTexture()`. Click **Print Probe**: counts should remain 9 frames/111 textures/13 font strings.
 4. While stopped, select Mirage. The larger sprite faces north at spawn, centered on the Start strip.
 5. Start and drive a short bend. The nose leads in every direction with no mirror or flip, edges stay clean while rotating, and the image is never replaced by a solid rectangle.
-6. Charge a drift and release it. A blue wash, then gold/magenta when ready, then cyan while boosting; normal colors return afterwards.
+6. Charge a drift and release it. The drift and boost effects appear; since 2026-10-21 the sprite itself keeps its colors.
 7. Record build, resolution/UI scale, observations and any error dialog. Stop with Escape.
 
 Fallback behaviour and simulation equivalence are covered offline. Do not rename or delete installed files to provoke a fallback in the shared install.

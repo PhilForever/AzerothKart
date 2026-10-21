@@ -335,7 +335,7 @@ def scene_tile(px, size, pixels_per_unit, heading, ground, tint=(1.0, 1.0, 1.0))
 
 
 def review_sheet(px):
-    """Runtime texture on a checkerboard plus in-context, rotated, tinted kart views."""
+    """Runtime texture on a checkerboard plus in-context, rotated kart views."""
     from math import pi
     bg = load_background()
 
@@ -349,10 +349,8 @@ def review_sheet(px):
     rows = []
     for ui in (1.0, 1.36):   # pixels per UI unit: about 1080p and 1440p at 0.72 UI scale
         rows.append([scene_tile(px, 72, 1.5 * ui, h, mirage(kx, ky)) for kx, ky, h in poses])
-    # Drift/boost feedback uses the same vertex tints as UI.lua.
-    tints = [(1.0, 1.0, 1.0), (0.70, 0.84, 1.0), (1.0, 0.86, 0.40), (1.0, 0.62, 0.90),
-             (0.56, 1.0, 0.94)]
-    rows.append([scene_tile(px, 72, 1.5 * 1.36, pi / 2, mirage(700, 600), t) for t in tints] +
+    # In-between headings; the UI draws loaded art untinted (effects show drift and boost).
+    rows.append([scene_tile(px, 72, 1.5 * 1.36, pi / 2 - n * pi / 4 + pi / 8, mirage(700, 600)) for n in range(5)] +
                 [scene_tile(px, 72, 1.0, pi / 2, oval_road),
                  scene_tile(px, 72, 1.0, pi * 0.75, oval_road),
                  scene_tile(px, 72, 1.0, pi * 1.5, mirage(250, 250))])

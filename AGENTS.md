@@ -16,7 +16,7 @@ Per [ADR 0010](docs/adr/0010-multiplayer-release-priority.md), multiplayer takes
 
 Codex owns physics/handling, collision, deterministic simulation, race rules/checkpoints, multiplayer/synchronization and simulation tests. Claude owns rendering, track presentation, UI/HUD, animation/VFX, sprites/assets and visual feedback. Public interfaces, architecture decisions, integration tests and performance budgets are shared responsibilities. A file owner does not have unilateral permission to change a shared interface.
 
-The owner-directed [UI/flow assignment](docs/UI_FLOW_OWNERSHIP.md) makes Claude responsible for screen layout, navigation, labels and visual flow/polish. Codex owns the session state machine, allowed transitions, button command semantics/capabilities, timing, transport and cleanup. Claude consumes a copied session view and invokes agreed commands; menu navigation must not mutate session/physics state or start a race by itself. Review integration together. The [roster review](docs/reviews/2026-10-21-claude-roster.md) records Claude's visual rollback and coverage follow-ups before its pending merge.
+The owner-directed [UI/flow assignment](docs/UI_FLOW_OWNERSHIP.md) makes Claude responsible for screen layout, navigation, labels and visual flow/polish. Codex owns the session state machine, allowed transitions, button command semantics/capabilities, timing, transport and cleanup. Claude consumes a copied session view and invokes agreed commands; menu navigation must not mutate session/physics state or start a race by itself. Review integration together. The [roster review](docs/reviews/2026-10-21-claude-roster.md) records the visual rollback and coverage fixes applied by Codex during the owner's safe-integration checkpoint; Claude's original branch remains unchanged.
 
 | Files/area | Owner and boundary |
 |---|---|
@@ -31,6 +31,10 @@ The owner-directed [UI/flow assignment](docs/UI_FLOW_OWNERSHIP.md) makes Claude 
 | `docs/handoffs/codex-latest.md`, `docs/handoffs/claude-latest.md` | The named agent writes its own handoff. Read the other's handoff; do not replace it. Root-level similarly named placeholders are not canonical handoffs. |
 
 `UI.lua` has no separate Renderer/GameSession API yet. Claude may work on texture/font creation, `drawEllipse/drawTrack/drawWalls`, `placeWorldRect/placeTrackMarkers/layoutTrack`, the visual body of `render`, and HUD/summary/countdown/meter presentation. Keep simulation inputs read-only. Codex owns `step`, `UI.Start/Stop/InterruptCombat/ReleaseInput/OnUpdate/HandleEvent/OnCombatEnded`, `keyEvent`, Start refusals, clock/profiling wiring and the state/reset/failure transaction in `UI.SelectTrack`. `UI.Create` mixes both areas: visual layout is Claude's scope, while event scripts, control callbacks, initial state and capture behavior require coordination. `UI.SelectTrack` visual layout/loading hooks also cross the boundary. A visual change must not write physics/race/track state, award laps/boosts or alter stop/finish timing. Review the contract before sprite tint or animation changes.
+
+## Current integration checkpoint
+
+[INTEGRATION_STATUS](docs/INTEGRATION_STATUS.md) records the owner-directed shared source/deployment checkpoint. Codex integrates on `codex/roster-integration` from latest Codex3644084 and Claude b0b1f2e; both original branches/history remain preserved. Claude's older AKT723/install instructions are historical. Create the next visual/backend feature branches from the exact combined commit, rather than continuing from an older agent baseline. Codex owns the next coordinated installation; neither agent independently installs its standalone feature branch. Read the ledger through shared Git when a checkout copy is stale: `git show codex/roster-integration:docs/INTEGRATION_STATUS.md`. No force push, author rewrite, pruning/gc of Windows worktrees in a cloud environment, or automatic main integration.
 
 ## Branch, review and integration protocol
 

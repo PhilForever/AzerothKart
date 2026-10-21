@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — preserved-history roster integration (2026-10-21)
+- Combine Claude's six-kart selector/neutral artwork with Codex's Close results, Forever transport, measured evidence and pure PeerSession foundation. No installation or new live-race feature.
+- Fix late kart-load rollback to restore the entire previous visual; failed restoration uses Basic without altering the stopped run. Retain per-kart opacity floors rather than weakening all existing art for flyers.
+- Record one integration/deployment owner and a combined source baseline. Explicit allocations11frames/151textures/13fonts; older entries below retain their historical branch counts.
+
+## Unreleased — four more karts and a Kart button (2026-10-21, `claude/track-ui`)
+- Add the Steam Tank, Dwarven Biker, Gryphon Rider and Gyrocopter: 1024×1024 sheets of 64 three-quarter headings under `Assets/Karts/`, rendered by `scripts/build_wc3_kart.py` from Warcraft III models of the wc3c ITE project archived on WC3Vault (authors unknown; redistribution unresolved). Flyers hover with detached shadows; the Gyrocopter's rotor is an original translucent disc. See `docs/art/karts/roster.md`.
+- Add `scripts/wc3jpeg.py`, a pure-Python baseline JPEG decoder for JPEG BLP1 textures with libjpeg's integer inverse DCT; its samples matched libjpeg's (through Pillow) exactly on all five shipped textures. `build_wc3_kart.py` now builds every registered vehicle (`--all ROOT`) with byte-identical output on any platform; the trike's sheet is unchanged.
+- A stopped-only **Kart** button cycles six cosmetic karts (`Presentation.KART_ORDER`, `nextKart`, `UI.SelectKart`). A choice loads with the creation-time guards, a refusal keeps the current kart, and it never touches the run, result, track or simulation; every kart drives the same 17×31 body. It is disabled during a run and not saved. Explicit counts become 10 frames/151 textures/13 font strings.
+- Per-kart effect anchors from each model's own emitters. The Gryphon Rider has no exhaust: it trails wingtip wind puffs while boosting.
+- Loaded kart art is no longer tinted per drift/boost phase (owner direction): the effects carry that feedback. The primitive fallback keeps its phase colours. Client appearance is NOT RUN.
+
 ## Unreleased — recovery evidence and race-control codec (2026-10-21)
 - Record listener addon reload to Idle, the sender's bounded ACK-deadline stop and successful fresh-session recovery (19/19 DATA and replies). Unknown reload timing and lost receiver counters remain explicit.
 - Add pure RaceProtocol encoding/decoding for INVITE/JOIN/READY/START/CANCEL/ACK. Exact bounded messages, compatibility metadata, sequence/session fields, malformed-input refusal and ACK-of-ACK rejection; both TOCs load it without any API calls or traffic.

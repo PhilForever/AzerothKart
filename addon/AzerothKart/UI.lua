@@ -287,6 +287,10 @@ local function refreshHud()
         if not UI.active and state.tick > 0 then feedback = "Last drive | " .. feedback end
         UI.driftHud:SetText(feedback)
     end
+    if UI.kartButton and UI.kartButtonActive ~= UI.active then
+        UI.kartButtonActive = UI.active
+        if UI.active then UI.kartButton:Disable() else UI.kartButton:Enable() end
+    end
 end
 
 local function refuseStart(reason)
@@ -592,6 +596,14 @@ local function renderEffects(kartX, kartY, alpha)
     end
 end
 
+-- A loaded sprite draws its padded quad (one frame of a directional sheet);
+-- the primitive keeps its 17x31 body. Both share the view's scale.
+local function sizeKart()
+    local sprite = UI.kartSprite
+    UI.kart:SetSize((sprite and sprite.quadWidth or Presentation.KART_FOOTPRINT_WIDTH)*UI.view.scale,
+        (sprite and sprite.quadHeight or Presentation.KART_FOOTPRINT_HEIGHT)*UI.view.scale)
+end
+
 local function layoutTrack()
     local mirage = UI.trackId == "mirage_raceway"
     UI.view = mirage and Presentation.cameraViewport(Track.width,Track.height,800,480,1.5) or
@@ -614,49 +626,96 @@ local function layoutTrack()
             placeWorldRect(piece,obstacle.x,obstacle.y,obstacle.width,obstacle.height)
         end
     end
-    -- A loaded sprite draws its padded quad (one frame of a directional
-    -- sheet); the primitive keeps its 17x31 body. Both share the view's scale.
-    local sprite = UI.kartSprite
-    UI.kart:SetSize((sprite and sprite.quadWidth or Presentation.KART_FOOTPRINT_WIDTH)*UI.view.scale,
-        (sprite and sprite.quadHeight or Presentation.KART_FOOTPRINT_HEIGHT)*UI.view.scale)
+    sizeKart()
     UI.gatePassed,UI.gateStopped = nil,nil
     resetEffects()
 end
 
--- Kart visual: one pooled Texture shows the default kart sprite, or the
--- original primitive when the guarded creation-time load fails. Tint indices
--- follow render: 0 normal, 1 charging, 2/3 tier ready, 4 boost. SetColorTexture
--- replaces a texture's image with a solid color, so only the primitive may use
--- it; the sprite is tinted multiplicatively with SetVertexColor instead.
+-- Kart visual: one pooled Texture shows the chosen kart sprite, or the
+-- original primitive when the guarded load fails. Loaded art is never tinted:
+-- the drift/boost effects show the phase. Only the primitive keeps phase
+-- colours (indices follow render: 0 normal, 1 charging, 2/3 tier ready,
+-- 4 boost). SetColorTexture replaces a texture's image with a solid colour,
+-- so only the primitive may use it.
 local kartColors = {
     [0]={0.98,0.54,0.14}, {0.35,0.65,1.00}, {1.00,0.86,0.20}, {1.00,0.35,0.78}, {0.20,1.00,0.88},
 }
-local kartSpriteTints = {
-    [0]={1.00,1.00,1.00}, {0.70,0.84,1.00}, {1.00,0.86,0.40}, {1.00,0.62,0.90}, {0.56,1.00,0.94},
-}
+
+-- Every application establishes the complete visual configuration. A failed
+-- sheet load may already have cropped a previous single image (or vice versa),
+-- so restoration must set UVs and orientation as well as the texture and tint.
+local function applyKartSprite(sprite,frame,heading)
+    local kart = UI.kart
+    if not sprite or type(kart.SetTexture) ~= "function"
+        or type(kart.SetVertexColor) ~= "function" or type(kart.SetTexCoord) ~= "function"
+        or type(kart.SetRotation) ~= "function" then return false end
+    local ok,loaded = pcall(kart.SetTexture,kart,sprite.path)
+    if not ok or loaded ~= true then return false end
+    if sprite.frames then
+        if not pcall(kart.SetTexCoord,kart,Presentation.kartFrameCoords(sprite,frame or 0)) then return false end
+    elseif not pcall(kart.SetTexCoord,kart,0,1,0,1) then return false end
+    if not pcall(kart.SetRotation,kart,sprite.frames and 0 or (heading or math.pi/2)-math.pi/2) then return false end
+    return (pcall(kart.SetVertexColor,kart,1,1,1,1))
+end
+
+local function usePrimitiveKart()
+    UI.kartSprite,UI.kartFrame,UI.kartId,UI.kartTint = nil,nil,nil,nil
+    local kart = UI.kart
+    -- Solid colour is independent of a stale image crop. Best-effort resets
+    -- also remove the old tint/orientation; a refused rotation remains disabled
+    -- for this primitive rather than throwing again on every render.
+    if type(kart.SetTexCoord) == "function" then pcall(kart.SetTexCoord,kart,0,1,0,1) end
+    if type(kart.SetVertexColor) == "function" then pcall(kart.SetVertexColor,kart,1,1,1,1) end
+    UI.kartRotationReady = type(kart.SetRotation) == "function" and pcall(kart.SetRotation,kart,0)
+end
 
 local function loadKartSprite()
-    -- Once, at creation. A true load result plus a working vertex tint (and,
-    -- for a directional sheet, a working frame crop) select the sprite; a
-    -- missing, erroring, false or nil result keeps the primitive.
-    local kart,sprite = UI.kart,Presentation.KART_SPRITES[Presentation.DEFAULT_KART]
-    UI.kartSprite,UI.kartFrame = nil,nil
-    if not sprite or type(kart.SetTexture) ~= "function"
-        or type(kart.SetVertexColor) ~= "function" then return end
-    if sprite.frames and type(kart.SetTexCoord) ~= "function" then return end
-    local ok,loaded = pcall(kart.SetTexture,kart,sprite.path)
-    if not ok or loaded ~= true then return end
-    if sprite.frames and not pcall(kart.SetTexCoord,kart,Presentation.kartFrameCoords(sprite,0)) then return end
-    if not pcall(kart.SetVertexColor,kart,1,1,1,1) then return end
-    UI.kartFrame = sprite.frames and 0 or nil
-    UI.kartSprite = sprite
+    -- Once, at creation; a refusal keeps the primitive.
+    local sprite = Presentation.KART_SPRITES[Presentation.DEFAULT_KART]
+    UI.kartSprite,UI.kartFrame,UI.kartId = nil,nil,nil
+    if applyKartSprite(sprite) then
+        UI.kartFrame = sprite.frames and 0 or nil
+        UI.kartSprite,UI.kartId = sprite,Presentation.DEFAULT_KART
+        UI.kartTint,UI.kartRotationReady = 0,true
+    else usePrimitiveKart() end
+end
+
+local function kartLabel()
+    return "Kart: " .. (UI.kartSprite and UI.kartSprite.name or "Basic")
 end
 
 local function tintKart(tint)
-    local palette = UI.kartSprite and kartSpriteTints or kartColors
-    local color = palette[tint] or palette[0]
-    if UI.kartSprite then UI.kart:SetVertexColor(color[1],color[2],color[3],1)
-    else UI.kart:SetColorTexture(color[1],color[2],color[3],1) end
+    if UI.kartSprite then UI.kart:SetVertexColor(1,1,1,1); return end
+    local color = kartColors[tint] or kartColors[0]
+    UI.kart:SetColorTexture(color[1],color[2],color[3],1)
+end
+
+-- Cosmetic kart choice while stopped: the art loads with the same guarded
+-- checks as at creation. A refusal restores the entire current visual, or
+-- falls back to the primitive if that restoration also fails. It never
+-- touches the run, its result, the track or the simulation state; every kart
+-- drives the same 17x31 body. The choice is not saved.
+function UI.SelectKart(id)
+    local sprite = Presentation.KART_SPRITES[id]
+    if not UI.kart or UI.active or not sprite then return false end
+    if id == UI.kartId then return true end
+    local previous,previousFrame = UI.kartSprite,UI.kartFrame
+    local _,_,heading = Presentation.pose(UI.previousState,UI.state,1)
+    local nextFrame = sprite.frames and Presentation.kartFrame(sprite,heading) or nil
+    local selected = applyKartSprite(sprite,nextFrame,heading)
+    if selected then
+        UI.kartSprite,UI.kartId = sprite,id
+        UI.kartFrame,UI.kartTint,UI.kartRotationReady = nextFrame,0,true
+    elseif previous and applyKartSprite(previous,previousFrame,heading) then
+        UI.kartFrame,UI.kartTint,UI.kartRotationReady = previousFrame,0,true
+    else
+        usePrimitiveKart()
+    end
+    sizeKart()
+    resetEffects()
+    render()
+    if UI.kartButton then UI.kartButton:SetText(kartLabel()) end
+    return selected
 end
 
 function UI.SelectTrack(id)
@@ -745,11 +804,14 @@ render = function()
         UI.kart:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x + sprite.pivotX*scale,y + sprite.pivotY*scale)
     else
         UI.kart:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x,y)
-        UI.kart:SetRotation(heading - math.pi/2)
+        if UI.kartRotationReady ~= false then
+            UI.kartRotationReady = pcall(UI.kart.SetRotation,UI.kart,heading - math.pi/2)
+        end
     end
     renderEffects(x,y,alpha)
     local state = UI.state
-    local tint = state.boostTicks > 0 and 4 or (state.drifting and (1 + state.driftTier) or 0)
+    local tint = UI.kartSprite and 0 or
+        (state.boostTicks > 0 and 4 or (state.drifting and (1 + state.driftTier) or 0))
     if tint ~= UI.kartTint then
         UI.kartTint = tint
         tintKart(tint)
@@ -843,6 +905,13 @@ function UI.Create()
     UI.trackButton:SetScript("OnClick",function()
         UI.SelectTrack(UI.trackId == "test_oval" and "mirage_raceway" or "test_oval")
     end)
+    -- Cosmetic kart cycle; refused while a run is active (refreshHud keeps
+    -- the button disabled then).
+    UI.kartButton = frame("Button",nil,window,"UIPanelButtonTemplate")
+    UI.kartButton:SetSize(212,24)
+    UI.kartButton:SetPoint("BOTTOMLEFT",496,12)
+    UI.kartButton:SetText(kartLabel())
+    UI.kartButton:SetScript("OnClick",function() UI.SelectKart(Presentation.nextKart(UI.kartId)) end)
     UI.probeButton = frame("Button",nil,window,"UIPanelButtonTemplate")
     UI.probeButton:SetSize(112,24)
     UI.probeButton:SetPoint("BOTTOMRIGHT",-28,12)

@@ -173,8 +173,18 @@ end
 Presentation.KART_FOOTPRINT_WIDTH = 17
 Presentation.KART_FOOTPRINT_HEIGHT = 31
 Presentation.DEFAULT_KART = "goblin_mortar_trike"
+-- Sheets rendered from Warcraft III models by scripts/build_wc3_kart.py; see
+-- docs/art/karts/ for each model's source, author, terms and credits.
+local function sheet(file, name, quad, pivotX, effects)
+    return {
+        name = name, path = "Interface\\AddOns\\AzerothKart\\Assets\\Karts\\" .. file,
+        textureWidth = 1024, textureHeight = 1024, quadWidth = quad, quadHeight = quad,
+        frames = 64, columns = 8, pivotX = pivotX, pivotY = 0, effects = effects,
+    }
+end
 Presentation.KART_SPRITES = {
     goblin_drag_car = {
+        name = "Goblin Drag Car",
         path = "Interface\\AddOns\\AzerothKart\\Assets\\Karts\\GoblinDragCar.tga",
         textureWidth = 64, textureHeight = 128, -- texels; power-of-two TGA
         quadWidth = 20, quadHeight = 40,        -- world units; 3.2 texels per unit
@@ -182,6 +192,7 @@ Presentation.KART_SPRITES = {
     -- Rendered from the Warcraft III Goblin Mortar Trike model by erwtenpeller
     -- and Chriz (Vast Graphics); see docs/art/karts/goblin-mortar-trike.md.
     goblin_mortar_trike = {
+        name = "Goblin Mortar Trike",
         path = "Interface\\AddOns\\AzerothKart\\Assets\\Karts\\GoblinMortarTrike.tga",
         textureWidth = 1024, textureHeight = 1024, -- texels; 8x8 sheet of 128x128 frames
         quadWidth = 41, quadHeight = 41,           -- world units per frame; 3.12 texels per unit
@@ -195,7 +206,45 @@ Presentation.KART_SPRITES = {
             view = {0.8, 0.6},                     -- the sheet camera's tilt (cos, sin)
         },
     },
+    -- Anchors below come from build_wc3_kart.py --emitters: each model's own
+    -- exhaust and dust emitters and its lowest geometry. Flyers' "wheels" put
+    -- dust on the ground under them; a gryphon leaves wingtip trails instead
+    -- of exhaust flame.
+    steam_tank = sheet("SteamTank.tga", "Steam Tank", 45, 3.7, {
+        wheels = {{-7.9, 7.4}, {-7.9, -7.6}},
+        exhausts = {{-12.9, 7.9, 12.9}, {-12.9, -8.2, 12.9}},  -- its two smoke stacks
+        view = {0.8, 0.6},
+    }),
+    dwarven_biker = sheet("DwarvenBiker.tga", "Dwarven Biker", 41, 3, {
+        wheels = {{-5.5, 6.0}, {-5.5, -6.0}},
+        exhausts = {{-13.6, 5.4, 10.6}, {-14.4, -4.9, 10.5}},
+        view = {0.8, 0.6},
+    }),
+    gryphon_rider = sheet("GryphonRider.tga", "Gryphon Rider", 41, 2.6, {
+        wheels = {{-6, 3}, {-6, -3}}, exhausts = {},
+        trails = {{3.3, 16, 8.9}, {3.3, -16, 8.9}},             -- wingtips
+        view = {0.8, 0.6},
+    }),
+    gyrocopter = sheet("Gyrocopter.tga", "Gyrocopter", 58, 4, {
+        wheels = {{-3.4, 6.5}, {-3.4, -6.5}},                  -- skids, 4 units up
+        exhausts = {{-3.4, 8.6, 14.7}, {-3.4, -8.6, 14.7}},    -- the wing engines
+        view = {0.8, 0.6},
+    }),
 }
+-- The Kart button's cycle while stopped. Karts are cosmetic: every one drives
+-- the same 17x31 physics body.
+Presentation.KART_ORDER = {
+    "goblin_mortar_trike", "steam_tank", "dwarven_biker", "gryphon_rider", "gyrocopter", "goblin_drag_car",
+}
+
+-- The kart after `id` in KART_ORDER (wrapping); the first for an unknown id.
+function Presentation.nextKart(id)
+    local order = Presentation.KART_ORDER
+    for index, kart in ipairs(order) do
+        if kart == id then return order[index % #order + 1] end
+    end
+    return order[1]
+end
 -- The drag car's slicks end 14 units behind its centre; its rocket bell's lip
 -- is at 15.3 (scripts/build_kart_sprites.py). Overhead art has no tilt.
 Presentation.KART_SPRITES.goblin_drag_car.effects = {
@@ -235,7 +284,7 @@ Presentation.EFFECTS = {
     flameCell = 64, flameDirections = 32, flameColumns = 8,
     smokeCount = 20, sparkCount = 14, flameCount = 2, -- pools; each flame has two layers
     sparkColors = {[0] = {0.40, 0.68, 1.00}, {1.00, 0.80, 0.16}, {1.00, 0.36, 0.78}}, -- charging, tier 1, tier 2
-    sootColor = {0.24, 0.22, 0.21},
+    sootColor = {0.24, 0.22, 0.21}, trailColor = {0.97, 0.97, 0.95},
     flameOuter = {1.00, 0.52, 0.12}, flameInner = {1.00, 0.93, 0.62}, flameInnerScale = 0.6,
     flameReach = 14,                             -- pipe to cell edge at full boost, world units
 }
@@ -365,7 +414,14 @@ local function emit(fx, tick, x, y, heading, kvx, kvy, state, options)
         end
     end
     local boost = state.boostTicks or 0
-    if boost > 0 then
+    if boost > 0 and anchors.trails and tick % 2 == 0 then -- pale wind from a flyer's wingtips
+        for _,tip in ipairs(anchors.trails) do
+            local px, py = anchorAt(tip, x, y, c, s, view)
+            puff(fx, born, px, py, -c * 0.6 + kvx * 0.4, -s * 0.6 + kvy * 0.4, 0,
+                2.5, 7 + random(fx), 14 + 4 * random(fx), 0.55, E.trailColor)
+        end
+    end
+    if boost > 0 and #anchors.exhausts > 0 then
         local pipes = anchors.exhausts
         local burst = fx.boost == 0                         -- the boost just fired
         for n = 1, burst and 2 * #pipes or (tick % 2 == 0 and 1 or 0) do

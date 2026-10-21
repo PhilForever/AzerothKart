@@ -264,6 +264,8 @@ local function powerOfTwo(value)
 end
 local addonPrefix = "Interface\\AddOns\\AzerothKart\\"
 local spriteFiles = 0
+local coverageFloors = {goblin_mortar_trike=0.12, steam_tank=0.12,
+    dwarven_biker=0.12, gryphon_rider=0.08, gyrocopter=0.06}
 for id, sprite in pairs(P.KART_SPRITES) do
     local w, h = sprite.textureWidth, sprite.textureHeight
     assert(type(sprite.path) == "string" and sprite.path:sub(1, #addonPrefix) == addonPrefix
@@ -307,7 +309,10 @@ for id, sprite in pairs(P.KART_SPRITES) do
                     if a == 255 then solid = solid + 1 end
                 end
             end
-            assert(solid > 0.12 * fw * fh, id .. ": frame " .. frame .. " shows the vehicle")
+            -- Thin flyers have explicit lower floors; ground kart coverage
+            -- must not regress when a new aircraft is registered.
+            local floor = assert(coverageFloors[id], id .. ": directional coverage floor declared")
+            assert(solid > floor * fw * fh, id .. ": frame " .. frame .. " shows the vehicle")
             fewest, most = math.min(fewest, solid), math.max(most, solid)
             local l, r, top, b = P.kartFrameCoords(sprite, frame)
             assert(math.abs(l - ox / w) < 1e-12 and math.abs(r - (ox + fw) / w) < 1e-12 and
