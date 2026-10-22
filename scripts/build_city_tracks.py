@@ -87,7 +87,8 @@ def geometry(wc3, city):
     plazas = [{k: round(p[k], 1) for k in ("ax", "ay", "bx", "by", "radius")} for p in city.get("plazas", [])]
     return {"id": city["id"], "name": city["name"], "version": city.get("version", 1),
             "width": width, "height": height, "wallInset": L.WALL_INSET, "roadRadius": L.ROAD_RADIUS,
-            "wallRadius": L.WALL_RADIUS, "kart": L.KART, "centerline": centerline,
+            "wallRadius": L.WALL_RADIUS, "fullSpeedToWalls": city.get("full_speed_to_walls", False),
+            "kart": L.KART, "centerline": centerline,
             "branches": city.get("branches", []), "plazas": plazas, "gates": city["gates"],
             "solids": solids, "spawn": (sx, sy, heading)}
 
@@ -117,6 +118,8 @@ def lua_data(tracks):
         lines.append("    id=%s, version=%d, name=%s," % (q(g["id"]), g["version"], q(g["name"])))
         lines.append("    width=%d, height=%d, wallInset=%d, roadRadius=%d, wallRadius=%d, checkpointMaxStep=5," %
                      (g["width"], g["height"], g["wallInset"], g["roadRadius"], g["wallRadius"]))
+        if g.get("fullSpeedToWalls"):
+            lines.append("    fullSpeedToWalls=true,")
         sx, sy, heading = g["spawn"]
         lines.append("    spawn={x=%s, y=%s, heading=%s}," % (number(sx), number(sy), heading_text(heading)))
 

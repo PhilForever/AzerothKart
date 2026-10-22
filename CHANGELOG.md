@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — Stormwind full speed to the walls (2026-10-22)
+- Remove Stormwind's kerbside slowdown; drift and boost now continue across the whole street until wall contact. Wall geometry/collision, artwork and other tracks are unchanged.
+- Add opt-in Circuit fullSpeedToWalls surface policy, emitted by the layout generator for Stormwind track version2; global Physics remains7. Update menu/help and focused speed/drift/boost/wall regressions.
+
 ## Unreleased — latest city integration installed for owner testing (2026-10-22)
 - Review/integrate Claude capital-cup78d97a1 with all existing UI/backend work; Stormwind joins Test Oval/Mirage, with six cosmetic karts. Multiplayer remains Coming soon.
 - Protect the current map/results when a new background refuses to load: one hidden preallocated staging texture, swapped only on success. Pool71/165/80; no per-tick loads/creation.

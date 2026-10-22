@@ -36,7 +36,7 @@ Menu.TRACKS = {
         blurb="Start in the Valley of Heroes, through the gate into the Trade District, then the canals: "
             .. "Old Town, the Dwarven District, Cathedral Square, the Park and the Mage Quarter.",
         facts={"3 laps, 6 gates named for the districts", "The canals stay on your left all lap",
-            "The city's walls are solid; the kerbside slows you"}},
+            "Full speed to the street walls"}},
 }
 
 local WC3C = "Model: ITE project (wc3c), author unknown"
@@ -65,7 +65,7 @@ Menu.CONTROLS = {
 Menu.RULES = {
     "Pass the gates in order (the HUD names the next one); each full circuit is a lap. Three laps finish the race.",
     "Hold a drift to charge it: blue, then gold at Tier 1 (0.5 s), then pink at Tier 2 (1 s). Release Space for a boost.",
-    "Leaving the road slows you and cancels drift and boost. Walls scrub speed; steer away to recover.",
+    "Grass and rough salt slow you and cancel drift and boost. Stormwind has full grip to the walls; wall contact scrubs speed.",
     "Your best lap is kept for the current run. Entering combat closes the game.",
 }
 

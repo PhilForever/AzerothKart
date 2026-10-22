@@ -17,7 +17,7 @@ local function near(a, b, tolerance) return math.abs(a - b) <= (tolerance or 1e-
 local function distance(ax, ay, bx, by) return math.sqrt((bx - ax) ^ 2 + (by - ay) ^ 2) end
 
 -- A small square street: road radius 20, walls at 30, a plaza with a statue.
-local square = Circuit.new({
+local squareDefinition = {
     id="square", width=400, height=400, wallInset=6, roadRadius=20, wallRadius=30,
     centerline={{x=100,y=100}, {x=300,y=100}, {x=300,y=300}, {x=100,y=300}},
     gates={{name="East", ax=270, ay=200, bx=330, by=200, nx=0, ny=1},
@@ -25,7 +25,8 @@ local square = Circuit.new({
     plazas={{ax=200, ay=300, bx=200, by=300, radius=60}},
     solids={{id="statue", x=190, y=320, width=20, height=10}},
     spawn={x=200, y=100, heading=0},
-}, Track.crossesGate)
+}
+local square = Circuit.new(squareDefinition, Track.crossesGate)
 
 assert(square.surfaceAt(200, 100) == "road" and square.surfaceAt(200, 125) == "grass"
     and square.surfaceAt(200, 135) == "wall", "road, kerbside strip and wall across the street")
@@ -84,6 +85,46 @@ assert(not pcall(Circuit.new, {id="bad", width=10, height=10, wallInset=1, roadR
     centerline={{x=1,y=1},{x=2,y=1},{x=2,y=2}}, gates={{}}, spawn={x=1,y=1}}, Track.crossesGate),
     "walls must enclose the road")
 
+-- Full street grip is opt-in and does not change geometry or wall response.
+local fastDefinition = {}
+for key,value in pairs(squareDefinition) do fastDefinition[key] = value end
+fastDefinition.fullSpeedToWalls = true
+local fastStreet = Circuit.new(fastDefinition, Track.crossesGate)
+assert(square.surfaceAt(200,125) == "grass" and not square.fullSpeedToWalls,
+    "the default circuit still slows on its shoulder")
+assert(fastStreet.surfaceAt(200,125) == "road" and fastStreet.isDrivable(200,125) and
+       fastStreet.surfaceAt(200,135) == "wall", "full road grip extends to the existing wall")
+local fx,fy,fh = fastStreet.resolveMovement(200,129,204,133)
+local sx,sy,sh = square.resolveMovement(200,129,204,133)
+assert(fx == sx and fy == sy and fh == sh, "surface policy does not move or weaken walls")
+for _,mode in ipairs({"throttle", "boost", "release", "drift"}) do
+    local middle,edge = Physics.new(fastStreet),Physics.new(fastStreet)
+    middle.x,middle.y,middle.heading,middle.speed = 150,100,0,Physics.MAX_SPEED
+    edge.x,edge.y,edge.heading,edge.speed = 150,125,0,Physics.MAX_SPEED
+    local input = {accelerate=true}
+    for _,state in ipairs({middle,edge}) do
+        if mode == "boost" then state.boostTicks = 20
+        elseif mode == "release" then
+            state.drifting,state.driftDirection,state.driftTicks,state.driftTier = true,1,30,1
+        end
+    end
+    if mode == "drift" then input.drift,input.left = true,true end
+    for _=1,10 do
+        middle = Physics.step(middle,input,Physics.FIXED_DT,fastStreet)
+        edge = Physics.step(edge,input,Physics.FIXED_DT,fastStreet)
+        assert(middle.impacts == 0 and edge.impacts == 0 and edge.surface == "road",
+            "the shoulder comparison stays clear of walls: " .. mode)
+        for key,value in pairs(middle) do
+            if key == "y" then assert(near(edge.y,value+25), "only the lane offset differs")
+            elseif type(value) == "number" then assert(near(edge[key],value), "shoulder handling matches: " .. key)
+            else assert(edge[key] == value, "shoulder handling matches: " .. key) end
+        end
+    end
+    assert(edge.speed >= Physics.MAX_SPEED, "the street shoulder never applies rough drag: " .. mode)
+    if mode == "boost" or mode == "release" then assert(edge.boostTicks > 0, "shoulder retains boost") end
+    if mode == "drift" then assert(edge.drifting and edge.driftTicks > 0, "shoulder builds drift") end
+end
+
 -- The catalog: cups in order, coming-soon cities listed but not selectable.
 assert(#Courses.CUPS == 2 and Courses.CUPS[2].name == "Capital Cities Cup", "two cups")
 local soon = 0
@@ -106,7 +147,31 @@ assert(stormwind and Courses.build("stormwind_city", Track.crossesGate) == storm
 -- district gates in order and completes the lap's checkpoints.
 local data = namespace.CapitalCities.stormwind_city
 assert(stormwind.wallRadius == 76 and stormwind.roadRadius == 56 and #stormwind.gates == 6,
-    "Stormwind's street: 112-unit road, 20-unit kerbside strips, six gates")
+    "Stormwind keeps its painted street and existing wall geometry")
+assert(stormwind.version == 2 and stormwind.fullSpeedToWalls and data.fullSpeedToWalls,
+    "Stormwind v2 opts into full grip up to its walls")
+-- A real authored shoulder point is road; the original policy remains rough.
+local oldDefinition = {}
+for key,value in pairs(data) do oldDefinition[key] = value end
+oldDefinition.fullSpeedToWalls = false
+local oldStreet = Circuit.new(oldDefinition, Track.crossesGate)
+local shoulders = 0
+for index=2,#data.branches[1] do
+    local a,b = data.branches[1][index-1],data.branches[1][index]
+    local dx,dy = b.x-a.x,b.y-a.y
+    local length = math.sqrt(dx*dx+dy*dy)
+    if length > 0 then
+        for _,sign in ipairs({-1,1}) do
+            local px,py = (a.x+b.x)/2-sign*dy/length*66,(a.y+b.y)/2+sign*dx/length*66
+            if oldStreet.surfaceAt(px,py) == "grass" then
+                shoulders = shoulders+1
+                assert(stormwind.surfaceAt(px,py) == "road" and stormwind.isDrivable(px,py),
+                    "Stormwind's former rough shoulder now has road handling")
+            end
+        end
+    end
+end
+assert(shoulders > 0, "authored Stormwind shoulder points were checked")
 local spawn = stormwind.spawn()
 assert(stormwind.surfaceAt(spawn.x, spawn.y) == "road", "the start grid is on the road")
 local path = {}

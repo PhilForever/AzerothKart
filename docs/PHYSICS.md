@@ -63,3 +63,5 @@ Per [ADR 0007](adr/0007-build-first-development.md), do not run this full matrix
 - Keep simulated speed/coordinates bounded.
 - UI interpolation must not update collision geometry.
 - Two frames rendered at 30 or 144 FPS must produce equivalent physics for equal input tick sequences.
+
+Stormwind surface policy (2026-10-22): track version2 opts into Circuit.fullSpeedToWalls. Its whole street to the physical walls reports road, retaining normal speed and drift/boost eligibility; painted kerbs do not slow the kart. Physics compatibility remains7 and its wall-impact response is unchanged. Mirage/Oval and default Circuit shoulders still use the existing rough slowdown.

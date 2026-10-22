@@ -580,6 +580,8 @@ VALLEY += [
 
 STORMWIND = {
     "id": "stormwind_city",
+    "version": 2,
+    "full_speed_to_walls": True,  # owner: no shoulder slowdown before the walls
     "name": "Stormwind City Circuit",
     "folder": "Stormwind",
     "size": (2048, 2048),

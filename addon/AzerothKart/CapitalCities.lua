@@ -5,8 +5,9 @@ local _, namespace = ...
 local CapitalCities = {}
 
 CapitalCities["stormwind_city"] = {
-    id="stormwind_city", version=1, name="Stormwind City Circuit",
+    id="stormwind_city", version=2, name="Stormwind City Circuit",
     width=2048, height=2048, wallInset=18, roadRadius=56, wallRadius=76, checkpointMaxStep=5,
+    fullSpeedToWalls=true,
     spawn={x=1810, y=155.7, heading=2.315401},
     centerline={
         {x=1343.3,y=750.4}, {x=1348.3,y=764.8}, {x=1352.2,y=780.4}, {x=1355.3,y=796.6}, {x=1358.1,y=812.9},

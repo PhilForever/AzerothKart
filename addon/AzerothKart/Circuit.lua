@@ -82,7 +82,7 @@ local function axisDistance(p, x, y)
 end
 
 -- definition: {id, version, name, width, height, wallInset, roadRadius,
--- wallRadius (optional), centerline={{x,y}...} (closed), branches=
+-- wallRadius (optional), fullSpeedToWalls (optional boolean), centerline={{x,y}...} (closed), branches=
 -- {{{x,y}...}...} (open), plazas={{ax,ay,bx,by,radius}...} (optional, with
 -- wallRadius), gates={{name,ax,ay,bx,by,nx,ny}...}, spawn={x,y,heading},
 -- solids={{id,x,y,width,height}...}}.
@@ -94,6 +94,9 @@ function Circuit.new(definition, crossesGate)
         and finite(d.wallInset) and type(d.centerline) == "table" and #d.centerline >= 3
         and type(d.gates) == "table" and #d.gates > 0 and type(d.spawn) == "table",
         "complete circuit geometry required")
+    assert(d.fullSpeedToWalls == nil or type(d.fullSpeedToWalls) == "boolean",
+        "fullSpeedToWalls must be boolean")
+    local fullSpeedToWalls = d.fullSpeedToWalls == true
     local corridor = d.wallRadius ~= nil
     assert(not corridor or (finite(d.wallRadius) and d.wallRadius >= d.roadRadius),
         "wall radius must enclose the road")
@@ -102,6 +105,7 @@ function Circuit.new(definition, crossesGate)
         id=d.id, version=d.version or 1, name=d.name, width=d.width, height=d.height,
         wallInset=d.wallInset, checkpointMaxStep=d.checkpointMaxStep or 5,
         roadWidth=2*d.roadRadius, roadRadius=d.roadRadius, wallRadius=d.wallRadius,
+        fullSpeedToWalls=fullSpeedToWalls,
         crossesGate=crossesGate,
         centerline=copyList(d.centerline), gates=copyList(d.gates), solids=copyList(d.solids),
         plazas=copyList(d.plazas),
@@ -177,7 +181,8 @@ function Circuit.new(definition, crossesGate)
             if distance <= c.paved then return "road" end
             if distance <= c.drivable then rough = true end
         end
-        return rough and "rough" or nil
+        -- Surface policy only: preserve the painted paving and wall radii.
+        return rough and (fullSpeedToWalls and "road" or "rough") or nil
     end
 
     local function inSolid(x, y, grow)
@@ -213,7 +218,8 @@ function Circuit.new(definition, crossesGate)
         return bestX,bestY
     end
 
-    -- Paved points are road; Physics already treats "grass" as rough ground.
+    -- Road grip covers the paving, or the whole corridor when requested.
+    -- Other circuits retain the existing rough shoulder response.
     function track.isDrivable(x,y)
         if not finite(x) or not finite(y) then return false end
         return ground(x,y) == "road"
