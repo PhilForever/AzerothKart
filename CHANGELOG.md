@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — reviewed UI/backend integration and preference fix (2026-10-22)
+- Combine Claude's reviewed solo menus, HUD/results/garage/settings and Codex's session/start-clock backend on `codex/ui-backend-integration`, preserving both histories. No multiplayer commands or live-race activation added.
+- Adopt Claude4ffe184: an explicit successful choice of the current fallback track/kart is now saved; it supersedes deferred restoration without erasing an untouched failed-load preference.
+- Add regressions for deferred/failed restoration, quick track cycling, newer preference records and unchanged stopped state/input. Existing selectors, simulation and assets are preserved. Full offline integration passes; client checks, deployment and publication remain pending.
+
 ## Unreleased — logged session transport/menu actions (2026-10-21)
 - Wire PeerSession to the existing Forever logged-whisper route with explicit Host/Listen/Join/Ready/Start-proposal/Leave actions and copied menu views. Startup stays idle and no action starts Race.
 - Add strict native result/lifecycle handling, fresh-code limits and persistent paced call/byte accounting. Exclusive frame/native-call ownership prevents probing and session control from detaching or overlapping each other; solo Start closes control first.
@@ -12,7 +17,7 @@
 - Save the track, kart and settings in `AzerothKartDB.preferences` (version 1, validated on read; unknown fields kept; a newer record is never overwritten). Settings: window size 80–125% (sizes that do not fit are disabled), drift/boost effects (`UI.SetEffectsEnabled`), sound effects and developer info (the timing line and Print Probe). The window can be dragged by its title.
 - Client sounds through `SOUNDKIT`: menu open/click/check, 3-2-1-GO beeps and one fanfare per finished run.
 - Add one original atlas, `Assets/UI/TrackPreviews.tga` (1024×512, 2 MiB, loaded on the first track-screen visit), built by `scripts/build_ui_art.py` from scenery v1 and `Track.lua` geometry. `scripts/preview_ui.py` draws a layout review of every screen.
-- Explicit UI counts become 65 frames/160 textures/79 font strings, all created with the window. If the front end fails to build, it reports once in chat and the basic bar remains. New `tests/test_menu.lua`; `tests/test_ui.lua` keeps Codex's assertions, with updated counts and summary size and a Lua 5.4 `unpack` fix. Client appearance, sounds and fonts are NOT RUN; the saved-track restore without a click awaits Codex's review.
+- Explicit UI counts become 65 frames/160 textures/79 font strings, all created with the window. If the front end fails to build, it reports once in chat and the basic bar remains. New `tests/test_menu.lua`; `tests/test_ui.lua` keeps Codex's assertions, with updated counts and summary size and a Lua 5.4 `unpack` fix. Client appearance, sounds and fonts were NOT RUN. Codex accepted first-open saved-track restoration in the subsequent review, and the2026-10-22 entry records the explicit-choice correction/integration.
 
 ## Unreleased — preserved-history roster integration (2026-10-21)
 - Combine Claude's six-kart selector/neutral artwork with Codex's Close results, Forever transport, measured evidence and pure PeerSession foundation. No installation or new live-race feature.

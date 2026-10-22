@@ -1,6 +1,6 @@
 # Front end: menus, race HUD and results
 
-**Status (2026-10-21):** implemented on `claude/ui-flow` from Codex's combined commit `83c611c`, and offline-tested. It is proposed for Codex's review: the interface changes are in [API_CONTRACTS](../../API_CONTRACTS.md#proposed-front-end-menus-race-hud-and-results). Its appearance and behaviour in WoW Forever are **NOT RUN**; see [the client check](#client-check-not-run).
+**Status (2026-10-22):** reviewed Claude UI `1b2d3d5` is integrated with Codex backend `192c6de` by merge `6cd611a` on `codex/ui-backend-integration`. Claude's isolated preference fix `4ffe184` is retained as `9b22f12`; the later city-track work is outside this checkpoint. The implemented interfaces are in [API_CONTRACTS](../../API_CONTRACTS.md#implemented-front-end-menus-race-hud-and-results). Its appearance and behaviour in WoW Forever are **NOT RUN**; see [the client check](#client-check-not-run).
 
 The owner asked for "the ready to ship UI": clear Single Player and Multiplayer choices, and selecting maps and karts. He chose:
 
@@ -79,7 +79,7 @@ python scripts/preview_ui.py              # this page's layout picture (needs pi
 
 ## Saved preferences
 
-`AzerothKartDB.preferences` (account-wide) is a version-1 record, read defensively and written only when a choice changes:
+`AzerothKartDB.preferences` (account-wide) is a version-1 record, read defensively and written on deliberate successful choices or settings changes, never per tick:
 
 | Field | Values | Default |
 |---|---|---|
@@ -93,9 +93,9 @@ Rules:
 
 - Unknown values fall back to defaults, and other AzerothKartDB fields are never touched.
 - A save keeps fields this version does not know. A record with a newer `version` is read but never overwritten.
-- The saved kart is applied when the window is created. The saved track is applied the first time the window opens out of combat, because the Mirage loader needs a shown window and selection is refused in combat.
-- A saved choice that fails to load keeps the default for the session and is not forgotten.
-- Choices made with the bar's quick **Track** and **Kart** buttons are remembered too.
+- The saved kart is applied when the window is created. The saved track is applied the first time the window opens out of combat, because the Mirage loader needs a shown window and selection is refused in combat. Codex approved this first-open restoration through the existing guarded selector; it never starts a race.
+- An untouched saved choice that fails to load keeps the default for the session and is not forgotten. A successful deliberate choice, including clicking the already-current fallback, replaces that preference through `Menu.Chose`; a deliberate track choice also supersedes any deferred restore. UI's selection transactions are unchanged. A newer-version saved record remains untouched even when the current in-memory choice changes.
+- Choices made with the bar's quick **Track** and **Kart** buttons are remembered too, including track changes before any deferred restore has run.
 - A saved size that no longer fits the screen shows at the largest size that does.
 
 ## Boundaries
@@ -111,7 +111,7 @@ Rules:
 
 If the front end fails to build, it reports once in chat and the window keeps its basic bar (Start, Stop, Track, Kart, Print Probe).
 
-The multiplayer screen maps a copied PeerSession view to copy and enabled controls (`Menu.lobbyPresentation`). With no session bridge registered (`Menu.SetSessionBridge`), everything stays disabled and marked Coming soon. No session command is wired; that waits for Codex's adapter and an agreed command contract ([UI_FLOW_OWNERSHIP](../../UI_FLOW_OWNERSHIP.md)).
+The multiplayer screen maps a copied PeerSession view to copy and enabled controls (`Menu.lobbyPresentation`). With no session bridge registered (`Menu.SetSessionBridge`), everything stays disabled and marked Coming soon. No session command is wired. The combined source contains Codex's adapter and start-clock contracts, but connecting the menu to them and the future live-race controller remains pending ([UI_FLOW_OWNERSHIP](../../UI_FLOW_OWNERSHIP.md)).
 
 ## Budget
 
@@ -120,7 +120,7 @@ Explicit UI counts go from 11 frames, 151 textures and 13 font strings to **65, 
 - **Frames:** the menu screens and their buttons, the header, the drag handle, a close watcher, the race overlay and the results buttons.
 - **Font strings:** the old title line is replaced.
 - **Creation:** everything is created once with the window; nothing is created per tick or frame.
-- **Per frame:** the race HUD compares numbers and rewrites its text only when it can change, about ten times a second while the clock runs.
+- **Per frame:** the race HUD compares numbers and rewrites its text only when it can change, about ten times a second while the clock runs. The shown kart/garage turntable has its own visual spin callback while the race simulation is inactive; it never advances physics or the race clock.
 - **Texture memory:** the preview atlas adds 2 MiB when the track screen is first opened. The turntable reuses the kart sheets the race already loads.
 
 ## Tests (offline)
@@ -132,13 +132,14 @@ Explicit UI counts go from 11 frames, 151 textures and 13 font strings to **65, 
 - every results path, the track view and the lap list;
 - the garage and the turntable;
 - settings and their effects, including no effects while switched off;
-- saving, restoring and failed restores; unknown and newer records; sizes that do not fit;
+- saving, restoring and failed restores; explicit already-current fallback choices after a deferred or failed restore; quick-bar precedence before restoration; unknown and newer records; sizes that do not fit;
+- a newer-version failed-load fixture: explicit fallback choices update in-memory preferences but preserve the original saved table/unknown field, stopped vehicle/race/clock/lap/checkpoint references, held input and inactive state;
 - the coming-soon lobby and a mapped session view;
 - sounds, and Alt+Z versus a real close;
 - the combat track restore;
 - the fallback when the front end cannot build, and missing templates.
 
-`tests/test_ui.lua` keeps every Codex assertion. Only its counts, module list, results-panel size and a Lua 5.4 `unpack` call changed. `python scripts/test_lua.py --runtime both` passes.
+`tests/test_ui.lua` retains Codex's lifecycle/capture/race assertions while combining both sides' module lists, counts, results-panel size and the Lua 5.4 `unpack` compatibility change. Both TOCs load 21 modules. The added preference/protected-state fixture passed `python scripts/test_lua.py --runtime lua51 --tests menu`; the shared [progress ledger](../../PROGRESS.md) records the integration checkpoint's complete executed checks. Offline results do not establish native templates, layout, input or persistence behavior.
 
 ## Client check (NOT RUN)
 
