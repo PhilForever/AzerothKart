@@ -34,9 +34,9 @@ Prepared 2026-10-22 about 20:45 CEST (Europe/Oslo) by Claude (rendering/UI/sprit
 
 | Command / check | Result |
 |---|---|
-| `python scripts/test_lua.py --runtime both` | **PASS** in the cloud (Python 3.13, Lupa 2.8): full suite, both runtimes |
-| `python scripts/build_wc3_kart.py --wc3 … --vehicle <id> --check` | **CHECK PASS** in the cloud for the four new sheets, sources verified by SHA-256. Sheets: Dwarf Car `b58da1e6…0fe0fb`, Orc Demolisher `7621c908…1a6875`, Meat Wagon `590c0c6b…f6f29c8`, Glaive Thrower `3e6eed6a…6390f4` |
-| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in PROGRESS.md fail |
+| `python scripts/test_lua.py --runtime both` | **PASS** in the cloud (Python 3.13, Lupa 2.8) and on the developer machine's Linux shell (Python 3.10.12, Lupa 2.8) at `5c317ea`: full suite, both runtimes |
+| `python scripts/build_wc3_kart.py --wc3 … --vehicle <id> --check` | **CHECK PASS** in the cloud and on the developer machine (its own extraction) for the four new sheets, sources verified by SHA-256; on the developer machine also for the five community karts from their archives (`--source local-artifacts/third-party/<slug>`), so the reorganised posing code leaves them byte-identical. Sheets: Dwarf Car `b58da1e6…0fe0fb`, Orc Demolisher `7621c908…1a6875`, Meat Wagon `590c0c6b…f6f29c8`, Glaive Thrower `3e6eed6a…6390f4` |
+| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in PROGRESS.md fail, on both machines |
 | `python scripts/preview_ui.py` | Regenerated `docs/art/ui/front-end-review.png`: the kart screen lists ten karts in five rows (layout only, stand-in fonts) |
 | Review | Every sheet's 64 frames and eight headings on the Mirage background (per-kart review PNGs) and six headings each on Ironforge's road |
 
@@ -51,7 +51,7 @@ Prepared 2026-10-22 about 20:45 CEST (Europe/Oslo) by Claude (rendering/UI/sprit
 > ### 2026-10-22 ~20:45 CEST — Claude / `claude/kart-roster-wc3`, four Warcraft III karts
 >
 > - The owner chose more karts and all four offered: Dwarf Car, Orc Demolisher, Meat Wagon, Glaive Thrower, rendered from Blizzard's own Reforged models in his install by `build_wc3_kart.py --wc3` (SHA-256-verified sources). Ten karts; explicit UI counts 75/165/80 (+4 list buttons). Next city chosen: Orgrimmar.
-> - `test_lua.py --runtime both` PASS; kart `--check` PASS for the new sheets; validator: only the 2 pre-existing PROGRESS links.
+> - `test_lua.py --runtime both` PASS on both machines; kart `--check` PASS for the new sheets on both machines and for the five community karts on the developer machine; validator: only the 2 pre-existing PROGRESS links.
 > - **NOT RUN:** the client; install.
 
 ## Branch, commits and workspace
