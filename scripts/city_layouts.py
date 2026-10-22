@@ -1360,8 +1360,8 @@ ORGRIMMAR = {
     "zones": [{"terrain": "road", "shape": ("rect", (0, ORGRIMMAR_GATE[1] - 64, OG_GATE_ROAD_END,
                                                      ORGRIMMAR_GATE[1] + 64))}],
     # The Valley of Spirits' pool, by the start.
-    "water": [opoly((428, 752), (446, 742), (466, 744), (480, 756), (482, 774), (470, 790), (448, 794), (432, 784),
-                    (424, 768))],
+    "water": [opoly((466, 760), (484, 750), (504, 752), (518, 764), (520, 782), (508, 798), (486, 802), (470, 792),
+                    (462, 776))],
     "land": [],
     "canals": [],
     "bridges": [],
@@ -1377,7 +1377,7 @@ ORGRIMMAR = {
                   (724, 548)),                                                        # Valley of Strength
             opoly((862, 330), (947, 330), (947, 580), (840, 590), (824, 552)),        # the Drag's east
             opoly((840, 244), (947, 244), (947, 335), (868, 336), (850, 300)),        # towards the Valley of Honor
-            opoly((394, 724), (470, 728), (500, 797), (394, 797)),                    # Valley of Spirits
+            opoly((394, 724), (470, 728), (532, 742), (546, 797), (394, 797)),        # Valley of Spirits
             opoly((394, 640), (440, 640), (460, 700), (430, 760), (394, 760)),        # inside the West Gate
         ],
         "top": (T + "outland/outland_rock.dds", (1.6, 1.22, 1.06, 0.75)),

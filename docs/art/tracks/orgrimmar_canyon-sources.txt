@@ -27,13 +27,13 @@
    3  war3.w3mod:doodads/ashenvale/props/totem/totem0.mdx
    3  war3.w3mod:doodads/ashenvale/props/totem/totem1.mdx
    3  war3.w3mod:doodads/ashenvale/props/totem/totem2.mdx
-   8  war3.w3mod:doodads/barrens/plants/barrens_treedoodad/barrens_treedoodad0.mdx
+  11  war3.w3mod:doodads/barrens/plants/barrens_treedoodad/barrens_treedoodad0.mdx
   11  war3.w3mod:doodads/barrens/plants/barrens_treedoodad/barrens_treedoodad3.mdx
-   8  war3.w3mod:doodads/barrens/plants/barrens_treedoodad/barrens_treedoodad6.mdx
+   9  war3.w3mod:doodads/barrens/plants/barrens_treedoodad/barrens_treedoodad6.mdx
    8  war3.w3mod:doodads/barrens/plants/cactus/cactus0.mdx
-   2  war3.w3mod:doodads/barrens/plants/cactus/cactus2.mdx
+   3  war3.w3mod:doodads/barrens/plants/cactus/cactus2.mdx
    8  war3.w3mod:doodads/barrens/plants/cactus/cactus5.mdx
-   2  war3.w3mod:doodads/barrens/plants/cactus/cactus7.mdx
+   3  war3.w3mod:doodads/barrens/plants/cactus/cactus7.mdx
    1  war3.w3mod:doodads/barrens/rocks/barrens_rocks/barrens_rocks0.mdx
    3  war3.w3mod:doodads/barrens/rocks/barrens_rocks/barrens_rocks3.mdx
    1  war3.w3mod:doodads/barrens/rocks/barrens_spires/barrens_spires0.mdx
@@ -57,8 +57,8 @@
    1  war3.w3mod:doodads/outland/rocks/outland_spires/outland_spires4.mdx
    1  war3.w3mod:doodads/outland/rocks/outland_spires/outland_spires6.mdx
    1  war3.w3mod:doodads/outland/rocks/outland_spires/outland_spires8.mdx
-  22  war3.w3mod:units/orc/grunt/grunt.mdx
-   2  war3.w3mod:units/orc/headhunter/headhunter.mdx
+  23  war3.w3mod:units/orc/grunt/grunt.mdx
+   1  war3.w3mod:units/orc/headhunter/headhunter.mdx
    1  war3.w3mod:units/orc/kotobeastnorider/kotobeastnorider.mdx
   12  war3.w3mod:units/orc/peon/peon.mdx
    1  war3.w3mod:units/orc/riderlesswyvern/riderlesswyvern.mdx

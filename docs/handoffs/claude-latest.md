@@ -4,7 +4,8 @@ Prepared 2026-10-22 about 22:00 CEST (Europe/Oslo) by Claude (rendering/UI/sprit
 
 **Base:** `claude/kart-roster-wc3` at `8cc2031` (the four Warcraft III karts, itself on Codex's `codex/ironforge-polish-review` `1a70d6e`). Orgrimmar touches `Menu.lua` too, so it is stacked on the karts rather than beside them: review and integrate the karts first, then this. New branch **`claude/orgrimmar`**:
 
-1. Orgrimmar Canyon Rush: layout, painter options, picture, catalog, menu, tests, docs and this handoff (one commit).
+1. `7c97c41` Orgrimmar Canyon Rush: layout, painter options, picture, catalog, menu, tests, docs and this handoff.
+2. The Valley of Spirits' pool moved clear of the gate's south tower (art only), and the developer machine's checks.
 
 `claude/kart-roster-wc3` stays at `8cc2031`. No milestone or multiplayer gate changed.
 
@@ -36,9 +37,9 @@ Prepared 2026-10-22 about 22:00 CEST (Europe/Oslo) by Claude (rendering/UI/sprit
 
 | Command / check | Result |
 |---|---|
-| `python scripts/test_lua.py --runtime both` | **PASS** in the cloud (Python 3.13, Lupa 2.8): full suite, both runtimes |
+| `python scripts/test_lua.py --runtime both` | **PASS** in the cloud (Python 3.13, Lupa 2.8) and on the developer machine's Linux shell (Python 3.10.12, Lupa 2.8) at `7c97c41`: full suite, both runtimes |
 | `python tests/test_circuit_boundary.py` | **PASS** (11 tests) |
-| `python scripts/build_city_tracks.py --wc3 … --check` | **CHECK PASS** in the cloud for `CapitalCities.lua` and all six pictures: Stormwind and Ironforge byte-identical to their committed bytes after the painter changes; Orgrimmar reproduces |
+| `python scripts/build_city_tracks.py --wc3 … --check` | **CHECK PASS** in the cloud for `CapitalCities.lua` and all six pictures: Stormwind and Ironforge byte-identical to their committed bytes after the painter changes; Orgrimmar reproduces. **CHECK PASS on the developer machine** at `7c97c41` (Python 3.10.12, its own extraction, its own rendered sprites) for all three cities: Orgrimmar `2a7a9e60…5fe0d8f`, Stormwind `078a7805…12f4ebb`, Ironforge `258bc9be…b918e6`. After the pool move: Orgrimmar `5b00f6cf…3a06cd` (cloud) |
 | Collision probe (offline, Lupa) | Orgrimmar's `surfaceAt` against an independent disc-inside-union test (14-unit disc inside the 90-unit visual capsules) at 13,440 points round the walls, concave junctions included: **no mismatch** |
 | `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in PROGRESS.md fail |
 | `python scripts/preview_ui.py` | Regenerated `docs/art/ui/front-end-review.png` (the track list with Orgrimmar ready); a one-off run with Orgrimmar selected showed its preview, blurb and facts fit and a mock drive from its grid (not committed) |
