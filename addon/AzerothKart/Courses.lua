@@ -33,7 +33,10 @@ Courses.LIST = {
         dust={0.70,0.64,0.58}, ground={0.12,0.10,0.09},
         status="Ironforge Grand Prix | Start for 3 laps | Walls and landmarks are solid"},
     {id="darnassus_canopy", name="Darnassus Canopy Run", cup="capital", soon=true},
-    {id="orgrimmar_canyon", name="Orgrimmar Canyon Rush", cup="capital", soon=true},
+    {id="orgrimmar_canyon", name="Orgrimmar Canyon Rush", short="Orgrimmar", cup="capital", geometry="city",
+        background=TRACKS .. "Orgrimmar\\Background.tga",
+        dust={0.82,0.58,0.40}, ground={0.26,0.14,0.09},
+        status="Orgrimmar Canyon Rush | Start for 3 laps | Full speed to the street walls"},
     {id="thunder_bluff_skyway", name="Thunder Bluff Skyway", cup="capital", soon=true},
     {id="undercity_slime", name="Undercity Slime Circuit", cup="capital", soon=true},
 }

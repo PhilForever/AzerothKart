@@ -410,7 +410,7 @@ def plan_mask(triangles):
 
 
 def render(loaded, triangles, ss=SUPERSAMPLE, shadow=True, lean=LEAN, tint=(1.0, 1.0, 1.0), recolor=None,
-           stone=None):
+           stone=None, alpha_shadow=False):
     """Sprite rows (top first, straight RGBA 0-255) plus the texel (ox, oy)
     where the model origin's ground point falls, counted from the top-left.
 
@@ -420,7 +420,9 @@ def render(loaded, triangles, ss=SUPERSAMPLE, shadow=True, lean=LEAN, tint=(1.0,
     `recolor` moves texture hues (see recolored); `stone` = (gain, offset)
     brightens the lit greyish texels a recolor leaves alone, as gain * c +
     offset: a dark model's stone made pale, its detail kept, its recoloured
-    roofs untouched. The result also carries
+    roofs untouched. `alpha_shadow` casts the shadow only where the texture
+    is drawn (a palm's leaf cards cut out, not their square planes). The
+    result also carries
     `body`, the model's own coverage (0-255) per sprite texel without its
     shadow, and `plan`, its top-down silhouette (plan_mask)."""
     model, samplers, team = loaded
@@ -438,7 +440,17 @@ def render(loaded, triangles, ss=SUPERSAMPLE, shadow=True, lean=LEAN, tint=(1.0,
     def to_samples(x, y):
         return (x - left) / step, (top - y) / step
     shade = bytearray(columns * rows)
-    if shadow:
+    if shadow and alpha_shadow:
+        for pts, normals, uvs, material in triangles:
+            layers = model["materials"][material]
+
+            def cut_mark(i, w0, w1, w2, uvs=uvs, layers=layers):
+                u = w0 * uvs[0][0] + w1 * uvs[1][0] + w2 * uvs[2][0]
+                v = w0 * uvs[0][1] + w1 * uvs[1][1] + w2 * uvs[2][1]
+                if layer_color(model, samplers, team, layers, u, v) is not None:
+                    shade[i] = 1
+            kart.rasterize([to_samples(p[0] + p[2] * sx, p[1] + p[2] * sy) for p in pts], columns, rows, cut_mark)
+    elif shadow:
         def mark(i, w0, w1, w2):
             shade[i] = 1
         for pts, normals, uvs, material in triangles:

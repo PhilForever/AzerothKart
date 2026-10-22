@@ -210,9 +210,11 @@ TERRAINART = "war3.w3mod:terrainart/"
 
 
 def prop(model, x, y, yaw=270, scale=0.25, sequence="Stand", solid=False, margin=4, name=None, tint=None,
-         team=None, recolor=None, stone=None, light=None):
+         team=None, recolor=None, stone=None, light=None, cut=None, alpha_shadow=False):
     """`light` = (radius, (r, g, b)): a pool of light painted on the ground
-    round the model (a brazier's, a lantern's)."""
+    round the model (a brazier's, a lantern's). `cut`: drop the model's
+    triangles lying wholly this low (world units; a Barrens rock's patch of
+    ground). `alpha_shadow`: the shadow follows the texture's cut-outs."""
     item = {"model": model, "x": x, "y": y, "yaw": yaw, "scale": scale, "sequence": sequence,
             "solid": solid, "margin": margin, "name": name or model.rsplit("/", 1)[-1].rsplit(".", 1)[0],
             "tint": tint, "team": team, "recolor": recolor}
@@ -220,6 +222,10 @@ def prop(model, x, y, yaw=270, scale=0.25, sequence="Stand", solid=False, margin
         item["stone"] = tuple(stone)
     if light:
         item["light"] = light
+    if cut is not None:
+        item["cut"] = cut
+    if alpha_shadow:
+        item["alpha_shadow"] = True
     return item
 
 
@@ -1149,4 +1155,329 @@ IRONFORGE = {
     ],
 }
 
-CITIES = [STORMWIND, IRONFORGE]
+
+# ---------------------------------------------------------------------------
+# Orgrimmar Canyon Rush
+#
+# The owner's blue line on the in-game Orgrimmar map (1219 x 914 pixels; his
+# second picture, a half-size copy registered onto the first): a loop round
+# the Cleft of Shadow, driven counter-clockwise. From the Valley of
+# Strength north to the Drag, up the Drag's east side, west along the north
+# past the Valley of Wisdom, down the Cleft's west rim and back into the
+# Valley of Strength. His first line started at the West Gate and ran the
+# canyon road out and back; that stretch cannot be lapped, so the karts
+# start on the canyon road's last straight, behind a gate of the city wall,
+# and join the loop in the Valley of Strength. Orgrimmar lies in Durotar's
+# red canyons: the open valleys are floor, the rest the canyon's rock, and
+# the Cleft of Shadow is a chasm sunk below the city.
+
+OG_MAP = {"scale": 3.7, "left": 394, "bottom": 797}
+
+
+def OW(mx, my):
+    return ((mx - OG_MAP["left"]) * OG_MAP["scale"], (OG_MAP["bottom"] - my) * OG_MAP["scale"])
+
+
+def opoly(*points):
+    return [OW(*q) for q in points]
+
+
+def oprop(model, mx, my, **kw):
+    x, y = OW(mx, my)
+    return prop(model, round(x, 1), round(y, 1), **kw)
+
+
+OG_LOOP = [  # driving order (counter-clockwise), from the Valley of Strength where the start road joins
+    (680, 728), (700, 728), (713, 718), (713, 699), (711, 680), (707, 663), (701, 646), (698, 627), (692, 610),
+    (684, 593), (677, 577), (671, 560), (679, 543), (694, 534), (713, 532), (730, 528), (749, 526), (766, 522),
+    (785, 520), (802, 515), (814, 501), (821, 486), (827, 469), (831, 452), (835, 435), (842, 419), (848, 402),
+    (852, 385), (850, 366), (846, 349), (838, 332), (829, 317), (812, 311), (795, 305), (776, 303), (757, 303),
+    (738, 303), (719, 303), (701, 303), (684, 301), (667, 303), (648, 301), (631, 305), (614, 309), (597, 315),
+    (581, 326), (570, 339), (557, 351), (543, 362), (532, 378), (524, 393), (519, 410), (515, 427), (511, 444),
+    (505, 461), (501, 478), (501, 496), (505, 513), (509, 530), (513, 547), (521, 562), (528, 577), (536, 593),
+    (549, 606), (559, 621), (570, 636), (581, 650), (593, 663), (602, 678), (616, 692), (629, 703), (642, 715),
+    (658, 722),
+]
+OG_CANYON = [(484, 716), (520, 722), (556, 728), (592, 734), (626, 737), (654, 733), (679, 725)]   # start spur
+ORGRIMMAR_LINE = catmull_rom([OW(*p) for p in smooth(OG_LOOP, passes=2)], step=16.0)
+ORGRIMMAR_SPUR = catmull_rom([OW(*p) for p in OG_CANYON], closed=False, step=16.0)
+
+
+def og_arc(mx, my):
+    return arc_at(ORGRIMMAR_LINE, mx, my, OW)
+
+
+ORGRIMMAR_START, ORGRIMMAR_START_HEADING = along_spur(80.0, ORGRIMMAR_SPUR)
+OG_GATE_SETBACK = WALL_RADIUS + KART + 2 + 119
+OG_GATE_ROAD_END = 250            # the road's paving beyond the gate runs from here to the map's edge
+# The city wall's gate across the canyon road, behind the start grid.
+# Its front (119 units east of the model's origin, turned to face the
+# city) stands just beyond the end of the road.
+ORGRIMMAR_GATE = (round(ORGRIMMAR_SPUR[0][0] - OG_GATE_SETBACK, 1), ORGRIMMAR_SPUR[0][1])
+
+# The Cleft of Shadow: the chasm's rim as the map draws it (its lavender
+# floor), simplified by hand.
+OG_CLEFT = opoly((553, 436), (572, 426), (590, 414), (619, 398), (645, 390), (668, 386), (686, 394), (702, 402),
+                 (716, 392), (724, 398), (714, 416), (718, 436), (712, 452), (700, 468), (684, 482), (668, 492),
+                 (656, 504), (630, 508), (600, 516), (586, 516), (570, 502), (562, 480), (556, 456))
+
+BARRENS = T + "barrens/"
+ORGRIMMAR_TERRAIN = [   # draw order, lowest first
+    {"name": "dirt", "tile": BARRENS + "barrens_dirt.dds", "variety": 40},
+    {"name": "road", "tile": T + "outland/outland_dirtlight.dds", "shade": (1.0, 0.94, 0.88), "variety": 30},
+    {"name": "rough", "tile": BARRENS + "barrens_dirtrough.dds", "variety": 40},
+    {"name": "dark", "tile": BARRENS + "barrens_desertdark.dds", "variety": 40},
+    {"name": "grass", "tile": BARRENS + "barrens_grass.dds", "variety": 45},
+    {"name": "desert", "tile": BARRENS + "barrens_desert.dds", "variety": 40},
+    {"name": "pebbles", "tile": BARRENS + "barrens_pebbles.dds", "shade": 0.92},
+]
+
+ORC = "war3.w3mod:buildings/orc/"
+BARRENS_DOODADS = "war3.w3mod:doodads/barrens/"
+OUTLAND = "war3.w3mod:doodads/outland/"
+ORC_UNITS = UNITS + "orc/"
+HORDE_RED = (0.62, 0.08, 0.06)
+SANDSTONE = (1.0, 0.80, 0.64)     # Warcraft III's grey Orgrimmar walls in Durotar's red stone
+ASHENVALE_TOTEM = "war3.w3mod:doodads/ashenvale/props/totem/totem%d.mdx"
+
+# Huts and halls of the Horde (Warcraft III's orc buildings), shared by the
+# valleys; each district adds its own.
+ORC_HUTS = [
+    kind(OTHER + "pigfarm/pigfarm.mdx", weight=0.6, limit=12),
+    kind(ORC + "trollburrow/trollburrow.mdx", weight=0.8, limit=8),
+    kind(ORC + "orcbarracks/orcbarracks.mdx", limit=3),
+    kind(ORC + "warmill/warmill.mdx", limit=3),
+    kind(ORC + "spiritlodge/spiritlodge.mdx", weight=0.7, limit=2),
+    kind(ORC + "voodoolounge/voodoolounge.mdx", weight=0.7, limit=2),
+    kind(OTHER + "chieftainhut/chieftainhut.mdx", limit=3),
+    kind(OTHER + "tent/tent.mdx", weight=0.6, limit=4),
+    kind(OTHER + "tent1/tent1.mdx", weight=0.6, limit=4),
+]
+ORC_BANNER = kind(SUMMER + "props/bannerorc/bannerorc0.mdx", limit=6)
+ORC_BANNER1 = kind(SUMMER + "props/bannerorc/bannerorc1.mdx", limit=6)
+ORC_TRIM = [ORC_BANNER, ORC_BANNER1, BARRELS, CRATES2, kind(SUMMER + "props/hay/hay0.mdx", weight=0.5, limit=4),
+            kind(SUMMER + "props/trough/trough0.mdx", weight=0.5, limit=4),
+            kind(SUMMER + "props/hitchingpost/hitchingpost.mdx", weight=0.5, limit=4)]
+CACTI = [kind(BARRENS_DOODADS + "plants/cactus/cactus%d.mdx" % n, limit=3) for n in (0, 2, 5, 7)]
+ROCKS = [kind(BARRENS_DOODADS + "rocks/barrens_rocks/barrens_rocks%d.mdx" % n, cut=0.5, limit=3) for n in (0, 3, 6)]
+PALMS = [kind(BARRENS_DOODADS + "plants/barrens_treedoodad/barrens_treedoodad%d.mdx" % n, alpha_shadow=True,
+              limit=4) for n in (0, 3, 6)]
+GRUNT = kind(ORC_UNITS + "grunt/grunt.mdx")
+PEON = kind(ORC_UNITS + "peon/peon.mdx")
+TROLL = kind(ORC_UNITS + "headhunter/headhunter.mdx")
+TAUREN = kind(ORC_UNITS + "tauren/tauren.mdx", weight=0.5)
+SHAMAN = kind(ORC_UNITS + "shaman/shaman.mdx", weight=0.6)
+WITCH = kind(ORC_UNITS + "witchdoctor/witchdoctor.mdx", weight=0.6)
+KODO = kind(ORC_UNITS + "kotobeastnorider/kotobeastnorider.mdx", weight=0.3, limit=3)
+HORDE = [GRUNT, PEON, TROLL, TAUREN, SHAMAN, WITCH]
+
+ORGRIMMAR_DISTRICTS = [
+    {"name": "Valley of Strength", "ground": "desert",
+     "seeds": [OW(640, 640), OW(606, 600), OW(700, 770), OW(760, 680), OW(660, 560)],
+     "buildings": ORC_HUTS + [kind(ORC + "greathall/greathall.mdx", weight=0.5, limit=1),
+                              kind(ORC + "watchtower/watchtower.mdx", weight=0.6, limit=3),
+                              kind(ORC + "beastiary/beastiary.mdx", weight=0.5, limit=1)],
+     "density": {"buildings": 0.8, "trim": 0.8, "people": 0.8},
+     "trim": ORC_TRIM + [WEAPONS, ARMOR], "people": HORDE + [KODO]},
+    {"name": "The Drag", "ground": "dirt",
+     "seeds": [OW(760, 470), OW(890, 450), OW(880, 560), OW(770, 560), OW(905, 360)],
+     "buildings": [kind(OTHER + "merchant/merchant.mdx", limit=3),
+                   kind(OTHER + "tent/tent.mdx", limit=6), kind(OTHER + "tent1/tent1.mdx", limit=6),
+                   kind(OTHER + "pigfarm/pigfarm.mdx", limit=8), kind(ORC + "trollburrow/trollburrow.mdx", limit=4),
+                   kind(ORC + "voodoolounge/voodoolounge.mdx", limit=2),
+                   kind(OTHER + "taurentent/taurentent.mdx", weight=0.6, limit=3),
+                   kind(OTHER + "mercenary/mercenary.mdx", weight=0.4, limit=1)],
+     "density": {"buildings": 0.85, "trim": 0.8, "people": 0.9},
+     "trim": ORC_TRIM, "people": HORDE + [KODO]},
+    {"name": "Cleft of Shadow", "ground": "dark", "tint": (0.92, 0.86, 0.92),
+     "seeds": [OW(640, 450), OW(600, 420), OW(690, 440), OW(610, 490)],
+     "buildings": [kind(ORC + "voodoolounge/voodoolounge.mdx", limit=6),
+                   kind(ORC + "altarofstorms/altarofstorms.mdx", limit=3),
+                   kind(ORC + "trollburrow/trollburrow.mdx", limit=8),
+                   kind(OTHER + "centaurtent/centaurtent.mdx", limit=6),
+                   kind(OTHER + "pigfarm/pigfarm.mdx", limit=10)],
+     "density": {"buildings": 0.5, "trim": 0.8, "people": 0.7},
+     "trim": [kind(SUMMER + "props/skullonstick/skullonstick%d.mdx" % n, limit=3) for n in (0, 2)] +
+             [kind(SUMMER + "props/headonspear/headonspear0.mdx", limit=4),
+              kind(SUMMER + "props/skullpile/skullpile0.mdx", limit=3),
+              kind(SUMMER + "props/cauldronwithheads/cauldronwithheads.mdx", limit=2)],
+     "people": [WITCH, TROLL, kind(ORC_UNITS + "heroshadowhunter/heroshadowhunter.mdx", limit=2), PEON]},
+    {"name": "Valley of Wisdom", "ground": "grass",
+     "seeds": [OW(450, 330), OW(440, 430), OW(470, 520), OW(560, 265)],
+     "buildings": [kind(ORC + "spiritlodge/spiritlodge.mdx", limit=3), kind(ORC + "taurentotem/taurentotem.mdx", limit=2),
+                   kind(OTHER + "chieftainhut/chieftainhut.mdx", limit=3),
+                   kind(OTHER + "taurentent2/taurentent2.mdx", limit=4), kind(OTHER + "pigfarm/pigfarm.mdx", limit=4)]
+     + PALMS,
+     "density": {"buildings": 0.7, "trim": 0.7, "people": 0.6},
+     "trim": [kind(ASHENVALE_TOTEM % n, limit=3) for n in (0, 1, 2)] + [ORC_BANNER] + CACTI,
+     "people": [SHAMAN, TAUREN, kind(ORC_UNITS + "spiritwalker/spiritwalker.mdx", limit=2), GRUNT]},
+    {"name": "Under the north wall", "ground": "dirt",
+     "seeds": [OW(640, 345), OW(740, 340), OW(800, 350)],
+     "buildings": ORC_HUTS + [kind(ORC + "watchtower/watchtower.mdx", limit=2)],
+     "density": {"buildings": 0.8, "trim": 0.8, "people": 0.8},
+     "trim": ORC_TRIM, "people": HORDE},
+    {"name": "Valley of Honor", "ground": "grass",
+     "seeds": [OW(930, 290)],
+     "buildings": [kind(ORC + "beastiary/beastiary.mdx", limit=1), kind(ORC + "spiritlodge/spiritlodge.mdx", limit=1)]
+     + PALMS, "trim": [ORC_BANNER1], "people": [GRUNT, TAUREN]},
+    {"name": "Canyon", "ground": "rough",
+     "seeds": [OW(440, 700), OW(520, 770), OW(430, 640), OW(560, 690)],
+     "buildings": ROCKS + CACTI, "density": {"buildings": 0.5},
+     "trim": CACTI, "people": [GRUNT]},
+    {"name": "Valley of Spirits", "ground": "grass",
+     "seeds": [OW(450, 775)],
+     "buildings": PALMS + [kind(OTHER + "taurentent/taurentent.mdx", limit=2)], "trim": CACTI,
+     "people": [TROLL, WITCH]},
+]
+
+ORGRIMMAR = {
+    "id": "orgrimmar_canyon",
+    "version": 1,
+    "wall_clearance": KART,
+    "full_speed_to_walls": True,   # as the owner chose for Stormwind: full grip up to the walls
+    "name": "Orgrimmar Canyon Rush",
+    "folder": "Orgrimmar",
+    "size": (2048, 2048),
+    "team": HORDE_RED,
+    "lean": 0.6,
+    "kart_clearance": KART,
+    "street_reach": 100,
+    "centerline": ORGRIMMAR_LINE,
+    "branches": [ORGRIMMAR_SPUR],
+    "plazas": [],
+    "gates": [
+        gate_on("The Drag", ORGRIMMAR_LINE, *OW(835, 435)),
+        gate_on("Valley of Wisdom", ORGRIMMAR_LINE, *OW(701, 303)),
+        gate_on("Cleft of Shadow", ORGRIMMAR_LINE, *OW(505, 461)),
+        gate_on("Valley of Strength", ORGRIMMAR_LINE, *OW(711, 680)),
+    ],
+    "spawn": ORGRIMMAR_START + (ORGRIMMAR_START_HEADING,),
+    "replaceables": {11: BARRENS + "barrens_cliff0.dds",
+                     33: "war3.w3mod:replaceabletextures/barrenstree/barrenstree.dds"},
+    "terrain": ORGRIMMAR_TERRAIN,
+    "districts": ORGRIMMAR_DISTRICTS,
+    # The canyon road on through the gate, out of the city.
+    "zones": [{"terrain": "road", "shape": ("rect", (0, ORGRIMMAR_GATE[1] - 64, OG_GATE_ROAD_END,
+                                                     ORGRIMMAR_GATE[1] + 64))}],
+    # The Valley of Spirits' pool, by the start.
+    "water": [opoly((428, 752), (446, 742), (466, 744), (480, 756), (482, 774), (470, 790), (448, 794), (432, 784),
+                    (424, 768))],
+    "land": [],
+    "canals": [],
+    "bridges": [],
+    # Durotar's red rock round the valleys: everything but the valleys' floors
+    # and a band along the street, the canyon walls rising behind it.
+    "rock": {
+        "band": 124,
+        "floors": [
+            ORGRIMMAR_LINE,                                                           # inside the loop
+            opoly((394, 244), (520, 244), (560, 290), (548, 330), (512, 370), (494, 430), (490, 500), (484, 560),
+                  (456, 610), (394, 620)),                                            # Valley of Wisdom
+            opoly((560, 744), (620, 770), (690, 797), (800, 797), (812, 700), (780, 620), (760, 560),
+                  (724, 548)),                                                        # Valley of Strength
+            opoly((862, 330), (947, 330), (947, 580), (840, 590), (824, 552)),        # the Drag's east
+            opoly((840, 244), (947, 244), (947, 335), (868, 336), (850, 300)),        # towards the Valley of Honor
+            opoly((394, 724), (470, 728), (500, 797), (394, 797)),                    # Valley of Spirits
+            opoly((394, 640), (440, 640), (460, 700), (430, 760), (394, 760)),        # inside the West Gate
+        ],
+        "top": (T + "outland/outland_rock.dds", (1.6, 1.22, 1.06, 0.75)),
+        "face_texture": (BARRENS + "barrens_cliff0.dds", (0, 0, 192, 63), (1.12, 0.94, 0.86, 1.0)),
+        "height": 80, "fade": 40, "dark": 0.9,
+    },
+    # The Cleft of Shadow, sunk below the city.
+    "pits": {
+        "shapes": [OG_CLEFT],
+        "floor": (BARRENS + "barrens_desertdark.dds", (0.9, 0.76, 0.92, 0.6)),
+        "face": (BARRENS + "barrens_cliff0.dds", (0, 0, 192, 63), (0.96, 0.80, 0.86, 0.9)),
+        "depth": 46, "shadow": 14, "rim": (58, 34, 30), "margin": 10, "clear": 6,
+    },
+    # Ragefire Chasm's mouth: a fissure of fire in the Cleft's floor.
+    "lava": {
+        "pools": [opoly((684, 446), (690, 438), (697, 434), (703, 426), (710, 421), (714, 424), (709, 431),
+                        (704, 439), (697, 446), (690, 452), (685, 453))],
+        "tile": (T + "dungeon/cave_lava.dds", 0.86),
+        "glow": (96, 40, 8), "glow_reach": 28,
+        "rim": (40, 24, 20), "rim_width": 2, "rim_height": 4,
+    },
+    "rings": [],
+    # The gate's passage and the road beyond it: no generated scenery.
+    "reserved": [[(0, ORGRIMMAR_GATE[1] - 110), (OG_GATE_ROAD_END, ORGRIMMAR_GATE[1] - 110),
+                  (OG_GATE_ROAD_END, ORGRIMMAR_GATE[1] + 110), (0, ORGRIMMAR_GATE[1] + 110)]],
+    "lights": [],
+    "sections": [],
+    "road_default": (T + "outland/outland_dirtlight.dds", (1.0, 0.94, 0.88)),
+    "alleys": [
+        # The bridge to the Valley of Honor, closed for the race.
+        {"at": og_arc(850, 362), "side": "right", "width": 64, "length": 320},
+    ],
+    "steps": [],
+    "squares": [],
+    "bridge_depth": 15,
+    "arch_every": 34,
+    "water_texture": "war3.w3mod:replaceabletextures/water/water00.dds",
+    "water_tint": (0.16, 0.34, 0.36),
+    "water_rim": (150, 112, 80),
+    "quay_face": (122, 80, 56),
+    "quay_depth": 6,
+    "road_tile": T + "outland/outland_dirtlight.dds",
+    "road_shade": 1.0,
+    "sidewalk_tile": BARRENS + "barrens_pebbles.dds",
+    "sidewalk_shade": (0.95, 0.85, 0.8, 0.7),
+    "plaza_tile": BARRENS + "barrens_desert.dds",
+    "plaza_shade": 0.9,
+    "curb_color": (92, 58, 36),
+    "gutter_color": (58, 36, 24),
+    "hedged": [],
+    "bridge_posts": None,
+    # Orgrimmar's timber palisade along the street, an iron spike every few strides.
+    "land_wall": {"style": "palisade", "height": 8, "spike_every": 14, "spike_height": 14},
+    "wall": {"thickness": 4, "height": 10, "pillar_height": 17, "pillar_every": 56,
+             "face": (96, 62, 40), "cap": (134, 94, 60), "shadow": (54, 36, 24)},
+    "fill": {"step": 20, "reach": 440, "gap": 12, "spacing": 7},
+    "trim": {"step": 26, "reach": 44, "gap": 3, "spacing": 10},
+    "people": {"step": 22, "reach": 34, "gap": 2, "spacing": 6},
+    "furniture": [
+        {"prop": prop(SUMMER + "props/bannerorc/bannerorc1.mdx", 0, 0), "every": 210, "offset": 6, "start": 100,
+         "where": "land"},
+    ],
+    "solids": [],
+    "props": [
+        # The gate of the city wall across the canyon road, behind the start grid.
+        prop(BARRENS_DOODADS + "terrain/orgrimmargate_completed/orgrimmargate_completed.mdx",
+             *ORGRIMMAR_GATE, yaw=0, scale=0.3, tint=SANDSTONE),
+        prop(BARRENS_DOODADS + "terrain/orgrimmarwallsegment_completed/orgrimmarwallsegment_completed.mdx",
+             ORGRIMMAR_GATE[0] + 4, ORGRIMMAR_GATE[1] + 270, yaw=0, scale=0.3, tint=SANDSTONE),
+        # The Valley of Wisdom: Grommash Hold.
+        dict(oprop(ORC + "greathall/greathall.mdx", 486, 342, sequence="Stand Upgrade Second", scale=0.45),
+             nudge=True),
+        # The Valley of Strength: the bank (a stronghold) and the wind riders' roost.
+        dict(oprop(ORC + "greathall/greathall.mdx", 640, 642, sequence="Stand Upgrade First", scale=0.3), nudge=True),
+        dict(oprop(ORC + "watchtower/watchtower.mdx", 768, 612, scale=0.35), nudge=True),
+        dict(oprop(OTHER + "wyverncage/wyverncage.mdx", 790, 640), nudge=True),
+        dict(oprop(ORC_UNITS + "riderlesswyvern/riderlesswyvern.mdx", 752, 650, yaw=225), nudge=True),
+        # Thrall at Grommash Hold's door; a tauren by the Valley of Wisdom's totems.
+        dict(oprop(ORC_UNITS + "thrallmountless/thrallmountless.mdx", 487, 371), nudge=True),
+        dict(oprop(ORC_UNITS + "tauren/tauren.mdx", 452, 420, yaw=315), nudge=True),
+        # The Drag: a kodo by the stalls.
+        dict(prop(ORC_UNITS + "kotobeastnorider/kotobeastnorider.mdx", 1880, 1180, yaw=180), nudge=True),
+        # The Cleft of Shadow: its warlocks' altar and the Darkfire lounge.
+        oprop(ORC + "altarofstorms/altarofstorms.mdx", 640, 470, scale=0.3),
+        oprop(ORC + "voodoolounge/voodoolounge.mdx", 680, 455),
+        # Rock spires and an arch on the canyon's rock (world units).
+        dict(oprop(OUTLAND + "rocks/outland_spires/outland_spires4.mdx", 470, 660, scale=0.35), nudge=True),
+        dict(oprop(OUTLAND + "rocks/outland_spires/outland_spires0.mdx", 540, 780, scale=0.3), nudge=True),
+        dict(prop(OUTLAND + "rocks/outland_spires/outland_spires2.mdx", 900, 50, scale=0.32), nudge=True),
+        dict(prop(BARRENS_DOODADS + "rocks/barrens_spires/barrens_spires0.mdx", 1720, 210, scale=0.3, cut=2.1),
+             nudge=True),
+        dict(prop(OUTLAND + "rocks/outland_spires/outland_spires6.mdx", 1930, 470, scale=0.34), nudge=True),
+        dict(prop(BARRENS_DOODADS + "structures/brockarch/brockarch.mdx", 1860, 120, scale=0.3), nudge=True),
+        dict(prop(BARRENS_DOODADS + "rocks/barrens_spires/barrens_spires4.mdx", 1990, 640, scale=0.26, cut=2.1),
+             nudge=True),
+        dict(prop(OUTLAND + "rocks/outland_spires/outland_spires8.mdx", 60, 860, scale=0.3), nudge=True),
+        dict(prop(OUTLAND + "rocks/outland_spires/outland_spires3.mdx", 610, 450, scale=0.3), nudge=True),
+        dict(prop(BARRENS_DOODADS + "rocks/barrens_spires/barrens_spires2.mdx", 500, 470, scale=0.22, cut=2.1),
+             nudge=True),
+    ],
+}
+
+CITIES = [STORMWIND, IRONFORGE, ORGRIMMAR]

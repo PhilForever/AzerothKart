@@ -42,6 +42,11 @@ Menu.TRACKS = {
             .. "Great Forge's fire, then Tinker Town and the Military Ward.",
         facts={"3 laps, 7 gates named for the districts", "Tight tunnels in and out of the Forlorn Cavern",
             "Mind the lava: the forges' walls are solid"}},
+    {id="orgrimmar_canyon", name="Orgrimmar Canyon Rush", cell="orgrimmar",
+        blurb="Start on the canyon road behind the city gate, then round the Cleft of Shadow: the Valley of "
+            .. "Strength, the Drag, the Valley of Wisdom and down the Cleft's rim.",
+        facts={"3 laps, 4 gates named for the districts", "Counterclockwise round the Cleft of Shadow",
+            "Full speed to the street walls"}},
 }
 
 local WC3C = "Model: ITE project (wc3c), author unknown"
@@ -94,6 +99,8 @@ Menu.PREVIEW_CELLS = {
     stormwind={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\Stormwind\\Preview.tga",
         left=0, right=1, top=0, bottom=1, width=320, height=320},
     ironforge={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\Ironforge\\Preview.tga",
+        left=0, right=1, top=0, bottom=1, width=320, height=320},
+    orgrimmar={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\Orgrimmar\\Preview.tga",
         left=0, right=1, top=0, bottom=1, width=320, height=320},
 }
 

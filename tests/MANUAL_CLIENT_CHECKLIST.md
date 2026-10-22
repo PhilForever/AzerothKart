@@ -26,6 +26,16 @@
 6. **Forlorn Cavern tunnels.** In from the Mystic Ward and out by the north-east stair the street narrows through the rock: no shoulder, the wall at the paving's edge. Driving along a tunnel wall the kart's body meets the drawn rock edge, with no "Off-road" message; the street flares back to its usual width after each tunnel. Record whether the transition reads clearly and the tunnel feels usable in a solo drive. Actual multi-kart spacing awaits live-race integration; no two-kart test is available in this build.
 7. **Lava and the Great Forge.** Every lava pool has a dark wall all round, no ridges across it and no grey band at its edge; the glow remains. Between the two forges stand only the Great Anvil (red and gold) and the pumps; record whether the anvil reads as an anvil.
 
+## Deferred Orgrimmar Canyon Rush check (proposed, `claude/orgrimmar`)
+
+**NOT RUN.** After Codex's review and coordinated install, fully restart the client (the `Assets/Tracks/Orgrimmar/` pictures are new files). The owner runs these.
+
+1. **Track screen.** *Capital Cities Cup* lists Stormwind City Circuit, Ironforge Grand Prix and Orgrimmar Canyon Rush, then three cities "(soon)". Choose Orgrimmar: its preview and three facts appear.
+2. **Load.** A third 2048×2048 TGA (the staging loader still holds at most two). Record a refusal ("Orgrimmar Canyon Rush background unavailable | Test Oval remains available") and any hitch when switching between the cities.
+3. **Race!** The kart starts on the canyon road facing east, the city gate behind it. It joins the loop in the Valley of Strength (finish line just round the corner), then counter-clockwise: the Drag, under the north wall past Grommash Hold, down the Cleft of Shadow's rim, back to the Valley of Strength; the HUD names each next gate (four). Record whether the districts read as Orgrimmar and whether the lap length feels right.
+4. **Walls.** The palisade and the canyon's cliffs stop the kart as Stormwind's walls do; the gravel strip before them keeps full road speed, drift and boost (no "Off-road" message), as in Stormwind.
+5. **Camera and performance.** Frame rate while driving; Print Probe 75/165/80 with the ten karts (71/165/80 without them): Orgrimmar adds no frames.
+
 ## Deferred front-end check (proposed, `claude/ui-flow`)
 
 **NOT RUN.** Follow [the front-end client check](../docs/art/ui/front-end.md#client-check-not-run) after a coordinated install and a full client restart (`Menu.lua` and `Assets/UI/TrackPreviews.tga` are new files). With the front end, the window opens on the main menu; the first run starts from **Single Player → Race!**, and the bar's Start reads **Start Race**. Print Probe shows only with Settings → **Show developer info**; `/akart probe` always works. The checks below that start a drive use **Start Race** or **Race!**, and explicit counts become 71 frames/164 textures/80 font strings with the Capital Cities Cup (65/160/79 before it).

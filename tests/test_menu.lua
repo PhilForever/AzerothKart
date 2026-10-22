@@ -479,6 +479,9 @@ withMock({schemaVersion=1, preferences={version=1, kart="gyrocopter", track="mir
     assert(UI.trackId == "ironforge_gp" and AzerothKartDB.preferences.track == "ironforge_gp",
         "and on to Ironforge")
     click(UI.trackButton)
+    assert(UI.trackId == "orgrimmar_canyon" and AzerothKartDB.preferences.track == "orgrimmar_canyon",
+        "and on to Orgrimmar")
+    click(UI.trackButton)
     assert(UI.trackId == "test_oval" and AzerothKartDB.preferences.track == "test_oval",
         "switching back is remembered too")
 end, function(env, AK)

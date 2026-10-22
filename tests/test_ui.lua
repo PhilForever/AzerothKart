@@ -271,7 +271,7 @@ end
 local EFFECT_TEXTURES=20+14+2*2
 -- The front end (Menu.lua) creates its header, menu screens, race overlay and
 -- results buttons once with the window; it replaced the old title line. The
--- track list holds eight buttons (four tracks, four coming-soon cities) under
+-- track list holds eight buttons (five tracks, three coming-soon cities) under
 -- two cup headings.
 local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=64,9,68   -- ten kart buttons since the four Warcraft III vehicles
 -- City circuits have up to eight gates: the gate pool holds eight strips
@@ -839,7 +839,7 @@ withMock(nil,false,function(env,UI)
     local counts={}
     for key,value in pairs(env.counts) do counts[key]=value end
     for _,fixture in ipairs({{id="ironforge_gp",gates=7},{id="stormwind_city",gates=6},
-            {id="test_oval",gates=4}}) do
+            {id="orgrimmar_canyon",gates=4},{id="test_oval",gates=4}}) do
         assert(UI.SelectTrack(fixture.id) and #UI.track.gates==fixture.gates,
             "the selected course supplies its actual gate count: "..fixture.id)
         for index=fixture.gates+1,#UI.gateTextures do

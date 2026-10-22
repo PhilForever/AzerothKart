@@ -195,11 +195,11 @@ for _,course in ipairs(Courses.LIST) do
             Courses.build(course.id, Track.crossesGate) == nil, "a coming-soon city cannot be built")
     end
 end
-assert(soon == 4 and Courses.available("stormwind_city") and Courses.available("ironforge_gp"),
-    "Stormwind and Ironforge are ready; four cities are coming")
+assert(soon == 3 and Courses.available("stormwind_city") and Courses.available("ironforge_gp")
+    and Courses.available("orgrimmar_canyon"), "Stormwind, Ironforge and Orgrimmar are ready; three cities are coming")
 assert(Courses.next("test_oval") == "mirage_raceway" and Courses.next("mirage_raceway") == "stormwind_city"
-    and Courses.next("stormwind_city") == "ironforge_gp" and Courses.next("ironforge_gp") == "test_oval",
-    "the Track button cycles the ready tracks")
+    and Courses.next("stormwind_city") == "ironforge_gp" and Courses.next("ironforge_gp") == "orgrimmar_canyon"
+    and Courses.next("orgrimmar_canyon") == "test_oval", "the Track button cycles the ready tracks")
 assert(Courses.build("test_oval", Track.crossesGate) == Track, "the oval is the original track")
 local stormwind = Courses.build("stormwind_city", Track.crossesGate)
 assert(stormwind and Courses.build("stormwind_city", Track.crossesGate) == stormwind, "built once, kept")
@@ -454,7 +454,34 @@ for _=1,90 do
     iron = Physics.step(iron, {accelerate=true}, Physics.FIXED_DT, ironforge)
 end
 assert(iron.surface == "road" and iron.impacts == 0, "throttle from Ironforge's grid stays on the road")
+
+-- Orgrimmar: the spawn sits on the canyon road behind the city gate; the
+-- walk joins the loop in the Valley of Strength and passes the four
+-- district gates in order round the Cleft of Shadow, never meeting a wall.
+-- Full grip to the street walls, as in Stormwind. Throttle from the grid
+-- stays on the road.
+local orgrimmar = Courses.build("orgrimmar_canyon", Track.crossesGate)
+local orcData = namespace.CapitalCities.orgrimmar_canyon
+assert(orgrimmar and orgrimmar.wallRadius == 76 and #orgrimmar.gates == 4 and #orgrimmar.solids == 0
+    and #orcData.plazas == 0 and #orcData.branches == 1, "Orgrimmar's street: the same road and walls, four gates")
+assert(orgrimmar.version == 1 and orgrimmar.wallClearance == 14 and #orcData.wallVertices > 0
+    and orgrimmar.fullSpeedToWalls and orcData.fullSpeedToWalls,
+    "Orgrimmar uses the exposed-wall clearance and full grip to the walls")
+local orcNames, orcWalls = walk(orgrimmar, orcData)
+assert(orcNames == "The Drag,Valley of Wisdom,Cleft of Shadow,Valley of Strength",
+    "Orgrimmar's gates in order: " .. orcNames)
+assert(orcWalls == 0, "Orgrimmar's centerline never meets a wall")
+for _,gate in ipairs(orgrimmar.gates) do
+    assert(orgrimmar.surfaceAt(gate.ax,gate.ay) == "wall" and orgrimmar.surfaceAt(gate.bx,gate.by) == "wall",
+        "both ends of a gate close the street: " .. gate.name)
+end
+local orc = Physics.new(orgrimmar)
+for _=1,90 do
+    orc = Physics.step(orc, {accelerate=true}, Physics.FIXED_DT, orgrimmar)
+end
+assert(orc.surface == "road" and orc.impacts == 0, "throttle from Orgrimmar's grid stays on the road")
 print(("circuit: street walls, plazas and solids; Stormwind %d-unit loop, %d gates in order; "
-    .. "Ironforge %d-unit loop, %d gates in order; %d solids")
+    .. "Ironforge %d-unit loop, %d gates in order; Orgrimmar %d-unit loop, %d gates in order; %d solids")
     :format(math.floor(stormwind.length + 0.5), #stormwind.gates, math.floor(ironforge.length + 0.5),
-        #ironforge.gates, #stormwind.solids + #ironforge.solids))
+        #ironforge.gates, math.floor(orgrimmar.length + 0.5), #orgrimmar.gates,
+        #stormwind.solids + #ironforge.solids + #orgrimmar.solids))

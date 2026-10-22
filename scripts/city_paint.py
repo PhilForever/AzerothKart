@@ -121,6 +121,7 @@ class Tileset:
 
     def __init__(self, wc3):
         self.wc3, self.cache = wc3, {}
+        self.strata = {}         # Strata regions of plain textures, by (path, region, shade)
 
     def cells(self, path, shade=1.0):
         """`shade` multiplies the colour: one factor, or (red, green, blue[,
@@ -165,6 +166,45 @@ class Tileset:
         pool = cells[16:] if len(cells) > 16 else cells[15:16]
         cell = pool[hash32(x // CELL, y // CELL, seed) % len(pool)]
         return cell[((CELL - 1 - (y % CELL)) * CELL) + (x % CELL)]
+
+
+class Strata:
+    """A region of a plain Warcraft III texture (a cliff model's layered
+    rock), shaded like a terrain tile (`shade`: a factor or (red, green, blue[,
+    saturation])), laid along a face two texels per world unit and stretched
+    over its height: a canyon wall's strata."""
+
+    def __init__(self, tiles, spec):
+        path, region, shade = spec
+        key = (path, tuple(region), shade)
+        if key not in tiles.strata:
+            w, h, tex = R.read_dds(R.archive_file(tiles.wc3, path).read_bytes())
+            x0, y0, x1, y1 = region
+            rows = []
+            for y in range(y0, y1):
+                row = []
+                for x in range(x0, x1):
+                    t = tex[y * w + x]
+                    if isinstance(shade, tuple):
+                        sr, sg, sb = shade[:3]
+                        sat = shade[3] if len(shade) > 3 else 1.0
+                        grey = 0.30 * t[0] + 0.59 * t[1] + 0.11 * t[2]
+                        row.append((min(255, int((grey + (t[0] - grey) * sat) * sr * 255 + 0.5)),
+                                    min(255, int((grey + (t[1] - grey) * sat) * sg * 255 + 0.5)),
+                                    min(255, int((grey + (t[2] - grey) * sat) * sb * 255 + 0.5))))
+                    else:
+                        row.append((min(255, int(t[0] * shade * 255 + 0.5)), min(255, int(t[1] * shade * 255 + 0.5)),
+                                    min(255, int(t[2] * shade * 255 + 0.5))))
+                rows.append(row)
+            tiles.strata[key] = rows
+        self.rows = tiles.strata[key]
+        self.width, self.height = len(self.rows[0]), len(self.rows)
+
+    def sample(self, x, k, rise):
+        """The colour at world column x, k rows down from the top of a face
+        `rise` rows tall."""
+        row = self.rows[min(self.height - 1, max(0, k) * self.height // max(1, rise))]
+        return row[(x * 2) % self.width]
 
 
 def district_at(city, x, y):
@@ -770,7 +810,10 @@ def paint_rock(pic, city, rock, tiles):
     dark = spec.get("dark", 0.4)
     deep = bank_distance(rock, w, h, fade)
     top_tile, top_shade = spec["top"]
-    face_tile, face_shade = spec["face"]
+    face_tile, face_shade = spec.get("face", (None, None))
+    # A canyon's walls: the face in a cliff texture's strata (face_texture),
+    # instead of a terrain tile with painted courses.
+    strata = Strata(tiles, spec["face_texture"]) if spec.get("face_texture") else None
     up = bytearray(w * h)               # rock texels counted north from open ground
     for row in range(h - 1, -1, -1):
         base = row * w
@@ -790,7 +833,10 @@ def paint_rock(pic, city, rock, tiles):
         row, x = divmod(i, w)
         y = h - 1 - row
         k = up[i]
-        if k <= rise:
+        if k <= rise and strata is not None:
+            r, g, b = strata.sample(x, rise - k, rise)
+            s = 0.95 if k >= rise - 1 else 0.62 + 0.38 * k / rise    # the lit brink; the foot in shadow
+        elif k <= rise:
             r, g, b, _ = tiles.whole(face_tile, x, y, seed=17, shade=face_shade)
             course = spec.get("course", 0)
             if k >= rise - 1:
@@ -880,6 +926,80 @@ def paint_lights(pic, lights):
                 pic.r[i] = min(255, pic.r[i] + int(gr * f + 0.5))
                 pic.g[i] = min(255, pic.g[i] + int(gg * f + 0.5))
                 pic.b[i] = min(255, pic.b[i] + int(gb * f + 0.5))
+
+
+# ---------------------------------------------------------------------------
+# Sunken ground: a chasm below the city's level (the Cleft of Shadow).
+
+
+def pit_mask(city, street):
+    """The city's sunken ground (`pits.shapes`: world polygons) less the
+    street and its walls, which keep to the city's level. None without pits."""
+    spec = city.get("pits")
+    if not spec:
+        return None
+    w, h = street.w, street.h
+    dry = city["wall"]["thickness"] + 0.5 + spec.get("margin", 0)
+    pit = bytearray(w * h)
+    for poly in spec["shapes"]:
+        fill_polygon(pit, w, h, poly)
+    for i in range(w * h):
+        if pit[i] and street.gap[i] <= dry:
+            pit[i] = 0
+    return pit
+
+
+def paint_pits(pic, city, pit, tiles):
+    """Sunken ground from the karts' camera: the floor in its tile, darker
+    toward the edges; below every edge with the city's level just north,
+    the chasm's far wall drops `depth` rows in a cliff's strata (`face`, as
+    rock.face_texture), lit at the brink, then its shadow on the floor; a
+    dark lip all round. Returns the texels no model may stand on: the wall,
+    its shadow's first rows and a band along every edge, inside and out."""
+    spec = city["pits"]
+    w, h = pic.w, pic.h
+    floor_tile, floor_shade = spec["floor"]
+    depth = spec.get("depth", 24)
+    shade_rows = spec.get("shadow", 10)
+    strata = Strata(tiles, spec["face"])
+    near = bank_distance(pit, w, h, 16)
+    up = bytearray(w * h)               # pit texels straight above (north), capped
+    for i in range(w, w * h):
+        if pit[i] and pit[i - w]:
+            up[i] = min(250, up[i - w] + 1)
+    keep = bytearray(w * h)
+    for i in range(w * h):
+        if not pit[i]:
+            continue
+        row, x = divmod(i, w)
+        y = h - 1 - row
+        k = up[i]
+        walled = row - k - 1 >= 0      # a dry texel above the pit's top: a far wall
+        if walled and k < depth:
+            r, g, b = strata.sample(x, k, depth)
+            s = 0.92 if k < 2 else 0.80 - 0.40 * k / depth
+            keep[i] = 1
+        else:
+            r, g, b, _ = tiles.whole(floor_tile, x, y, seed=37, shade=floor_shade)
+            s = 0.62 + 0.38 * min(16, near[i]) / 16.0
+            if walled and k < depth + shade_rows:
+                s *= 0.60
+                keep[i] = 1
+            elif near[i] < spec.get("clear", 6):
+                keep[i] = 1
+        pic.r[i] = min(255, int(r * s + 0.5))
+        pic.g[i] = min(255, int(g * s + 0.5))
+        pic.b[i] = min(255, int(b * s + 0.5))
+    edge = dilate(pit, w, h, 2)
+    rim = spec.get("rim", (60, 36, 28))
+    for i in range(w * h):
+        if edge[i] and not pit[i]:
+            pic.r[i], pic.g[i], pic.b[i] = rim
+    around = dilate(pit, w, h, spec.get("clear", 6))
+    for i in range(w * h):
+        if around[i] and not pit[i]:
+            keep[i] = 1
+    return keep
 
 
 # ---------------------------------------------------------------------------
@@ -1205,6 +1325,13 @@ def wall_columns(city, street, course, water, steps=None, squares=None, rock=Non
                 elif district_at(city, x, y)["name"] in city.get("hedged", ()):
                     style = "hedge"
                     height = 9 + hash32(x // 3, y // 3, 41) % 4
+                elif city.get("land_wall"):
+                    # A city's own street wall (Orgrimmar's timber palisade),
+                    # with a taller spike every `spike_every` units along it.
+                    land = city["land_wall"]
+                    style, height = land["style"], land["height"]
+                    if land.get("spike_every") and along % land["spike_every"] < land.get("spike_width", 1.5):
+                        style, height = "spike", land["spike_height"]
                 else:
                     style = "land"
                     height = 5
@@ -1219,6 +1346,8 @@ WALL_STYLES = {   # face, coping, foot
     "barrier": ((112, 78, 46), (150, 110, 70), (64, 46, 30)),
     "hedge": ((44, 92, 40), (70, 126, 58), (30, 60, 28)),
     "lava": ((52, 38, 32), (84, 62, 50), (28, 20, 18)),
+    "palisade": ((112, 74, 46), (150, 106, 68), (58, 38, 24)),
+    "spike": ((70, 60, 52), (196, 184, 160), (42, 36, 32)),
 }
 
 
@@ -1251,6 +1380,11 @@ def paint_wall_row(pic, city, y, columns):
                 elif style == "hedge":
                     v = hash32(x, row, 43) % 24
                     r, g, b = r + v // 2, g + v, b + v // 3
+                elif style == "palisade":
+                    if x % 4 == 0:                                # the stakes' seams
+                        r, g, b = r * 3 // 4, g * 3 // 4, b * 3 // 4
+                elif style == "spike":
+                    pass
                 elif k == rise // 2 and (x // 6) % 2 == 0:
                     r, g, b = r * 7 // 8, g * 7 // 8, b * 7 // 8
             pic.r[i], pic.g[i], pic.b[i] = r, g, b
@@ -1262,6 +1396,10 @@ def sprite_for(wc3, city, item, cache):
            tuple(sorted((city.get("replaceables") or {}).items())), item.get("team") or city["team"])
     if item.get("stone"):
         key += (("stone", tuple(item["stone"])),)
+    if item.get("cut") is not None:
+        key += (("cut", item["cut"]),)
+    if item.get("alpha_shadow"):
+        key += (("alpha_shadow", True),)
     if key not in cache:
         mesh = item.get("mesh")
         sprite = None if mesh else _disk_cache(key)     # meshes are quick to draw: never cached on disk
@@ -1272,12 +1410,16 @@ def sprite_for(wc3, city, item, cache):
                 loaded = R.load(wc3, item["model"], team=item.get("team") or city["team"],
                                 replaceables=city.get("replaceables"))
                 triangles = R.posed(loaded, item["sequence"], item["scale"], item["yaw"])
+                if item.get("cut") is not None:
+                    # Drop the ground patch some doodads carry (a Barrens rock's
+                    # square of dirt): triangles lying wholly this low.
+                    triangles = [t for t in triangles if max(p[2] for p in t[0]) > item["cut"]]
             files = loaded[0].get("texture_files", [])
             if not triangles:
                 raise SystemExit(f"LAYOUT: {item['model']} has nothing this renderer can draw")
             sprite = R.render(loaded, triangles, ss=city.get("supersample", 3), lean=city["lean"],
                               tint=item.get("tint") or (1.0, 1.0, 1.0), recolor=item.get("recolor"),
-                              stone=item.get("stone"))
+                              stone=item.get("stone"), alpha_shadow=item.get("alpha_shadow", False))
             sprite["textures"] = sorted(set(files))
             # Samples for placement tests: body texels and plan texels.
             sprite["body_points"] = [(i, j) for j, line in enumerate(sprite["body"]) for i, a in enumerate(line)
@@ -1601,6 +1743,9 @@ def build(wc3, city, geometry, check=False, preview=False, log=print):
     paint_terrain(pic, city, tiles)
     water, bridge = water_masks(city, geometry, street)
     paint_water(pic, city, water, tiles, bridge)
+    # Sunken ground under any lava in it (Ragefire Chasm in the Cleft of Shadow).
+    pit = pit_mask(city, street)
+    pit_keep = paint_pits(pic, city, pit, tiles) if pit is not None else None
     lava = lava_mask(city, street)
     if lava is not None:
         paint_lava(pic, city, lava, tiles)
@@ -1619,6 +1764,8 @@ def build(wc3, city, geometry, check=False, preview=False, log=print):
     paint_street(pic, city, geometry, street, tiles, course)
     squares = paint_squares(pic, city, street, tiles)
     taken = bytearray(w * h)
+    if pit_keep is not None:
+        taken[:] = pit_keep          # no model on a chasm's wall or along its edges
     steps = paint_steps(pic, city, street, taken)
     paint_alleys(pic, city, street, course, tiles, taken)
     rock = rock_mask(city, street)
@@ -1709,6 +1856,8 @@ def sources(wc3, city, tiles, models):
         for path in sprite["textures"]:
             textures.add(path.replace("war3.w3mod/", "war3.w3mod:", 1))
     for path, _ in tiles.cache:
+        textures.add(path)
+    for path, _, _ in tiles.strata:
         textures.add(path)
     textures.add(city["water_texture"])
     lines = [f"# {city['name']}: Warcraft III Reforged files used by {city['folder']}/Background.tga",
