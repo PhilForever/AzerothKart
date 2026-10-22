@@ -535,6 +535,47 @@ withMock({schemaVersion=1, preferences={version=2, kart="steam_tank", newShape={
     assert(UI.kartId == "gyrocopter" and AzerothKartDB.preferences.version == 2 and
            AzerothKartDB.preferences.kart == "steam_tank", "a newer version's record is never overwritten")
 end)
+withMock({schemaVersion=1, preferences={version=2, track="mirage_raceway", kart="gyrocopter",
+    newShape={owner="future", keep=true}}}, function(env, UI, Menu, AK)
+    local record = AzerothKartDB.preferences
+    local unknown = record.newShape
+    UI.Toggle()
+    assert(UI.trackId == "test_oval" and UI.kartId == "goblin_mortar_trike",
+        "failed choices in a newer record leave the current fallback ids")
+    click(Menu.view.homeButtons[1]); click(Menu.view.trackNext); click(Menu.view.race)
+    UI.OnUpdate(1 / 60)
+    UI.Stop("preference regression")
+    click(find(env, UI.summary, "Change Track"))
+    local state, race, clock, laps, checkpoints = UI.state, UI.race, UI.clock, UI.laps, UI.checkpoints
+    local keys, input, before = UI.keys, UI.input, {}
+    assert(state and race and clock and laps and checkpoints, "a stopped run supplies real state to preserve")
+    AK.Input.set(keys, "W", true)
+    AK.Input.sample(keys, input)
+    for key,value in pairs(state) do before[key] = value end
+    local function unchanged()
+        assert(UI.state == state and UI.race == race and UI.clock == clock and UI.laps == laps and
+               UI.checkpoints == checkpoints and not UI.active,
+            "choosing current ids keeps the stopped run and its timing references")
+        for key,value in pairs(before) do assert(state[key] == value, "vehicle state stays unchanged: " .. key) end
+        assert(UI.keys == keys and UI.input == input and keys.W == true and input.accelerate == true and
+               not input.brake and not input.left and not input.right and not input.drift,
+            "choosing current ids does not clear or replace input")
+        assert(AzerothKartDB.preferences == record and record.version == 2 and
+               record.track == "mirage_raceway" and record.kart == "gyrocopter" and
+               record.newShape == unknown and unknown.owner == "future" and unknown.keep == true,
+            "explicit fallback choices never replace or change a newer preference record")
+    end
+    click(Menu.view.trackButtons.test_oval)
+    assert(Menu.prefs.track == "test_oval" and Menu.trackRestored,
+        "the current track choice still supersedes restoration in memory")
+    unchanged()
+    click(Menu.view.trackNext); click(Menu.view.kartButtons.goblin_mortar_trike)
+    assert(Menu.prefs.kart == "goblin_mortar_trike", "the current kart choice is kept in memory")
+    unchanged()
+end, function(env, AK)
+    env.textureModes[AK.Presentation.KART_SPRITES.gyrocopter.path] = "false"
+    env.textureModes[BACKGROUND] = "false"
+end)
 
 -- Window sizes that would not fit the screen are offered disabled, and a saved
 -- size that no longer fits falls back to the largest that does.
