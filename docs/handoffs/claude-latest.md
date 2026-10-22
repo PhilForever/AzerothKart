@@ -94,7 +94,9 @@ Fully restart the client: `Circuit.lua`, `CapitalCities.lua`, `Courses.lua` and 
 
 ## Deployment
 
-Claude installed nothing and did not touch the live AddOns folder. Per INTEGRATION_STATUS, Codex prepares the next coordinated install from reviewed, integrated source, and the owner decides.
+Claude installed nothing and did not change the live AddOns folder. Per INTEGRATION_STATUS, Codex prepares the next coordinated install from reviewed, integrated source, and the owner decides.
+
+**2026-10-22 ~01:00 CEST, owner:** he opened the game and found no Stormwind track. Read-only inspection of the live `AddOns\AzerothKart` folder: it holds the build from the night of 2026-10-20/21 (file contents match `8195da9` for `UI.lua`, `8f66c5a` for `Core.lua`/`TransportProbe.lua`, `c6e1b5e` for `Presentation.lua`, `b1cd42c` for `Physics.lua`, `de7a63e` for the TOCs); no `Menu.lua`, `Courses.lua`, `Circuit.lua` or `CapitalCities.lua`, no Stormwind pictures, two kart sheets. All five commits are ancestors of `claude/capital-cup`. Claude offered to install the branch; **the owner chose to wait for Codex's coordinated install.** That install needs a full client restart (new files).
 
 ## Pending PROGRESS ledger entries (integrator to append; PROGRESS.md was not edited)
 
