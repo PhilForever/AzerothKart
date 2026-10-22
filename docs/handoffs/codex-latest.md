@@ -1,3 +1,20 @@
+# Active reservation — multiplayer grid/countdown and peer presentation
+
+2026-10-23 Europe/Oslo. Owner reports first completed two-client race, asks
+visible shared starting grid/countdown and describes square peers/delay/clipping.
+Own clean codex/multiplayer-grid from6ad66d1. Reserve root native grid/profile
+exchange, pure codec/controller and clock/race spawn integration, loaders/docs/
+PROGRESS; UI/Menu and UI tests delegated for shared grid/capture/sprites;
+Presentation helper/tests delegated for bounded time-aware remote display;
+native/E2E tests delegated after interfaces agreed. User's current request
+explicitly assigns this integration; Claude checkout/art are not edited.
+Preserve native pacing, exactly-once GO, zero pre-GO simulation and solo flow.
+No inter-kart collision/official winner or network capacity acceptance inferred.
+Record owner evidence with two local finishes35.42/36.42, not agreed placements
+or quantitative latency. Screenshots remain private. No automatic publication.
+
+## Previous handoff
+
 # Codex handoff — multiplayer candidate installed and packaged from AddOns
 
 2026-10-22 23:52 +02:00, Europe/Oslo. Explicit owner request: install into AddOns and make ZIP
