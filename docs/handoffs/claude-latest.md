@@ -38,11 +38,11 @@ The proposal is in [API_CONTRACTS](../API_CONTRACTS.md#proposed-capital-cities-c
 
 | Command / check | Result |
 |---|---|
-| `python scripts/test_lua.py --runtime both` | **PASS** in the cloud (Python 3.13, Lupa): both runtimes, full suite |
-| `python tests/test_circuit_boundary.py` | **PASS**, 10 tests (Codex's nine plus the narrows join test) |
-| `python scripts/build_city_tracks.py --wc3 … --check` | **CHECK PASS** for `CapitalCities.lua` and both cities in the cloud. Stormwind `Background.tga` sha256 `078a7805bccdadd8b88a909d5c37b013aa51e9d0d7981134c04f7a9db12f4ebb` (unchanged); Ironforge `Background.tga` `c531ceee694b59f142bdbe522d5d86da9f23fe07b6486b6d4dc0c76a3e64ac05`, `Preview.tga` `8bae79810b4751284e4fd908a56b6301bedf5bc78645e67d3f283fa7e95b8e8d` |
+| `python scripts/test_lua.py --runtime both` | **PASS** in the cloud (Python 3.13, Lupa 2.8) and on the developer machine's Linux shell (Python 3.10.12, Lupa 2.8) at `289ad3d`: both runtimes, full suite |
+| `python tests/test_circuit_boundary.py` | **PASS** on both machines, 10 tests (Codex's nine plus the narrows join test) |
+| `python scripts/build_city_tracks.py --wc3 … --check` | **CHECK PASS** for `CapitalCities.lua` and both cities in the cloud, and on the developer machine at `289ad3d` from its own extraction and sprite cache (it rendered the new sprites and the meshes itself; two calls for Stormwind, whose cache there was incomplete). Stormwind `Background.tga` sha256 `078a7805bccdadd8b88a909d5c37b013aa51e9d0d7981134c04f7a9db12f4ebb` (unchanged); Ironforge `Background.tga` `c531ceee694b59f142bdbe522d5d86da9f23fe07b6486b6d4dc0c76a3e64ac05`, `Preview.tga` `8bae79810b4751284e4fd908a56b6301bedf5bc78645e67d3f283fa7e95b8e8d` |
 | Collision probe (scratch, not committed) | `surfaceAt` against an independent test (the 14-unit disc round a point inside the union of visual capsules) at 21,761 points round the four tunnel ends: **0 mismatches** |
-| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in PROGRESS.md fail |
+| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in PROGRESS.md fail, on both machines |
 | Review | Crops of the forge, both tunnels, the Military Ward's pit and the whole city inspected; before/after sheet sent to the owner |
 
 **NOT RUN:** anything in WoW Forever (the tunnels' feel and width, the lava walls, the anvil's look, frame rate); any install; multiplayer.
@@ -60,7 +60,7 @@ Claude installed nothing and did not touch the live AddOns folder. Codex install
 > ### 2026-10-22 ~17:30 CEST — Claude / `claude/ironforge-design`, Ironforge version 3
 >
 > - The owner's design changes after driving version 2 (`5a56e90`): the Forlorn Cavern's entrance and exit as narrows (no shoulder, the wall at the paving's edge, cut through the rock) via an additive `narrows` circuit field proposed for Codex's review; lava without its bank face, ridges or grey unlit corners, inside dark iron walls, glow kept; the Great Forge's floor between its forges reserved for a procedural Great Anvil and pumps. `Background.tga` sha256 `c531ceee…3e64ac05`, `Preview.tga` `8bae7981…95b8e8d`; Stormwind unchanged.
-> - `test_lua.py --runtime both` PASS; boundary tests PASS; `build_city_tracks.py --check` PASS for both cities; collision probe 0 of 21,761 mismatches; validator: only the 2 pre-existing PROGRESS links.
+> - `test_lua.py --runtime both` PASS and boundary tests PASS in the cloud and on the developer machine; `build_city_tracks.py --check` PASS for both cities on both (the machine from its own extraction and sprites); collision probe 0 of 21,761 mismatches; validator: only the 2 pre-existing PROGRESS links.
 > - **NOT RUN:** the client; install.
 
 ## Branch, commits and workspace
