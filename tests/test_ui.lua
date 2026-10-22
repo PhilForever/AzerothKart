@@ -271,7 +271,7 @@ end
 local EFFECT_TEXTURES=20+14+2*2
 -- The front end (Menu.lua) creates its header, menu screens, race overlay and
 -- results buttons once with the window; it replaced the old title line. The
--- track list holds eight buttons (three tracks, five coming-soon cities) under
+-- track list holds eight buttons (four tracks, four coming-soon cities) under
 -- two cup headings.
 local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=60,9,68
 -- City circuits have up to eight gates: the gate pool holds eight strips
@@ -752,14 +752,14 @@ end
 -- UV probe cannot alter the currently shown image, pose or retained run. The
 -- active texture's loader also fails here, so preservation cannot rely on a
 -- rollback load. Both pooled textures must pass their own UV check.
-for _,sourceId in ipairs({"mirage_raceway","stormwind_city"}) do
+for _,sourceId in ipairs({"mirage_raceway","stormwind_city","ironforge_gp"}) do
     for _,mode in ipairs({"false","throws","uv missing","uv throws"}) do
         withMock(nil,false,function(env,UI)
             env.fire("ADDON_LOADED","AzerothKart")
             UI.Toggle()
             assert(UI.SelectTrack(sourceId),"load the retained scenery: "..sourceId)
             UI.Start(); UI.OnUpdate(1/60); UI.Stop("retained scenery fixture")
-            local targetId=sourceId=="mirage_raceway" and "stormwind_city" or "mirage_raceway"
+            local targetId=sourceId=="stormwind_city" and "ironforge_gp" or "stormwind_city"
             local front,staging=UI.mirageBackground,UI.backgroundStaging
             local oldPath,oldReady=UI.backgroundPath,UI.mirageTextureReady
             local image=front.texturePath
@@ -830,6 +830,34 @@ for _,sourceId in ipairs({"mirage_raceway","stormwind_city"}) do
         end)
     end
 end
+
+-- A gate that was visible near a city's finish cannot survive as an extra
+-- strip when selecting a course with fewer gates. The pool itself is reused.
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    UI.Toggle()
+    local counts={}
+    for key,value in pairs(env.counts) do counts[key]=value end
+    for _,fixture in ipairs({{id="ironforge_gp",gates=7},{id="stormwind_city",gates=6},
+            {id="test_oval",gates=4}}) do
+        assert(UI.SelectTrack(fixture.id) and #UI.track.gates==fixture.gates,
+            "the selected course supplies its actual gate count: "..fixture.id)
+        for index=fixture.gates+1,#UI.gateTextures do
+            assert(not UI.gateTextures[index]:IsShown(),
+                "a shorter course hides the prior city's extra gate: "..fixture.id.."/"..index)
+        end
+        -- Bring the last gate into the follow camera using a stopped pose,
+        -- so the next selection must hide an actually visible surplus strip.
+        local gate=UI.track.gates[fixture.gates]
+        UI.state.x,UI.state.y=(gate.ax+gate.bx)/2,(gate.ay+gate.by)/2
+        UI.Stop("gate pool fixture")
+        assert(UI.gateTextures[fixture.gates]:IsShown(),
+            "the current course's last gate is visible before switching: "..fixture.id)
+    end
+    for key,value in pairs(counts) do
+        assert(env.counts[key]==value,"city gate switches reuse the existing pool: "..key)
+    end
+end)
 
 -- Countdown cues follow fixed ticks independently of the timing HUD. Actual
 -- controls are sampled, while neutral physics prevents pre-start preparation.

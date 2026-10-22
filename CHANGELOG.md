@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Ironforge integration correction (2026-10-22)
+- Preserve Stormwind full-speed/version3 corner handling and staged background loading while integrating Claude de2fa5f. Ironforge version2 reuses the existing exposed-wall clearance to avoid an invisible gate-hall corner; art and route stay unchanged, rough shoulders remain.
+- Add Ironforge restore/selection, destructive image refusal and seven-to-six-to-four gate visibility regressions. No global Physics, multiplayer or other-agent checkout changes.
+
+## Unreleased — Ironforge Grand Prix (2026-10-22, `claude/capital-cup`)
+- **Ironforge Grand Prix** joins Stormwind in the Capital Cities Cup and is selectable (four cities remain coming soon). The course follows the owner's line on the in-game Ironforge map, clockwise: from the Gates (Dun Morogh's snow behind them) up the Commons' ring, round the Mystic Ward, the Forlorn Cavern's lake and the Hall of Explorers, through the Great Forge between its two molten forges and round the southern one, out past Tinker Town, through the Military Ward and back to the Commons. Seven gates named for the districts; a long lap (7,077 units, about 1.8 × Stormwind's). See `docs/art/tracks/ironforge.md`.
+- An underground city: the halls are open floor, the rest the mountain's rock with dressed-stone faces; lava pools with stone ridges and glow, a lake and a pool with spiral rings, pools of light from braziers, torches and crystal lamps; district palettes kept sparse with per-model limits. All optional city data in `city_paint.py`; Stormwind's bytes are unchanged.
+- The Track button cycles Test Oval, Mirage Raceway, Stormwind City and Ironforge. `tests/test_circuit.lua` walks Ironforge's gates in order with a wall-free centerline; `tests/test_menu.lua` follows the longer cycle. Explicit counts stay 71/165/80. The second 2048-square picture, the drive and the menus in the client are NOT RUN.
+
 ## Unreleased — Stormwind painted-wall collision alignment (2026-10-22)
 - Remove the invisible collision wedge at the Park/Mage corner: compute clearance from the exposed painted wall union, retaining normal straight-wall padding and full-speed street handling. Stormwind trackversion3; artwork/othertracks/globalPhysics unchanged.
 - Keep reachable corner slides within the requested movement bound, and add reported-corner, real-wall and pure analytic geometry regressions.

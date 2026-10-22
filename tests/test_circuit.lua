@@ -135,16 +135,57 @@ for _,course in ipairs(Courses.LIST) do
             Courses.build(course.id, Track.crossesGate) == nil, "a coming-soon city cannot be built")
     end
 end
-assert(soon == 5 and Courses.available("stormwind_city"), "Stormwind is ready; five cities are coming")
+assert(soon == 4 and Courses.available("stormwind_city") and Courses.available("ironforge_gp"),
+    "Stormwind and Ironforge are ready; four cities are coming")
 assert(Courses.next("test_oval") == "mirage_raceway" and Courses.next("mirage_raceway") == "stormwind_city"
-    and Courses.next("stormwind_city") == "test_oval", "the Track button cycles the ready tracks")
+    and Courses.next("stormwind_city") == "ironforge_gp" and Courses.next("ironforge_gp") == "test_oval",
+    "the Track button cycles the ready tracks")
 assert(Courses.build("test_oval", Track.crossesGate) == Track, "the oval is the original track")
 local stormwind = Courses.build("stormwind_city", Track.crossesGate)
 assert(stormwind and Courses.build("stormwind_city", Track.crossesGate) == stormwind, "built once, kept")
 
--- Stormwind: the spawn sits on the Valley of Heroes road; a walk of the
--- course (the approach, then the loop and back to the gate) passes the six
--- district gates in order and completes the lap's checkpoints.
+-- A walk of a city's course from its spawn (the approach, then the loop
+-- twice until the lap completes): the gate names passed in order, and how
+-- many walk points met a wall.
+local function walk(track, data)
+    local spawn = track.spawn()
+    assert(track.surfaceAt(spawn.x, spawn.y) == "road", data.id .. ": the start grid is on the road")
+    local path = {}
+    for _,point in ipairs(data.branches[1]) do path[#path + 1] = point end
+    for _=1,2 do
+        for _,point in ipairs(data.centerline) do path[#path + 1] = point end
+    end
+    local start = 1
+    for index,point in ipairs(path) do
+        if distance(point.x, point.y, spawn.x, spawn.y) < distance(path[start].x, path[start].y, spawn.x, spawn.y) then
+            start = index
+        end
+    end
+    local progress = Checkpoints.new(track, 0)
+    local previous = {x=spawn.x, y=spawn.y, tick=0}
+    local names, walls = {}, 0
+    for index=start + 1,#path do
+        local target = path[index]
+        local steps = math.max(1, math.ceil(distance(previous.x, previous.y, target.x, target.y) / 4))
+        local fromX, fromY = previous.x, previous.y
+        for k=1,steps do
+            local px = fromX + (target.x - fromX) * k / steps
+            local py = fromY + (target.y - fromY) * k / steps
+            if track.surfaceAt(px, py) == "wall" then walls = walls + 1 end
+            local current = {x=px, y=py, tick=previous.tick + 1}
+            local before = progress.passed
+            progress = Checkpoints.step(progress, previous, current, track)
+            if progress.passed > before then names[#names + 1] = track.gates[progress.passed].name end
+            previous = current
+        end
+        if progress.complete then break end
+    end
+    assert(progress.complete, data.id .. ": the walk completes the lap")
+    return table.concat(names, ","), walls
+end
+
+-- Stormwind: the spawn sits on the Valley of Heroes road; the walk passes
+-- the six district gates in order and completes the lap's checkpoints.
 local data = namespace.CapitalCities.stormwind_city
 assert(stormwind.wallRadius == 76 and stormwind.roadRadius == 56 and #stormwind.gates == 6,
     "Stormwind keeps its painted street and existing wall geometry")
@@ -229,40 +270,9 @@ end
 assert(distance(442,849,drive.x,drive.y) > 33, "the full-speed corner drive makes forward progress")
 
 local spawn = stormwind.spawn()
-assert(stormwind.surfaceAt(spawn.x, spawn.y) == "road", "the start grid is on the road")
-local path = {}
-for _,point in ipairs(data.branches[1]) do path[#path + 1] = point end
-for _=1,2 do
-    for _,point in ipairs(data.centerline) do path[#path + 1] = point end
-end
-local start = 1
-for index,point in ipairs(path) do
-    if distance(point.x, point.y, spawn.x, spawn.y) < distance(path[start].x, path[start].y, spawn.x, spawn.y) then
-        start = index
-    end
-end
-local progress = Checkpoints.new(stormwind, 0)
-local previous = {x=spawn.x, y=spawn.y, tick=0}
-local names, walls = {}, 0
-for index=start + 1,#path do
-    local target = path[index]
-    local steps = math.max(1, math.ceil(distance(previous.x, previous.y, target.x, target.y) / 4))
-    local fromX, fromY = previous.x, previous.y
-    for k=1,steps do
-        local px = fromX + (target.x - fromX) * k / steps
-        local py = fromY + (target.y - fromY) * k / steps
-        if stormwind.surfaceAt(px, py) == "wall" then walls = walls + 1 end
-        local current = {x=px, y=py, tick=previous.tick + 1}
-        local before = progress.passed
-        progress = Checkpoints.step(progress, previous, current, stormwind)
-        if progress.passed > before then names[#names + 1] = stormwind.gates[progress.passed].name end
-        previous = current
-    end
-    if progress.complete then break end
-end
-assert(progress.complete and table.concat(names, ",") ==
-    "Old Town,Dwarven District,Cathedral Square,The Park,Mage Quarter,Trade District",
-    "the course passes the district gates in order: " .. table.concat(names, ","))
+local names, walls = walk(stormwind, data)
+assert(names == "Old Town,Dwarven District,Cathedral Square,The Park,Mage Quarter,Trade District",
+    "the course passes the district gates in order: " .. names)
 -- Nothing stands in Stormwind's street: the course runs past the
 -- Cathedral's steps with Cathedral Square and its fountain beyond the far
 -- wall, so the centerline never meets a wall.
@@ -284,5 +294,50 @@ for _=1,240 do
     assert(stormwind.surfaceAt(state.x, state.y) ~= "wall", "the kart never ends a step in a wall")
 end
 assert(state.impacts > 0, "the street's walls stop a kart that steers into them")
-print(("circuit: street walls, plazas and solids; Stormwind %d-unit loop, %d gates in order; %d solids")
-    :format(math.floor(stormwind.length + 0.5), #stormwind.gates, #stormwind.solids))
+
+-- Ironforge: the spawn sits in the gate hall; the walk passes the seven
+-- district gates in order, through the Great Forge, and never meets a wall
+-- (no plazas or solids). Throttle from the grid stays on the road.
+local ironforge = Courses.build("ironforge_gp", Track.crossesGate)
+local ironData = namespace.CapitalCities.ironforge_gp
+assert(ironforge and ironforge.wallRadius == 76 and #ironforge.gates == 7 and #ironforge.solids == 0
+    and #ironData.plazas == 0, "Ironforge's street: the same road and walls, seven gates, nothing in the way")
+assert(ironforge.version == 2 and ironforge.wallClearance == 14 and #ironData.wallVertices > 0,
+    "Ironforge v2 uses the existing exposed-wall clearance for its painted gate-hall junction")
+assert(not ironforge.fullSpeedToWalls and not ironData.fullSpeedToWalls,
+    "the Stormwind-only full-speed policy does not change Ironforge's rough shoulder")
+local oldIronDefinition = {}
+for key,value in pairs(ironData) do oldIronDefinition[key] = value end
+oldIronDefinition.wallClearance,oldIronDefinition.wallVertices = nil,nil
+local oldIron = Circuit.new(oldIronDefinition,Track.crossesGate)
+assert(oldIron.surfaceAt(232,641) == "wall" and ironforge.surfaceAt(232,641) == "grass",
+    "the gate-hall's painted corner is usable rough pavement, not an invisible wall")
+local ironX,ironY,ironHit = ironforge.resolveMovement(234,641,232,641)
+assert(ironX == 232 and ironY == 641 and not ironHit,
+    "a normal bounded step through Ironforge's concave corner moves without phantom contact")
+local ia,ib = ironData.branches[1][1],ironData.branches[1][2]
+local idx,idy = ib.x-ia.x,ib.y-ia.y
+local ilength = math.sqrt(idx*idx+idy*idy)
+local imx,imy = (ia.x+ib.x)/2,(ia.y+ib.y)/2
+assert(ironforge.surfaceAt(imx-idy/ilength*66,imy+idx/ilength*66) == "grass" and
+       ironforge.surfaceAt(imx-idy/ilength*75,imy+idx/ilength*75) == "grass" and
+       ironforge.surfaceAt(imx-idy/ilength*78,imy+idx/ilength*78) == "wall",
+    "Ironforge keeps its rough shoulder and original clearance along a straight wall")
+for _,gate in ipairs(ironforge.gates) do
+    assert(ironforge.surfaceAt(gate.ax,gate.ay) == "wall" and
+           ironforge.surfaceAt(gate.bx,gate.by) == "wall",
+        "both ends still close the corrected street: " .. gate.name)
+end
+local ironNames, ironWalls = walk(ironforge, ironData)
+assert(ironNames == "Mystic Ward,Forlorn Cavern,Hall of Explorers,Great Forge,Tinker Town,Military Ward,The Commons",
+    "Ironforge's gates in order: " .. ironNames)
+assert(ironWalls == 0, "Ironforge's centerline never meets a wall")
+local iron = Physics.new(ironforge)
+for _=1,90 do
+    iron = Physics.step(iron, {accelerate=true}, Physics.FIXED_DT, ironforge)
+end
+assert(iron.surface == "road" and iron.impacts == 0, "throttle from Ironforge's grid stays on the road")
+print(("circuit: street walls, plazas and solids; Stormwind %d-unit loop, %d gates in order; "
+    .. "Ironforge %d-unit loop, %d gates in order; %d solids")
+    :format(math.floor(stormwind.length + 0.5), #stormwind.gates, math.floor(ironforge.length + 0.5),
+        #ironforge.gates, #stormwind.solids + #ironforge.solids))

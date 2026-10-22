@@ -4,12 +4,22 @@
 
 **NOT RUN.** After a coordinated install, **fully restart the client** (`Circuit.lua`, `CapitalCities.lua`, `Courses.lua` and the `Assets/Tracks/Stormwind/` pictures are new files). The owner runs these; Claude does not control the client.
 
-1. **Single Player → Choose a Track.** The list shows *Proving Grounds* (Mirage Raceway, Test Oval) and *Capital Cities Cup* (Stormwind City Circuit, then five disabled cities marked "(soon)"). Choose Stormwind: its preview (the city from above) and three facts appear. Record any overlap, clipping or missing preview ("Preview unavailable").
+1. **Single Player → Choose a Track.** The list shows *Proving Grounds* (Mirage Raceway, Test Oval) and *Capital Cities Cup* (Stormwind City Circuit, Ironforge Grand Prix, then four disabled cities marked "(soon)"). Choose Stormwind: its preview (the city from above) and three facts appear. Record any overlap, clipping or missing preview ("Preview unavailable").
 2. **Load.** Selecting Stormwind loads a 2048×2048 TGA, the first texture this large in the addon. If the status reads "Stormwind City Circuit background unavailable | Test Oval remains available", record it: the client refused the size (a smaller or compressed picture is the fallback plan).
 3. **Race!** The kart starts on the Valley of Heroes approach between the statues, facing the city gate. Drive the lap: Trade District (finish line), over the canal to Old Town, the Dwarven District, Cathedral Square, the Park, the Mage Quarter, back to the Trade District. The HUD names each next gate. Record whether each district is recognisable, and anything drawn wrongly (roofs over the street, kart under scenery, seams, misaligned walls).
 4. **Walls.** Drive into the balustrade at an angle and head-on: the kart stops at it (not visibly inside it), slides along it, and loses speed; the kerbside strip before it keeps full road speed, drift and boost; only actual wall contact scrubs speed. In Cathedral Square, steer into the foot of the Cathedral's steps: the street ends there at the same line as elsewhere, though no wall is drawn (does that read right?).
 5. **Camera and performance.** The follow camera stays on the kart up to the map's edges; record frame rate and any hitch when the track is selected and while driving, and Print Probe's counts (source expects 71 frames/164 textures/80 font strings).
 6. **Switching.** The bar's Track button cycles Test Oval → Mirage Raceway → Stormwind City; switching back and forth keeps working, and the saved track returns after `/reload`.
+
+## Deferred Ironforge Grand Prix check (proposed, `claude/capital-cup`)
+
+**NOT RUN.** After the coordinated install and a full client restart (the `Assets/Tracks/Ironforge/` pictures are new files):
+
+1. **Track screen.** *Capital Cities Cup* lists Stormwind City Circuit and Ironforge Grand Prix, then four cities "(soon)". Choose Ironforge: its preview and three facts appear.
+2. **Load.** A second 2048×2048 TGA. The safe staging loader may retain two scenery images (up to32MiB raw city pixels, excluding previews/native overhead). Record a refusal ("Ironforge Grand Prix background unavailable | Test Oval remains available") and any hitch when switching between the two cities.
+3. **Race!** The kart starts in the gate hall facing the Commons, the Gates behind. Drive the lap: the Commons (finish), Mystic Ward, Forlorn Cavern, Hall of Explorers, into the Great Forge and round its southern forge, Tinker Town, Military Ward, back to the Commons; the HUD names each next gate (seven). Record whether each district is recognisable and whether the long lap feels right.
+4. **Walls.** The rock faces, the halls' foundations and the dark railings along the lava stop the kart as Stormwind's walls do.
+5. **Camera and performance.** Frame rate while driving past the lava and through the darker halls; Print Probe still 71/165/80.
 
 ## Deferred front-end check (proposed, `claude/ui-flow`)
 

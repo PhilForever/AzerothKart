@@ -210,12 +210,16 @@ TERRAINART = "war3.w3mod:terrainart/"
 
 
 def prop(model, x, y, yaw=270, scale=0.25, sequence="Stand", solid=False, margin=4, name=None, tint=None,
-         team=None, recolor=None, stone=None):
+         team=None, recolor=None, stone=None, light=None):
+    """`light` = (radius, (r, g, b)): a pool of light painted on the ground
+    round the model (a brazier's, a lantern's)."""
     item = {"model": model, "x": x, "y": y, "yaw": yaw, "scale": scale, "sequence": sequence,
             "solid": solid, "margin": margin, "name": name or model.rsplit("/", 1)[-1].rsplit(".", 1)[0],
             "tint": tint, "team": team, "recolor": recolor}
     if stone:
         item["stone"] = tuple(stone)
+    if light:
+        item["light"] = light
     return item
 
 
@@ -224,11 +228,15 @@ def box(name, x0, y0, x1, y1):
 
 
 def kind(model, **kw):
-    """A palette entry for generated buildings: the model and its options."""
+    """A palette entry for generated buildings: the model and its options
+    (`limit`: at most this many in each district)."""
     reach = kw.pop("reach", None)
     yaws = kw.pop("yaws", None)
     weight = kw.pop("weight", None)
+    limit = kw.pop("limit", None)
     entry = {"prop": prop(model, 0, 0, **kw)}
+    if limit is not None:
+        entry["limit"] = limit
     if weight is not None:
         entry["weight"] = weight
     if reach is not None:
@@ -329,10 +337,11 @@ STORMWIND_LINE = catmull_rom([W(*p) for p in smooth(SW_LOOP, passes=2)], step=16
 STORMWIND_SPUR = catmull_rom([W(*p) for p in SW_VALLEY], closed=False, step=16.0)
 
 
-def arc_at(line, mx, my):
+def arc_at(line, mx, my, to_world=None):
     """Arc length along the closed `line` (from its first point) where it
-    passes nearest the map point (mx, my)."""
-    x, y = W(mx, my)
+    passes nearest the map point (mx, my) (Stormwind's map unless
+    `to_world` gives another city's)."""
+    x, y = (to_world or W)(mx, my)
     best, at, total = None, 0.0, 0.0
     for i in range(len(line)):
         a, b = line[i], line[(i + 1) % len(line)]
@@ -362,11 +371,13 @@ CATHEDRAL_SQUARE = [(652.0, 1404.0), (884.0, 1404.0), (884.0, 1184.0), (652.0, 1
 CATHEDRAL_FOUNTAIN = (768.0, 1290.0)
 
 
-def along_spur(distance):
-    """The point `distance` units along the start spur, and its heading."""
+def along_spur(distance, spur=None):
+    """The point `distance` units along a start spur (Stormwind's unless
+    given), and its heading."""
+    spur = spur or STORMWIND_SPUR
     total = 0.0
-    for i in range(1, len(STORMWIND_SPUR)):
-        (ax, ay), (bx, by) = STORMWIND_SPUR[i - 1], STORMWIND_SPUR[i]
+    for i in range(1, len(spur)):
+        (ax, ay), (bx, by) = spur[i - 1], spur[i]
         step = sqrt((bx - ax) ** 2 + (by - ay) ** 2)
         if total + step >= distance:
             t = (distance - total) / step
@@ -754,4 +765,351 @@ STORMWIND = {
     ],
 }
 
-CITIES = [STORMWIND]
+
+# ---------------------------------------------------------------------------
+# Ironforge Grand Prix
+#
+# The route is the owner's line on the in-game Ironforge map (998 x 657
+# pixels): from the Gates through the Commons, up the Commons' great ring,
+# round the north through the Mystic Ward, the Forlorn Cavern and past the
+# Hall of Explorers, down into the Great Forge and round its southern forge,
+# out past Tinker Town, through the Military Ward and back along the ring.
+# Clockwise. Where his line touches itself north-east of the Forge, the two
+# passes are kept a street apart. The city is underground: its halls are
+# open floor, everything else the mountain's rock.
+
+IF_MAP = {"scale": 3.45, "left": 160, "bottom": 575}
+
+
+def IW(mx, my):
+    return ((mx - IF_MAP["left"]) * IF_MAP["scale"], (IF_MAP["bottom"] - my) * IF_MAP["scale"])
+
+
+def ipoly(*points):
+    return [IW(*q) for q in points]
+
+
+def iprop(model, mx, my, **kw):
+    x, y = IW(mx, my)
+    return prop(model, round(x, 1), round(y, 1), **kw)
+
+
+IF_LOOP = [  # driving order, from the gate hall's junction north up the Commons
+    (250, 393), (243, 372), (239, 352), (239, 330), (241, 307), (244, 285), (247, 265), (249, 245),
+    (252, 225), (256, 207), (262, 191), (271, 177), (284, 162), (300, 149), (320, 138), (338, 126),
+    (351, 113), (362, 100), (374, 88), (390, 79), (410, 76), (440, 76), (470, 76), (500, 76), (530, 76),
+    (555, 78), (575, 83), (591, 92), (602, 104), (608, 120), (610, 138), (607, 155), (599, 168),
+    (586, 177), (568, 183), (545, 186), (520, 187), (495, 187), (472, 189), (450, 195), (431, 205),
+    (416, 219), (405, 236), (399, 255), (397, 274), (400, 290), (412, 298), (430, 299), (450, 300),
+    (466, 305), (473, 320), (473, 340), (475, 358), (482, 373), (495, 383), (512, 388), (529, 386),
+    (544, 377), (555, 362), (561, 343), (564, 322), (566, 300), (568, 280), (573, 262), (583, 248),
+    (598, 238), (617, 232), (640, 229), (662, 230), (682, 236), (697, 248), (707, 264), (712, 282),
+    (712, 300), (709, 318), (705, 337), (701, 357), (696, 377), (689, 398), (679, 416), (665, 431),
+    (649, 444), (632, 456), (614, 468), (596, 480), (578, 491), (560, 502), (541, 512), (520, 519),
+    (497, 524), (472, 527), (446, 528), (420, 526), (396, 521), (373, 511), (352, 498), (331, 481),
+    (312, 463), (295, 446), (279, 429), (264, 412),
+]
+IF_GATE_HALL = [(205, 490), (213, 471), (222, 451), (231, 431), (240, 413), (250, 393)]   # start spur
+IRONFORGE_LINE = catmull_rom([IW(*p) for p in smooth(IF_LOOP, passes=2)], step=16.0)
+IRONFORGE_SPUR = catmull_rom([IW(*p) for p in IF_GATE_HALL], closed=False, step=16.0)
+
+
+def if_arc(mx, my):
+    return arc_at(IRONFORGE_LINE, mx, my, IW)
+
+
+IRONFORGE_START, IRONFORGE_START_HEADING = along_spur(60.0, IRONFORGE_SPUR)
+# The Gates: across the gate hall, behind the start grid's end.
+IRONFORGE_GATE = (round(IRONFORGE_SPUR[0][0] - cos(IRONFORGE_START_HEADING) * 112, 1),
+                  round(IRONFORGE_SPUR[0][1] - sin(IRONFORGE_START_HEADING) * 112, 1))
+
+T = TERRAINART
+# The Dungeon tileset's red rock made the grey-brown of dwarven stone:
+# (red, green, blue, saturation) shading.
+DWARF_STONE = (1.75, 1.62, 1.45, 0.30)
+IRONFORGE_TERRAIN = [   # draw order, lowest first
+    {"name": "snow", "tile": T + "lordaeronwinter/lordw_snow.dds", "variety": 40},
+    {"name": "rough", "tile": T + "dungeon2/ggreystones.dds", "shade": (2.6, 2.45, 2.3, 0.2), "variety": 40},
+    {"name": "flags", "tile": T + "dungeon/cave_squaretiles.dds", "shade": DWARF_STONE},
+    {"name": "bricks", "tile": T + "dungeon/cave_brick.dds", "shade": (1.6, 1.45, 1.3, 0.45)},
+    {"name": "mystic", "tile": T + "dalaran/dalaran_squaretiles.dds", "shade": 0.85},
+    {"name": "tinker", "tile": T + "dungeon2/gsquaretiles.dds", "shade": (1.5, 1.45, 1.35, 0.55)},
+    {"name": "marble", "tile": T + "cityscape/city_whitemarble.dds", "shade": (0.66, 0.62, 0.56)},
+    {"name": "forge", "tile": T + "dungeon/cave_squaretiles.dds", "shade": (1.35, 1.12, 0.98, 0.45)},
+    {"name": "military", "tile": T + "cityscape/city_bricktiles.dds", "shade": (0.72, 0.66, 0.62, 0.8)},
+    {"name": "round", "tile": T + "cityscape/city_roundtiles.dds", "shade": 0.84},
+]
+
+# Roof recolours: Warcraft III's blue slate made dwarven dark slate, the
+# Military Ward's red, the Mystic Ward's violet, Tinker Town's verdigris.
+SLATE_ROOFS = [(195.0, 250.0, 28.0, 0.16, 0.35, 0.80)]
+RED_ROOFS = [(195.0, 250.0, 2.0, 0.16, 1.0, 0.92)]
+MYSTIC_ROOFS = [(195.0, 250.0, 272.0, 0.16)]
+GNOME_ROOFS = [(195.0, 250.0, 150.0, 0.16, 0.55, 0.9)]
+# A statue: every hue to warm grey, the stone brightened.
+STATUE = [(0.0, 360.1, 30.0, 0.0, 0.10, 1.0)]
+
+DUNGEON = "war3.w3mod:doodads/dungeon/"
+UNDERGROUND = "war3.w3mod:doodads/underground/"
+NORTH = "war3.w3mod:doodads/northrend/"
+FIRE_LIGHT = (36, (74, 42, 12))              # a brazier's pool of light on the stone
+TORCH_LIGHT = (26, (58, 34, 10))
+ARCANE_LIGHT = (32, (44, 26, 74))
+BRAZIER = kind(SUMMER + "props/brazier/brazier.mdx", light=FIRE_LIGHT, limit=14)
+TORCH = kind(SUMMER + "props/torchhuman/torchhuman.mdx", light=TORCH_LIGHT, weight=0.7, limit=12)
+BARRELS = kind(OTHER + "barrelsunit/barrelsunit.mdx", weight=0.7, limit=6)
+BOXES = kind(OTHER + "boxunit/boxunit.mdx", weight=0.6, limit=5)
+CRATES2 = kind(OTHER + "cratesunit/cratesunit.mdx", weight=0.6, limit=5)
+WEAPONS = kind(SUMMER + "props/weapons/weapons.mdx", weight=0.6, limit=6)
+ARMOR = kind(SUMMER + "props/armorrack/armorrack.mdx", weight=0.6, limit=5)
+MINECART = kind(DUNGEON + "props/minecart/minecart.mdx", weight=0.5, limit=3)
+DWARVES = [kind(UNITS + "human/rifleman/rifleman.mdx", weight=0.6),
+           kind(UNITS + "human/peasant/peasant.mdx", weight=0.6), kind(UNITS + "human/footman/footman.mdx", weight=0.3),
+           kind(UNITS + "critters/villagerman/villagerman.mdx"), kind(UNITS + "critters/villagerman1/villagerman1.mdx"),
+           kind(UNITS + "critters/villagerwoman/villagerwoman.mdx"),
+           kind(UNITS + "critters/villagerkid/villagerkid.mdx", weight=0.4)]
+
+DWARF_HOUSES = [
+    kind(HUMAN + "blacksmith/blacksmith.mdx", recolor=SLATE_ROOFS, limit=6),
+    kind(HUMAN + "workshop/workshop.mdx", recolor=SLATE_ROOFS, limit=5),
+    kind(HUMAN + "humanbarracks/humanbarracks.mdx", recolor=SLATE_ROOFS, weight=0.8, limit=3),
+    kind(HUMAN + "gryphonaviary/gryphonaviary.mdx", weight=0.5, limit=2),
+    kind(OTHER + "tavern/tavern.mdx", weight=0.8, limit=2),
+    kind(HUMAN + "humanlumbermill/humanlumbermill.mdx", recolor=SLATE_ROOFS, weight=0.5, limit=2),
+]
+
+IRONFORGE_DISTRICTS = [
+    {"name": "The Commons", "ground": "flags",
+     "seeds": [IW(205, 300), IW(205, 220), IW(225, 420), IW(300, 520), IW(420, 550), IW(330, 340), IW(340, 440),
+               IW(420, 460)],
+     "buildings": DWARF_HOUSES + [kind(OTHER + "marketplace/marketplace.mdx", reach=70, limit=2),
+                                  kind(OTHER + "fruitstand/fruitstand.mdx", reach=70, weight=0.6, limit=3)],
+     "density": {"buildings": 0.6, "trim": 0.8, "people": 0.8},
+     "trim": [BRAZIER, BARRELS, BOXES, CRATES2, MINECART], "people": DWARVES},
+    {"name": "Gates", "ground": "round", "seeds": [IW(195, 505), IW(170, 470)], "buildings": [],
+     "trim": [BRAZIER, TORCH], "people": [kind(UNITS + "human/footman/footman.mdx"),
+                                          kind(UNITS + "human/rifleman/rifleman.mdx")]},
+    {"name": "Mystic Ward", "ground": "mystic", "recolor": MYSTIC_ROOFS,
+     "seeds": [IW(240, 130), IW(310, 90), IW(205, 170), IW(350, 60)],
+     "buildings": [kind(HUMAN + "arcanesanctum/arcanesanctum.mdx", limit=3),
+                   kind(HUMAN + "arcanevault/arcanevault.mdx", limit=3),
+                   kind(OTHER + "magetower/magetower.mdx", limit=2),
+                   kind(OTHER + "magicvault/magicvault.mdx", weight=0.4, limit=2)],
+     "density": {"buildings": 0.7, "trim": 0.7, "people": 0.6},
+     "trim": [kind(CITY + "props/crystallamp/crystallamp.mdx", light=ARCANE_LIGHT),
+              kind(DUNGEON + "props/bigbookshelf/bigbookshelf.mdx", limit=4)],
+     "people": [kind(UNITS + "human/priest/priest.mdx"), kind(UNITS + "critters/villagerwoman/villagerwoman.mdx")]},
+    {"name": "Forlorn Cavern", "ground": "rough",
+     "seeds": [IW(480, 120), IW(420, 50), IW(540, 40), IW(410, 140)],
+     "buildings": [kind(DUNGEON + "rocks/dungeonrock/dungeonrock0.mdx", limit=5, recolor=STATUE),
+                   kind(DUNGEON + "rocks/dungeonstalagmite/dungeonstalagmite0.mdx", limit=6, recolor=STATUE),
+                   kind(DUNGEON + "props/junkpile/junkpile0.mdx", limit=3),
+                   kind(DUNGEON + "props/junkpile/junkpile1.mdx", limit=3)],
+     "density": {"buildings": 0.35, "trim": 0.6},
+     "trim": [kind(DUNGEON + "props/chainpost/chainpost.mdx", limit=6), TORCH], "people": []},
+    {"name": "Hall of Explorers", "ground": "marble",
+     "seeds": [IW(660, 140), IW(700, 80), IW(650, 60), IW(740, 170)],
+     "buildings": [kind(DUNGEON + "props/bigbookshelf/bigbookshelf.mdx", limit=10),
+                   kind(DUNGEON + "props/bookshelf/bookshelf.mdx", limit=6),
+                   kind(DUNGEON + "props/table/table.mdx", weight=0.5, limit=5),
+                   kind(HUMAN + "altarofkings/altarofkings.mdx", weight=0.6, recolor=SLATE_ROOFS, limit=1)],
+     "density": {"buildings": 0.6, "trim": 0.7, "people": 0.6},
+     "trim": [kind(SUMMER + "props/ribbones/ribbones0.mdx", weight=0.5, limit=3),
+              kind(NORTH + "props/north_bones/north_bones0.mdx", weight=0.4, limit=2), ARMOR, BRAZIER],
+     "people": [kind(UNITS + "human/rifleman/rifleman.mdx"), kind(UNITS + "critters/villagerman/villagerman.mdx")]},
+    {"name": "Great Forge", "ground": "forge",
+     "seeds": [IW(485, 300), IW(440, 240), IW(530, 340), IW(600, 300), IW(420, 330)],
+     "buildings": [kind(HUMAN + "blacksmith/blacksmith.mdx", recolor=SLATE_ROOFS, limit=8),
+                   kind(HUMAN + "gryphonaviary/gryphonaviary.mdx", weight=0.3, limit=1)],
+     "density": {"buildings": 0.8, "trim": 0.8, "people": 0.6},
+     "trim": [BRAZIER, WEAPONS, ARMOR, BARRELS], "people": DWARVES[:3]},
+    {"name": "Tinker Town", "ground": "tinker", "recolor": GNOME_ROOFS,
+     "seeds": [IW(660, 310), IW(640, 360), IW(760, 335), IW(740, 280)],
+     "buildings": [kind(HUMAN + "workshop/workshop.mdx", limit=6),
+                   kind(OTHER + "powergenerator/powergenerator.mdx", limit=2),
+                   kind(HUMAN + "arcanesanctum/arcanesanctum.mdx", weight=0.5, limit=2),
+                   kind(DUNGEON + "props/junkpile/junkpile0.mdx", limit=3),
+                   kind(DUNGEON + "props/junkpile/junkpile1.mdx", limit=3)],
+     "density": {"buildings": 0.7, "trim": 0.7, "people": 0.5},
+     "trim": [kind(DUNGEON + "props/sewervent/sewervent0.mdx", limit=4), MINECART, BARRELS,
+              kind(UNITS + "other/dwarfcar/dwarfcar.mdx", weight=0.4, limit=2),
+              kind(UNITS + "human/gyrocopter/gyrocopter.mdx", weight=0.4, limit=2), TORCH],
+     "people": [kind(UNITS + "human/mortarteam/mortarteam.mdx"), kind(UNITS + "human/peasant/peasant.mdx")]},
+    {"name": "Military Ward", "ground": "military", "recolor": RED_ROOFS,
+     "seeds": [IW(660, 500), IW(600, 545), IW(730, 450), IW(560, 450)],
+     "buildings": [kind(HUMAN + "humanbarracks/humanbarracks.mdx", limit=3),
+                   kind(HUMAN + "humantower/humantower.mdx", limit=4),
+                   kind(UNITS + "human/warwagon/warwagon.mdx", weight=0.6, limit=5)],
+     "density": {"buildings": 0.7, "trim": 0.7, "people": 0.7},
+     "trim": [WEAPONS, ARMOR, kind(SUMMER + "props/bannerhuman/bannerhuman0.mdx", recolor=RED_ROOFS, limit=6),
+              BRAZIER],
+     "people": [kind(UNITS + "human/footman/footman.mdx"), kind(UNITS + "human/rifleman/rifleman.mdx"),
+                kind(UNITS + "human/mortarteam/mortarteam.mdx", weight=0.5)]},
+]
+
+IRONFORGE = {
+    "id": "ironforge_gp",
+    "version": 2,
+    "wall_clearance": KART,  # use the exposed painted wall, including the gate-hall junction
+    "name": "Ironforge Grand Prix",
+    "folder": "Ironforge",
+    "size": (2048, 2048),
+    "team": (0.16, 0.30, 0.74),
+    "lean": 0.6,
+    "kart_clearance": KART,
+    "street_reach": 100,
+    "centerline": IRONFORGE_LINE,
+    "branches": [IRONFORGE_SPUR],
+    "plazas": [],
+    "gates": [
+        gate_on("Mystic Ward", IRONFORGE_LINE, *IW(260, 195)),
+        gate_on("Forlorn Cavern", IRONFORGE_LINE, *IW(470, 76)),
+        gate_on("Hall of Explorers", IRONFORGE_LINE, *IW(610, 138)),
+        gate_on("Great Forge", IRONFORGE_LINE, *IW(473, 340)),
+        gate_on("Tinker Town", IRONFORGE_LINE, *IW(712, 291)),
+        gate_on("Military Ward", IRONFORGE_LINE, *IW(600, 478)),
+        gate_on("The Commons", IRONFORGE_LINE, *IW(239, 340)),
+    ],
+    "spawn": IRONFORGE_START + (IRONFORGE_START_HEADING,),
+    "replaceables": {11: T + "dungeon/cave_cliff1.dds",
+                     31: "war3.w3mod:replaceabletextures/lordaerontree/lordaeronsnowtree.dds"},
+    "terrain": IRONFORGE_TERRAIN,
+    "districts": IRONFORGE_DISTRICTS,
+    # Outside the Gates: Dun Morogh's snow.
+    "zones": [{"terrain": "snow", "shape": ("poly", ipoly((160, 575), (160, 500), (178, 506), (200, 528),
+                                                           (222, 575)))}],
+    # The Forlorn Cavern's lake and the Mystic Ward's pool.
+    "water": [
+        ipoly((470, 106), (500, 106), (518, 113), (526, 128), (524, 145), (512, 156), (486, 158), (462, 156),
+              (449, 145), (448, 125), (455, 112)),
+        ipoly((282, 92), (296, 88), (309, 93), (314, 105), (309, 117), (296, 121), (283, 117), (277, 105)),
+    ],
+    "land": [],
+    "canals": [],
+    "bridges": [],
+    "rock": {
+        "band": 165,
+        "floors": [
+            ipoly((205, 70), (265, 45), (345, 45), (350, 110), (300, 160), (230, 200), (195, 160)),   # Mystic Ward
+            ipoly((615, 60), (720, 55), (760, 100), (755, 190), (700, 215), (650, 200), (620, 150)),  # Hall of Explorers
+            ipoly((640, 250), (740, 250), (745, 315), (800, 320), (800, 360), (740, 365), (700, 390),
+                  (630, 380)),                                                                 # Tinker Town, the tram
+            ipoly((560, 420), (700, 400), (770, 440), (770, 570), (560, 570)),                # Military Ward
+            ipoly((400, 40), (580, 40), (600, 70), (600, 180), (420, 180), (395, 90)),        # Forlorn Cavern
+            ipoly((420, 215), (485, 205), (550, 215), (585, 260), (590, 330), (560, 395), (485, 405),
+                  (420, 380), (395, 320), (395, 260)),                                         # the Great Forge's hall
+            ipoly((160, 575), (160, 500), (178, 506), (200, 528), (222, 575)),                # outside the Gates
+            ipoly((178, 190), (215, 160), (260, 150), (300, 175), (300, 230), (290, 330), (300, 420),
+                  (330, 470), (420, 505), (520, 505), (560, 540), (520, 572), (400, 572), (300, 548),
+                  (225, 490), (190, 420), (172, 330), (172, 250)),                             # the Commons' ring
+        ],
+        "top": (T + "dungeon/cave_darkrocks.dds", (1.0, 0.95, 0.9, 0.25)),
+        "face": (T + "cityscape/city_roundtiles.dds", (1.0, 0.96, 0.9, 0.6)),
+        "height": 56, "fade": 90, "dark": 0.34, "course": 7,
+    },
+    # The Great Forge's two forges, molten, with their stone ridges.
+    "lava": {
+        "pools": [
+            ipoly((428, 222), (450, 214), (480, 211), (508, 214), (528, 222), (534, 238), (522, 250), (505, 262),
+                  (482, 270), (455, 271), (432, 262), (425, 242)),
+            ipoly((502, 305), (520, 304), (536, 312), (541, 330), (536, 348), (522, 358), (505, 360), (499, 340),
+                  (498, 320)),
+            ipoly((692, 468), (703, 466), (712, 471), (717, 480), (715, 491), (707, 498), (695, 499), (686, 492),
+                  (683, 481), (686, 473)),                                                     # Military Ward's pit
+        ],
+        "tile": (T + "dungeon/cave_lava.dds", 1.0),
+        "glow": (120, 52, 10), "glow_reach": 44,
+    },
+    "rings": [
+        {"on": "water", "center": IW(487, 132), "radii": [12, 26, 40, 54, 68, 82], "width": 4,
+         "color": (150, 146, 132)},
+        {"on": "water", "center": IW(296, 105), "radii": [10, 22, 34], "width": 3, "color": (170, 150, 190)},
+        {"on": "lava", "center": IW(485, 300), "radii": [150, 175, 200, 225, 250, 275], "width": 6,
+         "color": (70, 52, 44)},
+    ],
+    "lights": [],
+    "sections": [
+        {"name": "Mystic Ward", "from": if_arc(258, 200), "to": if_arc(380, 84),
+         "road": (T + "dungeon/cave_squaretiles.dds", (1.95, 1.85, 1.8, 0.25))},
+        {"name": "Forlorn Cavern", "from": if_arc(380, 84), "to": if_arc(606, 112),
+         "road": (T + "dungeon/cave_squaretiles.dds", (1.45, 1.4, 1.38, 0.15))},
+        {"name": "Hall of Explorers", "from": if_arc(606, 112), "to": if_arc(560, 185),
+         "road": (T + "cityscape/city_whitemarble.dds", 0.86)},
+        {"name": "Great Forge", "from": if_arc(450, 195), "to": if_arc(573, 262),
+         "road": (T + "dungeon/cave_squaretiles.dds", (1.7, 1.42, 1.2, 0.5))},
+        {"name": "Tinker Town", "from": if_arc(573, 262), "to": if_arc(701, 357),
+         "road": (T + "dungeon2/gsquaretiles.dds", (1.6, 1.55, 1.45, 0.4))},
+        {"name": "Military Ward", "from": if_arc(701, 357), "to": if_arc(541, 512),
+         "road": (T + "cityscape/city_bricktiles.dds", (0.85, 0.8, 0.75, 0.7))},
+        {"name": "Gate hall", "branch": 1, "road": (T + "cityscape/city_whitemarble.dds", 0.8)},
+    ],
+    "road_default": (T + "dungeon/cave_squaretiles.dds", (1.9, 1.78, 1.6, 0.3)),     # the Commons
+    "alleys": [],
+    "steps": [],
+    "squares": [],
+    "bridge_depth": 15,
+    "arch_every": 34,
+    "water_texture": "war3.w3mod:replaceabletextures/water/water00.dds",
+    "water_tint": (0.10, 0.20, 0.26),
+    "water_rim": (120, 112, 100),
+    "quay_face": (110, 102, 92),
+    "quay_depth": 8,
+    "road_tile": T + "dungeon/cave_squaretiles.dds",
+    "road_shade": 1.0,
+    "sidewalk_tile": T + "dungeon/cave_squaretiles.dds",
+    "sidewalk_shade": (1.6, 1.5, 1.38, 0.28),
+    "plaza_tile": T + "cityscape/city_whitemarble.dds",
+    "plaza_shade": 0.88,
+    "curb_color": (132, 122, 110),
+    "gutter_color": (52, 46, 42),
+    "hedged": [],
+    "bridge_posts": None,
+    "wall": {"thickness": 4, "height": 10, "pillar_height": 17, "pillar_every": 56,
+             "face": (150, 140, 128), "cap": (190, 180, 166), "shadow": (70, 64, 58)},
+    "fill": {"step": 20, "reach": 140, "gap": 2, "spacing": 3},
+    "trim": {"step": 36, "reach": 50, "gap": 3, "spacing": 16},
+    "people": {"step": 28, "reach": 34, "gap": 2, "spacing": 8},
+    # Dwarven stone and iron: dark railings along lava and water, stone
+    # foundations along the halls.
+    "wall_styles": {
+        "parapet": ((88, 82, 78), (126, 118, 108), (46, 42, 40)),
+        "land": ((118, 108, 98), (150, 140, 126), (66, 60, 54)),
+    },
+    "furniture": [
+        {"prop": prop(SUMMER + "props/brazier/brazier.mdx", 0, 0), "every": 170, "offset": 6, "start": 60,
+         "where": "land"},
+    ],
+    "solids": [],
+    "props": [
+        # The Gates of Ironforge behind the start grid, Dun Morogh's snow beyond.
+        dict(prop(DUNGEON + "terrain/dungeonporticulisgate45/dungeonporticulisgate45.mdx",
+                  *IRONFORGE_GATE, yaw=180, scale=0.4), nudge=True),
+        iprop(TERRAIN + "lordaerontree/lordaerontree1.mdx", 168, 548),
+        iprop(TERRAIN + "lordaerontree/lordaerontree3.mdx", 182, 566),
+        iprop(TERRAIN + "lordaerontree/lordaerontree0.mdx", 200, 570),
+        # Modimus Anvilmar's statue stands guard in the gate hall.
+        dict(iprop(UNITS + "human/muradin/muradin.mdx", 240, 472, scale=1.0, yaw=225, recolor=STATUE,
+                   stone=(1.3, 0.25)), nudge=True),
+        # The Commons: the Vault of Ironforge (the bank) and the auction house.
+        dict(iprop(OTHER + "magicvault/magicvault.mdx", 312, 330, scale=0.4, yaw=180), nudge=True),
+        dict(iprop(OTHER + "marketplace/marketplace.mdx", 190, 360, yaw=0), nudge=True),
+        # The Great Forge: the Great Anvil between the two forges.
+        dict(iprop(HUMAN + "blacksmith/blacksmith.mdx", 520, 286, scale=0.32, recolor=SLATE_ROOFS), nudge=True),
+        # Tinker Town's great machine and the Deeprun Tram's gate.
+        dict(iprop(OTHER + "powergenerator/powergenerator.mdx", 660, 315, scale=0.6), nudge=True),
+        iprop(DUNGEON + "terrain/dungeonporticulisgate/dungeonporticulisgate.mdx", 772, 340, yaw=180),
+        # The Hall of Explorers: a great fossil skeleton on show, the library's shelves.
+        dict(iprop(SUMMER + "props/ribbones/ribbones0.mdx", 695, 135, scale=1.1), nudge=True),
+        dict(iprop(SUMMER + "props/ribbones/ribbones2.mdx", 720, 175, scale=0.8), nudge=True),
+        iprop(DUNGEON + "props/bigbookshelf/bigbookshelf.mdx", 660, 70, scale=0.35),
+        iprop(DUNGEON + "props/bigbookshelf/bigbookshelf.mdx", 690, 66, scale=0.35),
+        iprop(DUNGEON + "props/bigbookshelf/bigbookshelf.mdx", 720, 70, scale=0.35),
+        iprop(DUNGEON + "props/table/table.mdx", 670, 100, scale=0.35),
+        iprop(DUNGEON + "props/table/table.mdx", 712, 100, scale=0.35),
+        # The Military Ward: the Hall of Arms and a steam tank.
+        dict(iprop(HUMAN + "humanbarracks/humanbarracks.mdx", 680, 535, scale=0.4, recolor=RED_ROOFS), nudge=True),
+        dict(iprop(UNITS + "human/warwagon/warwagon.mdx", 625, 525, yaw=180), nudge=True),
+    ],
+}
+
+CITIES = [STORMWIND, IRONFORGE]

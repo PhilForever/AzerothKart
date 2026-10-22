@@ -10,7 +10,7 @@
 
 **UI/flow:** [ownership assignment](UI_FLOW_OWNERSHIP.md), [Claude roster review](reviews/2026-10-21-claude-roster.md) and the implemented [front-end menus, race HUD and results](art/ui/front-end.md), combined on `codex/ui-backend-integration` (`6cd611a` plus preference fix `9b22f12`; offline-tested, client NOT RUN; [contract](API_CONTRACTS.md#implemented-front-end-menus-race-hud-and-results)). Claude owns presentation/visual flow; Codex owns session semantics and lifecycle.
 
-**Capital Cities Cup:** the integrated [Stormwind City Circuit](art/tracks/stormwind.md) from `claude/capital-cup`78d97a1, combined on `codex/ui-backend-integration` (offline-tested; client NOT RUN; [contract](API_CONTRACTS.md#proposed-capital-cities-cup-city-circuits-and-the-course-catalog), [track notes](TRACKS.md#capital-cities-cup-city-street-circuits-proposed-claudecapital-cup)). Five more capitals follow on the same pipeline.
+**Capital Cities Cup:** the integrated [Stormwind City Circuit](art/tracks/stormwind.md) and [Ironforge Grand Prix](art/tracks/ironforge.md) from `claude/capital-cup`, reviewed on `codex/ironforge-integration` (offline-tested; client NOT RUN; [contract](API_CONTRACTS.md#proposed-capital-cities-cup-city-circuits-and-the-course-catalog), [track notes](TRACKS.md#capital-cities-cup-city-street-circuits-proposed-claudecapital-cup)). Four more capitals follow on the same pipeline. Stormwind's reported corner has owner confirmation; Ironforge's native checks remain pending. [Integration review](reviews/2026-10-22-ironforge-integration.md).
 
 **Integration/deployment checkpoint:** [current combined source and synchronization rules](INTEGRATION_STATUS.md). Read this before following an older branch handoff or preparing an install.
 

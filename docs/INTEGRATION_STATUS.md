@@ -2,6 +2,11 @@
 
 Updated2026-10-22 08:12+02:00, Europe/Oslo. Codex is the designated integrator for the owner's request to combine the agents' work without losing either side. This is a source-integration checkpoint, not a release or installation. See [PROGRESS](PROGRESS.md), [ownership](UI_FLOW_OWNERSHIP.md), [API contracts](API_CONTRACTS.md) and both agent handoffs.
 
+
+## Current Ironforge integration — installation pending
+
+2026-10-22 13:25 +02:00. `codex/ironforge-integration` combines clean899d04d with reviewed Claude `de2fa5f`. Stormwind's owner-confirmed corner/full-speed fixes and the staged background loader remain; Ironforge adds its original route/art and reuses the exposed-wall correction in version2, with rough shoulders retained. Four solo tracks and six karts; no multiplayer activation. Full dual-runtime offline suite, focused regressions,9 analytic tests, generated geometry and103-path structural validation PASS. [Review](reviews/2026-10-22-ironforge-integration.md) and [Codex handoff](handoffs/codex-latest.md) specify scope, resources and native checks. Installation of the committed combined source will be recorded separately after verified backup/copy. This feature branch is local; main/published branches and both other checkouts remain unchanged.
+
 ## Latest installed collision correction — painted Stormwind wall
 
 2026-10-22 10:46 +02:00: **81cc0ed**, `codex/stormwind-wall-alignment` fromf62e708. Corrects invisibleconcavecollisionwedge atPark/Mage by retaining14-unitcentreclearance to exposedpaintedunion; keepsfullspeed andstraightwallpadding, no art/othertrack/Physicschanges. Reachableprojection/arcslides obeytheoriginalstepbound. Stormwindv3/generatedjunctionmetadata; focusedPython9/Lua5.1checks and98pathvalidator PASS.39installedfiles/source/hash exact,39priorfiles backedup/verified. Native `/reload` retest NOT RUN. Localonly; publishedcombinedc59a607 andotheragentworktree/history remainunchanged. Details inPROGRESS/Codexhandoff.

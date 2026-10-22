@@ -427,6 +427,33 @@ withMock({schemaVersion=1, preferences={version=1, track="mirage_raceway", kart=
     assert(UI.probeButton:IsShown() and UI.hud:IsShown(), "developer info returns")
 end)
 
+-- A saved city follows the same deferred restore and explicit-selection path
+-- as Mirage. Neither the first open nor choosing it starts a race.
+withMock({schemaVersion=1, preferences={version=1, track="ironforge_gp"}}, function(env, UI, Menu, AK)
+    assert(UI.trackId == "test_oval" and not UI.active and UI.race == nil,
+        "saved Ironforge waits for a shown window without starting a run")
+    local before = counts(env)
+    UI.Toggle()
+    assert(UI.trackId == "ironforge_gp" and Menu.screen == "home" and UI.state.tick == 0 and
+           not UI.active and UI.race == nil and UI.clock == nil,
+        "first open restores Ironforge and keeps the main menu idle")
+    click(Menu.view.homeButtons[1])
+    assert(Menu.view.trackPreview.texturePath == Menu.PREVIEW_CELLS.ironforge.path and
+           Menu.view.trackPreview:IsShown(), "saved Ironforge shows its own preview")
+    click(Menu.view.trackButtons.stormwind_city)
+    click(Menu.view.trackButtons.ironforge_gp)
+    assert(UI.trackId == "ironforge_gp" and AzerothKartDB.preferences.track == "ironforge_gp" and
+           Menu.screen == "tracks" and not UI.active and UI.race == nil and UI.clock == nil and
+           UI.state.tick == 0, "choosing Ironforge remembers it and waits for Race!")
+    local preview, cell = Menu.view.trackPreview, Menu.PREVIEW_CELLS.ironforge
+    assert(UI.backgroundPath == AK.Courses.get("ironforge_gp").background and
+           preview.texturePath == cell.path and preview.width == cell.width and preview.height == cell.height and
+           preview.texCoords[1] == cell.left and preview.texCoords[2] == cell.right and
+           preview.texCoords[3] == cell.top and preview.texCoords[4] == cell.bottom,
+        "an explicit Ironforge choice loads its scenery and complete preview cell")
+    sameCounts(env, before, "saved and explicitly selected Ironforge")
+end)
+
 -- Choices made with the bar's quick buttons are remembered too, and a saved
 -- choice that fails to load is kept for next time rather than overwritten.
 local BACKGROUND = "Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\SaltFlats\\Background.tga"
@@ -447,6 +474,9 @@ withMock({schemaVersion=1, preferences={version=1, kart="gyrocopter", track="mir
     click(UI.trackButton)
     assert(UI.trackId == "stormwind_city" and AzerothKartDB.preferences.track == "stormwind_city",
         "the bar's track button steps on to the city circuit")
+    click(UI.trackButton)
+    assert(UI.trackId == "ironforge_gp" and AzerothKartDB.preferences.track == "ironforge_gp",
+        "and on to Ironforge")
     click(UI.trackButton)
     assert(UI.trackId == "test_oval" and AzerothKartDB.preferences.track == "test_oval",
         "switching back is remembered too")
@@ -486,7 +516,7 @@ end)
 -- The coming-soon cities are listed, disabled and inert.
 withMock(nil, function(env, UI, Menu)
     UI.Toggle(); click(Menu.view.homeButtons[1])
-    local soon = Menu.view.soonButtons.ironforge_gp
+    local soon = Menu.view.soonButtons.darnassus_canopy
     assert(soon and not soon:IsEnabled() and not soon.scripts.OnClick and soon.text:find("(soon)", 1, true),
         "a coming-soon city is listed, disabled and inert")
 end)
