@@ -1,3 +1,39 @@
+# Codex handoff — multiplayer candidate installed and packaged from AddOns
+
+2026-10-22 23:52 +02:00, Europe/Oslo. Explicit owner request: install into AddOns and make ZIP
+from there. Source c581a52950013263049cd82a44f83217556fc1c6 unchanged from tested
+fb0df19 docs baseline. Own codex/live-multiplayer-integration; only deployment
+receipts, PROGRESS and this handoff edited. No runtime source change.
+
+PowerShell7 existing installer WhatIf PASS, then actual backup/install/hash
+verification PASS49files in C:/Program Files (x86)/World of Warcraft/
+_classic_beta_/Interface/AddOns/AzerothKart. Prior41files backed up/verified.
+Manifest local-artifacts/live-multiplayer-install-20261022/backups/
+20261022-235101-774-84c5285b8ea445aba58eaf5ceac28acf/install.json;
+Verified/BackupVerified=true. No extras or other-addon/SavedVariables edits.
+
+ZIP created from installed folder (not the workspace copy):
+C:/Users/bakke/Downloads/Forever_Addons/AzerothKart-Multiplayer-c581a52.zip
+49files,34,040,705bytes; SHA256
+c19ea2fc005b4b643493f12245825c0587c8eaffcb96ff76fe4e8bd92300525a.
+CRC/exactarchivepaths/allsource-target-ZIP hashes PASS; installed tree remained
+stable during packaging. This is the current friend package. Preinstall hashes,
+helper result and deployment-receipt.json are under ignored
+local-artifacts/live-multiplayer-install-20261022/.
+
+No gameplay suite rerun for byte-identical source copying; prior actualLua5.1
+all30modules/57parsed pass retained. Actual WoW/native gameplay NOT RUN. No
+client input, publication/release/main merge or milestone claim. Foreign worktrees
+are not edited. Next exact task: full restart on both clients (new files), one
+friend race through Multiplayer using MULTIPLAYER_PLAYTEST.md, record actual
+GO/opponent movement/Stop and usability. No repeat standalone net probe.
+
+Independent read-only audit PASS: source/target/manifest exact49files, backup/
+before.csv exact41priorfiles, and both foreign worktrees'347file hashes/HEADs/
+statuses unchanged. Receipt updated; no source/gameplay changes.
+
+## Previous implementation checkpoint
+
 # Codex handoff — wired two-player developer candidate
 
 2026-10-22 23:39 +02:00, Europe/Oslo. Owner explicitly asks native controller connection then
