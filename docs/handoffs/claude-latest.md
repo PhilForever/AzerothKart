@@ -1,189 +1,211 @@
-# Claude handoff — four more karts, a Kart button and untinted kart art
+# Claude handoff — front-end menus, race HUD and results (`claude/ui-flow`)
 
-Prepared 2026-10-21 about 01:45 CEST (Europe/Oslo) by Claude (rendering/UI/sprites owner).
+Prepared 2026-10-21 about 12:45 CEST (Europe/Oslo) by Claude (rendering/UI/sprites owner).
 
-The base is `1004e73`: the effects handoff, on Codex's `7fcdd89`. This session's commits on `claude/track-ui`:
+**Base:** `83c611c`, Codex's reviewed combined commit on `codex/roster-integration`, as [INTEGRATION_STATUS](../INTEGRATION_STATUS.md) asks. This session's commits on the new branch `claude/ui-flow`:
 
-1. `f675610`, the scope reservation;
-2. `c6e1b5e`, drift and boost effects;
-3. `1004e73`, the effects handoff;
-4. `abe98f6`, four more karts, the Kart button and untinted kart art;
+1. `dfbd83e`, the scope reservation;
+2. `e279563`, the front end: menus, race HUD, results dialog, saved preferences, preview art and tests;
+3. `3465435`, the documentation, the contract proposal and the client checks;
+4. `245d71b`, the menu test and both preview scripts load the addon's files in TOC order;
 5. this handoff.
 
-M0/M1/M3 acceptance and the multiplayer gate are unchanged and remain open. Earlier handoffs are in Git: `812d132` (the trike) and `1004e73` (the effects).
+`claude/track-ui` is preserved at `b0b1f2e`. Earlier handoffs are in Git: `b0b1f2e` (the kart roster), `1004e73` (the effects) and `812d132` (the trike). M0/M1/M3 acceptance and the multiplayer gate are unchanged and remain open.
 
 ## Owner instructions
 
-- "Start with drift and boost effects, then implement more vehicles."
-- The owner picked the vehicles: "Steam Tank, Dwarven Biker, Griphon Rider, Gyrocopter". These are the four WC3Vault listings in the [roster](../art/karts/roster.md), the third being the Gryphon Rider.
-- Mid-task: "Little side note! There's no need to keep the color changing of the entire model during boost. That was just a placeholder until we made actual effects." Then: "By during boost, I mean during drift of course."
-  - Applied to every whole-kart wash on loaded art, drift tiers and boost alike: all of them were placeholders for the effects that now exist.
-  - The primitive fallback keeps its phase colours, since it has no other feedback.
-- Standing: the owner pushes `claude/track-ui` from Windows, and runs in-game checks himself.
+- "You've been assigned the UI task. Please create the ready to ship UI for the game/addon \"Azeroth Kart\". Take inspiration from other racing games like Mario Kart, Team Crash Racing if necessary. Clear menu choices single player and multiplayer, selecting maps, selecting karts, etc. Start working on this."
+- Answers to Claude's questions:
+  - base: "Merge Codex's latest first (Recommended)". Applied as a new branch from Codex's combined commit, following INTEGRATION_STATUS; no agent branch was merged.
+  - multiplayer: "Coming-soon lobby (Recommended)";
+  - style: "Classic WoW dialogs";
+  - saving: "Yes, remember them (Recommended)".
+- Standing: no merge into `main`; no claim of in-game verification without the actual client; leave the simulation-control functions in `UI.lua` alone. The owner pushes from Windows and runs the client checks himself.
+
+## Delivered
+
+[The front-end sheet](../art/ui/front-end.md) has the flow, every screen, the client elements used, the preview art, the saved preferences, the budget and the client check. In short:
+
+- **Main menu** on opening the window: **Single Player**, **Multiplayer (soon)**, **Garage**, **How to Play** and **Settings**, with the current track and kart named underneath.
+- **Single Player:** Choose a Track (preview pictures and facts) → Choose Your Kart (a turntable spinning the kart's own 64-heading sheet, a six-kart grid, the model credit) → **Race!**
+- **Race view:** large LAP and next-gate text, the clock and best lap, the capture line, a big gold 3-2-1-GO with client beeps. The bar shows only **Stop** during a run.
+- **Results:** a dark dialog with the total, last and best times and every lap, the fastest in green. **Restart**, **Close results**, **Change Kart**, **Change Track** and **Main Menu**.
+- **Track view** after Close results: **Start Race**, **Track**, **Kart** and **Main Menu** on the bar.
+- **Multiplayer:** a disabled coming-soon lobby preview, with how to help with today's connection test (`/akart net help`).
+- **Settings:** window size (80–125%, too-large sizes disabled), drift and boost effects, sound effects, developer info (the timing line and Print Probe), reset window position. The window drags by its title.
+- **Saved** in `AzerothKartDB.preferences`: the track, the kart and the settings.
+- The client's own dialog backdrops, header, Game Menu buttons, panel buttons, check boxes, fonts and sounds, each with a fallback. The only new art is the original `Assets/UI/TrackPreviews.tga`.
 
 ## Reservation
 
-The vehicles task is complete in `abe98f6`, so the reservation from 2026-10-20 is released. Its regions in `UI.lua` were:
+Released. The edits in `UI.lua` are notification hooks and visual layout only:
 
-- the visual layout of `UI.Create`;
-- the kart and effect helpers before `layoutTrack`;
-- `layoutTrack`;
-- the kart block of `render`;
-- the button sync at the end of `refreshHud`.
+- the end of `refreshCountdown` → `Menu.OnCue(cue)`;
+- the end of `refreshHud` → `Menu.Sync()`;
+- the new `UI.SetEffectsEnabled` before `renderEffects`, which returns early while effects are off;
+- the end of `UI.SelectKart` → `Menu.OnKartChanged()`;
+- the end of `render` → `Menu.RefreshRaceHud()`;
+- `UI.Create`:
+  - the old "AZEROTH KART [SOLO DRIVE]" title line removed;
+  - a window `OnShow` script → `Menu.OnWindowShown()`;
+  - Close moved to TOPRIGHT −18,−16, inside the dialog border;
+  - the status text and Start label now read "Start Race";
+  - it ends with `pcall(AK.Menu.Create, UI)`, and `Menu.Disable(err)` on failure.
 
-No new reservation is held. Integration with Codex's latest is the next step (below).
+`Menu.lua` also re-places and restyles objects `UI.Create` made: the bar, the probe button, HUD colours, the countdown font and the results panel. Their callbacks stay in `UI.lua`.
 
-## Deployment: install held
+**Not touched:** `step`, `UI.Start/Stop/InterruptCombat/ReleaseInput/OnUpdate/HandleEvent/OnCombatEnded`, `keyEvent`, Start refusals, clock and profiling wiring, `UI.SelectTrack`'s transaction, `UI.DismissSummary`'s semantics, and all RaceProtocol, PeerSession and transport code.
 
-**Live folder.** Checked at about 23:30 UTC on 2026-10-20, the AddOns folder holds Codex's runtime `8f66c5a`:
+## Changes Codex must review
 
-- Core, NetworkProbe, TransportProbe and UI match `codex/forever-probe`;
-- `README_ADDON.md` is `8f66c5a`'s with CRLF line endings;
-- the assets and `Presentation.lua` are unchanged from Claude's `c6e1b5e` install.
+The proposal is in [API_CONTRACTS](../API_CONTRACTS.md#proposed-front-end-menus-race-hud-and-results).
 
-Codex installed it after merging the effects (`8195da9`); Codex's handoff gives the backup and manifest path (`local-artifacts/install-backups/20261021-005314-298-…`).
+1. **Saved-track restore without a click (needs sign-off).** The first time the window opens out of combat, `Menu.OnWindowShown` calls `UI.SelectTrack(saved)` when the saved track differs and no run is active. This runs Codex's selection transaction, including its sample reset. A failed load keeps the default for the session, and the saved choice is not forgotten. If this is refused, the alternative is to preselect the saved track on the track screen and apply it on **Next**.
+2. **Window `OnShow` script** (a new event script in `UI.Create`). `Menu.lua` adds a child watcher frame whose `OnHide` marks a real close only when the window itself is hidden, so Alt+Z returns to the same screen.
+3. **Bar:**
+   - Start reads **Start Race**, and Stop moves to x=618, away from it.
+   - Track, Kart and the new Main Menu show only in the track view.
+   - Print Probe and the timing line show only with developer info (default off); `/akart probe` is unchanged.
+   - Codex's enabling and disabling of these buttons, and their callbacks, are unchanged.
+4. **Results:**
+   - `UI.summary` becomes 460×312 at canvas level +8, with Restart and Close results one level above it.
+   - The three new buttons each call `UI.DismissSummary()` and then open a menu.
+   - Title, detail and hint text are unchanged.
+5. **SavedVariables:** `AzerothKartDB.preferences` = `{version=1, track, kart, effects, devInfo, scale, sound}`.
+   - Values are validated on read, and unknown fields are kept on save.
+   - A newer `version` is read but never overwritten.
+   - Saves happen only on a change; Core's `schemaVersion` and other fields are never touched.
+6. **`UI.SetEffectsEnabled(enabled)`**, a new public visual switch. The simulation never reads it.
+7. **Start discipline:** only **Race!**, **Start Race** and **Restart** call `UI.Start`. `Menu.Show` refuses while a run is active.
+8. **Escape:** the window is not added to `UISpecialFrames`, because the Escape that stops a run can also reach the game's Escape binding ([evidence](../evidence/2026-10-20-menu-integration-client.md)).
+9. **`tests/test_ui.lua` (shared):**
+   - `Menu` added to the loader list;
+   - the counts as named constants: `MENU_FRAMES, MENU_TEXTURES, MENU_FONTS = 54, 9, 67`, giving 65/160/79, with the five font-string checks using `UI_FONTS`;
+   - the summary size 460×312;
+   - `(table.unpack or unpack)`, which fixes a pre-existing Lua 5.4 failure in one assertion block.
+   - No capture, lifecycle, clock or race assertion was relaxed.
+10. **Budget:** 65 frames, 160 textures and 79 font strings, all created with the window, none per tick or frame.
+    - The preview atlas adds 2 MiB on the first track-screen visit.
+    - The race HUD rewrites its text only when a shown number changes, about ten times a second while the clock runs.
+11. **Multiplayer:** `Menu.lobbyPresentation(view)` maps a copied session view, and `Menu.SetSessionBridge` is a proposed registration point. Nothing is wired; see the next section for Codex's new API.
 
-**Why nothing was installed.** `abe98f6` does not contain Codex's Close results button (`5f03716`) or its Forever transport fix (`8f66c5a`), so installing it would roll both back. It would also change the owner's build in the middle of Codex's two-player series: Codex's next task is a reverse-roles AKT723 trial on the same build.
+## Integration with Codex's latest (trial in a scratch clone; no branch changed)
 
-**What it needs.** The four karts reach the client only through a combined build, installed after that trial and with the deployment coordinated.
+Since `83c611c`, Codex has added `codex/session-transport` (`4f9246a`), `codex/start-clock` (`2232f82`) and `codex/gemini-feedback` (`e10d3ef`), each on top of the previous one. They bring SessionTransport, ClockProtocol, StartClock and RaceStart, plus their guides `docs/SESSION_MENU_API.md` and `docs/START_CLOCK.md`. Those guides exist only on Codex's branches; read them with `git show codex/gemini-feedback:docs/START_CLOCK.md`. None changes `Menu.lua`'s files. The only `UI.lua` change is one line in `UI.Start` (solo Start stops session control).
 
-## Trial integration with Codex's latest (scratch clone; no branch changed)
+Trial: `git merge --no-ff codex/gemini-feedback` (`e10d3ef`) onto `claude/ui-flow` (`245d71b`).
 
-`git merge --no-ff codex/network-window-akt723` (`400590e`) on top of `abe98f6`:
+- **Code merges cleanly:** `UI.lua`, `Core.lua` and both TOCs.
+- **Six conflicts, each resolved as the union of both sides:**
+  - `tests/run.lua`: keep Codex's list, then add `"tests/test_menu.lua"` after `"tests/test_ui.lua"`;
+  - `tests/test_ui.lua` loader: Codex's list with `"Menu"` after `"UI"`;
+  - `scripts/validate_project.py` load order: Codex's list with `'Menu.lua'` after `'UI.lua'`;
+  - `docs/API_CONTRACTS.md` module list: Codex's sentence, then Claude's Menu sentence;
+  - `docs/ARCHITECTURE.md`: Codex's "for twenty modules." then "The proposed `Menu.lua` front end loads directly after `UI.lua`, making twenty-one; `UI.Create` builds it under `pcall` and keeps the basic bar if it fails.";
+  - `CHANGELOG.md`: keep both entries.
+- **No other edit is needed:** since `245d71b`, the menu test and both preview scripts read the TOC.
+- **Combined result:**
+  - `test_lua.py --runtime both` PASS (48 files parsed; mock counts 65/160/79);
+  - the validator fails only on the two pre-existing PROGRESS links;
+  - `build_ui_art.py --check` PASS;
+  - both preview images byte-identical.
+  - The same trial against `4f9246a` alone gave the same six conflicts and also passed.
 
-- **Code merges cleanly.** `UI.lua` combines Codex's `UI.DismissSummary`/Close results button with Claude's `UI.SelectKart`/Kart button without conflict. `Presentation.lua` changed on one side only.
-- **Conflicts are count statements only:**
-  - CHANGELOG, README_ADDON, API_CONTRACTS (two), ASSETS, TEST_PLAN and MANUAL_CLIENT_CHECKLIST (two);
-  - five frame-count assertions in `tests/test_ui.lua`: Codex's literal `10`, Claude's `UI_FRAMES`.
-- **Resolution:** keep `UI_FRAMES` and set it to 11, for the Close results and Kart buttons. The combined suite then passes on Lua 5.1 and 5.4, with mock counts frames=11, textures=151, fontStrings=13. Codex's result-dismissal and transport tests pass unchanged.
-- **Combined docs** then state 11/151/13 in every current-count statement. These include Claude's `drift-boost.md`, `goblin-mortar-trike.md` and `roster.md`, which say 10/151/13 for this branch alone. Keep Codex's refinement of the effects contract: "Particle repeatability applies to identical sampled-state/effect-update sequences, not different rendering cadences."
+**Exact commands for the integrator (not executed).** In Codex's own worktree, on a fresh branch from `codex/gemini-feedback` or its successor:
 
-**Exact commands (not executed).** Either path needs explicit authorization; nothing was run in another worktree.
+1. `git merge --no-ff claude/ui-flow` (ours and theirs are swapped relative to the trial; the unions are the same);
+2. resolve as above;
+3. run `python scripts/test_lua.py --runtime both`, `python scripts/validate_project.py` and `python scripts/build_ui_art.py --check`.
 
-- **Codex as integrator,** in `AzerothKart-Codex-Review`, after the AKT723 trial:
-  1. on a fresh branch from `codex/network-window-akt723`, run `git merge --no-ff claude/track-ui`;
-  2. resolve as above;
-  3. run `python scripts/test_lua.py --runtime both` and `python scripts/validate_project.py`.
-- **Claude, if the owner authorizes it:** the same merge into `claude/track-ui`, then a verified install of the combined build after the trial.
+**Wiring the lobby later.** Multiplayer stays **coming soon** on this branch:
+
+- The owner chose that.
+- Codex's guides say this phase must not be shown as a playable shared race.
+- `TakeRaceStart()` is backend-only, and the live-race controller comes first.
+
+When it is wired, after integration and the owner's go-ahead:
+
+- Host and Join screens call `HostCoordinated(peer, code, trackId)`, or `ListenCoordinated(host, code)` followed by a deliberate `Join()`.
+- Then `Ready(bool)`, host `PrepareStart()`, and `Leave()` from Close or Leave.
+- The view is polled at about 5 Hz from the menu's own refresh, outside simulation ticks.
+- There is no tick or seed setting.
+- `Menu.lobbyPresentation` must read SessionTransport's `canHost`/`canListen`, `canPrepareStart`, `coordinated`, `clock`, `transportBusy` and `lastError` (PeerSession's own view names the host capability `canInvite`).
+- Direct dot calls on `AK.SessionTransport` can replace the proposed `SetSessionBridge`.
+
+## Tests performed
+
+| Command / check | Result |
+|---|---|
+| `python scripts/test_lua.py --runtime both` at `245d71b` | **PASS** in the cloud (Python 3.13.16, Lupa 2.8) and on the developer machine's Linux shell (Python 3.10.12, Lupa 2.8). 40 files parsed. Mock counts frames=65, textures=160, fontStrings=79. `test_menu`: seven screens, the Single Player flow, results paths, garage, settings, saved choices, the coming-soon lobby and the fallbacks |
+| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in PROGRESS.md fail, on both machines |
+| `python scripts/build_ui_art.py --check` | **CHECK PASS** on both machines: 2097170 bytes, sha256 `43afd042…863d` |
+| `preview_ui.py`, `preview_effects.py` | Both regenerated in the cloud; byte-identical to the committed review images after `245d71b` |
+| Trial merges with `4f9246a` and `e10d3ef` | Combined suite **PASS** on Lua 5.1 and 5.4 (42 and 48 files), validator and art check as above; cloud scratch clones |
+| Review | An independent review pass before committing found these issues, all fixed: Escape and `UISpecialFrames`; `Disable` hiding Main Menu; Alt+Z re-show; fanfare once per run; a combat-safe track restore; preference versioning; sizes that do not fit the screen |
+
+**NOT RUN:**
+
+- the whole front end in WoW Forever: dialog art, the title banner, red buttons, fonts (`Fancy48Font`), sounds, dragging, window sizes, Alt+Z, Escape, the turntable and the preview pictures;
+- any install of `claude/ui-flow`, and the combined state in the client;
+- FPS or memory measurement;
+- `tests/test_install_local.ps1` and Windows-native Python;
+- multiplayer.
+
+The review pictures come from a recording mock with stand-in fonts; they show layout, not the client.
+
+## Client check (owner; NOT RUN; after a coordinated install)
+
+Fully restart the client: `Menu.lua` and `Assets/UI/TrackPreviews.tga` are new files. Then follow [the front-end client check](../art/ui/front-end.md#client-check-not-run):
+
+1. the main menu over the dimmed track;
+2. both track previews, the turntable and the credits;
+3. Race! and the gold countdown with beeps;
+4. the results dialog's lap list and its five ways out;
+5. the Multiplayer, How to Play and Settings screens;
+6. dragging and `/reload` remembering the choices;
+7. Alt+Z returning to the same screen, and Escape during a race;
+8. the counts 65/160/79 with developer info on.
+
+Open questions for the client:
+
+- whether `MainMenuFrameButtonTemplate` widens to fit "Multiplayer (soon)";
+- whether the dialog border's corners meet the Close button cleanly;
+- whether `Fancy48Font` is loaded on Forever.
+
+## Deployment
+
+Claude installed nothing and did not read or change the live AddOns folder this session. Per INTEGRATION_STATUS, Codex prepares the next coordinated install from the reviewed combined source, and the owner decides.
+
+## Pending PROGRESS ledger entry (integrator to append; PROGRESS.md was not edited)
+
+> ### 2026-10-21 ~12:45 CEST — Claude / `claude/ui-flow`, front-end menus, race HUD and results
+>
+> - From combined `83c611c`: `Menu.lua` front end in the client's dialog style. Main menu (Single Player, Multiplayer coming soon, Garage, How to Play, Settings); track select with an original preview atlas; kart select with a turntable; race HUD and big countdown; a results dialog with every lap and five ways out.
+> - Saved track, kart and settings in `AzerothKartDB.preferences` v1. Explicit counts 65/160/79. `UI.lua` gained notification hooks, `SetEffectsEnabled` and the Start Race label only.
+> - `test_lua.py --runtime both` PASS on both machines; art check PASS. Trial merge with Codex's `e10d3ef` PASS: six union conflicts (scratch clone).
+> - **NOT RUN:** client appearance, sounds and fonts; any install. The track restore without a click awaits Codex's review.
 
 ## Branch, commits and workspace
 
 | Item | Value |
 |---|---|
-| Worktree / branch | `AzerothKart-Claude` / `claude/track-ui` at this commit (after `abe98f6`) |
-| Push | Owner only: this session's git proxy refuses the repository. `git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push origin claude/track-ui` (origin has `812d132`) |
-| Not done | No merge into `main` (still `f923d15`) or into any Codex branch; no tag, release, install or client input. Codex's branches and worktrees were only read |
+| Worktree / branch | `AzerothKart-Claude` / `claude/ui-flow` at this commit |
+| Push | Owner only: this session's git proxy refuses the repository. `git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/ui-flow` (the branch is not on origin yet) |
+| Not done | No merge into `main` (`f923d15`) or into any Codex branch; no tag, release, install or client input. Codex's branches and worktrees were only read |
 
 **Workspace notes:**
 
-- `local-artifacts/third-party/<slug>/` (git-ignored) holds each vehicle's archive and extracted files: `goblin-mortar-trike`, `steam-tank`, `dwarven-biker`, `gryphon-rider` and `gyrocopter`.
-- `local-artifacts/bundles/` (git-ignored) holds the git bundles between Claude's cloud clone and this worktree. `codex-network-window-akt723-400590e.bundle` was exported read-only for the trial merge.
+- `local-artifacts/bundles/` (git-ignored) holds the transfer bundles. These include the read-only exports `codex-session-transport-4f9246a.bundle` and `codex-gemini-feedback-e10d3ef.bundle` used for the trials.
 - The untracked `Claude outputs/` folder, created by the desktop app, is still left for the owner.
 
 **Git environment note:**
 
 - Commits are made in a cloud clone with this repository's local identity, then moved here as git bundles and fast-forwarded, so the hashes are identical.
 - Git runs from a Linux shell on the developer machine with `--git-dir=.git/worktrees/AzerothKart-Claude`, `core.createObject=rename`, `gc.auto=0`, `maintenance.auto=false` and `gc.worktreePruneExpire=never`.
-- **Never run `git worktree prune` or `git gc` there**: the recorded gitdirs are Windows paths.
-
-## Completed: four more karts (`abe98f6`)
-
-Details, sources and the client checklist are in [the roster](../art/karts/roster.md).
-
-**Vehicles.** The Steam Tank, Dwarven Biker, Gryphon Rider and Gyrocopter are 1024×1024 sheets of 64 three-quarter headings, like the trike. Each is rendered from its WC3Vault archive's model and its own JPEG BLP texture.
-
-- **Source:** the wc3c ITE project; authors unknown, no terms in any archive. Redistribution is unresolved for release review.
-- **Flyers** hover 4 units up, with detached shadows.
-- **Gyrocopter stand-ins:** its rotor blur texture is not shipped, so the blades are hidden behind an original translucent disc. Its pilot's body texture is also missing and gets a flat leather tone.
-
-**Tooling:**
-
-- `scripts/wc3jpeg.py`: a pure-Python baseline JPEG decoder using libjpeg's integer inverse DCT.
-- `scripts/build_wc3_kart.py`:
-  - a `VEHICLES` table, JPEG BLP1, hidden bones, substitute textures, hover lift and the rotor disc;
-  - per-vehicle frame-window asserts;
-  - `--all ROOT`.
-  - The trike's bytes are unchanged.
-- The review images' third row now shows in-between headings instead of the retired tints.
-
-**`Presentation.lua`:**
-
-- a `sheet()` constructor;
-- a display `name` on every sprite;
-- the four new sprites, with anchors from each model's `--emitters`;
-- optional `trails` (the Gryphon Rider's wingtips) and an empty `exhausts` list;
-- `EFFECTS.trailColor`;
-- `KART_ORDER` and `nextKart`.
-
-**`UI.lua`:**
-
-- `sizeKart`, extracted from `layoutTrack`;
-- `applyKartSprite`, the creation-time guarded checks as a reusable function;
-- `loadKartSprite`, which now records `UI.kartId`;
-- `kartLabel`;
-- `tintKart`, which keeps loaded art at a neutral vertex colour, and the matching tint index in `render`;
-- the new public `UI.SelectKart(id)`;
-- the **Kart** button in `UI.Create`: 212×24 at BOTTOMLEFT (496, 12), between the Track and Print Probe buttons;
-- an enable/disable sync at the end of `refreshHud`.
-
-## Tests performed (`abe98f6`)
-
-| Command / check | Result |
-|---|---|
-| `build_wc3_kart.py … --check`, all five vehicles | **CHECK PASS** on Python 3.13 (cloud, `--all`) and Python 3.10 (developer machine, one vehicle per run), with identical bytes: trike `a723b067…3208` (unchanged), Steam Tank `e5ff5c65…184c`, Dwarven Biker `564d5256…0e38`, Gryphon Rider `06d94738…e92b`, Gyrocopter `2f00ca98…f50d` |
-| `wc3jpeg.py` against Pillow (libjpeg) | Samples identical on all five shipped JPEG textures (cloud) |
-| `build_effect_sprites.py --check`, `build_kart_sprites.py --check` | PASS on both machines |
-| `test_lua.py --runtime both` | **PASS** on both machines; 34 files parsed. Mock: six karts cycle while stopped, one guarded load per choice, refused while driving or when a load fails; frames=10, textures=151, fontStrings=13 |
-| `validate_project.py` | Only the 2 pre-existing Windows-path links in PROGRESS.md fail, on both machines |
-| Trial merge with `400590e` | Combined suite PASS on Lua 5.1 and 5.4 with `UI_FRAMES=11` (scratch clone) |
-| Review images | The four new sheets checked at 64 headings and on the Mirage background; the effects review image regenerated untinted |
-
-**NOT RUN:**
-
-- the four karts, the Kart button and their effects in WoW Forever;
-- any install of `abe98f6`;
-- FPS or memory measurement: the four sheets add 16 MiB of raw texture data when all are loaded;
-- `tests/test_install_local.ps1` and Windows `validate_project.py`;
-- multiplayer.
-
-## Client check (owner; NOT RUN; after a combined install)
-
-Fully restart the client, because the sheets are new files. Then follow [the roster checklist](../art/karts/roster.md#client-check-not-run):
-
-- the Kart button cycles six karts, with matching labels;
-- correct facing at every heading, and detached flyer shadows;
-- the Gyrocopter's rotor and pilot read well;
-- effects start at sensible points, with no whole-kart colour change;
-- the button is disabled during a run;
-- Print Probe shows 11/151/13 on the combined build.
-
-## Changes Codex must review
-
-- **`UI.lua`:**
-  - the Kart button's `OnClick` callback in `UI.Create` (a control callback);
-  - the button sync in `refreshHud`;
-  - `UI.SelectKart`: refused while active, for an unknown id or without the kart Texture; restores the previous art on a refusal; never writes run, result, track or simulation state.
-  - Unchanged: `step`, Start/Stop, capture, events, and `SelectTrack`'s transaction.
-- **`tests/test_ui.lua` (shared):**
-  - the `UI_FRAMES` constant;
-  - `NEUTRAL` replaces the per-phase sprite tints: the art stays untinted and unrewritten in every phase;
-  - a new kart-picker block.
-  - No capture, lifecycle, clock or race assertion was relaxed.
-- **`tests/test_presentation.lua`:** the per-frame coverage floor drops from 12% to 6% of a frame window, for the flyers' thin wings and larger windows.
-- **Shared budget:** +1 Frame (10/151/13 here, 11/151/13 combined with Close results), and +16 MiB of raw texture data when all four new sheets are loaded.
-- **`docs/API_CONTRACTS.md`:** the roster/Kart button proposal and the tint retirement note.
-
-## Pending PROGRESS ledger entry (integrator to append; PROGRESS.md was not edited)
-
-> ### 2026-10-21 ~01:45 CEST — Claude / `claude/track-ui`, four more karts and a Kart button
->
-> - Owner-picked Steam Tank, Dwarven Biker, Gryphon Rider and Gyrocopter: 64-heading sheets rendered from Warcraft III models (wc3c ITE project via WC3Vault; authors unknown, redistribution unresolved). New pure-Python JPEG BLP decoder.
-> - Stopped-only Kart button cycling six cosmetic karts (`UI.SelectKart`, +1 Frame: 10/151/13 alone, 11/151/13 with Close results). Loaded kart art is no longer tinted per phase (owner direction); the primitive keeps its colours.
-> - Sheets byte-identical on Python 3.10 and 3.13. `test_lua.py --runtime both` PASS on both machines. Trial merge with `400590e` PASS (scratch clone). Not installed: the live folder holds Codex's `8f66c5a` for the two-player series.
-> - **NOT RUN:** client appearance.
+- **Never run `git worktree prune` or `git gc` there**: the recorded gitdirs are Windows paths, and that shell lists them as prunable.
 
 ## Next
 
-1. **Integrate and install.** After the AKT723 trial, combine `claude/track-ui` with Codex's latest (Codex, or Claude on owner authorization). Then install the combined build with coordinated backup and verification, and the owner checks the karts.
-2. **More karts.** The release target is eight ready karts (ADR 0010), and six are registered. The concept roster still lists the Siege Tank and Gnome Drag Car, with the Shredder optional. Find models that ship their own textures, check their terms, and let the owner pick.
-3. **Maps.** Three ready maps are the other content target. Mirage is the only production map so far.
+1. **Codex:** review the items above, and integrate `claude/ui-flow` with the backend chain using the resolution above. Then prepare the coordinated install. **Owner:** the client check.
+2. **Claude, on the owner's go-ahead:** after Codex's live-race controller, wire the Multiplayer screen to SessionTransport's coordinated actions: Host/Join, Ready, PrepareStart and Leave, with clock and pending feedback.
+3. **Content targets (ADR 0010):** eight ready karts (six registered) and three ready maps (Mirage is the only production map).

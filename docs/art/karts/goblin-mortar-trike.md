@@ -95,6 +95,6 @@ For a re-check after a future change, install it and fully restart the client; `
 2. Turning steps smoothly through the headings. The mortar leads in the driving direction, with no mirroring, flipping, or slivers of neighboring frames at the edges.
 3. The shadow falls south-east, like the scenery's.
 4. The kart keeps its own colours while drifting and boosting; the effects show the phase. (The approved build still had phase washes; the owner retired them on 2026-10-21.)
-5. No hitch when the 4 MiB sheet loads at creation; Print Probe shows 11/151/13 in the combined build with effects, Kart and Close results buttons (9/111/13 at the approval).
+5. No hitch when the 4 MiB sheet loads at creation; Print Probe shows 11/151/13 in the combined build with effects, Kart and Close results buttons, and 65/160/79 with the front end (9/111/13 at the approval).
 
 This is the first use of `SetTexCoord` on the kart texture; the background already uses it, and it was observed working there. A refused crop leaves the orange primitive, so the approved trike suggests the crop also works on the kart, but no probe output records it.

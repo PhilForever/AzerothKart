@@ -181,7 +181,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     end
     local ok, err=pcall(function()
         local namespace={}
-        for _,name in ipairs({"Track", "MirageRaceway", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "UI", "RaceProtocol", "PeerSession", "NetworkProbe", "TransportProbe", "SessionTransport", "Core"}) do
+        for _,name in ipairs({"Track", "MirageRaceway", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "UI", "Menu", "RaceProtocol", "PeerSession", "ClockProtocol", "StartClock", "RaceStart", "NetworkProbe", "TransportProbe", "SessionTransport", "Core"}) do
             assert(loadfile("addon/AzerothKart/"..name..".lua"))("AzerothKart",namespace)
         end
         env.namespace=namespace
@@ -269,9 +269,13 @@ end
 -- Drift/boost effects add pooled textures: 20 smoke, 14 sparks and two
 -- exhaust flames of two layers each, created and loaded once with the window.
 local EFFECT_TEXTURES=20+14+2*2
-local UI_TEXTURES=113+EFFECT_TEXTURES
--- The Kart button adds one Frame to the earlier nine.
-local UI_FRAMES=11
+-- The front end (Menu.lua) creates its header, menu screens, race overlay and
+-- results buttons once with the window; it replaced the old title line.
+local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=54,9,67
+local UI_TEXTURES=113+EFFECT_TEXTURES+MENU_TEXTURES
+-- The Close results and Kart buttons add two Frames to the earlier nine.
+local UI_FRAMES=11+MENU_FRAMES
+local UI_FONTS=12+MENU_FONTS
 local PARTICLES_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Effects\\Particles.tga"
 local FLAME_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Effects\\Flame.tga"
 local function effectPieces(UI)
@@ -379,7 +383,7 @@ withMock(nil, false, function(env,UI)
             "thin wall strips follow the canvas perimeter")
         assert(wall.item.colorWrites==1,"static wall color is configured once")
     end
-    assert(UI.objects.frames==UI_FRAMES and UI.objects.textures==UI_TEXTURES and UI.objects.fontStrings==13,
+    assert(UI.objects.frames==UI_FRAMES and UI.objects.textures==UI_TEXTURES and UI.objects.fontStrings==UI_FONTS,
         "pooled run summary, lap/checkpoint HUD, drift meter and walls match the explicit UI object budget")
     local function covered(rectangles,x,y)
         for _,rect in ipairs(rectangles) do
@@ -1164,7 +1168,7 @@ withMock(nil,false,function(env,UI)
     assert(UI.checkpointHud.text:find("Checkpoints: 3-lap run complete",1,true),
         "terminal checkpoint HUD explains completion instead of requesting another circuit")
     assert(UI.summary:IsShown() and UI.summary.parent==UI.canvas and
-           UI.summary.width==380 and UI.summary.height==190 and
+           UI.summary.width==460 and UI.summary.height==312 and
            UI.summaryTitle.text=="RUN COMPLETE",
         "finished run displays its preallocated summary panel")
     assert(UI.summaryDetail.text:find("3/3",1,true) and
@@ -1550,7 +1554,7 @@ for _,mode in ipairs({"missing", "throws"}) do
         env.fire("ADDON_LOADED","AzerothKart")
         UI.Toggle(); UI.Start(); UI.OnUpdate(1/60)
         assert(UI.active and UI.state.tick==1,"optional snapping APIs cannot block driving: "..mode)
-        assert(UI.objects.frames==UI_FRAMES and UI.objects.textures==UI_TEXTURES and UI.objects.fontStrings==13,
+        assert(UI.objects.frames==UI_FRAMES and UI.objects.textures==UI_TEXTURES and UI.objects.fontStrings==UI_FONTS,
             "snapping fallback preserves UI object budget: "..mode)
         assert(sceneLayerCalls(env,UI)==1,"grass priority remains explicit when snapping is unavailable: "..mode)
     end,nil,mode)
@@ -1941,7 +1945,7 @@ withMock(nil, false, function(env,UI)
     assert(math.abs(sample.simulationMs-6)<1e-8 and math.abs(sample.renderMs-6)<1e-8 and
            math.abs(sample.totalMs-12)<1e-8,"profile phases accumulate known mock milliseconds")
     assert(#env.output==before,"sampling/completion never prints per-frame chat")
-    assert(UI.objects.frames==UI_FRAMES and UI.objects.textures==UI_TEXTURES and UI.objects.fontStrings==13,
+    assert(UI.objects.frames==UI_FRAMES and UI.objects.textures==UI_TEXTURES and UI.objects.fontStrings==UI_FONTS,
         "profiling creates no UI objects")
     local state={}
     for key,value in pairs(UI.state) do state[key]=value end
@@ -2224,7 +2228,7 @@ withMock(nil,false,function(env,UI)
     UI.Start(); UI.Stop("sprite reuse fixture")
     assert(loads(env,KART_PATH)==1 and UI.kart.textureWrites==1 and rawget(UI.kart,"color")==nil,
         "starts and map switches reuse the loaded sprite; no per-run or per-frame texture load")
-    assert(UI.objects.frames==UI_FRAMES and UI.objects.textures==UI_TEXTURES and UI.objects.fontStrings==13,
+    assert(UI.objects.frames==UI_FRAMES and UI.objects.textures==UI_TEXTURES and UI.objects.fontStrings==UI_FONTS,
         "the sprite reuses the existing kart texture without new UI objects")
     sameCounts(env,counts,"sprite phases and switches allocate no UI objects")
 end)
@@ -2291,7 +2295,7 @@ for _,mode in ipairs({"false","nil","throws","missing","tint missing","tint thro
         assert(loads(env,KART_PATH)==attempts and
                (rawget(UI.kart,"vertexColor")==nil or sameRGB(UI.kart.vertexColor,NEUTRAL)),
             "no sprite retry per frame, run or map: "..mode)
-        assert(UI.objects.frames==UI_FRAMES and UI.objects.textures==UI_TEXTURES and UI.objects.fontStrings==13,
+        assert(UI.objects.frames==UI_FRAMES and UI.objects.textures==UI_TEXTURES and UI.objects.fontStrings==UI_FONTS,
             "fallback keeps the explicit UI object budget: "..mode)
     end)
 end
@@ -2467,7 +2471,7 @@ for _,fixture in ipairs({
         local sprite,id,frame=UI.kartSprite,UI.kartId,UI.kartFrame
         local state,race,result,track,laps=UI.state,UI.race,UI.result,UI.trackId,UI.laps
         local tick,x,y,heading=state.tick,state.x,state.y,state.heading
-        local previousUV={unpack(UI.kart.texCoords)}
+        local previousUV={(table.unpack or unpack)(UI.kart.texCoords)} -- Lua 5.1 and 5.4
         local previousRotation,width,height=UI.kart.rotation,UI.kart.width,UI.kart.height
         local counts={}
         for key,value in pairs(env.counts) do counts[key]=value end

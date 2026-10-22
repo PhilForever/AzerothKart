@@ -244,6 +244,7 @@ local function refreshCountdown()
     else
         UI.countdownCue:Hide()
     end
+    if AK.Menu then AK.Menu.OnCue(cue) end -- countdown sounds (presentation only)
 end
 
 local function refreshHud()
@@ -291,6 +292,8 @@ local function refreshHud()
         UI.kartButtonActive = UI.active
         if UI.active then UI.kartButton:Disable() else UI.kartButton:Enable() end
     end
+    -- The front end follows Start/Stop/lap changes here (presentation only).
+    if AK.Menu then AK.Menu.Sync() end
 end
 
 local function refuseStart(reason)
@@ -553,10 +556,19 @@ local function resetEffects()
     }
 end
 
+-- Settings switch: off clears and hides every effect; on resumes emission
+-- from the next simulation tick. Simulation never reads this flag.
+function UI.SetEffectsEnabled(enabled)
+    enabled = enabled ~= false
+    if enabled == not UI.effectsOff then return end
+    UI.effectsOff = not enabled
+    if UI.fxSmoke then resetEffects() end
+end
+
 -- (kartX, kartY) is the drawn kart pose on the canvas.
 local function renderEffects(kartX, kartY, alpha)
     local fx = UI.fx
-    if not fx then return end
+    if not fx or UI.effectsOff then return end
     local now = Presentation.advanceEffects(fx,UI.previousState,UI.state,alpha,UI.fxOptions)
     local view = UI.view
     local scale = view.scale
@@ -715,6 +727,7 @@ function UI.SelectKart(id)
     resetEffects()
     render()
     if UI.kartButton then UI.kartButton:SetText(kartLabel()) end
+    if AK.Menu then AK.Menu.OnKartChanged() end -- remember a deliberate choice
     return selected
 end
 
@@ -819,6 +832,7 @@ render = function()
     refreshMeter()
     refreshCheckpoints()
     refreshCountdown()
+    if AK.Menu then AK.Menu.RefreshRaceHud() end
 end
 
 function UI.Create()
@@ -841,12 +855,12 @@ function UI.Create()
     window:SetScript("OnHide",function()
         if UI.active then UI.Stop("Window hidden") else UI.ReleaseInput() end
     end)
+    -- Presentation only: the front end shows its main menu or the results.
+    window:SetScript("OnShow",function() if AK.Menu then AK.Menu.OnWindowShown() end end)
 
-    local title = text(window,"TOPLEFT",28,-20,"AZEROTH KART |cff777777[SOLO DRIVE]|r")
-    title:SetJustifyH("LEFT")
     local close = frame("Button",nil,window,"UIPanelButtonTemplate")
     close:SetSize(72,24)
-    close:SetPoint("TOPRIGHT",-16,-12)
+    close:SetPoint("TOPRIGHT",-18,-16) -- inside the dialog border
     close:SetText("Close")
     close:SetScript("OnClick",function() UI.Stop("Closed"); window:Hide() end)
 
@@ -879,7 +893,7 @@ function UI.Create()
     UI.checkpointHud = text(window,"BOTTOMLEFT",28,154,"")
     UI.checkpointHud:SetJustifyH("LEFT")
     refreshCheckpoints()
-    UI.status = text(window,"BOTTOMLEFT",28,133,"Out of combat: Start Test Drive")
+    UI.status = text(window,"BOTTOMLEFT",28,133,"Out of combat: Start Race")
     UI.status:SetJustifyH("LEFT")
     UI.hud = text(window,"BOTTOMLEFT",28,110,"Speed: 0 | Ticks: 0")
     UI.hud:SetJustifyH("LEFT")
@@ -890,7 +904,7 @@ function UI.Create()
     UI.startButton = frame("Button",nil,window,"UIPanelButtonTemplate")
     UI.startButton:SetSize(130,24)
     UI.startButton:SetPoint("BOTTOMLEFT",28,12)
-    UI.startButton:SetText("Start Test Drive")
+    UI.startButton:SetText("Start Race")
     UI.startButton:SetScript("OnClick",function() UI.Start() end)
     UI.stopButton = frame("Button",nil,window,"UIPanelButtonTemplate")
     UI.stopButton:SetSize(90,24)
@@ -944,6 +958,13 @@ function UI.Create()
         GameFontNormalHuge and "GameFontNormalHuge" or "GameFontNormal")
     UI.countdownCue:Hide()
     window:SetScript("OnUpdate",function(_,elapsed) UI.OnUpdate(elapsed) end)
+    -- Menus, the header, the race HUD overlay and results styling (Menu.lua)
+    -- arrange the objects above; their text and behaviour stay here. If the
+    -- front end fails to build, the basic controls above keep working.
+    if AK.Menu then
+        local ok,err = pcall(AK.Menu.Create,UI)
+        if not ok then AK.Menu.Disable(err) end
+    end
 end
 
 function UI.Start()

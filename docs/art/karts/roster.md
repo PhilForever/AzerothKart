@@ -84,9 +84,9 @@ Loaded karts are never tinted: the effects show the drift and boost phase (owner
   - A refused load keeps the current kart.
   - A choice never touches the run, its result, the track or the simulation state.
 - **During a run:** the button is disabled and direct choices are refused.
-- **Not saved:** the default kart returns after `/reload`.
+- **Remembered:** [the front end](../ui/front-end.md#saved-preferences) saves the choice, from the kart screens or this button, and restores it when the window is created. Without the front end, the default kart returns after `/reload`.
 
-The Kart button adds one Frame alongside the existing Close results button: combined explicit UI counts become 11 frames, 151 textures and 13 font strings.
+The Kart button adds one Frame alongside the existing Close results button: combined explicit UI counts become 11 frames, 151 textures and 13 font strings, and 65/160/79 with the front end. The front end's kart screens reuse these sheets for the turntable and add no kart art.
 
 ## Client check (NOT RUN)
 
@@ -96,4 +96,4 @@ Fully restart the client after installing: the sheets are new files. Then, while
 2. Drive a lap with each. The kart faces its travel direction at every heading, with no mirroring, flipping or neighbouring-frame slivers. The flyers' shadows sit detached south-east of them.
 3. The Gyrocopter's rotor reads as a faint spinning blur, not a solid lid. Its pilot doesn't look odd.
 4. Drift and boost effects start at sensible points on each kart, with no whole-kart colour change.
-5. The button is disabled during a run. No hitch when switching karts; each sheet is 4 MiB. Print Probe shows 11/151/13.
+5. The button is disabled during a run. No hitch when switching karts; each sheet is 4 MiB. Print Probe shows 65/160/79 with the front end (11/151/13 without it).

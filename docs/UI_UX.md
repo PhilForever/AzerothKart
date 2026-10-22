@@ -11,6 +11,18 @@ The accepted first-map direction is **Mirage Raceway** on the dry, pre-flood Shi
 
 ## Planned scenes
 
+**Front end on `claude/ui-flow` (2026-10-21; proposed for Codex review; client NOT RUN):** [the front-end sheet](art/ui/front-end.md) implements a first version of most scenes below:
+
+- `HOME`: Single Player, Multiplayer (coming soon), Garage, How to Play and Settings.
+- `TRACK_SELECT`: preview, laps, gates, direction and off-road; no record holder or difficulty yet.
+- `GARAGE`: a turntable preview; every kart handles the same.
+- `RACE`: lap, gate and time at the top corners, the capture line and a large countdown.
+- `RESULTS`: total, last and best times with every lap; Restart, Change Kart, Change Track and Main Menu. There is no ranking until multiplayer.
+- `SETTINGS`: window size, effects, sound, developer info and reset position. Keybinds, reduced motion and volume are not offered yet.
+- `ROOM` is a disabled coming-soon preview until Codex's session adapter and command contract land.
+
+Quick Race and Time Trial are not separate entries: Single Player is the quick race, and time trials are deferred under ADR 0010.
+
 These are design targets, not existing screens. Implement only supported actions; leave unavailable settings out of the current flow.
 
 1. `HOME`: logo, Quick Race, Time Trial, Multiplayer (disabled until gate), Garage, Tracks, Settings, Help; explicit Coming Soon cards rather than fake active buttons.

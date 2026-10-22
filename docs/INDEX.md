@@ -8,7 +8,7 @@
 
 **Session menu bridge:** [public actions and copied view](SESSION_MENU_API.md). Logged two-peer control only; live race follows separately.
 
-**UI/flow:** [ownership assignment](UI_FLOW_OWNERSHIP.md) and [Claude roster review](reviews/2026-10-21-claude-roster.md). Claude owns presentation/visual flow; Codex owns session semantics and lifecycle.
+**UI/flow:** [ownership assignment](UI_FLOW_OWNERSHIP.md), [Claude roster review](reviews/2026-10-21-claude-roster.md) and the proposed [front-end menus, race HUD and results](art/ui/front-end.md) on `claude/ui-flow` (offline-tested; client NOT RUN; [contract](API_CONTRACTS.md#proposed-front-end-menus-race-hud-and-results)). Claude owns presentation/visual flow; Codex owns session semantics and lifecycle.
 
 **Integration/deployment checkpoint:** [current combined source and synchronization rules](INTEGRATION_STATUS.md). Read this before following an older branch handoff or preparing an install.
 
