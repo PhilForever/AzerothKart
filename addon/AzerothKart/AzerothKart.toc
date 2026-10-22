@@ -7,6 +7,9 @@
 ## X-AzerothKart-TOC: base
 Track.lua
 MirageRaceway.lua
+Circuit.lua
+CapitalCities.lua
+Courses.lua
 Physics.lua
 Input.lua
 Loop.lua

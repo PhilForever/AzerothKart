@@ -280,13 +280,22 @@ def track_value(track, frame, interval, default):
     t = (frame - f0) / (f1 - f0)
     mixed = [a + (b - a) * t for a, b in zip(v0, v1)]
     if len(mixed) == 4:                                  # quaternion: renormalize
-        n = sqrt(sum(m * m for m in mixed))
+        n = sqrt(total(m * m for m in mixed))
         mixed = [m / n for m in mixed]
     return tuple(mixed)
 
 
+def total(values):
+    """Float sum left to right, as sum() added floats before Python 3.12
+    (which compensates them): the same bits on every Python version."""
+    acc = 0
+    for value in values:
+        acc = acc + value
+    return acc
+
+
 def matmul(a, b):
-    return [[sum(a[i][k] * b[k][j] for k in range(4)) for j in range(4)] for i in range(4)]
+    return [[total(a[i][k] * b[k][j] for k in range(4)) for j in range(4)] for i in range(4)]
 
 
 def local_matrix(translation, rotation, scale, pivot):
@@ -342,7 +351,7 @@ def posed_triangles(model, sequence, hidden_bones=()):
         blended = []
         for bones in geo["bones"]:
             mats = [world(b) for b in bones]
-            blended.append([[sum(m[i][j] for m in mats) / len(mats) for j in range(4)] for i in range(4)])
+            blended.append([[total(m[i][j] for m in mats) / len(mats) for j in range(4)] for i in range(4)])
         v, nrm, uv = geo["vertices"], geo["normals"], geo["uvs"]
         pos, nor = [], []
         for k in range(len(v) // 3):
@@ -699,7 +708,7 @@ def rear_contacts(posed):
     for sign in (1, -1):
         side = [p for p in low if p[1] * sign > 1.0]
         if side:
-            sides.append((min(p[0] for p in side), sum(p[1] for p in side) / len(side)))
+            sides.append((min(p[0] for p in side), total(p[1] for p in side) / len(side)))
     return floor_z, sides
 
 

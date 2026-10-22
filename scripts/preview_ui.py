@@ -523,6 +523,14 @@ def main():
     shots.append(("results", capture(lua, "results", out_dir)))
     run("mock.namespace.UI.DismissSummary()")
     shots.append(("track view", capture(lua, "track-view", out_dir)))
+    # The Capital Cities Cup: the track list with Stormwind chosen, then a
+    # drive up the Valley of Heroes on its follow camera.
+    run("mock.namespace.UI.SelectTrack('stormwind_city'); mock.namespace.Menu.Show('tracks')")
+    shots.append(("tracks: Stormwind", capture(lua, "tracks-stormwind", out_dir)))
+    run("""local UI = mock.namespace.UI
+        mock.namespace.Menu.Show(nil); UI.Start(); mock.step(180); mock.key('OnKeyDown', 'W'); mock.step(150)""")
+    shots.append(("Stormwind race", capture(lua, "race-stormwind", out_dir)))
+    run("mock.key('OnKeyUp', 'W'); mock.namespace.UI.Stop('preview'); mock.namespace.Menu.Show(nil)")
     scale, columns = 0.5, 3
     w, h = round(SCREEN_W * scale), round(SCREEN_H * scale)
     rows = (len(shots) + columns - 1) // columns
