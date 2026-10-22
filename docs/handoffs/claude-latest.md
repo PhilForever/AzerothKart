@@ -32,7 +32,8 @@ None to collision or interfaces: an art change to the Ironforge pictures only. `
 | Command / check | Result |
 |---|---|
 | `python scripts/build_city_tracks.py --wc3 … --check` | **CHECK PASS** in the cloud for `CapitalCities.lua` (unchanged) and both cities: Stormwind `Background.tga` sha256 `078a7805bccdadd8b88a909d5c37b013aa51e9d0d7981134c04f7a9db12f4ebb` (unchanged); Ironforge `Background.tga` `258bc9be54e6eb6389fff867379c32c4e92c3272f8d05dd354a4dd74a3b918e6`, `Preview.tga` `3a46a8f80d46bb19ac459c4511b774bc55bcf2691e43cc851061dd6919dc2143` |
-| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in PROGRESS.md fail |
+| The same check on the developer machine | **CHECK PASS** at `b34a225` for `CapitalCities.lua` and Ironforge's two pictures (Python 3.10.12, its own extraction and sprite cache; it drew the textured meshes itself) |
+| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in PROGRESS.md fail, on both machines |
 | Review | The forge island at 2.5× and in the game camera's scale, before and after; sent to the owner |
 
 No Lua changed, so the Lua suites were not rerun for this art change (Codex's last full run on `82d57eb` stands).
@@ -48,7 +49,7 @@ No Lua changed, so the Lua suites were not rerun for this art change (Codex's la
 > ### 2026-10-22 ~19:40 CEST — Claude / `claude/ironforge-polish`, the Great Forge in Warcraft III textures
 >
 > - After the owner's drive of Ironforge version 3 ("Forlorn Cavern is good. The lava is good."): the Great Anvil at half size; the anvil and pumps painted with rectangles of the steam tank's, power generator's and mine cart's textures (`city_meshes.tex`). Art only; `CapitalCities.lua` and Stormwind byte-identical. Ironforge `Background.tga` sha256 `258bc9be…3b918e6`, `Preview.tga` `3a46a8f8…19dc2143`.
-> - `build_city_tracks.py --check` PASS for both cities; validator: only the 2 pre-existing PROGRESS links.
+> - `build_city_tracks.py --check` PASS for both cities in the cloud and for Ironforge on the developer machine; validator: only the 2 pre-existing PROGRESS links.
 > - **NOT RUN:** the client; install.
 
 ## Branch, commits and workspace
