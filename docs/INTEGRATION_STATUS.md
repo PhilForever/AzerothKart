@@ -2,7 +2,11 @@
 
 Updated2026-10-22 08:12+02:00, Europe/Oslo. Codex is the designated integrator for the owner's request to combine the agents' work without losing either side. This is a source-integration checkpoint, not a release or installation. See [PROGRESS](PROGRESS.md), [ownership](UI_FLOW_OWNERSHIP.md), [API contracts](API_CONTRACTS.md) and both agent handoffs.
 
-## Current combined source — pushed and installed for owner testing
+## Latest installed handling correction — Stormwind full speed
+
+2026-10-22 10:11 +02:00: owner-directed correction **c4b430d**, `codex/stormwind-full-speed` from the published integratedc59a607 baseline. Stormwind version2 has full road grip/speed/drift/boost throughout the existing corridor until wall contact; no slowdown on its painted shoulder. Other tracks/walls/art/globalPhysics7 unchanged. Focused Lua5.1 tests/generator/validator PASS;39files installed/hash-verified,39priorfiles backed up/verified. Owner `/reload` check NOT RUN. This local correction has not been pushed; the combined published branch below remains unchanged. See PROGRESS and the Codex handoff.
+
+## Published combined baseline — pushed and installed before handling correction
 
 2026-10-22 08:37 +02:00, Europe/Oslo. User explicitly authorized latest-handoff review, push and installation, then his client test. Codex read Claude's complete current handoff **78d97a1**, reviewed the city collision/selection changes and integrated that source, beyond the previously reviewed two-track UI. See [city review](reviews/2026-10-22-city-integration.md).
 
