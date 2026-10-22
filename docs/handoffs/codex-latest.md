@@ -1,74 +1,65 @@
-# Active reservation — native live race and player flow
+# Codex handoff — wired two-player developer candidate
 
-2026-10-22 Europe/Oslo. Explicit owner request: connect controller to Forever
-transport, then wire lobby and race display. Own codex/live-multiplayer-integration
-from7f80c2b. Reserve SessionTransport and native integration tests (root), UI.lua
-lifecycle/display + focused UI tests (assigned UI agent), Menu.lua/lobby commands
-+ menu tests (assigned menu agent), contracts/docs/load lists/PROGRESS (root).
-Owner explicitly assigns this UI wiring; preserve Claude visuals/foreign branch.
-No assets, physics or geometry edits. No main merge/force push/release. Native
-adoption must retain the same persistent budget/frame lease. Reviewed offline
-candidate, no client result claimed without execution. Deployment remains a
-separate coordinated step if candidate checks expose a blocker.
+2026-10-22 23:39 +02:00, Europe/Oslo. Owner explicitly asks native controller connection then
+lobby/race display. Own codex/live-multiplayer-integration from7f80c2b,
+reservationc87fe29, implemented **c581a52950013263049cd82a44f83217556fc1c6**.
+Following handoff commit changes documentation only. No main merge, force push,
+release, foreign worktree edit, client input or installed-addon write.
 
-## Previous handoff
+## Implemented
 
-# Codex handoff — pure live-race lifecycle and telemetry
+SessionTransport HostLive/ListenLive opt-in, exactly-once private GO adoption,
+same lease/hooks/persistent output budget across control/clock/live. Native
+AdvanceLive returns copied current/final views; no second UI Physics loop.
+PeerSession.beginRace clears negotiation deadline while retaining terminal
+cancellation. All sends charged; refusal hard-stops without more output. Scoped
+post-GO CANCEL uses normal sequence/conflict checks before retiring its unused
+ACK/lease. Legacy native APIs and TakeRaceStart keep their prior behavior.
 
-2026-10-22 23:11 +02:00, Europe/Oslo. Owner requests multiplayer development toward a friend
-race. Branch **codex/live-race-controller** from4544108 (reviewed Claude Orgrimmar
-72b362f), reservation5008f44, implementation **b35946f**. This following handoff
-commit contains documentation only. No foreign branch switch/merge, push,
-installation, client input or milestone completion.
+Core binds Menu's view/action bridge after creation. UI.MultiplayerAction owns
+safety; deliberate Ready loads the supported offered track/arms the matching
+session; GO checks focus/window/combat before capture. Full-name/fresh-code
+lobby, Host/Listen/Join/Ready/Start/Leave,5Hz status, supportedMirage/Oval only.
+One cyan marker/label consumes copied observations with bounded interpolation,
+stale fade/clipping. Local finish freezes actual progress while native output
+finishes; results/navigation stop/cancel correctly and are explicitly unverified.
+No contact, authoritative remote correction, agreed winner or cosmetic exchange.
+[Exact API](../LIVE_RACE.md#implemented-native-and-player-flow-integration),
+[short user steps](../MULTIPLAYER_PLAYTEST.md). UI/menu changes were expressly
+assigned by owner; Claude's visuals/checkout/authored handoff remain intact.
 
-## Completed source slice
+## Verification
 
-New LiveRace.lua consumes one copied tick-zero RaceStart bundle exactly once;
-fixed-step Physics/Race/Loop driving, exact finish/stop/combat state and copied
-render views. New LiveProtocol.lua provides strict34-byte observational packets
-on AZKRUN1. Peer/session/channel/sequence/tick/map/progress validation, only two
-remote poses,500ms output spacing/2calls/158B rolling cap, no ACK/history queue,
-five-second peer silence/frozen-progress timeout and30-minute duration cap.
-Received claims cannot correct physics, award local progress, establish a
-winner or shared result. Completed reports remain unverified. No production
-authority/contact/finish decision; this telemetry is within ADR0013's experiment.
+Final actual Lua5.1/pinnedLupa2.8 full integration checkpoint PASS all30modules,
+57parsedfiles, after focused six-module and native/cross-layer runs. Realall-TOC
+mock peers use actualCore/menu/UI/native callbacks through700ms syntheticRTT,
+5sclockoffset, GO,180drivingframes, moving observations and Stopcleanup. No
+per-frame widgets; pool79/166/81. Tests cover32sliveLeave, one paced cancellation,
+foreign/old-sequence packets, sendfailures, reentrant teardown, focus/loading/
+preReadyclose, finishdrain and unchangedsolo/preferences. Whitespace/Pythonparse
+PASS. Structuralvalidator FAIL only two pre-existing expired skill-file links
+in PROGRESS; not counted as pass. Lua5.4/nativegame/delivery/feel/FPS NOT RUN.
 
-[Full implemented API and next boundary](../LIVE_RACE.md). Module/test lists,
-26-module TOCs, API/architecture/index/README/shared instructions aligned. All
-17critical existing simulation/native/UI modules and all art remain unchanged.
-Claude retains all visual/Menu/UI ownership; its worktree/handoff are untouched.
-Public native APIs retain old behavior; loading new modules does nothing native.
+347foreignfilehashes/statuses/HEADs preserved;20existing coremodules and every
+asset unchanged. No direct Claude conversation claimed. The Git/common source
+handoff is the coordination record; neither foreign checkout is switched.
 
-## Actual checks
+## Artifact and next action
 
-Actual Lua5.1/pinnedLupa2.8 via C:/Python314/python.exe and canonical
-local-artifacts/python-deps: `scripts/test_lua.py --runtime lua51 --tests
-live_protocol live_race race_start session_transport ui` PASS56parsed/five
-modules. Synthetic20s two-peer tape, clocks5s apart/350ms one-way delivery:
-1200equal-input driving ticks,41accepted snapshots per peer, rolling call/byte
-caps verified. Existing900-tick GO replay/native adapter and UI regressions pass;
-UI mock counts75/165/80 unchanged. Independent read-only review found four
-constructor/liveness issues, reproduced/fixed/regression covered; no blockers
-remain for this pure slice. Final focused live_race PASS after duration, injected
-simulation-failure and callback Stop regressions. Whitespace/Python parse/TOC
-checks PASS. Structural validator FAIL only on two pre-existing expired skill
-links in PROGRESS; not reported as a passing validator. Full broad/Lua5.4/native
-checks NOT RUN. Synthetic RTT is not a new network measurement.
+Local artifact release/AzerothKart-two-player-c581a52.zip,49files,34,040,705bytes,
+SHA256 f4b9a91e68b48ffec27ef82330853388277f39ae9412f21652064e68c2ae1a04.
+CRC/exactpaths/all49sourcehashes verified. No screenshots/personaldata/docs/tests
+in package beyond existing addonREADME; build sourcec581a52. Ignored receipts:
+local-artifacts/live-multiplayer-integration-20261022/ (final-lua51.txt,
+focused.txt,structural.txt,preservation.json,package.json).
 
-All347 foreign file hashes/statuses/HEADs preserved; receipts in ignored
-local-artifacts/live-race-controller-20261022/. Installed prior41-file2e75a3d is
-unchanged. No friend download or test requested yet: gameplay is still unwired.
-
-## Next exact task
-
-Implement opt-in atomic LiveRace adoption inside SessionTransport at GO,
-retaining its same frame lease and persistent attempts/lastAttempt/traffic.
-Register live prefix only for that explicit mode; do not call legacy
-TakeRaceStart then reacquire another sender. Preserve existing TakeRaceStart
-release semantics and probe exclusivity. Share native budget across control,
-clock, live snapshots and cancellation; account failed/unknown/throttled calls.
-Test complete two mocked peers from invite/join/ready/clock through actual live
-advance and delivery, including reentrant Stop/cleanup. Still only Test Oval and
-Mirage are negotiated by the current control codec. Claude's reviewed menu/
-canvas binding comes next; menu navigation never consumes GO or owns Physics.
-Official results/corrections/contact and actual two-client race feel remain open.
+Not installed/published. Installed prior41-file2e75a3d is unchanged. Next exact
+task is coordinated backup/hash-verified installation ofc581a52, fullrestart
+(newfiles), then one actual two-client race using Multiplayer menu. The friend
+needs this identical package. No standalone /akart net probe prerequisite.
+Record both actual GO/movement/stop and usability before claiming acceptance.
+Mirage follow-camera can clip a delayed observed opponent at high speed; this
+is a known candidate limitation, not an invented transport result. No higher
+traffic rate, shared-winner claim or automatic reconnect is authorized by source
+passes. Fullsocket recovery/productionauthority/contact/finish agreement and
+release remain open. Continue only after addressing actual playtest feedback.
