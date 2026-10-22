@@ -277,7 +277,9 @@ local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=60,9,68
 -- City circuits have up to eight gates: the gate pool holds eight strips
 -- (the oval's four plus four kept hidden on the oval and Mirage Raceway).
 local GATE_STRIPS=8
-local UI_TEXTURES=109+GATE_STRIPS+EFFECT_TEXTURES+MENU_TEXTURES
+-- One additional hidden staging texture preserves the visible background on
+-- failed city/Mirage picture loads without relying on a second load to undo it.
+local UI_TEXTURES=110+GATE_STRIPS+EFFECT_TEXTURES+MENU_TEXTURES
 -- The Close results and Kart buttons add two Frames to the earlier nine.
 local UI_FRAMES=11+MENU_FRAMES
 local UI_FONTS=12+MENU_FONTS
@@ -714,12 +716,13 @@ for _,mode in ipairs({"false","nil","throws","missing","uv missing","uv throws"}
         local counts={}
         for key,value in pairs(env.counts) do counts[key]=value end
         env.textureMode=mode
-        local loader=UI.mirageBackground.SetTexture
-        local cropper=UI.mirageBackground.SetTexCoord
-        if mode=="missing" then UI.mirageBackground.SetTexture=false end
-        if mode=="uv missing" then UI.mirageBackground.SetTexCoord=false
+        local staging=UI.backgroundStaging
+        local loader=staging.SetTexture
+        local cropper=staging.SetTexCoord
+        if mode=="missing" then staging.SetTexture=false end
+        if mode=="uv missing" then staging.SetTexCoord=false
         elseif mode=="uv throws" then
-            UI.mirageBackground.SetTexCoord=function() error("mock UV API refuses") end
+            staging.SetTexCoord=function() error("mock UV API refuses") end
         end
         assert(not UI.SelectTrack("mirage_raceway"),"renderer refusal is explicit: "..mode)
         assert(UI.track==track and UI.state==state and UI.previousState==previous and
@@ -738,11 +741,94 @@ for _,mode in ipairs({"false","nil","throws","missing","uv missing","uv throws"}
             assert(env.counts[key]==value,"failed texture allocated UI objects: "..mode.."/"..key)
         end
         env.textureMode=nil
-        UI.mirageBackground.SetTexture=loader
-        UI.mirageBackground.SetTexCoord=cropper
+        staging.SetTexture=loader
+        staging.SetTexCoord=cropper
         assert(UI.SelectTrack("mirage_raceway") and UI.result==nil,
             "explicit retry after fixing a texture can create a fresh map session: "..mode)
     end)
+end
+
+-- Scenery-to-scenery selection is staged: even a destructive failed load or
+-- UV probe cannot alter the currently shown image, pose or retained run. The
+-- active texture's loader also fails here, so preservation cannot rely on a
+-- rollback load. Both pooled textures must pass their own UV check.
+for _,sourceId in ipairs({"mirage_raceway","stormwind_city"}) do
+    for _,mode in ipairs({"false","throws","uv missing","uv throws"}) do
+        withMock(nil,false,function(env,UI)
+            env.fire("ADDON_LOADED","AzerothKart")
+            UI.Toggle()
+            assert(UI.SelectTrack(sourceId),"load the retained scenery: "..sourceId)
+            UI.Start(); UI.OnUpdate(1/60); UI.Stop("retained scenery fixture")
+            local targetId=sourceId=="mirage_raceway" and "stormwind_city" or "mirage_raceway"
+            local front,staging=UI.mirageBackground,UI.backgroundStaging
+            local oldPath,oldReady=UI.backgroundPath,UI.mirageTextureReady
+            local image=front.texturePath
+            local crop=table.concat(front.texCoords,",")
+            local cropWrites=front.texCoordWrites
+            local track,state,previous,race,clock,result,laps,checkpoints,view=
+                UI.track,UI.state,UI.previousState,UI.race,UI.clock,UI.result,UI.laps,UI.checkpoints,UI.view
+            local keys,input=UI.keys,UI.input
+            env.namespace.Input.set(keys,"W",true)
+            env.namespace.Input.sample(keys,input)
+            local reason,hud,lapHud,summary=UI.stopReason,UI.hud.text,UI.lapHud.text,UI.summaryDetail.text
+            local counts={}
+            for key,value in pairs(env.counts) do counts[key]=value end
+            assert(UI.cameraApiReady and front:IsShown() and not staging:IsShown(),
+                "a previously verified front does not validate its hidden staging partner")
+            local frontLoader,loader,cropper=front.SetTexture,staging.SetTexture,staging.SetTexCoord
+            local rollbackCalls,attempts=0,0
+            front.SetTexture=function(self)
+                rollbackCalls=rollbackCalls+1
+                self.texturePath=nil
+                return false
+            end
+            staging.SetTexture=function(self)
+                attempts=attempts+1
+                self.texturePath=nil
+                if mode=="throws" then error("destructive staged load refuses") end
+                return false
+            end
+            if mode=="uv missing" then staging.SetTexCoord=false
+            elseif mode=="uv throws" then
+                staging.SetTexCoord=function(self)
+                    self.texCoords={-1,-1,-1,-1}
+                    error("destructive staged UV probe refuses")
+                end
+            end
+            assert(not UI.SelectTrack(targetId),"staged refusal is explicit: "..sourceId.."/"..mode)
+            assert(UI.mirageBackground==front and UI.backgroundStaging==staging and
+                   UI.backgroundPath==oldPath and UI.mirageTextureReady==oldReady and
+                   front:IsShown() and not staging:IsShown() and front.texturePath==image and
+                   table.concat(front.texCoords,",")==crop and front.texCoordWrites==cropWrites,
+                "refused selection preserves the exact visible image, UVs and loaded metadata")
+            assert(rollbackCalls==0 and attempts==((mode=="false" or mode=="throws") and 1 or 0),
+                "only a UV-validated hidden texture loads; no active-image load or rollback occurs")
+            assert(UI.track==track and UI.state==state and UI.previousState==previous and
+                   UI.race==race and UI.clock==clock and UI.result==result and UI.laps==laps and
+                   UI.checkpoints==checkpoints and UI.view==view and not UI.active and
+                   UI.keys==keys and UI.input==input and keys.W and input.accelerate,
+                "failed scenery selection preserves authoritative state, clock, camera and input")
+            assert(UI.stopReason==reason and UI.hud.text==hud and UI.lapHud.text==lapHud and
+                   UI.summaryDetail.text==summary and UI.summary:IsShown(),
+                "the retained sample and results remain visible")
+            assert(UI.SelectTrack(sourceId) and UI.mirageBackground==front and front.texturePath==image,
+                "the retained same-ID choice still points to its valid image")
+            front.SetTexture=frontLoader
+            staging.SetTexture,staging.SetTexCoord=loader,cropper
+            assert(UI.SelectTrack(targetId) and UI.mirageBackground==staging and
+                   UI.backgroundStaging==front and not front:IsShown() and staging:IsShown() and
+                   staging.texturePath==env.namespace.Courses.get(targetId).background and UI.race==nil,
+                "an explicit successful retry swaps the verified staging image and resets the run")
+            assert(UI.SelectTrack("test_oval") and not UI.mirageBackground:IsShown() and
+                   not UI.backgroundStaging:IsShown(),"the Oval hides both pooled scenery textures")
+            for index=#UI.track.gates+1,#UI.gateTextures do
+                assert(not UI.gateTextures[index]:IsShown(),"extra city gate strips hide on the Oval")
+            end
+            for key,value in pairs(counts) do
+                assert(env.counts[key]==value,"staging and retries allocate no UI objects: "..key)
+            end
+        end)
+    end
 end
 
 -- Countdown cues follow fixed ticks independently of the timing HUD. Actual

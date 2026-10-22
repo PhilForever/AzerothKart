@@ -27,7 +27,7 @@ Courses.LIST = {
         background=TRACKS .. "Stormwind\\Background.tga",
         rough={label="Off-road", feedback="Slowing off the road"},
         dust={0.86,0.84,0.80}, ground={0.20,0.27,0.16},
-        status="Stormwind City Circuit | Start for 3 laps | Walls and landmarks are solid"},
+        status="Stormwind City Circuit | Start for 3 laps | Street walls are solid; the kerbside slows you"},
     {id="ironforge_gp", name="Ironforge Grand Prix", cup="capital", soon=true},
     {id="darnassus_canopy", name="Darnassus Canopy Run", cup="capital", soon=true},
     {id="orgrimmar_canyon", name="Orgrimmar Canyon Rush", cup="capital", soon=true},

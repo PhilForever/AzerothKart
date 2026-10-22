@@ -246,8 +246,8 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu)
             UI.objects.textures, UI.objects.fontStrings, env.counts.frames, env.counts.textures,
             env.counts.fontStrings))
     -- Eight track buttons under two cup headings; eight pooled gate strips.
-    assert(UI.objects.frames == 71 and UI.objects.textures == 164 and UI.objects.fontStrings == 80,
-        ("explicit budget 71/164/80, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
+    assert(UI.objects.frames == 71 and UI.objects.textures == 165 and UI.objects.fontStrings == 80,
+        ("explicit budget 71/165/80, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
             UI.objects.fontStrings))
     assert(AzerothKartDB.preferences == nil, "creation saves nothing")
     local before = counts(env)

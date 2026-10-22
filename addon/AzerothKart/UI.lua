@@ -749,42 +749,40 @@ function UI.SelectTrack(id)
     if not course or course.soon then return false end
     if id == UI.trackId then return true end
     local background = course.background
-    if background and type(UI.mirageBackground.SetTexCoord) ~= "function" then
+    local staging = UI.backgroundStaging
+    local backgroundTarget = UI.backgroundPath == background and UI.mirageBackground or staging
+    if background and type(backgroundTarget.SetTexCoord) ~= "function" then
         refuseStart(course.name .. " camera unavailable | Test Oval remains available")
         return false
     end
     local selected = Courses.build(id,Oval.crossesGate)
     if not selected then return false end
-    if background and not UI.cameraApiReady then
+    if background and UI.backgroundPath ~= background then
+        -- Validate and load only the hidden staging texture. A failed load
+        -- can destroy its old image; the currently displayed texture and UVs
+        -- are never touched and need no fallible rollback.
         local probe = Presentation.cameraViewport(selected.width,selected.height,800,480,1.5)
         local spawn = selected.spawn()
         Presentation.follow(probe,spawn.x,spawn.y,spawn.heading,60)
-        local ok = pcall(UI.mirageBackground.SetTexCoord,UI.mirageBackground,
+        local ok = pcall(staging.SetTexCoord,staging,
             Presentation.texCoords(probe))
         if not ok then
             refuseStart(course.name .. " camera unavailable | Test Oval remains available")
             return false
         end
-        UI.cameraApiReady = true
-    end
-    if background and UI.backgroundPath ~= background then
-        -- One scenery picture is loaded at a time. The client documents a
-        -- boolean load result. A missing/erroring/failed load restores the
-        -- previous picture and leaves the old track and its stopped result
-        -- untouched.
-        local loader = UI.mirageBackground.SetTexture
+        local loader = staging.SetTexture
         local ok,loaded = false,false
         if type(loader) == "function" then
-            ok,loaded = pcall(loader,UI.mirageBackground,background)
+            ok,loaded = pcall(loader,staging,background)
         end
         if not ok or loaded ~= true then
-            if UI.backgroundPath and type(loader) == "function" then
-                pcall(loader,UI.mirageBackground,UI.backgroundPath)
-            end
             refuseStart(course.name .. " background unavailable | Test Oval remains available")
             return false
         end
+        UI.mirageBackground:Hide()
+        UI.mirageBackground,UI.backgroundStaging = staging,UI.mirageBackground
         UI.backgroundPath = background
+        UI.cameraApiReady = true
         UI.mirageTextureReady = id == "mirage_raceway"
     end
     if id == "mirage_raceway" then UI.mirageTrack = selected end
@@ -895,6 +893,8 @@ function UI.Create()
     drawWalls(UI.canvas)
     UI.mirageBackground = texture(UI.canvas,"BACKGROUND")
     UI.mirageBackground:Hide()
+    UI.backgroundStaging = texture(UI.canvas,"BACKGROUND")
+    UI.backgroundStaging:Hide()
     UI.kart = texture(UI.canvas,"OVERLAY")
     loadKartSprite()
     createEffects(UI.canvas)
