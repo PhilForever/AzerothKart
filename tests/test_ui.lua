@@ -254,7 +254,7 @@ end
 local EFFECT_TEXTURES=20+14+2*2
 -- The front end (Menu.lua) creates its header, menu screens, race overlay and
 -- results buttons once with the window; it replaced the old title line. The
--- track list holds eight buttons (three tracks, five coming-soon cities) under
+-- track list holds eight buttons (four tracks, four coming-soon cities) under
 -- two cup headings.
 local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=60,9,68
 -- City circuits have up to eight gates: the gate pool holds eight strips

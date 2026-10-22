@@ -12,7 +12,7 @@
    4  war3.w3mod:buildings/human/humantower/humantower.mdx
   11  war3.w3mod:buildings/human/workshop/workshop.mdx
   12  war3.w3mod:buildings/other/barrelsunit/barrelsunit.mdx
-   4  war3.w3mod:buildings/other/boxunit/boxunit.mdx
+   5  war3.w3mod:buildings/other/boxunit/boxunit.mdx
    5  war3.w3mod:buildings/other/cratesunit/cratesunit.mdx
    3  war3.w3mod:buildings/other/fruitstand/fruitstand.mdx
    2  war3.w3mod:buildings/other/magetower/magetower.mdx
@@ -23,7 +23,7 @@
    2  war3.w3mod:doodads/cityscape/props/crystallamp/crystallamp.mdx
   13  war3.w3mod:doodads/dungeon/props/bigbookshelf/bigbookshelf.mdx
    6  war3.w3mod:doodads/dungeon/props/bookshelf/bookshelf.mdx
-   3  war3.w3mod:doodads/dungeon/props/chainpost/chainpost.mdx
+   6  war3.w3mod:doodads/dungeon/props/chainpost/chainpost.mdx
    6  war3.w3mod:doodads/dungeon/props/junkpile/junkpile0.mdx
    6  war3.w3mod:doodads/dungeon/props/junkpile/junkpile1.mdx
    4  war3.w3mod:doodads/dungeon/props/minecart/minecart.mdx
@@ -33,24 +33,25 @@
    6  war3.w3mod:doodads/dungeon/rocks/dungeonstalagmite/dungeonstalagmite0.mdx
    1  war3.w3mod:doodads/dungeon/terrain/dungeonporticulisgate/dungeonporticulisgate.mdx
    1  war3.w3mod:doodads/dungeon/terrain/dungeonporticulisgate45/dungeonporticulisgate45.mdx
-   8  war3.w3mod:doodads/lordaeronsummer/props/armorrack/armorrack.mdx
+   9  war3.w3mod:doodads/lordaeronsummer/props/armorrack/armorrack.mdx
    5  war3.w3mod:doodads/lordaeronsummer/props/bannerhuman/bannerhuman0.mdx
-  83  war3.w3mod:doodads/lordaeronsummer/props/brazier/brazier.mdx
+  69  war3.w3mod:doodads/lordaeronsummer/props/brazier/brazier.mdx
    1  war3.w3mod:doodads/lordaeronsummer/props/ribbones/ribbones0.mdx
    1  war3.w3mod:doodads/lordaeronsummer/props/ribbones/ribbones2.mdx
-  48  war3.w3mod:doodads/lordaeronsummer/props/torchhuman/torchhuman.mdx
+  34  war3.w3mod:doodads/lordaeronsummer/props/torchhuman/torchhuman.mdx
   11  war3.w3mod:doodads/lordaeronsummer/props/weapons/weapons.mdx
    1  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree0.mdx
    1  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree1.mdx
    1  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree3.mdx
-   2  war3.w3mod:units/critters/villagerkid/villagerkid.mdx
-   4  war3.w3mod:units/critters/villagerman/villagerman.mdx
-   1  war3.w3mod:units/critters/villagerwoman/villagerwoman.mdx
-   2  war3.w3mod:units/human/footman/footman.mdx
+   7  war3.w3mod:units/critters/villagerkid/villagerkid.mdx
+   9  war3.w3mod:units/critters/villagerman/villagerman.mdx
+   2  war3.w3mod:units/critters/villagerman1/villagerman1.mdx
+   6  war3.w3mod:units/critters/villagerwoman/villagerwoman.mdx
+   5  war3.w3mod:units/human/footman/footman.mdx
    1  war3.w3mod:units/human/gyrocopter/gyrocopter.mdx
    1  war3.w3mod:units/human/mortarteam/mortarteam.mdx
    1  war3.w3mod:units/human/muradin/muradin.mdx
-   3  war3.w3mod:units/human/peasant/peasant.mdx
+  11  war3.w3mod:units/human/peasant/peasant.mdx
    2  war3.w3mod:units/human/rifleman/rifleman.mdx
    6  war3.w3mod:units/human/warwagon/warwagon.mdx
 
@@ -144,6 +145,7 @@ war3.w3mod:textures/yellow_star.dds
 war3.w3mod:textures/yellow_star_dim.dds
 war3.w3mod:units/critters/villagerkid/villagerkid.dds
 war3.w3mod:units/critters/villagerman/villagermale.dds
+war3.w3mod:units/critters/villagerman1/villagermale1.dds
 war3.w3mod:units/critters/villagerwoman/villagerwoman.dds
 war3.w3mod:units/human/gyrocopter/copterbladeblur.dds
 war3.w3mod:units/human/rifleman/rifleman.dds

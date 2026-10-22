@@ -448,6 +448,9 @@ withMock({schemaVersion=1, preferences={version=1, kart="gyrocopter", track="mir
     assert(UI.trackId == "stormwind_city" and AzerothKartDB.preferences.track == "stormwind_city",
         "the bar's track button steps on to the city circuit")
     click(UI.trackButton)
+    assert(UI.trackId == "ironforge_gp" and AzerothKartDB.preferences.track == "ironforge_gp",
+        "and on to Ironforge")
+    click(UI.trackButton)
     assert(UI.trackId == "test_oval" and AzerothKartDB.preferences.track == "test_oval",
         "switching back is remembered too")
 end, function(env, AK)
@@ -486,7 +489,7 @@ end)
 -- The coming-soon cities are listed, disabled and inert.
 withMock(nil, function(env, UI, Menu)
     UI.Toggle(); click(Menu.view.homeButtons[1])
-    local soon = Menu.view.soonButtons.ironforge_gp
+    local soon = Menu.view.soonButtons.darnassus_canopy
     assert(soon and not soon:IsEnabled() and not soon.scripts.OnClick and soon.text:find("(soon)", 1, true),
         "a coming-soon city is listed, disabled and inert")
 end)

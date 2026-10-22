@@ -8,7 +8,7 @@
 
 **UI/flow:** [ownership assignment](UI_FLOW_OWNERSHIP.md), [Claude roster review](reviews/2026-10-21-claude-roster.md) and the proposed [front-end menus, race HUD and results](art/ui/front-end.md) on `claude/ui-flow` (offline-tested; client NOT RUN; [contract](API_CONTRACTS.md#proposed-front-end-menus-race-hud-and-results)). Claude owns presentation/visual flow; Codex owns session semantics and lifecycle.
 
-**Capital Cities Cup:** the proposed [Stormwind City Circuit](art/tracks/stormwind.md) on `claude/capital-cup` (offline-tested; client NOT RUN; [contract](API_CONTRACTS.md#proposed-capital-cities-cup-city-circuits-and-the-course-catalog), [track notes](TRACKS.md#capital-cities-cup-city-street-circuits-proposed-claudecapital-cup)). Five more capitals follow on the same pipeline.
+**Capital Cities Cup:** the proposed [Stormwind City Circuit](art/tracks/stormwind.md) and [Ironforge Grand Prix](art/tracks/ironforge.md) on `claude/capital-cup` (offline-tested; client NOT RUN; [contract](API_CONTRACTS.md#proposed-capital-cities-cup-city-circuits-and-the-course-catalog), [track notes](TRACKS.md#capital-cities-cup-city-street-circuits-proposed-claudecapital-cup)). Four more capitals follow on the same pipeline.
 
 **Integration/deployment checkpoint:** [current combined source and synchronization rules](INTEGRATION_STATUS.md). Read this before following an older branch handoff or preparing an install.
 

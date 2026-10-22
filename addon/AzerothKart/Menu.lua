@@ -37,6 +37,11 @@ Menu.TRACKS = {
             .. "Old Town, the Dwarven District, Cathedral Square, the Park and the Mage Quarter.",
         facts={"3 laps, 6 gates named for the districts", "The canals stay on your left all lap",
             "The city's walls are solid; the kerbside slows you"}},
+    {id="ironforge_gp", name="Ironforge Grand Prix", cell="ironforge",
+        blurb="From the Gates round the Commons, the Mystic Ward and the Forlorn Cavern, through the "
+            .. "Great Forge's fire, then Tinker Town and the Military Ward.",
+        facts={"3 laps, 7 gates named for the districts", "A long lap: the city's whole ring and its heart",
+            "Mind the lava: the forges' railings are solid"}},
 }
 
 local WC3C = "Model: ITE project (wc3c), author unknown"
@@ -79,6 +84,8 @@ Menu.PREVIEW_CELLS = {
     [0]={left=0, right=0.5, top=0, bottom=1, width=320, height=320},
     [1]={left=0.5+6/1024, right=1-6/1024, top=0, bottom=300/512, width=320, height=192},
     stormwind={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\Stormwind\\Preview.tga",
+        left=0, right=1, top=0, bottom=1, width=320, height=320},
+    ironforge={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\Ironforge\\Preview.tga",
         left=0, right=1, top=0, bottom=1, width=320, height=320},
 }
 

@@ -852,8 +852,8 @@ NORTH = "war3.w3mod:doodads/northrend/"
 FIRE_LIGHT = (36, (74, 42, 12))              # a brazier's pool of light on the stone
 TORCH_LIGHT = (26, (58, 34, 10))
 ARCANE_LIGHT = (32, (44, 26, 74))
-BRAZIER = kind(SUMMER + "props/brazier/brazier.mdx", light=FIRE_LIGHT)
-TORCH = kind(SUMMER + "props/torchhuman/torchhuman.mdx", light=TORCH_LIGHT, weight=0.7)
+BRAZIER = kind(SUMMER + "props/brazier/brazier.mdx", light=FIRE_LIGHT, limit=14)
+TORCH = kind(SUMMER + "props/torchhuman/torchhuman.mdx", light=TORCH_LIGHT, weight=0.7, limit=12)
 BARRELS = kind(OTHER + "barrelsunit/barrelsunit.mdx", weight=0.7, limit=6)
 BOXES = kind(OTHER + "boxunit/boxunit.mdx", weight=0.6, limit=5)
 CRATES2 = kind(OTHER + "cratesunit/cratesunit.mdx", weight=0.6, limit=5)
@@ -1063,7 +1063,7 @@ IRONFORGE = {
              "face": (150, 140, 128), "cap": (190, 180, 166), "shadow": (70, 64, 58)},
     "fill": {"step": 20, "reach": 140, "gap": 2, "spacing": 3},
     "trim": {"step": 36, "reach": 50, "gap": 3, "spacing": 16},
-    "people": {"step": 44, "reach": 30, "gap": 2, "spacing": 10},
+    "people": {"step": 28, "reach": 34, "gap": 2, "spacing": 8},
     # Dwarven stone and iron: dark railings along lava and water, stone
     # foundations along the halls.
     "wall_styles": {

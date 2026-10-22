@@ -11,6 +11,16 @@
 5. **Camera and performance.** The follow camera stays on the kart up to the map's edges; record frame rate and any hitch when the track is selected and while driving, and Print Probe's counts (source expects 71 frames/164 textures/80 font strings).
 6. **Switching.** The bar's Track button cycles Test Oval → Mirage Raceway → Stormwind City; switching back and forth keeps working, and the saved track returns after `/reload`.
 
+## Deferred Ironforge Grand Prix check (proposed, `claude/capital-cup`)
+
+**NOT RUN.** After the coordinated install and a full client restart (the `Assets/Tracks/Ironforge/` pictures are new files):
+
+1. **Track screen.** *Capital Cities Cup* lists Stormwind City Circuit and Ironforge Grand Prix, then four cities "(soon)". Choose Ironforge: its preview and three facts appear.
+2. **Load.** A second 2048×2048 TGA; only one scenery picture is held at a time. Record a refusal ("Ironforge Grand Prix background unavailable | Test Oval remains available") and any hitch when switching between the two cities.
+3. **Race!** The kart starts in the gate hall facing the Commons, the Gates behind. Drive the lap: the Commons (finish), Mystic Ward, Forlorn Cavern, Hall of Explorers, into the Great Forge and round its southern forge, Tinker Town, Military Ward, back to the Commons; the HUD names each next gate (seven). Record whether each district is recognisable and whether the long lap feels right.
+4. **Walls.** The rock faces, the halls' foundations and the dark railings along the lava stop the kart as Stormwind's walls do.
+5. **Camera and performance.** Frame rate while driving past the lava and through the darker halls; Print Probe still 71/164/80.
+
 ## Deferred front-end check (proposed, `claude/ui-flow`)
 
 **NOT RUN.** Follow [the front-end client check](../docs/art/ui/front-end.md#client-check-not-run) after a coordinated install and a full client restart (`Menu.lua` and `Assets/UI/TrackPreviews.tga` are new files). With the front end, the window opens on the main menu; the first run starts from **Single Player → Race!**, and the bar's Start reads **Start Race**. Print Probe shows only with Settings → **Show developer info**; `/akart probe` always works. The checks below that start a drive use **Start Race** or **Race!**, and explicit counts become 71 frames/164 textures/80 font strings with the Capital Cities Cup (65/160/79 before it).
