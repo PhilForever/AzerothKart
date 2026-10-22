@@ -5,13 +5,13 @@
    1  war3.w3mod:buildings/human/altarofkings/altarofkings.mdx
    5  war3.w3mod:buildings/human/arcanesanctum/arcanesanctum.mdx
    3  war3.w3mod:buildings/human/arcanevault/arcanevault.mdx
-  15  war3.w3mod:buildings/human/blacksmith/blacksmith.mdx
+  14  war3.w3mod:buildings/human/blacksmith/blacksmith.mdx
    3  war3.w3mod:buildings/human/gryphonaviary/gryphonaviary.mdx
    7  war3.w3mod:buildings/human/humanbarracks/humanbarracks.mdx
    2  war3.w3mod:buildings/human/humanlumbermill/humanlumbermill.mdx
    4  war3.w3mod:buildings/human/humantower/humantower.mdx
   11  war3.w3mod:buildings/human/workshop/workshop.mdx
-  12  war3.w3mod:buildings/other/barrelsunit/barrelsunit.mdx
+  11  war3.w3mod:buildings/other/barrelsunit/barrelsunit.mdx
    5  war3.w3mod:buildings/other/boxunit/boxunit.mdx
    5  war3.w3mod:buildings/other/cratesunit/cratesunit.mdx
    3  war3.w3mod:buildings/other/fruitstand/fruitstand.mdx
@@ -20,10 +20,10 @@
    3  war3.w3mod:buildings/other/marketplace/marketplace.mdx
    3  war3.w3mod:buildings/other/powergenerator/powergenerator.mdx
    2  war3.w3mod:buildings/other/tavern/tavern.mdx
-   2  war3.w3mod:doodads/cityscape/props/crystallamp/crystallamp.mdx
+   1  war3.w3mod:doodads/cityscape/props/crystallamp/crystallamp.mdx
   13  war3.w3mod:doodads/dungeon/props/bigbookshelf/bigbookshelf.mdx
    6  war3.w3mod:doodads/dungeon/props/bookshelf/bookshelf.mdx
-   6  war3.w3mod:doodads/dungeon/props/chainpost/chainpost.mdx
+   5  war3.w3mod:doodads/dungeon/props/chainpost/chainpost.mdx
    6  war3.w3mod:doodads/dungeon/props/junkpile/junkpile0.mdx
    6  war3.w3mod:doodads/dungeon/props/junkpile/junkpile1.mdx
    4  war3.w3mod:doodads/dungeon/props/minecart/minecart.mdx
@@ -33,9 +33,9 @@
    6  war3.w3mod:doodads/dungeon/rocks/dungeonstalagmite/dungeonstalagmite0.mdx
    1  war3.w3mod:doodads/dungeon/terrain/dungeonporticulisgate/dungeonporticulisgate.mdx
    1  war3.w3mod:doodads/dungeon/terrain/dungeonporticulisgate45/dungeonporticulisgate45.mdx
-   9  war3.w3mod:doodads/lordaeronsummer/props/armorrack/armorrack.mdx
+   7  war3.w3mod:doodads/lordaeronsummer/props/armorrack/armorrack.mdx
    5  war3.w3mod:doodads/lordaeronsummer/props/bannerhuman/bannerhuman0.mdx
-  69  war3.w3mod:doodads/lordaeronsummer/props/brazier/brazier.mdx
+  61  war3.w3mod:doodads/lordaeronsummer/props/brazier/brazier.mdx
    1  war3.w3mod:doodads/lordaeronsummer/props/ribbones/ribbones0.mdx
    1  war3.w3mod:doodads/lordaeronsummer/props/ribbones/ribbones2.mdx
   34  war3.w3mod:doodads/lordaeronsummer/props/torchhuman/torchhuman.mdx
@@ -44,16 +44,21 @@
    1  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree1.mdx
    1  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree3.mdx
    7  war3.w3mod:units/critters/villagerkid/villagerkid.mdx
-   9  war3.w3mod:units/critters/villagerman/villagerman.mdx
+   8  war3.w3mod:units/critters/villagerman/villagerman.mdx
    2  war3.w3mod:units/critters/villagerman1/villagerman1.mdx
-   6  war3.w3mod:units/critters/villagerwoman/villagerwoman.mdx
+   5  war3.w3mod:units/critters/villagerwoman/villagerwoman.mdx
    5  war3.w3mod:units/human/footman/footman.mdx
    1  war3.w3mod:units/human/gyrocopter/gyrocopter.mdx
    1  war3.w3mod:units/human/mortarteam/mortarteam.mdx
    1  war3.w3mod:units/human/muradin/muradin.mdx
-  11  war3.w3mod:units/human/peasant/peasant.mdx
-   2  war3.w3mod:units/human/rifleman/rifleman.mdx
+  14  war3.w3mod:units/human/peasant/peasant.mdx
+   3  war3.w3mod:units/human/rifleman/rifleman.mdx
    6  war3.w3mod:units/human/warwagon/warwagon.mdx
+
+## Drawn by scripts/city_meshes.py (no Warcraft III file)
+   1  great_anvil
+   2  great_pump
+   2  pump
 
 ## Textures
 war3.w3mod:buildings/human/altarofkings/altarofkings.dds

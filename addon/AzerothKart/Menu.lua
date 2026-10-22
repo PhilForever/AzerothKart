@@ -40,8 +40,8 @@ Menu.TRACKS = {
     {id="ironforge_gp", name="Ironforge Grand Prix", cell="ironforge",
         blurb="From the Gates round the Commons, the Mystic Ward and the Forlorn Cavern, through the "
             .. "Great Forge's fire, then Tinker Town and the Military Ward.",
-        facts={"3 laps, 7 gates named for the districts", "A long lap: the city's whole ring and its heart",
-            "Mind the lava: the forges' railings are solid"}},
+        facts={"3 laps, 7 gates named for the districts", "Tight tunnels in and out of the Forlorn Cavern",
+            "Mind the lava: the forges' walls are solid"}},
 }
 
 local WC3C = "Model: ITE project (wc3c), author unknown"

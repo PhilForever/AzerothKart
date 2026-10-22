@@ -1,112 +1,73 @@
-# Codex handoff — Ironforge v3 review reserved
+# Codex handoff — Ironforge v3 narrows reviewed
 
-2026-10-22 16:17 +0200, Europe/Oslo. From clean `d5817a8` on `codex/ironforge-narrows`,
-review Claude's three commits through `9461f9c` before integrating and preparing
-the coordinated local installation. Claude branched from our exact installed
-baseline; preserve its checkout/ref/history and untracked outputs.
+2026-10-22 16:24 +0200, Europe/Oslo. Branch `codex/ironforge-narrows`; base d5817a8,
+reservation69dc2dd, incoming Claude9461f9c. Normal two-parent source merge is
+prepared; commit/installation evidence will follow. No push, main merge,
+release or milestone completion.
 
-Reserved scope: review `Circuit.new` optional narrows, analytic boundary/radii
-and generator/painter agreement; import the authored Ironforge v3 data/art,
-menu facts, pipeline and tests; add focused overlap/closing-segment/copy and
-transition invariants if needed. Resolve current shared contracts/status/docs,
-write this named handoff and PROGRESS. No UI/controller/global Physics/network
-changes, Stormwind changes, new gameplay feature, GitHub push or main merge.
-Do not edit Claude's handoff except importing its committed contents. Validate
-before installation, preserve the existing41-file install and verify hashes.
-Native v3 width/feel/visual/performance checks remain NOT RUN.
+## Scope and contract
 
-The new Claude handoff quotes the owner's actual drive of v2 followed by design
-requests. Attribute that report to the handoff; do not invent a successful v3
-client test or complete a milestone. The next Codex feature remains the bounded
-live-race controller after this review/deployment checkpoint.
+Reviewed the complete current Claude handoff and all three commits. Accept
+optional `narrows={name?,first,last,wallRadius}`: 1-based closed-loop segments,
+minimum radius on overlap, independent copied metadata; branches/plazas remain
+unchanged. Shared per-segment radii drive runtime capsules, exposed vertices and
+painted walls. Generic radii above roadRadius retain shoulders; Ironforge's42
+has none. Circuit's existing endpoint/radial movement model remains; no new
+continuous curved-wall sweep or kart collisions. API_CONTRACTS is authoritative.
 
-## Previous installed integration
+Ironforgev3: segments75–86 and120–131 reach42 / painted56; 1,682 junctions.
+Existing wider street reach76/rough shoulders, gate-hall correction, route,
+seven gates and spawn preserved. Lava ridges/grey wedges removed, dark walls
+and glow retained; anvil/pumps composited offline by new city_meshes.py. Menu
+facts change only; no UI/global Physics/controller/network behavior change.
+Stormwindv3/full-speed definition and twelve other images stay byte-identical.
+Claude9461f9c handoff imported verbatim; its quoted owner's v2 drive is not a
+v3 client pass. Code scope was factory/helper/generator/data/art and focused
+regressions/shared docs. Other-agent checkout/source/reservations untouched.
 
-# Codex handoff — reviewed Ironforge integration
+Codex additions: overlap, closing-segment, copied metadata and unaffected-branch
+regressions; private all-road-narrows surface flag fixes a confirmed tiny rough
+pocket in valid exposed-corner space without changing wall geometry or wide
+shoulders; exact actual coordinate/default-rough/wall negative regressions;
+Python boolean index/radius refusal; accurate generic shoulder
+comment; city_meshes.py required by validator. No new feature beyond reviewed
+Claude geometry/art integration. UI pool71/165/80; two scenery slots still may
+retain32MiB raw city pixels plus previews/native overhead (unmeasured).
 
-2026-10-22 13:28 +02:00, Europe/Oslo. Branch `codex/ironforge-integration`;
-base clean `899d04d`, reservation `7fe251e`, incoming Claude `de2fa5f`.
-Normal two-parent implementation merge **ac4ae23db79d02b48e55b4b1b3dddaa315e4b0be**
-is committed and installed (parents7fe251e/de2fa5f). Deployment record aacf15b
-and this following handoff documentation change no addon files.
-No publication, main merge, release or milestone completion in this task.
+## Executed validation
 
-## What changed and what is preserved
+- `python scripts/test_lua.py --runtime both --tests circuit physics surface ui menu determinism`:
+  PASS six modules/52 parsed files each in actual Lua5.1/5.4 via pinned Lupa2.8.
+- Final `--runtime both --tests circuit physics surface` after the rough-pocket
+  fix: PASS three modules/52 parsed files each.
+- `python tests/test_circuit_boundary.py -q`: PASS11.
+- `python scripts/build_city_tracks.py --wc3 . --geometry-only --check`: PASS.
+- `python scripts/validate_project.py`: PASS104 paths,24-module TOCs/links/ledger;
+  six Python authoring files parse, whitespace PASS.
+- Independent diagnostics PASS5,960 bounded join steps and279 outside-start
+  recoveries. Claude's full tests/art rebuild and21,761-point probe are
+  separately attributed; Codex did not repeat the full suite or art rebuild.
+- Verified all-ref bundle45,610,694bytes; foreign snapshot103canonical/223Claude
+  tracked/untracked files and statuses/HEADs unchanged. Baseline41 installed
+  files exactac4ae23. Ignored task root:
+  `local-artifacts/ironforge-v3-integration-20261022/`.
 
-Reviewed the complete current Claude handoff and all three Ironforge commits.
-Four solo tracks now include Ironforge Grand Prix: original7,077-unit route,
-369-unit approach, seven gates, background and preview. Claude's original
-handoff is imported verbatim. Catalog/menu conflicts were resolved by retaining
-Stormwind's full-speed descriptions and adding Ironforge's entries.
+## Deployment and remaining work
 
-An integration finding reused the already-implemented wall correction:
-Ironforge version2 enables14-unit exposed-union clearance with1,745 generated
-junctions; `(234,641)` → `(232,641)` now succeeds without a phantom gate-hall
-wall. Rough shoulders, route, gates, spawn and art remain unchanged. No new
-collision algorithm or global Physics/Circuit/UI/input/race/network change.
-Stormwind version3's complete definition is byte-identical to899d04d. The owner
-reports "The corner works good now": mark that specific native correction
-passed; wider city/performance/milestone acceptance remains open.
+Installation pending committed combined source,41-file backup and independent
+source/target/manifest verification. No other-addon/SavedVariables changes or
+client input. Full exit/restart recommended for replaced textures. V3 tunnels'
+width/handling, Forge/lava appearance, camera and performance NOT RUN in WoW.
+Actual multi-kart spacing must wait for live racing; current build is solo.
+Multiplayer UI remains Coming soon and both city compatibility IDs remain
+unsupported by SessionTransport. No manual network test requested.
 
-All14 art files match Claude de2fa5f (including12 existing assets). All21 Lua
-modules outside CapitalCities/Courses/Menu match899d04d. Preserve the pooled
-staging transaction, same-ID/future-schema preferences, Stop/results and backend
-session/start-clock state. Neither city is in SessionTransport's supported
-track list; multiplayer remains Coming soon.
+Claude should start future visuals from the completed integrated branch using
+a separate feature branch after checking its worktree; Codex has not switched
+or synchronized that checkout. Preserve narrows/clearance metadata and generate
+CapitalCities with this pipeline, retaining Stormwind's full-speed policy.
 
-## Executed checks
-
-- `python scripts/test_lua.py --runtime both`: PASS27 modules/52 parsed files
-  each, actual Lua5.1/5.4 through existing pinned Lupa2.8. One full integration
-  run after focused `--runtime lua51 --tests ui menu` and `--tests circuit`.
-- Ironforge saved restore, explicit preview/selection without auto-start,
-  destructive image refusal, seven→six→four gate reuse, ordered checkpoint
-  walk, approach throttle, rough shoulders, real gate-end walls and concave
-  clearance covered. Stormwind regressions retained.
-- `python tests/test_circuit_boundary.py -q`: PASS9.
-- `python scripts/build_city_tracks.py --wc3 . --geometry-only --check`: PASS;
-  no extracted archive needed (all scenery props nonsolid).
-- `python scripts/validate_project.py`: PASS103 required paths,24-module TOCs,
-  links, ledger; whitespace PASS.
-- Preservation PASS: canonical103files/3untracked at5570968; Claude202files/
-  17untracked atde2fa5f, statuses/HEADs unchanged. Verified44,315,707-byte all-ref
-  bundle. Art/source and authored handoff checks independently passed.
-
-Explicit mocked pool remains71 frames/165 textures/80 fonts. Claude's164/one-
-image statements predate the staging fix: two background slots can retain
-32MiB of raw city pixels, plus previews/native overhead. This is a resource
-bound, not measured native memory or FPS.
-
-**NOT RUN:** Ironforge client loading, driving, walls/railings, camera, preview,
-persistence, audio/scaling/performance; Codex full art regeneration (Claude's
-separate reproducibility evidence retained); actual new-prefix/start-clock/
-live-race/socket reconnect. No native acceptance is inferred from offline tests.
-
-## Installation, recovery and coordination
-
-Pre-install39 files exactly match81cc0ed. Ignored recovery/audit root:
-`local-artifacts/ironforge-integration-20261022/20261022-111735-utc/`.
-PowerShell7 installer completed. Independently verified: all41 committed/source/
-installed/manifest files exact, all39 backup files exact before.csv and81cc0ed;
-no extras. Manifest Status/Stage=Verified, BackupVerified=true. Manifest under
-`local-artifacts/ironforge-integration-20261022/install-backups/20261022-132604-865-804f0c60ebb042a7bc3e340f5eb40463/install.json`; independent
-`local-artifacts/ironforge-integration-20261022/deployment-receipt.json`. No WTF/SavedVariables,
-other addon, deletion or user-input automation. Full client exit/restart is
-required because the Ironforge textures are new.
-
-Reserved edited scope was the integration's catalog/data/pipeline/tests and
-shared current docs, plus this named handoff; no other-agent checkout edits.
-Claude should continue from the combined baseline, preserving Stormwindv3,
-Ironforgev2 and the staging fix. A possible next branch command, for Claude
-only after checking its own worktree status (not executed by Codex):
-
-```powershell
-git -C "C:/Users/bakke/Downloads/Forever_Addons/AzerothKart_Codex_Project_Pack/AzerothKart-Claude" status --short
-git -C "C:/Users/bakke/Downloads/Forever_Addons/AzerothKart_Codex_Project_Pack/AzerothKart-Claude" switch -c claude/ironforge-polish codex/ironforge-integration
-```
-
-Owner check after install: fully restart → `/akart` → Single Player → Ironforge
-Grand Prix → kart → Race!. No long matrix or additional network probe requested.
-Next Codex executable task: the pure bounded live-race lifecycle controller
-around RaceStart's one-shot output, before remote snapshot/UI activation.
-Detailed review: [Ironforge integration](../reviews/2026-10-22-ironforge-integration.md).
+Next Codex executable task: pure bounded live-race lifecycle around RaceStart's
+one-shot output. Owner may try a normal Ironforge drive after installation and
+restart, focusing on the two tunnels and Forge. Detailed source review:
+[Ironforge narrows](../reviews/2026-10-22-ironforge-narrows.md).

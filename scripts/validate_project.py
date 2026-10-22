@@ -26,7 +26,7 @@ REQUIRED=[
  'addon/AzerothKart/Menu.lua','tests/test_menu.lua','scripts/build_ui_art.py','scripts/preview_ui.py',
  'addon/AzerothKart/Circuit.lua','addon/AzerothKart/CapitalCities.lua','addon/AzerothKart/Courses.lua',
  'scripts/circuit_boundary.py','tests/test_circuit_boundary.py',
- 'scripts/city_paint.py','docs/art/tracks/ironforge.md','docs/art/tracks/ironforge_gp-sources.txt',
+ 'scripts/city_paint.py','scripts/city_meshes.py','docs/art/tracks/ironforge.md','docs/art/tracks/ironforge_gp-sources.txt',
  'addon/AzerothKart/Assets/Tracks/Ironforge/Background.tga',
  'addon/AzerothKart/Assets/Tracks/Ironforge/Preview.tga',
  'tests/test_circuit.lua','scripts/build_city_tracks.py','scripts/city_layouts.py','scripts/wc3render.py','scripts/wc3casc.py',

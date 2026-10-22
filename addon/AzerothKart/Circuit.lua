@@ -87,10 +87,14 @@ end
 -- definition: {id, version, name, width, height, wallInset, roadRadius,
 -- wallRadius (optional), fullSpeedToWalls (optional boolean), wallClearance
 -- (optional), wallVertices={{x,y}...} (precomputed exposed visual-boundary
--- intersections when clearance > 0), centerline={{x,y}...} (closed), branches=
--- {{{x,y}...}...} (open), plazas={{ax,ay,bx,by,radius}...} (optional, with
--- wallRadius), gates={{name,ax,ay,bx,by,nx,ny}...}, spawn={x,y,heading},
--- solids={{id,x,y,width,height}...}}.
+-- intersections when clearance > 0), narrows={{first,last,wallRadius}...}
+-- (optional, with wallRadius: loop segments first..last, segment k joining
+-- centerline[k] to centerline[k%n+1], walled at their own smaller radius and
+-- paved to min(roadRadius, that radius); no rough strip when it is at most
+-- roadRadius), centerline={{x,y}...} (closed),
+-- branches={{{x,y}...}...} (open), plazas={{ax,ay,bx,by,radius}...}
+-- (optional, with wallRadius), gates={{name,ax,ay,bx,by,nx,ny}...},
+-- spawn={x,y,heading}, solids={{id,x,y,width,height}...}}.
 function Circuit.new(definition, crossesGate)
     assert(type(definition) == "table", "circuit definition required")
     assert(type(crossesGate) == "function", "directional gate predicate required")
@@ -116,12 +120,28 @@ function Circuit.new(definition, crossesGate)
     for _,vertex in ipairs(vertices) do
         assert(finite(vertex.x) and finite(vertex.y), "finite exposed boundary vertex required")
     end
+    -- Narrows: a stretch of the loop whose walls stand nearer than the
+    -- street's (a tunnel). Its capsules are drivable to the narrows' radius
+    -- and paved no further; the generated wallVertices include their joins.
+    assert(d.narrows == nil or type(d.narrows) == "table", "narrows must be a list")
+    local narrowRadius = {}
+    for _,narrow in ipairs(d.narrows or {}) do
+        local first,last,radius = narrow.first,narrow.last,narrow.wallRadius
+        assert(corridor, "narrows need street walls")
+        assert(finite(first) and finite(last) and first == math.floor(first) and last == math.floor(last)
+            and first >= 1 and first <= last and last <= #d.centerline, "narrows must name loop segments")
+        assert(finite(radius) and radius > 0 and radius <= d.wallRadius,
+            "a narrows' wall radius must lie within the street's")
+        for index=first,last do
+            narrowRadius[index] = math.min(narrowRadius[index] or radius,radius)
+        end
+    end
     local track = {
         id=d.id, version=d.version or 1, name=d.name, width=d.width, height=d.height,
         wallInset=d.wallInset, checkpointMaxStep=d.checkpointMaxStep or 5,
         roadWidth=2*d.roadRadius, roadRadius=d.roadRadius, wallRadius=d.wallRadius,
         fullSpeedToWalls=fullSpeedToWalls,
-        wallClearance=clearance, wallVertices=vertices,
+        wallClearance=clearance, wallVertices=vertices, narrows=copyList(d.narrows),
         crossesGate=crossesGate,
         centerline=copyList(d.centerline), gates=copyList(d.gates), solids=copyList(d.solids),
         plazas=copyList(d.plazas),
@@ -131,23 +151,26 @@ function Circuit.new(definition, crossesGate)
     local solids = track.solids
     local reach = d.wallRadius or d.roadRadius
 
-    -- Capsules: each road segment (paved to roadRadius, drivable to wallRadius)
-    -- and each plaza (paved and drivable to its radius).
+    -- Capsules: each road segment (paved to roadRadius, drivable to wallRadius,
+    -- or both to a narrows' radius) and each plaza (paved and drivable to its
+    -- radius).
     local capsules, length = {}, 0
-    local function add(ax, ay, bx, by, paved, drivable)
+    local function add(ax, ay, bx, by, paved, drivable, allRoadNarrow)
         local dx,dy = bx-ax,by-ay
         local visual = drivable+clearance
         assert(clearance == 0 or finite(visual*visual), "finite visual capsule radius required")
         capsules[#capsules+1] = {x=ax, y=ay, dx=dx, dy=dy, lengthSquared=dx*dx+dy*dy,
             paved=paved*paved, drivable=drivable*drivable, radius=drivable,
-            visualRadius=visual, visualSquared=visual*visual}
+            visualRadius=visual, visualSquared=visual*visual, allRoadNarrow=allRoadNarrow}
         return math.sqrt(dx*dx+dy*dy)
     end
     local line = track.centerline
     for index=1,#line do
         local a,b = line[index],line[index%#line+1]
         if a.x ~= b.x or a.y ~= b.y then
-            length = length+add(a.x,a.y,b.x,b.y,d.roadRadius,reach)
+            local drivable = narrowRadius[index] or reach
+            length = length+add(a.x,a.y,b.x,b.y,math.min(d.roadRadius,drivable),drivable,
+                narrowRadius[index] ~= nil and drivable <= d.roadRadius)
         end
     end
     track.length = length
@@ -263,10 +286,13 @@ function Circuit.new(definition, crossesGate)
         if found or clearance == 0 then return found end
         local list = near(x,y)
         if not list then return nil end
-        local inside = false
+        local inside,allRoadNarrow = false,false
         for i=1,#list do
             local c = capsules[list[i]]
-            if axisDistance(c,x,y) <= c.visualSquared then inside = true; break end
+            if axisDistance(c,x,y) <= c.visualSquared then
+                inside = true
+                if c.allRoadNarrow then allRoadNarrow = true; break end
+            end
         end
         if not inside then return nil end
         local nearby = nearVertices(x,y)
@@ -283,7 +309,10 @@ function Circuit.new(definition, crossesGate)
             local dx,dy = x-qx,y-qy
             if dx*dx+dy*dy < clearanceSquared-BOUNDARY_EPSILON and exposed(qx,qy) then return nil end
         end
-        return fullSpeedToWalls and "road" or "rough"
+        -- The extra room at a fully paved tunnel's concave joins remains
+        -- road. Ordinary streets, plazas and the wide street's shoulders
+        -- keep their existing surface policy; none of the wall tests change.
+        return (fullSpeedToWalls or allRoadNarrow) and "road" or "rough"
     end
 
     local function inSolid(x, y, grow)

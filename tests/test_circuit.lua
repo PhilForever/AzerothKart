@@ -125,6 +125,66 @@ for _,mode in ipairs({"throttle", "boost", "release", "drift"}) do
     if mode == "drift" then assert(edge.drifting and edge.driftTicks > 0, "shoulder builds drift") end
 end
 
+-- Reviewed narrows (Ironforge v3): loop segments walled at their own
+-- smaller radius and paved no further, so no rough strip; elsewhere the
+-- street is unchanged. The square's south side (segment 1) narrows to 15.
+local narrowDefinition = {}
+for key,value in pairs(squareDefinition) do narrowDefinition[key] = value end
+narrowDefinition.narrows = {{name="South", first=1, last=1, wallRadius=15}}
+local narrowStreet = Circuit.new(narrowDefinition, Track.crossesGate)
+assert(narrowStreet.surfaceAt(200,100) == "road" and narrowStreet.surfaceAt(200,114) == "road" and
+       narrowStreet.isDrivable(200,114) and narrowStreet.surfaceAt(200,116) == "wall" and
+       narrowStreet.surfaceAt(200,84) == "wall",
+    "a narrows is road up to its own wall, with no rough strip")
+assert(narrowStreet.surfaceAt(300,200) == "road" and narrowStreet.surfaceAt(325,200) == "grass" and
+       narrowStreet.surfaceAt(335,200) == "wall", "the rest of the street keeps its shoulder and walls")
+assert(#narrowStreet.narrows == 1 and narrowStreet.narrows[1].wallRadius == 15 and #square.narrows == 0,
+    "the narrows are part of the track's copied definition")
+x, y, hit = narrowStreet.resolveMovement(200,113,200,118)
+assert(hit and near(y,115,0.01) and narrowStreet.surfaceAt(x,y) == "road", "the narrows' wall stops a kart")
+x, y, hit = narrowStreet.resolveMovement(150,100,154,101)
+assert(not hit and x == 154 and y == 101, "free movement inside a narrows is exact")
+local shoulderNarrowDefinition = {}
+for key,value in pairs(squareDefinition) do shoulderNarrowDefinition[key] = value end
+shoulderNarrowDefinition.narrows = {{first=1,last=1,wallRadius=25}}
+local shoulderNarrow = Circuit.new(shoulderNarrowDefinition, Track.crossesGate)
+assert(shoulderNarrow.surfaceAt(200,119) == "road" and
+       shoulderNarrow.surfaceAt(200,124) == "grass" and
+       shoulderNarrow.surfaceAt(200,126) == "wall",
+    "a narrows wider than the paving retains its smaller rough shoulder")
+
+-- The closing segment joins point n back to point 1. Overlaps use the
+-- smaller radius regardless of declaration order; open branches stay wide.
+local closingDefinition = {}
+for key,value in pairs(squareDefinition) do closingDefinition[key] = value end
+closingDefinition.narrows = {{name="West",first=4,last=4,wallRadius=18},
+                            {name="West tight",first=4,last=4,wallRadius=12}}
+closingDefinition.branches = {{{x=100,y=250},{x=40,y=250}}}
+local closingStreet = Circuit.new(closingDefinition, Track.crossesGate)
+closingDefinition.narrows = {closingDefinition.narrows[2],closingDefinition.narrows[1]}
+local reversedStreet = Circuit.new(closingDefinition, Track.crossesGate)
+for _,street in ipairs({closingStreet,reversedStreet}) do
+    assert(street.surfaceAt(111,150) == "road" and street.surfaceAt(113,150) == "wall" and
+           street.surfaceAt(87,150) == "wall", "the closing segment uses the smallest overlapping radius")
+    assert(street.surfaceAt(200,125) == "grass", "narrowing the closing segment leaves segment 1 unchanged")
+    assert(street.surfaceAt(40,275) == "grass" and street.surfaceAt(40,285) == "wall",
+        "narrows do not change an open branch's shoulder or wall")
+end
+closingDefinition.narrows[1].wallRadius = 30
+assert(closingStreet.narrows[2].wallRadius == 12, "track narrows do not alias the source entries")
+closingStreet.narrows[1].wallRadius = 30
+assert(closingDefinition.narrows[2].wallRadius == 18, "source entries do not alias track metadata")
+assert(closingStreet.surfaceAt(113,150) == "wall", "changing copied metadata does not mutate built collision")
+
+for _,bad in ipairs({{first=0,last=1,wallRadius=15}, {first=2,last=1,wallRadius=15},
+                     {first=1,last=5,wallRadius=15}, {first=1,last=1,wallRadius=31},
+                     {first=1,last=1,wallRadius=0}, {first=1.5,last=2,wallRadius=15}}) do
+    local definition = {}
+    for key,value in pairs(squareDefinition) do definition[key] = value end
+    definition.narrows = {bad}
+    assert(not pcall(Circuit.new, definition, Track.crossesGate), "an invalid narrows is refused")
+end
+
 -- The catalog: cups in order, coming-soon cities listed but not selectable.
 assert(#Courses.CUPS == 2 and Courses.CUPS[2].name == "Capital Cities Cup", "two cups")
 local soon = 0
@@ -302,8 +362,8 @@ local ironforge = Courses.build("ironforge_gp", Track.crossesGate)
 local ironData = namespace.CapitalCities.ironforge_gp
 assert(ironforge and ironforge.wallRadius == 76 and #ironforge.gates == 7 and #ironforge.solids == 0
     and #ironData.plazas == 0, "Ironforge's street: the same road and walls, seven gates, nothing in the way")
-assert(ironforge.version == 2 and ironforge.wallClearance == 14 and #ironData.wallVertices > 0,
-    "Ironforge v2 uses the existing exposed-wall clearance for its painted gate-hall junction")
+assert(ironforge.version == 3 and ironforge.wallClearance == 14 and #ironData.wallVertices > 0,
+    "Ironforge v3 uses the existing exposed-wall clearance for its painted gate-hall junction")
 assert(not ironforge.fullSpeedToWalls and not ironData.fullSpeedToWalls,
     "the Stormwind-only full-speed policy does not change Ironforge's rough shoulder")
 local oldIronDefinition = {}
@@ -328,6 +388,63 @@ for _,gate in ipairs(ironforge.gates) do
            ironforge.surfaceAt(gate.bx,gate.by) == "wall",
         "both ends still close the corrected street: " .. gate.name)
 end
+-- v3: the Forlorn Cavern's entrance and exit are narrows (the owner's
+-- request): the wall stands at the paving's edge (56 painted, the kart
+-- centre 14 inside it at 42), all road, no shoulder; beyond them the rough
+-- shoulder and the 76-unit reach remain.
+assert(#ironData.narrows == 2 and ironData.narrows[1].name == "Forlorn Cavern entrance" and
+       ironData.narrows[2].name == "Forlorn Cavern exit", "Ironforge has its two Forlorn Cavern narrows")
+local function across(index, offset)
+    local line = ironData.centerline
+    local a,b = line[index],line[index%#line+1]
+    local dx,dy = b.x-a.x,b.y-a.y
+    local length = math.sqrt(dx*dx+dy*dy)
+    return (a.x+b.x)/2-dy/length*offset,(a.y+b.y)/2+dx/length*offset
+end
+for _,narrow in ipairs(ironData.narrows) do
+    assert(narrow.wallRadius == 42, "the kart centre keeps a half-length inside the paving's edge")
+    local middle = math.floor((narrow.first+narrow.last)/2)
+    for _,side in ipairs({-1,1}) do
+        assert(ironforge.surfaceAt(across(middle,side*40)) == "road" and
+               ironforge.isDrivable(across(middle,side*40)) and
+               ironforge.surfaceAt(across(middle,side*44)) == "wall",
+            "no shoulder in the " .. narrow.name)
+        assert(ironforge.surfaceAt(across(narrow.first-12,side*66)) == "grass" and
+               ironforge.surfaceAt(across(narrow.first-12,side*78)) == "wall",
+            "the street before the " .. narrow.name .. " keeps its shoulder")
+    end
+end
+-- The exposed-wall correction adds a thin safe arc beyond individually
+-- shrunken capsules at concave joins. In a fully paved tunnel this must not
+-- become an off-road pocket, while the exact same wall shape can retain a
+-- shoulder when its paving is narrower than the narrows' radius.
+local tunnelCornerX,tunnelCornerY = 790.1041330568827,1652.2604655230214
+assert(ironforge.surfaceAt(tunnelCornerX,tunnelCornerY) == "road" and
+       ironforge.isDrivable(tunnelCornerX,tunnelCornerY),
+    "the entrance tunnel's exposed corner has no tiny rough pocket")
+local roughTunnelDefinition = {}
+for key,value in pairs(ironData) do roughTunnelDefinition[key] = value end
+roughTunnelDefinition.roadRadius = 40
+local roughTunnel = Circuit.new(roughTunnelDefinition, Track.crossesGate)
+assert(roughTunnel.surfaceAt(tunnelCornerX,tunnelCornerY) == "grass" and
+       not roughTunnel.isDrivable(tunnelCornerX,tunnelCornerY),
+    "an exposed corner with narrower paving retains the default rough policy")
+local tunnelVertexX,tunnelVertexY = 796.09033192,1639.60371143
+local justOutsideX = tunnelVertexX+(tunnelCornerX-tunnelVertexX)*(13.999/14.001)
+local justOutsideY = tunnelVertexY+(tunnelCornerY-tunnelVertexY)*(13.999/14.001)
+assert(ironforge.surfaceAt(justOutsideX,justOutsideY) == "wall" and
+       roughTunnel.surfaceAt(justOutsideX,justOutsideY) == "wall",
+    "the tunnel corner's surface correction keeps the same wall clearance")
+-- Steering hard into a narrows' wall: contact, and never a step into it.
+local tunnel = Physics.new(ironforge)
+local entry = ironData.narrows[1]
+local ta,tb = ironData.centerline[entry.first],ironData.centerline[entry.first+1]
+tunnel.x,tunnel.y,tunnel.heading = ta.x,ta.y,(math.atan2 or math.atan)(tb.y-ta.y,tb.x-ta.x)
+for _=1,90 do
+    tunnel = Physics.step(tunnel, {accelerate=true, right=true}, Physics.FIXED_DT, ironforge)
+    assert(ironforge.surfaceAt(tunnel.x,tunnel.y) ~= "wall", "a kart never ends a step in the tunnel's wall")
+end
+assert(tunnel.impacts > 0, "the tunnel's wall stops a kart steering into it")
 local ironNames, ironWalls = walk(ironforge, ironData)
 assert(ironNames == "Mystic Ward,Forlorn Cavern,Hall of Explorers,Great Forge,Tinker Town,Military Ward,The Commons",
     "Ironforge's gates in order: " .. ironNames)
