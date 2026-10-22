@@ -35,6 +35,7 @@ from pathlib import Path
 
 import city_layouts as L
 import wc3render as R
+from circuit_boundary import boundary_vertices
 
 ROOT = Path(__file__).resolve().parents[1]
 ADDON = ROOT / "addon" / "AzerothKart"
@@ -85,12 +86,24 @@ def geometry(wc3, city):
     heading = spawn_heading(city)
     centerline = city["centerline"] if "centerline" in city else L.fillet(city["corners"])
     plazas = [{k: round(p[k], 1) for k in ("ax", "ay", "bx", "by", "radius")} for p in city.get("plazas", [])]
-    return {"id": city["id"], "name": city["name"], "version": city.get("version", 1),
+    result = {"id": city["id"], "name": city["name"], "version": city.get("version", 1),
             "width": width, "height": height, "wallInset": L.WALL_INSET, "roadRadius": L.ROAD_RADIUS,
             "wallRadius": L.WALL_RADIUS, "fullSpeedToWalls": city.get("full_speed_to_walls", False),
             "kart": L.KART, "centerline": centerline,
             "branches": city.get("branches", []), "plazas": plazas, "gates": city["gates"],
             "solids": solids, "spawn": (sx, sy, heading)}
+    clearance = city.get("wall_clearance")
+    if clearance is not None:
+        # The runtime data rounds authored coordinates to tenths. Generate
+        # junctions against exactly those capsules, without changing art data.
+        canonical = dict(result)
+        point = lambda p: (float(number(p[0])), float(number(p[1])))
+        canonical["centerline"] = [point(p) for p in centerline]
+        canonical["branches"] = [[point(p) for p in branch] for branch in result["branches"]]
+        canonical["plazas"] = [{key: float(number(value)) for key,value in p.items()} for p in plazas]
+        result["wallClearance"] = clearance
+        result["wallVertices"] = boundary_vertices(canonical, clearance)
+    return result
 
 
 def q(text):
@@ -120,6 +133,12 @@ def lua_data(tracks):
                      (g["width"], g["height"], g["wallInset"], g["roadRadius"], g["wallRadius"]))
         if g.get("fullSpeedToWalls"):
             lines.append("    fullSpeedToWalls=true,")
+        if "wallClearance" in g:
+            lines.append("    wallClearance=%s," % number(g["wallClearance"]))
+            lines.append("    wallVertices={")
+            for x,y in g["wallVertices"]:
+                lines.append("        {x=%.8f,y=%.8f}," % (x,y))
+            lines.append("    },")
         sx, sy, heading = g["spawn"]
         lines.append("    spawn={x=%s, y=%s, heading=%s}," % (number(sx), number(sy), heading_text(heading)))
 

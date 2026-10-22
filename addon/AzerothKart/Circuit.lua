@@ -16,11 +16,14 @@
 -- walls are smooth: a step ending outside the drivable area is moved back to
 -- the nearest drivable point, so a kart slides along a curving wall, and the
 -- contact counts as a hit (Physics scrubs speed). Lookups use a 64-unit grid.
+-- Optional wallClearance and generated exposed wallVertices preserve that
+-- clearance to the actual visual capsule union, including concave joins.
 local _, namespace = ...
 local Circuit = {}
 
 local CELL = 64
 local MARGIN = 32        -- grid reach beyond a capsule; more than any one step
+local BOUNDARY_EPSILON = 1e-7 -- squared world units; strict interior comparisons
 
 local function finite(value)
     return type(value) == "number" and value == value
@@ -82,7 +85,9 @@ local function axisDistance(p, x, y)
 end
 
 -- definition: {id, version, name, width, height, wallInset, roadRadius,
--- wallRadius (optional), fullSpeedToWalls (optional boolean), centerline={{x,y}...} (closed), branches=
+-- wallRadius (optional), fullSpeedToWalls (optional boolean), wallClearance
+-- (optional), wallVertices={{x,y}...} (precomputed exposed visual-boundary
+-- intersections when clearance > 0), centerline={{x,y}...} (closed), branches=
 -- {{{x,y}...}...} (open), plazas={{ax,ay,bx,by,radius}...} (optional, with
 -- wallRadius), gates={{name,ax,ay,bx,by,nx,ny}...}, spawn={x,y,heading},
 -- solids={{id,x,y,width,height}...}}.
@@ -101,11 +106,22 @@ function Circuit.new(definition, crossesGate)
     assert(not corridor or (finite(d.wallRadius) and d.wallRadius >= d.roadRadius),
         "wall radius must enclose the road")
     assert(corridor or d.plazas == nil, "plazas need street walls")
+    local clearance = d.wallClearance == nil and 0 or d.wallClearance
+    assert(finite(clearance) and clearance >= 0 and finite(clearance*clearance),
+        "wall clearance must be finite and nonnegative")
+    assert(clearance == 0 or (corridor and type(d.wallVertices) == "table"),
+        "wall clearance needs street walls and exposed boundary vertices")
+    assert(d.wallVertices == nil or type(d.wallVertices) == "table", "boundary vertices must be a list")
+    local vertices = copyList(d.wallVertices)
+    for _,vertex in ipairs(vertices) do
+        assert(finite(vertex.x) and finite(vertex.y), "finite exposed boundary vertex required")
+    end
     local track = {
         id=d.id, version=d.version or 1, name=d.name, width=d.width, height=d.height,
         wallInset=d.wallInset, checkpointMaxStep=d.checkpointMaxStep or 5,
         roadWidth=2*d.roadRadius, roadRadius=d.roadRadius, wallRadius=d.wallRadius,
         fullSpeedToWalls=fullSpeedToWalls,
+        wallClearance=clearance, wallVertices=vertices,
         crossesGate=crossesGate,
         centerline=copyList(d.centerline), gates=copyList(d.gates), solids=copyList(d.solids),
         plazas=copyList(d.plazas),
@@ -120,8 +136,11 @@ function Circuit.new(definition, crossesGate)
     local capsules, length = {}, 0
     local function add(ax, ay, bx, by, paved, drivable)
         local dx,dy = bx-ax,by-ay
+        local visual = drivable+clearance
+        assert(clearance == 0 or finite(visual*visual), "finite visual capsule radius required")
         capsules[#capsules+1] = {x=ax, y=ay, dx=dx, dy=dy, lengthSquared=dx*dx+dy*dy,
-            paved=paved*paved, drivable=drivable*drivable, radius=drivable}
+            paved=paved*paved, drivable=drivable*drivable, radius=drivable,
+            visualRadius=visual, visualSquared=visual*visual}
         return math.sqrt(dx*dx+dy*dy)
     end
     local line = track.centerline
@@ -151,7 +170,7 @@ function Circuit.new(definition, crossesGate)
     local columns,rows = math.floor(track.width/CELL)+1,math.floor(track.height/CELL)+1
     local cells = {}
     for index,c in ipairs(capsules) do
-        local r = c.radius+MARGIN
+        local r = c.visualRadius+MARGIN
         local x0 = math.max(0,math.floor((math.min(c.x,c.x+c.dx)-r)/CELL))
         local x1 = math.min(columns-1,math.floor((math.max(c.x,c.x+c.dx)+r)/CELL))
         local y0 = math.max(0,math.floor((math.min(c.y,c.y+c.dy)-r)/CELL))
@@ -170,6 +189,55 @@ function Circuit.new(definition, crossesGate)
         return cells[math.floor(y/CELL)*columns+math.floor(x/CELL)+1]
     end
 
+    local vertexCells = {}
+    if clearance > 0 then
+        local r = clearance+MARGIN
+        for index,vertex in ipairs(vertices) do
+            local x0 = math.max(0,math.floor((vertex.x-r)/CELL))
+            local x1 = math.min(columns-1,math.floor((vertex.x+r)/CELL))
+            local y0 = math.max(0,math.floor((vertex.y-r)/CELL))
+            local y1 = math.min(rows-1,math.floor((vertex.y+r)/CELL))
+            for row=y0,y1 do
+                for column=x0,x1 do
+                    local key = row*columns+column+1
+                    local list = vertexCells[key]
+                    if not list then list = {}; vertexCells[key] = list end
+                    list[#list+1] = index
+                end
+            end
+        end
+    end
+    local function nearVertices(x,y)
+        if x < 0 or y < 0 or x >= columns*CELL or y >= rows*CELL then return nil end
+        return vertexCells[math.floor(y/CELL)*columns+math.floor(x/CELL)+1]
+    end
+
+    -- Closest radial projection onto a visual capsule's boundary. At a cap,
+    -- the full-circle projection can lie inside that same capsule's body;
+    -- exposed() excludes it as well as parts covered by another capsule.
+    local function boundaryPoint(c,x,y)
+        local distance,cx,cy = axisDistance(c,x,y)
+        local nx,ny
+        if distance > 0 then
+            local length = math.sqrt(distance)
+            nx,ny = (x-cx)/length,(y-cy)/length
+        elseif c.lengthSquared > 0 then
+            local length = math.sqrt(c.lengthSquared)
+            nx,ny = -c.dy/length,c.dx/length
+        else nx,ny = 1,0 end
+        return cx+nx*c.visualRadius,cy+ny*c.visualRadius,nx,ny
+    end
+
+    local function exposed(x,y)
+        local list = near(x,y)
+        if not list then return false end
+        for i=1,#list do
+            local c = capsules[list[i]]
+            if axisDistance(c,x,y) < c.visualSquared-BOUNDARY_EPSILON then return false end
+        end
+        return true
+    end
+
     -- "road", "rough" or nil (outside every capsule).
     local function ground(x, y)
         local list = near(x,y)
@@ -185,6 +253,39 @@ function Circuit.new(definition, crossesGate)
         return rough and (fullSpeedToWalls and "road" or "rough") or nil
     end
 
+    -- The old radius is always safe: it is contained in the visual union
+    -- eroded by the clearance. Concave joins can add usable space beyond it.
+    -- Their nearest exposed boundary is either a capsule projection or an
+    -- exposed capsule intersection supplied by the geometry builder.
+    local clearanceSquared = clearance*clearance
+    local function streetGround(x,y)
+        local found = ground(x,y)
+        if found or clearance == 0 then return found end
+        local list = near(x,y)
+        if not list then return nil end
+        local inside = false
+        for i=1,#list do
+            local c = capsules[list[i]]
+            if axisDistance(c,x,y) <= c.visualSquared then inside = true; break end
+        end
+        if not inside then return nil end
+        local nearby = nearVertices(x,y)
+        if nearby then
+            for i=1,#nearby do
+                local vertex = vertices[nearby[i]]
+                local dx,dy = x-vertex.x,y-vertex.y
+                if dx*dx+dy*dy < clearanceSquared-BOUNDARY_EPSILON then return nil end
+            end
+        end
+        for i=1,#list do
+            local c = capsules[list[i]]
+            local qx,qy = boundaryPoint(c,x,y)
+            local dx,dy = x-qx,y-qy
+            if dx*dx+dy*dy < clearanceSquared-BOUNDARY_EPSILON and exposed(qx,qy) then return nil end
+        end
+        return fullSpeedToWalls and "road" or "rough"
+    end
+
     local function inSolid(x, y, grow)
         for i=1,#solids do
             local box = solids[i]
@@ -194,9 +295,24 @@ function Circuit.new(definition, crossesGate)
         return false
     end
 
-    -- The nearest drivable point to (x, y) (just inside a capsule's wall),
+    local allowed
+    local function candidate(px,py,x,y,startX,startY,maxStepSquared,bestX,bestY,best)
+        if not allowed(px,py) then return bestX,bestY,best end
+        if maxStepSquared then
+            local dx,dy = px-startX,py-startY
+            if dx*dx+dy*dy > maxStepSquared then return bestX,bestY,best end
+        end
+        local dx,dy = px-x,py-y
+        local distance = dx*dx+dy*dy
+        if not best or distance < best then return px,py,distance end
+        return bestX,bestY,best
+    end
+
+    -- The nearest allowed candidate to (x, y),
     -- searching the grid cell's capsules, or every capsule when `anywhere`.
-    local function nearestDrivable(x, y, anywhere)
+    -- Filter the displacement bound before ranking, so an unreachable nearer
+    -- street cannot suppress a valid slide along the current street.
+    local function nearestDrivable(x, y, anywhere,startX,startY,maxStepSquared)
         local list = near(x,y)
         local count = list and #list or 0
         if anywhere then count = #capsules end
@@ -204,15 +320,64 @@ function Circuit.new(definition, crossesGate)
         for i=1,count do
             local c = capsules[anywhere and i or list[i]]
             local distance,cx,cy = axisDistance(c,x,y)
-            local gap = math.sqrt(distance)-c.radius
-            if not best or gap < best then
-                if distance <= 0 then
-                    bestX,bestY = cx,cy
-                else
-                    local k = (c.radius-0.001)/math.sqrt(distance)
-                    bestX,bestY = cx+(x-cx)*k,cy+(y-cy)*k
+            local px,py
+            if distance <= 0 then px,py = cx,cy
+            else
+                local k = (c.radius-0.001)/math.sqrt(distance)
+                px,py = cx+(x-cx)*k,cy+(y-cy)*k
+            end
+            bestX,bestY,best = candidate(px,py,x,y,startX,startY,maxStepSquared,bestX,bestY,best)
+            if clearance > 0 then
+                local qx,qy,nx,ny = boundaryPoint(c,x,y)
+                if exposed(qx,qy) then
+                    local offset = clearance+0.001
+                    bestX,bestY,best = candidate(qx-nx*offset,qy-ny*offset,x,y,
+                        startX,startY,maxStepSquared,bestX,bestY,best)
+                    bestX,bestY,best = candidate(qx+nx*offset,qy+ny*offset,x,y,
+                        startX,startY,maxStepSquared,bestX,bestY,best)
                 end
-                best = gap
+            end
+        end
+        if clearance > 0 then
+            local nearby = nearVertices(x,y)
+            local vertexCount = nearby and #nearby or 0
+            if anywhere then vertexCount = #vertices end
+            for i=1,vertexCount do
+                local vertex = vertices[anywhere and i or nearby[i]]
+                local dx,dy = x-vertex.x,y-vertex.y
+                local distance = math.sqrt(dx*dx+dy*dy)
+                if distance > 0 then
+                    local k = (clearance+0.001)/distance
+                    bestX,bestY,best = candidate(vertex.x+dx*k,vertex.y+dy*k,x,y,
+                        startX,startY,maxStepSquared,bestX,bestY,best)
+                    bestX,bestY,best = candidate(vertex.x-dx*k,vertex.y-dy*k,x,y,
+                        startX,startY,maxStepSquared,bestX,bestY,best)
+                end
+                -- Radial projection onto a concave vertex's clearance arc
+                -- can exceed the requested displacement even though a slide
+                -- along that arc is reachable. Also consider the two circle
+                -- intersections, keeping a tiny inset inside the step bound.
+                if maxStepSquared and maxStepSquared > 0 then
+                    local radius = clearance+0.001
+                    local reach = math.max(0,math.sqrt(maxStepSquared)-1e-7)
+                    local sx,sy = startX-vertex.x,startY-vertex.y
+                    local separationSquared = sx*sx+sy*sy
+                    local separation = math.sqrt(separationSquared)
+                    if separation > 0 and reach > 0 and separation <= radius+reach
+                        and separation >= math.abs(radius-reach) then
+                        local along = (radius*radius-reach*reach+separationSquared)/(2*separation)
+                        local heightSquared = radius*radius-along*along
+                        if heightSquared >= -BOUNDARY_EPSILON then
+                            local height = math.sqrt(math.max(0,heightSquared))
+                            local nx,ny = sx/separation,sy/separation
+                            local bx,by = vertex.x+nx*along,vertex.y+ny*along
+                            bestX,bestY,best = candidate(bx-ny*height,by+nx*height,x,y,
+                                startX,startY,maxStepSquared,bestX,bestY,best)
+                            bestX,bestY,best = candidate(bx+ny*height,by-nx*height,x,y,
+                                startX,startY,maxStepSquared,bestX,bestY,best)
+                        end
+                    end
+                end
             end
         end
         return bestX,bestY
@@ -222,7 +387,7 @@ function Circuit.new(definition, crossesGate)
     -- Other circuits retain the existing rough shoulder response.
     function track.isDrivable(x,y)
         if not finite(x) or not finite(y) then return false end
-        return ground(x,y) == "road"
+        return streetGround(x,y) == "road"
     end
 
     function track.surfaceAt(x,y)
@@ -235,7 +400,7 @@ function Circuit.new(definition, crossesGate)
             if x >= box.x and x <= box.x+box.width
                 and y >= box.y and y <= box.y+box.height then return "wall" end
         end
-        local found = ground(x,y)
+        local found = streetGround(x,y)
         if found == "road" then return "road" end
         if found == "rough" or not corridor then return "grass" end
         return "wall"
@@ -248,9 +413,9 @@ function Circuit.new(definition, crossesGate)
         return cx,cy,cx ~= x or cy ~= y
     end
 
-    local function allowed(x, y)
+    allowed = function(x, y)
         return x >= inset and x <= track.width-inset and y >= inset and y <= track.height-inset
-            and not inSolid(x,y,inset) and (not corridor or ground(x,y) ~= nil)
+            and not inSolid(x,y,inset) and (not corridor or streetGround(x,y) ~= nil)
     end
 
     -- A centre that starts inside an expanded box (never by driving: the
@@ -261,7 +426,7 @@ function Circuit.new(definition, crossesGate)
     -- returns to the spawn. A centre outside the street walls moves to the
     -- nearest drivable point.
     local function recover(x,y)
-        if corridor and ground(x,y) == nil then
+        if corridor and streetGround(x,y) == nil then
             local px,py = nearestDrivable(x,y,true)
             if px and allowed(px,py) then return px,py,true end
             return spawnX,spawnY,true
@@ -333,13 +498,14 @@ function Circuit.new(definition, crossesGate)
             if blockX then x,dx = blockX,0 end
             if blockY then y,dy = blockY,0 end
         end
-        if corridor and ground(x,y) == nil then
+        if corridor and streetGround(x,y) == nil then
             hit = true
-            local px,py = nearestDrivable(x,y,false)
             local stepX,stepY = targetX-startX,targetY-startY
+            local stepSquared = stepX*stepX+stepY*stepY
+            local px,py = nearestDrivable(x,y,false,startX,startY,stepSquared)
             local moveX,moveY = (px or startX)-startX,(py or startY)-startY
             if px and allowed(px,py)
-                and moveX*moveX+moveY*moveY <= stepX*stepX+stepY*stepY then
+                and moveX*moveX+moveY*moveY <= stepSquared then
                 x,y = px,py
             else
                 x,y = startX,startY

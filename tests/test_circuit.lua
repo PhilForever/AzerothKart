@@ -148,8 +148,8 @@ assert(stormwind and Courses.build("stormwind_city", Track.crossesGate) == storm
 local data = namespace.CapitalCities.stormwind_city
 assert(stormwind.wallRadius == 76 and stormwind.roadRadius == 56 and #stormwind.gates == 6,
     "Stormwind keeps its painted street and existing wall geometry")
-assert(stormwind.version == 2 and stormwind.fullSpeedToWalls and data.fullSpeedToWalls,
-    "Stormwind v2 opts into full grip up to its walls")
+assert(stormwind.version == 3 and stormwind.fullSpeedToWalls and data.fullSpeedToWalls,
+    "Stormwind v3 retains full grip up to its painted walls")
 -- A real authored shoulder point is road; the original policy remains rough.
 local oldDefinition = {}
 for key,value in pairs(data) do oldDefinition[key] = value end
@@ -172,6 +172,62 @@ for index=2,#data.branches[1] do
     end
 end
 assert(shoulders > 0, "authored Stormwind shoulder points were checked")
+-- Reported Park/Mage corner: shrinking each visual capsule separately
+-- created an invisible V across this paved wedge. Clearance is measured
+-- from the exposed union boundary, including its concave apex.
+assert(stormwind.wallClearance == 14 and #data.wallVertices > 0,
+    "Stormwind supplies analytic exposed-wall junctions and kart clearance")
+assert(stormwind.surfaceAt(450,850) == "road", "the reported paved wedge is open street")
+local px,py,contact = stormwind.resolveMovement(442,849,445,846)
+assert(px == 445 and py == 846 and not contact,
+    "driving forward through the reported corner is exact and does not stick")
+local apexX,apexY = 476.2652153292576,866.3694266226744
+local ux,uy = 450-apexX,850-apexY
+local normal = math.sqrt(ux*ux+uy*uy)
+ux,uy = ux/normal,uy/normal
+assert(stormwind.surfaceAt(apexX+ux*14.1,apexY+uy*14.1) == "road" and
+       stormwind.surfaceAt(apexX+ux*13.9,apexY+uy*13.9) == "wall",
+    "the kart stops at body clearance from the white wall, not the invisible V")
+local ax,ay = apexX+ux*14.2,apexY+uy*14.2
+px,py,contact = stormwind.resolveMovement(ax,ay,apexX+ux*12,apexY+uy*12)
+assert(contact and near(distance(px,py,apexX,apexY),14,0.01) and
+       distance(ax,ay,px,py) <= 2.2+1e-6 and stormwind.surfaceAt(px,py) == "road",
+    "a real white-wall contact keeps clearance and the requested movement bound")
+-- A nearly tangential movement around the real concave corner also slides:
+-- its unconstrained radial projection is outside the permitted step circle.
+local slideX,slideY,targetX,targetY = 463.107639253,861.580460576,465.908781114,858.511674377
+local requested = distance(slideX,slideY,targetX,targetY)
+px,py,contact = stormwind.resolveMovement(slideX,slideY,targetX,targetY)
+assert(contact and distance(slideX,slideY,px,py) > 1 and
+       distance(slideX,slideY,px,py) <= requested+1e-9 and
+       distance(px,py,apexX,apexY) >= 14 and stormwind.surfaceAt(px,py) == "road",
+    "a reachable bounded slide around the white corner cannot freeze at its start")
+-- Straight walls keep their existing clearance: no global radius increase.
+local a,b = data.branches[1][1],data.branches[1][2]
+local dx,dy = b.x-a.x,b.y-a.y
+local length = math.sqrt(dx*dx+dy*dy)
+local mx,my = (a.x+b.x)/2,(a.y+b.y)/2
+assert(stormwind.surfaceAt(mx-dy/length*75,my+dx/length*75) == "road" and
+       stormwind.surfaceAt(mx-dy/length*78,my+dx/length*78) == "wall",
+    "straight walls still stop the kart centre near the original 76-unit reach")
+-- The solver also considers another reachable projection for old definitions.
+local legacyDefinition = {}
+for key,value in pairs(data) do legacyDefinition[key] = value end
+legacyDefinition.wallClearance,legacyDefinition.wallVertices = nil,nil
+local legacy = Circuit.new(legacyDefinition,Track.crossesGate)
+px,py,contact = legacy.resolveMovement(442,849,445,846)
+assert(contact and distance(442,849,px,py) > 0.5 and
+       distance(442,849,px,py) <= math.sqrt(18)+1e-6 and legacy.surfaceAt(px,py) ~= "wall",
+    "a valid bounded slide is not discarded because a different projection is too far")
+local drive = Physics.new(stormwind)
+drive.x,drive.y,drive.heading,drive.speed = 442,849,-math.pi/4,Physics.MAX_SPEED
+for _=1,10 do
+    drive = Physics.step(drive,{accelerate=true},Physics.FIXED_DT,stormwind)
+    assert(drive.impacts == 0 and near(drive.speed,Physics.MAX_SPEED),
+        "a full-speed Physics drive crosses the reported corner without phantom impacts")
+end
+assert(distance(442,849,drive.x,drive.y) > 33, "the full-speed corner drive makes forward progress")
+
 local spawn = stormwind.spawn()
 assert(stormwind.surfaceAt(spawn.x, spawn.y) == "road", "the start grid is on the road")
 local path = {}

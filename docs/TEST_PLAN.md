@@ -84,3 +84,7 @@ Key capture not released; combat taint; corrupt SavedVariables crashes; lap skip
 
 ## Record actual evidence
 Never mark tests passed without running them. Include command logs, screenshots if user supplies them, exact client build and reproducible steps in `PROGRESS.md`.
+
+## Stormwind exposed-wall regression
+
+Run `python tests/test_circuit_boundary.py -q` (standard library) and focused `python scripts/test_lua.py --runtime lua51 --tests circuit physics surface obstacles ui`. Python covers exposed line/circle junctions, tangencies, covered intersections, deterministic order and the actual white-wall apex. Lua covers the reported(442,849)→(445,846) passage, open(450,850) wedge,14±0.1 centre clearance/real contact, unchanged straight walls, reachable projection/tangential slides and an actual full-speed Physics drive. Geometry-only rebuild/check uses `python scripts/build_city_tracks.py --wc3 . --geometry-only [--check]`; the current no-solid city needs no model archive for that scope. Full art regeneration and native corner handling remain separate checks.

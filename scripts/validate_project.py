@@ -25,6 +25,7 @@ REQUIRED=[
  'scripts/wc3jpeg.py','docs/art/karts/roster.md',
  'addon/AzerothKart/Menu.lua','tests/test_menu.lua','scripts/build_ui_art.py','scripts/preview_ui.py',
  'addon/AzerothKart/Circuit.lua','addon/AzerothKart/CapitalCities.lua','addon/AzerothKart/Courses.lua',
+ 'scripts/circuit_boundary.py','tests/test_circuit_boundary.py',
  'tests/test_circuit.lua','scripts/build_city_tracks.py','scripts/city_layouts.py','scripts/wc3render.py','scripts/wc3casc.py',
  'addon/AzerothKart/Assets/UI/TrackPreviews.tga','docs/art/ui/front-end.md',
  'addon/AzerothKart/Assets/Karts/SteamTank.tga','addon/AzerothKart/Assets/Karts/DwarvenBiker.tga',

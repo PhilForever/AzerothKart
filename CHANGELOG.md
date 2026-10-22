@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — Stormwind painted-wall collision alignment (2026-10-22)
+- Remove the invisible collision wedge at the Park/Mage corner: compute clearance from the exposed painted wall union, retaining normal straight-wall padding and full-speed street handling. Stormwind trackversion3; artwork/othertracks/globalPhysics unchanged.
+- Keep reachable corner slides within the requested movement bound, and add reported-corner, real-wall and pure analytic geometry regressions.
+
 ## Unreleased — Stormwind full speed to the walls (2026-10-22)
 - Remove Stormwind's kerbside slowdown; drift and boost now continue across the whole street until wall contact. Wall geometry/collision, artwork and other tracks are unchanged.
 - Add opt-in Circuit fullSpeedToWalls surface policy, emitted by the layout generator for Stormwind track version2; global Physics remains7. Update menu/help and focused speed/drift/boost/wall regressions.
