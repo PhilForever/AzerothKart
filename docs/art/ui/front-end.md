@@ -1,6 +1,6 @@
 # Front end: menus, race HUD and results
 
-**Status (2026-10-22):** reviewed Claude UI `1b2d3d5` is integrated with Codex backend `192c6de` by merge `6cd611a` on `codex/ui-backend-integration`. Claude's isolated preference fix `4ffe184` is retained as `9b22f12`; the later city-track work is outside this checkpoint. The implemented interfaces are in [API_CONTRACTS](../../API_CONTRACTS.md#implemented-front-end-menus-race-hud-and-results). Its appearance and behaviour in WoW Forever are **NOT RUN**; see [the client check](#client-check-not-run).
+**Status (2026-10-22):** reviewed Claude UI `1b2d3d5` is integrated with Codex backend `192c6de` by merge `6cd611a` on `codex/ui-backend-integration`. Claude's isolated preference fix `4ffe184` is retained as `9b22f12`; city merge f9f2af0 now includes reviewed Stormwind from78d97a1, followed by the protected background-load transaction. The implemented interfaces are in [API_CONTRACTS](../../API_CONTRACTS.md#implemented-front-end-menus-race-hud-and-results). Its appearance and behaviour in WoW Forever are **NOT RUN**; see [the client check](#client-check-not-run).
 
 The owner asked for "the ready to ship UI": clear Single Player and Multiplayer choices, and selecting maps and karts. He chose:
 
@@ -115,13 +115,13 @@ The multiplayer screen maps a copied PeerSession view to copy and enabled contro
 
 ## Budget
 
-Explicit UI counts go from 11 frames, 151 textures and 13 font strings to **65, 160 and 79**:
+Explicit UI counts were65/160/79 for the original Menu. Current integrated city screen/gates plus one staging background use **71 frames, 165 textures and 80 font strings**:
 
 - **Frames:** the menu screens and their buttons, the header, the drag handle, a close watcher, the race overlay and the results buttons.
 - **Font strings:** the old title line is replaced.
 - **Creation:** everything is created once with the window; nothing is created per tick or frame.
 - **Per frame:** the race HUD compares numbers and rewrites its text only when it can change, about ten times a second while the clock runs. The shown kart/garage turntable has its own visual spin callback while the race simulation is inactive; it never advances physics or the race clock.
-- **Texture memory:** the preview atlas adds 2 MiB when the track screen is first opened. The turntable reuses the kart sheets the race already loads.
+- **Texture memory:** the preview atlas adds 2 MiB when the track screen is first opened. The turntable reuses the kart sheets the race already loads. The two scenery slots can retain Mirage and Stormwind simultaneously; the latter adds16MiB raw pixels. Native memory/performance remains unmeasured.
 
 ## Tests (offline)
 
@@ -139,20 +139,20 @@ Explicit UI counts go from 11 frames, 151 textures and 13 font strings to **65, 
 - the combat track restore;
 - the fallback when the front end cannot build, and missing templates.
 
-`tests/test_ui.lua` retains Codex's lifecycle/capture/race assertions while combining both sides' module lists, counts, results-panel size and the Lua 5.4 `unpack` compatibility change. Both TOCs load 21 modules. The added preference/protected-state fixture passed `python scripts/test_lua.py --runtime lua51 --tests menu`; the shared [progress ledger](../../PROGRESS.md) records the integration checkpoint's complete executed checks. Offline results do not establish native templates, layout, input or persistence behavior.
+`tests/test_ui.lua` retains Codex's lifecycle/capture/race assertions while combining both sides' module lists, counts, results-panel size and the Lua 5.4 `unpack` compatibility change. Both TOCs load 24 modules. The added preference/protected-state fixture passed `python scripts/test_lua.py --runtime lua51 --tests menu`; the shared [progress ledger](../../PROGRESS.md) records the integration checkpoint's complete executed checks. Offline results do not establish native templates, layout, input or persistence behavior.
 
 ## Client check (NOT RUN)
 
 Fully restart the client after installing: `Menu.lua` and `TrackPreviews.tga` are new files. Then:
 
 1. `/akart` shows the main menu over the dimmed track: the title banner, the "Azeroth Kart" title in Morpheus, and five red Game Menu buttons. Nothing reads "Lua error".
-2. **Single Player**: both tracks show their preview pictures; choosing one changes the track behind the dialog. **Next**: the kart spins on the turntable, the arrows and grid change it, and each kart shows its credit.
+2. **Single Player**: all three ready tracks show their preview pictures; choosing one changes the track behind the dialog. **Next**: the kart spins on the turntable, the arrows and grid change it, and each kart shows its credit.
 3. **Race!**: the menu disappears, a big gold 3-2-1-GO plays with beeps, and the top corners show LAP 1/3 and the clock. Only **Stop** shows on the bar.
 4. Finish three laps: the results dialog lists each lap with the fastest in green, and a fanfare plays once. Try **Change Kart**, **Change Track**, **Main Menu**, **Restart** and **Close results**.
 5. **Multiplayer** shows Coming soon with every control disabled. **How to Play** and **Settings** are readable. Settings sizes apply at once, and sizes too big for the screen are greyed out.
 6. Drag the window by its title, `/reload`, and reopen. The track, kart and settings are remembered; the position may reset.
 7. Press Alt+Z twice while in Settings: the window comes back on Settings. Escape during a race still ends the run (and may open the Game Menu).
-8. Turn on developer info, then type `/akart probe` or click Print Probe: the counts are 65/160/79.
+8. Turn on developer info, then type `/akart probe` or click Print Probe: the counts are71/165/80.
 
 Open questions for the client:
 

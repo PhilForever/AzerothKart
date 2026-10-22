@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — latest city integration installed for owner testing (2026-10-22)
+- Review/integrate Claude capital-cup78d97a1 with all existing UI/backend work; Stormwind joins Test Oval/Mirage, with six cosmetic karts. Multiplayer remains Coming soon.
+- Protect the current map/results when a new background refuses to load: one hidden preallocated staging texture, swapped only on success. Pool71/165/80; no per-tick loads/creation.
+- Full offline integration passes. Install39files with verified22-file backup; publish the combined feature branch. Native owner testing follows a full client restart. No main merge or release.
+
 ## Unreleased — reviewed UI/backend integration and preference fix (2026-10-22)
 - Combine Claude's reviewed solo menus, HUD/results/garage/settings and Codex's session/start-clock backend on `codex/ui-backend-integration`, preserving both histories. No multiplayer commands or live-race activation added.
 - Adopt Claude4ffe184: an explicit successful choice of the current fallback track/kart is now saved; it supersedes deferred restoration without erasing an untouched failed-load preference.

@@ -2,22 +2,20 @@
 
 Updated2026-10-22 08:12+02:00, Europe/Oslo. Codex is the designated integrator for the owner's request to combine the agents' work without losing either side. This is a source-integration checkpoint, not a release or installation. See [PROGRESS](PROGRESS.md), [ownership](UI_FLOW_OWNERSHIP.md), [API contracts](API_CONTRACTS.md) and both agent handoffs.
 
-## Current combined source — preference finding resolved
+## Current combined source — pushed and installed for owner testing
 
-User-authorized integration is complete on `codex/ui-backend-integration`:
+2026-10-22 08:37 +02:00, Europe/Oslo. User explicitly authorized latest-handoff review, push and installation, then his client test. Codex read Claude's complete current handoff **78d97a1**, reviewed the city collision/selection changes and integrated that source, beyond the previously reviewed two-track UI. See [city review](reviews/2026-10-22-city-integration.md).
 
-- Reservation 5b69834 from review a77fe73, before source edits.
-- Normal two-parent merge **6cd611a** combines published Claude **1b2d3d5** and reviewed Codex backend **192c6de**. Six shared doc/loader/test-list conflicts use the reviewed unions; no whole runtime file was replaced.
-- **9b22f12** adopts Claude's isolated **4ffe184** preference fix using `cherry-pick -x`, retaining its author/coauthor and source hash. The city-branch-only preceding test was excluded, and the bar-cycle regression uses the reviewed two-track order. No city runtime is needed for this fix.
-- **0eb6c63** adds future-schema and stopped-state protection coverage. This is the tested code baseline; the following documentation commit records the handoff (`git log -1 codex/ui-backend-integration`).
+- Original UI/backend merge **6cd611a**, authored preference fix **9b22f12** and future-schema/stopped-state regression **0eb6c63** remain preserved.
+- Deployment reservation **e976f55** preceded new changes. Two-parent merge **f9f2af0** adds Claude's **78d97a1** city/runtime/art/pipeline, with per-hunk shared-list/docs/test unions retaining all Codex modules and regressions. Both agent histories and original tips remain intact.
+- Tested/installed code **e748b60** repairs a reviewed P2: load/validate a new scenery image on a hidden pooled texture, swapping it into view only on success. No destructive rollback load of the visible image. Final explicit pool **71 frames/165 textures/80 font strings**,24 modules in each TOC. No new multiplayer action/replication.
+- Full offline suite **27 modules/52 parsed files in each Lua5.1/5.4** PASS; focused Lua5.1 UI/menu/circuit PASS; validator **96 paths**, TOCs/links/ledger PASS; all18 old Codex modules and12 authored art files preserved. Source39files.
+- Normal non-force push created `origin/codex/ui-backend-integration` at codee748b60; the following documentation commit records this deployment and advances the same branch. Resolve its final tip with `git log -1 codex/ui-backend-integration`; final remote-ref verification is retained in the ignored publication receipt. No main/Claude branch push, tag, release or history rewrite.
+- **Installed and independently verified:** all39 files in `C:/Program Files (x86)/World of Warcraft/_classic_beta_/Interface/AddOns/AzerothKart` exactly match this tested source and manifest. Prior22 files are backed up and independently SHA256-checked against preflight/before.csv. Manifest Status/Stage=Verified, BackupVerified=true. No extras, deletion, other addon or WTF/SavedVariables writes.
 
-The [P2 review finding](reviews/2026-10-21-ui-backend-integration.md) is resolved: explicit successful current-ID choices are remembered, deferred restore yields to deliberate choice, untouched failed restores retain their preferences, and newer preference records remain unmodified. UI selection transactions/authoritative state remain unchanged.
+Evidence/backup root: ignored `local-artifacts/deploy-20261022/20261022-082336-b891c186/`; exact operation `local-artifacts/deploy-20261022/20261022-082336-b891c186/install-backups/20261022-083240-447-60ddc86aae344da38fa31ae61459972d/`. Both other worktrees'297 tracked/untracked files, HEADs, branches and statuses remain unchanged. The combined checkout now contains Claude's actual latest authored handoff; Codex has not rewritten it or switched Claude's active city worktree.
 
-Claude's current handoff at **claude/capital-cup78d97a1** explicitly supplies 4ffe184 in response to that review. Coordination uses that authored commit/handoff, not simultaneous edits in Claude's checkout. Its active Menu/city reservation, untracked outputs and all newer city collision/loading/pipeline work remain separate; this checkpoint does not review or integrate them. Claude's handoff file is not rewritten by Codex.
-
-Executed: the new regression fails against old Menu1b2d3d5 in both Lua versions (expected failure, in-memory override); fixed Lua5.1 menu/ui pass; the full integration suite passes **26 test modules /48 parsed files in each of Lua5.1/5.4**. Mock pool **65 frames/160 textures/79 fonts**. Structural/art/preservation evidence is recorded in [PROGRESS](PROGRESS.md) and the Codex handoff. All18 Codex-owned runtime modules match 192c6de; all 10 runtime art files match Claude 1b2d3d5; UI differs from Claude only by the retained solo-start transport stop.
-
-**Deployment/publication:** main/origin-main remain f923d15. Installed source is unchanged; no new client check, install, push, tag or release. Actual menu/fonts/sound/persistence/native coordinated traffic and multiplayer acceptance remain NOT RUN. The two earlier approved branch publications remain as previously verified; this local integration is not a third publication authorization. Multiplayer UI commands remain Coming soon.
+**Owner test next:** fully exit/restart WoW (new files), `/akart` → Single Player → Capital Cities Cup → Stormwind City Circuit → kart → Race!. Check the city scenery/bridges/Cathedral, driving and Stop/Restart/Close results. Actual native texture loading, menus/fonts/sound/scales/persistence/handling/performance remain **NOT RUN** until the owner reports. Multiplayer remains Coming soon and actual new-prefix/start/live-race/reconnect gates remain open.
 
 ## Previous review (2026-10-21)
 
@@ -31,22 +29,22 @@ Codex's review accepts Claude's guarded first-open saved-track restoration for i
 
 ## Preserved backend history
 
-`codex/start-clock` descends from SessionTransport commit `4f9246a` and adds the opt-in [clock/epoch and one-shot backend race initializer](START_CLOCK.md). Resolve its resulting commit from the Codex handoff/Git. The source is now included in the reviewed combined branch above, and is not installed. Claude's completed `claude/ui-flow` at `1b2d3d5` and its untracked outputs remain untouched. Integration must preserve both branches' shared loader/docs edits; ordinary solo UI.Start remains unchanged. Live movement/finish and actual client validation follow separately.
+`codex/start-clock` descends from SessionTransport commit `4f9246a` and adds the opt-in [clock/epoch and one-shot backend race initializer](START_CLOCK.md). Resolve its resulting commit from the Codex handoff/Git. The source is now included in the reviewed combined branch and39-file installation above. Claude's completed `claude/ui-flow` at `1b2d3d5` and its untracked outputs remain untouched. Integration must preserve both branches' shared loader/docs edits; ordinary solo UI.Start remains unchanged. Live movement/finish and actual client validation follow separately.
 
 Previous backend boundary:
 
-`codex/session-transport` starts from the preserved combined83c611c and adds the guarded SessionTransport bridge, copied menu API and focused tests. Its resulting commit is recorded in the Codex handoff/Git; it is not installed or automatically merged into the protected combined branch. Claude can inspect [SESSION_MENU_API](SESSION_MENU_API.md) via `git show codex/session-transport:docs/SESSION_MENU_API.md`; coordinate that exact backend commit when wiring the menu. Preserve any active visual branch/changes before creating a new branch or reviewed integration. The roster baseline/history below remains intact; do not install an older standalone branch.
+`codex/session-transport` starts from the preserved combined83c611c and adds the guarded SessionTransport bridge, copied menu API and focused tests. Its resulting commit is recorded in the Codex handoff/Git; it is retained in the current combined source/installation; that historical feature branch remains unchanged. Claude can inspect [SESSION_MENU_API](SESSION_MENU_API.md) via `git show codex/session-transport:docs/SESSION_MENU_API.md`; coordinate that exact backend commit when wiring the menu. Preserve any active visual branch/changes before creating a new branch or reviewed integration. The roster baseline/history below remains intact; do not install an older standalone branch.
 
 ## One integration path
 
 | Role | Branch / state |
 |---|---|
-| Current reviewed combined source | `codex/ui-backend-integration`, tested code 0eb6c63; merge 6cd611a plus preference fix 9b22f12. Resolve the following documentation commit with `git log -1 codex/ui-backend-integration`. |
+| Current reviewed combined source | `codex/ui-backend-integration`, tested/installed codee748b60; city mergef9f2af0 preserves Claude78d97a1 and prior UI/backend fixes. The following documentation commit records deployment. |
 | Preserved roster baseline | `codex/roster-integration`83c611c, preserving Codex3644084 and Claude b0b1f2e. The following roster details are historical. |
 | Preserved Codex baseline | `codex/peer-session` at3644084; protocol/session/results/Forever transport remain in the combined history. |
 | Preserved Claude source | `claude/track-ui` atb0b1f2e, including runtime abe98f6. Its original five commits/authors/hashes are retained. Its worktree and untracked outputs are not changed. |
-| Current installed addon | Existing22-file verified8f66c5a build, including effects/Close results/Forever fix. README_ADDON differs from the Git blob only by CRLF line endings. Combined roster/session source is not installed. |
-| Publication | main/local origin/main f923d15 is historical publication; no push/release in this checkpoint. |
+| Current installed addon |39 files, tested sourcee748b60, verified exactSHA256 with prior22-file backup. Native client test pending full restart. |
+| Publication | Combined feature branch published normally; main/local origin/mainf923d15 preserved. No tag or release. |
 
 Do not merge Codex into the old Claude branch and separately install it. All deployment preparation for this checkpoint is from the reviewed combined branch, by Codex, after backup and installed-hash comparison. Claude continues visual work from the combined commit on a new Claude feature branch, preserving `claude/track-ui`. Codex continues backend work on its own branch from the same combined commit. Neither agent installs independently or merges the other's branch automatically. Future changes require a new reservation and reviewed integration.
 
@@ -62,13 +60,15 @@ The quoted Claude reply and its retained handoff are historical: AKT723 was comp
 
 ## Local recovery and future synchronization
 
-Current verified all-ref recovery bundle and other-worktree file/ref snapshots are under ignored `local-artifacts/integration-20261022/20261022-080331-b5d03e9a/`. The earlier roster recovery remains under `local-artifacts/integration/20261021-0732-preservation/`. They contain local recovery data only; do not publish the folder. Canonical and Claude tracked/untracked file hashes are compared after integration; no cleanup, pruning or deletion is performed. In the cloud environment, never run Git worktree prune/gc against stored Windows worktree paths.
+Current deployment all-ref recovery bundle and other-worktree file/ref snapshots are under ignored `local-artifacts/deploy-20261022/20261022-082336-b891c186/`. The earlier Menu integration recovery remains under `local-artifacts/integration-20261022/20261022-080331-b5d03e9a/`. The earlier roster recovery remains under `local-artifacts/integration/20261021-0732-preservation/`. They contain local recovery data only; do not publish the folder. Canonical and Claude tracked/untracked file hashes are compared after integration; no cleanup, pruning or deletion is performed. In the cloud environment, never run Git worktree prune/gc against stored Windows worktree paths.
 
-Claude remains on its active city branch. Do not switch or reset it now to synchronize this menu fix; that fix is already shared as the original4ffe184 and reviewed cherry-pick9b22f12. A later city integration must review its collision/track-loading changes and preserve both sides' subsequent work. After that reservation is complete, its owner may create a new feature branch from the exact combined commit. Check status first; preserve new work and stop if a switch would overwrite it. Example for that future clean start, run only by the checkout's owner:
+Claude remains on its active city branch. Do not switch or reset it: its78d97a1 history is now in the combined source, with Codex's reviewed staging-load repair above. Future city work must preserve that transaction, both agents' subsequent changes and their reservations. After that reservation is complete, its owner may create a new feature branch from the exact combined commit. Check status first; preserve new work and stop if a switch would overwrite it. Example for that future clean start, run only by the checkout's owner:
 
 ```powershell
 git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" status --short
 git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" switch -c claude/next-visual codex/ui-backend-integration
 ```
 
-These commands were not executed in Claude's worktree. No new download/manual test is requested. Next Codex task: bounded live-race controller and paced two-peer remote snapshots consuming the existing backend GO handoff. Native menu appearance, selection/fallback/saving, resource costs and coordinated live-race behavior remain NOT RUN. Multiplayer retains priority; no roadmap acceptance was marked complete.
+These commands were not executed in Claude's worktree. The owner now performs the client test against the coordinated installation above. Next Codex task: bounded live-race controller and paced two-peer remote snapshots consuming the existing backend GO handoff. Native menu appearance, selection/fallback/saving, resource costs and coordinated live-race behavior remain NOT RUN. Multiplayer retains priority; no roadmap acceptance was marked complete.
+
+Final packaging note: the following deployment-documentation commit also corrects the addon readme's staging-texture count. Runtime code remains e748b60. The authorized installer is rerun against that final source tip; its exact final manifest/hash and remote branch tip are recorded in ignored `local-artifacts/deploy-20261022/20261022-082336-b891c186/final-publication-install-receipt.json`. The original22-file backup remains intact.
