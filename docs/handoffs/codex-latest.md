@@ -1,26 +1,59 @@
-# Codex handoff — active live-race backend slice
+# Codex handoff — pure live-race lifecycle and telemetry
 
-2026-10-22, Europe/Oslo. Owner asks to continue multiplayer toward a friend race.
-Own clean branch codex/live-race-controller from4544108 (reviewed Orgrimmar72b362f).
-Reserve new LiveRace.lua / LiveProtocol.lua and their tests, both TOC additions,
-test loader/validator lists and backend contracts/docs/PROGRESS. Do not edit
-Claude visual/Menu/UI code or either foreign worktree. Pure lifecycle owns the
-existing coordinated GO bundle, fixed-step local input, bounded observational
-remote poses and paced output; no production authority/finish/collision decision
-or native/UI activation claimed. Focused Lua5.1 checks before commit. Native
-transport lease adoption/menu integration is the subsequent boundary; no install,
-new manual probe or publication in this implementation slice.
+2026-10-22 23:11 +02:00, Europe/Oslo. Owner requests multiplayer development toward a friend
+race. Branch **codex/live-race-controller** from4544108 (reviewed Claude Orgrimmar
+72b362f), reservation5008f44, implementation **b35946f**. This following handoff
+commit contains documentation only. No foreign branch switch/merge, push,
+installation, client input or milestone completion.
 
-## Previous checkpoint
+## Completed source slice
 
-# Codex handoff — Orgrimmar reviewed and published
+New LiveRace.lua consumes one copied tick-zero RaceStart bundle exactly once;
+fixed-step Physics/Race/Loop driving, exact finish/stop/combat state and copied
+render views. New LiveProtocol.lua provides strict34-byte observational packets
+on AZKRUN1. Peer/session/channel/sequence/tick/map/progress validation, only two
+remote poses,500ms output spacing/2calls/158B rolling cap, no ACK/history queue,
+five-second peer silence/frozen-progress timeout and30-minute duration cap.
+Received claims cannot correct physics, award local progress, establish a
+winner or shared result. Completed reports remain unverified. No production
+authority/contact/finish decision; this telemetry is within ADR0013's experiment.
 
-2026-10-22 22:56 +02:00, Europe/Oslo. User requests review/push of `claude/orgrimmar`. **APPROVED and published exact72b362fc4a7926624c5ceaf648056595c8b0e080**; main remainsf923d15. Own docs branch `codex/orgrimmar-review` from that source, reservation505ec2e. Only this handoff, PROGRESS and [review](../reviews/2026-10-22-orgrimmar.md) edited. No runtime edits, merge, foreign checkout mutation, force push, release or install.
+[Full implemented API and next boundary](../LIVE_RACE.md). Module/test lists,
+26-module TOCs, API/architecture/index/README/shared instructions aligned. All
+17critical existing simulation/native/UI modules and all art remain unchanged.
+Claude retains all visual/Menu/UI ownership; its worktree/handoff are untouched.
+Public native APIs retain old behavior; loading new modules does nothing native.
 
-Reviewed complete current Claude handoff plus stacked roster handoff8cc2031. Four new WC3 karts are cosmetic, existing physics body/effect contract; ten choices,75/165/80 pooled resources. Orgrimmar uses existing full-grip/clearance geometry,4769-unit loop/four ordered gates. All22 critical Lua/TOCs, old city definitions and14 runtime assets unchanged. Shared geometry/resource increase approved for this source; no breaking API. Source ledger and unresolved release rights retained.
+## Actual checks
 
-Executed actual Lua5.1 focused presentation/circuit/menu/ui PASS,52parsed; geometry-only check PASS; Python boundary11PASS; five Python files parse;20TGAs validate; six synthetic renderer comparisons PASS. Validator FAIL: two pre-existing expired local skill links in PROGRESS. Whitespace FAIL: one incoming docs trailing space. Nonblocking documentation issues explicitly retained. Full suite/Lua5.4/art regeneration/client checks NOT RUN by Codex; Claude's results are separately attributed. See review for commands/receipts.
+Actual Lua5.1/pinnedLupa2.8 via C:/Python314/python.exe and canonical
+local-artifacts/python-deps: `scripts/test_lua.py --runtime lua51 --tests
+live_protocol live_race race_start session_transport ui` PASS56parsed/five
+modules. Synthetic20s two-peer tape, clocks5s apart/350ms one-way delivery:
+1200equal-input driving ticks,41accepted snapshots per peer, rolling call/byte
+caps verified. Existing900-tick GO replay/native adapter and UI regressions pass;
+UI mock counts75/165/80 unchanged. Independent read-only review found four
+constructor/liveness issues, reproduced/fixed/regression covered; no blockers
+remain for this pure slice. Final focused live_race PASS after duration, injected
+simulation-failure and callback Stop regressions. Whitespace/Python parse/TOC
+checks PASS. Structural validator FAIL only on two pre-existing expired skill
+links in PROGRESS; not reported as a passing validator. Full broad/Lua5.4/native
+checks NOT RUN. Synthetic RTT is not a new network measurement.
 
-Non-force publication and remote SHA verified; foreign347-file HEAD/status/content snapshot preserved. No direct Claude conversation claimed: shared handoffs/ancestry are the coordination evidence. Claude can continue from its published tip, without any checkout operation by Codex. Installed build remains prior41-file2e75a3d; new candidate47files is not installed. Future authorized installation needs backup/hash verification and full restart for new art. Native appearance, driving/camera and performance acceptance remain pending; no milestone advanced.
+All347 foreign file hashes/statuses/HEADs preserved; receipts in ignored
+local-artifacts/live-race-controller-20261022/. Installed prior41-file2e75a3d is
+unchanged. No friend download or test requested yet: gameplay is still unwired.
 
-Next single Codex task: bounded live-race lifecycle around RaceStart, preserving existing start-clock, transport lease, budgets and teardown. Multiplayer remains unwired; no new probe or ghost/time-trial prerequisite. Claude retains visual ownership.
+## Next exact task
+
+Implement opt-in atomic LiveRace adoption inside SessionTransport at GO,
+retaining its same frame lease and persistent attempts/lastAttempt/traffic.
+Register live prefix only for that explicit mode; do not call legacy
+TakeRaceStart then reacquire another sender. Preserve existing TakeRaceStart
+release semantics and probe exclusivity. Share native budget across control,
+clock, live snapshots and cancellation; account failed/unknown/throttled calls.
+Test complete two mocked peers from invite/join/ready/clock through actual live
+advance and delivery, including reentrant Stop/cleanup. Still only Test Oval and
+Mirage are negotiated by the current control codec. Claude's reviewed menu/
+canvas binding comes next; menu navigation never consumes GO or owns Physics.
+Official results/corrections/contact and actual two-client race feel remain open.
