@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased — the Great Forge in Warcraft III textures (2026-10-22, `claude/ironforge-polish`)
+- After the owner's drive of Ironforge version 3 ("Forlorn Cavern is good. The lava is good."): the Great Anvil is half its size, and the anvil and pumps wear Warcraft III textures: the steam tank's riveted plates and brass straps, the power generator's brass rail, copper coils, rune-cut iron, pipe and hatch, the mine cart's dark iron. `city_meshes.py` gains texture paints (a texture rectangle, tint and repeat by world size). Art only: route, collision and `CapitalCities.lua` unchanged; Stormwind byte-identical.
+
 ## Unreleased — Ironforge version 3 after the owner's drive (2026-10-22, `claude/ironforge-design`)
 - Codex review: accept the additive narrows contract, add overlap/closing-segment/copy/branch regressions and fix a tiny rough pocket in fully paved tunnel corners; default shoulders and wall geometry stay unchanged. Coordinated local install verified41files with41-file backup; v3 client checks remain pending.
 - **Forlorn Cavern tunnels.** The way in from the Mystic Ward and the way out towards the Hall of Explorers are narrow tunnels through the rock: no shoulder, the wall at the paving's edge (the kart centre stops 42 from the centerline, the painted wall at 56), flaring back to the usual street after each. New optional circuit field `narrows` (per-segment wall radius, paved no further), proposed in API_CONTRACTS for Codex's collision review; additive, Stormwind's data and picture byte-identical.

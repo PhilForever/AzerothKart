@@ -1127,7 +1127,7 @@ IRONFORGE = {
         dict(iprop(OTHER + "marketplace/marketplace.mdx", 190, 360, yaw=0), nudge=True),
         # The Great Forge, as in the game: no buildings between its forges,
         # only the Great Anvil and the pumps (world units).
-        mesh_prop("great_anvil", 1186, 1006, scale=1.15),
+        mesh_prop("great_anvil", 1186, 1006, scale=0.575),
         mesh_prop("great_pump", 1292, 1088),
         mesh_prop("great_pump", 1270, 955, scale=0.8),
         mesh_prop("pump", 1240, 1048, yaw=315, scale=1.3),

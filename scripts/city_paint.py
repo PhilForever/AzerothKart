@@ -1267,7 +1267,7 @@ def sprite_for(wc3, city, item, cache):
         sprite = None if mesh else _disk_cache(key)     # meshes are quick to draw: never cached on disk
         if sprite is None:
             if mesh:
-                loaded, triangles = M.build(mesh, item["yaw"], item["scale"])
+                loaded, triangles = M.build(mesh, item["yaw"], item["scale"], wc3)
             else:
                 loaded = R.load(wc3, item["model"], team=item.get("team") or city["team"],
                                 replaceables=city.get("replaceables"))
