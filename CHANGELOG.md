@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — Ironforge version 3 after the owner's drive (2026-10-22, `claude/ironforge-design`)
+- **Forlorn Cavern tunnels.** The way in from the Mystic Ward and the way out towards the Hall of Explorers are narrow tunnels through the rock: no shoulder, the wall at the paving's edge (the kart centre stops 42 from the centerline, the painted wall at 56), flaring back to the usual street after each. New optional circuit field `narrows` (per-segment wall radius, paved no further), proposed in API_CONTRACTS for Codex's collision review; additive, Stormwind's data and picture byte-identical.
+- **Lava.** Pools stop at the street's wall like water (no grey unlit paving across their corners), no bank face, no ridges; a dark iron wall stands all round each pool; the glow is kept.
+- **The Great Forge.** No buildings, trim or braziers between the two forges: the Great Anvil and four pumps, procedural models (`scripts/city_meshes.py`) drawn with the scenery's light and shadow. Track facts mention the tunnels. Offline: both Lua suites, the boundary tests and `--check` pass; the drive and look in the client are NOT RUN.
+
 ## Unreleased — Ironforge integration correction (2026-10-22)
 - Preserve Stormwind full-speed/version3 corner handling and staged background loading while integrating Claude de2fa5f. Ironforge version2 reuses the existing exposed-wall clearance to avoid an invisible gate-hall corner; art and route stay unchanged, rough shoulders remain.
 - Add Ironforge restore/selection, destructive image refusal and seven-to-six-to-four gate visibility regressions. No global Physics, multiplayer or other-agent checkout changes.

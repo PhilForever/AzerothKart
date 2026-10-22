@@ -21,6 +21,11 @@
 4. **Walls.** The rock faces, the halls' foundations and the dark railings along the lava stop the kart as Stormwind's walls do.
 5. **Camera and performance.** Frame rate while driving past the lava and through the darker halls; Print Probe still 71/165/80.
 
+**Version 3 (proposed on `claude/ironforge-design`, after the owner's drive of version 2): NOT RUN.**
+
+6. **Forlorn Cavern tunnels.** In from the Mystic Ward and out by the north-east stair the street narrows through the rock: no shoulder, the wall at the paving's edge. Driving along a tunnel wall the kart's body meets the drawn rock edge, with no "Off-road" message; the street flares back to its usual width after each tunnel. Record whether the change reads clearly and whether two karts' width feels too tight.
+7. **Lava and the Great Forge.** Every lava pool has a dark wall all round, no ridges across it and no grey band at its edge; the glow remains. Between the two forges stand only the Great Anvil (red and gold) and the pumps; record whether the anvil reads as an anvil.
+
 ## Deferred front-end check (proposed, `claude/ui-flow`)
 
 **NOT RUN.** Follow [the front-end client check](../docs/art/ui/front-end.md#client-check-not-run) after a coordinated install and a full client restart (`Menu.lua` and `Assets/UI/TrackPreviews.tga` are new files). With the front end, the window opens on the main menu; the first run starts from **Single Player → Race!**, and the bar's Start reads **Start Race**. Print Probe shows only with Settings → **Show developer info**; `/akart probe` always works. The checks below that start a drive use **Start Race** or **Race!**, and explicit counts become 71 frames/164 textures/80 font strings with the Capital Cities Cup (65/160/79 before it).
