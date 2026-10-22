@@ -1,3 +1,18 @@
+# Active reservation — native live race and player flow
+
+2026-10-22 Europe/Oslo. Explicit owner request: connect controller to Forever
+transport, then wire lobby and race display. Own codex/live-multiplayer-integration
+from7f80c2b. Reserve SessionTransport and native integration tests (root), UI.lua
+lifecycle/display + focused UI tests (assigned UI agent), Menu.lua/lobby commands
++ menu tests (assigned menu agent), contracts/docs/load lists/PROGRESS (root).
+Owner explicitly assigns this UI wiring; preserve Claude visuals/foreign branch.
+No assets, physics or geometry edits. No main merge/force push/release. Native
+adoption must retain the same persistent budget/frame lease. Reviewed offline
+candidate, no client result claimed without execution. Deployment remains a
+separate coordinated step if candidate checks expose a blocker.
+
+## Previous handoff
+
 # Codex handoff — pure live-race lifecycle and telemetry
 
 2026-10-22 23:11 +02:00, Europe/Oslo. Owner requests multiplayer development toward a friend
