@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — four Warcraft III karts (2026-10-22, `claude/kart-roster-wc3`)
+- Asked what next, the owner chose more karts and all four vehicles offered from Warcraft III itself: the **Dwarf Car**, **Orc Demolisher**, **Meat Wagon** and **Glaive Thrower**, rendered from Blizzard's own Reforged models in his install into 64-heading sheets like the other karts. Ten karts in all (the release target is eight); all drive the same.
+- `build_wc3_kart.py` reads Warcraft III's own vehicles (`--wc3`: MDX 1800 and DDS through `wc3render.py`, verified by SHA-256). Effects: the Dwarf Car's steam pipe and the Demolisher's fire pots flame when boosting; the Meat Wagon and Glaive Thrower trail wind. The kart screens list ten buttons: explicit counts 75/165/80 (+4 frames, created once). Client appearance NOT RUN.
+
 ## Unreleased — the Great Forge in Warcraft III textures (2026-10-22, `claude/ironforge-polish`)
 - After the owner's drive of Ironforge version 3 ("Forlorn Cavern is good. The lava is good."): the Great Anvil is half its size, and the anvil and pumps wear Warcraft III textures: the steam tank's riveted plates and brass straps, the power generator's brass rail, copper coils, rune-cut iron, pipe and hatch, the mine cart's dark iron. `city_meshes.py` gains texture paints (a texture rectangle, tint and repeat by world size). Art only: route, collision and `CapitalCities.lua` unchanged; Stormwind byte-identical.
 

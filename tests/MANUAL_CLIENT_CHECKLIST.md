@@ -19,7 +19,7 @@
 2. **Load.** A second 2048×2048 TGA. The safe staging loader may retain two scenery images (up to32MiB raw city pixels, excluding previews/native overhead). Record a refusal ("Ironforge Grand Prix background unavailable | Test Oval remains available") and any hitch when switching between the two cities.
 3. **Race!** The kart starts in the gate hall facing the Commons, the Gates behind. Drive the lap: the Commons (finish), Mystic Ward, Forlorn Cavern, Hall of Explorers, into the Great Forge and round its southern forge, Tinker Town, Military Ward, back to the Commons; the HUD names each next gate (seven). Record whether each district is recognisable and whether the long lap feels right.
 4. **Walls.** The rock faces, the halls' foundations and the dark railings along the lava stop the kart as Stormwind's walls do.
-5. **Camera and performance.** Frame rate while driving past the lava and through the darker halls; Print Probe still 71/165/80.
+5. **Camera and performance.** Frame rate while driving past the lava and through the darker halls; Print Probe still 71/165/80 (75/165/80 with the ten karts).
 
 **Version3 (reviewed on `codex/ironforge-narrows`, after the owner's version2 drive quoted in Claude's handoff): NOT RUN.**
 

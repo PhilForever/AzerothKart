@@ -273,7 +273,7 @@ local EFFECT_TEXTURES=20+14+2*2
 -- results buttons once with the window; it replaced the old title line. The
 -- track list holds eight buttons (four tracks, four coming-soon cities) under
 -- two cup headings.
-local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=60,9,68
+local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=64,9,68   -- ten kart buttons since the four Warcraft III vehicles
 -- City circuits have up to eight gates: the gate pool holds eight strips
 -- (the oval's four plus four kept hidden on the oval and Mirage Raceway).
 local GATE_STRIPS=8

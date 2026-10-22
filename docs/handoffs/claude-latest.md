@@ -1,69 +1,71 @@
-# Claude handoff — the Great Forge in Warcraft III textures
+# Claude handoff — four Warcraft III karts (ten in all)
 
-Prepared 2026-10-22 about 19:40 CEST (Europe/Oslo) by Claude (rendering/UI/sprites owner). Supersedes the Ironforge version 3 handoff at `9461f9c`, which Codex imported verbatim into `codex/ironforge-narrows`; it remains in history.
+Prepared 2026-10-22 about 20:45 CEST (Europe/Oslo) by Claude (rendering/UI/sprites owner). Supersedes the forge-textures handoff at `2e75a3d`, which Codex reviewed, published and installed (`codex/ironforge-polish-review` `1a70d6e`); it remains in history. Codex's review notes one inaccurate sentence in it (the Lua suites last run fully at `82d57eb`: Codex ran selected modules); see its review report.
 
-**Base:** `codex/ironforge-narrows` at `bc93753` (Codex's reviewed, published and installed integration of Claude `9461f9c`: Ironforge version 3 with the reviewed `narrows` contract, Codex's all-road tunnel-corner fix and regressions). New branch **`claude/ironforge-polish`**, as Codex's handoff proposed:
+**Base:** `codex/ironforge-polish-review` at `1a70d6e` (Codex's review of Claude `2e75a3d`: the textured Great Forge, installed). New branch **`claude/kart-roster-wc3`**:
 
-1. the art change below, with its docs and this handoff (one commit).
+1. the four karts, their registration, tests, docs and this handoff (one commit).
 
-`claude/ironforge-design` stays at `9461f9c`. No milestone or multiplayer gate changed.
+`claude/ironforge-polish` stays at `2e75a3d`. No milestone or multiplayer gate changed.
 
-**Scope (reserved and changed):** `scripts/city_meshes.py` (texture paints), `scripts/city_paint.py` (`sprite_for` passes the extraction root to the meshes), `scripts/city_layouts.py` (the anvil's scale), `addon/AzerothKart/Assets/Tracks/Ironforge/{Background,Preview}.tga`, `docs/art/tracks/ironforge*`, `docs/art/ASSET_SOURCES.md`, `CHANGELOG.md`, this handoff. **Not touched:** `Circuit.lua`, `CapitalCities.lua` (byte-identical, `--check` PASS), `Courses.lua`, the circuit tests, Codex's narrows contract and corner fix, everything in UI/Physics/network.
+**Scope (reserved and changed):** `scripts/build_wc3_kart.py` (Warcraft III vehicle sources), `addon/AzerothKart/Assets/Karts/{DwarfCar,OrcDemolisher,MeatWagon,GlaiveThrower}.tga` (new), `addon/AzerothKart/Presentation.lua` (`KART_SPRITES` entries and `KART_ORDER` only), `addon/AzerothKart/Menu.lua` (`Menu.KARTS` copy and credits only), `tests/test_presentation.lua` (coverage floors), `tests/test_menu.lua` and `tests/test_ui.lua` (the explicit frame budget only), `docs/art/karts/*`, `docs/art/ui/front-end*`, `docs/art/ASSET_SOURCES.md`, `docs/API_CONTRACTS.md` (counts and the kart order note), `README.md`, `CHANGELOG.md`, `tests/MANUAL_CLIENT_CHECKLIST.md`, this handoff. **Not touched:** Physics, collision, UI.lua, the session/network modules, the city tracks.
 
 ## Owner instructions
 
-- After Codex's install of version 3, the owner drove it: "Forlorn Cavern is good. The lava is good. We need to work on this image I sent you. Reduce the anvil size by 50%, and add suitable wc3 textures to the models you created here." (His screenshot: the Great Forge's floor between its two lava pools, with the flat-coloured anvil and four pumps.)
+- After testing the textured forge: "Pushed and tested, loooks good. Next task?" Asked, he chose **two more karts (recommended: the release target is eight karts, there were six)** and, offered four of Warcraft III's own vehicles to pick two from, selected **all four**: Dwarf Car, Meat Wagon, Orc Demolisher, Glaive Thrower. For the next city he chose **Orgrimmar**.
 - Standing: no merge into `main`; no claim of in-game verification without the actual client; leave the simulation-control functions in `UI.lua` alone. The owner pushes and runs the client checks; Codex prepares coordinated installs.
 
 ## Delivered
 
-[The Ironforge sheet](../art/tracks/ironforge.md#revision-after-the-owners-drive-2026-10-22) records the request; [the before/after picture](../art/tracks/ironforge_gp-forge-textures.png) was sent to the owner.
+[The roster](../art/karts/roster.md#warcraft-iiis-own-vehicles-2026-10-22) has the details and pictures; [the four karts on Ironforge's road](../art/karts/wc3-vehicles-review.png) were sent to the owner.
 
-- **The anvil at half size:** `mesh_prop("great_anvil", …, scale=0.575)` (was 1.15), in the same place.
-- **Warcraft III textures on the procedural models.** `city_meshes.tex(path, region, tint, period, repeat)` paints a face with a rectangle of a Warcraft III texture: bilinear samples that repeat inside the rectangle (never reading its neighbours), tinted, repeated every `period` world units across a face (whole times round a prism, so its seam matches) or stretched. Patterns (`bands`, `emblem`) now choose between two such paints. The textures are three the picture's models already use, read from the same extraction: `textures/steamtank.dds` (riveted steel plates with brass straps on the great pumps' vats, tinted darker; the anvil's face and sides tinted red, its brass lozenge and bands), `buildings/other/powergenerator/powergenerator.dds` (brass rail rims, copper-coil drums of the small pumps, rune-cut iron round the anvil's base, the pipes, the round hatch on every pump's top) and `textures/minecart.dds` (dark riveted iron feet, bases and beams). No new extraction: the documented commands already fetch all three, and the sources list is unchanged.
-- **Reproducibility:** plain arithmetic and `floor` only, as before; the developer machine renders the same bytes (below).
+- **Four karts from Warcraft III itself** (Blizzard Entertainment's Reforged SD models in the owner's install, no community licence question): the Dwarf Car (`units/other/dwarfcar`), Orc Demolisher (`units/orc/catapult`), Meat Wagon (`units/undead/meatwagon`) and Glaive Thrower (`units/nightelf/ballista`), each a 1024×1024 sheet of 64 three-quarter headings like the other karts (player-1 red team colour, the scenery's sun and shadow). The Dwarf Car is fitted to the body's 31-unit length; the wider carts by width (24-26 units). All drive the same 17×31 body.
+- **Pipeline:** `build_wc3_kart.py` gains `wc3` vehicles: `--wc3 WC3` reads the extracted MDX 1800 model and DDS textures through `wc3render.py` (the city scenery's reader; skinned geosets in bind pose), verifies every file by SHA-256, and renders with the unchanged kart renderer. `--all ROOT --wc3 WC3` builds all ten. The six existing sheets' code path is unchanged.
+- **Effects:** anchors from the models' emitters and lowest geometry: the Dwarf Car's rear steam pipe and the Demolisher's two fire pots flame on boost; the Meat Wagon and Glaive Thrower have no engine and trail wind from their rear wheels (the Gryphon Rider's mechanism); drift dust from each cart's rear wheels.
+- **Menus:** `KART_ORDER` is ten long (trike, Steam Tank, Dwarven Biker, Dwarf Car, Demolisher, Meat Wagon, Glaive Thrower, Gryphon Rider, Gyrocopter, Drag Car); each new kart has its blurb and the credit "Model: Blizzard Entertainment (Warcraft III)". The kart screens' list grows to five rows of two; the offline layout picture shows all ten fit above Back and Race!.
 
 ## Changes Codex must review
 
-None to collision or interfaces: an art change to the Ironforge pictures only. `CapitalCities.lua` is byte-identical, so the narrows, `wallVertices` and Codex's corner fix are untouched. Install as usual when the owner wants it (two changed files: `Assets/Tracks/Ironforge/Background.tga` and `Preview.tga`).
+1. **Explicit UI budget: 71 → 75 frames** (textures 165 and font strings 80 unchanged): one list button per new kart in the kart/garage screen, created once with the window like the six before. `tests/test_menu.lua` and `tests/test_ui.lua` change only that number (`MENU_FRAMES` 60 → 64); no capture, lifecycle, clock or race assertion changed.
+2. **Install:** four new files (`Assets/Karts/*.tga`, 4 MiB raw each, loaded only when chosen, one kart sheet held at a time as before): the install grows from 41 to 45 files and needs a full client restart.
+3. No interface change: the new `KART_SPRITES` entries use the existing sheet and effect-anchor fields (`trails` as the Gryphon Rider does).
 
 ## Tests performed
 
 | Command / check | Result |
 |---|---|
-| `python scripts/build_city_tracks.py --wc3 … --check` | **CHECK PASS** in the cloud for `CapitalCities.lua` (unchanged) and both cities: Stormwind `Background.tga` sha256 `078a7805bccdadd8b88a909d5c37b013aa51e9d0d7981134c04f7a9db12f4ebb` (unchanged); Ironforge `Background.tga` `258bc9be54e6eb6389fff867379c32c4e92c3272f8d05dd354a4dd74a3b918e6`, `Preview.tga` `3a46a8f80d46bb19ac459c4511b774bc55bcf2691e43cc851061dd6919dc2143` |
-| The same check on the developer machine | **CHECK PASS** at `b34a225` for `CapitalCities.lua` and Ironforge's two pictures (Python 3.10.12, its own extraction and sprite cache; it drew the textured meshes itself) |
-| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in PROGRESS.md fail, on both machines |
-| Review | The forge island at 2.5× and in the game camera's scale, before and after; sent to the owner |
+| `python scripts/test_lua.py --runtime both` | **PASS** in the cloud (Python 3.13, Lupa 2.8): full suite, both runtimes |
+| `python scripts/build_wc3_kart.py --wc3 … --vehicle <id> --check` | **CHECK PASS** in the cloud for the four new sheets, sources verified by SHA-256. Sheets: Dwarf Car `b58da1e6…0fe0fb`, Orc Demolisher `7621c908…1a6875`, Meat Wagon `590c0c6b…f6f29c8`, Glaive Thrower `3e6eed6a…6390f4` |
+| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in PROGRESS.md fail |
+| `python scripts/preview_ui.py` | Regenerated `docs/art/ui/front-end-review.png`: the kart screen lists ten karts in five rows (layout only, stand-in fonts) |
+| Review | Every sheet's 64 frames and eight headings on the Mirage background (per-kart review PNGs) and six headings each on Ironforge's road |
 
-No Lua changed, so the Lua suites were not rerun for this art change (Codex's last full run on `82d57eb` stands).
-
-**NOT RUN:** the client (the textured anvil and pumps in WoW); any install; multiplayer.
+**NOT RUN:** the client (the four karts' look while driving, their effects, the ten-button kart screen, Print Probe 75/165/80); any install; multiplayer.
 
 ## Client check (owner; NOT RUN; after Codex's coordinated install)
 
-[The checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-ironforge-grand-prix-check-proposed-claudecapital-cup), item 7: between the forges, the half-size red and gold anvil and the four pumps in metal textures; do they read as an anvil and pumps, and do they fit the Warcraft III art round them?
+[The roster's check](../art/karts/roster.md#client-check-not-run), the paragraph on the four Warcraft III vehicles: all ten buttons fit; each new kart spins on the turntable; a lap with each faces its travel; drift dust at the rear wheels; the Dwarf Car's pipe and the Demolisher's pots flame on boost, the Meat Wagon and Glaive Thrower trail wind; Print Probe 75/165/80.
 
 ## Pending PROGRESS ledger entry (integrator to append; PROGRESS.md was not edited)
 
-> ### 2026-10-22 ~19:40 CEST — Claude / `claude/ironforge-polish`, the Great Forge in Warcraft III textures
+> ### 2026-10-22 ~20:45 CEST — Claude / `claude/kart-roster-wc3`, four Warcraft III karts
 >
-> - After the owner's drive of Ironforge version 3 ("Forlorn Cavern is good. The lava is good."): the Great Anvil at half size; the anvil and pumps painted with rectangles of the steam tank's, power generator's and mine cart's textures (`city_meshes.tex`). Art only; `CapitalCities.lua` and Stormwind byte-identical. Ironforge `Background.tga` sha256 `258bc9be…3b918e6`, `Preview.tga` `3a46a8f8…19dc2143`.
-> - `build_city_tracks.py --check` PASS for both cities in the cloud and for Ironforge on the developer machine; validator: only the 2 pre-existing PROGRESS links.
+> - The owner chose more karts and all four offered: Dwarf Car, Orc Demolisher, Meat Wagon, Glaive Thrower, rendered from Blizzard's own Reforged models in his install by `build_wc3_kart.py --wc3` (SHA-256-verified sources). Ten karts; explicit UI counts 75/165/80 (+4 list buttons). Next city chosen: Orgrimmar.
+> - `test_lua.py --runtime both` PASS; kart `--check` PASS for the new sheets; validator: only the 2 pre-existing PROGRESS links.
 > - **NOT RUN:** the client; install.
 
 ## Branch, commits and workspace
 
 | Item | Value |
 |---|---|
-| Worktree / branch | `AzerothKart-Claude` / `claude/ironforge-polish` at this commit (the worktree previously held `claude/ironforge-design` `9461f9c`, which is unchanged) |
-| Push | Owner only: this session's git proxy refuses the repository. `git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/ironforge-polish` |
+| Worktree / branch | `AzerothKart-Claude` / `claude/kart-roster-wc3` at this commit (the worktree previously held `claude/ironforge-polish` `2e75a3d`, which is unchanged) |
+| Push | Owner only: this session's git proxy refuses the repository. `git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/kart-roster-wc3` |
 | Not done | No merge into `main` or any Codex branch; no tag, release, install or client input. Codex's branches and worktrees were only read |
 
-**Workspace notes:** commits are made in a cloud clone with this repository's local identity, moved as git bundles (`local-artifacts/bundles/`) and fast-forwarded, so the hashes are identical. Git runs from a Linux shell on the developer machine with `--git-dir=.git/worktrees/AzerothKart-Claude`, `core.createObject=rename`, `gc.auto=0`, `maintenance.auto=false` and `gc.worktreePruneExpire=never`. **Never run `git worktree prune` or `git gc` there**: the recorded gitdirs are Windows paths, and that shell lists them as prunable. Git there needs delete access to the worktree and `.git` (granted this session) to replace files and drop its lock files. The untracked `Claude outputs/` folder is still left for the owner.
+**Workspace notes:** the four models and their textures were extracted on the developer machine into the shell's `akcheck/WC3` and copied to the git-ignored `local-artifacts/third-party/wc3-karts/` (outside Git). Commits are made in a cloud clone with this repository's local identity, moved as git bundles (`local-artifacts/bundles/`) and fast-forwarded, so the hashes are identical. Git runs from a Linux shell on the developer machine with `--git-dir=.git/worktrees/AzerothKart-Claude`, `core.createObject=rename`, `gc.auto=0`, `maintenance.auto=false` and `gc.worktreePruneExpire=never`. **Never run `git worktree prune` or `git gc` there**: the recorded gitdirs are Windows paths, and that shell lists them as prunable. The untracked `Claude outputs/` folder is still left for the owner.
 
 ## Next
 
-1. Codex: install `claude/ironforge-polish`'s two pictures when the owner wants them (art only).
-2. The owner's look at the forge; adjust on his notes.
-3. Then Darnassus Canopy Run, Orgrimmar Canyon Rush, Thunder Bluff Skyway and Undercity Slime Circuit on the same pipeline, each traced on the owner's map of that city.
+1. Codex: review the four karts (the +4 frame budget and four new files) and install when the owner wants them.
+2. The owner's drive with the new karts.
+3. **Orgrimmar Canyon Rush**, the owner's choice for the next city: on the same pipeline, traced on his in-game map of Orgrimmar with his route in red (needed from him).

@@ -1,14 +1,19 @@
 """Render published Warcraft III models into Azeroth Kart's directional kart sprite sheets.
 
 python scripts/build_wc3_kart.py --source DIR [--vehicle ID]   # write one runtime TGA (default: the trike)
-python scripts/build_wc3_kart.py --all ROOT                    # every vehicle, sources in ROOT/<slug>/
+python scripts/build_wc3_kart.py --all ROOT [--wc3 WC3]        # every vehicle, sources in ROOT/<slug>/
+python scripts/build_wc3_kart.py --wc3 WC3 --vehicle ID        # one of Warcraft III's own vehicles
     --check     verify exact bytes/invariants, write nothing
     --preview   also write a review sheet under docs/art/karts/
     --emitters  list a model's effect emitters and rear ground contacts (kart frame)
 
 Each source folder holds one vehicle's extracted archive from WC3Vault, laid
-out as published (see VEHICLES and docs/art/karts/). Models and textures are
-verified by SHA-256 and are not stored in this repository.
+out as published (see VEHICLES and docs/art/karts/). Warcraft III's own
+vehicles (a "wc3" entry: the Dwarf Car, Meat Wagon, Demolisher and Glaive
+Thrower) come from the owner's Reforged install instead, extracted by
+scripts/wc3casc.py into the folder WC3 (MDX 1800 models and DDS textures,
+read by wc3render.py). Models and textures are verified by SHA-256 and are
+not stored in this repository.
 
 The models' meshes, UVs and textures are used as published. The script does
 what a game engine does when it shows the unit, from a fixed Warcraft
@@ -123,6 +128,56 @@ VEHICLES["gyrocopter"] = {
         "Textures/FlyingMachine.blp": "53e35e011b00579fa86e9c6af98fd6c13aae7b6c1d82e5a6f7e1d512fb598287",
     },
 }
+# Warcraft III's own vehicles (Blizzard Entertainment), from the owner's
+# Reforged install: "wc3" names the model's archive path; "sha256" keys are
+# archive paths of the model and the textures its drawn layers read.
+WC3_VEHICLES = {
+    "dwarf_car": {
+        "name": "Dwarf Car", "output": "DwarfCar.tga", "slug": "dwarf-car",
+        "wc3": "war3.w3mod:units/other/dwarfcar/dwarfcar.mdx", "sequence": "Stand",
+        "fit": ("length", 31.0), "hover": None, "quad": 47.0, "pivot": (3.4, 0.0), "min_solid": 0.10,
+        "sha256": {
+            "war3.w3mod:units/other/dwarfcar/dwarfcar.mdx":
+                "9e16f639588e6aef5e293a8b71c781e8ed8f10735a8beb44108358ff1a9d571b",
+            "war3.w3mod:textures/steamtank.dds": "a137b75bd85f8f5eeb96fdcdee1db1adedaa5359ae78d2e7d7961f0e1ae015ab",
+            "war3.w3mod:textures/undeadcar1.dds": "352898f44c6bcbc9d90a45ee7f2e9adc6264a5c2599b58f2377decb2f56fdcdf",
+            "war3.w3mod:replaceabletextures/heromountainking/heromountainking.dds":
+                "b5232930d9ecc3c99a3d083895cd2755db0f38ac3ea09a5fbb76411c3f089fa5",
+            "war3.w3mod:textures/gyrocopter.dds": "d75aaffc622ee8523567fcc93deffae0df381d2b4d8224135f4e5439f955e8e1",
+        },
+    },
+    "meat_wagon": {
+        "name": "Meat Wagon", "output": "MeatWagon.tga", "slug": "meat-wagon",
+        "wc3": "war3.w3mod:units/undead/meatwagon/meatwagon.mdx", "sequence": "Stand",
+        "fit": ("width", 26.0), "hover": None, "quad": 43.5, "pivot": (4.0, 0.0), "min_solid": 0.10,
+        "sha256": {
+            "war3.w3mod:units/undead/meatwagon/meatwagon.mdx":
+                "daa31452f4b551bd398dd310e9f32b667604ced5db421c5480f0b272c3dcb0af",
+            "war3.w3mod:textures/meatwagon.dds": "37912c0dbbd3b8004fc193359219526d7213e1438a82fd9ac4ef4afdeb0b3e4c",
+        },
+    },
+    "orc_demolisher": {
+        "name": "Orc Demolisher", "output": "OrcDemolisher.tga", "slug": "orc-demolisher",
+        "wc3": "war3.w3mod:units/orc/catapult/catapult.mdx", "sequence": "Stand",
+        "fit": ("width", 24.0), "hover": None, "quad": 46.5, "pivot": (4.6, 0.0), "min_solid": 0.10,
+        "sha256": {
+            "war3.w3mod:units/orc/catapult/catapult.mdx":
+                "3d2bebcf10ca33d06d66d89974f272d97f02f5848b2544bf0475153028ca82ba",
+            "war3.w3mod:textures/demolisher.dds": "5c7be582db96c484958c1bce34319faa18301e683c85fddecf914e584b20243e",
+        },
+    },
+    "glaive_thrower": {
+        "name": "Glaive Thrower", "output": "GlaiveThrower.tga", "slug": "glaive-thrower",
+        "wc3": "war3.w3mod:units/nightelf/ballista/ballista.mdx", "sequence": "Stand",
+        "fit": ("width", 24.0), "hover": None, "quad": 42.0, "pivot": (2.8, 0.0), "min_solid": 0.10,
+        "sha256": {
+            "war3.w3mod:units/nightelf/ballista/ballista.mdx":
+                "e3823eddf3a6435b7e04705e0132faa3987cccf7028362ef203b20ef261868db",
+            "war3.w3mod:textures/ballista.dds": "4d8c6c82f9651aec4349db80cb6b969ed54b80f15279e08556d1aa665b6841c4",
+        },
+    },
+}
+VEHICLES.update(WC3_VEHICLES)
 TRIKE = VEHICLES["goblin_mortar_trike"]
 
 # ---------------------------------------------------------------------------
@@ -641,7 +696,20 @@ def render_frame(model, samplers, world, quad, pivot, ss=SUPERSAMPLE, size=FRAME
     return bleed(frame)
 
 
+def wc3_triangles(source, vehicle):
+    """A Warcraft III vehicle from the extracted install `source`: model,
+    samplers and posed triangles through wc3render (MDX 800 to 1800, DDS)."""
+    import wc3render                     # wc3render imports this module; load it lazily
+    model, samplers, _ = wc3render.load(source, vehicle["wc3"], team=TEAM_RED)
+    triangles = wc3render.posed_triangles(model, vehicle["sequence"])
+    return model, samplers, triangles
+
+
 def pose(source, vehicle=TRIKE):
+    if "wc3" in vehicle:
+        model, samplers, triangles = wc3_triangles(source, vehicle)
+        triangles = [t for t in triangles if renderable(model, samplers, model["materials"][t[3]])]
+        return fitted(model, samplers, triangles, vehicle)
     model = read_model((source / vehicle["model"]).read_bytes())
     # Textures shipped with the vehicle, matched by the model's own paths
     # (case-insensitively; a bare file name may also match). Layers whose
@@ -662,6 +730,11 @@ def pose(source, vehicle=TRIKE):
             samplers[index] = (lambda r, g, b: lambda u, v: [r, g, b, 1.0])(r, g, b)
     triangles = [t for t in posed_triangles(model, vehicle["sequence"], vehicle.get("hide_bones", ()))
                  if renderable(model, samplers, model["materials"][t[3]])]
+    return fitted(model, samplers, triangles, vehicle)
+
+
+def fitted(model, samplers, triangles, vehicle):
+    """Scale and centre the posed vehicle (and lift a flyer) for the frames."""
     xs = [p[0] for t in triangles for p in t[0]]
     ys = [p[1] for t in triangles for p in t[0]]
     axis, span = vehicle["fit"]
@@ -684,7 +757,8 @@ def emitters(source, posed, vehicle=TRIKE):
     model, samplers, triangles, fit, cx, cy = posed
     interval = model["sequences"][vehicle["sequence"]]
     world = world_matrices(model, interval[0], interval)
-    raw, o, found = chunks((source / vehicle["model"]).read_bytes()).get("PRE2", b""), 0, []
+    path = model_path(source, vehicle)
+    raw, o, found = chunks(path.read_bytes()).get("PRE2", b""), 0, []
     while o < len(raw):
         inclusive = struct.unpack_from("<I", raw, o)[0]
         name = cstring(raw[o + 8:o + 88])
@@ -786,11 +860,24 @@ def validate(image, vehicle=TRIKE):
     return min(counts), max(counts)
 
 
+def model_path(source, vehicle):
+    if "wc3" in vehicle:
+        import wc3render
+        return wc3render.archive_file(source, vehicle["wc3"])
+    return source / vehicle["model"]
+
+
 def verify_sources(source, vehicle=TRIKE):
     for name, digest in vehicle["sha256"].items():
-        path = source / name
+        if "wc3" in vehicle:
+            import wc3render
+            path = wc3render.archive_file(source, name)
+            where = "extract it from the Warcraft III install with scripts/wc3casc.py (see docs/art/karts/)"
+        else:
+            path = source / name
+            where = f"extract {vehicle['archive']} there (see docs/art/karts/)"
         if not path.is_file():
-            raise SystemExit(f"Missing {path}; extract {vehicle['archive']} there (see docs/art/karts/)")
+            raise SystemExit(f"Missing {path}; {where}")
         actual = hashlib.sha256(path.read_bytes()).hexdigest()
         if actual != digest:
             raise SystemExit(f"{name} sha256 {actual} differs from the documented {digest}")
@@ -887,9 +974,11 @@ def vehicle_id(vehicle):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    where = parser.add_mutually_exclusive_group(required=True)
+    where = parser.add_mutually_exclusive_group()
     where.add_argument("--source", type=Path, help="one vehicle's extracted files")
     where.add_argument("--all", type=Path, metavar="ROOT", help="build every vehicle from ROOT/<slug>/")
+    parser.add_argument("--wc3", type=Path, metavar="WC3",
+                        help="Warcraft III files extracted from the install (its own vehicles)")
     parser.add_argument("--vehicle", choices=sorted(VEHICLES), default="goblin_mortar_trike",
                         help="the vehicle in --source (default: the Goblin Mortar Trike)")
     parser.add_argument("--check", action="store_true", help="verify exact runtime bytes without writing")
@@ -897,8 +986,17 @@ def main():
     parser.add_argument("--emitters", action="store_true",
                         help="list each model's particle emitters and rear ground contacts in the kart's frame")
     args = parser.parse_args()
-    jobs = ([(VEHICLES[args.vehicle], args.source)] if args.source else
-            [(vehicle, args.all / vehicle["slug"]) for vehicle in VEHICLES.values()])
+    if args.source:
+        jobs = [(VEHICLES[args.vehicle], args.source)]
+    elif args.all:
+        jobs = [(vehicle, args.wc3 if "wc3" in vehicle else args.all / vehicle["slug"])
+                for vehicle in VEHICLES.values() if "wc3" not in vehicle or args.wc3]
+        if not args.wc3:
+            print("NOTE: no --wc3: Warcraft III's own vehicles are skipped")
+    elif args.wc3 and "wc3" in VEHICLES[args.vehicle]:
+        jobs = [(VEHICLES[args.vehicle], args.wc3)]
+    else:
+        parser.error("give --source, --all, or --wc3 with one of Warcraft III's own --vehicle ids")
     for vehicle, source in jobs:
         if args.emitters:
             verify_sources(source, vehicle)

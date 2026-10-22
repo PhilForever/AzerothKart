@@ -33,7 +33,7 @@ open window ─► Main menu ─► Single Player ─► Choose a Track ─► C
 |---|---|
 | Main menu | The "Azeroth Kart" title, then **Single Player**, **Multiplayer (soon)**, **Garage**, **How to Play** and **Settings**, with the current track and kart named underneath |
 | Choose a Track | Mirage Raceway and Test Oval, each with a preview picture, a short description and its facts (3 laps, 4 gates, direction, off-road). Choosing one applies it at once; **Next: Choose Kart** continues |
-| Choose Your Kart | A turntable that spins the chosen kart's own 64-heading sheet, arrows and a grid of all six karts, the kart's description and model credit, and a note that every kart handles the same. **Race!** starts the countdown |
+| Choose Your Kart | A turntable that spins the chosen kart's own 64-heading sheet, arrows and a grid of all ten karts (five rows of two), the kart's description and model credit, and a note that every kart handles the same. **Race!** starts the countdown |
 | Garage | The same kart choice from the main menu, with **Done** instead of Race! |
 | Multiplayer | **COMING SOON**. Disabled **Host a Race** and **Join a Race**, a disabled lobby preview (you, an open slot, track, Ready/Start/Leave), and how to help with today's connection test (`/akart net help`) |
 | How to Play | The controls and the racing rules, plus the model credits |
@@ -115,7 +115,7 @@ The multiplayer screen maps a copied PeerSession view to copy and enabled contro
 
 ## Budget
 
-Explicit UI counts were65/160/79 for the original Menu. Current integrated city screen/gates plus one staging background use **71 frames, 165 textures and 80 font strings**:
+Explicit UI counts were65/160/79 for the original Menu. Current integrated city screen/gates plus one staging background use **71 frames, 165 textures and 80 font strings**, and **75 frames** with the four Warcraft III karts' list buttons (`claude/kart-roster-wc3`):
 
 - **Frames:** the menu screens and their buttons, the header, the drag handle, a close watcher, the race overlay and the results buttons.
 - **Font strings:** the old title line is replaced.
@@ -152,7 +152,7 @@ Fully restart the client after installing: `Menu.lua` and `TrackPreviews.tga` ar
 5. **Multiplayer** shows Coming soon with every control disabled. **How to Play** and **Settings** are readable. Settings sizes apply at once, and sizes too big for the screen are greyed out.
 6. Drag the window by its title, `/reload`, and reopen. The track, kart and settings are remembered; the position may reset.
 7. Press Alt+Z twice while in Settings: the window comes back on Settings. Escape during a race still ends the run (and may open the Game Menu).
-8. Turn on developer info, then type `/akart probe` or click Print Probe: the counts are71/165/80.
+8. Turn on developer info, then type `/akart probe` or click Print Probe: the counts are 75/165/80 with the ten karts (71/165/80 before them).
 
 Open questions for the client:
 

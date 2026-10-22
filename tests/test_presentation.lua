@@ -265,7 +265,8 @@ end
 local addonPrefix = "Interface\\AddOns\\AzerothKart\\"
 local spriteFiles = 0
 local coverageFloors = {goblin_mortar_trike=0.12, steam_tank=0.12,
-    dwarven_biker=0.12, gryphon_rider=0.08, gyrocopter=0.06}
+    dwarven_biker=0.12, gryphon_rider=0.08, gyrocopter=0.06,
+    dwarf_car=0.10, orc_demolisher=0.10, meat_wagon=0.10, glaive_thrower=0.10}
 for id, sprite in pairs(P.KART_SPRITES) do
     local w, h = sprite.textureWidth, sprite.textureHeight
     assert(type(sprite.path) == "string" and sprite.path:sub(1, #addonPrefix) == addonPrefix

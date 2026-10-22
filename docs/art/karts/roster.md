@@ -1,8 +1,45 @@
-# Kart roster — four more Warcraft III vehicles and the Kart button
+# Kart roster — Warcraft III vehicles and the Kart button
 
 **Status (2026-10-21):** the owner chose four vehicles; each is rendered from its published Warcraft III model and registered on `claude/track-ui`. They are the Steam Tank, Dwarven Biker, Gryphon Rider and Gyrocopter.
 
-While stopped, a new **Kart** button cycles six karts: the [Goblin Mortar Trike](goblin-mortar-trike.md) (default), these four, and the original [Goblin Drag Car](goblin-drag-car.md). Karts are cosmetic: every one drives the same 17×31 physics body with the same handling.
+**2026-10-22, `claude/kart-roster-wc3`:** four more, Warcraft III's own: the [Dwarf Car, Orc Demolisher, Meat Wagon and Glaive Thrower](#warcraft-iiis-own-vehicles-2026-10-22). Ten karts in all, past the release target's eight.
+
+While stopped, the **Kart** button cycles the karts in `Presentation.KART_ORDER`: the [Goblin Mortar Trike](goblin-mortar-trike.md) (default), Steam Tank, Dwarven Biker, Dwarf Car, Orc Demolisher, Meat Wagon, Glaive Thrower, Gryphon Rider, Gyrocopter and the original [Goblin Drag Car](goblin-drag-car.md). Karts are cosmetic: every one drives the same 17×31 physics body with the same handling.
+
+## Warcraft III's own vehicles (2026-10-22)
+
+Asked what to build next, the owner chose more karts and picked all four vehicles offered from Warcraft III itself: the **Dwarf Car** (the little dwarven steam car), the **Orc Demolisher**, the Undead **Meat Wagon** and the Night Elf **Glaive Thrower**. These are Blizzard Entertainment's own models from the owner's Warcraft III: Reforged install, used under [ADR 0009](../../adr/0009-warcraft-iii-asset-reuse.md); no community author or unknown licence is involved this time. Redistribution rights remain unresolved for release review, as for all Warcraft III art.
+
+![The four new karts at six headings on Ironforge's road](wc3-vehicles-review.png)
+
+| Dwarf Car | Orc Demolisher |
+|---|---|
+| ![Dwarf Car sheet and views](dwarf-car-review.png) | ![Orc Demolisher sheet and views](orc-demolisher-review.png) |
+| **Meat Wagon** | **Glaive Thrower** |
+| ![Meat Wagon sheet and views](meat-wagon-review.png) | ![Glaive Thrower sheet and views](glaive-thrower-review.png) |
+
+`scripts/build_wc3_kart.py` renders them exactly as the other karts (three-quarter view, 64 headings, the scenery's sun and shadow, player-1 red team colour); a `wc3` vehicle reads its Reforged SD model (MDX 1800) and DDS textures through `wc3render.py` from files `scripts/wc3casc.py` extracted from the install, verified by SHA-256 (the hashes are in the script). Particle and glow layers are not drawn.
+
+| Vehicle | Archive model | Pose | Scale | Frame window (quad, pivot) | Sheet SHA-256 |
+|---|---|---|---|---|---|
+| Dwarf Car | `units/other/dwarfcar/dwarfcar.mdx` (textures: steam tank, undead car, Mountain King, gyrocopter) | Stand | 31 long | 47, (3.4, 0) | `b58da1e6…0fe0fb` |
+| Orc Demolisher | `units/orc/catapult/catapult.mdx` (`textures/demolisher.dds`) | Stand | 24 wide | 46.5, (4.6, 0) | `7621c908…1a6875` |
+| Meat Wagon | `units/undead/meatwagon/meatwagon.mdx` (`textures/meatwagon.dds`) | Stand | 26 wide | 43.5, (4, 0) | `590c0c6b…f6f29c8` |
+| Glaive Thrower | `units/nightelf/ballista/ballista.mdx` (`textures/ballista.dds`) | Stand | 24 wide | 42, (2.8, 0) | `3e6eed6a…6390f4` |
+
+The carts are fitted by width so the wide ones stay near the other karts' size; the Dwarf Car by its length, the physics body's.
+
+**Effects:** the Dwarf Car's boost flame comes from its rear steam pipe and the Demolisher's from its two fire pots (the models' own emitters); the Meat Wagon and Glaive Thrower have no engine, so, like the Gryphon Rider, they leave pale wind trails from their rear wheels when boosting. Drift dust and sparks come from each cart's rear wheels.
+
+Extract and build (WC3 is the folder of extracted files, as for [the city tracks](../tracks/stormwind.md#rebuilding)):
+
+```
+python scripts/wc3casc.py "C:\Program Files (x86)\Warcraft III" models "^war3\.w3mod:units/(undead/meatwagon/meatwagon|orc/catapult/catapult|nightelf/ballista/ballista|other/dwarfcar/dwarfcar)\.mdx$" WC3
+python scripts/build_wc3_kart.py --wc3 WC3 --vehicle dwarf_car --preview     # one vehicle (dwarf_car, orc_demolisher, meat_wagon, glaive_thrower)
+python scripts/build_wc3_kart.py --all local-artifacts/third-party --wc3 WC3 --check   # every kart
+```
+
+**Menu:** each kart is one more button in the kart screens' list (ten buttons, five rows): +4 frames, explicit counts 75 frames/165 textures/80 font strings, created once with the window.
 
 The karts' appearance in WoW Forever is **NOT RUN**; see [the client check](#client-check-not-run).
 
@@ -89,6 +126,8 @@ Loaded karts are never tinted: the effects show the drift and boost phase (owner
 The Kart button adds one Frame alongside the existing Close results button: combined explicit UI counts become 11 frames, 151 textures and 13 font strings, and 65/160/79 with the front end. The front end's kart screens reuse these sheets for the turntable and add no kart art.
 
 ## Client check (NOT RUN)
+
+**The four Warcraft III vehicles (2026-10-22):** fully restart after the install (four new sheets). In the kart screen, all ten buttons fit and each of the four new karts spins on the turntable; drive a lap with each: it faces its travel, its drift dust starts at the rear wheels, the Dwarf Car and Demolisher show flame at their pipe and pots when boosting, the Meat Wagon and Glaive Thrower pale wind. Print Probe shows 75/165/80.
 
 Fully restart the client after installing: the sheets are new files. Then, while stopped:
 

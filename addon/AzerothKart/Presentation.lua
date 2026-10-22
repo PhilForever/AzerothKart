@@ -230,11 +230,35 @@ Presentation.KART_SPRITES = {
         exhausts = {{-3.4, 8.6, 14.7}, {-3.4, -8.6, 14.7}},    -- the wing engines
         view = {0.8, 0.6},
     }),
+    -- Warcraft III's own vehicles (Blizzard Entertainment), from the owner's
+    -- install; see docs/art/karts/roster.md. A cart without an engine leaves
+    -- pale wind from its rear wheels when boosting instead of exhaust flame.
+    dwarf_car = sheet("DwarfCar.tga", "Dwarf Car", 47, 3.4, {
+        wheels = {{-7.5, 7.3}, {-7.5, -7.3}},
+        exhausts = {{-13.8, 0, 9.2}},                          -- its steam pipe
+        view = {0.8, 0.6},
+    }),
+    orc_demolisher = sheet("OrcDemolisher.tga", "Orc Demolisher", 46.5, 4.6, {
+        wheels = {{-11.4, 7.0}, {-11.4, -7.0}},
+        exhausts = {{-9.4, 3.8, 17.3}, {-9.4, -3.7, 17.3}},    -- its two burning pots
+        view = {0.8, 0.6},
+    }),
+    meat_wagon = sheet("MeatWagon.tga", "Meat Wagon", 43.5, 4, {
+        wheels = {{-8.2, 6.5}, {-8.2, -6.5}}, exhausts = {},
+        trails = {{-8.2, 6.5, 3}, {-8.2, -6.5, 3}},
+        view = {0.8, 0.6},
+    }),
+    glaive_thrower = sheet("GlaiveThrower.tga", "Glaive Thrower", 42, 2.8, {
+        wheels = {{-9.9, 7.5}, {-9.9, -7.5}}, exhausts = {},
+        trails = {{-9.9, 7.5, 3}, {-9.9, -7.5, 3}},
+        view = {0.8, 0.6},
+    }),
 }
 -- The Kart button's cycle while stopped. Karts are cosmetic: every one drives
 -- the same 17x31 physics body.
 Presentation.KART_ORDER = {
-    "goblin_mortar_trike", "steam_tank", "dwarven_biker", "gryphon_rider", "gyrocopter", "goblin_drag_car",
+    "goblin_mortar_trike", "steam_tank", "dwarven_biker", "dwarf_car", "orc_demolisher", "meat_wagon",
+    "glaive_thrower", "gryphon_rider", "gyrocopter", "goblin_drag_car",
 }
 
 -- The kart after `id` in KART_ORDER (wrapping); the first for an unknown id.

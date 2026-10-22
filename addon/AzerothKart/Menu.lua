@@ -45,6 +45,7 @@ Menu.TRACKS = {
 }
 
 local WC3C = "Model: ITE project (wc3c), author unknown"
+local BLIZZARD = "Model: Blizzard Entertainment (Warcraft III)"
 Menu.KARTS = {
     goblin_mortar_trike={blurb="A goblin three-wheeler with a mortar bolted on the back and exhaust to spare.",
         credit="Model: erwtenpeller and Chriz (Vast Graphics)"},
@@ -53,6 +54,13 @@ Menu.KARTS = {
     gryphon_rider={blurb="A gryphon skimming low over the salt. No engine: it trails wind instead of flame.",
         credit=WC3C},
     gyrocopter={blurb="A gnomish flying machine, hovering just above the track.", credit=WC3C},
+    dwarf_car={blurb="A dwarven steam car, all brass and rivets, a pipe puffing at the back.", credit=BLIZZARD},
+    orc_demolisher={blurb="The Horde's siege cart: tusks, spikes and two pots of fire on the back.",
+        credit=BLIZZARD},
+    meat_wagon={blurb="The Scourge's bone cart on spiked wheels. No engine: it trails wind when it boosts.",
+        credit=BLIZZARD},
+    glaive_thrower={blurb="A Night Elf ballista on wheels, its great glaive cocked. It trails wind, not flame.",
+        credit=BLIZZARD},
     goblin_drag_car={blurb="A rocket-powered goblin dragster, happiest on the straights.",
         credit="Original Azeroth Kart art"},
 }
