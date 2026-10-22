@@ -1,3 +1,17 @@
+# Codex handoff — Ironforge polish review reserved
+
+2026-10-22 17:44 +0200, Europe/Oslo. User requests review of
+`claude/ironforge-polish` and publication if approved. Own review branch
+`codex/ironforge-polish-review` starts at pinned Claude2e75a3d, based on the
+already-reviewed/published bc93753. Prior Codex/Claude branches stay unchanged.
+Reserve only this named handoff, PROGRESS and a review report; no production
+edits or changes in Claude's worktree. Inspect sampler/authoring changes and
+art/provenance, verify unchanged Lua/geometry and focused offline checks before
+publishing the exact approved Claude branch. No main merge or release. Existing
+client-install evidence remains separate; new textured art is not client-passed.
+
+## Previous integrated handoff
+
 # Codex handoff — Ironforge v3 narrows reviewed
 
 2026-10-22 16:24 +0200, Europe/Oslo. Branch `codex/ironforge-narrows`; base d5817a8,
