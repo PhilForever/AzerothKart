@@ -10,7 +10,8 @@ local HOST,GUEST,CODE = "Amber Stone","Birch Vale","ABC123"
 
 local function client(identity,clockTest)
     local e = {identity=identity or HOST,now=0,registerCalls=0,eventCalls=0,scriptCalls=0,
-        createdFrames=0,registerResult=0,sendResult=0,sends={},output={},raceCalls=0}
+        createdFrames=0,registerResult=0,sendResult=0,sends={},output={},raceCalls=0,
+        registeredPrefixes={},unregisterCalls=0,detachCalls=0}
     local originalEvent = function() end
     e.frame = {events={},scripts={OnEvent=originalEvent}}
     function e.frame:RegisterEvent(event)
@@ -23,12 +24,14 @@ local function client(identity,clockTest)
     end
     function e.frame:UnregisterEvent(event)
         assert(event=="CHAT_MSG_ADDON_LOGGED")
+        e.unregisterCalls=e.unregisterCalls+1
         self.events[event]=nil
     end
     function e.frame:SetScript(name,callback)
         assert(name=="OnUpdate","Core retains ownership of OnEvent")
         e.scriptCalls=e.scriptCalls+1
         if callback and e.updateThrows then error("private update error") end
+        if not callback then e.detachCalls=e.detachCalls+1 end
         self.scripts[name]=callback
     end
     local results = {}
@@ -45,8 +48,9 @@ local function client(identity,clockTest)
         DEFAULT_CHAT_FRAME={AddMessage=function(_,message) output(message) end},print=output}
     e.globals.C_ChatInfo = {
         RegisterAddonMessagePrefix=function(prefix)
-            assert(prefix=="AZKART2" or prefix=="AZKART1" or prefix=="AZKCLK1")
+            assert(prefix=="AZKART2" or prefix=="AZKART1" or prefix=="AZKCLK1" or prefix=="AZKRUN1")
             e.registerCalls=e.registerCalls+1
+            e.registeredPrefixes[prefix]=true
             if e.registerThrows then error("private registration error") end
             return e.registerResult
         end,
@@ -90,7 +94,7 @@ local function client(identity,clockTest)
             assert(loadfile("addon/AzerothKart/"..module..".lua"))("AzerothKart",ns)
         end
         if clockTest then
-            for _,module in ipairs({"Checkpoints","Laps","Race"}) do
+            for _,module in ipairs({"Checkpoints","Laps","Race","Loop","LiveProtocol","LiveRace"}) do
                 assert(loadfile("addon/AzerothKart/"..module..".lua"))("AzerothKart",ns)
             end
         end
@@ -137,7 +141,7 @@ local function assertPacing(e)
         assert(calls<=2 and bytes<=158,"rolling one-second adapter budget")
     end
 end
-local function pair(clockTest)
+local function pair(clockTest,liveTest)
     local p={host=client(HOST,clockTest),guest=client(GUEST,clockTest),now=0,queue={}}
     for _,role in ipairs({"host","guest"}) do
         p[role].onSend=function(packet)
@@ -168,8 +172,8 @@ local function pair(clockTest)
         error("two-client mocked exchange did not reach expected state")
     end
     function p:lobby(track)
-        assert(self.guest:call(clockTest and "ListenCoordinated" or "Listen",HOST,CODE))
-        assert(self.host:call(clockTest and "HostCoordinated" or "Host",GUEST,CODE,track or "test_oval"))
+        assert(self.guest:call(liveTest and "ListenLive" or (clockTest and "ListenCoordinated" or "Listen"),HOST,CODE))
+        assert(self.host:call(liveTest and "HostLive" or (clockTest and "HostCoordinated" or "Host"),GUEST,CODE,track or "test_oval"))
         self:untilTrue(function() return self.guest:view().canJoin end)
         assert(self.guest:call("Join"))
         self:untilTrue(function()
@@ -603,4 +607,305 @@ do
     assertPacing(p.host); assertPacing(p.guest); detached(p.host); detached(p.guest)
 end
 
-originalPrint("Session logged-whisper adapter: explicit actions, scoped identities, paced native acceptance and cleanup verified with mocks")
+-- Live mode adopts the one-shot bundle inside the existing transport owner.
+-- Real fixed-step modules and two isolated native mocks are used throughout.
+local function livePair(track,delayed)
+    local p=pair(true,true)
+    if delayed then p.delay,p.offset=0.35,{host=0,guest=5} end
+    p:lobby(track); p:ready()
+    local leases={}
+    for _,role in ipairs({"host","guest"}) do
+        local e=p[role]
+        assert(e.registerCalls==3 and e.registeredPrefixes.AZKRUN1,
+            "live telemetry registration requires deliberate live opt-in")
+        leases[role]={owner=e.frame.akNetworkOwner,update=e.frame.scripts.OnUpdate,
+            registrations=e.eventCalls,scripts=e.scriptCalls}
+        local v,why=e:call("AdvanceLive",{accelerate=true})
+        assert(v==nil and type(why)=="string","input cannot advance a live race before GO")
+    end
+    assert(p.host:call("PrepareStart",42))
+    p:untilTrue(function()
+        return p.host:view().clock and p.guest:view().clock
+            and p.host:view().clock.phase=="armed" and p.guest:view().clock.phase=="armed"
+    end)
+    for _=1,160 do
+        if p.host:view().live and p.guest:view().live then break end
+        p:step(0.1)
+    end
+    for _,role in ipairs({"host","guest"}) do
+        local e,lease=p[role],leases[role]
+        local v=e:view()
+        assert(v.liveMode and v.phase=="racing" and v.live and v.live.phase=="running")
+        assert(v.live.vehicle.tick==0 and v.live.race.totalTicks==0,
+            "native GO adoption does not step simulation or add a second countdown")
+        assert(e.frame.akNetworkOwner==lease.owner and e.frame.scripts.OnUpdate==lease.update
+            and e.eventCalls==lease.registrations and e.scriptCalls==lease.scripts
+            and e.unregisterCalls==0 and e.detachCalls==0,
+            "GO retains the identical native lease, hooks and budget owner")
+        local bundle,why=e:call("TakeRaceStart")
+        assert(bundle==nil and why=="live_start_owned","UI cannot steal a backend-owned live launch")
+        assert(e.createdFrames==0 and #e.output==0)
+    end
+    return p
+end
+
+local function drivePair(p,seconds)
+    for _=1,math.floor(seconds*60+0.5) do
+        p:step(1/60)
+        for _,role in ipairs({"host","guest"}) do
+            local e=p[role]
+            if e:view().live and e:view().live.phase=="running" then
+                local view,why=e:call("AdvanceLive",{accelerate=true,left=role=="guest"})
+                assert(view and why==nil,"deliberate input advances the adopted live controller")
+            end
+        end
+    end
+end
+
+do
+    local e=client(HOST,true)
+    assert(not e.registeredPrefixes.AZKRUN1)
+    assert(e:call("HostCoordinated",GUEST,CODE,"test_oval"))
+    assert(not e.registeredPrefixes.AZKRUN1,"legacy coordination does not register live telemetry")
+    e:call("Stop","error"); detached(e)
+end
+do
+    local e=client(HOST,true)
+    e.globals.C_ChatInfo.RegisterAddonMessagePrefix=function(prefix)
+        e.registerCalls=e.registerCalls+1
+        return prefix=="AZKRUN1" and 99 or 0
+    end
+    refusal(e,"HostLive",GUEST,CODE,"test_oval"); detached(e)
+    assert(#e.sends==0,"failed live registration must not start lobby traffic")
+end
+
+do
+    local p=livePair("mirage_raceway",true)
+    assert(p.host:view().clock.rttMS>=700 and p.host:view().clock.rttMS<=1000)
+    -- The live canvas may mark its deliberate capture active, while an
+    -- unrelated solo capture remains a terminal conflict.
+    for _,role in ipairs({"host","guest"}) do
+        p[role].namespace.UI.active=true; p[role].namespace.UI.liveActive=true
+    end
+    drivePair(p,3)
+    for _,role in ipairs({"host","guest"}) do
+        local e=p[role]
+        local v=e:view()
+        assert(v.phase=="racing" and v.live.vehicle.tick>=175 and v.live.vehicle.tick<=185)
+        assert(v.live.remote and v.live.remote.tick>0 and not v.live.remoteVerified
+            and not v.live.resultVerified,"remote progress is explicitly observational")
+        assert(v.live.trackId=="mirage_raceway" and v.live.race.countdownTicks==0)
+        local prefixes={}
+        for _,packet in ipairs(e.sends) do prefixes[packet.prefix]=true end
+        assert(prefixes.AZKART2 and prefixes.AZKCLK1 and prefixes.AZKRUN1,
+            "one native sender carries lobby, clock and latest-only live output")
+        assertPacing(e)
+        local copied=e:call("AdvanceLive",{})
+        copied.vehicle.x=-1; copied.race.laps.completedLaps=3; copied.remote.x=-1
+        assert(e:view().live.vehicle.x>=0 and e:view().live.race.laps.completedLaps~=3
+            and e:view().live.remote.x>=0,"presentation receives copied live state")
+    end
+    local h=p.host
+    local before=h:view().live
+    local function pose(extra)
+        local m={kind="STATE",session=CODE,sequence=before.remoteSequence+10,
+            tick=before.remote.tick+1,x=before.remote.x,y=before.remote.y,
+            headingQ=0,speedQ=0,driftTier=0,boosting=false,completedLaps=2,
+            passed=0,status="running"}
+        for k,v in pairs(extra or {}) do m[k]=v end
+        return assert(h.namespace.LiveProtocol.encode(m))
+    end
+    assert(not receive(h,pose(),"Someone Else","AZKRUN1"))
+    assert(not receive(h,pose(),GUEST,"AZKRUN1","PARTY"))
+    assert(not receive(h,pose({session="OLD123"}),GUEST,"AZKRUN1"))
+    local payload=pose()
+    assert(receive(h,payload,GUEST,"AZKRUN1"))
+    assert(not receive(h,payload,GUEST,"AZKRUN1"),"duplicate poses have no authority")
+    local after=h:view().live
+    assert(after.vehicle.x==before.vehicle.x and after.vehicle.y==before.vehicle.y
+        and after.vehicle.tick==before.vehicle.tick
+        and after.race.totalTicks==before.race.totalTicks
+        and after.race.laps.completedLaps==before.race.laps.completedLaps
+        and after.remote.completedLaps==2 and after.counters.stale>before.counters.stale,
+        "valid peer claims never move local physics or award local laps")
+    for _,role in ipairs({"host","guest"}) do
+        local e=p[role]
+        e:call("Stop","stopped"); detached(e)
+        local frozen=e:view().live
+        assert(frozen and frozen.phase=="closed" and frozen.vehicle.tick>0)
+        local detachCount=e.detachCalls
+        e:update(e.now+1); e:call("Stop","stopped")
+        assert(e:view().live.vehicle.tick==frozen.vehicle.tick and e.detachCalls==detachCount,
+            "terminal live state stays available and native cleanup happens once")
+    end
+end
+
+-- All native live safety paths freeze the current run and relinquish the
+-- lease. They must not regress into a new solo race or a fresh native sender.
+for _,interrupt in ipairs({
+    function(e) e.combat=true; e:update() end,
+    function(e) e.chatLocked=true; e:update() end,
+    function(e) e.namespace.UI.active=true; e.namespace.UI.liveActive=false; e:update() end,
+    function(e) e.clockThrows=true; e:update() end,
+    function(e) e.now=e.now-0.1; e:update() end,
+    function(e) e:call("HandleEvent","PLAYER_REGEN_DISABLED") end,
+    function(e) e:call("HandleEvent","PLAYER_LEAVING_WORLD") end,
+    function(e) e:call("HandleEvent","PLAYER_LOGOUT") end,
+}) do
+    local p=livePair()
+    drivePair(p,0.2)
+    local e=p.host
+    local tick,sends,oldUpdate=e:view().live.vehicle.tick,#e.sends,e.frame.scripts.OnUpdate
+    interrupt(e); detached(e)
+    assert(e:view().live.phase=="closed" and e:view().live.vehicle.tick==tick)
+    local detachCount=e.detachCalls
+    e.now=p.now+1; e.combat=false; e.chatLocked=false; e.clockThrows=false
+    e.namespace.UI.active=false; e:call("HandleEvent","PLAYER_REGEN_ENABLED")
+    e:run(oldUpdate,e.frame,1); e:update()
+    local view,why=e:call("AdvanceLive",{accelerate=true})
+    assert(view and view.phase=="closed" and view.vehicle.tick==tick and why==nil,
+        "post-exit rendering may read the copied frozen run without advancing it")
+    assert(e:view().live.vehicle.tick==tick and #e.sends==sends and e.detachCalls==detachCount)
+    p.guest:call("Stop","stopped"); detached(p.guest)
+end
+
+for _,outcome in ipairs({"failed","throttled","unknown","throws"}) do
+    local p=livePair()
+    drivePair(p,0.2)
+    local e=p.host
+    if outcome=="failed" then e.sendResult=12
+    elseif outcome=="throttled" then e.sendResult=3
+    elseif outcome=="unknown" then e.sendResult=nil
+    else e.sendThrows=true end
+    local sends,tick=#e.sends,e:view().live.vehicle.tick
+    p:step(0.51)
+    detached(e)
+    assert(#e.sends==sends+1 and e.sends[#e.sends].prefix=="AZKRUN1")
+    assert(e:view().live.phase=="closed" and e:view().live.vehicle.tick==tick)
+    e:update(e.now+2); assert(#e.sends==sends+1,"native live failures cannot retry or auto-resume")
+    assertPacing(e)
+    for _,message in ipairs(e.output) do assert(not message:find("private",1,true)) end
+    p.guest:call("Stop","stopped"); detached(p.guest)
+end
+
+do
+    local p=livePair()
+    drivePair(p,0.2)
+    p.drop=function(packet) return packet.prefix=="AZKRUN1" and packet.sender==GUEST end
+    -- Fresh wrong-session/unauthorized traffic must not become a keepalive.
+    local remote=p.host:view().live.remote
+    local foreign=assert(p.host.namespace.LiveProtocol.encode({kind="STATE",session="OLD123",
+        sequence=100,tick=remote.tick+1,x=remote.x,y=remote.y,headingQ=0,speedQ=0,
+        driftTier=0,boosting=false,completedLaps=0,passed=0,status="running"}))
+    for _=1,12 do
+        p:step(0.5)
+        if p.host:call("IsActive") then
+            assert(not receive(p.host,foreign,GUEST,"AZKRUN1"))
+            assert(not receive(p.host,foreign,"Other Person","AZKRUN1"))
+        end
+        for _,role in ipairs({"host","guest"}) do
+            local e=p[role]
+            if e:call("IsActive") then e:call("AdvanceLive",{accelerate=true}) end
+        end
+    end
+    detached(p.host)
+    assert(p.host:view().live.reason=="peer_timeout" and p.host:view().live.vehicle.tick>0)
+    assert(p.host.namespace.RaceProtocol.decode(p.host.sends[#p.host.sends].payload).kind=="CANCEL",
+        "peer timeout gets at most the existing paced terminal control notice")
+    assertPacing(p.host); assertPacing(p.guest)
+    p.guest:call("Stop","stopped"); detached(p.guest)
+end
+
+do
+    local p=livePair()
+    drivePair(p,32)
+    local h,g=p.host,p.guest
+    assert(h:view().phase=="racing" and g:view().phase=="racing",
+        "live driving retires the old thirty-second lobby deadline")
+    local tick=h:view().live.vehicle.tick
+    assert(h:call("Leave"))
+    for _=1,8 do
+        p:step(0.5)
+        if not h:call("IsActive") and not g:call("IsActive") then break end
+    end
+    detached(h); detached(g)
+    assert(h:view().live.vehicle.tick==tick and h:view().live.phase=="closed"
+        and g:view().live.phase=="closed","post-lobby Leave freezes both adopted races")
+    local cancels=0
+    for _,packet in ipairs(h.sends) do
+        if packet.prefix=="AZKART2" and h.namespace.RaceProtocol.decode(packet.payload).kind=="CANCEL" then
+            cancels=cancels+1
+        end
+    end
+    assert(cancels==1,"a live Leave sends exactly one paced control cancellation")
+    assertPacing(h); assertPacing(g)
+end
+
+do
+    local p=livePair()
+    drivePair(p,0.2)
+    local e=p.host
+    local sends,tick=#e.sends,e:view().live.vehicle.tick
+    e.onSend=function(packet)
+        assert(packet.prefix=="AZKRUN1")
+        e:call("Stop","stopped")
+        assert(e.frame.akNetworkSending==e.transport)
+        assert(not e:run(e.probe.Command,"listen Birch Vale DEF456"),
+            "a live send callback cannot transfer the native lease before unwinding")
+    end
+    p:step(0.51)
+    detached(e)
+    assert(#e.sends==sends+1 and e:view().live.vehicle.tick==tick
+        and e:view().live.phase=="closed","native completion cannot revive a reentrantly stopped live run")
+    e.onSend=nil; e:update(e.now+1)
+    assert(#e.sends==sends+1)
+    assertPacing(e)
+    p.guest:call("Stop","stopped"); detached(p.guest)
+end
+
+do
+    local p=pair(true,true)
+    p:lobby(); p:ready(); assert(p.host:call("PrepareStart",42))
+    p:untilTrue(function()
+        return p.host:view().clock and p.guest:view().clock
+            and p.host:view().clock.phase=="armed" and p.guest:view().clock.phase=="armed"
+    end)
+    p.host.namespace.LiveRace.new=function() error("private live initializer failure") end
+    for _=1,160 do
+        if p.host:view().phase=="closed" then break end
+        p:step(0.1)
+    end
+    detached(p.host)
+    assert(p.host:view().reason=="controller_error" and not p.host:view().live
+        and p.host:view().canHost,"failed GO adoption cannot leak its lease or return a partial live run")
+    p.guest:call("Stop","stopped"); detached(p.guest)
+end
+
+do
+    local p=livePair()
+    local h=p.host
+    local oldSequence
+    for _,packet in ipairs(p.guest.sends) do
+        if packet.prefix=="AZKART2" then
+            local message=assert(h.namespace.RaceProtocol.decode(packet.payload))
+            if message.kind=="READY" then oldSequence=message.sequence; break end
+        end
+    end
+    assert(oldSequence,"the host actually received its peer's pre-GO READY command")
+    local cancel=wire(h,"CANCEL",oldSequence,{reason="left"})
+    assert(not receive(h,cancel,"Other Person"))
+    assert(not receive(h,wire(h,"CANCEL",oldSequence,{reason="left",session="OLD123"}),GUEST))
+    assert(h:view().phase=="racing" and h:call("IsActive"),
+        "unrelated native peers or sessions cannot cancel an adopted race")
+    local tick,sends=h:view().live.vehicle.tick,#h.sends
+    local accepted,why=receive(h,cancel,GUEST)
+    assert(not accepted and why=="conflicting_sequence",
+        "post-GO CANCEL preserves the control controller's received-sequence history")
+    detached(h)
+    assert(h:view().live.phase=="closed" and h:view().live.reason=="error"
+        and h:view().lastError=="controller_error" and h:view().live.vehicle.tick==tick
+        and #h.sends==sends,"a conflicting old command fails closed without masquerading as a fresh peer Leave")
+    p.guest:call("Stop","stopped"); detached(p.guest)
+end
+
+originalPrint("Session logged-whisper adapter: explicit actions, scoped identities, negotiated live GO, persistent pacing and cleanup verified with mocks")

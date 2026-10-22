@@ -5,11 +5,13 @@ local _, AK = ...
 assert(type(AK)=="table", "addon namespace required")
 local Session, Protocol = assert(AK.PeerSession), assert(AK.RaceProtocol)
 local Clock, ClockProtocol, RaceStart = AK.StartClock, AK.ClockProtocol, AK.RaceStart
+local Live, LiveProtocol = AK.LiveRace, AK.LiveProtocol
 local Transport = {ROUTE="WHISPER_LOGGED"}
 AK.SessionTransport = Transport
 
 local frame, control, lastView, lastError, lastNow, busy, drainDeadline
 local coordinated, clockState, raceGate, trackSet, lastClock
+local liveMode, liveRun, lastLive
 local registered, sendAPI, sendSuccess, failedCodes, throttleCodes = {}
 local used, usedCount, attempts, lastAttempt = {}, 0, {}, nil
 local traffic = {attempts=0, accepted=0, failed=0, unknown=0, throttled=0,
@@ -21,7 +23,7 @@ local stopReasons = {combat=true, world_leave=true, logout=true, local_drive=tru
     error=true, clock_error=true, chat_lock=true, lease_lost=true,
     capabilities=true, prefix_registration=true, event_registration=true,
     update_registration=true, controller_error=true, send_error=true,
-    send_failed=true, send_unknown=true, send_throttled=true}
+    send_failed=true, send_unknown=true, send_throttled=true, stopped=true, focus_lost=true}
 
 local function copy(value)
     if type(value)~="table" then return value end
@@ -52,6 +54,11 @@ local function hardStop(reason)
         lastClock=Clock.view(clockState)
     end
     if raceGate then RaceStart.cancel(raceGate) end
+    if liveRun then
+        pcall(Live.stop,liveRun,math.floor((lastNow or 0)*1000),reason=="clock_error" and "clock" or reason)
+        lastLive=Live.view(liveRun)
+        liveRun=nil
+    end
     clockState, raceGate, trackSet = nil,nil,nil
     control, drainDeadline = nil, nil
     lastError = reason
@@ -75,7 +82,10 @@ local function readClock()
 end
 local function blocked()
     local ok, reason = pcall(function()
-        if AK.UI and AK.UI.active then return "local_drive" end
+        if AK.UI and AK.UI.active and not (liveMode and (liveRun or (lastLive and control))
+            and AK.UI.liveActive==true) then
+            return "local_drive"
+        end
         if type(InCombatLockdown)~="function" or InCombatLockdown()~=false then return "combat" end
         if type(C_ChatInfo)=="table" and type(C_ChatInfo.InChatMessagingLockdown)=="function"
             and C_ChatInfo.InChatMessagingLockdown()~=false then return "chat_lock" end
@@ -101,6 +111,12 @@ local function finish(now)
         clockState=nil
     end
     if raceGate then RaceStart.cancel(raceGate); raceGate=nil end
+    if liveRun then
+        local snapshot=Live.view(liveRun)
+        if snapshot.phase~="closed" then Live.stop(liveRun,math.floor(now*1000),"stopped") end
+        lastLive=Live.view(liveRun)
+        liveRun=nil
+    end
     if view.hasPendingOutput then
         drainDeadline = drainDeadline or now+2
         if now<drainDeadline then return end
@@ -114,7 +130,7 @@ local function readyToSend(now, bytes)
         and #attempts<2 and traffic.windowBytes+bytes<=158
 end
 
-local function capabilities(wantClock)
+local function capabilities(wantClock,wantLive)
     if not owns() or type(C_ChatInfo)~="table"
         or type(C_ChatInfo.RegisterAddonMessagePrefix)~="function"
         or type(C_ChatInfo.SendAddonMessageLogged)~="function" or type(Enum)~="table"
@@ -138,6 +154,7 @@ local function capabilities(wantClock)
     failedCodes, throttleCodes = failed, throttled
     local prefixes={Protocol.PREFIX}
     if wantClock then prefixes[2]=ClockProtocol.PREFIX end
+    if wantLive then prefixes[3]=LiveProtocol.PREFIX end
     for _, prefix in ipairs(prefixes) do
         if not registered[prefix] then
             local raw = C_ChatInfo.RegisterAddonMessagePrefix(prefix)
@@ -162,8 +179,9 @@ local function nativeSend(expected, payload, peer, prefix, stampMS)
     if control~=expected or not owns() then return "failed" end
     prefix=prefix or Protocol.PREFIX
     local clockPacket=coordinated and prefix==ClockProtocol.PREFIX
-    local cap=clockPacket and ClockProtocol.MAX_BYTES or 23
-    if (prefix~=Protocol.PREFIX and not clockPacket) or type(payload)~="string"
+    local livePacket=liveMode and liveRun and prefix==LiveProtocol.PREFIX
+    local cap=clockPacket and ClockProtocol.MAX_BYTES or (livePacket and LiveProtocol.MAX_BYTES or 23)
+    if (prefix~=Protocol.PREFIX and not clockPacket and not livePacket) or type(payload)~="string"
         or #payload>cap or not readyToSend(now,#payload+#prefix) then
         hardStop("error"); return "failed"
     end
@@ -213,7 +231,7 @@ function Transport.Stop(reason)
     return active
 end
 
-local function arm(role, peer, code, trackId, wantClock)
+local function arm(role, peer, code, trackId, wantClock, wantLive)
     if busy or control or not frame or frame.akNetworkOwner or frame.akNetworkSending then
         return false,"busy"
     end
@@ -227,6 +245,9 @@ local function arm(role, peer, code, trackId, wantClock)
     -- Validate and construct geometry metadata without touching UI.track.
     if wantClock and (type(Clock)~="table" or type(ClockProtocol)~="table"
         or type(RaceStart)~="table" or type(AK.Race)~="table") then return fail("invalid_options") end
+    if wantLive and (type(Live)~="table" or type(LiveProtocol)~="table" or type(AK.Loop)~="table") then
+        return fail("invalid_options")
+    end
     local tracks
     local ok, candidate = pcall(function()
         local mirage = AK.MirageRaceway.new(AK.Track.crossesGate)
@@ -251,7 +272,7 @@ local function arm(role, peer, code, trackId, wantClock)
         local invited, why = Session.invite(state,now,trackId)
         if not invited then return fail(why) end
     end
-    local apiOK, capable, why = pcall(capabilities,wantClock)
+    local apiOK, capable, why = pcall(capabilities,wantClock,wantLive)
     if not apiOK or not capable then return fail(apiOK and why or "capabilities") end
     if not owns() then return fail("lease_lost") end
     -- Native hook callbacks can call Stop. Keep the candidate private until all
@@ -262,6 +283,7 @@ local function arm(role, peer, code, trackId, wantClock)
     if not updateOK or not owns() then return fail("update_registration") end
     control, lastView, lastError, drainDeadline = state, nil, nil, nil
     coordinated, clockState, raceGate, lastClock, trackSet = wantClock==true,nil,nil,nil,tracks
+    liveMode,liveRun,lastLive=wantLive==true,nil,nil
     used[code], usedCount=true,usedCount+1
     busy=false
     return true
@@ -270,6 +292,8 @@ function Transport.Host(peer,code,trackId) return arm("host",peer,code,trackId) 
 function Transport.Listen(peer,code) return arm("guest",peer,code) end
 function Transport.HostCoordinated(peer,code,trackId) return arm("host",peer,code,trackId,true) end
 function Transport.ListenCoordinated(peer,code) return arm("guest",peer,code,nil,true) end
+function Transport.HostLive(peer,code,trackId) return arm("host",peer,code,trackId,true,true) end
+function Transport.ListenLive(peer,code) return arm("guest",peer,code,nil,true,true) end
 
 local function action(method,...)
     if busy then return false,"busy" end
@@ -297,7 +321,15 @@ function Transport.PrepareStart(seed)
     if seed==nil then seed=0 end
     return action(Session.start,AK.Race.COUNTDOWN_TICKS,seed)
 end
-function Transport.Leave() return action(Session.cancel,"left",true) end
+function Transport.Leave()
+    if liveRun then
+        -- Freeze first. The existing control cancellation then drains through
+        -- the same owner and persistent native gate; no extra sender exists.
+        Live.stop(liveRun,math.floor((lastNow or 0)*1000),"stopped")
+        lastLive=Live.view(liveRun)
+    end
+    return action(Session.cancel,"left",true)
+end
 
 local function handoff(now)
     if not coordinated or not control or clockState then return end
@@ -328,6 +360,58 @@ local function clockFailure(now)
     end
 end
 
+local function initializeRace(now,expected,view)
+    local ms=math.floor(now*1000)
+    local ticket,why=Clock.takeTicket(clockState,ms)
+    clockFailure(now)
+    if not ticket or control~=expected then return nil,why end
+    local track=view.offer and trackSet[view.offer.trackId]
+    raceGate,why=RaceStart.new(ticket,track,view.offer.physicsVersion)
+    if not raceGate then return nil,why end
+    return RaceStart.take(raceGate,ms,AK.Physics,AK.Race,AK.Checkpoints,AK.Laps)
+end
+
+local function adoptLive(now,expected)
+    if not liveMode or liveRun or not clockState or control~=expected then return end
+    local view=Session.view(expected)
+    local bundle,why=initializeRace(now,expected,view)
+    if not bundle then
+        if raceGate or (clockState and Clock.view(clockState).phase=="launched") then hardStop("controller_error") end
+        return false,why
+    end
+    -- No lease/hook transition here. Initializer reentry may revoke ownership.
+    if control~=expected or not owns() then return false,"closed" end
+    local token=Live.new(bundle,view.peer,math.floor(now*1000),{
+        Physics=AK.Physics,Race=AK.Race,Checkpoints=AK.Checkpoints,Laps=AK.Laps,
+        Loop=AK.Loop,LiveProtocol=LiveProtocol})
+    if not token then hardStop("controller_error"); return false,"controller_error" end
+    if control~=expected or not owns() then Live.stop(token,math.floor(now*1000),"stopped"); return false,"closed" end
+    if not Session.beginRace(expected,now) then
+        Live.stop(token,math.floor(now*1000),"stopped"); hardStop("controller_error"); return false,"controller_error"
+    end
+    liveRun,lastLive=token,nil
+    lastClock=Clock.view(clockState)
+    clockState,raceGate,trackSet=nil,nil,nil
+    return true
+end
+
+local function finishLive(now)
+    if not liveRun or not control then return end
+    local snapshot=Live.view(liveRun)
+    if snapshot.phase=="closed" then
+        lastLive=snapshot
+        if snapshot.reason and snapshot.reason:match("^send_") then
+            hardStop(snapshot.reason); return
+        end
+        if snapshot.reason=="clock" then hardStop("clock_error"); return end
+        -- Completed poses are already repeated three times. Other local exits
+        -- receive at most the existing one-shot paced control cancellation.
+        Session.cancel(control,now,snapshot.reason=="peer_timeout" and "timeout" or "left",
+            snapshot.reason~="completed_unverified")
+        finish(now)
+    end
+end
+
 function Transport.Update()
     if busy then return false,"busy" end
     if not control then return false,"inactive" end
@@ -335,6 +419,16 @@ function Transport.Update()
     local now, reason = checked()
     if not now then hardStop(reason); busy=false; return false,reason end
     local expected=control
+    if liveRun then
+        local token=liveRun
+        local ok,sent,why=pcall(Live.update,token,math.floor(now*1000),function(payload,peer,prefix)
+            return nativeSend(expected,payload,peer,prefix)
+        end,readyToSend(now,LiveProtocol.MAX_BYTES+#LiveProtocol.PREFIX))
+        if not ok then hardStop("controller_error"); busy=false; return false,"controller_error" end
+        if liveRun==token and control==expected and (sent or why~="paced") then finishLive(lastNow) end
+        busy=false
+        return sent==true,why
+    end
     -- Reserve enough budget for the largest control message; no queued output
     -- is consumed while pacing blocks a send. Timeouts still advance.
     local ok, sent, why = pcall(Session.update,expected,now,
@@ -365,12 +459,44 @@ function Transport.Update()
             if not clockOK then hardStop("controller_error"); busy=false; return false,"controller_error" end
             sent=sent or clockSent
             clockFailure(lastNow)
+            if liveMode and control==expected and clockState then
+                local adopted=pcall(adoptLive,lastNow,expected)
+                if not adopted then hardStop("controller_error"); busy=false; return false,"controller_error" end
+            end
         end
     end
     busy=false
     return sent==true,why
 end
 function Transport.Message(prefix,payload,channel,nativeSender)
+    if liveRun and control then
+        local now,reason=checked()
+        if not now then return hardStop(reason) end
+        local token=liveRun
+        if prefix==LiveProtocol.PREFIX then
+            local ok,accepted,why=pcall(Live.receive,token,math.floor(now*1000),prefix,payload,channel,nativeSender)
+            if not ok then return hardStop("controller_error") end
+            if liveRun==token then finishLive(lastNow) end
+            return accepted==true,why
+        elseif prefix==Protocol.PREFIX then
+            -- Only a scoped control CANCEL applies after GO. Old READY/START
+            -- retries cannot reopen the race or advance the dormant controller.
+            local message=Protocol.decode(payload)
+            if message and message.kind=="CANCEL" then
+                local ok,accepted,why=pcall(Session.receive,control,now,prefix,payload,channel,nativeSender)
+                if not ok then return hardStop("controller_error") end
+                if control and Session.view(control).phase=="closed" then
+                    Live.stop(token,math.floor(now*1000),accepted and "peer_stopped" or "error")
+                    -- CANCEL is already best-effort/one-shot. Validate its
+                    -- sequence through the controller, then retire its unused
+                    -- ACK with the lease rather than adding a new notice loop.
+                    hardStop(accepted and "stopped" or "controller_error")
+                end
+                return accepted==true,why
+            end
+        end
+        return false,"unrelated"
+    end
     local clockPacket=coordinated and ClockProtocol and prefix==ClockProtocol.PREFIX
     if not control or (prefix~=Protocol.PREFIX and not clockPacket) then return false,"unrelated" end
     -- Message may run reentrantly during the native call to defer a matching
@@ -423,7 +549,38 @@ function Transport.GetView()
     view.clock=clockState and Clock.view(clockState) or copy(lastClock)
     view.canPrepareStart=coordinated==true and view.canStart==true
     if coordinated then view.canStart=false end
+    view.liveMode=liveMode==true
+    view.live=liveRun and Live.view(liveRun) or copy(lastLive)
+    if view.live then
+        view.phase=view.live.phase=="running" and "racing" or view.live.phase
+        view.reason=view.live.reason
+        view.canJoin,view.canSetReady,view.canStart,view.canPrepareStart=false,false,false,false
+        view.canLeave=control~=nil
+    end
     return view
+end
+
+function Transport.AdvanceLive(input)
+    if busy then return nil,"busy" end
+    if not liveRun or not control then
+        if liveMode and lastLive and lastLive.phase=="closed" then return copy(lastLive) end
+        return nil,"inactive"
+    end
+    busy=true
+    local now,why=checked()
+    if not now then hardStop(why); busy=false; return nil,why end
+    local token,expected=liveRun,control
+    local ok,count,reason=pcall(Live.advance,token,math.floor(now*1000),input)
+    if not ok then hardStop("controller_error"); busy=false; return nil,"controller_error" end
+    if liveRun~=token or control~=expected then busy=false; return nil,"closed" end
+    local snapshot=Live.view(token)
+    if snapshot.phase=="closed" then finishLive(lastNow) end
+    busy=false
+    -- Terminal state is a valid final presentation snapshot. Returning only
+    -- an error would make UI cleanup try to cancel the already-draining peer
+    -- notice again and potentially discard it.
+    if count==nil and snapshot.phase~="closed" then return nil,reason end
+    return snapshot
 end
 function Transport.TakeStartProposal()
     if coordinated then return nil,"coordinated_start_owned" end
@@ -444,6 +601,7 @@ end
 -- Backend ownership handoff only. Rendering/menu navigation must never consume
 -- this bundle or launch a simulation just because a screen becomes visible.
 function Transport.TakeRaceStart()
+    if liveMode and control then return nil,"live_start_owned" end
     if busy then return nil,"busy" end
     if not coordinated or not control or not clockState then return nil,"inactive" end
     busy=true
@@ -454,17 +612,9 @@ function Transport.TakeRaceStart()
     if not ok then hardStop("controller_error"); busy=false; return nil,"controller_error" end
     finish(now)
     if control~=expected or not clockState then busy=false; return nil,"closed" end
-    local ms=math.floor(now*1000)
     local view=Session.view(expected)
     local initOK,bundle,why=pcall(function()
-        local ticket,ticketWhy=Clock.takeTicket(clockState,ms)
-        clockFailure(now)
-        if not ticket or control~=expected then return nil,ticketWhy end
-        local track=view.offer and trackSet[view.offer.trackId]
-        local gateWhy
-        raceGate,gateWhy=RaceStart.new(ticket,track,view.offer.physicsVersion)
-        if not raceGate then return nil,gateWhy end
-        return RaceStart.take(raceGate,ms,AK.Physics,AK.Race,AK.Checkpoints,AK.Laps)
+        return initializeRace(now,expected,view)
     end)
     if not initOK then hardStop("controller_error"); busy=false; return nil,"controller_error" end
     if not bundle then

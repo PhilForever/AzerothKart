@@ -18,7 +18,19 @@ local UI = {
     track=Track, trackId="test_oval",
 }
 AK.UI = UI
-local render
+local render, pollLive, finishLive, applyLiveView
+
+local function pendingNativeLive()
+    local transport=AK.SessionTransport
+    if not transport then return nil end
+    local view=transport.GetView()
+    if view.liveMode and view.transportBusy then return view end
+end
+
+local function livePending()
+    return UI.multiplayer and UI.liveSession and AK.SessionTransport
+        and AK.SessionTransport.GetView().transportBusy
+end
 
 local function inCombat()
     -- Missing combat API fails closed for keyboard capture.
@@ -211,7 +223,7 @@ local function refreshSummary()
     if UI.summaryRace ~= race then
         UI.summaryRace = race
         if race.status == "finished" then
-            UI.summaryTitle:SetText("RUN COMPLETE")
+            UI.summaryTitle:SetText(UI.multiplayer and "LOCAL FINISH — UNVERIFIED" or "RUN COMPLETE")
             UI.summaryDetail:SetText(("3/3 laps | Total: %.2fs\nLast lap: %.2fs\n%s"):format(
                 race.totalTicks*Physics.FIXED_DT,race.laps.lastLapTicks*Physics.FIXED_DT,
                 bestLapText(race.laps)))
@@ -222,7 +234,8 @@ local function refreshSummary()
                 race.laps.completedLaps,race.totalTicks*Physics.FIXED_DT,
                 race.laps.currentLapTicks*Physics.FIXED_DT,bestLapText(race.laps)))
         end
-        UI.summaryHint:SetText("Restart or close results to view the track")
+        UI.summaryHint:SetText(UI.multiplayer and "Experimental race | No agreed winner or standings" or
+            "Restart or close results to view the track")
     end
     UI.summary:Show()
 end
@@ -324,6 +337,32 @@ function UI.ReleaseInput()
 end
 
 function UI.Stop(reason)
+    local pending=pendingNativeLive()
+    if UI.liveArmed or UI.liveActive or (UI.multiplayer and UI.liveSession) or pending then
+        UI.liveSession=UI.liveSession or (pending and pending.session)
+        UI.active,UI.liveArmed,UI.liveActive = false,false,false
+        UI.ReleaseInput() -- release before a paced Leave checks the local-drive guard
+        local transport = AK.SessionTransport
+        if transport then
+            local hardReason = reason=="Game interrupted by combat" and "combat" or
+                (reason=="PLAYER_LEAVING_WORLD" and "world_leave" or
+                (reason=="PLAYER_LOGOUT" and "logout" or nil))
+            if hardReason or inCombat() then
+                UI.liveStopAccepted=transport.Stop(hardReason or "combat")
+            else
+                UI.liveStopAccepted=transport.Leave()
+                if not UI.liveStopAccepted and transport.GetView().transportBusy then
+                    transport.Stop("stopped")
+                end
+            end
+            local view = transport.GetView()
+            if view.live and applyLiveView then
+                applyLiveView(view.live)
+                UI.result={status=UI.race.status,reason=reason or "Stopped",tick=UI.state.tick,
+                    totalTicks=UI.race.totalTicks,completedLaps=UI.laps.completedLaps,resultVerified=false}
+            end
+        end
+    end
     UI.active = false
     -- Closing an already interrupted drive cannot replace its terminal reason.
     if UI.result and (UI.result.status == "interrupted" or UI.result.status == "finished") then
@@ -342,10 +381,16 @@ function UI.Stop(reason)
     if UI.startButton then UI.startButton:Enable() end
     if UI.stopButton then UI.stopButton:Disable() end
     if UI.trackButton then UI.trackButton:Enable() end
+    if UI.multiplayer and pendingNativeLive() then
+        UI.startButton:Disable()
+        UI.restartButton:Disable()
+        UI.trackButton:Disable()
+    end
 end
 
 function UI.InterruptCombat()
     if not UI.active then
+        if UI.liveArmed then UI.Stop("Game interrupted by combat") end
         -- Combat onset clears even an idle/results window. A stopped drive
         -- already ended: keep its sample/result and do not announce it again.
         if UI.window and UI.window:IsShown() then UI.window:Hide() end
@@ -721,7 +766,7 @@ end
 -- drives the same 17x31 body. The choice is not saved.
 function UI.SelectKart(id)
     local sprite = Presentation.KART_SPRITES[id]
-    if not UI.kart or UI.active or not sprite then return false end
+    if not UI.kart or UI.active or UI.liveArmed or livePending() or not sprite then return false end
     if id == UI.kartId then return true end
     local previous,previousFrame = UI.kartSprite,UI.kartFrame
     local _,_,heading = Presentation.pose(UI.previousState,UI.state,1)
@@ -744,7 +789,7 @@ function UI.SelectKart(id)
 end
 
 function UI.SelectTrack(id)
-    if not UI.window or not UI.window:IsShown() or UI.active or inCombat() then return false end
+    if not UI.window or not UI.window:IsShown() or UI.active or UI.liveArmed or livePending() or inCombat() then return false end
     local course = Courses and Courses.get(id)
     if not course or course.soon then return false end
     if id == UI.trackId then return true end
@@ -793,6 +838,7 @@ function UI.SelectTrack(id)
     UI.laps = Laps.new(Track,Checkpoints,UI.state.tick)
     UI.checkpoints,UI.previousState = UI.laps.checkpoints,UI.state
     UI.race,UI.result,UI.clock,UI.performance,UI.summaryRace = nil,nil,nil,nil,nil
+    UI.multiplayer,UI.liveView,UI.liveSession=false,nil,nil
     UI.dismissedSummaryRace = nil
     UI.hudElapsed = 0
     UI.stopReason = "Track selected"
@@ -803,6 +849,43 @@ function UI.SelectTrack(id)
     refreshHud()
     UI.status:SetText(course.status)
     return true
+end
+
+local function renderOpponent()
+    if not UI.opponent then return end
+    local view = UI.liveView
+    local remote = view and view.remote
+    if not UI.multiplayer or not remote then
+        UI.opponent:Hide()
+        UI.opponentLabel:Hide()
+        return
+    end
+    -- Interpolate one received interval behind; clamp rather than extrapolate.
+    -- This consumes copied observations only and never writes local physics.
+    local previous = view.remotePrevious or remote
+    local interval = remote.receivedAtMS - previous.receivedAtMS
+    local alpha = interval > 0 and math.min(1,math.max(0,(view.remoteAgeMS or 0)/interval)) or 1
+    local x,y,heading = Presentation.pose(previous,remote,alpha)
+    x,y = Presentation.project(UI.view,x,y)
+    local scale = UI.view.scale
+    local radius = 18*scale -- rotated 17x31 body fits inside this radius
+    local visible = x>=radius and x<=800-radius and y>=radius and y<=480-radius
+    if visible then
+        UI.opponent:SetSize(17*scale,31*scale)
+        UI.opponent:ClearAllPoints()
+        UI.opponent:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x,y)
+        if UI.opponentRotationReady then
+            UI.opponentRotationReady = pcall(UI.opponent.SetRotation,UI.opponent,heading-math.pi/2)
+        end
+        UI.opponent:SetAlpha(view.remoteStale and 0.35 or 0.9)
+        UI.opponent:Show()
+    else UI.opponent:Hide() end
+    local label = (view.peer or "Friend") .. (view.remoteStale and " | signal stale" or " | observed kart")
+    if label~=UI.opponentCaption then
+        UI.opponentCaption=label
+        UI.opponentLabel:SetText(label)
+    end
+    UI.opponentLabel:Show()
 end
 
 render = function()
@@ -844,6 +927,7 @@ render = function()
         UI.kartTint = tint
         tintKart(tint)
     end
+    renderOpponent()
     refreshMeter()
     refreshCheckpoints()
     refreshCountdown()
@@ -868,7 +952,8 @@ function UI.Create()
     window:SetScript("OnKeyDown",function(_,key) keyEvent(key,true) end)
     window:SetScript("OnKeyUp",function(_,key) keyEvent(key,false) end)
     window:SetScript("OnHide",function()
-        if UI.active then UI.Stop("Window hidden") else UI.ReleaseInput() end
+        if UI.active or UI.liveArmed or (UI.multiplayer and UI.liveSession) or pendingNativeLive() then
+            UI.Stop("Window hidden") else UI.ReleaseInput() end
     end)
     -- Presentation only: the front end shows its main menu or the results.
     window:SetScript("OnShow",function() if AK.Menu then AK.Menu.OnWindowShown() end end)
@@ -897,6 +982,13 @@ function UI.Create()
     UI.backgroundStaging:Hide()
     UI.kart = texture(UI.canvas,"OVERLAY")
     loadKartSprite()
+    UI.opponent = texture(UI.canvas,"OVERLAY")
+    UI.opponent:SetColorTexture(0.18,0.85,1,1)
+    UI.opponentRotationReady = type(UI.opponent.SetRotation)=="function"
+        and pcall(UI.opponent.SetRotation,UI.opponent,0)
+    UI.opponent:Hide()
+    UI.opponentLabel = text(UI.canvas,"BOTTOMLEFT",12,12,"")
+    UI.opponentLabel:Hide()
     createEffects(UI.canvas)
     layoutTrack()
     UI.state = Physics.new(Track)
@@ -990,7 +1082,143 @@ function UI.Create()
     end
 end
 
+local function captureEligibility()
+    if not UI.window or not UI.window:IsShown() then return false,"window_hidden" end
+    if inCombat() then return false,"combat" end
+    if type(GetCurrentKeyBoardFocus)~="function"
+        or type(UI.window.EnableKeyboard)~="function"
+        or type(UI.window.SetPropagateKeyboardInput)~="function" then return false,"input_api" end
+    if GetCurrentKeyBoardFocus() then return false,"text_focus" end
+    if type(IsGameWindowFocused)=="function" and not IsGameWindowFocused() then return false,"focus_lost" end
+    return true
+end
+
+function UI.MultiplayerAction(action,...)
+    local transport = AK.SessionTransport
+    if not transport then return false,"unavailable" end
+    if action=="leave" then
+        if UI.liveArmed or UI.liveActive or (UI.multiplayer and UI.liveSession) then
+            UI.Stop("Stopped")
+            return UI.liveStopAccepted==true
+        end
+        return transport.Leave()
+    end
+    if UI.active then return false,"local_drive" end
+    if not UI.window or not UI.window:IsShown() then return false,"window_hidden" end
+    if inCombat() then return false,"combat" end
+    local accepted,reason
+    if action=="host" then accepted,reason=transport.HostLive(...)
+    elseif action=="listen" then accepted,reason=transport.ListenLive(...)
+    elseif action=="join" then accepted,reason=transport.Join()
+    elseif action=="ready" then
+        local ready=...
+        if type(ready)~="boolean" then return false,"ready" end
+        if ready then
+            local eligible,why=captureEligibility()
+            if not eligible then return false,why end
+            local view=transport.GetView()
+            local id=view.offer and view.offer.trackId
+            if not view.liveMode or not view.canSetReady then return false,"invalid_phase" end
+            if id~="test_oval" and id~="mirage_raceway" then return false,"track" end
+            if not UI.SelectTrack(id) then return false,"track_unavailable" end
+        end
+        accepted,reason=transport.Ready(ready)
+        if accepted then
+            UI.liveArmed=ready
+            UI.liveSession=ready and transport.GetView().session or nil
+        end
+    elseif action=="start" then
+        if not UI.liveArmed then return false,"not_armed" end
+        accepted,reason=transport.PrepareStart()
+    else return false,"action" end
+    if accepted and (action=="host" or action=="listen") then
+        UI.liveArmed,UI.liveActive,UI.liveSession=false,false,nil
+        UI.multiplayer,UI.liveView=false,nil
+    end
+    return accepted,reason
+end
+
+applyLiveView = function(view)
+    UI.liveView=view
+    UI.state,UI.previousState=view.vehicle,view.previous
+    UI.race,UI.clock=view.race,view.clock
+    UI.laps=UI.race.laps
+    UI.checkpoints=UI.laps.checkpoints
+end
+
+finishLive = function(reason)
+    UI.active,UI.liveActive,UI.liveArmed=false,false,false
+    UI.ReleaseInput()
+    UI.previousState=UI.state
+    UI.stopReason=reason or "Experimental race ended"
+    UI.result={status=UI.race.status,reason=UI.stopReason,tick=UI.state.tick,
+        totalTicks=UI.race.totalTicks,completedLaps=UI.laps.completedLaps,resultVerified=false}
+    render()
+    refreshHud()
+    refreshSummary()
+    UI.status:SetText(UI.stopReason .. " | Experimental result, unverified")
+    UI.startButton:Disable()
+    UI.restartButton:Disable()
+    UI.stopButton:Disable()
+    UI.trackButton:Disable()
+end
+
+pollLive = function()
+    if not UI.liveArmed and not UI.liveSession then return end
+    local transport=AK.SessionTransport
+    if not transport then return end
+    local view=transport.GetView()
+    local live=view.live
+    if live and live.session==UI.liveSession then
+        if UI.liveArmed and view.phase=="racing" then
+            local eligible=captureEligibility()
+            if not eligible or live.trackId~=UI.trackId then UI.Stop("Live start unavailable"); return end
+            applyLiveView(live)
+            UI.multiplayer,UI.liveActive,UI.active,UI.liveArmed=true,true,true,false
+            UI.result,UI.summaryRace,UI.dismissedSummaryRace=nil,nil,nil
+            UI.hudElapsed=0
+            UI.performance=UI.performanceEnabled and Performance.new() or nil
+            UI.summary:Hide()
+            UI.ReleaseInput()
+            UI.window:SetPropagateKeyboardInput(false)
+            UI.window:EnableKeyboard(true)
+            UI.stopReason="Experimental live race"
+            UI.startButton:Disable()
+            UI.stopButton:Enable()
+            UI.trackButton:Disable()
+            render()
+            refreshHud()
+            UI.status:SetText("Experimental two-player race | Stop / Esc: leave | No agreed standings")
+        elseif UI.multiplayer then
+            local changed=live.phase~=UI.liveView.phase
+            -- Keep local frozen result identity while observing the friend.
+            -- Closing transport must not replay results/fanfare.
+            UI.liveView=live
+            renderOpponent()
+            if changed and live.phase=="closed" and UI.race.status~="finished" then
+                applyLiveView(live)
+                finishLive(live.reason)
+            end
+        elseif view.phase=="closed" then UI.liveArmed=false end
+    elseif view.phase=="closed" then
+        UI.liveArmed=false
+    end
+    if UI.multiplayer and not UI.active then
+        if view.transportBusy then UI.restartButton:Disable()
+        else UI.restartButton:Enable(); UI.startButton:Enable(); UI.trackButton:Enable() end
+    end
+    if not view.transportBusy and view.phase=="closed" then
+        UI.liveArmed,UI.liveSession=false,nil
+    end
+end
+
 function UI.Start()
+    if AK.SessionTransport and UI.multiplayer then
+        local view=AK.SessionTransport.GetView()
+        if view.liveMode and view.transportBusy then
+            refuseStart("Leave or wait for the experimental session to close"); return
+        end
+    end
     if not UI.window or not UI.window:IsShown() then return end
     if inCombat() then refuseStart("Cannot start while in combat"); return end
     if type(GetCurrentKeyBoardFocus) ~= "function"
@@ -1001,6 +1229,7 @@ function UI.Start()
     if GetCurrentKeyBoardFocus() then refuseStart("Close text input before starting"); return end
     if AK.SessionTransport then AK.SessionTransport.Stop("local_drive") end
     UI.ReleaseInput()
+    UI.liveArmed,UI.liveActive,UI.liveSession,UI.multiplayer,UI.liveView=false,false,nil,false,nil
     UI.state = Physics.new(Track)
     UI.race = Race.new(Track,Checkpoints,Laps,UI.state.tick)
     UI.laps = UI.race.laps
@@ -1044,7 +1273,7 @@ local function step(dt)
 end
 
 function UI.OnUpdate(elapsed)
-    if not UI.active then return end
+    if not UI.active then pollLive(); return end
     if inCombat() then UI.InterruptCombat(); return end
     if GetCurrentKeyBoardFocus() then UI.Stop("Text input has focus"); return end
     if type(IsGameWindowFocused) == "function" and not IsGameWindowFocused() then
@@ -1055,7 +1284,16 @@ function UI.OnUpdate(elapsed)
     local begin = p and readPerformanceClock(UI.performanceReader)
     local completedLaps = UI.laps.completedLaps
     local raceStatus = UI.race.status
-    local steps = Loop.advance(UI.clock,elapsed,step)
+    local steps
+    if UI.liveActive then
+        Input.sample(UI.keys,UI.input)
+        local live,reason=AK.SessionTransport.AdvanceLive(UI.input)
+        if not live then UI.Stop(reason or "Live update failed"); return end
+        local previousTick=UI.state.tick
+        applyLiveView(live)
+        steps=UI.state.tick-previousTick
+        if live.phase~="running" then finishLive(live.reason or "Local finish — waiting for friend"); return end
+    else steps = Loop.advance(UI.clock,elapsed,step) end
     local afterSimulation = p and readPerformanceClock(UI.performanceReader)
     if UI.race.status == "finished" then
         UI.result = {status="finished",reason=UI.race.reason,tick=UI.state.tick,
@@ -1092,7 +1330,7 @@ end
 function UI.HandleEvent(event)
     if event == "PLAYER_REGEN_ENABLED" then UI.OnCombatEnded(); return end
     if event == "PLAYER_REGEN_DISABLED" then UI.InterruptCombat(); return end
-    if not UI.active then return end
+    if not UI.active and not UI.liveArmed then return end
     if event == "PLAYER_LEAVING_WORLD" or event == "PLAYER_LOGOUT" then
         UI.Stop(event)
     end

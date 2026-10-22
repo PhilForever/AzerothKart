@@ -6,7 +6,7 @@
 
 **Current two-player checkpoint:** [accepted experiment scope, ADR 0013](adr/0013-two-player-experiment-scope.md), [reload/fresh-session evidence](evidence/2026-10-21-akt724-akt725-recovery.md) and [implemented control codec](API_CONTRACTS.md#implemented-pure-race-control-codec). No new manual probe is requested; the pure controller and guarded SessionTransport bridge are implemented; the opt-in [start-clock and backend initializer](START_CLOCK.md) are now implemented on the Codex candidate branch. The reviewed solo Menu is integrated on `codex/ui-backend-integration`; multiplayer menu wiring and live-race movement/finish integration follow.
 
-**Live-race backend:** [implemented lifecycle and pose contract](LIVE_RACE.md). Pure source-only ownership/telemetry; native adoption and multiplayer menu/canvas activation remain next, with no friend-race build claimed.
+**Live-race backend:** [implemented lifecycle and pose contract](LIVE_RACE.md). Native ownership/telemetry and deliberate multiplayer menu/canvas activation are wired on the candidate; [simple friend-test steps](MULTIPLAYER_PLAYTEST.md). Native Forever gameplay remains NOT RUN.
 
 **Session menu bridge:** [public actions and copied view](SESSION_MENU_API.md). Logged two-peer control only; live race follows separately.
 

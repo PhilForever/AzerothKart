@@ -1,6 +1,6 @@
 ## Interface: 16001
 ## Title: Azeroth Kart |cffaaaaaa[Dev Prototype]|r
-## Notes: Top-down arcade racing inside WoW Forever (local test drive only)
+## Notes: Solo racing and experimental two-player racing inside WoW Forever
 ## Author: Azeroth Kart contributors
 ## Version: 0.0.1
 ## SavedVariables: AzerothKartDB

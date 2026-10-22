@@ -181,7 +181,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     end
     local ok, err=pcall(function()
         local namespace={}
-        for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Courses", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "UI", "Menu", "RaceProtocol", "PeerSession", "ClockProtocol", "StartClock", "RaceStart", "NetworkProbe", "TransportProbe", "SessionTransport", "Core"}) do
+        for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Courses", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "UI", "Menu", "RaceProtocol", "PeerSession", "ClockProtocol", "StartClock", "RaceStart", "LiveProtocol", "LiveRace", "NetworkProbe", "TransportProbe", "SessionTransport", "Core"}) do
             assert(loadfile("addon/AzerothKart/"..name..".lua"))("AzerothKart",namespace)
         end
         env.namespace=namespace
@@ -273,16 +273,16 @@ local EFFECT_TEXTURES=20+14+2*2
 -- results buttons once with the window; it replaced the old title line. The
 -- track list holds eight buttons (five tracks, three coming-soon cities) under
 -- two cup headings.
-local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=64,9,68   -- ten kart buttons since the four Warcraft III vehicles
+local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=68,9,68   -- ten kart buttons since the four Warcraft III vehicles
 -- City circuits have up to eight gates: the gate pool holds eight strips
 -- (the oval's four plus four kept hidden on the oval and Mirage Raceway).
 local GATE_STRIPS=8
 -- One additional hidden staging texture preserves the visible background on
 -- failed city/Mirage picture loads without relying on a second load to undo it.
-local UI_TEXTURES=110+GATE_STRIPS+EFFECT_TEXTURES+MENU_TEXTURES
+local UI_TEXTURES=111+GATE_STRIPS+EFFECT_TEXTURES+MENU_TEXTURES
 -- The Close results and Kart buttons add two Frames to the earlier nine.
 local UI_FRAMES=11+MENU_FRAMES
-local UI_FONTS=12+MENU_FONTS
+local UI_FONTS=13+MENU_FONTS
 local PARTICLES_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Effects\\Particles.tga"
 local FLAME_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Effects\\Flame.tga"
 local function effectPieces(UI)
@@ -2737,3 +2737,216 @@ originalPrint(effectsSummary)
 originalPrint(kartSummary)
 
 originalPrint(summary.." (mock regression only; live-client probes pending)")
+
+
+-- Canvas uses one deliberate Ready arm and copied LiveRace views. The backend
+-- owns all fixed ticks; native transport/GO exchange is tested separately.
+local function liveFixture(env,UI,trackId)
+    local AK=env.namespace
+    local clock=1000
+    local token,closed,phase=nil,false,"lobby"
+    local calls={ready=0,advance=0,stop=0}
+    local transport={}
+    local session="AKTUI1"
+    function transport.GetView()
+        return {session=session,phase=phase,liveMode=true,transportBusy=not closed,
+            canSetReady=phase=="lobby",offer={trackId=trackId or "test_oval"},
+            live=token and AK.LiveRace.view(token) or nil}
+    end
+    function transport.Ready(ready) calls.ready=calls.ready+1; calls.readyValue=ready; return true end
+    function transport.PrepareStart() calls.prepared=true; return true end
+    function transport.HostLive() return true end
+    function transport.ListenLive() return true end
+    function transport.Join() return true end
+    function transport.Leave() calls.left=true; transport.Stop("stopped"); return true end
+    function transport.Stop(reason)
+        calls.stop=calls.stop+1; closed,phase=true,"closed"
+        if token then AK.LiveRace.stop(token,clock,reason) end
+        return true
+    end
+    function transport.AdvanceLive(input)
+        calls.advance=calls.advance+1
+        AK.LiveRace.advance(token,clock,input)
+        return AK.LiveRace.view(token)
+    end
+    AK.SessionTransport=transport
+    local function launch()
+        local track=UI.track
+        token=assert(AK.LiveRace.new({session=session,role="host",seed=0,trackId=track.id,
+            trackVersion=track.version,physicsVersion=AK.Physics.VERSION,localEpochMS=clock,
+            hostEpochMS=clock,uncertaintyMS=352,peerAcknowledged=true,track=track,
+            vehicle=AK.Physics.new(track),race=AK.Race.newRunning(track,AK.Checkpoints,AK.Laps,0),
+            fixedDt=AK.Physics.FIXED_DT},"Amber Stone",clock,AK))
+        phase="racing"
+        return token
+    end
+    return calls,transport,launch,function(ms) clock=clock+ms end
+end
+
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    UI.Toggle()
+    local calls,transport,launch,advance=liveFixture(env,UI)
+    local objects={}; for key,value in pairs(env.counts) do objects[key]=value end
+    local initial=UI.state
+    UI.OnUpdate(1)
+    assert(not UI.active and UI.state==initial and calls.advance==0,"navigation never adopts live state")
+    assert(UI.MultiplayerAction("ready",true) and UI.liveArmed and not UI.active,
+        "deliberate Ready arms without capture or solo countdown")
+    assert(not UI.SelectTrack("mirage_raceway") and not UI.SelectKart("steam_tank"),
+        "armed compatibility choices cannot change under the start clock")
+    assert(UI.MultiplayerAction("start") and calls.prepared,"Start uses coordinated backend action")
+    local token=launch()
+    UI.OnUpdate(0.016)
+    assert(UI.active and UI.liveActive and UI.multiplayer and not UI.liveArmed
+        and UI.race.status=="running" and UI.race.countdownTicks==0 and UI.state.tick==0,
+        "GO adopts tick-zero running bundle without solo countdown")
+    assert(UI.window.keyboard and UI.window.propagate==false and calls.advance==0,
+        "adoption captures once; authoritative simulation starts on next update")
+    env.key(UI,"OnKeyDown","W")
+    env.key(UI,"OnKeyDown","F")
+    for _=1,12 do advance(17); UI.OnUpdate(0.017) end
+    assert(UI.active and UI.state.tick==12 and calls.advance==12 and UI.state.speed>0,
+        "one backend advance per update; no second solo Physics/Loop path")
+    local authoritative=env.namespace.LiveRace.view(token)
+    UI.state.x=1
+    assert(env.namespace.LiveRace.view(token).vehicle.x==authoritative.vehicle.x,
+        "renderer consumes copies and cannot edit authoritative physics")
+    advance(17); UI.OnUpdate(0.017)
+    assert(UI.state.x~=1,"next authoritative view replaces changed presentation copy")
+    local LP=env.namespace.LiveProtocol
+    local payload=assert(LP.encode({kind="STATE",session="AKTUI1",sequence=1,tick=1,x=400,y=100,
+        headingQ=0,speedQ=0,driftTier=0,boosting=false,completedLaps=0,passed=0,status="running"}))
+    assert(env.namespace.LiveRace.receive(token,1221,LP.PREFIX,payload,"WHISPER","Amber Stone"))
+    advance(17); UI.OnUpdate(0.017)
+    assert(UI.opponent:IsShown() and UI.opponentLabel:IsShown()
+        and UI.opponentLabel.text:find("observed kart",1,true),"pooled opponent shows unverified observation")
+    local remote=UI.liveView.remote
+    remote.x=-500
+    UI.OnUpdate(0)
+    assert(UI.liveView.remote.x==400,"render cannot change backend remote observation")
+    local counts={}; for key,value in pairs(env.counts) do counts[key]=value end
+    env.key(UI,"OnKeyDown","ESCAPE")
+    local state,clock,race=UI.state,UI.clock,UI.race
+    assert(not UI.active and not UI.liveActive and not UI.window.keyboard and next(UI.keys)==nil
+        and calls.stop==1 and UI.race.status=="stopped" and UI.result.resultVerified==false,
+        "explicit Escape stops native live owner and freezes actual partial result")
+    UI.OnUpdate(2)
+    assert(UI.state==state and UI.clock==clock and UI.race==race,"idle polling cannot advance stopped state")
+    assert(UI.summaryHint.text:find("No agreed winner",1,true),"live results do not invent standings")
+    for key,value in pairs(objects) do assert(env.counts[key]==value,"live loop allocated objects: "..key) end
+    for key,value in pairs(counts) do assert(env.counts[key]==value,"stop allocated objects: "..key) end
+end)
+
+-- Readiness and late GO fail closed without capturing or creating solo state.
+for _,mode in ipairs({"combat","focus","window","api","gamefocus","track"}) do
+    withMock(nil,false,function(env,UI)
+        env.fire("ADDON_LOADED","AzerothKart"); UI.Toggle()
+        local calls,transport,launch=liveFixture(env,UI,mode=="track" and "stormwind_circuit" or nil)
+        if mode=="combat" then env.combat=true
+        elseif mode=="focus" then env.focus={}
+        elseif mode=="window" then UI.window:Hide()
+        elseif mode=="api" then GetCurrentKeyBoardFocus=nil
+        elseif mode=="gamefocus" then env.focused=false end
+        assert(not UI.MultiplayerAction("ready",true) and calls.ready==0 and not UI.liveArmed
+            and not UI.active,"Ready refuses unsafe or unsupported selection: "..mode)
+    end)
+end
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart"); UI.Toggle()
+    local calls,transport,launch=liveFixture(env,UI,"mirage_raceway")
+    assert(UI.MultiplayerAction("ready",true) and UI.trackId=="mirage_raceway",
+        "guest Ready transaction loads exactly the offered supported course")
+    launch(); env.focused=false; UI.OnUpdate(0.016)
+    assert(not UI.active and not UI.liveArmed and calls.stop==1 and not UI.window.keyboard,
+        "focus loss between Ready and GO prevents capture")
+end)
+for _,exit in ipairs({"combat","focus","chat","close","world"}) do
+    withMock(nil,false,function(env,UI)
+        env.fire("ADDON_LOADED","AzerothKart"); UI.Toggle()
+        local calls,transport,launch,advance=liveFixture(env,UI)
+        assert(UI.MultiplayerAction("ready",true)); launch(); UI.OnUpdate(0)
+        advance(17); UI.OnUpdate(0.017)
+        if exit=="combat" then env.combat=true; UI.HandleEvent("PLAYER_REGEN_DISABLED")
+        elseif exit=="focus" then env.focused=false; UI.OnUpdate(0.017)
+        elseif exit=="chat" then env.key(UI,"OnKeyDown","ENTER")
+        elseif exit=="close" then UI.window:Hide()
+        else UI.HandleEvent("PLAYER_LEAVING_WORLD") end
+        assert(not UI.active and calls.stop>=1 and not UI.window.keyboard and next(UI.keys)==nil,
+            "live lifecycle releases native owner and capture: "..exit)
+        assert(env.combatPropagationCalls==0,"combat exit never calls propagation setter")
+        assert(UI.race.totalTicks==1,"exit retains exact partial ticks")
+    end)
+end
+
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart"); UI.Toggle()
+    local calls,transport,launch=liveFixture(env,UI)
+    assert(UI.MultiplayerAction("ready",true)); local token=launch(); UI.OnUpdate(0)
+    local frozen=env.namespace.LiveRace.view(token)
+    frozen.phase="finishing"
+    frozen.race.status="finished"
+    frozen.race.reason="local_finished"
+    frozen.race.laps.completedLaps=3
+    frozen.race.laps.lastLapTicks=100
+    frozen.race.laps.bestLapTicks=100
+    frozen.race.laps.bestLapNumber=1
+    frozen.race.totalTicks=300
+    transport.AdvanceLive=function() return frozen end
+    local busy=true
+    transport.GetView=function()
+        return {session="AKTUI1",phase=busy and "finishing" or "closed",liveMode=true,
+            transportBusy=busy,live=frozen}
+    end
+    UI.OnUpdate(0)
+    assert(not UI.active and not UI.liveActive and UI.multiplayer and not UI.window.keyboard
+        and calls.stop==0 and not UI.restartButton:IsEnabled() and not UI.startButton:IsEnabled(),
+        "local finish releases capture while preserving terminal output drain")
+    assert(UI.summaryTitle.text:find("UNVERIFIED",1,true) and UI.result.resultVerified==false,
+        "finished UI never declares an agreed winner")
+    local race,state,clock=UI.race,UI.state,UI.clock
+    UI.Start()
+    assert(not UI.active and UI.race==race and UI.state==state and UI.clock==clock and calls.stop==0,
+        "solo restart cannot replace a draining live run")
+    assert(not UI.SelectTrack("mirage_raceway") and not UI.SelectKart("steam_tank"),
+        "draining live result holds compatibility and presentation state")
+    busy=false; frozen.phase="closed"; UI.OnUpdate(0.1)
+    assert(UI.race==race and UI.state==state and UI.clock==clock and UI.restartButton:IsEnabled(),
+        "terminal transport close preserves frozen result object and enables fresh solo restart")
+    assert(UI.SelectTrack("mirage_raceway") and not UI.multiplayer and not UI.liveView
+        and not UI.opponent:IsShown(),"fresh track selection clears old observational opponent")
+end)
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart"); UI.Toggle()
+    local calls,transport,launch,advance=liveFixture(env,UI)
+    assert(UI.MultiplayerAction("ready",true)); local token=launch(); UI.OnUpdate(0)
+    local LP=env.namespace.LiveProtocol
+    local function observation(sequence,tick,x,y)
+        return assert(LP.encode({kind="STATE",session="AKTUI1",sequence=sequence,tick=tick,x=x,y=y,
+            headingQ=0,speedQ=0,driftTier=0,boosting=false,completedLaps=0,passed=0,status="running"}))
+    end
+    assert(env.namespace.LiveRace.receive(token,1000,LP.PREFIX,observation(1,1,400,100),"WHISPER","Amber Stone"))
+    advance(1601); UI.OnUpdate(1.601)
+    assert(UI.opponent:IsShown() and UI.opponentLabel.text:find("stale",1,true),
+        "stale remote observations fade and never extrapolate")
+    assert(env.namespace.LiveRace.receive(token,2601,LP.PREFIX,observation(2,2,0,0),"WHISPER","Amber Stone"))
+    advance(1601); UI.OnUpdate(1.601)
+    assert(not UI.opponent:IsShown(),"off-viewport rotated marker cannot draw beyond canvas")
+    assert(UI.MultiplayerAction("leave") and not UI.active and calls.left and calls.stop==1,
+        "explicit Leave releases capture then invokes paced cancellation once")
+end)
+
+for _,action in ipairs({"host","listen"}) do
+    withMock(nil,false,function(env,UI)
+        env.fire("ADDON_LOADED","AzerothKart"); UI.Toggle()
+        local calls,transport=liveFixture(env,UI)
+        assert(UI.MultiplayerAction(action,"Amber Stone","AKTUI1","test_oval"))
+        assert(not UI.liveArmed and not UI.liveSession and not UI.active,
+            "pre-Ready session never owns input")
+        UI.window:Hide()
+        assert(calls.left and calls.stop==1 and not UI.active,
+            "hiding window cancels even pre-Ready "..action.." session")
+    end)
+end
+
+originalPrint("test_ui live integration: deliberate GO, copied local/remote state, no double stepping, exits PASS")

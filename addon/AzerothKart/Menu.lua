@@ -1,5 +1,5 @@
--- Azeroth Kart front end: the main menu, track and kart choice, the coming-
--- soon multiplayer lobby, help, settings, the race HUD overlay and the results
+-- Azeroth Kart front end: the main menu, track and kart choice, the experimental
+-- two-player lobby, help, settings, the race HUD overlay and the results
 -- dialog. Presentation only: it calls UI's public commands (Start,
 -- SelectTrack, SelectKart, DismissSummary, SetEffectsEnabled) and never writes
 -- simulation, race or session state. A menu screen never starts a race by
@@ -198,6 +198,9 @@ local PHASES = {
     joining="Joining %s's race.",
     lobby="In the lobby. Ready up when you are set.",
     starting="Start proposed. Waiting for the race to begin.",
+    coordinating="Coordinating the start. Keep this window open.",
+    racing="Race running. The other kart is an observation; karts do not collide.",
+    finishing="Your run finished. Waiting briefly for the other kart's finish observation.",
 }
 local REASONS = {
     left="You left the session.", peer_left="%s left the session.",
@@ -209,6 +212,18 @@ local REASONS = {
     world_leave="Changing zones closed the session.", peer_world_leave="%s changed zones.",
     send_throttled="WoW is limiting addon messages. Try again in a moment.",
     send_failed="Could not reach %s.", send_unknown="Could not reach %s.", send_error="Could not reach %s.",
+    completed_unverified="Both finish observations received. No agreed winner is calculated.",
+    peer_stopped="Your friend ended their run.",
+    peer_silent="No recent race update from your friend. Start again with a fresh code.",
+    peer_stalled="Your friend's race stopped progressing. Start again with a fresh code.",
+}
+local CLOCK_PHASES = {
+    calibrating="Measuring start timing. Keep this window open.",
+    preparing="Preparing the coordinated start. Keep this window open.",
+    committing="Confirming the coordinated start. Keep this window open.",
+    armed="Start armed. Controls will be captured at GO; keep the window open.",
+    launched="Starting the race...",
+    closed="Start coordination ended. Use a fresh code to try again.",
 }
 local PENDING = {INVITE="Sending invite", JOIN="Joining", READY="Sending ready", START="Starting", CANCEL="Leaving"}
 
@@ -219,9 +234,9 @@ function Menu.lobbyPresentation(view)
     if type(view) ~= "table" or (view.phase ~= "closed" and not PHASES[view.phase]) then return copy end
     local peer = type(view.peer) == "string" and view.peer ~= "" and view.peer or "your friend"
     copy.available = true
-    copy.title = view.role == "host" and "Hosting" or "Joining"
+    copy.title = view.role == "host" and "Hosting" or view.role == "guest" and "Joining" or "Race a friend"
     if view.phase == "closed" then
-        local reason = REASONS[view.reason] or ("Session ended (" .. tostring(view.reason) .. ").")
+        local reason = REASONS[view.reason] or "The session ended. Use a fresh code to try again."
         copy.status = reason:find("%%s") and reason:format(peer) or reason
     else
         local status = PHASES[view.phase]
@@ -229,13 +244,20 @@ function Menu.lobbyPresentation(view)
         if view.pendingKind and PENDING[view.pendingKind] then
             copy.status = ("%s... (try %d of 3)"):format(PENDING[view.pendingKind], math.max(1, view.pendingAttempts or 1))
         end
+        if view.phase == "coordinating" and type(view.clock) == "table" then
+            copy.status = CLOCK_PHASES[view.clock.phase] or PHASES.coordinating
+        end
     end
-    copy.host, copy.join = view.canInvite == true, view.canJoin == true
-    copy.ready, copy.start, copy.leave = view.canSetReady == true, view.canStart == true, view.canLeave == true
+    copy.host, copy.listen, copy.join = view.canHost == true or view.canInvite == true,
+        view.canListen == true, view.canJoin == true
+    copy.ready, copy.start, copy.leave = view.canSetReady == true,
+        (view.coordinated and view.canPrepareStart == true) or (not view.coordinated and view.canStart == true),
+        view.canLeave == true
     copy.readyLabel = view.localReady and "Not ready" or "Ready"
     copy.you = view.localReady and (view.localReadyConfirmed and "Ready" or "Ready (sending)") or "Not ready"
-    local joined = view.phase == "lobby" or view.phase == "starting"
-    copy.friend = joined and peer or (view.phase == "closed" and "Open slot" or peer .. " (not joined)")
+    local joined = view.phase == "lobby" or view.phase == "starting" or view.phase == "coordinating"
+        or view.phase == "racing" or view.phase == "finishing"
+    copy.friend = joined and peer or ((view.phase == "closed" or not view.peer) and "Open slot" or peer .. " (not joined)")
     copy.friendReady = joined and (view.peerReady and "Ready" or "Not ready") or ""
     return copy
 end
@@ -652,22 +674,131 @@ function Menu.ChooseKart(id)
     if refresh[screen] and Menu.screen == screen then refresh[screen]() end
 end
 
+-- The bridge returns copied snapshots. Navigation and display never consume a
+-- GO ticket, change readiness or call the simulation directly.
+local function sessionView()
+    local bridge = Menu.bridge
+    if not bridge or type(bridge.view) ~= "function" then return nil end
+    local ok, copied = pcall(bridge.view)
+    return ok and type(copied) == "table" and copied or nil
+end
+
+local function sessionCommands()
+    return Menu.bridge and type(Menu.bridge.action) == "function"
+end
+
+local function releaseLobbyFocus()
+    for _,key in ipairs({"peerName", "sessionCode"}) do call(Menu.view[key], "ClearFocus") end
+end
+
+local ACTION_ERRORS = {
+    busy="A session or final notice is still active. Leave it and wait a moment.",
+    inactive="This session has ended. Use a fresh code to try again.",
+    combat="Leave combat before joining or readying a race.",
+    chat_focus="Finish typing or close chat, then try again.",
+    text_focus="Finish typing or close chat, then try again.",
+    focus="Focus the WoW window, then try again.",
+    focus_lost="Focus the WoW window, then try again.",
+    window_focus="Focus the WoW window, then try again.",
+    window_hidden="Open Azeroth Kart before joining a race.",
+    local_drive="Stop your current run before opening a multiplayer session.",
+    not_armed="Click Ready before starting the coordinated race.",
+    capabilities="The required Forever logged-whisper API is unavailable.",
+    prefix_registration="Forever could not register the race channel.",
+    event_registration="Forever could not enable race messages.",
+    update_registration="Forever could not enable the race update callback.",
+    reused_session="That code was already used. Both players must enter a fresh six-character code.",
+    session_limit="This addon session has reached its session limit. Reload before using a fresh code.",
+    invalid_argument="Check the complete character name and six uppercase letters or digits in the code.",
+    invalid_options="Check the complete character name and six uppercase letters or digits in the code.",
+    invalid_phase="The session changed. Check its status and try the available action.",
+    incompatible="Both players need the same Azeroth Kart build and supported track.",
+    track_load="The offered track could not load. Leave and try a supported track.",
+    track_unavailable="The offered track could not load. Leave and try a supported track.",
+    track="This experiment supports only Mirage Raceway and Test Oval. Leave and choose one of those tracks.",
+    input_unavailable="Race controls are unavailable. Leave and try again.",
+    input_api="Race controls are unavailable in this client. Leave and try again.",
+    send_failed="Forever refused the send. Leave and try again with a fresh code.",
+    send_unknown="Forever could not confirm the send. Leave and try again with a fresh code.",
+    send_throttled="Forever limited the send. Leave and try again with a fresh code.",
+}
+
+local function lobbyAction(action)
+    local session, view = sessionView(), Menu.view
+    local copy = Menu.lobbyPresentation(session)
+    local allowed = action == "start" and copy.start or action == "ready" and copy.ready
+        or action == "host" and copy.host or action == "listen" and copy.listen
+        or action == "join" and copy.join or action == "leave" and copy.leave
+    if not sessionCommands() or not allowed then return false end
+    releaseLobbyFocus()
+    local ok, accepted, reason
+    if action == "host" or action == "listen" then
+        -- A Forever name includes its surname, spaces, punctuation and UTF-8.
+        -- There are no realm names. Only trim accidental outer spaces.
+        local peer = view.peerName:GetText()
+        local code = view.sessionCode:GetText()
+        peer = type(peer) == "string" and peer:match("^ *(.-) *$") or ""
+        if peer == "" or #peer > 96 or peer:find("[%z\001-\031\127|]") then
+            toast("multiplayer", "Enter your friend's complete Forever character name, including the surname.")
+            return false
+        end
+        if type(code) ~= "string" or #code ~= 6 or code:find("[^A-Z0-9]") then
+            toast("multiplayer", "Both players: enter the same fresh code of six uppercase letters or digits.")
+            return false
+        end
+        if action == "host" then ok, accepted, reason = pcall(Menu.bridge.action, action, peer, code, Menu.lobbyTrackId)
+        else ok, accepted, reason = pcall(Menu.bridge.action, action, peer, code) end
+    elseif action == "ready" then
+        ok, accepted, reason = pcall(Menu.bridge.action, action, not session.localReady)
+    else ok, accepted, reason = pcall(Menu.bridge.action, action) end
+    if ok and accepted == true then toast("multiplayer", "")
+    else toast("multiplayer", ACTION_ERRORS[reason] or "That action could not complete. Check the session status and try again.") end
+    if refresh.multiplayer then refresh.multiplayer() end
+    return ok and accepted == true
+end
+
 local function buildMultiplayer()
     local box = screenBox("multiplayer", "Multiplayer")
+    local view = Menu.view
     local badge = newText(box, FONT.large, "TOP", 0, -66, "COMING SOON")
     color(badge, SOON)
     wrap(newText(box, FONT.white, "TOP", 0, -96,
-        "Race a friend in real time: one of you hosts and invites the other by character name. " ..
-        "Two-player racing is being built and tested now; hosting and joining open here as soon as it is ready."),
-        700, "CENTER")
-    local view = Menu.view
-    view.host = newButton(box, "Host a Race", 300, 36, "TOPLEFT", 40, -168, nil, true)
-    wrap(newText(box, FONT.small, "TOPLEFT", 44, -210, "Invite one friend by full character name."), 296)
-    view.join = newButton(box, "Join a Race", 300, 36, "TOPLEFT", 40, -248, nil, true)
-    wrap(newText(box, FONT.small, "TOPLEFT", 44, -290, "Accept your friend's invite."), 296)
-    newText(box, FONT.normal, "TOPLEFT", 40, -340, "Help test it now")
-    wrap(newText(box, FONT.small, "TOPLEFT", 40, -362,
-        "Type /akart net help in chat for the two-player connection test with a friend."), 300)
+        "Experimental two-player racing. Karts do not collide; results have no agreed winner. " ..
+        "Both players need this build. The guest listens first; the host then sends the invite."), 700, "CENTER")
+    newText(box, FONT.small, "TOPLEFT", 44, -150, "Friend's full Forever character name")
+    local function input(y, maxLetters)
+        local field = newFrame("EditBox", box, "InputBoxTemplate") or newFrame("EditBox", box)
+        field:SetSize(292, 30)
+        field:SetPoint("TOPLEFT", box, "TOPLEFT", 48, y)
+        call(field, "SetFontObject", _G.GameFontHighlight or _G.GameFontNormal)
+        call(field, "SetAutoFocus", false)
+        call(field, "SetMaxLetters", maxLetters)
+        field:SetText("")
+        field:SetScript("OnEnterPressed", function(self) call(self, "ClearFocus") end)
+        field:SetScript("OnEscapePressed", function(self) call(self, "ClearFocus") end)
+        return field
+    end
+    view.peerName = input(-173, 96)
+    newText(box, FONT.small, "TOPLEFT", 44, -215, "Shared fresh code (6 uppercase letters or digits)")
+    view.sessionCode = input(-236, 6)
+    wrap(newText(box, FONT.graySmall, "TOPLEFT", 44, -270,
+        "Use a new code every attempt; it is a public room label."), 296)
+    Menu.lobbyTrackId = "mirage_raceway"
+    view.lobbyTrackChoice = newButton(box, "Track: Mirage Raceway", 300, 28, "TOPLEFT", 40, -296, function()
+        local session = sessionView()
+        if not sessionCommands() or not session or not session.canHost then return end
+        Menu.lobbyTrackId = Menu.lobbyTrackId == "mirage_raceway" and "test_oval" or "mirage_raceway"
+        refresh.multiplayer()
+    end)
+    view.host = newButton(box, "Host / Invite", 146, 34, "TOPLEFT", 40, -338,
+        function() lobbyAction("host") end, true)
+    view.listen = newButton(box, "Listen for Host", 146, 34, "TOPLEFT", 194, -338,
+        function() lobbyAction("listen") end, true)
+    view.join = newButton(box, "Join Received Invite", 300, 34, "TOPLEFT", 40, -382,
+        function() lobbyAction("join") end, true)
+    wrap(newText(box, FONT.small, "TOPLEFT", 44, -430,
+        "Guest: Listen, then Join the received invite. Both: click Ready. Host: click Start. " ..
+        "Ready permits race controls at GO. Leave ends the session; no automatic reconnect."), 296)
     local card = panel(box, CARD, 360, 300, "TOPRIGHT", -30, -150, 0.04, 0.04, 0.05, 0.95)
     view.lobbyTitle = newText(card, FONT.large, "TOP", 0, -14, "Lobby")
     newText(card, FONT.large, "TOPLEFT", 20, -50, "1")
@@ -679,36 +810,53 @@ local function buildMultiplayer()
     view.friendReady = newText(card, FONT.gray, "TOPRIGHT", -20, -106, "")
     view.lobbyTrack = newText(card, FONT.white, "TOPLEFT", 20, -158, "")
     view.lobbyStatus = wrap(newText(card, FONT.normal, "TOPLEFT", 20, -186, ""), 320)
-    view.ready = newButton(card, "Ready", 100, 26, "BOTTOMLEFT", 16, 16)
-    view.start = newButton(card, "Start", 100, 26, "BOTTOM", 0, 16)
-    view.leave = newButton(card, "Leave", 100, 26, "BOTTOMRIGHT", -16, 16)
+    view.ready = newButton(card, "Ready", 100, 26, "BOTTOMLEFT", 16, 16, function() lobbyAction("ready") end)
+    view.start = newButton(card, "Start", 100, 26, "BOTTOM", 0, 16, function() lobbyAction("start") end)
+    view.leave = newButton(card, "Leave", 100, 26, "BOTTOMRIGHT", -16, 16, function() lobbyAction("leave") end)
     newButton(box, "Back", 150, 30, "BOTTOMLEFT", 30, 26, function() Menu.Show("home") end)
     refresh.multiplayer = function()
-        local bridge, session = Menu.bridge, nil
-        if bridge and type(bridge.view) == "function" then
-            local ok, copied = pcall(bridge.view)
-            session = ok and copied or nil
-        end
-        local copy = Menu.lobbyPresentation(session)
-        setShown(badge, not copy.available)
+        local session = sessionView()
+        local copy, commands = Menu.lobbyPresentation(session), sessionCommands()
+        badge:SetText(commands and "EXPERIMENTAL: TWO PLAYERS" or "COMING SOON")
         view.lobbyTitle:SetText(copy.available and copy.title or "Lobby preview")
         view.youKart:SetText(kartName())
         view.youReady:SetText(copy.you)
         view.friend:SetText(copy.friend)
         view.friendReady:SetText(copy.friendReady)
-        view.lobbyTrack:SetText(("Track: %s    Laps: 3"):format(trackName()))
-        view.lobbyStatus:SetText(copy.available and copy.status or "Not connected. Hosting and joining are coming soon.")
+        local offered = session and type(session.offer) == "table" and session.offer.trackId
+        local chosen = trackInfo(offered or Menu.lobbyTrackId)
+        view.lobbyTrack:SetText(("Track: %s    Laps: 3"):format(chosen and chosen.name or "Unavailable"))
+        view.lobbyTrackChoice:SetText("Track: " .. (trackInfo(Menu.lobbyTrackId) or Menu.TRACKS[1]).name)
+        view.lobbyStatus:SetText(copy.available and copy.status or "Not connected. Hosting and joining are unavailable.")
         view.ready:SetText(copy.readyLabel)
-        for _,key in ipairs({"host", "join", "ready", "start", "leave"}) do setEnabled(view[key], copy[key]) end
+        for _,key in ipairs({"host", "listen", "join", "ready", "start", "leave"}) do
+            setEnabled(view[key], commands and copy[key] == true)
+        end
+        local free = commands and session and (session.canHost or session.canListen)
+        setEnabled(view.lobbyTrackChoice, commands and session and session.canHost)
+        for _,field in ipairs({view.peerName, view.sessionCode}) do
+            call(field, free and "Enable" or "Disable")
+            if not free then call(field, "ClearFocus") end
+        end
     end
+    -- The shown lobby alone polls copied display state at 5 Hz. No simulation
+    -- ticks, packets, widgets, chat messages or catch-up refresh burst here.
+    local elapsedSinceRefresh = 0
+    box:SetScript("OnUpdate", function(_, elapsed)
+        if Menu.screen ~= "multiplayer" or not box:IsShown() then return end
+        elapsedSinceRefresh = elapsedSinceRefresh + (elapsed or 0)
+        if elapsedSinceRefresh >= 0.2 then elapsedSinceRefresh = 0; refresh.multiplayer() end
+    end)
 end
 
--- Proposed for Codex's session adapter (not wired to any command yet): it
--- registers {view = function() return copiedPeerSessionView end}. Only the
--- view's capabilities enable controls; with no bridge, everything stays
--- disabled and marked Coming soon.
+-- Additive {view, action} bridge; the legacy view-only form can still display
+-- copied diagnostics, but never enables a command without an action handler.
 function Menu.SetSessionBridge(bridge)
     Menu.bridge = type(bridge) == "table" and bridge or nil
+    if Menu.view.homeButtons then
+        Menu.view.homeButtons[2]:SetText(sessionCommands() and "Multiplayer |cffff8c26(experimental)|r" or
+            "Multiplayer |cffff8c26(soon)|r")
+    end
     if Menu.screen == "multiplayer" and refresh.multiplayer then refresh.multiplayer() end
 end
 
@@ -1070,6 +1218,18 @@ end
 function Menu.Show(screen)
     if Menu.disabled or not Menu.root then return end
     if screen and UI.active then screen = nil end -- never cover a live run
+    local leavingLobby = Menu.screen == "multiplayer" and screen ~= "multiplayer"
+    local session = (leavingLobby or (screen and screen ~= "multiplayer" and UI.multiplayer)) and sessionView()
+    -- Results can be shown while the native owner still drains finish poses.
+    -- Choosing another screen deliberately leaves that run too; otherwise its
+    -- lease blocks the next track/kart choice. GO's Show(nil) never does this.
+    local leavingLiveResults = screen and screen ~= "multiplayer" and UI.multiplayer and UI.liveSession
+        and session and session.liveMode and session.transportBusy
+    if not UI.active and session and session.canLeave and sessionCommands() and
+        (leavingLiveResults or (leavingLobby and session.phase ~= "racing" and session.phase ~= "finishing")) then
+        lobbyAction("leave")
+    end
+    if leavingLobby then releaseLobbyFocus() end
     for _,box in pairs(Menu.screens) do box:Hide() end
     Menu.screen = screen
     local home = screen == "home"

@@ -399,5 +399,17 @@ function Session.handoffStart(state, now)
     return proposal
 end
 
+-- Backend-only transition after an actual coordinated GO was initialized.
+-- The live owner now supplies bounded race duration/liveness. Keep this
+-- controller solely for its existing paced terminal cancellation semantics.
+function Session.beginRace(state, now)
+    local ok,why=advance(state,now)
+    if not ok then return false,why end
+    if state.phase~="coordinating" then return false,"invalid_phase" end
+    state.phase,state.deadline,state.pending,state.proposal="racing",nil,nil,nil
+    state.acks={}
+    return true
+end
+
 if type(namespace)=="table" then namespace.PeerSession=Session end
 return Session

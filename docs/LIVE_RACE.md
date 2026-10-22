@@ -2,8 +2,9 @@
 
 Implemented on `codex/live-race-controller`, from4544108, within the accepted
 [two-peer experiment](adr/0013-two-player-experiment-scope.md). This is a pure
-backend lifecycle and observational pose path. **Not connected to the native
-transport or menus yet; it is not a playable friend-race build.** No production
+backend lifecycle and observational pose path. The subsequent native/menu/canvas
+integration on `codex/live-multiplayer-integration` now makes an opt-in friend-test
+candidate; actual Forever gameplay is **NOT RUN**. No production
 authority, kart contact, agreed results or release decision is made here.
 
 ## Ownership and activation
@@ -118,3 +119,54 @@ Next single task: add opt-in atomic live adoption inside SessionTransport,
 preserving its existing frame lease/persistent budgets and testing the complete
 two-peer negotiated-GO-to-live path with mocked native delivery. Reviewed
 Claude menu/canvas binding then makes a friend-testable candidate.
+
+## Implemented native and player-flow integration
+
+SessionTransport now exposes `HostLive(peer,code,trackId)` / `ListenLive(peer,code)`
+in addition to the unchanged legacy/coordinated actions. Join, Ready and
+PrepareStart remain explicit. Live mode registers AZKRUN1 only when armed. At GO,
+the native Update consumes its private initializer once, creates LiveRace, then
+calls backend-only PeerSession.beginRace. This removes the old30s negotiation
+deadline while retaining control state solely for a paced final cancellation.
+No hook/lease release or new sender occurs at GO. All three prefixes share the
+same persistent0.5s/2calls/158B gate across modes/sessions. Failed/unknown/throttled
+live sends close and release immediately, without attempting another notice.
+
+`AdvanceLive(input)` is the UI backend's sole local step entry. It reads guarded
+GetTime, samples the existing fixed input and returns a copied LiveRace view.
+Terminal views stay available after teardown for input release/results; receipt
+never steps local physics. GetView adds liveMode and live, with overall racing/
+finishing/closed phases. TakeRaceStart refuses live_start_owned in live mode;
+its legacy release behavior remains unchanged outside live mode. Incoming live
+poses use the codec/controller guards. Post-GO control CANCEL still passes the
+normal peer/session/sequence/conflict validation before retiring the lease.
+
+Core binds the menu's copied view/action bridge after UI.Create. Multiplayer
+now supplies full-name/code inputs, supported-track selection, Host/Listen/Join/
+Ready/Start/Leave and5Hz visible status refresh. UI.MultiplayerAction validates
+commands; deliberate Ready aligns the offered map and arms input eligibility.
+Only matching-session GO can activate a shown, focused, out-of-combat canvas
+without text focus. No menu navigation consumes a ticket or starts Physics.
+
+UI owns one additional pooled cyan marker and one label (no art load). It
+interpolates copied last/current observations one received interval behind,
+clamps without extrapolation, fades stale data and hides off-canvas markers.
+Remote kart choice is not exchanged. At high latency/speed the marker can leave
+the follow camera; actual usefulness is a playtest question. Explicit object
+pool now79frames/166textures/81fonts, including four additional menu controls.
+No widgets are created during driving.
+
+Stop/Leave/Close release input before native cancellation checks. Pending
+invitations close even before Ready. Combat/world/logout use hard teardown.
+Local finish releases capture but allows final observations/drain; results are
+labelled unverified. Restart waits for native closure; no auto-resume exists.
+Changing solo track after closure hides old observations. [Simple friend-test
+steps](MULTIPLAYER_PLAYTEST.md) are the next actual-client check, not another
+standalone transport probe. Only Mirage/Test Oval are negotiated.
+
+Actual Lua5.1 mocked integration loads both complete TOCs/Core/menu/UI/native
+adapters, drives Listen/Host/Join/Ready/Start through700ms synthetic RTT and5s
+clock offset, captures at GO, advances180 real window frames and displays moving
+observations, then Stop freezes both and releases input/lease. Native adapter
+regressions additionally run32s and assert one paced cancellation after the old
+negotiation deadline. These are offline evidence, not client delivery/feel.

@@ -21,6 +21,13 @@ eventFrame:SetScript("OnEvent",function(_,event,...)
         if type(AzerothKartDB) ~= "table" then AzerothKartDB = {} end
         if AzerothKartDB.schemaVersion == nil then AzerothKartDB.schemaVersion = 1 end
         AK.UI.Create()
+        if AK.Menu and type(AK.Menu.SetSessionBridge)=="function" then
+            AK.Menu.SetSessionBridge({view=AK.SessionTransport.GetView,
+                action=function(name,...)
+                    if type(AK.UI.MultiplayerAction)~="function" then return false,"unavailable" end
+                    return AK.UI.MultiplayerAction(name,...)
+                end})
+        end
         eventFrame:UnregisterEvent("ADDON_LOADED")
     elseif event == "CHAT_MSG_ADDON_LOGGED" then
         AK.TransportProbe.Message(...)

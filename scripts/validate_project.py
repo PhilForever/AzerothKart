@@ -14,6 +14,7 @@ REQUIRED=[
  'docs/START_CLOCK.md','docs/adr/0014-experimental-start-clock.md',
  'docs/LIVE_RACE.md','addon/AzerothKart/LiveProtocol.lua','addon/AzerothKart/LiveRace.lua',
  'tests/test_live_protocol.lua','tests/test_live_race.lua',
+ 'tests/test_multiplayer_integration.lua','docs/MULTIPLAYER_PLAYTEST.md',
  'addon/AzerothKart/Track.lua','addon/AzerothKart/Physics.lua',
  'addon/AzerothKart/MirageRaceway.lua','tests/test_mirage.lua',
  'scripts/build_mirage_layout.py','docs/art/mirage-layout.json','docs/art/mirage-layout.svg',

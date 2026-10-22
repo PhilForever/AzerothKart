@@ -36,7 +36,7 @@ The owner-directed [UI/flow assignment](docs/UI_FLOW_OWNERSHIP.md) makes Claude 
 
 For menu integration use the additive [session transport actions](docs/SESSION_MENU_API.md) and opt-in [start-clock handoff](docs/START_CLOCK.md); rendering receives copied views and must not consume one-shot backend start proposals. Core's probe/session frame lease is exclusive, with no independent event/update teardown. The combined `codex/ui-backend-integration` contains the reviewed solo front end and SessionTransport/start-clock APIs. Multiplayer screen commands and live-race activation remain unwired; the current legacy lobby mapper is not the coordinated adapter's full contract. Inspect the guides before wiring it, preserving active branch work.
 
-The additive pure [LiveRace/LiveProtocol backend](docs/LIVE_RACE.md) is Codex-owned. Native live adoption is not wired: retain SessionTransport's same persistent budget/frame owner across GO when implementing it. Claude must not consume the one-shot launch or feed telemetry into local physics/rules. Menu/canvas integration needs reviewed commands; the existing Coming soon screen remains accurate.
+The additive pure [LiveRace/LiveProtocol backend](docs/LIVE_RACE.md) is Codex-owned. Native live adoption and the owner-assigned menu/canvas integration are wired on codex/live-multiplayer-integration: preserve SessionTransport's same persistent budget/frame owner across GO. Claude must not consume the one-shot launch or feed telemetry into local physics/rules. Core binds the reviewed view/action commands after UI creation. Actual Forever acceptance remains pending; do not claim production multiplayer or an agreed winner.
 
 ## Current integration checkpoint
 

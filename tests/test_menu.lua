@@ -61,6 +61,8 @@ local function withMock(savedDB, test, prepare)
     function methods:IsEnabled() return self.enabled end
     function methods:SetText(text) self.text = text end
     function methods:GetText() return self.text end
+    function methods:SetFocus() env.focus = self end
+    function methods:ClearFocus() if env.focus == self then env.focus = nil end end
     function methods:SetSize(width, height) self.width, self.height = width, height end
     function methods:SetPoint(...) self.point = {...} end
     function methods:SetTexture(path)
@@ -246,9 +248,10 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu)
             UI.objects.textures, UI.objects.fontStrings, env.counts.frames, env.counts.textures,
             env.counts.fontStrings))
     -- Eight track buttons under two cup headings; eight pooled gate strips.
-    -- Ten kart buttons (four Warcraft III vehicles added 2026-10-22: +4 frames).
-    assert(UI.objects.frames == 75 and UI.objects.textures == 165 and UI.objects.fontStrings == 80,
-        ("explicit budget 75/165/80, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
+    -- Ten kart buttons; the lobby adds two EditBoxes and Listen/track buttons.
+    -- The observational remote kart adds one texture and one font string.
+    assert(UI.objects.frames == 79 and UI.objects.textures == 166 and UI.objects.fontStrings == 81,
+        ("explicit budget 79/166/81, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
             UI.objects.fontStrings))
     assert(AzerothKartDB.preferences == nil, "creation saves nothing")
     local before = counts(env)
@@ -262,7 +265,9 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu)
     end
     local labels = {}
     for _,button in ipairs(Menu.view.homeButtons) do labels[#labels + 1] = button.text end
-    assert(table.concat(labels, ",") == "Single Player,Multiplayer |cffff8c26(soon)|r,Garage,How to Play,Settings",
+    local experimental = Menu.bridge and type(Menu.bridge.action) == "function"
+    local mpLabel = experimental and "Multiplayer |cffff8c26(experimental)|r" or "Multiplayer |cffff8c26(soon)|r"
+    assert(table.concat(labels, ",") == "Single Player," .. mpLabel .. ",Garage,How to Play,Settings",
         "the main menu offers clear choices: " .. table.concat(labels, ","))
     for _,screen in ipairs({"multiplayer", "help", "settings", "garage", "tracks", "karts", "home"}) do
         Menu.Show(screen)
@@ -644,30 +649,179 @@ end, function()
     UIParent.GetHeight = function() return 768 end
 end)
 
--- Multiplayer stays a clearly marked preview until a session bridge exists ------
+-- A read-only/absent bridge never enables a command ------------------------------
 withMock(nil, function(env, UI, Menu)
+    Menu.SetSessionBridge(nil)
     UI.Toggle()
     click(Menu.view.homeButtons[2])
     local view = Menu.view
-    assert(Menu.screen == "multiplayer" and not view.host:IsEnabled() and not view.join:IsEnabled() and
-           not view.ready:IsEnabled() and not view.start:IsEnabled() and not view.leave:IsEnabled(),
-        "every multiplayer control is disabled while it is coming soon")
+    assert(Menu.screen == "multiplayer" and not view.host:IsEnabled() and not view.listen:IsEnabled() and
+           not view.join:IsEnabled() and not view.ready:IsEnabled() and not view.start:IsEnabled() and
+           not view.leave:IsEnabled(), "every multiplayer control stays disabled without an action bridge")
     assert(view.lobbyTitle.text == "Lobby preview" and view.friend.text == "Open slot",
         "the preview shows no invented player")
     Menu.SetSessionBridge({view=function()
         return {phase="lobby", role="host", peer="Birch Vale", localReady=true, localReadyConfirmed=true,
-            peerReady=true, canSetReady=true, canStart=true, canLeave=true}
+            peerReady=true, canSetReady=true, canPrepareStart=true, coordinated=true, canLeave=true}
     end})
-    assert(view.ready:IsEnabled() and view.start:IsEnabled() and view.leave:IsEnabled() and
-           not view.host:IsEnabled() and view.lobbyTitle.text == "Hosting" and view.friend.text == "Birch Vale",
-        "a future bridge's capabilities, and only those, enable controls")
-    assert(view.start.scripts.OnClick == nil and view.ready.scripts.OnClick == nil,
-        "no session command is wired yet")
-    Menu.SetSessionBridge({view=function() error("bridge failure") end})
+    assert(not view.ready:IsEnabled() and not view.start:IsEnabled() and not view.leave:IsEnabled() and
+           view.lobbyTitle.text == "Hosting" and view.friend.text == "Birch Vale",
+        "the legacy view-only bridge displays copied state without actionable controls")
+    click(view.ready); click(view.start)
+    assert(not UI.active and UI.race == nil, "disabled bridge commands cannot start a solo run")
+    Menu.SetSessionBridge({view=function() error("bridge failure") end, action=function() error("unreachable") end})
     assert(not view.leave:IsEnabled() and view.lobbyTitle.text == "Lobby preview",
-        "a failing bridge falls back to the disabled preview")
+        "a failing bridge falls back to a disabled preview")
     Menu.SetSessionBridge(nil)
 end)
+
+-- Explicit host/listen/join/ready/start actions, copied status and 5Hz display ----
+withMock(nil, function(env, UI, Menu)
+    UI.Toggle(); Menu.Show("multiplayer")
+    local view, commands, polls = Menu.view, {}, 0
+    local session = {phase="idle", canHost=true, canListen=true, canLeave=false}
+    local refusal, thrown
+    Menu.SetSessionBridge({view=function() polls = polls + 1; return session end,
+        action=function(name, ...)
+            assert(env.focus == nil, "EditBox focus is released before the UI safety wrapper")
+            commands[#commands + 1] = {name, ...}
+            if thrown then error("not player-facing") end
+            if refusal then return false, refusal end
+            if name == "host" then
+                session = {phase="inviting", role="host", peer=commands[#commands][2],
+                    offer={trackId=commands[#commands][4]}, canLeave=true, pendingKind="INVITE", pendingAttempts=1}
+            elseif name == "listen" then
+                session = {phase="listening", role="guest", peer=commands[#commands][2], canLeave=true}
+            elseif name == "join" then
+                session.phase, session.canJoin, session.canSetReady = "lobby", false, true
+            elseif name == "ready" then
+                session.localReady = commands[#commands][2]
+            elseif name == "start" then
+                session.phase, session.canPrepareStart, session.canSetReady = "coordinating", false, false
+                session.clock = {phase="calibrating"}
+            elseif name == "leave" then
+                session = {phase="closed", reason="left", canLeave=false}
+            end
+            return true
+        end})
+    local before = counts(env)
+    local vehicle, race, input, clock, track = UI.state, UI.race, UI.input, UI.clock, UI.trackId
+    assert(view.host:IsEnabled() and view.listen:IsEnabled() and not view.join:IsEnabled() and
+           not view.ready:IsEnabled() and not view.start:IsEnabled(), "fresh session requires deliberate arming")
+    assert(Menu.view.homeButtons[2].text:find("experimental", 1, true), "actions enable the experimental menu label")
+    view.peerName:SetText("Lene Conradi")
+    view.sessionCode:SetText("bad")
+    click(view.listen)
+    assert(#commands == 0 and Menu.messages.multiplayer.text:find("six uppercase", 1, true),
+        "invalid code never reaches the native wrapper")
+    view.sessionCode:SetText("AKT901")
+    view.peerName:SetText("")
+    click(view.host)
+    assert(#commands == 0 and Menu.messages.multiplayer.text:find("complete Forever", 1, true),
+        "missing full peer name never reaches the native wrapper")
+    view.peerName:SetText("Lene Conradi")
+    view.peerName:SetFocus()
+    click(view.listen)
+    assert(commands[1][1] == "listen" and commands[1][2] == "Lene Conradi" and commands[1][3] == "AKT901" and
+           #commands[1] == 3 and not view.join:IsEnabled(), "Listen preserves the complete name and never joins automatically")
+    session.phase, session.canJoin, session.offer = "invited", true, {trackId="test_oval"}
+    local readBefore = polls
+    Menu.screens.multiplayer.scripts.OnUpdate(Menu.screens.multiplayer, 0.1)
+    assert(polls == readBefore, "lobby does not poll every simulation frame")
+    Menu.screens.multiplayer.scripts.OnUpdate(Menu.screens.multiplayer, 0.1)
+    assert(polls == readBefore + 1 and view.join:IsEnabled() and not view.ready:IsEnabled(),
+        "a received offer becomes actionable through the bounded 5Hz display refresh")
+    assert(view.lobbyTrack.text == "Track: Test Oval    Laps: 3" and UI.trackId == track,
+        "offered track is shown without selecting geometry from a display update")
+    click(view.join)
+    assert(commands[2][1] == "join" and #commands[2] == 1 and view.ready:IsEnabled() and
+           session.localReady == nil, "Join enters the lobby without declaring readiness")
+    view.sessionCode:SetFocus()
+    click(view.ready)
+    assert(commands[3][1] == "ready" and commands[3][2] == true and view.ready.text == "Not ready",
+        "Ready is an explicit boolean action and releases typing focus first")
+    click(view.ready)
+    assert(commands[4][1] == "ready" and commands[4][2] == false, "Not ready explicitly withdraws readiness")
+    click(find(env, Menu.screens.multiplayer, "Back"))
+    assert(Menu.screen == "home" and commands[5][1] == "leave" and #commands == 5,
+        "Back deliberately leaves a pending session exactly once")
+    local hiddenPolls = polls
+    Menu.screens.multiplayer.scripts.OnUpdate(Menu.screens.multiplayer, 2)
+    assert(polls == hiddenPolls, "hidden lobby stops polling")
+    session = {phase="idle", canHost=true, canListen=true}
+    Menu.Show("multiplayer")
+    click(view.lobbyTrackChoice)
+    assert(Menu.lobbyTrackId == "test_oval" and UI.trackId == track, "host track choice cycles only supported metadata")
+    click(view.lobbyTrackChoice)
+    assert(Menu.lobbyTrackId == "mirage_raceway", "supported track cycle wraps without adding cities")
+    view.peerName:SetText("  Flaturlative Breeze  "); view.sessionCode:SetText("AKT902")
+    refusal = "reused_session"
+    click(view.host)
+    assert(Menu.messages.multiplayer.text:find("already used", 1, true) and view.host:IsEnabled(),
+        "refused actions show fixed feedback and never invent a connection")
+    refusal = "|Hunknown-secret-error|h"
+    click(view.host)
+    assert(not Menu.messages.multiplayer.text:find("unknown-secret", 1, true), "untrusted reasons are never echoed")
+    refusal, thrown = nil, true
+    click(view.host)
+    assert(not Menu.messages.multiplayer.text:find("not player-facing", 1, true), "thrown errors have fixed feedback")
+    thrown = false
+    click(view.host)
+    local host = commands[#commands]
+    assert(host[1] == "host" and host[2] == "Flaturlative Breeze" and host[3] == "AKT902" and
+           host[4] == "mirage_raceway" and not view.host:IsEnabled(), "Host preserves surname and passes only supported track metadata")
+    local afterHost = #commands
+    click(view.host)
+    assert(#commands == afterHost, "stale enabled/click callbacks revalidate current capabilities")
+    session = {phase="lobby", role="host", peer="Flaturlative Breeze", localReady=true,
+        localReadyConfirmed=true, peerReady=true, coordinated=true, canStart=false, canPrepareStart=true,
+        canLeave=true, canSetReady=true}
+    Menu.screens.multiplayer.scripts.OnUpdate(Menu.screens.multiplayer, 0.2)
+    assert(view.start:IsEnabled(), "coordinated start uses canPrepareStart, never legacy canStart")
+    click(view.start)
+    assert(commands[#commands][1] == "start" and #commands[#commands] == 1 and not UI.active and UI.race == nil,
+        "Start sends no UI tick/seed settings and never invokes solo Start")
+    assert(view.lobbyStatus.text:find("Measuring start timing", 1, true), "clock calibration is visible")
+    session.clock.phase = "armed"
+    Menu.screens.multiplayer.scripts.OnUpdate(Menu.screens.multiplayer, 0.2)
+    assert(view.lobbyStatus.text:find("Start armed", 1, true), "armed status is shown without consuming a GO ticket")
+    session.phase = "racing"
+    local countAtGO = #commands
+    Menu.Show(nil)
+    assert(#commands == countAtGO, "backend GO hides the lobby without leaving the live race")
+    assert(UI.state == vehicle and UI.race == race and UI.input == input and UI.clock == clock and
+           UI.trackId == track and not UI.active, "menu commands and refresh alone cannot write authoritative driving state")
+    sameCounts(env, before, "all lobby phases and explicit actions")
+    Menu.SetSessionBridge(nil)
+end)
+
+-- Leaving finished live results releases the session before browsing solo -----
+for _,choice in ipairs({{"Main Menu", "home"}, {"Change Track", "tracks"}, {"Change Kart", "karts"}}) do
+    withMock(nil, function(env, UI, Menu)
+        UI.Toggle(); Menu.Show(nil); UI.Start(); UI.Stop("results navigation")
+        assert(UI.summary:IsShown() and Menu.screen == nil and not UI.active,
+            "the results panel is separate from menu screens")
+        UI.multiplayer, UI.liveSession = true, "AKT903"
+        local session = {phase="finishing", liveMode=true, transportBusy=true, canLeave=true}
+        local leaves = 0
+        Menu.SetSessionBridge({view=function() return session end, action=function(action)
+            assert(action == "leave", "results navigation can only leave; never ready or start")
+            leaves = leaves + 1
+            session = {phase="closed", liveMode=true, transportBusy=false, canLeave=false, reason="left"}
+            return true
+        end})
+        Menu.Show("multiplayer")
+        assert(leaves == 0, "opening the lobby only displays an existing finishing session")
+        Menu.Show(nil)
+        assert(leaves == 0, "showing the race/results canvas never implicitly ends a finishing session")
+        click(find(env, UI.summary, choice[1]))
+        assert(leaves == 1 and Menu.screen == choice[2] and not UI.active,
+            choice[1] .. " explicitly leaves the draining live run exactly once")
+        Menu.Show("garage")
+        assert(leaves == 1, "subsequent navigation cannot repeat a completed Leave")
+        Menu.SetSessionBridge(nil)
+    end)
+end
 
 -- A front end that cannot build hands the window back to the basic controls -----
 withMock(nil, function(env, UI, Menu)
@@ -730,4 +884,4 @@ withMock(nil, function(env, UI, Menu)
 end, function(env) env.refuseTemplate = "MainMenuFrameButtonTemplate" end)
 
 print("mock menus: 7 screens, single-player flow, results paths, garage, settings, saved choices, " ..
-    "coming-soon multiplayer and fallbacks (client appearance still pending)")
+    "explicit experimental lobby actions and fallbacks (client appearance still pending)")

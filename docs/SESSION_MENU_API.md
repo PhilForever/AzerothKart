@@ -1,5 +1,7 @@
 # Session actions for Claude's menu
 
+**Latest integration:** the owner-assigned native/player flow is now wired on `codex/live-multiplayer-integration`: Core registers `{view=GetView, action=UI.MultiplayerAction}` after menu creation. New live host/listen actions, matching-session GO and copied race views are described in [LIVE_RACE](LIVE_RACE.md#implemented-native-and-player-flow-integration); [friend-test steps](MULTIPLAYER_PLAYTEST.md) are available. Actual Forever racing is NOT RUN. Older unwired notes below retain the previous API checkpoint scope.
+
 Codex owns the behavior and native transport; Claude owns screen layout, navigation, copy and polish. This is the experimental two-peer control layer on the combined83c611c baseline. No multiplayer menu or live race is implemented by loading it. Use dot calls on `AzerothKart.SessionTransport`; never read/write a private controller or drive Physics/Race from screen transitions.
 
 ## Public actions
@@ -41,3 +43,7 @@ Native AZKART2 registration/delivery, both-client menu flow, clocks/authority/st
 The original actions above remain compatible. [START_CLOCK](START_CLOCK.md) adds explicit `HostCoordinated/ListenCoordinated`, the existing deliberate `Join/Ready`, and host `PrepareStart(seed?)`, with copied `coordinated/clock/canPrepareStart` fields. `canStart` is false in coordinated mode; do not invoke legacy Start there or add raw tick/seed settings. The clock phase reports calibration/prepare/commit/armed or a fixed failure. A lost final ACK does not prove both peers are armed.
 
 `TakeRaceStart()` is reserved for the future backend live controller, never rendering or screen navigation. It yields actual tick-zero state once at mapped GO; it does not open the racing UI or display an opponent. Existing solo UI.Start must not be used to activate it. The backend source is installed in the combined developer build (see INTEGRATION_STATUS); it remains unwired to multiplayer menus and has no live-race activation. Claude's menu work must preserve its shared TOC/loader/docs additions. Actual clock/menu/racing checks are NOT RUN. No additional manual probe/download is requested.
+
+## Live bridge action names
+
+`bridge.action(name,...)` delegates to UI.MultiplayerAction with names host(peer,code,trackId), listen(peer,code), join(), ready(bool), start() and leave(). It returns true or false/fixedReason; call with dot syntax. Display capabilities are refreshed/revalidated on every click, and EditBox focus is cleared first. A view-only bridge remains supported and disables all commands. Ready loads the offered supported map and arms eligibility; start invokes PrepareStart, never UI.Start. The native API uses HostLive/ListenLive; UI.OnUpdate alone calls AdvanceLive. Menu/canvas rendering consumes copied views only. Opening/back navigation never readies or starts; deliberately leaving the lobby calls Leave. Finishing is local and unverified, with no winner assertion.

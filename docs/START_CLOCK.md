@@ -67,3 +67,12 @@ Actual `AZKART2`/`AZKCLK1` registration/delivery, real clock drift/skew, both-cl
 ## Subsequent pure lifecycle slice
 
 [LiveRace/LiveProtocol](LIVE_RACE.md) now implement the bounded bundle owner, local fixed-step driving and observational pose path on `codex/live-race-controller`. TakeRaceStart and all existing native methods retain their previous semantics. Nothing consumes GO automatically. Next is atomic native adoption retaining SessionTransport's same lease and persistent pacing history, then reviewed Claude canvas/menu binding; do not release/reacquire ownership around that transition.
+
+## Native live adoption now wired
+
+On `codex/live-multiplayer-integration`, explicit HostLive/ListenLive selects the
+[opt-in native live path](LIVE_RACE.md#implemented-native-and-player-flow-integration).
+Native Update consumes GO without releasing/reacquiring the frame or pacing
+history; legacy TakeRaceStart remains compatible outside that mode. Menus never
+consume GO. The first friend candidate is wired but actual timing/delivery/feel
+checks remain NOT RUN.
