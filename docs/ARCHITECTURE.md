@@ -2,6 +2,8 @@
 
 For implemented signatures, state fields and the Codex/Claude boundary, use [API_CONTRACTS.md](API_CONTRACTS.md) and [AGENTS.md](../AGENTS.md). The system diagram includes future components; it is not evidence of a separate Renderer/GameSession/network API. The current Codex slice adds a pure PeerSession control state machine over RaceProtocol after the measured transport/reload experiments; the guarded SessionTransport WoW boundary/menu actions now exist, with an opt-in clock/epoch coordinator and one-shot real Physics/Race initialization now added; the integrated Menu supplies solo flow while multiplayer command wiring and live-race replication remain unimplemented. Source checkpoint: `codex/ironforge-narrows`, preserving UI/backend merge `6cd611a`, isolated preference fix `9b22f12`, Stormwind version3 full-speed/exposed-wall fixes and the pooled background transaction. Claude `9461f9c` updates Ironforge to version3; the reviewed additive narrows field supplies per-loop-segment radii, shared by collision, generated boundaries and artwork. Exposed-wall clearance and rough shoulders outside the tunnels remain. The source changes no global Physics or multiplayer behavior. [ADR 0013](adr/0013-two-player-experiment-scope.md) records the limited experiment scope. Test Oval solids and Mirage/Claude rendering remain independent.
 
+**Latest backend addition:** [LiveRace/LiveProtocol](LIVE_RACE.md) own one coordinated tick-zero bundle and fixed-step local driving with copied observational remote poses. Native adoption, remote sprite display and multiplayer menu activation are still unwired. This does not select production authority or shared finish rules.
+
 ## System boundaries
 
 ```
@@ -30,7 +32,9 @@ SavedVariables -> Schema/Migrations -> settings/personal-bests/ghosts
 - `Checkpoints`: pure local sequence progress over ordered directional Track gates.
 - `Laps`: pure repeatable practice laps and integer tick timing around Checkpoints; no countdown, fixed race length or winner lifecycle.
 - `PeerSession`: implemented pure two-peer invite/join/ready/start-proposal state, scoped identity/compatibility, paced control output and bounded retries/timeouts. Presentation consumes copied views; no live race or tick authority is supplied.
-- `GameSession`: future game mode, participants, tick authority and reproducible event log; not an alias for PeerSession.
+- `LiveRace`: pure bounded owner of one RaceStart bundle, actual fixed-step local race lifecycle and observational peer poses; no native/UI calls, trusted remote progress or shared winner.
+- `LiveProtocol`: strict34-byte candidate pose codec on AZKRUN1, separate from control/clock/probe prefixes.
+- `GameSession`: future production game mode, participants, tick authority and reproducible event log; not an alias for PeerSession or the observational candidate.
 - `Input`: front-end state sampling; clears stuck keys on focus loss/combat; keybind remapping requires API tests.
 - `Renderer`: world-to-canvas transform; viewport/UI scale; textures from fixed pool; minimap optional.
 - `Network`: transport rate budget, codec, protocol state machine, ACK/retry/recovery; not used by simulation tests.

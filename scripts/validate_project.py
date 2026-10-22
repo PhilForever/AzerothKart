@@ -12,6 +12,8 @@ REQUIRED=[
  'docs/INDEX.md','docs/FEASIBILITY.md','docs/ARCHITECTURE.md',
  'docs/ROADMAP.md','docs/PROGRESS.md','docs/TEST_PLAN.md','docs/CLIENT_API.md','docs/SESSION_MENU_API.md',
  'docs/START_CLOCK.md','docs/adr/0014-experimental-start-clock.md',
+ 'docs/LIVE_RACE.md','addon/AzerothKart/LiveProtocol.lua','addon/AzerothKart/LiveRace.lua',
+ 'tests/test_live_protocol.lua','tests/test_live_race.lua',
  'addon/AzerothKart/Track.lua','addon/AzerothKart/Physics.lua',
  'addon/AzerothKart/MirageRaceway.lua','tests/test_mirage.lua',
  'scripts/build_mirage_layout.py','docs/art/mirage-layout.json','docs/art/mirage-layout.svg',
@@ -67,7 +69,7 @@ for tocname in ('AzerothKart.toc','AzerothKart_Camelot.toc'):
  if '## Interface: 16001' not in lines: errors.append(f'{tocname}: unexpected interface')
  if '## SavedVariables: AzerothKartDB' not in lines: errors.append(f'{tocname}: missing SavedVariables')
  loads=[x.strip() for x in lines if x.strip() and not x.startswith('##')]
- if loads!=['Track.lua','MirageRaceway.lua','Circuit.lua','CapitalCities.lua','Courses.lua','Physics.lua','Input.lua','Loop.lua','Performance.lua','Presentation.lua','Checkpoints.lua','Laps.lua','Race.lua','UI.lua','Menu.lua','RaceProtocol.lua','PeerSession.lua','ClockProtocol.lua','StartClock.lua','RaceStart.lua','NetworkProbe.lua','TransportProbe.lua','SessionTransport.lua','Core.lua']:
+ if loads!=['Track.lua','MirageRaceway.lua','Circuit.lua','CapitalCities.lua','Courses.lua','Physics.lua','Input.lua','Loop.lua','Performance.lua','Presentation.lua','Checkpoints.lua','Laps.lua','Race.lua','UI.lua','Menu.lua','RaceProtocol.lua','PeerSession.lua','ClockProtocol.lua','StartClock.lua','RaceStart.lua','LiveProtocol.lua','LiveRace.lua','NetworkProbe.lua','TransportProbe.lua','SessionTransport.lua','Core.lua']:
   errors.append(f'{tocname}: unexpected source load order: {loads}')
  for f in loads:
   if not (ADDON/f).is_file():errors.append(f'{tocname}: missing {f}')

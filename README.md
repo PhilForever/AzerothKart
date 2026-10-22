@@ -10,6 +10,8 @@
 
 **Networking implementation:** the reload/fresh-session checks [completed](docs/evidence/2026-10-21-akt724-akt725-recovery.md). The pure control codec/session, guarded logged-whisper adapter and [menu actions](docs/SESSION_MENU_API.md) now have an opt-in [start clock and one-shot backend Physics/Race initializer](docs/START_CLOCK.md). Remote kart replication, playable shared racing and multiplayer menu wiring remain pending. Actual AZKART2/AZKCLK1 client delivery is NOT RUN; source tests use mocked native APIs. No new download or manual probe is requested for this checkpoint.
 
+**Latest multiplayer backend:** [LiveRace/LiveProtocol](docs/LIVE_RACE.md) now provide pure fixed-step race ownership after coordinated GO and bounded observational peer poses. Native live adoption and menu/canvas integration are still pending; this source slice is not yet a friend-testable multiplayer build.
+
 **Development handoff:** Codex owns simulation/race/networking; Claude owns rendering/UI/assets. Start from [shared ownership and workflow rules](AGENTS.md), [implemented API contracts](docs/API_CONTRACTS.md) and [the latest Codex handoff](docs/handoffs/codex-latest.md). `CLAUDE.md` imports the shared rules. Separate feature worktrees and reviewed integration are required. [Current integration status](docs/INTEGRATION_STATUS.md) identifies the combined source and deployment owner; do not install one agent's older branch over the shared client.
 **Vision:** A polished, responsive top-down 2D kart racer wholly inside a movable World of Warcraft addon window, inspired by approachable arcade racing, with original presentation and Warcraft-flavored humor.
 

@@ -63,3 +63,7 @@ SessionTransport owns the internal ticket/gate. Its backend take transaction han
 Focused Lua 5.1 tests execute strict codec cases, asymmetric synthetic 700 ms RTT/independent clocks, queued reply subtraction, retries/duplicates/cancellation, inconsistent/late timing, final-ACK ambiguity, native shared budgets and actual Physics/Race initialization plus a 900-tick repeatable input tape. Mocked native peers also exercise delayed delivery and a five-second clock offset. See [PROGRESS](PROGRESS.md) for exact commands/results.
 
 Actual `AZKART2`/`AZKCLK1` registration/delivery, real clock drift/skew, both-client menu/countdown, playable opponent movement, shared standings/finish, packet loss recovery during racing and full socket recovery are **NOT RUN** or not implemented. No new download or manual probe is requested here. Next: a bounded live-race controller and paced remote snapshots consuming this backend handoff, followed by reviewed Claude canvas/menu integration.
+
+## Subsequent pure lifecycle slice
+
+[LiveRace/LiveProtocol](LIVE_RACE.md) now implement the bounded bundle owner, local fixed-step driving and observational pose path on `codex/live-race-controller`. TakeRaceStart and all existing native methods retain their previous semantics. Nothing consumes GO automatically. Next is atomic native adoption retaining SessionTransport's same lease and persistent pacing history, then reviewed Claude canvas/menu binding; do not release/reacquire ownership around that transition.

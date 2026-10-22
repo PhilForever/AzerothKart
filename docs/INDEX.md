@@ -6,6 +6,8 @@
 
 **Current two-player checkpoint:** [accepted experiment scope, ADR 0013](adr/0013-two-player-experiment-scope.md), [reload/fresh-session evidence](evidence/2026-10-21-akt724-akt725-recovery.md) and [implemented control codec](API_CONTRACTS.md#implemented-pure-race-control-codec). No new manual probe is requested; the pure controller and guarded SessionTransport bridge are implemented; the opt-in [start-clock and backend initializer](START_CLOCK.md) are now implemented on the Codex candidate branch. The reviewed solo Menu is integrated on `codex/ui-backend-integration`; multiplayer menu wiring and live-race movement/finish integration follow.
 
+**Live-race backend:** [implemented lifecycle and pose contract](LIVE_RACE.md). Pure source-only ownership/telemetry; native adoption and multiplayer menu/canvas activation remain next, with no friend-race build claimed.
+
 **Session menu bridge:** [public actions and copied view](SESSION_MENU_API.md). Logged two-peer control only; live race follows separately.
 
 **UI/flow:** [ownership assignment](UI_FLOW_OWNERSHIP.md), [Claude roster review](reviews/2026-10-21-claude-roster.md) and the implemented [front-end menus, race HUD and results](art/ui/front-end.md), combined on `codex/ui-backend-integration` (`6cd611a` plus preference fix `9b22f12`; offline-tested, client NOT RUN; [contract](API_CONTRACTS.md#implemented-front-end-menus-race-hud-and-results)). Claude owns presentation/visual flow; Codex owns session semantics and lifecycle.
