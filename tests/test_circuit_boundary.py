@@ -7,7 +7,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-from circuit_boundary import boundary_vertices
+from circuit_boundary import boundary_vertices, loop_radii
 
 
 def geometry(*branches, radius=1, plazas=()):
@@ -77,6 +77,22 @@ class BoundaryTests(unittest.TestCase):
         g = {"centerline": line, "wallRadius": 76}
         self.assertVertex(boundary_vertices(g, 14),
                           (476.2652153292576, 866.3694266226744), 0.001)
+
+    def test_narrows_use_their_own_radius_and_expose_their_joins(self):
+        # Segment 1 (Lua's count: point 1 to point 2) of a square loop narrows
+        # to 5: its straight walls meet the wide neighbours' end circles.
+        g = {"centerline": [(0, 0), (100, 0), (100, 100), (0, 100)], "wallRadius": 10,
+             "narrows": [{"first": 1, "last": 1, "wallRadius": 5}]}
+        vertices = boundary_vertices(g, 0)
+        for point in [(math.sqrt(75), -5), (100 - math.sqrt(75), -5), (10, 5), (90, 5)]:
+            self.assertVertex(vertices, point)
+        self.assertEqual(loop_radii(g), [10.0, 5.0, 10.0, 10.0])
+        # With clearance every capsule grows by it, the narrows' too.
+        self.assertVertex(boundary_vertices(g, 1), (math.sqrt(11 * 11 - 36), -6))
+        for bad in ({"first": 0, "last": 1, "wallRadius": 5}, {"first": 2, "last": 1, "wallRadius": 5},
+                    {"first": 1, "last": 5, "wallRadius": 5}, {"first": 1, "last": 1, "wallRadius": 11}):
+            with self.assertRaises(ValueError):
+                boundary_vertices(dict(g, narrows=[bad]), 0)
 
     def test_invalid_clearance_is_rejected(self):
         for clearance in (-1, math.inf, math.nan):

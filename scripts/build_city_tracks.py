@@ -35,7 +35,7 @@ from pathlib import Path
 
 import city_layouts as L
 import wc3render as R
-from circuit_boundary import boundary_vertices
+from circuit_boundary import boundary_vertices, loop_radii
 
 ROOT = Path(__file__).resolve().parents[1]
 ADDON = ROOT / "addon" / "AzerothKart"
@@ -89,7 +89,7 @@ def geometry(wc3, city):
     result = {"id": city["id"], "name": city["name"], "version": city.get("version", 1),
             "width": width, "height": height, "wallInset": L.WALL_INSET, "roadRadius": L.ROAD_RADIUS,
             "wallRadius": L.WALL_RADIUS, "fullSpeedToWalls": city.get("full_speed_to_walls", False),
-            "kart": L.KART, "centerline": centerline,
+            "kart": L.KART, "centerline": centerline, "narrows": narrow_segments(city, centerline),
             "branches": city.get("branches", []), "plazas": plazas, "gates": city["gates"],
             "solids": solids, "spawn": (sx, sy, heading)}
     clearance = city.get("wall_clearance")
@@ -104,6 +104,28 @@ def geometry(wc3, city):
         result["wallClearance"] = clearance
         result["wallVertices"] = boundary_vertices(canonical, clearance)
     return result
+
+
+def narrow_segments(city, centerline):
+    """The city's narrows ({name, from, to, wall_radius}: loop arcs as
+    city_layouts.arc_at measures them, from the first centerline point) as
+    Circuit.lua names them: the run of loop segments (1-based; segment k
+    joins point k to point k % n + 1) whose middles lie within the arcs."""
+    count = len(centerline)
+    spans, total = [], 0.0
+    for i in range(count):
+        (ax, ay), (bx, by) = centerline[i], centerline[(i + 1) % count]
+        length = sqrt((bx - ax) ** 2 + (by - ay) ** 2)
+        spans.append((total, total + length))
+        total += length
+    out = []
+    for spec in city.get("narrows", []):
+        inside = [i + 1 for i, (lo, hi) in enumerate(spans) if spec["from"] <= (lo + hi) / 2 <= spec["to"]]
+        assert inside and inside == list(range(inside[0], inside[-1] + 1)), \
+            f"narrows {spec['name']} must be one run of loop segments"
+        out.append({"name": spec["name"], "first": inside[0], "last": inside[-1],
+                    "wallRadius": spec["wall_radius"]})
+    return out
 
 
 def q(text):
@@ -131,6 +153,12 @@ def lua_data(tracks):
         lines.append("    id=%s, version=%d, name=%s," % (q(g["id"]), g["version"], q(g["name"])))
         lines.append("    width=%d, height=%d, wallInset=%d, roadRadius=%d, wallRadius=%d, checkpointMaxStep=5," %
                      (g["width"], g["height"], g["wallInset"], g["roadRadius"], g["wallRadius"]))
+        if g.get("narrows"):
+            lines.append("    narrows={")
+            for narrow in g["narrows"]:
+                lines.append("        {name=%s, first=%d, last=%d, wallRadius=%s}," % (
+                    q(narrow["name"]), narrow["first"], narrow["last"], number(narrow["wallRadius"])))
+            lines.append("    },")
         if g.get("fullSpeedToWalls"):
             lines.append("    fullSpeedToWalls=true,")
         if "wallClearance" in g:
@@ -221,9 +249,20 @@ def road_distance(g, x, y):
     return min(segment_distance(x, y, *a, *b) for a, b in road_segments(g))
 
 
+def road_capsules(g):
+    """(a, b, the kart centre's reach) for every road segment: the loop's,
+    narrower in a narrows (loop_radii, same order as road_segments), and
+    each branch's."""
+    radii = loop_radii(g)
+    out = []
+    for k, (a, b) in enumerate(road_segments(g)):
+        out.append((a, b, radii[k] if k < len(radii) else g["wallRadius"]))
+    return out
+
+
 def reach_gap(g, x, y):
     """Distance beyond the karts' reach (<= 0: drivable): street or plaza."""
-    best = road_distance(g, x, y) - g["wallRadius"]
+    best = min(segment_distance(x, y, *a, *b) - reach for a, b, reach in road_capsules(g))
     for p in g["plazas"]:
         best = min(best, segment_distance(x, y, p["ax"], p["ay"], p["bx"], p["by"]) - p["radius"])
     return best

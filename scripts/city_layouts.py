@@ -223,6 +223,15 @@ def prop(model, x, y, yaw=270, scale=0.25, sequence="Stand", solid=False, margin
     return item
 
 
+def mesh_prop(mesh, x, y, yaw=270, scale=1.0, **kw):
+    """prop() for a procedural model (city_meshes: the Great Forge's anvil
+    and pumps), `scale` world units per mesh unit. It is drawn like a
+    Warcraft III model but reads no Warcraft III file."""
+    item = prop("mesh:" + mesh, x, y, yaw=yaw, scale=scale, name=mesh, **kw)
+    item["mesh"] = mesh
+    return item
+
+
 def box(name, x0, y0, x1, y1):
     return {"id": name, "x": x0, "y": y0, "width": x1 - x0, "height": y1 - y0}
 
@@ -818,10 +827,21 @@ def if_arc(mx, my):
     return arc_at(IRONFORGE_LINE, mx, my, IW)
 
 
+# The Forlorn Cavern's narrow passages: from the Mystic Ward in, and out by
+# its north-east stair towards the Hall of Explorers (loop arcs).
+IF_NARROWS = [(if_arc(363, 99), if_arc(410, 76)), (if_arc(565, 80), if_arc(606, 112))]
+
 IRONFORGE_START, IRONFORGE_START_HEADING = along_spur(60.0, IRONFORGE_SPUR)
 # The Gates: across the gate hall, behind the start grid's end.
 IRONFORGE_GATE = (round(IRONFORGE_SPUR[0][0] - cos(IRONFORGE_START_HEADING) * 112, 1),
                   round(IRONFORGE_SPUR[0][1] - sin(IRONFORGE_START_HEADING) * 112, 1))
+
+IF_FORGE_HALL = ipoly((420, 215), (485, 205), (550, 215), (585, 260), (590, 330), (560, 395), (485, 405),
+                      (420, 380), (395, 320), (395, 260))
+# The floor between the Great Forge's two forges, inside the course's turn
+# round the southern one (world units; its edges run under lava and street).
+IF_FORGE_ISLAND = [(1060, 1060), (1110, 1052), (1200, 1083), (1255, 1130), (1300, 1190), (1370, 1190),
+                   (1360, 1050), (1320, 900), (1170, 900), (1100, 960), (1050, 1010)]
 
 T = TERRAINART
 # The Dungeon tileset's red rock made the grey-brown of dwarven stone:
@@ -949,8 +969,18 @@ IRONFORGE_DISTRICTS = [
 
 IRONFORGE = {
     "id": "ironforge_gp",
-    "version": 2,
+    "version": 3,
     "wall_clearance": KART,  # use the exposed painted wall, including the gate-hall junction
+    # The owner's request (2026-10-22): the Forlorn Cavern's entrance and
+    # exit tight as in the game: no shoulder, the wall where the shoulder
+    # began (the paving's edge), so the kart centre keeps a kart's half-length
+    # inside it. A tunnel through the rock (rock.tunnel).
+    "narrows": [
+        {"name": "Forlorn Cavern entrance", "from": IF_NARROWS[0][0], "to": IF_NARROWS[0][1],
+         "wall_radius": ROAD_RADIUS - KART},
+        {"name": "Forlorn Cavern exit", "from": IF_NARROWS[1][0], "to": IF_NARROWS[1][1],
+         "wall_radius": ROAD_RADIUS - KART},
+    ],
     "name": "Ironforge Grand Prix",
     "folder": "Ironforge",
     "size": (2048, 2048),
@@ -996,8 +1026,7 @@ IRONFORGE = {
                   (630, 380)),                                                                 # Tinker Town, the tram
             ipoly((560, 420), (700, 400), (770, 440), (770, 570), (560, 570)),                # Military Ward
             ipoly((400, 40), (580, 40), (600, 70), (600, 180), (420, 180), (395, 90)),        # Forlorn Cavern
-            ipoly((420, 215), (485, 205), (550, 215), (585, 260), (590, 330), (560, 395), (485, 405),
-                  (420, 380), (395, 320), (395, 260)),                                         # the Great Forge's hall
+            IF_FORGE_HALL,                                                                     # the Great Forge's hall
             ipoly((160, 575), (160, 500), (178, 506), (200, 528), (222, 575)),                # outside the Gates
             ipoly((178, 190), (215, 160), (260, 150), (300, 175), (300, 230), (290, 330), (300, 420),
                   (330, 470), (420, 505), (520, 505), (560, 540), (520, 572), (400, 572), (300, 548),
@@ -1006,6 +1035,7 @@ IRONFORGE = {
         "top": (T + "dungeon/cave_darkrocks.dds", (1.0, 0.95, 0.9, 0.25)),
         "face": (T + "cityscape/city_roundtiles.dds", (1.0, 0.96, 0.9, 0.6)),
         "height": 56, "fade": 90, "dark": 0.34, "course": 7,
+        "tunnel": 140,          # rock this far either side of a narrows' centerline
     },
     # The Great Forge's two forges, molten, with their stone ridges.
     "lava": {
@@ -1019,14 +1049,16 @@ IRONFORGE = {
         ],
         "tile": (T + "dungeon/cave_lava.dds", 1.0),
         "glow": (120, 52, 10), "glow_reach": 44,
+        "rim": (30, 22, 20), "rim_width": 3, "rim_height": 10,
     },
     "rings": [
         {"on": "water", "center": IW(487, 132), "radii": [12, 26, 40, 54, 68, 82], "width": 4,
          "color": (150, 146, 132)},
         {"on": "water", "center": IW(296, 105), "radii": [10, 22, 34], "width": 3, "color": (170, 150, 190)},
-        {"on": "lava", "center": IW(485, 300), "radii": [150, 175, 200, 225, 250, 275], "width": 6,
-         "color": (70, 52, 44)},
     ],
+    # Between the Great Forge's two forges: no generated buildings, trim or
+    # braziers, only the Great Anvil and the pumps (the props below).
+    "reserved": [IF_FORGE_ISLAND],
     "lights": [],
     "sections": [
         {"name": "Mystic Ward", "from": if_arc(258, 200), "to": if_arc(380, 84),
@@ -1093,8 +1125,13 @@ IRONFORGE = {
         # The Commons: the Vault of Ironforge (the bank) and the auction house.
         dict(iprop(OTHER + "magicvault/magicvault.mdx", 312, 330, scale=0.4, yaw=180), nudge=True),
         dict(iprop(OTHER + "marketplace/marketplace.mdx", 190, 360, yaw=0), nudge=True),
-        # The Great Forge: the Great Anvil between the two forges.
-        dict(iprop(HUMAN + "blacksmith/blacksmith.mdx", 520, 286, scale=0.32, recolor=SLATE_ROOFS), nudge=True),
+        # The Great Forge, as in the game: no buildings between its forges,
+        # only the Great Anvil and the pumps (world units).
+        mesh_prop("great_anvil", 1186, 1006, scale=1.15),
+        mesh_prop("great_pump", 1292, 1088),
+        mesh_prop("great_pump", 1270, 955, scale=0.8),
+        mesh_prop("pump", 1240, 1048, yaw=315, scale=1.3),
+        mesh_prop("pump", 1225, 958, yaw=225, scale=1.3),
         # Tinker Town's great machine and the Deeprun Tram's gate.
         dict(iprop(OTHER + "powergenerator/powergenerator.mdx", 660, 315, scale=0.6), nudge=True),
         iprop(DUNGEON + "terrain/dungeonporticulisgate/dungeonporticulisgate.mdx", 772, 340, yaw=180),

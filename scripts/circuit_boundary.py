@@ -1,7 +1,8 @@
 """Exact exposed vertices of a union of street capsules, for offline builds.
 
 The painted street is the union of capsules whose radius is wallRadius plus
-the kart clearance. Shrinking each capsule independently loses drivable room
+the kart clearance (a narrows' smaller wallRadius on its loop segments).
+Shrinking each capsule independently loses drivable room
 at a concave join. Runtime clearance therefore needs the exposed union boundary:
 the capsules' arcs/segments and their intersection vertices.
 
@@ -99,13 +100,39 @@ def _circle_circle(first, second):
     return ((x - ox, y - oy), (x + ox, y + oy))
 
 
+def loop_radii(geometry):
+    """Each closed-centerline segment's drivable radius, indexed as the
+    segment ``centerline[i - 1] -> centerline[i]``: wallRadius, or the
+    smaller wallRadius of a narrows covering it.
+
+    ``geometry["narrows"]`` (optional) lists ``{first, last, wallRadius}``
+    with 1-based loop segments as Circuit.lua counts them (segment k joins
+    point k to point k % n + 1), so Lua segment k is index ``k % n`` here.
+    Branches and plazas never narrow."""
+    line = geometry.get("centerline", [])
+    count = len(line)
+    default = float(geometry["wallRadius"])
+    radii = [default] * count
+    for narrow in geometry.get("narrows", []):
+        first, last = narrow["first"], narrow["last"]
+        reach = float(narrow["wallRadius"])
+        if not (isinstance(first, int) and isinstance(last, int) and 1 <= first <= last <= count):
+            raise ValueError("narrows must name loop segments 1..n, first <= last")
+        if not isfinite(reach) or reach <= 0 or reach > default:
+            raise ValueError("a narrows' wall radius must be positive and within wallRadius")
+        for k in range(first, last + 1):
+            radii[k % count] = min(radii[k % count], reach)
+    return radii
+
+
 def boundary_vertices(geometry, clearance):
     """Return exposed union-boundary vertices as sorted ``[(x, y), ...]``.
 
     ``geometry`` accepts the build pipeline's centerline/open branches and
-    plaza dictionaries. Each road capsule has radius wallRadius + clearance;
-    each plaza has radius plaza.radius + clearance. Coordinates may be pairs
-    or {x, y} dictionaries. An isolated circle has no vertices and returns [].
+    plaza dictionaries. Each road capsule has radius wallRadius + clearance
+    (a narrows' own wallRadius on its loop segments: loop_radii); each plaza
+    has radius plaza.radius + clearance. Coordinates may be pairs or {x, y}
+    dictionaries. An isolated circle has no vertices and returns [].
 
     Full endpoint circles are used when enumerating intersections. Filtering
     against every complete capsule removes inward semicircles and all hidden
@@ -129,10 +156,11 @@ def boundary_vertices(geometry, clearance):
         capsules.append((ax, ay, bx, by, reach))
 
     line = geometry.get("centerline", [])
+    radii = loop_radii(geometry)
     for index in range(len(line)):
         a, b = line[index - 1], line[index]
         if _xy(a) != _xy(b):
-            add(a, b, radius)
+            add(a, b, radii[index] + clearance)
     for branch in geometry.get("branches", []):
         for a, b in zip(branch, branch[1:]):
             if _xy(a) != _xy(b):

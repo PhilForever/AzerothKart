@@ -28,7 +28,9 @@ from array import array
 from math import atan2, cos, floor, pi, sin, sqrt
 from pathlib import Path
 
+import city_meshes as M
 import wc3render as R
+from circuit_boundary import loop_radii
 from paintkit import encode_png, encode_tga
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -268,6 +270,10 @@ class Street:
         self.wall = geometry.get("wallRadius") or geometry["roadRadius"]
         self.kart, self.reach, self.far = kart, reach, far
         loop = geometry["centerline"]
+        self.loop_count = len(loop)
+        self.narrows = geometry.get("narrows") or []
+        # Each loop segment's wall: the street's, nearer in a narrows.
+        radii = loop_radii(geometry) if geometry.get("wallRadius") else [self.wall] * len(loop)
         caps = []          # (ax, ay, bx, by, visual radius, lane index or -1)
         segs, turn = [], []
         for i in range(len(loop)):
@@ -285,7 +291,7 @@ class Street:
             total += sqrt((bx - ax) ** 2 + (by - ay) ** 2)
         self.total = total
         for k, ((ax, ay), (bx, by)) in enumerate(segs):
-            caps.append((ax, ay, bx, by, self.wall + kart, k))
+            caps.append((ax, ay, bx, by, (radii[k] if k < len(loop) else self.wall) + kart, k))
         for p in geometry.get("plazas", []):
             caps.append((p["ax"], p["ay"], p["bx"], p["by"], p["radius"] + kart, -1))
         self.caps = caps
@@ -607,8 +613,9 @@ def rock_mask(city, street):
     floors (`rock.floors`, world polygons, and every point within
     `rock.band` units of the course: the halls the street runs through)
     plus raised stone blocks standing on them (`rock.blocks`: a forge's
-    hearth, a pier), less the street, which is always open. None for a
-    city in the open air."""
+    hearth, a pier) and the rock a narrows cuts through (`rock.tunnel`
+    units either side of its centerline, square at its ends), less the
+    street, which is always open. None for a city in the open air."""
     spec = city.get("rock")
     if not spec:
         return None
@@ -625,6 +632,9 @@ def rock_mask(city, street):
         fill_polygon(open_, w, h, poly)
     for poly in spec.get("blocks", []):
         fill_polygon(open_, w, h, poly, 0)
+    if spec.get("tunnel"):
+        for narrow in street.narrows:
+            close_tunnel(open_, street, narrow, spec["tunnel"])
     rock = bytearray(bytes(open_).translate(FLIP))
     for (bi, bj) in street.buckets:
         for y in range(bj * BUCKET, min(h, (bj + 1) * BUCKET)):
@@ -634,6 +644,36 @@ def rock_mask(city, street):
                 if street.gap[i] <= 0.5:
                     rock[i] = 0
     return rock
+
+
+def close_tunnel(open_, street, narrow, reach):
+    """Close every texel within `reach` of a narrows' loop segments (Lua's
+    first..last: Street segment k % n), cut square across both ends so the
+    halls either side stay open: the rock a tunnel runs through."""
+    w, h = street.w, street.h
+    count = street.loop_count
+    segs = [street.segs[k % count] for k in range(narrow["first"], narrow["last"] + 1)]
+    xs = [p[0] for s in segs for p in s]
+    ys = [p[1] for s in segs for p in s]
+    last = len(segs) - 1
+    for y in range(max(0, int(floor(min(ys) - reach))), min(h, int(floor(max(ys) + reach)) + 1)):
+        py = y + 0.5
+        base = (h - 1 - y) * w
+        for x in range(max(0, int(floor(min(xs) - reach))), min(w, int(floor(max(xs) + reach)) + 1)):
+            px = x + 0.5
+            best, which, at = None, 0, 0.0
+            for m, ((ax, ay), (bx, by)) in enumerate(segs):
+                dx, dy = bx - ax, by - ay
+                length = dx * dx + dy * dy
+                t = 0.0 if length == 0 else ((px - ax) * dx + (py - ay) * dy) / length
+                c = 0.0 if t < 0.0 else (1.0 if t > 1.0 else t)
+                ex, ey = px - (ax + c * dx), py - (ay + c * dy)
+                d = ex * ex + ey * ey
+                if best is None or d < best:
+                    best, which, at = d, m, t
+            if best > reach * reach or (which == 0 and at < 0.0) or (which == last and at > 1.0):
+                continue
+            open_[base + x] = 0
 
 
 def fill_disc(mask, w, h, cx, cy, radius, value=1):
@@ -679,14 +719,42 @@ def paint_rings(pic, city, masks):
                         break
 
 
-def lava_mask(city, w, h):
+def lava_mask(city, street):
+    """The city's lava pools less the street and its walls, as its water:
+    where a pool meets the street, the street's wall is the pool's shore."""
     spec = city.get("lava")
     if not spec:
         return None
+    w, h = street.w, street.h
+    dry = city["wall"]["thickness"] + 0.5
     lava = bytearray(w * h)
     for poly in spec["pools"]:
         fill_polygon(lava, w, h, poly)
+    for i in range(w * h):
+        if lava[i] and street.gap[i] <= dry:
+            lava[i] = 0
     return lava
+
+
+def lava_rims(city, lava, street, rock):
+    """Wall columns round the lava pools where the street's own walls do not
+    stand: every dry texel within `rim_width` of the lava (beyond the street
+    and its walls, off the rock), in the "lava" style, as wall_columns gives
+    them."""
+    spec = city["lava"]
+    width = spec.get("rim_width", 3)
+    height = spec.get("rim_height", 10)
+    w, h = street.w, street.h
+    dry = city["wall"]["thickness"] + 0.5
+    near = bank_distance(bytearray(bytes(lava).translate(FLIP)), w, h, width + 1)
+    rows = {}
+    for i in range(w * h):
+        d = near[i]
+        if not d or d > width or lava[i] or street.gap[i] <= dry or (rock is not None and rock[i]):
+            continue
+        row, x = divmod(i, w)
+        rows.setdefault(h - 1 - row, []).append((x, height, "lava"))
+    return rows
 
 
 def paint_rock(pic, city, rock, tiles):
@@ -752,30 +820,16 @@ def paint_rock(pic, city, rock, tiles):
 
 def paint_lava(pic, city, lava, tiles):
     """Lava pools: the tileset's lava, a dark crust along the shores and a
-    hot core, a dark stone rim; banks facing the camera show a rock face."""
+    hot core, a dark stone rim (under the walls that stand round them)."""
     spec = city["lava"]
     w, h = pic.w, pic.h
     tile, shade = spec["tile"]
     near = bank_distance(lava, w, h, 10)
-    depth = spec.get("bank_depth", 7)
-    up = bytearray(w * h)
-    for i in range(w, w * h):
-        if lava[i] and lava[i - w]:
-            up[i] = min(250, up[i - w] + 1)
     for i in range(w * h):
         if not lava[i]:
             continue
         row, x = divmod(i, w)
         y = h - 1 - row
-        k = up[i]
-        if k < depth and row - k - 1 >= 0:
-            s = 0.30 + 0.25 * k / depth                       # the bank's face, lit from below
-            r, g, b = spec.get("bank", (64, 50, 44))
-            glow = k / depth
-            pic.r[i] = min(255, int(r * s + 150 * glow * glow + 0.5))
-            pic.g[i] = min(255, int(g * s + 50 * glow * glow + 0.5))
-            pic.b[i] = min(255, int(b * s + 0.5))
-            continue
         r, g, b, _ = tiles.whole(tile, x, y, seed=29, shade=shade)
         d = near[i]
         if d <= 2:
@@ -1105,13 +1159,14 @@ def paint_line(pic, street, gate, cells, colors, thickness):
 # Scenery with height: walls and models, painted north to south.
 
 
-def wall_columns(city, street, course, water, steps=None, squares=None, rock=None):
+def wall_columns(city, street, course, water, steps=None, squares=None, rock=None, lava=None):
     """The street's edge walls, by what lies beyond them: a stone parapet
-    over a canal or along an open square, crenellated parapets on a bridge, a
-    hedge along the Park, a timber barrier across a closed alley, low house
-    foundations elsewhere, nothing at the foot of a grand stair. Per world
-    row, the texels of each wall's footprint just outside the karts' reach,
-    with each column's height and style."""
+    over a canal or along an open square, a forge's dark iron wall over lava,
+    crenellated parapets on a bridge, a hedge along the Park, a timber
+    barrier across a closed alley, low house foundations elsewhere, nothing
+    at the foot of a grand stair. Per world row, the texels of each wall's
+    footprint just outside the karts' reach, with each column's height and
+    style."""
     w, h = street.w, street.h
     thick = city["wall"]["thickness"]
     rows = {}
@@ -1138,6 +1193,9 @@ def wall_columns(city, street, course, water, steps=None, squares=None, rock=Non
                 if course.bridge(arc) is not None:
                     style = "bridge"
                     height = 15 if along % 14 < 8 else 10
+                elif lava is not None and 0 <= px < w and 0 <= py < h and lava[(h - 1 - py) * w + px]:
+                    style = "lava"
+                    height = city["lava"].get("rim_height", 10)
                 elif wet or square:
                     style = "parapet"
                     height = 13 if along % 48 < 6 else 9
@@ -1160,6 +1218,7 @@ WALL_STYLES = {   # face, coping, foot
     "land": ((122, 114, 102), (156, 148, 134), (78, 74, 68)),
     "barrier": ((112, 78, 46), (150, 110, 70), (64, 46, 30)),
     "hedge": ((44, 92, 40), (70, 126, 58), (30, 60, 28)),
+    "lava": ((52, 38, 32), (84, 62, 50), (28, 20, 18)),
 }
 
 
@@ -1186,6 +1245,9 @@ def paint_wall_row(pic, city, y, columns):
                 r, g, b = face
                 if style == "barrier" and x % 5 == 0:
                     r, g, b = dark
+                elif style == "lava":
+                    if x % 9 == 0 or k == rise // 2:              # the iron plates' seams
+                        r, g, b = r * 3 // 4, g * 3 // 4, b * 3 // 4
                 elif style == "hedge":
                     v = hash32(x, row, 43) % 24
                     r, g, b = r + v // 2, g + v, b + v // 3
@@ -1201,11 +1263,15 @@ def sprite_for(wc3, city, item, cache):
     if item.get("stone"):
         key += (("stone", tuple(item["stone"])),)
     if key not in cache:
-        sprite = _disk_cache(key)
+        mesh = item.get("mesh")
+        sprite = None if mesh else _disk_cache(key)     # meshes are quick to draw: never cached on disk
         if sprite is None:
-            loaded = R.load(wc3, item["model"], team=item.get("team") or city["team"],
-                            replaceables=city.get("replaceables"))
-            triangles = R.posed(loaded, item["sequence"], item["scale"], item["yaw"])
+            if mesh:
+                loaded, triangles = M.build(mesh, item["yaw"], item["scale"])
+            else:
+                loaded = R.load(wc3, item["model"], team=item.get("team") or city["team"],
+                                replaceables=city.get("replaceables"))
+                triangles = R.posed(loaded, item["sequence"], item["scale"], item["yaw"])
             files = loaded[0].get("texture_files", [])
             if not triangles:
                 raise SystemExit(f"LAYOUT: {item['model']} has nothing this renderer can draw")
@@ -1219,7 +1285,8 @@ def sprite_for(wc3, city, item, cache):
             left, bottom, pw, ph, mask = sprite["plan"]
             sprite["plan_points"] = [(left + c, bottom + (ph - 1 - r)) for r in range(ph) for c in range(pw)
                                      if mask[r * pw + c]]
-            _disk_cache(key, sprite)
+            if not mesh:
+                _disk_cache(key, sprite)
         cache[key] = sprite
     return cache[key]
 
@@ -1534,14 +1601,19 @@ def build(wc3, city, geometry, check=False, preview=False, log=print):
     paint_terrain(pic, city, tiles)
     water, bridge = water_masks(city, geometry, street)
     paint_water(pic, city, water, tiles, bridge)
-    lava = lava_mask(city, w, h)
+    lava = lava_mask(city, street)
     if lava is not None:
         paint_lava(pic, city, lava, tiles)
     if city.get("rings"):
         paint_rings(pic, city, {"water": water, "lava": lava})
     if lava is not None:
-        # Models keep off lava as off water; walls along it are parapets.
-        water = bytearray((int.from_bytes(water, "big") | int.from_bytes(lava, "big")).to_bytes(w * h, "big"))
+        # Models keep off lava and the walls round it as off water.
+        dry = city["wall"]["thickness"] + 0.5
+        rimmed = dilate(lava, w, h, city["lava"].get("rim_width", 3))
+        for i in range(w * h):
+            if rimmed[i] and street.gap[i] <= dry:
+                rimmed[i] = 0
+        water = bytearray((int.from_bytes(water, "big") | int.from_bytes(rimmed, "big")).to_bytes(w * h, "big"))
     log(f"  ground and water {time.time() - started:.0f}s")
     course = Course(city, geometry, street)
     paint_street(pic, city, geometry, street, tiles, course)
@@ -1559,6 +1631,15 @@ def build(wc3, city, geometry, check=False, preview=False, log=print):
     cache = {}
     models = place_landmarks(wc3, city, street, water, taken, cache)
     models += bridge_furniture(wc3, city, street, water, taken, cache)
+    # Reserved ground (the Great Forge's floor round its anvil): no generated
+    # furniture, buildings or trim; people may stand there.
+    reserved = bytearray(w * h)
+    for poly in city.get("reserved", []):
+        fill_polygon(reserved, w, h, poly)
+    held = bytes(taken)
+    for i in range(w * h):
+        if reserved[i]:
+            taken[i] = 1
     models += street_furniture(wc3, city, street, water, taken, cache)
     log(f"  landmarks and furniture {time.time() - started:.0f}s ({len(cache)} sprites)")
     # Houses keep off the squares; benches and people may stand there.
@@ -1574,6 +1655,9 @@ def build(wc3, city, geometry, check=False, preview=False, log=print):
     if city.get("trim"):
         models += generate_buildings(wc3, city, street, water, taken, cache, city["trim"], "trim")
         log(f"  trim {time.time() - started:.0f}s ({len(models)} models, {len(cache)} sprites)")
+    for i in range(w * h):
+        if reserved[i] and not held[i]:
+            taken[i] = 0
     if city.get("people"):
         models += generate_buildings(wc3, city, street, water, taken, cache, city["people"], "people")
         log(f"  people {time.time() - started:.0f}s ({len(models)} models, {len(cache)} sprites)")
@@ -1581,7 +1665,10 @@ def build(wc3, city, geometry, check=False, preview=False, log=print):
               if item.get("light")]
     if lights:
         paint_lights(pic, lights)
-    walls = wall_columns(city, street, course, water, steps, squares, rock)
+    walls = wall_columns(city, street, course, water, steps, squares, rock, lava)
+    if lava is not None:
+        for y, columns in lava_rims(city, lava, street, rock).items():
+            walls.setdefault(y, []).extend(columns)
     paint_scenery(pic, city, walls, models)
     log(f"  painted {time.time() - started:.0f}s")
     image = pic.tga()
@@ -1611,9 +1698,12 @@ def build(wc3, city, geometry, check=False, preview=False, log=print):
 def sources(wc3, city, tiles, models):
     """Every Warcraft III file the picture draws on: models with their use
     counts, then the textures they and the ground read."""
-    counts = {}
+    counts, meshes = {}, {}
     for item, sprite, X, Y in models:
-        counts[item["model"]] = counts.get(item["model"], 0) + 1
+        if item.get("mesh"):
+            meshes[item["mesh"]] = meshes.get(item["mesh"], 0) + 1
+        else:
+            counts[item["model"]] = counts.get(item["model"], 0) + 1
     textures = set()
     for item, sprite, X, Y in models:
         for path in sprite["textures"]:
@@ -1625,5 +1715,8 @@ def sources(wc3, city, tiles, models):
              "# Generated by scripts/build_city_tracks.py --preview. Archive paths as the client stores them.",
              "", "## Models (placements)"]
     lines += [f"{counts[m]:4d}  {m}" for m in sorted(counts)]
+    if meshes:
+        lines += ["", "## Drawn by scripts/city_meshes.py (no Warcraft III file)"]
+        lines += [f"{meshes[m]:4d}  {m}" for m in sorted(meshes)]
     lines += ["", "## Textures"] + sorted(textures)
     return "\n".join(lines) + "\n"
