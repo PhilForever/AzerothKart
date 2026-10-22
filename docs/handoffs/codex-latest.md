@@ -1,4 +1,24 @@
-# Codex handoff — painted Stormwind wall alignment installed
+# Codex handoff — Ironforge integration reserved
+
+2026-10-22 13:20 +02:00, Europe/Oslo. From clean `899d04d` on
+`codex/ironforge-integration`: review and integrate Claude's committed
+`claude/capital-cup` at `de2fa5f`, then prepare the coordinated local install.
+The owner reports: "The corner works good now." This verifies the reported
+Stormwind corner fix in the actual client; it does not complete the remaining
+city, performance or milestone acceptance checks.
+
+Reserved scope: merge the authored Ironforge layout/art/catalog and its tests;
+resolve shared `CapitalCities.lua`, `tests/test_circuit.lua`, catalog/menu and
+documentation hunks without removing the installed Stormwind v3 full-speed and
+exposed-wall geometry, staging-background transaction, preferences or backend
+regressions. Update Codex's handoff, PROGRESS, integration review/status and
+current interface/count descriptions. No new gameplay feature, multiplayer
+activation, main merge, publication, Claude-checkout edit or history rewrite.
+Existing runtime art must remain byte-identical. Native Ironforge checks stay
+NOT RUN until the owner tests after a full restart. Both other worktrees and
+their untracked files are being snapshotted before integration.
+
+## Previous installed wall correction
 
 2026-10-22 10:46 +02:00, Europe/Oslo. Owner reports an invisible collisionwall at the Park/Mage innerpavedcorner before the whitewaterparapet. Implemented/installed **81cc0ed69da79d0ea5dcb03d2c5af924afcf100e** on **codex/stormwind-wall-alignment**, from clean installedf62e708. Followingdocscommit records deployment; no addon changes after testedcommit. Reservation preceded source edits; no otheragentcheckout/history overwritten, publication/mainmerge/release/clientautomation.
 
