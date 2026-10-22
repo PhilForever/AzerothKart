@@ -128,8 +128,18 @@ Claude installed nothing and did not change the live AddOns folder. Per INTEGRAT
 - The untracked `Claude outputs/` folder, created by the desktop app, is still left for the owner.
 - Commits are made in a cloud clone with this repository's local identity, then moved here as git bundles and fast-forwarded, so the hashes are identical. Git runs from a Linux shell on the developer machine with `--git-dir=.git/worktrees/AzerothKart-Claude`, `core.createObject=rename`, `gc.auto=0`, `maintenance.auto=false` and `gc.worktreePruneExpire=never`. **Never run `git worktree prune` or `git gc` there**: the recorded gitdirs are Windows paths, and that shell lists them as prunable.
 
+## Work in progress: Ironforge Grand Prix (mockup, not selectable)
+
+The owner approved Stormwind ("Stormwind looks good. Start work on Ironforge.") and sent his in-game Ironforge map with his red line; asked, he chose a route "Through the Forge". The mockup commit after this handoff's adds:
+
+- **The course** (`city_layouts.py`, `IRONFORGE`): his line, clockwise, from a short start spur inside the Gates (Dun Morogh's snow beyond them) up the Commons' ring, round the north (Mystic Ward, the Forlorn Cavern's lake, past the Hall of Explorers), into the Great Forge between its two forges and round the southern one, out past Tinker Town, through the Military Ward and back along the Commons. Seven gates named for the districts; the finish is in the Commons. Lap 7,077 units, approach 369. Where his line touches itself north-east of the Forge, the two passes are moved apart so a wall stands between them. Geometry validated; data generated into `CapitalCities.lua`; `Courses.lua` still lists `ironforge_gp` as coming soon, so nothing changes in the game.
+- **Underground painting** (`city_paint.py`, all optional city keys, Stormwind's bytes unchanged): `rock` (the mountain outside open floors and a band round the course, cut-away tops darkening inward, masonry faces toward the camera), `lava` (pools, crust, rims, banks and glow), `rings` (stone ridges over water or lava), `lights` and per-model `light` pools, `wall_styles` per city, tile shading by channel and saturation, district `density` and per-model `limit`s in the fill.
+- **Scenery** from Warcraft III Reforged's Dungeon, Underground, Lordaeron Winter, Northrend and Icecrown terrain and doodads, dwarven units and buildings (extraction commands to be documented with the Ironforge sheet). `--check` passes for both cities in the cloud.
+
+**Open with the owner:** whether the 7,077-unit lap (about 1.8 × Stormwind's) is acceptable, and the north-east separation. Then: the Ironforge sheet and sources, the menu entry and preview, tests, the device check and docs.
+
 ## Next
 
-1. The owner's verdict on the rework (Cathedral Square in particular), then his Stormwind check in the client (above). His answers decide the scale, wall feel and art direction for the other five.
-2. Then Ironforge Grand Prix, Darnassus Canopy Run, Orgrimmar Canyon Rush, Thunder Bluff Skyway and Undercity Slime Circuit on the same pipeline, each traced on the owner's map of that city.
+1. The owner's verdict on the Ironforge mockup, then finish it (above); his Stormwind check in the client when an install exists.
+2. Then Darnassus Canopy Run, Orgrimmar Canyon Rush, Thunder Bluff Skyway and Undercity Slime Circuit on the same pipeline, each traced on the owner's map of that city.
 3. Codex: review the collision and `SelectTrack` items above, and integrate `claude/capital-cup` (which contains `claude/ui-flow` and the P2 fix) when approved.
