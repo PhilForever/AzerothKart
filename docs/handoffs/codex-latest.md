@@ -1,8 +1,9 @@
 # Codex handoff — Ironforge v3 narrows reviewed
 
 2026-10-22 16:24 +0200, Europe/Oslo. Branch `codex/ironforge-narrows`; base d5817a8,
-reservation69dc2dd, incoming Claude9461f9c. Normal two-parent source merge is
-prepared; commit/installation evidence will follow. No push, main merge,
+reservation69dc2dd, incoming Claude9461f9c. Normal two-parent merge **82d57eb11e23eb2417a323ba0c714c23514a50af**
+is committed and installed (parents69dc2dd/9461f9c). The following deployment
+documentation commit changes no addon files. No push, main merge,
 release or milestone completion.
 
 ## Scope and contract
@@ -54,8 +55,13 @@ retain32MiB raw city pixels plus previews/native overhead (unmeasured).
 
 ## Deployment and remaining work
 
-Installation pending committed combined source,41-file backup and independent
-source/target/manifest verification. No other-addon/SavedVariables changes or
+PowerShell7 installation and independent verification PASS:41 committed/source/
+installed/manifest files exact,41 prior backup files exactbefore.csv, snapshot
+andac4ae23, no extras. Manifest Status/Stage=Verified, BackupVerified=true.
+Manifest `local-artifacts/ironforge-v3-integration-20261022/install-backups/20261022-163127-637-2915c11e90644cd9ae1a21f6037226c3/install.json`;
+receipt `local-artifacts/ironforge-v3-integration-20261022/deployment-receipt.json`.
+Foreign326 files/statuses/HEADs and all prior refs preserved; only own feature
+branch advanced. No other-addon/SavedVariables changes or
 client input. Full exit/restart recommended for replaced textures. V3 tunnels'
 width/handling, Forge/lava appearance, camera and performance NOT RUN in WoW.
 Actual multi-kart spacing must wait for live racing; current build is solo.

@@ -1,12 +1,12 @@
 # Shared integration and deployment status
 
-Updated2026-10-22 13:27+02:00, Europe/Oslo. Codex is the designated integrator for the owner's request to combine the agents' work without losing either side. The reviewed combined developer source is installed for owner testing; no release is authorized. See [PROGRESS](PROGRESS.md), [ownership](UI_FLOW_OWNERSHIP.md), [API contracts](API_CONTRACTS.md) and both agent handoffs.
+Updated2026-10-22 16:33 +0200, Europe/Oslo. Codex is the designated integrator for the owner's request to combine the agents' work without losing either side. The reviewed combined developer source is installed for owner testing; no release is authorized. See [PROGRESS](PROGRESS.md), [ownership](UI_FLOW_OWNERSHIP.md), [API contracts](API_CONTRACTS.md) and both agent handoffs.
 
 
 
-## Current Ironforge v3 review — installation pending
+## Current Ironforge v3 integration — installed for owner testing
 
-2026-10-22 16:24 +0200. `codex/ironforge-narrows`, base d5817a8/reservation69dc2dd, integrates reviewed Claude9461f9c. The additive narrows contract is accepted: two radius42 tunnels, matching visual/generator/collision geometry, unchanged route/gates and Stormwind. Lava/anvil/pump art imported; all other runtime images and backend/UI/global Physics unchanged. Focused dual-runtime circuit/physics/surface/ui/menu/determinism,11 analytic tests, geometry check and104-path validator PASS. [Review](reviews/2026-10-22-ironforge-narrows.md). Exact implementation hash, backup and installed verification follow after commit. Native v3 acceptance remains NOT RUN; no GitHub push or main merge.
+2026-10-22 16:24 +0200. `codex/ironforge-narrows`, base d5817a8/reservation69dc2dd, integrates reviewed Claude9461f9c. The additive narrows contract is accepted: two radius42 tunnels, matching visual/generator/collision geometry, unchanged route/gates and Stormwind. Lava/anvil/pump art imported; all other runtime images and backend/UI/global Physics unchanged. Focused dual-runtime circuit/physics/surface/ui/menu/determinism,11 analytic tests, geometry check and104-path validator PASS. [Review](reviews/2026-10-22-ironforge-narrows.md). Implementation **82d57eb11e23eb2417a323ba0c714c23514a50af** is installed after verified41-file backup; all41 committed/source/installed/manifest hashes match, and the backup exactly matchesac4ae23 with no extras. Independent receipt `local-artifacts/ironforge-v3-integration-20261022/deployment-receipt.json`; manifest `local-artifacts/ironforge-v3-integration-20261022/install-backups/20261022-163127-637-2915c11e90644cd9ae1a21f6037226c3/install.json`. Both other worktrees'326 files/statuses/HEADs and all previous refs remain intact. The reviewed rough-pocket correction keeps fully paved tunnel corners on road without changing clearance or broad shoulders. Following documentation changes no addon files. Native v3 acceptance remains NOT RUN; no GitHub push or main merge.
 
 ## Current Ironforge integration — installed for owner testing
 

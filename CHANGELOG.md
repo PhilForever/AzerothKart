@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased — Ironforge version 3 after the owner's drive (2026-10-22, `claude/ironforge-design`)
+- Codex review: accept the additive narrows contract, add overlap/closing-segment/copy/branch regressions and fix a tiny rough pocket in fully paved tunnel corners; default shoulders and wall geometry stay unchanged. Coordinated local install verified41files with41-file backup; v3 client checks remain pending.
 - **Forlorn Cavern tunnels.** The way in from the Mystic Ward and the way out towards the Hall of Explorers are narrow tunnels through the rock: no shoulder, the wall at the paving's edge (the kart centre stops 42 from the centerline, the painted wall at 56), flaring back to the usual street after each. New optional circuit field `narrows` (per-segment wall radius, paved no further), proposed in API_CONTRACTS for Codex's collision review; additive, Stormwind's data and picture byte-identical.
 - **Lava.** Pools stop at the street's wall like water (no grey unlit paving across their corners), no bank face, no ridges; a dark iron wall stands all round each pool; the glow is kept.
 - **The Great Forge.** No buildings, trim or braziers between the two forges: the Great Anvil and four pumps, procedural models (`scripts/city_meshes.py`) drawn with the scenery's light and shadow. Track facts mention the tunnels. Offline: both Lua suites, the boundary tests and `--check` pass; the drive and look in the client are NOT RUN.

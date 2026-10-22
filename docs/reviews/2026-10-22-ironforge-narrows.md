@@ -88,9 +88,14 @@ Existing Warcraft III provenance/unresolved redistribution status is retained;
 the original procedural meshes are recorded separately. No release/publication
 or main merge is part of this integration.
 
-Installation must use the committed combined source, back up all41 prior files
-and verify source/target/manifest hashes; the deployment record will name its
-exact commit and backup. No other-addon or SavedVariables changes. A full
+Deployment verified 2026-10-22 16:33 +0200: normal two-parent merge
+**82d57eb11e23eb2417a323ba0c714c23514a50af** is installed,41 committed/source/target/
+manifest files exact and41 prior files backed up, independently exactagainst
+before.csv, preinstall snapshot andac4ae23, no extras. Manifest
+`local-artifacts/ironforge-v3-integration-20261022/install-backups/20261022-163127-637-2915c11e90644cd9ae1a21f6037226c3/install.json`; independent
+`local-artifacts/ironforge-v3-integration-20261022/deployment-receipt.json`.
+Both foreign worktrees'326 files/statuses/HEADs and all prior refs are preserved.
+Following deployment documentation changes no addon files. No other-addon or SavedVariables changes. A full
 client exit/restart is recommended for the changed textures.
 
 The current Claude handoff quotes the owner's version2 drive and design
