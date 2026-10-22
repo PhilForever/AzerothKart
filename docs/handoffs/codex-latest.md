@@ -1,125 +1,56 @@
-# Codex handoff — Ironforge polish review reserved
+# Codex handoff — approved/published Ironforge polish
 
-2026-10-22 17:44 +0200, Europe/Oslo. User requests review of
-`claude/ironforge-polish` and publication if approved. Own review branch
-`codex/ironforge-polish-review` starts at pinned Claude2e75a3d, based on the
-already-reviewed/published bc93753. Prior Codex/Claude branches stay unchanged.
-Reserve only this named handoff, PROGRESS and a review report; no production
-edits or changes in Claude's worktree. Inspect sampler/authoring changes and
-art/provenance, verify unchanged Lua/geometry and focused offline checks before
-publishing the exact approved Claude branch. No main merge or release. Existing
-client-install evidence remains separate; new textured art is not client-passed.
+2026-10-22 17:50 +02:00, Europe/Oslo. User authorized review/push of `claude/ironforge-polish`.
+Exact reviewed/published source **2e75a3dc461fd76859b766c95eaab692bfd75282**, from combined bc93753.
+Own `codex/ironforge-polish-review` starts at that source; reservation1db81dd.
+Only this named handoff, PROGRESS and the review report are edited. No source
+changes, foreign checkout edits, merge, reset, force push, main update or release.
 
-## Previous integrated handoff
+## Review and checks
 
-# Codex handoff — Ironforge v3 narrows reviewed
+APPROVED: anvil scale1.15→0.575; Warcraft III texture regions on the original
+procedural meshes. Only two runtime TGAs change. All39 other addon files,
+all Lua/TOCs/tests/generated collision geometry and12 other images remain
+byte-identical tobc93753. Stormwind/narrows/private all-road corner fix retained.
+Authored helper API adds extraction-root argument at its one updated callsite;
+no runtime interface or resource-pool change (71/165/80 remains prior scope).
 
-2026-10-22 16:24 +0200, Europe/Oslo. Branch `codex/ironforge-narrows`; base d5817a8,
-reservation69dc2dd, incoming Claude9461f9c. Normal two-parent merge **82d57eb11e23eb2417a323ba0c714c23514a50af**
-is committed and installed (parents69dc2dd/9461f9c). The following deployment
-documentation commit changes no addon files. This user-authorized publication
-is recorded below; no main merge, release or milestone completion.
+Executed: `scripts/validate_project.py` PASS104paths; geometry-only generator
+`--check` PASS; three Python files parse; whitespace PASS. Independent in-memory
+sampler checks PASS130 wrapped/negative UV cases and exact texel/bilinear points;
+three meshes/eight headings retain geometry/normals. No Lua suite rerun or full
+art rebuild by Codex. Claude's two-machine byte-rebuild evidence is attributed
+separately; its full-suite-on82d57eb sentence is inaccurate (we ran six selected
+modules perruntime, then three). Keep its authored handoff unchanged and use
+[the review](../reviews/2026-10-22-ironforge-polish.md) for this correction.
 
-## Scope and contract
+Minor offline limitation: period scaling on nested bands/emblem textures uses
+normalized UVs; delivered art reviewed, no publication blocker. Source/credits
+and existing unresolved redistribution status remain explicit; no new release
+or broad third-party permission claim. Owner's previous tunnel/lava approval is
+quoted by Claude; new textured Forge appearance/performance in WoW NOT RUN.
 
-Reviewed the complete current Claude handoff and all three commits. Accept
-optional `narrows={{name?,first,last,wallRadius},...}`: 1-based closed-loop segments,
-minimum radius on overlap, independent copied metadata; branches/plazas remain
-unchanged. Shared per-segment radii drive runtime capsules, exposed vertices and
-painted walls. Generic radii above roadRadius retain shoulders; Ironforge's42
-has none. Circuit's existing endpoint/radial movement model remains; no new
-continuous curved-wall sweep or kart collisions. API_CONTRACTS is authoritative.
+## Publication, preservation and installation
 
-Ironforgev3: segments75–86 and120–131 reach42 / painted56; 1,682 junctions.
-Existing wider street reach76/rough shoulders, gate-hall correction, route,
-seven gates and spawn preserved. Lava ridges/grey wedges removed, dark walls
-and glow retained; anvil/pumps composited offline by new city_meshes.py. Menu
-facts change only; no UI/global Physics/controller/network behavior change.
-Stormwindv3/full-speed definition and twelve other images stay byte-identical.
-Claude9461f9c handoff imported verbatim; its quoted owner's v2 drive is not a
-v3 client pass. Code scope was factory/helper/generator/data/art and focused
-regressions/shared docs. Other-agent checkout/source/reservations untouched.
+Normal push published exact2e75a3d to `refs/heads/claude/ironforge-polish` and
+live remote verified; main remainsf923d15. Claude's tracked checkout stays on
+2e75a3d with its pre-existing untracked outputs. Snapshot329foreignfiles/status/
+HEAD and complete46,241,669-byte recovery bundle verified. No direct Claude
+conversation is claimed; branch ancestry and shared handoff are the coordination
+record. Current Claude work retains our code and can continue from its own
+published tip; Codex's local review branch contains the same source plus docs.
 
-Codex additions: overlap, closing-segment, copied metadata and unaffected-branch
-regressions; private all-road-narrows surface flag fixes a confirmed tiny rough
-pocket in valid exposed-corner space without changing wall geometry or wide
-shoulders; exact actual coordinate/default-rough/wall negative regressions;
-Python boolean index/radius refusal; accurate generic shoulder
-comment; city_meshes.py required by validator. No new feature beyond reviewed
-Claude geometry/art integration. UI pool71/165/80; two scenery slots still may
-retain32MiB raw city pixels plus previews/native overhead (unmeasured).
+Installer PASS41 files from approved source, with prior41-file backup at
+`local-artifacts/ironforge-polish-review-20261022/install-backups/20261022-174831-565-c80be06d79a847959274bb136099ff6d/install.json`.
+Independent verification PASS: all41 committed/source/target/manifest files
+exact2e75a3d;41 backup files exactbefore.csv, baseline and82d57eb, no extras.
+Manifest Verified/BackupVerified=true; foreign329 files/statuses/HEADs and all
+prior refs preserved. Receipt `local-artifacts/ironforge-polish-review-20261022/deployment-receipt.json`.
+Installation is complete; no addon file changes occur in the following
+review-documentation commit. No SavedVariables/otheraddon
+writes or client input. Full exit/restart recommended for the changed textures.
+Ignored evidence root: `local-artifacts/ironforge-polish-review-20261022/`.
 
-## Executed validation
-
-- `python scripts/test_lua.py --runtime both --tests circuit physics surface ui menu determinism`:
-  PASS six modules/52 parsed files each in actual Lua5.1/5.4 via pinned Lupa2.8.
-- Final `--runtime both --tests circuit physics surface` after the rough-pocket
-  fix: PASS three modules/52 parsed files each.
-- `python tests/test_circuit_boundary.py -q`: PASS11.
-- `python scripts/build_city_tracks.py --wc3 . --geometry-only --check`: PASS.
-- `python scripts/validate_project.py`: PASS104 paths,24-module TOCs/links/ledger;
-  six Python authoring files parse, whitespace PASS.
-- Independent diagnostics PASS5,960 bounded join steps and279 outside-start
-  recoveries. Claude's full tests/art rebuild and21,761-point probe are
-  separately attributed; Codex did not repeat the full suite or art rebuild.
-- Verified all-ref bundle45,610,694bytes; foreign snapshot103canonical/223Claude
-  tracked/untracked files and statuses/HEADs unchanged. Baseline41 installed
-  files exactac4ae23. Ignored task root:
-  `local-artifacts/ironforge-v3-integration-20261022/`.
-
-## Deployment and remaining work
-
-PowerShell7 installation and independent verification PASS:41 committed/source/
-installed/manifest files exact,41 prior backup files exactbefore.csv, snapshot
-andac4ae23, no extras. Manifest Status/Stage=Verified, BackupVerified=true.
-Manifest `local-artifacts/ironforge-v3-integration-20261022/install-backups/20261022-163127-637-2915c11e90644cd9ae1a21f6037226c3/install.json`;
-receipt `local-artifacts/ironforge-v3-integration-20261022/deployment-receipt.json`.
-Foreign326 files/statuses/HEADs and all prior refs preserved; only own feature
-branch advanced. No other-addon/SavedVariables changes or
-client input. Full exit/restart recommended for replaced textures. V3 tunnels'
-width/handling, Forge/lava appearance, camera and performance NOT RUN in WoW.
-Actual multi-kart spacing must wait for live racing; current build is solo.
-Multiplayer UI remains Coming soon and both city compatibility IDs remain
-unsupported by SessionTransport. No manual network test requested.
-
-Claude should start future visuals from the completed integrated branch using
-a separate feature branch after checking its worktree; Codex has not switched
-or synchronized that checkout. Preserve narrows/clearance metadata and generate
-CapitalCities with this pipeline, retaining Stormwind's full-speed policy.
-
-Next Codex executable task: pure bounded live-race lifecycle around RaceStart's
-one-shot output. Owner may try a normal Ironforge drive after installation and
-restart, focusing on the two tunnels and Forge. Detailed source review:
-[Ironforge narrows](../reviews/2026-10-22-ironforge-narrows.md).
-
-## Authorized publication and Claude alignment
-
-2026-10-22 16:38 +0200, Europe/Oslo. Owner explicitly authorized GitHub publication and
-installation/coordination. Normal push published `codex/ironforge-narrows` at
-`c6bb0e5699b5f30d9f684d50283c76b5fd4d4a8b`; live remote exact, main unchangedf923d15.
-Following publication documentation is pushed to the same branch; resolve its
-final tip with `git ls-remote origin refs/heads/codex/ironforge-narrows` and the ignored
-publication receipt. No runtime difference from installed/tested `82d57eb11e23eb2417a323ba0c714c23514a50af`.
-Fresh independent41-file installed +41-file backup verification PASS; no
-redundant install/test matrix needed.
-
-Claude is still9461f9c on `claude/ironforge-design`, tracked/index clean, only its
-pre-existing untracked outputs. All three authored commits are in this branch;
-its handoff is byte-identical. CLAUDE.md imports AGENTS.md and both handoffs.
-No direct conversation/acknowledgment with Claude is claimed. Coordination is
-through verified source ancestry and this shared handoff. Codex has not changed
-its checkout. For Claude's next visuals, run in **AzerothKart-Claude**, after
-checking/preserving its work and reserving the next scope:
-
-```powershell
-git status --short
-git fetch origin codex/ironforge-narrows:refs/remotes/origin/codex/ironforge-narrows
-git switch -c claude/ironforge-polish origin/codex/ironforge-narrows
-```
-
-This preserves `claude/ironforge-design`; no reset/rebase/overwrite is needed.
-Use another new branch name if that one already exists; do not repoint it.
-Preserve Codex's all-road tunnel-corner correction, helper boolean validation,
-overlap/closing/copy/branch tests and accepted contract. Claude owns presentation;
-Codex next owns the pure bounded live-race lifecycle; shared interface changes
-still require review. Owner fully restarts and drives Ironforge next.
+Next executable Codex task: pure bounded live-race lifecycle around RaceStart.
+Owner may inspect the half-size anvil/textured pumps after restarting WoW; no
+additional network probe or broad manual matrix.
