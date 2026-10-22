@@ -3,13 +3,13 @@
 2026-10-22 16:24 +0200, Europe/Oslo. Branch `codex/ironforge-narrows`; base d5817a8,
 reservation69dc2dd, incoming Claude9461f9c. Normal two-parent merge **82d57eb11e23eb2417a323ba0c714c23514a50af**
 is committed and installed (parents69dc2dd/9461f9c). The following deployment
-documentation commit changes no addon files. No push, main merge,
-release or milestone completion.
+documentation commit changes no addon files. This user-authorized publication
+is recorded below; no main merge, release or milestone completion.
 
 ## Scope and contract
 
 Reviewed the complete current Claude handoff and all three commits. Accept
-optional `narrows={name?,first,last,wallRadius}`: 1-based closed-loop segments,
+optional `narrows={{name?,first,last,wallRadius},...}`: 1-based closed-loop segments,
 minimum radius on overlap, independent copied metadata; branches/plazas remain
 unchanged. Shared per-segment radii drive runtime capsules, exposed vertices and
 painted walls. Generic radii above roadRadius retain shoulders; Ironforge's42
@@ -77,3 +77,35 @@ Next Codex executable task: pure bounded live-race lifecycle around RaceStart's
 one-shot output. Owner may try a normal Ironforge drive after installation and
 restart, focusing on the two tunnels and Forge. Detailed source review:
 [Ironforge narrows](../reviews/2026-10-22-ironforge-narrows.md).
+
+## Authorized publication and Claude alignment
+
+2026-10-22 16:38 +0200, Europe/Oslo. Owner explicitly authorized GitHub publication and
+installation/coordination. Normal push published `codex/ironforge-narrows` at
+`c6bb0e5699b5f30d9f684d50283c76b5fd4d4a8b`; live remote exact, main unchangedf923d15.
+Following publication documentation is pushed to the same branch; resolve its
+final tip with `git ls-remote origin refs/heads/codex/ironforge-narrows` and the ignored
+publication receipt. No runtime difference from installed/tested `82d57eb11e23eb2417a323ba0c714c23514a50af`.
+Fresh independent41-file installed +41-file backup verification PASS; no
+redundant install/test matrix needed.
+
+Claude is still9461f9c on `claude/ironforge-design`, tracked/index clean, only its
+pre-existing untracked outputs. All three authored commits are in this branch;
+its handoff is byte-identical. CLAUDE.md imports AGENTS.md and both handoffs.
+No direct conversation/acknowledgment with Claude is claimed. Coordination is
+through verified source ancestry and this shared handoff. Codex has not changed
+its checkout. For Claude's next visuals, run in **AzerothKart-Claude**, after
+checking/preserving its work and reserving the next scope:
+
+```powershell
+git status --short
+git fetch origin codex/ironforge-narrows:refs/remotes/origin/codex/ironforge-narrows
+git switch -c claude/ironforge-polish origin/codex/ironforge-narrows
+```
+
+This preserves `claude/ironforge-design`; no reset/rebase/overwrite is needed.
+Use another new branch name if that one already exists; do not repoint it.
+Preserve Codex's all-road tunnel-corner correction, helper boolean validation,
+overlap/closing/copy/branch tests and accepted contract. Claude owns presentation;
+Codex next owns the pure bounded live-race lifecycle; shared interface changes
+still require review. Owner fully restarts and drives Ironforge next.
