@@ -1,3 +1,11 @@
+# Active deployment reservation — latest Claude city handoff
+
+2026-10-22 08:24 +02:00, Europe/Oslo. User authorizes review of the latest Claude handoff, followed by push/install if good, then owner testing. From combined77581b9 on codex/ui-backend-integration, review claude/capital-cup78d97a1, preserving Claude's active checkout and authored history. Read-only reviewers cover collision and track/menu loading; integrator owns any required shared transaction regressions and final merge/test/deployment. No new gameplay scope. Existing city handoff was read completely; do not install the older two-track build as if it contained Stormwind.
+
+Reserved: normal reviewed city merge, shared TOC/test/validator/docs conflict unions, UI.SelectTrack failure transaction if review confirms an issue, supporting regressions/count docs; own progress/handoff and coordinated source publication/verified backup/install. No other agent checkout edits, main merge/force push/release, other addon or WTF/SavedVariables writes, or client automation. Owner performs the game test after full restart.
+
+---
+
 # Codex handoff — reviewed UI/backend integration complete
 
 2026-10-22 08:12+02:00, Europe/Oslo. User asked: coordinate the Menu fix with Claude, add regressions, then integrate. Source integration complete; no installation, publication or new client test.
