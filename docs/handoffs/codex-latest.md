@@ -1,3 +1,16 @@
+# Codex handoff — Orgrimmar and stacked kart review reserved
+
+2026-10-22 22:47 +02:00, Europe/Oslo. User asks review/push of `claude/orgrimmar`.
+Own `codex/orgrimmar-review` starts at pinned72b362f. Review dependency
+8cc2031 (four karts) first, then Orgrimmar's three commits. Base1a70d6e is the
+previous approved integration. Reserve this named handoff, PROGRESS and a new
+review report only; no production changes, foreign-checkout mutations or merge.
+Review source/geometry/pipeline/tests, execute focused checks and publish exact
+Claude tip only if approved. No main update/release, client test or install is
+part of this push checkpoint. Installed41-file build remains separate.
+
+## Previous handoff
+
 # Codex handoff — approved/published Ironforge polish
 
 2026-10-22 17:50 +02:00, Europe/Oslo. User authorized review/push of `claude/ironforge-polish`.
