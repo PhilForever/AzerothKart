@@ -1,3 +1,18 @@
+# Codex handoff — active live-race backend slice
+
+2026-10-22, Europe/Oslo. Owner asks to continue multiplayer toward a friend race.
+Own clean branch codex/live-race-controller from4544108 (reviewed Orgrimmar72b362f).
+Reserve new LiveRace.lua / LiveProtocol.lua and their tests, both TOC additions,
+test loader/validator lists and backend contracts/docs/PROGRESS. Do not edit
+Claude visual/Menu/UI code or either foreign worktree. Pure lifecycle owns the
+existing coordinated GO bundle, fixed-step local input, bounded observational
+remote poses and paced output; no production authority/finish/collision decision
+or native/UI activation claimed. Focused Lua5.1 checks before commit. Native
+transport lease adoption/menu integration is the subsequent boundary; no install,
+new manual probe or publication in this implementation slice.
+
+## Previous checkpoint
+
 # Codex handoff — Orgrimmar reviewed and published
 
 2026-10-22 22:56 +02:00, Europe/Oslo. User requests review/push of `claude/orgrimmar`. **APPROVED and published exact72b362fc4a7926624c5ceaf648056595c8b0e080**; main remainsf923d15. Own docs branch `codex/orgrimmar-review` from that source, reservation505ec2e. Only this handoff, PROGRESS and [review](../reviews/2026-10-22-orgrimmar.md) edited. No runtime edits, merge, foreign checkout mutation, force push, release or install.
