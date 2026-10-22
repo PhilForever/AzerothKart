@@ -1,3 +1,27 @@
+# Codex handoff — Ironforge v3 review reserved
+
+2026-10-22 16:17 +0200, Europe/Oslo. From clean `d5817a8` on `codex/ironforge-narrows`,
+review Claude's three commits through `9461f9c` before integrating and preparing
+the coordinated local installation. Claude branched from our exact installed
+baseline; preserve its checkout/ref/history and untracked outputs.
+
+Reserved scope: review `Circuit.new` optional narrows, analytic boundary/radii
+and generator/painter agreement; import the authored Ironforge v3 data/art,
+menu facts, pipeline and tests; add focused overlap/closing-segment/copy and
+transition invariants if needed. Resolve current shared contracts/status/docs,
+write this named handoff and PROGRESS. No UI/controller/global Physics/network
+changes, Stormwind changes, new gameplay feature, GitHub push or main merge.
+Do not edit Claude's handoff except importing its committed contents. Validate
+before installation, preserve the existing41-file install and verify hashes.
+Native v3 width/feel/visual/performance checks remain NOT RUN.
+
+The new Claude handoff quotes the owner's actual drive of v2 followed by design
+requests. Attribute that report to the handoff; do not invent a successful v3
+client test or complete a milestone. The next Codex feature remains the bounded
+live-race controller after this review/deployment checkpoint.
+
+## Previous installed integration
+
 # Codex handoff — reviewed Ironforge integration
 
 2026-10-22 13:28 +02:00, Europe/Oslo. Branch `codex/ironforge-integration`;
