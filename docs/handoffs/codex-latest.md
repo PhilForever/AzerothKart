@@ -1,23 +1,25 @@
-# Codex handoff — Stormwind full speed to the walls
+# Codex handoff — painted Stormwind wall alignment installed
 
-2026-10-22 10:11 +02:00, Europe/Oslo. Owner asks: Stormwind must not slow the kart before the street edges. Implemented/installed **c4b430d** (`c4b430d105da03f9fb7dd48742984d86547f4b89`) on **codex/stormwind-full-speed**, from clean published/deployedc59a607. Following docs commit records the install; runtime source unchanged. Own reservation preceded edits. No other agent checkout/history rewritten, no main merge/push/release.
+2026-10-22 10:46 +02:00, Europe/Oslo. Owner reports an invisible collisionwall at the Park/Mage innerpavedcorner before the whitewaterparapet. Implemented/installed **81cc0ed69da79d0ea5dcb03d2c5af924afcf100e** on **codex/stormwind-wall-alignment**, from clean installedf62e708. Followingdocscommit records deployment; no addon changes after testedcommit. Reservation preceded source edits; no otheragentcheckout/history overwritten, publication/mainmerge/release/clientautomation.
 
-## Change / shared contract
+## Diagnosis / implementation
 
-Optionalboolean Circuit.fullSpeedToWalls defaultsfalse; when true, the full corridor inside existing wallRadius reportsroad through surfaceAt/isDrivable. Painted112-wide road and wallRadius76, dimensions/centerline/branch/spawn/gates/wall contact remain unchanged. Stormwind layout opts in and trackversion becomes2; build_city_tracks emits flag/version into generatedCapitalCities. Physicsversion7, Mirage/Oval surfaces and artwork unchanged. Drift/boost continue across Stormwind's shoulder; actualcollision still scrubs speed. No per-frame work/object budget change(71/165/80). Removed stale Stormwind slowdown copy in Courses/Menu/help; aligned contracts/track/physics/art/checklist docs.
+ActualLua repro(442,849)→(445,846) returnedstart/hit; (450,850)classifiedwall despitewhiteexposedapex(476.265215329,866.369426623) over30unitsaway. ArtunionR90 and independentlyshrunkphysicalunionR76 diverge at concavejoins. Stormwindv3 now defines wallClearance14 plus1,025exposed wallVertices fromtheanalyticcapsuleunion. Old-radiusinsidepoint is a safe fastpath; outsideit, exposedarc/lineprojections and junctions measure realunionclearance. All12artassets are unchanged; paintedroad56/wall76 source dimensions/gates/spawn remain. FullSpeedToWalls keepsnormalgrip/drift/boost. Existing radial/endpointstreetmodel retained, notneworientedbody/continuoussweep.
 
-Claude: keep the Stormwind version2/full_speed_to_walls authoring option and generator support when continuing city work; do not replace these with the old78d97a1 generated file. Your active worktree remains untouched at78d97a1; coordinate the next city merge with this branch and the prior staging-background fix in combinedc59a607. Other cities retain default surfaces unless the owner chooses otherwise. Current protocol does not offerStormwind for multiplayer.
+NearestDrivable nowfiltersallowed/movementbound before ranking, considers trueboundaryoffsets and vertexclearance/movement-circle intersections. This fixes both suppressedreachablelegacyprojection and near-tangentialrealwallslide. Default Circuitclassification and globalPhysics7/othertracks unchanged; no perstepUIobjects/assets/callbackchanges. Pool71/165/80. Pipeline`circuit_boundary.py` is purestandardlibrary, enumeratesexposedanalyticintersections (notimagepixels), canonicalrounding matchesruntimeLua, data vertices8decimals; generatedCapitalCities mustcome fromtheupdatedversion3pipeline.
+
+Claude: preserve Stormwindversion3, full_speed_to_walls, wall_clearance and the boundarybuilder dependency/data when addingcities. Your activecheckout stays78d97a1; do notoverwrite this with older generatedCapitalCities/Circuit. Coordinate your nextmerge with thisfix and prior stagingbackgroundrepair/fullspeedpolicy. Existingartneednotberebuilt. SharedAPI optionalfields documented inAPI_CONTRACTS. CurrentSessionTransport stilldoesnotofferStormwind.
 
 ## Executed checks
 
-- Pinned actualLua5.1 `scripts/test_lua.py --runtime lua51 --tests circuit surface drift menu ui`: PASS,52files parsed/five modules. Default rough fixture, unchangedwall projection, center/shoulder all-field handling equivalence for throttle/boost/chargedrelease/drift and authoredStormwind shoulder points covered.
-- Geometry-only generator and `--check`: PASS, only version/flag changed in runtime data; no archive/art rebuild.
-- Structural validator: PASS96paths/24-module TOCs/links/ledger; whitespacePASS. Independent scoped review: no blocker.
-- Installed39 source/target files exact;39prior files backed up/verified. BasePhysics/Track/Mirage/UI/Input/Race/SessionTransport and all art bytes unchanged; Claude/canonical HEAD unchanged.
-- Lua5.4/fullbroad/client checks NOT RUN for this correction; no previous pass extended to a new manual claim.
+- `python tests/test_circuit_boundary.py -q`: PASS9analytic tests.
+- ActualLua5.1 `scripts/test_lua.py --runtime lua51 --tests circuit physics surface obstacles ui`: PASS52parsed/fivemodules. Final `--tests circuit`: PASS after arcfix. Exactreportedpassage, actualwall14±0.1/contact, unchangedstraightpadding, legacyboundedslide, near-tangentialslide and10tickfullspeedPhysicsdrive covered.
+- `scripts/build_city_tracks.py --wc3 . --geometry-only` and`--check`: PASS; structuralvalidator98paths/24TOCs/links/ledger/whitespace PASS. Fourchanged/newPythonfiles parse. All12art+10criticalnon-Circuitmodules matchf62e708.
+- Independent runtime/helper mathreviews: nofundamentalblocker; caughtandcorrectedtangentialslide beforeinstall.
+- Lua5.4/fullbroad/artregen/nativeperformance/ownercornerretest: **NOT RUN**. Previouspassesnotextendedtoanewclientclaim.
 
-## Install / next
+## Installation / next
 
-Installed at `_classic_beta_/Interface/AddOns/AzerothKart` with existing PowerShell7 helper. Backup/manifest `local-artifacts/stormwind-full-speed-20261022/install-backups/20261022-100920-414-60b7f53b752c42f781bbb25af9f17193/`; receipt `local-artifacts/stormwind-full-speed-20261022/install-receipt.json` (ignored). No deletion, otheraddon orWTF/SavedVariables writes. No newfiles: owner only needs **`/reload`**, then test speed/drift/boost across the painted kerbside until wall contact. Gamefeel remains NOT RUN until feedback.
+39source/target/manifestfiles exactcommitted81cc0ed;39priorfiles backedup/verified withPowerShell7 helper. Manifest `local-artifacts/stormwind-wall-alignment/install-backups/20261022-104405-181-2649cc42360548a2a0242fc1521ba7ea/install.json`; ignoredreceipt/diagnostics inthatartifactsroot. NoWTF/SavedVariables/otheraddon/deletion. Claude/canonicalHEADs preserved; publishedcombinedc59a607 andmainunchanged. Code/documentationcommitslocalonly.
 
-Nextsingle task: owner full-width Stormwind handling check, then Codex resumes bounded live-race controller/paced snapshots. Multiplayer remains ahead of ghosts/time trials; no roadmap acceptance markedcomplete. This correction is committedlocally, not published; original GitHubcombinedc59a607 and all protectedrefs remain unchanged.
+No newruntimefiles: owner **`/reload`**, thenretrythesamePark/Magecorner andwallcontact. Nativefeel/performance remainsopen. Nextsingle taskownerretake; afterwardresume boundedlive-racecontroller/pacedremotesnapshots. Multiplayerpriority/gates androadmapacceptance unchanged.

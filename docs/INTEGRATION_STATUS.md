@@ -2,7 +2,11 @@
 
 Updated2026-10-22 08:12+02:00, Europe/Oslo. Codex is the designated integrator for the owner's request to combine the agents' work without losing either side. This is a source-integration checkpoint, not a release or installation. See [PROGRESS](PROGRESS.md), [ownership](UI_FLOW_OWNERSHIP.md), [API contracts](API_CONTRACTS.md) and both agent handoffs.
 
-## Latest installed handling correction — Stormwind full speed
+## Latest installed collision correction — painted Stormwind wall
+
+2026-10-22 10:46 +02:00: **81cc0ed**, `codex/stormwind-wall-alignment` fromf62e708. Corrects invisibleconcavecollisionwedge atPark/Mage by retaining14-unitcentreclearance to exposedpaintedunion; keepsfullspeed andstraightwallpadding, no art/othertrack/Physicschanges. Reachableprojection/arcslides obeytheoriginalstepbound. Stormwindv3/generatedjunctionmetadata; focusedPython9/Lua5.1checks and98pathvalidator PASS.39installedfiles/source/hash exact,39priorfiles backedup/verified. Native `/reload` retest NOT RUN. Localonly; publishedcombinedc59a607 andotheragentworktree/history remainunchanged. Details inPROGRESS/Codexhandoff.
+
+## Prior installed handling correction — Stormwind full speed
 
 2026-10-22 10:11 +02:00: owner-directed correction **c4b430d**, `codex/stormwind-full-speed` from the published integratedc59a607 baseline. Stormwind version2 has full road grip/speed/drift/boost throughout the existing corridor until wall contact; no slowdown on its painted shoulder. Other tracks/walls/art/globalPhysics7 unchanged. Focused Lua5.1 tests/generator/validator PASS;39files installed/hash-verified,39priorfiles backed up/verified. Owner `/reload` check NOT RUN. This local correction has not been pushed; the combined published branch below remains unchanged. See PROGRESS and the Codex handoff.
 
