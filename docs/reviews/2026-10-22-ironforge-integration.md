@@ -82,3 +82,17 @@ Codex's next development slice remains the bounded live-race lifecycle around
 the one-shot RaceStart output; Claude may continue visual work from a separate
 branch after reviewing this integrated baseline. Neither city count nor code
 presence completes the release/content or multiplayer gates.
+
+## Deployment result — 13:27 +02:00
+
+Normal merge **ac4ae23db79d02b48e55b4b1b3dddaa315e4b0be**, parents7fe251e/de2fa5f,
+is installed in the authorized Forever `Interface/AddOns/AzerothKart` target.
+PowerShell7 preflight and installation passed. Independent verification:
+41 committed/source/target/manifest files exact;39 prior files backed up and
+exact against before.csv and81cc0ed, no extras. Manifest Status/Stage=Verified,
+BackupVerified=true. Receipt:
+`local-artifacts/ironforge-integration-20261022/deployment-receipt.json`.
+Both foreign checkouts'305files, statuses and HEADs are unchanged. Only Codex's
+integration branch advanced; main and published/Claude refs remain unchanged.
+Deployment documentation changes no addon files. No client input, reload,
+push, release or new manual test was performed by Codex.

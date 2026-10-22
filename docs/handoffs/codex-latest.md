@@ -1,9 +1,10 @@
 # Codex handoff — reviewed Ironforge integration
 
-2026-10-22 13:25 +02:00, Europe/Oslo. Branch `codex/ironforge-integration`;
+2026-10-22 13:28 +02:00, Europe/Oslo. Branch `codex/ironforge-integration`;
 base clean `899d04d`, reservation `7fe251e`, incoming Claude `de2fa5f`.
-Normal two-parent merge is prepared; installation follows the committed source.
-The deployment-record commit will name that implementation hash and backup.
+Normal two-parent implementation merge **ac4ae23db79d02b48e55b4b1b3dddaa315e4b0be**
+is committed and installed (parents7fe251e/de2fa5f). Deployment record aacf15b
+and this following handoff documentation change no addon files.
 No publication, main merge, release or milestone completion in this task.
 
 ## What changed and what is preserved
@@ -61,8 +62,11 @@ live-race/socket reconnect. No native acceptance is inferred from offline tests.
 
 Pre-install39 files exactly match81cc0ed. Ignored recovery/audit root:
 `local-artifacts/ironforge-integration-20261022/20261022-111735-utc/`.
-Normal installer must back up all39 prior files, copy41 committed source files
-and verify hashes before installation is marked done. No WTF/SavedVariables,
+PowerShell7 installer completed. Independently verified: all41 committed/source/
+installed/manifest files exact, all39 backup files exact before.csv and81cc0ed;
+no extras. Manifest Status/Stage=Verified, BackupVerified=true. Manifest under
+`local-artifacts/ironforge-integration-20261022/install-backups/20261022-132604-865-804f0c60ebb042a7bc3e340f5eb40463/install.json`; independent
+`local-artifacts/ironforge-integration-20261022/deployment-receipt.json`. No WTF/SavedVariables,
 other addon, deletion or user-input automation. Full client exit/restart is
 required because the Ironforge textures are new.
 
