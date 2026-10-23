@@ -1,3 +1,20 @@
+# Active reservation — Claude river review/publication, then wall-slide handling
+
+2026-10-23 Europe/Oslo. Owner requests review/push of Claude latest, then fixing
+sticky angled/side wall contact and slow stationary turning. Own clean
+codex/wall-slide from505f054; review targetee144b5/claude/undercity-river. Reserve
+reviewed36-file integration, AGENTS Ironforgepolicy wording, ownhandoff/PROGRESS/
+review/contracts/deploymentdocs; afterward Physics.lua, focusedwallhandlingtests,
+existing physics/steering/obstacle/drift/surface fixtures, Physics compatibility
+assertions in native tests and runner/validator if needed. No renderer or art
+implementation edits; preserve Claude checkout and whole current multiplayer
+grid/profile/camera/menu code. First approve/publish exact Claude branch; then
+integrate and make one deterministic wall-handling slice, with fixed-step replay
+and handling metrics. Installation/ZIP follows source checks in ongoing test
+workflow. No main push/merge/release or force/history rewrite.
+
+## Previous completed checkpoint
+
 # Codex handoff — reviewed Darnassus/Undercity combined build
 
 2026-10-23 10:28+02:00, Europe/Oslo. Owner requested review and integration if
