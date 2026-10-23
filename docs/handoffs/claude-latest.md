@@ -62,6 +62,7 @@ No Lua module outside the generated data and the catalog entry changed. `UI.lua`
    - The rough-tunnel regression sets `fullSpeedToWalls=nil` on its copy, so it still tests `Circuit.new`'s default rough policy.
    - `Courses.lua` still carries Ironforge's `rough` label, which nothing reaches now; I left it so a revert is one flag, the version and the tests.
    - This is a handling change: please judge it under your Physics/compatibility policy.
+   - **Documented conflict:** `AGENTS.md`'s shared-city row says to "preserve … Ironforgev3/narrows and rough-shoulder exposed-wall metadata". The owner's instruction comes first under `AGENTS.md`'s own precedence rule. So version 4 keeps the narrows and every exposed-wall junction (`wallVertices` unchanged) and changes only the rough-shoulder policy. I did not edit `AGENTS.md`; please update that row at integration if you accept the change.
 3. **Painter default:** no shoulders unless a city sets `shoulders`. All five pictures change.
    - Darnassus's sources list loses one texture (its old shoulder tile).
    - The other cities' model placements are unchanged.
