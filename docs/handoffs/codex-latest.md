@@ -1,118 +1,80 @@
-# Active reservation — multiplayer grid/countdown and peer presentation
+# Codex handoff — multiplayer grid/countdown and peer presentation
 
-2026-10-23 Europe/Oslo. Owner reports first completed two-client race, asks
-visible shared starting grid/countdown and describes square peers/delay/clipping.
-Own clean codex/multiplayer-grid from6ad66d1. Reserve root native grid/profile
-exchange, pure codec/controller and clock/race spawn integration, loaders/docs/
-PROGRESS; UI/Menu and UI tests delegated for shared grid/capture/sprites;
-Presentation helper/tests delegated for bounded time-aware remote display;
-native/E2E tests delegated after interfaces agreed. User's current request
-explicitly assigns this integration; Claude checkout/art are not edited.
-Preserve native pacing, exactly-once GO, zero pre-GO simulation and solo flow.
-No inter-kart collision/official winner or network capacity acceptance inferred.
-Record owner evidence with two local finishes35.42/36.42, not agreed placements
-or quantitative latency. Screenshots remain private. No automatic publication.
+2026-10-23 09:05+02:00, Europe/Oslo. Owner asks to continue from first real
+two-client feedback. Own **codex/multiplayer-grid**, base6ad66d1,
+reservationf5e6918, tested/installed runtime **eb2055a22034bc63d3bfe01538f097f4cbfab4ba**.
+Following handoff commit changes documentation only. No new milestone or push.
 
-## Previous handoff
+## What is implemented and verified
 
-# Codex handoff — multiplayer candidate installed and packaged from AddOns
+- Bounded pure RaceGrid/profile codec on AZKGRD1: chosen cosmetic IDs immutable,
+  Ready/Start held until agreement, role-specific start slots36units apart.
+- Deliberate Start shows both chosen sprites, GET READY then full3–2–1–GO.
+  StartClock reserves3000ms before GO; no preGOsteps/laps. Held keys carry to
+  actual single backend launch. Staged exit releases input; old finished
+  summaries cannot return after a grid abort. Solo/legacy behavior retained.
+- Exact40-byte AZKRUN2 snapshots add monotonic sampleMS. Copied sampleAgeMS is
+  mapped-clock age, not measured one-way latency. Reuses existing peer texture,
+  neutral art tint, atlas heading/pivot/rotation with guarded square fallback.
+- Cached500ms/31-point display forecast follows bounded travel/yaw and stops
+  at walls/solids; no extra interpolation interval. Offscreen direction/distance
+  is not race position. Unknown steering/braking/clock error can cause corrections.
+- Rate stays2Hz/94payload+prefixB per peer/188pair; all four prefixes share
+  the same Core lease/persistent0.5s/2calls/158B local gate. Pool79/166/81.
+  No art/Physics/geometry changes, kart contact or agreed winner added.
 
-2026-10-22 23:52 +02:00, Europe/Oslo. Explicit owner request: install into AddOns and make ZIP
-from there. Source c581a52950013263049cd82a44f83217556fc1c6 unchanged from tested
-fb0df19 docs baseline. Own codex/live-multiplayer-integration; only deployment
-receipts, PROGRESS and this handoff edited. No runtime source change.
+Final actual Lua5.1 **31testmodules/59parsedfiles PASS** after focused tests.
+All-TOC mock peers traverse realCore/menu/UI/native flow at700ms syntheticRTT,
+5sclockoffset, profiles, distinct sprites/slots, each3/2/1, zero preGOsteps,
+held throttle afterGO and cleanup. Native profile-loss/gating,32sLeave,
+failure/reentry, timestamp/syntax/copy, bounded wall prediction and old-result
+regressions pass. Final independent native review found no further blocker.
+`git diff --check` PASS. Structural validator FAIL only the historical two
+expired skill links; do not call it passed. Lua5.4/full art rebuild/native
+revised countdown/sprites/input/timing/feel/FPS **NOT RUN**. See
+[PROGRESS](../PROGRESS.md) for commands/results and [owner evidence](../evidence/2026-10-23-first-live-race.md)
+for earlierc581a52 local finishes35.42/36.42s and usability issues. Neither the
+old local times nor new offline passes establish synchronized/shared results.
 
-PowerShell7 existing installer WhatIf PASS, then actual backup/install/hash
-verification PASS49files in C:/Program Files (x86)/World of Warcraft/
-_classic_beta_/Interface/AddOns/AzerothKart. Prior41files backed up/verified.
-Manifest local-artifacts/live-multiplayer-install-20261022/backups/
-20261022-235101-774-84c5285b8ea445aba58eaf5ceac28acf/install.json;
-Verified/BackupVerified=true. No extras or other-addon/SavedVariables edits.
+## Installation and archive
 
-ZIP created from installed folder (not the workspace copy):
-C:/Users/bakke/Downloads/Forever_Addons/AzerothKart-Multiplayer-c581a52.zip
-49files,34,040,705bytes; SHA256
-c19ea2fc005b4b643493f12245825c0587c8eaffcb96ff76fe4e8bd92300525a.
-CRC/exactarchivepaths/allsource-target-ZIP hashes PASS; installed tree remained
-stable during packaging. This is the current friend package. Preinstall hashes,
-helper result and deployment-receipt.json are under ignored
-local-artifacts/live-multiplayer-install-20261022/.
+Backup/hash installer actually deployed50files to `_classic_beta_/Interface/AddOns/AzerothKart`.
+Prior49files independently matchc581a52 receipt+before.csv; all50source/target/
+manifest/ZIP paths+SHA256 match. Manifest `local-artifacts/multiplayer-grid-20261023/backups/20261023-090347-158-a74d717dd9c84f9184be9cbf9ff9a508/install.json`.
+ZIP created directly from installed folder, CRC checked, trees unchanged:
+`C:/Users/bakke/Downloads/Forever_Addons/AzerothKart-Multiplayer-eb2055a.zip`,
+33,930,577bytes, SHA256 `83a1211c312f047d4f7aa905abfd8b6747d888386d882a06e8d7f00381e14c24`.
+Ignored receipt/logs: `local-artifacts/multiplayer-grid-20261023/`.
+Old archive retained; no otheraddon/WTF/SavedVariables/clientinput changes.
 
-No gameplay suite rerun for byte-identical source copying; prior actualLua5.1
-all30modules/57parsed pass retained. Actual WoW/native gameplay NOT RUN. No
-client input, publication/release/main merge or milestone claim. Foreign worktrees
-are not edited. Next exact task: full restart on both clients (new files), one
-friend race through Multiplayer using MULTIPLAYER_PLAYTEST.md, record actual
-GO/opponent movement/Stop and usability. No repeat standalone net probe.
+## Coordination and ownership
 
-Independent read-only audit PASS: source/target/manifest exact49files, backup/
-before.csv exact41priorfiles, and both foreign worktrees'347file hashes/HEADs/
-statuses unchanged. Receipt updated; no source/gameplay changes.
+Read Claude’s latest authored handoff at **e96044b / claude/darnassus-undercity**,
+which independently advances from6ad66d1 and explicitly acknowledges our active
+reservation. Newcity Menu/test changes are catalog data only. Its checkout,
+untracked outputs and authored handoff are untouched; the old Orgrimmar ref
+72b362f remains. Canonical5570968 unchanged.370foreignfilehashes/HEADs/branches/
+statuses preserved after that observed advancement;39critical core/art files
+unchanged from6ad66d1. No newcity/elevation integration, history rewrite, main
+merge, branch publication or direct Claude acknowledgment claimed.
 
-## Previous implementation checkpoint
+Root reservation now complete. Changed native scope: LiveProtocol/LiveRace,
+RaceGrid, SessionTransport and StartClock; coordinated UI/Menu/Presentation
+scope: grid capture/cues, selectedpeertexture, bounded forecast/label and tests.
+Both TOCs/runner/validator and shared contract/evidence/playtest docs aligned.
+Contracts are in [API_CONTRACTS](../API_CONTRACTS.md),
+[LIVE_RACE](../LIVE_RACE.md), [START_CLOCK](../START_CLOCK.md) and
+[SESSION_MENU_API](../SESSION_MENU_API.md). Future city integration must retain
+these newer Menu/UI/native changes instead of installing its standalone branch.
+Do not switch/reset another worktree or automatically merge/push.
 
-# Codex handoff — wired two-player developer candidate
+## Pending and next exact task
 
-2026-10-22 23:39 +02:00, Europe/Oslo. Owner explicitly asks native controller connection then
-lobby/race display. Own codex/live-multiplayer-integration from7f80c2b,
-reservationc87fe29, implemented **c581a52950013263049cd82a44f83217556fc1c6**.
-Following handoff commit changes documentation only. No main merge, force push,
-release, foreign worktree edit, client input or installed-addon write.
-
-## Implemented
-
-SessionTransport HostLive/ListenLive opt-in, exactly-once private GO adoption,
-same lease/hooks/persistent output budget across control/clock/live. Native
-AdvanceLive returns copied current/final views; no second UI Physics loop.
-PeerSession.beginRace clears negotiation deadline while retaining terminal
-cancellation. All sends charged; refusal hard-stops without more output. Scoped
-post-GO CANCEL uses normal sequence/conflict checks before retiring its unused
-ACK/lease. Legacy native APIs and TakeRaceStart keep their prior behavior.
-
-Core binds Menu's view/action bridge after creation. UI.MultiplayerAction owns
-safety; deliberate Ready loads the supported offered track/arms the matching
-session; GO checks focus/window/combat before capture. Full-name/fresh-code
-lobby, Host/Listen/Join/Ready/Start/Leave,5Hz status, supportedMirage/Oval only.
-One cyan marker/label consumes copied observations with bounded interpolation,
-stale fade/clipping. Local finish freezes actual progress while native output
-finishes; results/navigation stop/cancel correctly and are explicitly unverified.
-No contact, authoritative remote correction, agreed winner or cosmetic exchange.
-[Exact API](../LIVE_RACE.md#implemented-native-and-player-flow-integration),
-[short user steps](../MULTIPLAYER_PLAYTEST.md). UI/menu changes were expressly
-assigned by owner; Claude's visuals/checkout/authored handoff remain intact.
-
-## Verification
-
-Final actual Lua5.1/pinnedLupa2.8 full integration checkpoint PASS all30modules,
-57parsedfiles, after focused six-module and native/cross-layer runs. Realall-TOC
-mock peers use actualCore/menu/UI/native callbacks through700ms syntheticRTT,
-5sclockoffset, GO,180drivingframes, moving observations and Stopcleanup. No
-per-frame widgets; pool79/166/81. Tests cover32sliveLeave, one paced cancellation,
-foreign/old-sequence packets, sendfailures, reentrant teardown, focus/loading/
-preReadyclose, finishdrain and unchangedsolo/preferences. Whitespace/Pythonparse
-PASS. Structuralvalidator FAIL only two pre-existing expired skill-file links
-in PROGRESS; not counted as pass. Lua5.4/nativegame/delivery/feel/FPS NOT RUN.
-
-347foreignfilehashes/statuses/HEADs preserved;20existing coremodules and every
-asset unchanged. No direct Claude conversation claimed. The Git/common source
-handoff is the coordination record; neither foreign checkout is switched.
-
-## Artifact and next action
-
-Local artifact release/AzerothKart-two-player-c581a52.zip,49files,34,040,705bytes,
-SHA256 f4b9a91e68b48ffec27ef82330853388277f39ae9412f21652064e68c2ae1a04.
-CRC/exactpaths/all49sourcehashes verified. No screenshots/personaldata/docs/tests
-in package beyond existing addonREADME; build sourcec581a52. Ignored receipts:
-local-artifacts/live-multiplayer-integration-20261022/ (final-lua51.txt,
-focused.txt,structural.txt,preservation.json,package.json).
-
-Not installed/published. Installed prior41-file2e75a3d is unchanged. Next exact
-task is coordinated backup/hash-verified installation ofc581a52, fullrestart
-(newfiles), then one actual two-client race using Multiplayer menu. The friend
-needs this identical package. No standalone /akart net probe prerequisite.
-Record both actual GO/movement/stop and usability before claiming acceptance.
-Mirage follow-camera can clip a delayed observed opponent at high speed; this
-is a known candidate limitation, not an invented transport result. No higher
-traffic rate, shared-winner claim or automatic reconnect is authorized by source
-passes. Fullsocket recovery/productionauthority/contact/finish agreement and
-release remain open. Continue only after addressing actual playtest feedback.
+Both testers fully restart WoW with this identical updated build (new module,
+new wire prefix). Follow [the short menu steps](../MULTIPLAYER_PLAYTEST.md);
+verify visible shared grid/countdown, correct peer sprites and nearby driving
+feel. No standalone net probe requested. Actual forecast corrections/clock skew,
+final-ACK ambiguity, contact, trusted finish/authority, full socket reconnect,
+production acceptance and redistribution review remain open. Record native
+feedback before deciding the next replication/contact/results slice. Milestones
+stay open; no claim that the lag is fixed from synthetic tests.

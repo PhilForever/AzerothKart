@@ -10,8 +10,7 @@ Updated2026-10-22 16:33 +0200, Europe/Oslo. Codex is the designated integrator f
 `codex/multiplayer-grid` builds on6ad66d1/c581a52 with immutable kart-profile
 agreement, two role-specific grid slots, full3–2–1–GO and timestamp-aware bounded
 opponent display. First owner race feedback is [recorded](evidence/2026-10-23-first-live-race.md);
-revised native behavior remains NOT RUN. The final source commit/install/package
-receipt is recorded in PROGRESS and the Codex handoff. No asset/track/Physics
+revised native behavior remains NOT RUN. Tested runtime eb2055a is installed:50source/target/manifest/ZIP hashes match,49priorfiles backed up. The installed-folder ZIP is AzerothKart-Multiplayer-eb2055a.zip. Exact receipt is recorded in PROGRESS and the Codex handoff. No asset/track/Physics
 change, kart contact, agreed winner, main merge or publication is included.
 
 Claude independently advanced to e96044b on `claude/darnassus-undercity`, from
