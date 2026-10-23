@@ -5,6 +5,17 @@ Updated2026-10-22 16:33 +0200, Europe/Oslo. Codex is the designated integrator f
 
 
 
+## Latest installed tuning/art — 2026-10-23 15:00+02:00
+
+Combined d3fd99d on local codex/wall-penalty-10: requested10% initial wall loss
+and80% scrape cap, plus reviewed Undercity lighting. Physics10, both friends
+update; fullrestart for changed textures. Claude exacte83c889 pushed/live-verified
+on origin/claude/undercity-river; main unchanged. Later Codex tuning not pushed.
+Focusedfour-module Lua5.1 PASS60parsed; native feel/appearance pending.54files
+installed/hash-verified,54priorfiles backed up, ZIP from installed folder:
+`AzerothKart-Multiplayer-d3fd99d.zip`. Receipts/hashes in PROGRESS/handoff.
+No other-worktree overwrite/main merge/release. Earlier entries are historical.
+
 ## Latest tuning — Physics9, 2026-10-23 14:44+02:00
 
 Installed58925eb on local codex/wall-penalty adds a light5% initial wall penalty
