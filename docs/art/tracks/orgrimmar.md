@@ -18,7 +18,7 @@ Counter-clockwise round the Cleft of Shadow, along the owner's blue line (traced
 2. **The Valley of Strength.** The road joins the loop at the valley's south end; the finish line is just round the corner, north up the valley past the bank (a stronghold) and the wind riders' roost.
 3. **The Drag.** East along the Cleft's south side and north up the Drag, tents, huts and goblin stalls either side; the closed bridge to the Valley of Honor at its north end. Gate: *The Drag*.
 4. **Under the north wall.** West along the foot of the canyon's north wall, the huts of the upper terraces inside. Gate: *Valley of Wisdom*.
-5. **The Valley of Wisdom.** Round the north-west corner below Grommash Hold, the valley's spirit lodges and palms on the right. 
+5. **The Valley of Wisdom.** Round the north-west corner below Grommash Hold, the valley's spirit lodges and palms on the right.
 6. **The Cleft of Shadow's rim.** South down the Cleft's west rim, the chasm on the left. Gate: *Cleft of Shadow*.
 7. **Back into the Valley of Strength** and across the line. Gate: *Valley of Strength*, the finish line.
 

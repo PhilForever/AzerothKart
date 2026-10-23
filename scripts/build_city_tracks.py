@@ -92,6 +92,9 @@ def geometry(wc3, city):
             "kart": L.KART, "centerline": centerline, "narrows": narrow_segments(city, centerline),
             "branches": city.get("branches", []), "plazas": plazas, "gates": city["gates"],
             "solids": solids, "spawn": (sx, sy, heading)}
+    heights = L.street_heights(city)
+    if heights is not None:
+        result["elevation"] = heights
     clearance = city.get("wall_clearance")
     if clearance is not None:
         # The runtime data rounds authored coordinates to tenths. Generate
@@ -202,6 +205,23 @@ def lua_data(tracks):
             lines.append("        {id=%s, x=%d, y=%d, width=%d, height=%d}," % (
                 q(s["id"]), s["x"], s["y"], s["width"], s["height"]))
         lines.append("    },")
+        if g.get("elevation"):
+            # Proposed (docs/API_CONTRACTS.md): the street's height at every
+            # centerline and branch point. Circuit.new does not read it yet.
+            def heights(values, indent):
+                for k in range(0, len(values), 16):
+                    lines.append(indent + ",".join(number(v) for v in values[k:k + 16]) + ",")
+            lines.append("    elevation={")
+            lines.append("        centerline={")
+            heights(g["elevation"]["centerline"], "            ")
+            lines.append("        },")
+            lines.append("        branches={")
+            for branch in g["elevation"]["branches"]:
+                lines.append("            {")
+                heights(branch, "                ")
+                lines.append("            },")
+            lines.append("        },")
+            lines.append("    },")
         lines.append("}")
         lines.append("")
     lines.append("if type(namespace) == \"table\" then namespace.CapitalCities = CapitalCities end")
@@ -342,6 +362,11 @@ def validate_geometry(g):
     for x, y, _, _ in samples:
         assert reach + kart + inset <= x <= width - reach - kart - inset and \
             reach + kart + inset <= y <= height - reach - kart - inset, f"street leaves the world at ({x:.0f}, {y:.0f})"
+    if g.get("elevation"):
+        heights = g["elevation"]
+        assert len(heights["centerline"]) == len(line), "a street height per centerline point"
+        assert len(heights["branches"]) == len(g["branches"]) and all(
+            len(h) == len(b) for h, b in zip(heights["branches"], g["branches"])), "a height per branch point"
     for s in g["solids"]:
         assert s["width"] > 0 and s["height"] > 0, f"solid {s['id']} is empty"
         x0, y0, x1, y1 = s["x"] - inset, s["y"] - inset, s["x"] + s["width"] + inset, s["y"] + s["height"] + inset

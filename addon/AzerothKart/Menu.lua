@@ -42,10 +42,20 @@ Menu.TRACKS = {
             .. "Great Forge's fire, then Tinker Town and the Military Ward.",
         facts={"3 laps, 7 gates named for the districts", "Tight tunnels in and out of the Forlorn Cavern",
             "Mind the lava: the forges' walls are solid"}},
+    {id="darnassus_canopy", name="Darnassus Canopy Run", cell="darnassus",
+        blurb="Start on the Warrior's Terrace, north past the Craftsmen's Terrace, down past the Cenarion "
+            .. "Enclave to the Temple Gardens' lake, round the Temple of the Moon and up past the Tradesmen's Terrace.",
+        facts={"3 laps, 6 gates named for the districts", "Down from the upper terraces to the lake and back up",
+            "Full speed to the street walls"}},
     {id="orgrimmar_canyon", name="Orgrimmar Canyon Rush", cell="orgrimmar",
         blurb="Start on the canyon road behind the city gate, then round the Cleft of Shadow: the Valley of "
             .. "Strength, the Drag, the Valley of Wisdom and down the Cleft's rim.",
         facts={"3 laps, 4 gates named for the districts", "Counterclockwise round the Cleft of Shadow",
+            "Full speed to the street walls"}},
+    {id="undercity_slime", name="Undercity Slime Circuit", cell="undercity",
+        blurb="Start by the canal below the Apothecarium, round the Rogues', Magic and War Quarters, then down "
+            .. "into the sunken Trade Quarter, round its slime well and up over the canal again.",
+        facts={"3 laps, 5 gates named for the quarters", "A ramp down into the Trade Quarter and a climb out",
             "Full speed to the street walls"}},
 }
 
@@ -101,6 +111,10 @@ Menu.PREVIEW_CELLS = {
     ironforge={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\Ironforge\\Preview.tga",
         left=0, right=1, top=0, bottom=1, width=320, height=320},
     orgrimmar={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\Orgrimmar\\Preview.tga",
+        left=0, right=1, top=0, bottom=1, width=320, height=320},
+    darnassus={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\Darnassus\\Preview.tga",
+        left=0, right=1, top=0, bottom=1, width=320, height=320},
+    undercity={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\Undercity\\Preview.tga",
         left=0, right=1, top=0, bottom=1, width=320, height=320},
 }
 

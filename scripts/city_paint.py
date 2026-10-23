@@ -15,6 +15,8 @@ the city, and the picture shows the city around it from the karts' camera
    radius plus a kart's half-length) is paved: the road (cobbles, kerbs
    striped round corners, the chequered finish line), the rough kerb-side
    strip (sidewalk flags) and plazas (marble), with the walls' shadows.
+   A city on several levels (`elevation`) then shows them: retaining walls,
+   raised streets, brinks, the sun's shadows and lit ramps (Relief).
 4. Everything with height, north to south so nearer things cover farther
    ones: the stone balustrade along both street edges (with pillars), the
    city's landmarks, generated district buildings, lamps and banners. Each
@@ -28,6 +30,7 @@ from array import array
 from math import atan2, cos, floor, pi, sin, sqrt
 from pathlib import Path
 
+import city_layouts as L
 import city_meshes as M
 import wc3render as R
 from circuit_boundary import loop_radii
@@ -205,6 +208,11 @@ class Strata:
         `rise` rows tall."""
         row = self.rows[min(self.height - 1, max(0, k) * self.height // max(1, rise))]
         return row[(x * 2) % self.width]
+
+    def tile(self, x, y):
+        """The colour at world texel (x, y), the region tiled flat two texels
+        per world unit (a plateau's surface: Teldrassil's bark)."""
+        return self.rows[(self.height - 1) - (y * 2) % self.height][(x * 2) % self.width]
 
 
 def district_at(city, x, y):
@@ -577,7 +585,9 @@ def paint_water(pic, city, water, tiles, bridge):
     face shows, then the bank's shadow on the water; every bank has a rim.
     Below a bridge the face is deeper and pierced by arches."""
     w, h = pic.w, pic.h
-    tex_w, tex_h, tex = R.read_dds(R.archive_file(tiles.wc3, city["water_texture"]).read_bytes())
+    surface = city.get("water_tile")          # (terrain tile, shade): a liquid that is not water
+    if surface is None:
+        tex_w, tex_h, tex = R.read_dds(R.archive_file(tiles.wc3, city["water_texture"]).read_bytes())
     tint = city["water_tint"]
     rim = city["water_rim"]
     face = city["quay_face"]
@@ -620,6 +630,16 @@ def paint_water(pic, city, water, tiles, bridge):
             pic.g[i] = min(255, int(face[1] * shade + 0.5))
             pic.b[i] = min(255, int(face[2] * shade + 0.5))
             continue
+        shade = 0.70 + 0.30 * near[i] / 12.0              # darker along the banks
+        if k < depth + 7 and row - k - 1 >= 0:
+            shade *= 0.62                                  # the bank's shadow
+        if surface is not None:
+            # A liquid drawn from a terrain tile (Undercity's slime).
+            r, g, b, _ = tiles.whole(surface[0], c, h - 1 - row, seed=29, shade=surface[1])
+            pic.r[i] = min(255, int(r * shade + 0.5))
+            pic.g[i] = min(255, int(g * shade + 0.5))
+            pic.b[i] = min(255, int(b * shade + 0.5))
+            continue
         tx, ty = (c * 2) % tex_w, (row * 2) % tex_h
         acc0 = acc1 = acc2 = 0.0
         for dy in (0, 1):
@@ -629,9 +649,6 @@ def paint_water(pic, city, water, tiles, bridge):
                 acc1 += t[1]
                 acc2 += t[2]
         light = (acc0 + acc1 + acc2) / 12.0
-        shade = 0.70 + 0.30 * near[i] / 12.0              # darker along the banks
-        if k < depth + 7 and row - k - 1 >= 0:
-            shade *= 0.62                                  # the bank's shadow
         pic.r[i] = min(255, int((tint[0] * 0.75 + light * 0.225) * shade * 255 + 0.5))
         pic.g[i] = min(255, int((tint[1] * 0.75 + light * 0.25) * shade * 255 + 0.5))
         pic.b[i] = min(255, int((tint[2] * 0.75 + light * 0.275) * shade * 255 + 0.5))
@@ -809,7 +826,9 @@ def paint_rock(pic, city, rock, tiles):
     fade = spec.get("fade", 48)
     dark = spec.get("dark", 0.4)
     deep = bank_distance(rock, w, h, fade)
-    top_tile, top_shade = spec["top"]
+    top_tile, top_shade = spec.get("top", (None, None))
+    # A plateau's top in a plain texture (top_texture), instead of a terrain tile.
+    top_plain = Strata(tiles, spec["top_texture"]) if spec.get("top_texture") else None
     face_tile, face_shade = spec.get("face", (None, None))
     # A canyon's walls: the face in a cliff texture's strata (face_texture),
     # instead of a terrain tile with painted courses.
@@ -851,7 +870,10 @@ def paint_rock(pic, city, rock, tiles):
                 if (k + hash32(x // 9, 0, 19) % 3) % 7 == 0:
                     s *= 0.8                                 # strata
         else:
-            r, g, b, _ = tiles.whole(top_tile, x, y, seed=23, shade=top_shade)
+            if top_plain is not None:
+                r, g, b = top_plain.tile(x, y)
+            else:
+                r, g, b, _ = tiles.whole(top_tile, x, y, seed=23, shade=top_shade)
             s = dark + (1.0 - dark) * (1.0 - deep[i] / fade)
             if row > 0 and not rock[i - w]:
                 s *= 0.55                                    # the drop to open ground north
@@ -910,6 +932,23 @@ def paint_glow(pic, city, lava, rock):
             pic.g[i] = min(255, pic.g[i] + int(gg * f + 0.5))
             pic.b[i] = min(255, pic.b[i] + int(gb * f + 0.5))
     paint_lights(pic, city.get("lights", []))
+
+
+def paint_water_glow(pic, city, water):
+    """Glowing water (Undercity's slime) lights the stone round it as lava
+    does: `water_glow` (r, g, b) added, fading over `water_glow_reach` texels."""
+    w, h = pic.w, pic.h
+    reach = city.get("water_glow_reach", 24)
+    gr, gg, gb = city["water_glow"]
+    dist = bank_distance(bytearray(bytes(water).translate(FLIP)), w, h, reach)
+    for i in range(w * h):
+        d = dist[i]
+        if water[i] or d >= reach or d == 0:
+            continue
+        f = (1.0 - d / reach) ** 2
+        pic.r[i] = min(255, pic.r[i] + int(gr * f + 0.5))
+        pic.g[i] = min(255, pic.g[i] + int(gg * f + 0.5))
+        pic.b[i] = min(255, pic.b[i] + int(gb * f + 0.5))
 
 
 def paint_lights(pic, lights):
@@ -999,6 +1038,231 @@ def paint_pits(pic, city, pit, tiles):
     for i in range(w * h):
         if around[i] and not pit[i]:
             keep[i] = 1
+    return keep
+
+
+# ---------------------------------------------------------------------------
+# Elevation: terraces, ramps and raised streets (city_layouts: `elevation`).
+#
+# Every texel has a height: its level's (the last level polygon holding it,
+# else the ground's), or on the street and its walls the street's height
+# where it passes. The street is the picture's reference: it is drawn where
+# it lies, and what is higher or lower than it shows round it. Seen from the
+# karts' camera (looking north, the sun in the north-west):
+#
+# - where higher ground lies north of lower ground, its south-facing wall
+#   shows, lean x the difference tall: drawn on the higher ground's southern
+#   rows, as the rock's faces are, unless the higher side is the street (a
+#   raised street): then it hangs below the street's southern wall, on the
+#   lower ground, as a chasm's far wall does;
+# - where the ground drops away northward, the brink is lit and the foot of
+#   the drop darkened (that wall faces away from the camera);
+# - higher ground shades lower ground to its south-east (the sun's shadow);
+# - a ramp is lit by its slope: climbing toward the sun darker, away lighter.
+
+SHADOW_ROW = 1.0 / 0.76                    # height a sun ray climbs per row north (shadow vector 0.57, -0.76)
+
+
+def fill_polygon_value(field, w, h, points, value):
+    """fill_polygon for an array of heights: set `value` inside the polygon."""
+    ys = [p[1] for p in points]
+    row0 = max(0, int(floor(h - max(ys))))
+    row1 = min(h - 1, int(floor(h - min(ys))))
+    n = len(points)
+    for row in range(row0, row1 + 1):
+        y = h - row - 0.5
+        xs = []
+        for k in range(n):
+            ax, ay = points[k - 1]
+            bx, by = points[k]
+            if (ay > y) != (by > y):
+                xs.append(ax + (y - ay) * (bx - ax) / (by - ay))
+        xs.sort()
+        for k in range(0, len(xs) - 1, 2):
+            c0 = max(0, int(floor(xs[k] - 0.5)) + 1)
+            c1 = min(w - 1, int(floor(xs[k + 1] - 0.5)))
+            if c1 >= c0:
+                base = row * w
+                field[base + c0:base + c1 + 1] = array("d", [value]) * (c1 - c0 + 1)
+
+
+class Relief:
+    """The city's heights: `height[i]` per texel, `street[i]` set on the
+    street and its walls, and the street's profile."""
+
+    def __init__(self, city, geometry, street, course):
+        spec = city["elevation"]
+        w, h = street.w, street.h
+        self.spec = spec
+        self.ground = float(spec.get("ground", 0.0))
+        self.height = array("d", [self.ground]) * (w * h)
+        for level in spec.get("levels", []):
+            fill_polygon_value(self.height, w, h, level[0], float(level[1]))
+        self.profile = L.Profile(spec["street"], course.loop_length)
+        # Branch segments follow the loop's in Street.segs: which branch each is.
+        owner = []
+        for b, branch in enumerate(geometry.get("branches", [])):
+            owner += [b] * (len(branch) - 1)
+        heights = [float(v) for v in spec.get("branches", [])]
+        thick = city["wall"]["thickness"]
+        self.street = bytearray(w * h)
+        loop = course.loop
+        for (bi, bj) in street.buckets:
+            for y in range(bj * BUCKET, min(h, (bj + 1) * BUCKET)):
+                row = h - 1 - y
+                for x in range(bi * BUCKET, min(w, (bi + 1) * BUCKET)):
+                    i = row * w + x
+                    k = street.seg[i]
+                    if k < 0 or street.gap[i] > thick + 0.5:
+                        continue
+                    self.street[i] = 1
+                    if k < loop:
+                        self.height[i] = self.profile.at(street.along(i))[0]
+                    else:
+                        b = owner[k - loop]
+                        self.height[i] = heights[b] if b < len(heights) else self.ground
+
+
+def paint_relief(pic, city, street, course, relief, tiles, rock=None, water=None, pit=None):
+    """Paint what the city's heights show (see above). Returns the texels no
+    model may stand on: every wall drawn and the brinks."""
+    spec = relief.spec
+    w, h = pic.w, pic.h
+    n = w * h
+    lean = city["lean"]
+    height, on_street = relief.height, relief.street
+    keep = bytearray(n)
+    strata = Strata(tiles, spec["face_texture"]) if spec.get("face_texture") else None
+    face_tile, face_shade = spec.get("face", (None, None))
+    course_rows = spec.get("course", 0)
+    lip = spec.get("lip", 1.16)
+
+    def blocked(j):
+        return on_street[j] or (rock is not None and rock[j]) or (pit is not None and pit[j])
+
+    # A level's own paving, exactly to its edge (a sunken hall's floor).
+    for level in spec.get("levels", []):
+        if len(level) < 3:
+            continue
+        tile, shade = level[2]
+        mask = bytearray(n)
+        fill_polygon(mask, w, h, level[0])
+        for i in range(n):
+            if mask[i] and not blocked(i) and (water is None or not water[i]):
+                row, x = divmod(i, w)
+                r, g, b, _ = tiles.whole(tile, x, h - 1 - row, seed=53, shade=shade)
+                pic.r[i], pic.g[i], pic.b[i] = r, g, b
+
+    def face(j, x, k, rise):
+        """Texel j of a wall `rise` rows tall, k rows below its brink."""
+        if strata is not None:
+            r, g, b = strata.sample(x, k, rise)
+            s = 0.98 if k == 0 else 0.56 + 0.36 * (rise - k) / rise
+        else:
+            row = j // w
+            r, g, b, _ = tiles.whole(face_tile, x, h - 1 - row, seed=47, shade=face_shade)
+            if k == 0:
+                s = 1.0
+            else:
+                s = 0.52 + 0.34 * (rise - k) / rise
+                if course_rows and (k % course_rows == 0 or (x + (k // course_rows) * 11) % 22 == 0):
+                    s *= 0.66                                # dressed stone: courses, joints offset
+        pic.r[j] = min(255, int(r * s + 0.5))
+        pic.g[j] = min(255, int(g * s + 0.5))
+        pic.b[j] = min(255, int(b * s + 0.5))
+        keep[j] = 1
+
+    # Walls and brinks, column by column down every north-south step.
+    for i in range(w, n):
+        north = i - w
+        hn, hs = height[north], height[i]
+        if hn - hs >= 0.5:
+            rise = int((hn - hs) * lean + 0.5)
+            if rise < 1:
+                continue
+            x = i % w
+            if on_street[north] and not on_street[i]:
+                # A raised street: its wall hangs below it on the lower ground.
+                for k in range(rise):
+                    j = i + k * w
+                    if j >= n or blocked(j) or (water is not None and water[j]) or abs(height[j] - hs) > 0.25:
+                        break
+                    face(j, x, k, rise)
+            elif not on_street[north]:
+                # Higher ground (or a terrace) north: its wall on its own southern rows.
+                for k in range(rise):
+                    j = north - k * w
+                    if j < 0 or blocked(j) or (water is not None and water[j]) or abs(height[j] - hn) > 0.25:
+                        break
+                    face(j, x, rise - 1 - k, rise)
+        elif hs - hn >= 0.5 and not on_street[i] and not blocked(i):
+            # The ground drops away north: the brink lit, the foot shaded.
+            k = int(lip * 256)
+            pic.scale(i, k)
+            keep[i] = 1
+            for d, dark in ((1, 180), (2, 212), (3, 236)):
+                j = i - d * w
+                if j < 0 or blocked(j):
+                    break
+                pic.scale(j, dark)
+
+    # A ramp lit by its slope (exaggerated, so a gentle ramp still reads),
+    # its paving's joints laid across it every `ramp_joints` units.
+    gain = spec.get("slope_shade", 2.0)
+    joints = spec.get("ramp_joints", 0)
+    lx, ly, lz = R.kart.LX, R.kart.LY, R.kart.LZ          # the scenery's north-west sun
+    flat = R.kart.AMBIENT + R.kart.DIFFUSE * lz
+    for (bi, bj) in street.buckets:
+        for y in range(bj * BUCKET, min(h, (bj + 1) * BUCKET)):
+            row = h - 1 - y
+            for x in range(bi * BUCKET, min(w, (bi + 1) * BUCKET)):
+                i = row * w + x
+                k = street.seg[i]
+                if k < 0 or k >= course.loop or street.gap[i] > 0.5:
+                    continue
+                arc = street.along(i)
+                slope = relief.profile.at(arc)[1]
+                if slope == 0.0:
+                    continue
+                (ax, ay), (bx, by) = street.segs[k]
+                length = sqrt((bx - ax) ** 2 + (by - ay) ** 2) or 1.0
+                gx, gy = gain * slope * (bx - ax) / length, gain * slope * (by - ay) / length
+                dot = (lz - gx * lx - gy * ly) / sqrt(gx * gx + gy * gy + 1.0)
+                f = (R.kart.AMBIENT + R.kart.DIFFUSE * (dot if dot > 0.0 else 0.0)) / flat
+                if joints and street.lane[i] <= street.road - 1.0 and arc % joints < 1.6:
+                    steep = abs(slope) / 0.08
+                    f *= 1.0 - 0.24 * (steep if steep < 1.0 else 1.0)
+                pic.scale(i, int(f * 256 + 0.5))
+
+    # Height's light: higher ground a little brighter, lower ground darker.
+    lift = spec.get("height_light", 0.0)
+    if lift:
+        for i in range(n):
+            v = height[i]
+            if v != 0.0 and (rock is None or not rock[i]):
+                pic.scale(i, int(256 * (1.0 + lift * v) + 0.5))
+
+    # The sun's shadows: S, the highest a sun ray from each texel meets.
+    strength = spec.get("shadow", 0.34)
+    soft = spec.get("shadow_soft", 5.0)
+    previous = list(height[0:w])
+    for row in range(1, h):
+        base = row * w
+        here = height[base:base + w]
+        current = list(here)
+        reach = previous[0] - SHADOW_ROW
+        for x in range(w):
+            if x:
+                reach = 0.75 * previous[x - 1] + 0.25 * previous[x] - SHADOW_ROW
+            hx = here[x]
+            if reach > hx:
+                current[x] = reach
+                depth = reach - hx
+                if depth > 0.5:
+                    i = base + x
+                    if rock is None or not rock[i]:
+                        pic.scale(i, int(256 * (1.0 - strength * min(1.0, depth / soft)) + 0.5))
+        previous = current
     return keep
 
 
@@ -1772,8 +2036,15 @@ def build(wc3, city, geometry, check=False, preview=False, log=print):
     if rock is not None:
         paint_rock(pic, city, rock, tiles)
         taken[:] = (int.from_bytes(taken, "big") | int.from_bytes(rock, "big")).to_bytes(w * h, "big")
+    if city.get("elevation"):
+        relief = Relief(city, geometry, street, course)
+        walls_drawn = paint_relief(pic, city, street, course, relief, tiles, rock, water, pit)
+        taken[:] = (int.from_bytes(taken, "big") | int.from_bytes(walls_drawn, "big")).to_bytes(w * h, "big")
+        log(f"  elevation {time.time() - started:.0f}s")
     if lava is not None or city.get("lights"):
         paint_glow(pic, city, lava, rock)
+    if city.get("water_glow"):
+        paint_water_glow(pic, city, water)
     log(f"  street {time.time() - started:.0f}s")
     cache = {}
     models = place_landmarks(wc3, city, street, water, taken, cache)
@@ -1859,7 +2130,8 @@ def sources(wc3, city, tiles, models):
         textures.add(path)
     for path, _, _ in tiles.strata:
         textures.add(path)
-    textures.add(city["water_texture"])
+    if not city.get("water_tile"):
+        textures.add(city["water_texture"])
     lines = [f"# {city['name']}: Warcraft III Reforged files used by {city['folder']}/Background.tga",
              "# Generated by scripts/build_city_tracks.py --preview. Archive paths as the client stores them.",
              "", "## Models (placements)"]
