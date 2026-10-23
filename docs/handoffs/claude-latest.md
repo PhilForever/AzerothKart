@@ -1,6 +1,6 @@
 # Claude handoff — Undercity's slime river and no shoulders on city streets
 
-Prepared 2026-10-23 at about 12:00 CEST (Europe/Oslo) by Claude (rendering/UI/sprites owner).
+Prepared 2026-10-23 at about 12:00 CEST (Europe/Oslo) by Claude (rendering/UI/sprites owner); updated about 14:50 CEST with the grimmer Undercity light.
 
 This supersedes the Darnassus, Undercity and elevation handoff (`claude/darnassus-undercity` `9143949`). Codex reviewed that work and integrated it on `codex/two-city-integration` (merge `cac4290`, docs `505f054`), installed it as the combined candidate, and pushed it.
 
@@ -27,6 +27,7 @@ No Lua module outside the generated data and the catalog entry changed. `UI.lua`
   - He sent a new in-game Undercity map with a red route round the outer ring and a start arrow at the bottom heading east.
   - He also sent two screenshots of the canals: timber plank bridges on posts, a humped stone bridge, and bright green slime.
 - Mid-task: "Players should be crossing the bridges (sharp turns) to cross the slimey river. See the other screenshots for reference. - and honestly - doesn't make sense to have shoulders on citymaps. Just extend widen the drivable track to the width of the shoulders."
+- After seeing version 2: "I want undercity to look more grim, do something about the lighting without making it too dark."
 - Standing instructions:
   - no merge into `main`;
   - no claim of in-game verification without the actual client;
@@ -44,6 +45,11 @@ No Lua module outside the generated data and the catalog entry changed. `UI.lua`
   - Data: `fullSpeedToWalls`, `wallClearance` 14 with 1,340 junctions.
   - The Trade Quarter stays sunk 30 beside the course. The stone bridges rise in painted humps 6 high; karts drive them flat.
   - Each quarter now draws its buildings on both sides of the slime.
+- **Grimmer Undercity light** (art only): a new optional painter pass, `grade` (`paint_grade`, with a chamfer distance field), over the finished picture.
+  - Away from lights the city is dimmed to 62%, cooled toward violet, greyed by 30% and darker toward the cavern's far reaches.
+  - The slime lights the walkways green for about 110 units; braziers and the slime well cast green pools; the bridges' lanterns (now brighter) cast yellow ones.
+  - The street keeps at least 72% of its light. The slime itself is left untouched.
+  - Only Undercity sets `grade`; the other cities' bytes are unchanged.
 - **No shoulders on city maps.**
   - Every city's street is paved from wall to wall, to a kerb at the walls' foot. Stormwind's pavement, Ironforge's flagstones, Orgrimmar's gravel and Darnassus's moss strips are gone.
   - Stormwind, Orgrimmar, Darnassus and Undercity already had full grip to their walls, so for them only the paint changes.
@@ -64,6 +70,7 @@ No Lua module outside the generated data and the catalog entry changed. `UI.lua`
    - This is a handling change: please judge it under your Physics/compatibility policy.
    - **Documented conflict:** `AGENTS.md`'s shared-city row says to "preserve … Ironforgev3/narrows and rough-shoulder exposed-wall metadata". The owner's instruction comes first under `AGENTS.md`'s own precedence rule. So version 4 keeps the narrows and every exposed-wall junction (`wallVertices` unchanged) and changes only the rough-shoulder policy. I did not edit `AGENTS.md`; please update that row at integration if you accept the change.
 3. **Painter default:** no shoulders unless a city sets `shoulders`. All five pictures change.
+   - The `grade` pass is a second, optional painter step: picture only, set by Undercity alone; no data or collision change.
    - Darnassus's sources list loses one texture (its old shoulder tile).
    - The other cities' model placements are unchanged.
 4. **Install:** ten changed files (five backgrounds, five previews) at their existing paths, plus `CapitalCities.lua` and `Menu.lua`. No new files. Changed textures at the same paths need a full client restart.
@@ -75,7 +82,7 @@ No Lua module outside the generated data and the catalog entry changed. `UI.lua`
 |---|---|
 | `python scripts/test_lua.py --runtime both` | **PASS** in the cloud (Python 3.13, Lupa 2.8) and on the developer machine's Linux shell (Python 3.10.12, Lupa 2.8) at `48f571a`: 59 files parsed; the full suite on Lua 5.1 and 5.4 |
 | `tests/test_circuit_boundary.py` | **PASS** (11 tests), in the cloud and on the developer machine |
-| `python scripts/build_city_tracks.py --wc3 … --check` | **CHECK PASS** for `CapitalCities.lua` and all ten pictures, both in the cloud (Python 3.13) and on the developer machine at `48f571a` (Python 3.10.12, its own Warcraft III extraction, its own rendered sprites). The bytes are identical on both: Stormwind `8f48089c…`, Ironforge `c98c1a54…`, Orgrimmar `6ba18ce8…`, Darnassus `0e1267f7…`, Undercity `7868cc3e…` |
+| `python scripts/build_city_tracks.py --wc3 … --check` | **CHECK PASS** for `CapitalCities.lua` and all ten pictures, both in the cloud (Python 3.13) and on the developer machine at `48f571a` (Python 3.10.12, its own Warcraft III extraction, its own rendered sprites). The bytes are identical on both: Stormwind `8f48089c…`, Ironforge `c98c1a54…`, Orgrimmar `6ba18ce8…`, Darnassus `0e1267f7…`, Undercity `7868cc3e…`. After the light change (`f0810ca`): Undercity `caedb2c9…` on both machines (cloud: all five cities checked, the other four unchanged; developer machine: Undercity) |
 | Collision probe (offline, Lupa) | `surfaceAt` against an independent disc-inside-union test (a 14-unit disc inside the visual capsules), at points just inside and beyond the walls. Undercity: 15,120 points, round the bridges' sharp corners too, **no mismatch**. Ironforge: 18,600 points, **no mismatch** with the Forlorn Cavern's narrows modelled at their own radius; the probe's first run, which treated every capsule as 90, disagreed only inside those tunnels, where Circuit is right |
 | `RaceGrid.pose` (offline, Lupa) | Host and guest slots on road for all five cities |
 | `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in PROGRESS.md fail |

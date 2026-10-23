@@ -1997,7 +1997,7 @@ BANSHEE = kind(UD_UNITS + "banshee/banshee.mdx", weight=0.7)
 FORSAKEN = [GHOUL, ACOLYTE, SKELETON, BANSHEE, kind(UD_UNITS + "necromancer/necromancer.mdx", weight=0.6),
             kind("war3.w3mod:units/critters/rat/rat.mdx", weight=0.4)]
 
-LANTERN_LIGHT = (30, (66, 54, 16))    # a hanging lantern's yellow pool on the stone
+LANTERN_LIGHT = (40, (80, 64, 18))    # a hanging lantern's yellow pool on the stone
 UC_POSTS = {deck: {"prop": prop(SUMMER + "props/lanternpost/lanternpost%d.mdx" % n, 0, 0, light=LANTERN_LIGHT),
                    "offset": 7, "inset": 14} for deck, n in (("planks", 0), ("stone", 1))}
 
@@ -2160,6 +2160,12 @@ UNDERCITY = {
     "water_rim": (100, 108, 90),
     "quay_face": (78, 86, 70),
     "quay_depth": 12,
+    # Grim light: away from the slime, the braziers, the slime well and the
+    # bridges' lanterns the city is dim, cold and grey, darker toward the
+    # cavern's far reaches; the street keeps enough light to race by.
+    "grade": {"ambient": 0.62, "street": 0.72, "shadow": (0.97, 0.9, 1.08), "desaturate": 0.3,
+              "water": (110, 0.6, (90, 255, 60)), "lamp": (2.8, 0.7), "tint": 0.35,
+              "vignette": (UC_C, 950, 1350, 0.22)},
     "road_tile": DUNGEON2 + "gsquaretiles.dds",
     "road_shade": 1.0,
     "sidewalk_tile": DALARAN_RUINS + "druins_bricktiles.dds",
@@ -2191,7 +2197,7 @@ UNDERCITY = {
     "props": [
         # The Trade Quarter: a well of slime at its heart.
         dict(prop(UNDEAD + "sacrificialpit/sacrificialpit.mdx", UC_C[0], UC_C[1], scale=0.4, recolor=FORSAKEN_GREEN,
-                  team=SLIME_TEAM), nudge=True),
+                  team=SLIME_TEAM, light=(50, (20, 70, 16))), nudge=True),
         # Across the slime at the top, the stair up to the Ruins of Lordaeron:
         # Sylvanas before the old throne, a banshee either side.
         dict(uprop(CITY + "props/throne/throne.mdx", 890, 90, scale=0.55), nudge=True),
