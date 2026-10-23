@@ -72,10 +72,10 @@ No Lua module outside the generated data and the catalog entry changed. `UI.lua`
 
 | Command / check | Result |
 |---|---|
-| `python scripts/test_lua.py --runtime both` | **PASS** in the cloud (Python 3.13, Lupa 2.8): 59 files parsed; the full suite on Lua 5.1 and 5.4 |
-| `tests/test_circuit_boundary.py` | **PASS** (11 tests) |
-| `python scripts/build_city_tracks.py --wc3 … --check` | See the ledger entry below for the cloud and developer-machine results (all five cities rebuilt) |
-| Collision probe (offline, Lupa) | `surfaceAt` against an independent disc-inside-union test (a 14-unit disc inside the 90-unit visual capsules), round the walls of Undercity and Ironforge: see the ledger entry |
+| `python scripts/test_lua.py --runtime both` | **PASS** in the cloud (Python 3.13, Lupa 2.8) and on the developer machine's Linux shell (Python 3.10.12, Lupa 2.8) at `48f571a`: 59 files parsed; the full suite on Lua 5.1 and 5.4 |
+| `tests/test_circuit_boundary.py` | **PASS** (11 tests), in the cloud and on the developer machine |
+| `python scripts/build_city_tracks.py --wc3 … --check` | **CHECK PASS** for `CapitalCities.lua` and all ten pictures, both in the cloud (Python 3.13) and on the developer machine at `48f571a` (Python 3.10.12, its own Warcraft III extraction, its own rendered sprites). The bytes are identical on both: Stormwind `8f48089c…`, Ironforge `c98c1a54…`, Orgrimmar `6ba18ce8…`, Darnassus `0e1267f7…`, Undercity `7868cc3e…` |
+| Collision probe (offline, Lupa) | `surfaceAt` against an independent disc-inside-union test (a 14-unit disc inside the visual capsules), at points just inside and beyond the walls. Undercity: 15,120 points, round the bridges' sharp corners too, **no mismatch**. Ironforge: 18,600 points, **no mismatch** with the Forlorn Cavern's narrows modelled at their own radius; the probe's first run, which treated every capsule as 90, disagreed only inside those tunnels, where Circuit is right |
 | `RaceGrid.pose` (offline, Lupa) | Host and guest slots on road for all five cities |
 | `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in PROGRESS.md fail |
 | Review | Undercity's overview and nine 533×320 follow-camera views (the review picture); before/after crops of Stormwind, Ironforge and Orgrimmar streets |
@@ -97,7 +97,7 @@ Run [the Undercity version 2 and paving section of the client checklist](../../t
 >
 > - Undercity version 2, the owner's revamp: the canal ring as the slime river and the course along its walkways, crossing it on six bridges (timber and stone by turns), each a sharp turn on, a straight across and a sharp turn off. Six gates, a 5,797-unit lap, spawn on the loop 136 past the finish, 1,340 junctions, `fullSpeedToWalls`. Painted stone-bridge humps; the Trade Quarter is still sunk. Existing fields only.
 > - No shoulders on city maps (the owner): every city is paved from wall to wall. Ironforge version 4 gets `fullSpeedToWalls=true`, the one handling change, proposed for Codex review. All five pictures were rebuilt.
-> - `test_lua.py --runtime both` PASS; `test_circuit_boundary.py` PASS; `build_city_tracks.py --check` and the collision probe as recorded in the commit that adds the checks; validator: only the 2 pre-existing PROGRESS links.
+> - `test_lua.py --runtime both` PASS; `test_circuit_boundary.py` PASS; `build_city_tracks.py --check` PASS for all five cities, byte-identical in the cloud and on the developer machine (Python 3.10.12, its own extraction and sprites); collision probe 33,720 points, no mismatch; `RaceGrid.pose` on road for all five cities; validator: only the 2 pre-existing PROGRESS links.
 > - **NOT RUN:** the client; install.
 
 ## Branch, commits and workspace
