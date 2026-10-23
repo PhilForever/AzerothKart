@@ -1,76 +1,123 @@
-# Claude handoff — Darnassus, Undercity and painted elevation
+# Claude handoff — Undercity's slime river and no shoulders on city streets
 
-Prepared 2026-10-23 about 03:30 CEST (Europe/Oslo) by Claude (rendering/UI/sprites owner). Supersedes the Orgrimmar handoff (`claude/orgrimmar` `72b362f`), which Codex approved ([review](../reviews/2026-10-22-orgrimmar.md)), integrated on `codex/live-multiplayer-integration` and installed with the multiplayer candidate; the owner has pushed it.
+Prepared 2026-10-23 at about 12:00 CEST (Europe/Oslo) by Claude (rendering/UI/sprites owner).
 
-**Base:** Codex's integrated `codex/live-multiplayer-integration` at `6ad66d1` (the installed multiplayer candidate `c581a52` plus its docs). New branch **`claude/darnassus-undercity`**; the commits are listed in [Branch, commits and workspace](#branch-commits-and-workspace).
+This supersedes the Darnassus, Undercity and elevation handoff (`claude/darnassus-undercity` `9143949`). Codex reviewed that work and integrated it on `codex/two-city-integration` (merge `cac4290`, docs `505f054`), installed it as the combined candidate, and pushed it.
 
-**Scope (changed):** `scripts/city_layouts.py` (the `DARNASSUS` and `UNDERCITY` layouts; `Profile`, `street_heights`, `loop_length`, `along_loop`), `scripts/city_paint.py` (optional `elevation` layer: `Relief`, `paint_relief`, `fill_polygon_value`; optional `water_tile` and `water_glow`; `Strata.tile` and `rock.top_texture`), `scripts/build_city_tracks.py` (emits and validates the proposed `elevation` heights), `addon/AzerothKart/CapitalCities.lua` (generated: `darnassus_canopy` and `undercity_slime` added; the other three entries unchanged), `addon/AzerothKart/Assets/Tracks/{Darnassus,Undercity}/{Background,Preview}.tga` (new), `addon/AzerothKart/Courses.lua` (both entries ready), `addon/AzerothKart/Menu.lua` (**only** two `Menu.TRACKS` entries and two `PREVIEW_CELLS`), `tests/test_circuit.lua` (catalog counts and cycle, the walk helper accepts a city without an approach, Darnassus and Undercity blocks, the heights), `tests/test_menu.lua` (two more Track button steps; Thunder Bluff as the coming-soon example), `scripts/validate_project.py` (required files), `docs/adr/0015-track-elevation.md` (new, proposed), `docs/art/tracks/{darnassus,undercity}*` (new), `docs/art/tracks/orgrimmar.md` (the trailing space Codex's review noted), `docs/art/ui/front-end-review.png`, `docs/art/ASSET_SOURCES.md`, `docs/API_CONTRACTS.md`, `docs/TRACKS.md`, `docs/TEST_PLAN.md`, `docs/INDEX.md`, `docs/ASSETS.md`, `README.md`, `addon/AzerothKart/README_ADDON.md`, `CHANGELOG.md`, `tests/MANUAL_CLIENT_CHECKLIST.md`, this handoff. **Not touched:** `Circuit.lua`, Physics, collision, `UI.lua`, `Presentation.lua`, `tests/test_ui.lua`, the session/network modules, `docs/PROGRESS.md`.
+**Base:** Codex's `codex/two-city-integration` at `505f054`. The new branch is **`claude/undercity-river`**; its commits are listed under [Branch, commits and workspace](#branch-commits-and-workspace).
 
-**Codex's active reservation** (`codex/multiplayer-grid` `f5e6918`) delegates UI/Menu, the UI tests and Presentation to Codex. This branch keeps out of them except pure catalog data in `Menu.lua` (the two track entries and their preview cells, the same edit Orgrimmar made) and the Track-cycle and coming-soon lines of `tests/test_menu.lua`. Kart height rendering, which elevation would eventually want, is deferred to after that work.
+**Scope (changed):**
+
+- `scripts/city_layouts.py`: Undercity version 2 (the ring course `uc_course`, its bridges, the canal ring, each quarter's districts on both sides of the slime, landmarks, elevation); Ironforge's `full_speed_to_walls` and version 4; the module docstring.
+- `scripts/city_paint.py`:
+  - City streets are paved from wall to wall unless a city sets `shoulders`.
+  - Bridges gain a `deck` style (timber planks, or stone with its own colour), `force`, per-bridge `posts`, a timber side (edge beam, piles, the deck's shadow) and a timber `rail` wall.
+  - A bridge's side over water drawn whole now hangs only below its deck.
+- `addon/AzerothKart/CapitalCities.lua` (generated): Undercity version 2; Ironforge `version=4, fullSpeedToWalls=true`.
+- All five cities' `Background.tga` and `Preview.tga`.
+- `addon/AzerothKart/Menu.lua`: Undercity's catalog entry only (blurb and facts).
+- `tests/test_circuit.lua`: the Undercity block; the Ironforge assertions.
+- Docs: the five city sheets, `TRACKS.md`, `API_CONTRACTS.md`, ADR 0015, `ASSET_SOURCES.md`, `CHANGELOG.md`, `README.md` (one sentence), `tests/MANUAL_CLIENT_CHECKLIST.md`, plus the overview and review PNGs and the sources lists.
+
+No Lua module outside the generated data and the catalog entry changed. `UI.lua`, `Presentation.lua`, `RaceGrid.lua` and the multiplayer modules are untouched.
 
 ## Owner instructions
 
-- "Orgrimmar is pushed. Let's do Darnassus and Undercity maybe something like this, start at blue line in apothecarium. What would be cool is if you could figure a way to add elevation to maps, as some of our maps clearly need it." With his in-game Darnassus and Undercity maps, each with a red route and a blue arrow.
-- Elevation: offered three steps, he chose all three: "Looks only first (Recommended)", "Slopes you can feel", "Bridges over the track".
-- Darnassus start: asked whether the karts should start on the road in from the Warrior's Terrace at his red marks, join the loop and turn north at the blue arrow: "Yes, like that (Recommended)".
-- Standing: no merge into `main`; no claim of in-game verification without the actual client; leave the simulation-control functions in `UI.lua` alone. The owner pushes and runs the client checks; Codex prepares coordinated installs.
+- "Pushed by Codex. Actually I want to revamp the UC map. Let's make it a circular map through the outer ring. It's basically a river of slime with bridges at every section."
+  - He sent a new in-game Undercity map with a red route round the outer ring and a start arrow at the bottom heading east.
+  - He also sent two screenshots of the canals: timber plank bridges on posts, a humped stone bridge, and bright green slime.
+- Mid-task: "Players should be crossing the bridges (sharp turns) to cross the slimey river. See the other screenshots for reference. - and honestly - doesn't make sense to have shoulders on citymaps. Just extend widen the drivable track to the width of the shoulders."
+- Standing instructions:
+  - no merge into `main`;
+  - no claim of in-game verification without the actual client;
+  - leave the simulation-control functions in `UI.lua` alone;
+  - the owner pushes and runs the client checks; Codex prepares coordinated installs.
 
 ## Delivered
 
-The sheets have the route, play, look, files, rebuild commands and provenance: [Darnassus](../art/tracks/darnassus.md), [Undercity](../art/tracks/undercity.md). Each has a review picture (the loop's direction and nine follow-camera views) sent to the owner.
-
-- **Darnassus Canopy Run** (`darnassus_canopy`): start on the road in from the Warrior's Terrace, join the loop at the central terrace, then counter-clockwise past the Craftsmen's Terrace, the Cenarion Enclave, the Temple Gardens' causeway, the Temple of the Moon and the Tradesmen's Terrace. Six gates (finish: Warrior's Terrace), a 3,895-unit lap, a 206-unit approach, `fullSpeedToWalls`, `wallClearance` 14 with 931 junctions. Ashenvale and Ruins art, Silvermoon's houses in Darnassus violet, the World Tree's bark round the city.
-- **Undercity Slime Circuit** (`undercity_slime`): the grid on the loop below the Apothecarium heading east, where his arrow points (no approach road; the finish line 131 units behind the grid); counter-clockwise round the outer ring past the Rogues', Magic and War Quarters, a hairpin into the inner city, clockwise round the Trade Quarter, out to the south and round the southern canal's end. Five gates (finish: Apothecarium), a 7,327-unit lap, `fullSpeedToWalls`, `wallClearance` 14 with 1,721 junctions. Each quarter in its own stone, the Scourge's buildings recoloured Forsaken green, glowing green slime canals, Sylvanas before Lordaeron's throne, a slime well at the centre.
-- **Elevation, looks first** ([ADR 0015](../adr/0015-track-elevation.md), proposed; [contract proposal](../API_CONTRACTS.md#proposed-track-elevation-claude-2026-10-23-for-codex-review)): a city may declare levels and street heights; the painter draws retaining walls, raised-street walls, brinks, sun shadows, height's light and ramps lit by their slope with joints across them. Darnassus stands on three terraces (44, 22, 0); Undercity's Trade Quarter is sunk 30. The karts drive flat. The other cities have no `elevation` and paint byte for byte as before.
+- **Undercity Slime Circuit version 2** ([sheet](../art/tracks/undercity.md), review picture sent to the owner).
+  - The slime is the canal ring round the Trade Quarter: radius 610 from the city's centre, 120 wide.
+  - From his arrow below the Apothecarium, the course runs counter-clockwise along the outer walkway (778 from the centre) and the inner one (442).
+  - It changes walkway on a bridge at every section, as his red line crosses the ring. There are six bridges, timber and stone by turns. Each is a turn of radius 70 on the centerline (a little over 90 degrees) onto a 197-unit straight across the slime at right angles, then the same turn off the other way.
+  - Six gates: Rogues' Quarter, Magic Quarter, Ruins of Lordaeron, War Quarter, Apothecarium, and The Canals (the finish).
+  - A 5,797-unit lap (version 1 was 7,327), still with no approach road: the spawn is on the loop, 136 units past the finish gate.
+  - Data: `fullSpeedToWalls`, `wallClearance` 14 with 1,340 junctions.
+  - The Trade Quarter stays sunk 30 beside the course. The stone bridges rise in painted humps 6 high; karts drive them flat.
+  - Each quarter now draws its buildings on both sides of the slime.
+- **No shoulders on city maps.**
+  - Every city's street is paved from wall to wall, to a kerb at the walls' foot. Stormwind's pavement, Ironforge's flagstones, Orgrimmar's gravel and Darnassus's moss strips are gone.
+  - Stormwind, Orgrimmar, Darnassus and Undercity already had full grip to their walls, so for them only the paint changes.
+  - Ironforge version 4 now has full grip to its walls too (`fullSpeedToWalls=true`). It is the one change of handling.
+  - The generated `roadRadius` stays 56. Routes, gates, spawns, Ironforge's narrows, every wall and every junction are unchanged.
 
 ## Changes Codex must review
 
-1. **Two new city definitions**, existing fields only: `CapitalCities.darnassus_canopy` and `CapitalCities.undercity_slime` (version 1 each; `wallClearance` 14 with generated `wallVertices`, `fullSpeedToWalls=true`, no plazas, solids or narrows). **Undercity has `branches={}`**: the first city whose spawn lies on the loop itself, as Mirage Raceway's does; `Circuit.new` already accepts it, but please check the multiplayer grid you are building places its slots on a loop start (the finish gate is 131 units behind the spawn; a slot behind it crosses the finish line before gate 1, which `Checkpoints` ignores because only `gates[nextGate]` counts). `Courses.lua` makes both available; Thunder Bluff stays `soon`.
-2. **A proposed, inert data field:** both new entries carry `elevation={centerline={...}, branches={{...}}}`, the street's height at every point. `Circuit.new` copies named fields only, so nothing reads it. Accept, rename or drop it with the proposal; slopes, crests, bridges and kart height are Codex's to decide (details in the contract proposal and the ADR).
-3. **Tests:** `tests/test_circuit.lua` (soon count 1; the seven-track cycle; the walk helper now accepts `branches[1] == nil`; Darnassus and Undercity blocks: radii, gates, clearance, full grip, gate order with wall-free centerlines, both ends of every gate in wall, throttle from each grid on road, one finite height per point, no heights on the flat cities); `tests/test_menu.lua` (two more Track steps, the coming-soon example). No mechanics, capture, lifecycle, clock or count assertion changed; explicit UI counts unchanged (79/166/81).
-4. **Install:** four new files (two 16 MiB backgrounds, two 1 MiB previews): 53 files with the installed 49; a full client restart. The staging loader still holds at most two city pictures.
-5. **Contract and docs:** `docs/API_CONTRACTS.md` (Orgrimmar marked approved and integrated; the two new cities proposed; the elevation proposal), the new ADR 0015 (number chosen as the next free one on this base; renumber freely if yours lands first).
+1. **Undercity version 2**, using existing fields only.
+   - The new loop has turns tighter than the wall radius. The inner corner at each bridge's end is a sharp wall corner (the bridge's abutment). The offline probe below found no disagreement between `surfaceAt` and an independent disc-inside-union test round those corners.
+   - The spawn is still on the loop. `RaceGrid.pose` on it gives host (996.2, 228.6) and guest (997.4, 264.6), both on road (checked offline with Lupa, as for the other four cities).
+   - The version is 2 because the geometry changed completely.
+2. **Ironforge version 4** (`fullSpeedToWalls=true`), at the owner's request.
+   - The strip that version 3 kept rough is road now.
+   - `tests/test_circuit.lua` now expects road at the gate-hall corner, along a straight wall and before the narrows.
+   - The rough-tunnel regression sets `fullSpeedToWalls=nil` on its copy, so it still tests `Circuit.new`'s default rough policy.
+   - `Courses.lua` still carries Ironforge's `rough` label, which nothing reaches now; I left it so a revert is one flag, the version and the tests.
+   - This is a handling change: please judge it under your Physics/compatibility policy.
+   - **Documented conflict:** `AGENTS.md`'s shared-city row says to "preserve … Ironforgev3/narrows and rough-shoulder exposed-wall metadata". The owner's instruction comes first under `AGENTS.md`'s own precedence rule. So version 4 keeps the narrows and every exposed-wall junction (`wallVertices` unchanged) and changes only the rough-shoulder policy. I did not edit `AGENTS.md`; please update that row at integration if you accept the change.
+3. **Painter default:** no shoulders unless a city sets `shoulders`. All five pictures change.
+   - Darnassus's sources list loses one texture (its old shoulder tile).
+   - The other cities' model placements are unchanged.
+4. **Install:** ten changed files (five backgrounds, five previews) at their existing paths, plus `CapitalCities.lua` and `Menu.lua`. No new files. Changed textures at the same paths need a full client restart.
+5. **Contracts and docs:** `API_CONTRACTS.md` proposes Undercity version 2 and Ironforge version 4 under Capital Cities. ADR 0015's consequences note the humps. No new definition field and no Circuit change.
 
 ## Tests performed
 
 | Command / check | Result |
 |---|---|
-| `python scripts/test_lua.py --runtime both` | **PASS** in the cloud (Python 3.13, Lupa 2.8) and on the developer machine's Linux shell (Python 3.10.12, Lupa 2.8) at `e96044b`: 57 files parsed, the full suite on Lua 5.1 and 5.4 |
+| `python scripts/test_lua.py --runtime both` | **PASS** in the cloud (Python 3.13, Lupa 2.8) and on the developer machine's Linux shell (Python 3.10.12, Lupa 2.8) at `48f571a`: 59 files parsed; the full suite on Lua 5.1 and 5.4 |
 | `tests/test_circuit_boundary.py` | **PASS** (11 tests), in the cloud and on the developer machine |
-| `python scripts/build_city_tracks.py --wc3 … --check` | **CHECK PASS** in the cloud for `CapitalCities.lua` and all ten pictures: Stormwind `078a7805…`, Ironforge `258bc9be…` and Orgrimmar `5b00f6cf…` byte-identical to their committed bytes after the painter changes; Darnassus `70b3bb8c…` and Undercity `2c367c03…` reproduce. **CHECK PASS on the developer machine** at `e96044b` (Python 3.10.12, its own Warcraft III extraction, its own rendered sprites) for all five cities, with the same SHA-256 values |
-| Collision probe (offline, Lupa) | `surfaceAt` against an independent disc-inside-union test (a 14-unit disc inside the 90-unit visual capsules), every 1/4 degree round the walls: Darnassus 10,200 points, Undercity 18,240 points, **no mismatch** |
+| `python scripts/build_city_tracks.py --wc3 … --check` | **CHECK PASS** for `CapitalCities.lua` and all ten pictures, both in the cloud (Python 3.13) and on the developer machine at `48f571a` (Python 3.10.12, its own Warcraft III extraction, its own rendered sprites). The bytes are identical on both: Stormwind `8f48089c…`, Ironforge `c98c1a54…`, Orgrimmar `6ba18ce8…`, Darnassus `0e1267f7…`, Undercity `7868cc3e…` |
+| Collision probe (offline, Lupa) | `surfaceAt` against an independent disc-inside-union test (a 14-unit disc inside the visual capsules), at points just inside and beyond the walls. Undercity: 15,120 points, round the bridges' sharp corners too, **no mismatch**. Ironforge: 18,600 points, **no mismatch** with the Forlorn Cavern's narrows modelled at their own radius; the probe's first run, which treated every capsule as 90, disagreed only inside those tunnels, where Circuit is right |
+| `RaceGrid.pose` (offline, Lupa) | Host and guest slots on road for all five cities |
 | `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in PROGRESS.md fail |
-| `python scripts/preview_ui.py` | Regenerated `docs/art/ui/front-end-review.png` (the track list with five cities ready); one-off runs with each new city selected showed their previews, blurbs and facts fit, and a mock drive from each grid (not committed) |
-| Review | Each city's overview and nine 533×320 follow-camera views (the review pictures) |
+| Review | Undercity's overview and nine 533×320 follow-camera views (the review picture); before/after crops of Stormwind, Ironforge and Orgrimmar streets |
 
-**NOT RUN:** the client (both cities' load, look, drives, walls, camera, performance); any install; multiplayer.
+**NOT RUN:** the client (any city's look, the new Undercity drive and its turns, Ironforge's feel, performance), any install, and multiplayer.
 
 ## Client check (owner; NOT RUN; after Codex's coordinated install)
 
-[The Darnassus and Undercity section of the client checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-darnassus-and-undercity-check-proposed-claudedarnassus-undercity): the track screen lists both with previews; the pictures load; both drives through their gates; whether the terraces and the sunken Trade Quarter read as levels; walls; frame rate and Print Probe 79/166/81.
+Run [the Undercity version 2 and paving section of the client checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-undercity-version-2-and-wall-to-wall-paving-check-proposed-claudeundercity-river):
+
+- Undercity's start, its six bridges and their turns, and its gates in order;
+- every city paved from wall to wall, with full speed along every wall;
+- Ironforge's feel without its rough strip;
+- frame rate and Print Probe.
 
 ## Pending PROGRESS ledger entry (integrator to append; PROGRESS.md was not edited)
 
-> ### 2026-10-23 ~03:30 CEST — Claude / `claude/darnassus-undercity`, Darnassus, Undercity and painted elevation
+> ### 2026-10-23 ~12:00 CEST — Claude / `claude/undercity-river`, Undercity's slime river and no shoulders
 >
-> - The owner's Darnassus and Undercity maps: Darnassus counter-clockwise from the Warrior's Terrace road (six gates, 3,895-unit lap, 206-unit approach); Undercity from his blue arrow below the Apothecarium, the spawn on the loop (five gates, 7,327-unit lap, no branch). Both `fullSpeedToWalls`, `wallClearance` 14; no Circuit change.
-> - Elevation, the owner's first of three chosen steps: painted levels (retaining walls, raised streets, brinks, sun shadows, height's light, lit ramps with joints); Darnassus three terraces, Undercity's sunken Trade Quarter. Proposed inert `elevation` heights in `CapitalCities.lua`; slopes/crests/bridges/kart height proposed for Codex (ADR 0015, API_CONTRACTS). Unchanged cities byte-identical.
-> - `test_lua.py --runtime both` PASS; `test_circuit_boundary.py` PASS; `build_city_tracks.py --check` PASS (all five cities), in the cloud and on the developer machine (Python 3.10.12, its own extraction and sprites); collision probe 28,440 points, no mismatch; validator: only the 2 pre-existing PROGRESS links.
+> - Undercity version 2, the owner's revamp: the canal ring as the slime river and the course along its walkways, crossing it on six bridges (timber and stone by turns), each a sharp turn on, a straight across and a sharp turn off. Six gates, a 5,797-unit lap, spawn on the loop 136 past the finish, 1,340 junctions, `fullSpeedToWalls`. Painted stone-bridge humps; the Trade Quarter is still sunk. Existing fields only.
+> - No shoulders on city maps (the owner): every city is paved from wall to wall. Ironforge version 4 gets `fullSpeedToWalls=true`, the one handling change, proposed for Codex review. All five pictures were rebuilt.
+> - `test_lua.py --runtime both` PASS; `test_circuit_boundary.py` PASS; `build_city_tracks.py --check` PASS for all five cities, byte-identical in the cloud and on the developer machine (Python 3.10.12, its own extraction and sprites); collision probe 33,720 points, no mismatch; `RaceGrid.pose` on road for all five cities; validator: only the 2 pre-existing PROGRESS links.
 > - **NOT RUN:** the client; install.
 
 ## Branch, commits and workspace
 
 | Item | Value |
 |---|---|
-| Worktree / branch | `AzerothKart-Claude` / `claude/darnassus-undercity` (the worktree previously held `claude/orgrimmar` `72b362f`, unchanged) |
-| Commits | `claude/darnassus-undercity` on `6ad66d1`: the two cities, the elevation layer, catalog, menu data, tests, docs and this handoff; later commits only record checks |
-| Push | Owner only: this session's git proxy refuses the repository. `git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/darnassus-undercity` |
+| Worktree / branch | `AzerothKart-Claude` / `claude/undercity-river` (the worktree previously held `claude/darnassus-undercity` `9143949`, unchanged) |
+| Commits | `claude/undercity-river` on `505f054`: Undercity version 2, the wall-to-wall paving, Ironforge version 4, catalog, tests, docs and this handoff; later commits only record checks |
+| Push | Owner only, because this session's git proxy refuses the repository: `git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/undercity-river` |
 | Not done | No merge into `main` or any Codex branch; no tag, release, install or client input. Codex's branches and worktrees were only read |
 
-**Workspace notes:** the two cities' Warcraft III files were extracted on the developer machine into the shell's `akcheck/WC3` (commands in the sheets) and carried to the cloud as a git-ignored tar under `local-artifacts/`. Commits are made in a cloud clone with this repository's local identity, moved as git bundles (`local-artifacts/bundles/`) and fast-forwarded, so the hashes are identical. Git runs from a Linux shell on the developer machine with `--git-dir=.git/worktrees/AzerothKart-Claude`, `core.createObject=rename`, `gc.auto=0`, `maintenance.auto=false` and `gc.worktreePruneExpire=never`. **Never run `git worktree prune` or `git gc` there**: the recorded gitdirs are Windows paths, and that shell lists them as prunable. The untracked `Claude outputs/` folder is still left for the owner.
+**Workspace notes:**
+
+- Commits are made in a cloud clone with this repository's local identity, then moved as git bundles (`local-artifacts/bundles/`), so the hashes are identical on the developer machine.
+- Git runs from a Linux shell on the developer machine with `--git-dir=.git/worktrees/AzerothKart-Claude`. It never prunes or garbage-collects.
+- The bridges' lantern posts (`doodads/lordaeronsummer/props/lanternpost/`) are already in both machines' Warcraft III extractions. Undercity's rebuild command in its sheet now names them.
 
 ## Next
 
-1. The owner's reaction to the two review pictures (changes go on this branch): the slime's brightness, the terraces' strength, Undercity's lap length.
-2. Codex: review the two cities (data, the loop start, tests, four new files) and the elevation proposal; install when the owner wants them.
-3. If the proposal is accepted: Codex's slope physics on the generated heights; then bridges (layered capsules and a deck overlay) with a route that needs one (Thunder Bluff's mesas), and kart height in Presentation after the multiplayer-grid work.
+1. The owner's reaction to the review picture: the bridges' turns (too sharp or too gentle?), the slime, the lap.
+2. Codex: review Undercity version 2, the paving and Ironforge version 4, then install when the owner wants them.
+3. If the owner wants the bridges to feel like bridges, the elevation proposal's slopes (ADR 0015) would make the stone humps physical. That remains Codex's decision.

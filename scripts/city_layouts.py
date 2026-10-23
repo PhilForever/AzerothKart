@@ -8,18 +8,20 @@ the map's south-west corner. One terrain cell of Warcraft III art is 32 units
 A city circuit is a street circuit traced through the city: a smooth closed
 centerline (plus open branches such as the start grid's approach). The road
 is every point within ROAD_RADIUS of it (the same capsule road as Mirage
-Raceway); the kart centre may go WALL_RADIUS from it (a rough kerb-side strip)
-and no further: beyond stand the city's walls, buildings and canal parapets,
-drawn KART units further out so a kart at the wall does not overlap them.
+Raceway); the kart centre may go WALL_RADIUS from it and no further: beyond
+stand the city's walls, buildings and canal parapets, drawn KART units
+further out so a kart at the wall does not overlap them. A city street has
+no shoulders (the owner, 2026-10-23): every city gives full grip up to its
+walls (`full_speed_to_walls`) and is paved from wall to wall.
 Plazas are open paved squares on the course. Gates are axis-aligned lines
 from wall to wall, named after the district they open; the last is the
 start/finish line. Solids are axis-aligned boxes inside the street (a
 fountain on a plaza).
 """
-from math import atan2, cos, pi, sin, sqrt
+from math import asin, atan2, cos, pi, sin, sqrt
 
 ROAD_RADIUS = 56          # road width 112, as on Mirage
-WALL_RADIUS = 76          # the kart centre's reach: a 20-unit rough strip beyond the paving
+WALL_RADIUS = 76          # the kart centre's reach: full grip and paving to the walls
 KART = 14                 # the street's walls stand this far beyond WALL_RADIUS
 WALL_INSET = 18           # kart centre clearance from the perimeter and solids
 ARC_STEP = 24.0           # target centerline spacing round a corner
@@ -1037,8 +1039,11 @@ IRONFORGE_DISTRICTS = [
 
 IRONFORGE = {
     "id": "ironforge_gp",
-    "version": 3,
+    "version": 4,
     "wall_clearance": KART,  # use the exposed painted wall, including the gate-hall junction
+    # The owner (2026-10-23): no shoulders on a city map; the drivable road
+    # widened to the walls, as on the other cities (proposed for Codex review).
+    "full_speed_to_walls": True,
     # The owner's request (2026-10-22): the Forlorn Cavern's entrance and
     # exit tight as in the game: no shoulder, the wall where the shoulder
     # began (the paving's edge), so the kart centre keeps a kart's half-length
@@ -1811,62 +1816,113 @@ DARNASSUS = {
 # ---------------------------------------------------------------------------
 # Undercity Slime Circuit
 #
-# The owner's red line on the in-game Undercity map (717 x 734 pixels), with
-# his blue arrow: the karts start on the Canals' southern stretch below the
-# Apothecarium, heading east. Counter-clockwise round the outer ring past
-# the Rogues' Quarter, the Magic Quarter and the War Quarter, then a hairpin
-# into the inner city: east into the Trade Quarter, clockwise round its
-# centre, out to the south, west along the inner canal and round its end
-# back onto the start straight. The route never crosses itself. Undercity
-# lies under the Ruins of Lordaeron: its round city and the quarters' halls
-# are floor, the earth round them rock; the green canals are traced from the
-# map's slime (the green texels), simplified by hand.
+# The owner's red line round the outer ring of his in-game Undercity map:
+# "It's basically a river of slime with bridges at every section", and
+# "Players should be crossing the bridges (sharp turns) to cross the slimey
+# river." The slime is the canal ring round the Trade Quarter; the course
+# runs counter-clockwise along its walkways, from his arrow on the southern
+# stretch below the Apothecarium, heading east. At every section it turns
+# sharply onto a bridge, crosses the slime straight across and turns sharply
+# onto the other walkway: inside round the Rogues' Quarter's corner, outside
+# up the Magic Quarter's side, inside under the Ruins of Lordaeron, outside
+# down the War Quarter's side, inside round the Apothecarium's corner and
+# outside again along the start straight, as his line goes. Undercity lies
+# under the ruins: the round city, the quarters' halls and the stair to the
+# ruins are floor, the earth round them rock. World units, round the city's
+# centre; angles in degrees counter-clockwise from east.
 
-UC_MAP = {"scale": 3.8, "left": 68, "bottom": 642}
+UC_C = (1024.0, 1024.0)          # the city's centre: the Trade Quarter's rose window
+UC_RIVER = 610                   # the canal ring's radius
+UC_RIVER_HALF = 60               # half its width
+# The walkways the course runs along, inside and outside the slime: half the
+# river, a quay, and the street's half-width to the back of its wall (94).
+UC_WALKS = (UC_RIVER - UC_RIVER_HALF - 14 - 94, UC_RIVER + UC_RIVER_HALF + 14 + 94)
+UC_TURN = 70                     # the radius of the turns on and off each bridge
+UC_BRIDGE_ANGLES = (298, 334, 62, 118, 206, 242)   # in driving order from the start straight
+UC_INNER_WALL = 300              # the Trade Quarter's wall
 
 
-def UW(mx, my):
-    return ((mx - UC_MAP["left"]) * UC_MAP["scale"], (UC_MAP["bottom"] - my) * UC_MAP["scale"])
+def upolar(radius, degrees, centre=UC_C):
+    """The point `radius` from `centre` at `degrees` (unrounded)."""
+    t = degrees * pi / 180
+    return (centre[0] + radius * cos(t), centre[1] + radius * sin(t))
 
 
-def upoly(*points):
-    return [UW(*q) for q in points]
+def uround(point):
+    return (round(point[0], 1), round(point[1], 1))
 
 
-def uprop(model, mx, my, **kw):
-    x, y = UW(mx, my)
-    return prop(model, round(x, 1), round(y, 1), **kw)
-
-
-def ucircle(mx, my, radius, count=48):
-    """A circle on the map (map pixels) as a world polygon (tenths, so every
+def ucircle(radius, count=240, centre=UC_C):
+    """A circle round the city's centre as a world polygon (tenths, so every
     machine's sine and cosine give the same points)."""
+    return [uround(upolar(radius, 360 * k / count, centre)) for k in range(count)]
+
+
+def uprop(model, radius, degrees, **kw):
+    x, y = uround(upolar(radius, degrees))
+    return prop(model, x, y, **kw)
+
+
+# Where each bridge's turns meet the walkways, in degrees round the centre
+# from the bridge, and how far its straight runs from the centre.
+UC_PHI = asin(UC_TURN / (UC_WALKS[1] - UC_TURN)) * 180 / pi           # the outer turn
+UC_PSI = asin(UC_TURN / (UC_WALKS[0] + UC_TURN)) * 180 / pi           # the inner turn
+UC_SPAN = (round((UC_WALKS[0] + UC_TURN) * cos(UC_PSI * pi / 180), 1),
+           round((UC_WALKS[1] - UC_TURN) * cos(UC_PHI * pi / 180), 1))
+
+
+def uc_course():
+    """The closed centerline: arcs along the walkways, each bridge a straight
+    across the river at right angles to it, joined by UC_TURN-radius turns;
+    points every 16 units or less, in tenths."""
+    inner, outer = UC_WALKS
+    r = UC_TURN
+
+    def arc(centre, radius, a0, a1):
+        sweep = a1 - a0
+        n = max(1, int(abs(sweep) * pi / 180 * radius / 16.0 + 0.999))
+        return [upolar(radius, a0 + sweep * k / n, centre) for k in range(n)]
+
+    def straight(p, q):
+        n = max(1, int(sqrt((q[0] - p[0]) ** 2 + (q[1] - p[1]) ** 2) / 16.0 + 0.999))
+        return [(p[0] + (q[0] - p[0]) * k / n, p[1] + (q[1] - p[1]) * k / n) for k in range(n)]
+
+    first = UC_BRIDGE_ANGLES[-1]
+    points, at, outside = [], first + UC_PHI, True
+    for b in UC_BRIDGE_ANGLES:
+        b = b if b > first else b + 360
+        if outside:
+            points += arc(UC_C, outer, at, b - UC_PHI)
+            points += arc(upolar(outer - r, b - UC_PHI), r, b - UC_PHI, b + 90)         # left onto the bridge
+            points += straight(upolar(UC_SPAN[1], b), upolar(UC_SPAN[0], b))
+            points += arc(upolar(inner + r, b + UC_PSI), r, b - 90, b + UC_PSI - 180)   # right off it
+            at = b + UC_PSI
+        else:
+            points += arc(UC_C, inner, at, b - UC_PSI)
+            points += arc(upolar(inner + r, b - UC_PSI), r, b - UC_PSI + 180, b + 90)   # right onto the bridge
+            points += straight(upolar(UC_SPAN[0], b), upolar(UC_SPAN[1], b))
+            points += arc(upolar(outer - r, b + UC_PHI), r, b - 90, b + UC_PHI)         # left off it
+            at = b + UC_PHI
+        outside = not outside
     out = []
-    for k in range(count):
-        x, y = UW(mx + radius * cos(2 * pi * k / count), my + radius * sin(2 * pi * k / count))
-        out.append((round(x, 1), round(y, 1)))
+    for p in points:
+        q = uround(p)
+        if not out or abs(out[-1][0] - q[0]) > 0.05 or abs(out[-1][1] - q[1]) > 0.05:
+            out.append(q)
     return out
 
 
-UC_LOOP = [  # driving order (counter-clockwise outside, clockwise round the centre), from the start straight
-    (266.0, 573.2), (300.3, 576.6), (340.0, 578.6), (380.0, 579.5), (419.6, 574.9), (448.3, 568.9), (480, 556),
-    (505, 540), (520, 528), (540, 507), (548.4, 497.4), (554.9, 479.4), (550.4, 461.9), (531.4, 449.1),
-    (515.7, 439.1), (512.7, 420.3), (520.1, 396.1), (524.3, 370.6), (524.0, 339.7), (523.7, 309.6), (518.5, 278.7),
-    (505.1, 255.0), (488.2, 237.4), (468.3, 216.7), (444.9, 197.2), (419.3, 188.0), (389.6, 182.0), (360.0, 180.5),
-    (329.9, 181.9), (304.6, 188.5), (289.4, 196.5), (275.3, 200.4), (262.0, 198.0), (236, 184), (222.1, 170.5),
-    (200.0, 164.9), (180.4, 170.7), (164.0, 183.8), (153.7, 200.6), (145.0, 225.0), (137.7, 255.0), (128.7, 289.7),
-    (120.7, 329.9), (118.6, 370.1), (120.7, 404.8), (130.0, 427.8), (138.9, 444.4), (150.6, 453.0), (167.2, 451.2),
-    (183.4, 435.9), (188.6, 415.0), (183.9, 395.9), (174.7, 378.8), (176.6, 361.4), (189.4, 348.6), (210.0, 342.5),
-    (234.9, 341.9), (253.6, 350.6), (279.5, 359.9), (298.7, 358.8), (304.4, 344.8), (306.9, 324.8), (319.0, 306.8),
-    (335.6, 298.1), (360.1, 296.5), (383.6, 302.4), (403.8, 317.2), (417.0, 339.5), (418.1, 365.0), (408.3, 381.5),
-    (391.4, 395.9), (373.3, 406.0), (362.4, 419.7), (354.0, 439.8), (355.0, 470.0), (351.7, 500.0), (350.4, 519.4),
-    (334.9, 527.4), (310.0, 525.6), (285.3, 519.2), (262.6, 519.3), (250.3, 530.2), (248.0, 548.0), (255.5, 564.4),
-]
-UNDERCITY_LINE = catmull_rom([UW(*p) for p in smooth(UC_LOOP, passes=2)], step=16.0)
+UNDERCITY_LINE = uc_course()
 
 
-def uc_arc(mx, my):
-    return arc_at(UNDERCITY_LINE, mx, my, UW)
+def _world(x, y):
+    return (x, y)
+
+
+def uc_arc(radius, degrees):
+    """The loop arc where the course passes nearest the point `radius` from
+    the centre at `degrees`."""
+    return arc_at(UNDERCITY_LINE, *upolar(radius, degrees), _world)
 
 
 def along_loop(distance, line):
@@ -1875,34 +1931,28 @@ def along_loop(distance, line):
     return along_spur(distance, list(line) + [line[0]])
 
 
-# The start: on the loop below the Apothecarium where the owner's blue arrow
+def uc_gate(name, radius, degrees):
+    return gate_on(name, UNDERCITY_LINE, *upolar(radius, degrees))
+
+
+# The start: on the outer walkway below the Apothecarium where his arrow
 # points, heading east; the finish line a little behind it.
-UNDERCITY_START, UNDERCITY_START_HEADING = along_loop(uc_arc(335, 578), UNDERCITY_LINE)
+UNDERCITY_START, UNDERCITY_START_HEADING = along_loop(uc_arc(UC_WALKS[1], 268), UNDERCITY_LINE)
 
-# The city's centre (the Trade Quarter's rose window) and the radius of the
-# Trade Quarter's wall, on the map.
-UC_CENTRE = (352, 355)
-UC_INNER_WALL = 115
-
-# The slime canals, traced from the map's green.
-UNDERCITY_WATER = [
-    upoly((553, 450), (542, 446), (532, 437), (538, 430), (540, 418), (546, 410), (546, 401), (550, 390), (554, 363),
-          (552, 315), (546, 286), (536, 276), (532, 257), (528, 247), (518, 238), (508, 219), (508, 199), (482, 196),
-          (474, 190), (476, 182), (473, 178), (462, 172), (454, 174), (448, 171), (454, 166), (458, 148), (493, 170),
-          (506, 182), (510, 196), (518, 200), (520, 212), (542, 225), (544, 231), (538, 238), (547, 250), (552, 252),
-          (564, 244), (568, 247), (560, 259), (564, 274), (570, 280), (570, 295), (578, 316), (576, 386), (570, 394),
-          (574, 402), (566, 424), (558, 437), (560, 442)),                                    # the Magic Quarter's
-    upoly((157, 448), (156, 435), (148, 426), (150, 419), (136, 378), (136, 332), (142, 296), (156, 254), (176, 217),
-          (181, 216), (197, 220), (207, 216), (208, 218), (200, 230), (197, 234), (188, 230), (180, 244), (184, 254),
-          (174, 276), (162, 315), (160, 375), (166, 396), (172, 405), (178, 435)),          # the War Quarter's
-    upoly((354, 576), (295, 566), (262, 552), (255, 552), (252, 547), (264, 524), (303, 540), (366, 546), (407, 542),
-          (412, 538), (423, 538), (431, 532), (445, 528), (456, 549), (437, 560), (419, 564), (405, 570),
-          (386, 570)),                                                                       # the southern
-    upoly((476, 536), (462, 516), (485, 502), (496, 488), (506, 484), (515, 488), (518, 486), (521, 476), (526, 480),
-          (531, 470), (536, 470), (534, 488), (526, 494), (524, 499), (506, 518), (490, 524)),  # the Rogues' Quarter's
-    upoly((232, 536), (228, 533), (232, 522), (227, 516), (219, 510), (210, 518), (200, 506), (192, 501), (188, 492),
-          (182, 489), (193, 484), (197, 488), (211, 486), (235, 506), (243, 508), (246, 515)),  # the Apothecarium's
+# A bridge at every section, timber and stone by turns: its deck spans the
+# straight between the turns (the river and a landing either side); the stone
+# ones rise in a hump.
+UC_BRIDGES = [
+    ("Rogues' Quarter planks", 298, "planks"),
+    ("Rogues' Quarter bridge", 334, "stone"),
+    ("Magic Quarter planks", 62, "planks"),
+    ("War Quarter bridge", 118, "stone"),
+    ("Apothecarium planks", 206, "planks"),
+    ("Apothecarium bridge", 242, "stone"),
 ]
+UC_BRIDGE_LENGTH = 180
+UC_BRIDGE_ARCS = [uc_arc((UC_SPAN[0] + UC_SPAN[1]) / 2, angle) for _name, angle, _deck in UC_BRIDGES]
+UC_HUMP = 6
 
 DALARAN_RUINS = T + "dalaranruins/"
 DUNGEON2 = T + "dungeon2/"
@@ -1947,74 +1997,84 @@ BANSHEE = kind(UD_UNITS + "banshee/banshee.mdx", weight=0.7)
 FORSAKEN = [GHOUL, ACOLYTE, SKELETON, BANSHEE, kind(UD_UNITS + "necromancer/necromancer.mdx", weight=0.6),
             kind("war3.w3mod:units/critters/rat/rat.mdx", weight=0.4)]
 
+LANTERN_LIGHT = (30, (66, 54, 16))    # a hanging lantern's yellow pool on the stone
+UC_POSTS = {deck: {"prop": prop(SUMMER + "props/lanternpost/lanternpost%d.mdx" % n, 0, 0, light=LANTERN_LIGHT),
+                   "offset": 7, "inset": 14} for deck, n in (("planks", 0), ("stone", 1))}
+
 
 def uc_ring(radius, start, stop, step=15):
-    """District seeds round the city's centre (map pixels, degrees counter-
-    clockwise from east, every `step` from start + step / 2): rings of seeds
-    either side of a circle put the districts' border on it."""
+    """District seeds round the city's centre (every `step` degrees from
+    start + step / 2): rings of seeds either side of a circle put the
+    districts' border on it."""
     out = []
     a = start + step / 2
     while a < stop:
-        x, y = UW(UC_CENTRE[0] + radius * cos(a * pi / 180), UC_CENTRE[1] - radius * sin(a * pi / 180))
-        out.append((round(x, 1), round(y, 1)))
+        out.append(uround(upolar(radius, a)))
         a += step
     return out
 
 
+def uc_quarter(name, ground, sector, outer, hall, palette):
+    """A quarter's two districts, either side of the slime: its stretch of
+    the inner ring (`sector`, degrees), and beyond the canal its stretch of
+    the outer ring (`outer`) and its hall in the corner (at `hall` degrees).
+    Each draws its own buildings."""
+    return [dict(palette, name=name + ", inner ring", ground=ground, seeds=uc_ring(UC_INNER_WALL + 80, *sector)),
+            dict(palette, name=name, ground=ground,
+                 seeds=uc_ring(UC_WALKS[1] + 40, *outer) + [uround(upolar(1180, hall))])]
+
+
 UNDERCITY_DISTRICTS = [
     {"name": "Trade Quarter", "ground": "bricks",          # under the sunken floor the elevation paints
-     "seeds": [UW(*UC_CENTRE)] + uc_ring(90, 0, 360),
+     "seeds": [UC_C] + uc_ring(UC_INNER_WALL - 80, 0, 360),
      "buildings": [kind(OTHER + "merchant/merchant.mdx", recolor=FORSAKEN_GREEN, limit=3),
                    kind(DUNGEON_PROPS + "table/table.mdx", limit=4), FEL_BRAZIER] + BONES,
      "density": {"buildings": 0.55, "trim": 0.7, "people": 0.9},
      "trim": [kind(DUNGEON_PROPS + "bookshelf/bookshelf.mdx", limit=3), BARRELS, BOXES, FEL_BRAZIER],
      "people": FORSAKEN},
-    {"name": "War Quarter", "ground": "bricks",
-     "seeds": uc_ring(140, 90, 180) + uc_ring(225, 90, 180) + [UW(100, 140)],
-     "buildings": [UD_BUILDINGS["crypt"], UD_BUILDINGS["slaughterhouse"], UD_BUILDINGS["boneyard"],
-                   UD_BUILDINGS["ziggurat"], FEL_BRAZIER],
-     "density": {"buildings": 0.7, "trim": 0.8, "people": 0.8},
-     "trim": [WEAPONS, ARMOR] + TORMENT[2:] + BONES,
-     "people": [kind(UD_UNITS + "abomination/abomination.mdx", weight=0.5, limit=4),
-                kind(UD_UNITS + "herodeathknight/herodeathknight.mdx", weight=0.4, limit=2), SKELETON, GHOUL,
-                kind(UD_UNITS + "cryptfiend/cryptfiend.mdx", weight=0.5, limit=3)]},
-    {"name": "Magic Quarter", "ground": "violet",
-     "seeds": uc_ring(140, 0, 90) + uc_ring(225, 0, 90) + [UW(595, 125)],
-     "buildings": [UD_BUILDINGS["templeofthedamned"], UD_BUILDINGS["tombofrelics"], UD_BUILDINGS["gargoylespire"],
-                   FEL_BRAZIER],
-     "density": {"buildings": 0.7, "trim": 0.8, "people": 0.8},
-     "trim": [kind(DUNGEON_PROPS + "bookshelf/bookshelf.mdx", limit=4), kind(DUNGEON_PROPS + "table/table.mdx", limit=3),
-              kind(CITY + "props/crystallamp/crystallamp.mdx", limit=4),
-              kind(NORTH_PROPS + "northrendobilisk/northrendobilisk.mdx", weight=0.5, limit=2),
-              kind(DUNGEON_PROPS + "dungeonobilisk/dungeonobilisk.mdx", weight=0.5, limit=2)],
-     "people": [kind(UD_UNITS + "necromancer/necromancer.mdx"), BANSHEE,
-                kind(UD_UNITS + "skeletonmage/skeletonmage.mdx", weight=0.6), ACOLYTE]},
-    {"name": "Rogues' Quarter", "ground": "marble",
-     "seeds": uc_ring(140, 270, 360) + uc_ring(225, 270, 360) + [UW(600, 610), UW(500, 615)],
-     "buildings": [UD_BUILDINGS["graveyard"], UD_BUILDINGS["crypt"], UD_BUILDINGS["altarofdarkness"],
-                   kind(NORTH + "structures/northrendcrypt/northrendcrypt.mdx", limit=2), FEL_BRAZIER],
-     "density": {"buildings": 0.7, "trim": 0.8, "people": 0.8},
-     "trim": TORMENT + GRAVES,
-     "people": [kind(UD_UNITS + "shade/shade.mdx", limit=4), GHOUL, ACOLYTE,
-                kind(UD_UNITS + "herodreadlord/herodreadlord.mdx", weight=0.4, limit=2)]},
-    {"name": "Apothecarium", "ground": "green",
-     "seeds": uc_ring(140, 180, 270) + uc_ring(225, 180, 270) + [UW(105, 610), UW(200, 615)],
-     "buildings": [UD_BUILDINGS["altarofdarkness"], UD_BUILDINGS["sacrificialpit"],
-                   UD_BUILDINGS["templeofthedamned"], FEL_BRAZIER],
-     "density": {"buildings": 0.7, "trim": 0.8, "people": 0.8},
-     "trim": [kind(SUMMER + "props/cauldronwithheads/cauldronwithheads.mdx", limit=4),
-              kind(DUNGEON_PROPS + "table/table.mdx", limit=3)] + SEWER + BONES,
-     "people": [ACOLYTE, kind(UD_UNITS + "abomination/abomination.mdx", weight=0.5, limit=3),
-                kind(UD_UNITS + "necromancer/necromancer.mdx"), kind("war3.w3mod:units/critters/rat/rat.mdx")]},
-    {"name": "The stair to the Ruins", "ground": "bricks", "seeds": [UW(352, 120)],
+] + uc_quarter("War Quarter", "bricks", (90, 180), (105, 180), 135, {
+    "buildings": [UD_BUILDINGS["crypt"], UD_BUILDINGS["slaughterhouse"], UD_BUILDINGS["boneyard"],
+                  UD_BUILDINGS["ziggurat"], FEL_BRAZIER],
+    "density": {"buildings": 0.7, "trim": 0.8, "people": 0.8},
+    "trim": [WEAPONS, ARMOR] + TORMENT[2:] + BONES,
+    "people": [kind(UD_UNITS + "abomination/abomination.mdx", weight=0.5, limit=4),
+               kind(UD_UNITS + "herodeathknight/herodeathknight.mdx", weight=0.4, limit=2), SKELETON, GHOUL,
+               kind(UD_UNITS + "cryptfiend/cryptfiend.mdx", weight=0.5, limit=3)]}) + uc_quarter(
+    "Magic Quarter", "violet", (0, 90), (0, 75), 45, {
+        "buildings": [UD_BUILDINGS["templeofthedamned"], UD_BUILDINGS["tombofrelics"], UD_BUILDINGS["gargoylespire"],
+                      FEL_BRAZIER],
+        "density": {"buildings": 0.7, "trim": 0.8, "people": 0.8},
+        "trim": [kind(DUNGEON_PROPS + "bookshelf/bookshelf.mdx", limit=4),
+                 kind(DUNGEON_PROPS + "table/table.mdx", limit=3),
+                 kind(CITY + "props/crystallamp/crystallamp.mdx", limit=4),
+                 kind(NORTH_PROPS + "northrendobilisk/northrendobilisk.mdx", weight=0.5, limit=2),
+                 kind(DUNGEON_PROPS + "dungeonobilisk/dungeonobilisk.mdx", weight=0.5, limit=2)],
+        "people": [kind(UD_UNITS + "necromancer/necromancer.mdx"), BANSHEE,
+                   kind(UD_UNITS + "skeletonmage/skeletonmage.mdx", weight=0.6), ACOLYTE]}) + uc_quarter(
+    "Rogues' Quarter", "marble", (270, 360), (270, 360), 315, {
+        "buildings": [UD_BUILDINGS["graveyard"], UD_BUILDINGS["crypt"], UD_BUILDINGS["altarofdarkness"],
+                      kind(NORTH + "structures/northrendcrypt/northrendcrypt.mdx", limit=2), FEL_BRAZIER],
+        "density": {"buildings": 0.7, "trim": 0.8, "people": 0.8},
+        "trim": TORMENT + GRAVES,
+        "people": [kind(UD_UNITS + "shade/shade.mdx", limit=4), GHOUL, ACOLYTE,
+                   kind(UD_UNITS + "herodreadlord/herodreadlord.mdx", weight=0.4, limit=2)]}) + uc_quarter(
+    "Apothecarium", "green", (180, 270), (180, 270), 225, {
+        "buildings": [UD_BUILDINGS["altarofdarkness"], UD_BUILDINGS["sacrificialpit"],
+                      UD_BUILDINGS["templeofthedamned"], FEL_BRAZIER],
+        "density": {"buildings": 0.7, "trim": 0.8, "people": 0.8},
+        "trim": [kind(SUMMER + "props/cauldronwithheads/cauldronwithheads.mdx", limit=4),
+                 kind(DUNGEON_PROPS + "table/table.mdx", limit=3)] + SEWER + BONES,
+        "people": [ACOLYTE, kind(UD_UNITS + "abomination/abomination.mdx", weight=0.5, limit=3),
+                   kind(UD_UNITS + "necromancer/necromancer.mdx"), kind("war3.w3mod:units/critters/rat/rat.mdx")]}) + [
+    {"name": "The stair to the Ruins", "ground": "bricks", "seeds": [uround(upolar(r, 90)) for r in (800, 900, 1000)],
      "buildings": GRAVES, "trim": GRAVES, "people": [BANSHEE]},
-    {"name": "The Canals' south wall", "ground": "bricks", "seeds": [UW(340, 625)],
+    {"name": "The Canals' south wall", "ground": "bricks", "seeds": [uround(upolar(970, 270))],
      "buildings": SEWER + GRAVES, "trim": SEWER, "people": [GHOUL]},
 ]
 
 UNDERCITY = {
     "id": "undercity_slime",
-    "version": 1,
+    "version": 2,
     "wall_clearance": KART,
     "full_speed_to_walls": True,
     "name": "Undercity Slime Circuit",
@@ -2028,46 +2088,52 @@ UNDERCITY = {
     "branches": [],
     "plazas": [],
     "gates": [
-        gate_on("Rogues' Quarter", UNDERCITY_LINE, *UW(554.9, 479.4)),
-        gate_on("Magic Quarter", UNDERCITY_LINE, *UW(523.7, 309.6)),
-        gate_on("War Quarter", UNDERCITY_LINE, *UW(120.7, 329.9)),
-        gate_on("Trade Quarter", UNDERCITY_LINE, *UW(360.1, 296.5)),
-        gate_on("Apothecarium", UNDERCITY_LINE, *UW(300.3, 576.6)),
+        uc_gate("Rogues' Quarter", UC_WALKS[0], 316),
+        uc_gate("Magic Quarter", UC_WALKS[1], 30),
+        uc_gate("Ruins of Lordaeron", UC_WALKS[0], 90),
+        uc_gate("War Quarter", UC_WALKS[1], 150),
+        uc_gate("Apothecarium", UC_WALKS[0], 224),
+        uc_gate("The Canals", UC_WALKS[1], 258),
     ],
     "spawn": UNDERCITY_START + (UNDERCITY_START_HEADING,),
     "replaceables": {11: DUNGEON2 + "gcliff0.dds"},
     "terrain": UNDERCITY_TERRAIN,
     "districts": UNDERCITY_DISTRICTS,
     "zones": [],
-    "water": UNDERCITY_WATER,
-    "land": [],
+    # The canal ring: the slime between its two quays.
+    "water": [ucircle(UC_RIVER + UC_RIVER_HALF)],
+    "land": [ucircle(UC_RIVER - UC_RIVER_HALF)],
     "canals": [],
-    "bridges": [],
-    # The earth round the round city and the quarters' halls.
+    # The bridges: over the river drawn whole, so they carry no canal of
+    # their own (`force`); timber planks on piles or a stone deck on arches.
+    "bridges": [{"name": name, "at": at, "length": UC_BRIDGE_LENGTH, "left": 24, "right": 24, "force": False,
+                 "deck": deck, "posts": UC_POSTS[deck]}
+                for (name, _angle, deck), at in zip(UC_BRIDGES, UC_BRIDGE_ARCS)],
+    # The earth round the round city, the quarters' halls in the corners and
+    # the stair up to the Ruins of Lordaeron.
     "rock": {
         "band": 96,
         "floors": [
-            ucircle(UC_CENTRE[0], UC_CENTRE[1], 258),
-            upoly((68, 103), (205, 103), (205, 175), (130, 205), (68, 215)),          # the War Quarter's halls
-            upoly((470, 103), (607, 103), (607, 270), (560, 230), (500, 160)),        # the Magic Quarter's
-            upoly((607, 420), (607, 642), (420, 642), (432, 590), (530, 545)),        # the Rogues' Quarter's
-            upoly((68, 450), (175, 470), (255, 560), (262, 642), (68, 642)),          # the Apothecarium's
-            upoly((300, 103), (404, 103), (404, 160), (300, 160)),                    # the stair to the Ruins
-            upoly((240, 590), (460, 590), (460, 642), (240, 642)),                    # under the start straight
+            ucircle(935),
+            ucircle(260, 48, upolar(1150, 45)),       # the Magic Quarter's hall
+            ucircle(260, 48, upolar(1150, 135)),      # the War Quarter's
+            ucircle(260, 48, upolar(1150, 225)),      # the Apothecarium's
+            ucircle(260, 48, upolar(1150, 315)),      # the Rogues' Quarter's
+            [(904.0, 1700.0), (1144.0, 1700.0), (1144.0, 2048.0), (904.0, 2048.0)],   # the stair to the Ruins
         ],
         "top": (T + "dungeon/cave_darkrocks.dds", (0.95, 1.05, 0.9, 0.15)),
         "face": (DALARAN_RUINS + "druins_bricktiles.dds", (1.2, 1.25, 1.15, 0.5)),
         "course": 5,
         "height": 64, "fade": 44, "dark": 0.6,
     },
-    # The Trade Quarter sunk below the rings round it: the course ramps down
-    # into it from the west and climbs out to the south.
+    # The Trade Quarter sunk below the ring round it, and the stone bridges'
+    # humps: the course rises over each and comes down beyond.
     "elevation": {
         "ground": 0,
-        "levels": [(ucircle(UC_CENTRE[0], UC_CENTRE[1], UC_INNER_WALL), -30,
+        "levels": [(ucircle(UC_INNER_WALL, 96), -30,
                     (T + "blackcitadel/citadel_darktiles.dds", (1.5, 1.45, 1.5, 0.25)))],
-        "street": [(uc_arc(196, 346), 0), (uc_arc(279.5, 359.9), -30), (uc_arc(356, 430), -30),
-                   (uc_arc(352, 506), 0)],
+        "street": [anchor for (_name, _angle, deck), at in zip(UC_BRIDGES, UC_BRIDGE_ARCS) if deck == "stone"
+                   for anchor in ((at - 125, 0), (at - 55, UC_HUMP), (at + 55, UC_HUMP), (at + 125, 0))],
         "branches": [],
         "face": (DALARAN_RUINS + "druins_bricktiles.dds", (1.9, 1.95, 1.8, 0.3)), "course": 4,
         "slope_shade": 4.0, "ramp_joints": 22, "shadow": 0.34, "height_light": 0.0035,
@@ -2082,6 +2148,10 @@ UNDERCITY = {
     "squares": [],
     "bridge_depth": 15,
     "arch_every": 34,
+    "pile_every": 30,
+    "deck_shadow": 0.5,
+    "deck_planks": (104, 72, 44),
+    "deck_stone": (96, 92, 112),
     "water_texture": "war3.w3mod:replaceabletextures/water/water00.dds",
     "water_tint": (0.30, 0.66, 0.08),
     # The slime: the Dungeon's lava as Undercity's green ooze, glowing.
@@ -2089,7 +2159,7 @@ UNDERCITY = {
     "water_glow": (16, 48, 6), "water_glow_reach": 26,
     "water_rim": (100, 108, 90),
     "quay_face": (78, 86, 70),
-    "quay_depth": 9,
+    "quay_depth": 12,
     "road_tile": DUNGEON2 + "gsquaretiles.dds",
     "road_shade": 1.0,
     "sidewalk_tile": DALARAN_RUINS + "druins_bricktiles.dds",
@@ -2103,6 +2173,8 @@ UNDERCITY = {
     "wall_styles": {
         "parapet": ((88, 96, 80), (134, 142, 122), (46, 50, 42)),
         "land": ((96, 92, 104), (142, 138, 152), (50, 48, 56)),
+        "bridge": ((84, 80, 98), (122, 118, 138), (46, 44, 56)),
+        "rail": ((92, 62, 38), (134, 96, 60), (50, 34, 20)),
     },
     # Iron railings along the street, a spike every few strides.
     "land_wall": {"style": "land", "height": 9, "spike_every": 22, "spike_width": 2.0, "spike_height": 15},
@@ -2117,25 +2189,25 @@ UNDERCITY = {
     ],
     "solids": [],
     "props": [
-        # The Trade Quarter: a well of slime at its heart, inside the course's
-        # turn round the centre.
-        dict(uprop(UNDEAD + "sacrificialpit/sacrificialpit.mdx", 361, 352, scale=0.34, recolor=FORSAKEN_GREEN,
-                   team=SLIME_TEAM), nudge=True),
-        # The stair up to the Ruins of Lordaeron: Sylvanas before the old throne.
-        dict(uprop(CITY + "props/throne/throne.mdx", 352, 118, scale=0.55), nudge=True),
-        dict(uprop(UD_UNITS + "evilsylvanas/evilsylvanas.mdx", 352, 136, scale=0.45), nudge=True),
-        dict(uprop(UD_UNITS + "banshee/banshee.mdx", 328, 138, scale=0.32), nudge=True),
-        dict(uprop(UD_UNITS + "banshee/banshee.mdx", 376, 138, scale=0.32), nudge=True),
-        # The quarters' halls beyond the outer ring.
-        dict(uprop(UD_BUILDINGS["slaughterhouse"]["prop"]["model"], 112, 150, scale=0.32,
+        # The Trade Quarter: a well of slime at its heart.
+        dict(prop(UNDEAD + "sacrificialpit/sacrificialpit.mdx", UC_C[0], UC_C[1], scale=0.4, recolor=FORSAKEN_GREEN,
+                  team=SLIME_TEAM), nudge=True),
+        # Across the slime at the top, the stair up to the Ruins of Lordaeron:
+        # Sylvanas before the old throne, a banshee either side.
+        dict(uprop(CITY + "props/throne/throne.mdx", 890, 90, scale=0.55), nudge=True),
+        dict(uprop(UD_UNITS + "evilsylvanas/evilsylvanas.mdx", 830, 90, scale=0.45), nudge=True),
+        dict(uprop(UD_UNITS + "banshee/banshee.mdx", 815, 83, scale=0.32), nudge=True),
+        dict(uprop(UD_UNITS + "banshee/banshee.mdx", 815, 97, scale=0.32), nudge=True),
+        # The quarters' halls in the corners.
+        dict(uprop(UD_BUILDINGS["templeofthedamned"]["prop"]["model"], 1180, 45, scale=0.32,
                    recolor=FORSAKEN_GREEN), nudge=True),
-        dict(uprop(UD_BUILDINGS["templeofthedamned"]["prop"]["model"], 585, 140, scale=0.32,
+        dict(uprop(UD_BUILDINGS["slaughterhouse"]["prop"]["model"], 1180, 135, scale=0.32,
                    recolor=FORSAKEN_GREEN), nudge=True),
-        dict(uprop(UD_BUILDINGS["graveyard"]["prop"]["model"], 585, 600, scale=0.32, recolor=FORSAKEN_GREEN),
+        dict(uprop(UD_BUILDINGS["altarofdarkness"]["prop"]["model"], 1180, 225, scale=0.32,
+                   recolor=FORSAKEN_GREEN), nudge=True),
+        dict(uprop(UD_BUILDINGS["graveyard"]["prop"]["model"], 1180, 315, scale=0.32, recolor=FORSAKEN_GREEN),
              nudge=True),
-        dict(uprop(UD_BUILDINGS["altarofdarkness"]["prop"]["model"], 150, 600, scale=0.32,
-                   recolor=FORSAKEN_GREEN), nudge=True),
-        dict(uprop(UD_UNITS + "obsidianstatue/obsidianstatue.mdx", 480, 610, scale=0.3), nudge=True),
+        dict(uprop(UD_UNITS + "obsidianstatue/obsidianstatue.mdx", 1060, 330, scale=0.3), nudge=True),
     ],
 }
 

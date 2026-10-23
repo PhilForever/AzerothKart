@@ -53,9 +53,9 @@ Menu.TRACKS = {
         facts={"3 laps, 4 gates named for the districts", "Counterclockwise round the Cleft of Shadow",
             "Full speed to the street walls"}},
     {id="undercity_slime", name="Undercity Slime Circuit", cell="undercity",
-        blurb="Start by the canal below the Apothecarium, round the Rogues', Magic and War Quarters, then down "
-            .. "into the sunken Trade Quarter, round its slime well and up over the canal again.",
-        facts={"3 laps, 5 gates named for the quarters", "A ramp down into the Trade Quarter and a climb out",
+        blurb="Start by the slime below the Apothecarium and race round the canal ring: past the Rogues' and "
+            .. "Magic Quarters, under the Ruins of Lordaeron and back by the War Quarter, over a bridge at every section.",
+        facts={"3 laps, 6 gates named for the quarters", "Six bridges over the slime: sharp turns on and off",
             "Full speed to the street walls"}},
 }
 

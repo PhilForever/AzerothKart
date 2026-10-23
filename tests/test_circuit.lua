@@ -365,16 +365,18 @@ local ironforge = Courses.build("ironforge_gp", Track.crossesGate)
 local ironData = namespace.CapitalCities.ironforge_gp
 assert(ironforge and ironforge.wallRadius == 76 and #ironforge.gates == 7 and #ironforge.solids == 0
     and #ironData.plazas == 0, "Ironforge's street: the same road and walls, seven gates, nothing in the way")
-assert(ironforge.version == 3 and ironforge.wallClearance == 14 and #ironData.wallVertices > 0,
-    "Ironforge v3 uses the existing exposed-wall clearance for its painted gate-hall junction")
-assert(not ironforge.fullSpeedToWalls and not ironData.fullSpeedToWalls,
-    "the Stormwind-only full-speed policy does not change Ironforge's rough shoulder")
+assert(ironforge.version == 4 and ironforge.wallClearance == 14 and #ironData.wallVertices > 0,
+    "Ironforge v4 uses the existing exposed-wall clearance for its painted gate-hall junction")
+-- v4 (owner, 2026-10-23, proposed for Codex review): no shoulders on a city
+-- map, so Ironforge, like the other cities, gives full grip to its walls.
+assert(ironforge.fullSpeedToWalls and ironData.fullSpeedToWalls,
+    "Ironforge has full grip to its walls, as every city map")
 local oldIronDefinition = {}
 for key,value in pairs(ironData) do oldIronDefinition[key] = value end
 oldIronDefinition.wallClearance,oldIronDefinition.wallVertices = nil,nil
 local oldIron = Circuit.new(oldIronDefinition,Track.crossesGate)
-assert(oldIron.surfaceAt(232,641) == "wall" and ironforge.surfaceAt(232,641) == "grass",
-    "the gate-hall's painted corner is usable rough pavement, not an invisible wall")
+assert(oldIron.surfaceAt(232,641) == "wall" and ironforge.surfaceAt(232,641) == "road",
+    "the gate-hall's painted corner is usable road, not an invisible wall")
 local ironX,ironY,ironHit = ironforge.resolveMovement(234,641,232,641)
 assert(ironX == 232 and ironY == 641 and not ironHit,
     "a normal bounded step through Ironforge's concave corner moves without phantom contact")
@@ -382,10 +384,10 @@ local ia,ib = ironData.branches[1][1],ironData.branches[1][2]
 local idx,idy = ib.x-ia.x,ib.y-ia.y
 local ilength = math.sqrt(idx*idx+idy*idy)
 local imx,imy = (ia.x+ib.x)/2,(ia.y+ib.y)/2
-assert(ironforge.surfaceAt(imx-idy/ilength*66,imy+idx/ilength*66) == "grass" and
-       ironforge.surfaceAt(imx-idy/ilength*75,imy+idx/ilength*75) == "grass" and
+assert(ironforge.surfaceAt(imx-idy/ilength*66,imy+idx/ilength*66) == "road" and
+       ironforge.surfaceAt(imx-idy/ilength*75,imy+idx/ilength*75) == "road" and
        ironforge.surfaceAt(imx-idy/ilength*78,imy+idx/ilength*78) == "wall",
-    "Ironforge keeps its rough shoulder and original clearance along a straight wall")
+    "Ironforge is road to its original clearance along a straight wall")
 for _,gate in ipairs(ironforge.gates) do
     assert(ironforge.surfaceAt(gate.ax,gate.ay) == "wall" and
            ironforge.surfaceAt(gate.bx,gate.by) == "wall",
@@ -393,8 +395,8 @@ for _,gate in ipairs(ironforge.gates) do
 end
 -- v3: the Forlorn Cavern's entrance and exit are narrows (the owner's
 -- request): the wall stands at the paving's edge (56 painted, the kart
--- centre 14 inside it at 42), all road, no shoulder; beyond them the rough
--- shoulder and the 76-unit reach remain.
+-- centre 14 inside it at 42), all road, no shoulder; beyond them the
+-- 76-unit reach remains, road to the wall since v4.
 assert(#ironData.narrows == 2 and ironData.narrows[1].name == "Forlorn Cavern entrance" and
        ironData.narrows[2].name == "Forlorn Cavern exit", "Ironforge has its two Forlorn Cavern narrows")
 local function across(index, offset)
@@ -412,9 +414,9 @@ for _,narrow in ipairs(ironData.narrows) do
                ironforge.isDrivable(across(middle,side*40)) and
                ironforge.surfaceAt(across(middle,side*44)) == "wall",
             "no shoulder in the " .. narrow.name)
-        assert(ironforge.surfaceAt(across(narrow.first-12,side*66)) == "grass" and
+        assert(ironforge.surfaceAt(across(narrow.first-12,side*66)) == "road" and
                ironforge.surfaceAt(across(narrow.first-12,side*78)) == "wall",
-            "the street before the " .. narrow.name .. " keeps its shoulder")
+            "the street before the " .. narrow.name .. " is road to its wider wall")
     end
 end
 -- The exposed-wall correction adds a thin safe arc beyond individually
@@ -427,7 +429,7 @@ assert(ironforge.surfaceAt(tunnelCornerX,tunnelCornerY) == "road" and
     "the entrance tunnel's exposed corner has no tiny rough pocket")
 local roughTunnelDefinition = {}
 for key,value in pairs(ironData) do roughTunnelDefinition[key] = value end
-roughTunnelDefinition.roadRadius = 40
+roughTunnelDefinition.roadRadius,roughTunnelDefinition.fullSpeedToWalls = 40,nil
 local roughTunnel = Circuit.new(roughTunnelDefinition, Track.crossesGate)
 assert(roughTunnel.surfaceAt(tunnelCornerX,tunnelCornerY) == "grass" and
        not roughTunnel.isDrivable(tunnelCornerX,tunnelCornerY),
@@ -499,18 +501,18 @@ assert(elfNames == "Craftsmen's Terrace,Cenarion Enclave,Temple Gardens,Temple o
     .. "Tradesmen's Terrace,Warrior's Terrace", "Darnassus's gates in order: " .. elfNames)
 assert(elfWalls == 0, "Darnassus's centerline never meets a wall")
 
--- Undercity: no approach road; the spawn sits on the loop itself below the
--- Apothecarium, just past the finish line. The walk passes the five gates
--- (the outer ring counter-clockwise, then round the Trade Quarter) and
--- completes the lap, never meeting a wall.
+-- Undercity (v2): no approach road; the spawn sits on the loop itself below
+-- the Apothecarium, just past the finish line. The walk passes the six gates
+-- counter-clockwise round the canal ring, over the slime on a bridge at every
+-- section, and completes the lap, never meeting a wall.
 local undercity = Courses.build("undercity_slime", Track.crossesGate)
 local ucData = namespace.CapitalCities.undercity_slime
-assert(undercity and undercity.wallRadius == 76 and #undercity.gates == 5 and #undercity.solids == 0
-    and #ucData.plazas == 0 and #ucData.branches == 0, "Undercity's street: one loop, five gates")
-assert(undercity.version == 1 and undercity.wallClearance == 14 and #ucData.wallVertices > 0
+assert(undercity and undercity.wallRadius == 76 and #undercity.gates == 6 and #undercity.solids == 0
+    and #ucData.plazas == 0 and #ucData.branches == 0, "Undercity's street: one loop, six gates")
+assert(undercity.version == 2 and undercity.wallClearance == 14 and #ucData.wallVertices > 0
     and undercity.fullSpeedToWalls, "Undercity uses the exposed-wall clearance and full grip to the walls")
 local ucNames, ucWalls = walk(undercity, ucData)
-assert(ucNames == "Rogues' Quarter,Magic Quarter,War Quarter,Trade Quarter,Apothecarium",
+assert(ucNames == "Rogues' Quarter,Magic Quarter,Ruins of Lordaeron,War Quarter,Apothecarium,The Canals",
     "Undercity's gates in order: " .. ucNames)
 assert(ucWalls == 0, "Undercity's centerline never meets a wall")
 

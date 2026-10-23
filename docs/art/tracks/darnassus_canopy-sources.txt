@@ -60,7 +60,6 @@ war3.w3mod:terrainart/ashenvale/ashen_grass.dds
 war3.w3mod:terrainart/ashenvale/ashen_grasslumpy.dds
 war3.w3mod:terrainart/ashenvale/ashen_leaves.dds
 war3.w3mod:terrainart/ruins/ruins_largebricks.dds
-war3.w3mod:terrainart/ruins/ruins_roundtiles.dds
 war3.w3mod:textures/ashenstructures.dds
 war3.w3mod:textures/ashenvalenatural.dds
 war3.w3mod:textures/background.dds

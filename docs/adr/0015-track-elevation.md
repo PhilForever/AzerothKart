@@ -18,10 +18,10 @@ The camera looks north at 36.87 degrees, scenery heights lean north (`lean`), an
 
 ## Consequences
 
-- Darnassus (three tiers: 44, 22, 0) and Undercity (the Trade Quarter sunk 30) show their levels now; karts drive them flat.
+- Darnassus (three tiers: 44, 22, 0) and Undercity (the Trade Quarter sunk 30) show their levels now; karts drive them flat. Undercity version 2 (proposed on `claude/undercity-river`, 2026-10-23) keeps the sunken Trade Quarter beside its new course and raises its three stone bridges in painted humps 6 units high, with ramps either side; the karts drive them flat too.
 - The generated heights let Codex prototype slopes without a generator change. Unknown fields in `CapitalCities` are already ignored, so adding them changes no behaviour.
 - Physical slopes would change deterministic handling and require a Physics compatibility/version review before any multiplayer use. Bridges additionally change collision membership, checkpoint/route validation, drawing order and the replicated layer. Neither is implemented or accepted by this art integration; the proposed gain, clearance and step numbers are not approved constants.
-- No route needs a bridge yet; neither Darnassus nor Undercity crosses itself. Thunder Bluff's mesas are the natural first use.
+- No route needs a bridge over the track yet; neither Darnassus nor Undercity crosses itself (Undercity version 2's bridges span its slime, painted as part of the street). Thunder Bluff's mesas are the natural first use.
 
 ## Evidence and limits
 
