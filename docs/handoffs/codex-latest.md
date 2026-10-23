@@ -1,11 +1,12 @@
-# Codex handoff — solo finish records (reserved)
+# Codex handoff — solo totals/Highscores; global publication blocked
 
-2026-10-23. Owner now prioritizes finishing single player before further
+2026-10-23 15:55+02:00. Owner now prioritizes finishing single player before further
 multiplayer tests, including total finish time/name/date and a shared highscore
 board. Own branch `codex/solo-highscores`, base `de4b291` (installed runtime
 `d3fd99d`). No milestone acceptance is implied by the owner's handling approval.
 
-Reserved: new pure `Highscores.lua`/`tests/test_highscores.lua`; new native
+Implemented and committed runtime **f50fa7c** after reservation18d5eb6.
+Scope: new pure `Highscores.lua`/`tests/test_highscores.lua`; new native
 `SoloRecords.lua`/`tests/test_solo_records.lua`; `UI.lua` successful Start context,
 solo OnUpdate finish/drop accounting only; `Core.lua` record-store initialization;
 both TOCs; `tests/run.lua`, UI lifecycle regressions. Supporting narrow menu
@@ -17,13 +18,51 @@ and Claude's handoff are not reserved and will remain unchanged. This is a
 coordinated additive UI/backend boundary for the owner's request, not a claim
 of direct acknowledgment from Claude.
 
-Plan: bounded immutable best-per-player records, guarded native identity/date,
-exact-once successful solo capture, visible board, focused Lua5.1 regressions.
+Delivered: bounded immutable best-per-player total race records (32boards/50rows),
+guarded full Forever identity/server timestamp, exact-once solo capture, visible
+ten-row paged Highscores screen and result status. Compatibility separates
+track/version/Physics10/laps3/60Hz/rules1; cosmetic karts share one board. Genuine
+lost running ticks refuse the score; terminal-frame remainder does not. Stopped,
+interrupted, partial and multiplayer races never submit. Full tick time, not
+last/best lap, is ranked. Saving exceptions cannot block terminal control release.
+Malformed/future saves remain read-only; Core now preserves malformed scalar
+roots, and preference writes recheck root/current child versions. Those narrow
+Menu guard amendments and 24unit result-height increase are reviewed supporting
+changes to the reserved presentation boundary. No other art/physics work changed.
+
+Executed actual Lua5.1 command `python scripts/test_lua.py --runtime lua51 --tests
+highscores solo_records ui menu race loop multiplayer_integration`: PASS7modules,
+64source/testLua parsed. Includes once-only/reentry/native write races, timing
+eligibility, bounded defensive rankings, pages/readonly/unchanged track state,
+no timed store reads/allocations and two delayed mocked peers. Measured pool
+85frames/166textures/133fonts; sixframes/52fonts added. Diffcheck PASS. Static
+validator FAIL only the same two historical expired skill links in PROGRESS;
+all current module/load-order/doc additions produce no new findings. Fullsuite,
+Lua5.4, native name/date/layout/persistence/performance/global delivery NOT RUN.
+No need to repeat the passing focused checks without a new change/concern.
+
+Both foreign branches/heads/statuses and377filehashes preserved, including
+Claude's e83c889 + existing outputs. Installed54files remain exact d3fd99d.
+No push/install/newZIP/release/clientinput/otheraddon/WTF file writes. Ignore
+task audit data under `local-artifacts/solo-highscores-20261023/`. User's newest
+request does not newly authorize publishing or replacing the shared install;
+two new Lua files require full restart when a build is coordinated.
+
 Global publication is an OPEN capability/architecture dependency: only explicit
 two-peer logged WHISPER is client-verified. No automatic public traffic or
 external upload, global completeness, trusted anti-cheat or native persistence
 claim. The owner delegated selection to the most efficient reliable approach;
 that does not establish an available all-player persistent endpoint.
+
+The requested global requirement is INCOMPLETE, flagged for review, not silently
+replaced by local storage. No remote score sharing/discovery/service exists in
+this slice. All scores are client-reported, not server/anti-cheat verified.
+[HIGHSCORES](../HIGHSCORES.md) documents the exact APIs/data/native pending steps;
+[ADR0016](../adr/0016-solo-records-and-global-score-gate.md) supersedes immediate
+multiplayer-test priority while retaining release gates. Next exact task:
+establish a supported persistent global publication/query route with actual
+Forever capability evidence, then implement bounded sharing. A community cache
+would have eventual/incomplete scope; do not promise all-player completeness.
 
 ## Previous verified deployment checkpoint
 

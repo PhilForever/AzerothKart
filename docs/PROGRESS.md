@@ -9,6 +9,8 @@ clean `codex/solo-highscores` from `de4b291`, reservation `18d5eb6`. This is the
 next M3 persistence slice; no milestone completion or multiplayer acceptance.
 [ADR0016](adr/0016-solo-records-and-global-score-gate.md) records the current
 priority and [HIGHSCORES](HIGHSCORES.md) the exact implemented scope/dependency.
+Runtime committed **f50fa7c**; subsequent handoff-only commit changes no addon
+files. Source is local and is not the currently installed candidate.
 
 Implemented pure bounded `Highscores` and native `SoloRecords`, loaded before
 UI in both TOCs (29modules). Completed solo three-lap races save exact total
