@@ -1,4 +1,6 @@
-# Goblin Drag Car — first runtime kart sprite
+# Goblin Drag Car — first runtime kart sprite (retired)
+
+**Retired 2026-10-23.** At the owner's request the [Goblin Pod Racer](goblin-pod-racer.md), World of Warcraft's own Mirage Raceway rocket car, took this kart's slot (the id `goblin_drag_car` is kept). `GoblinDragCar.tga` and its painter, `scripts/build_kart_sprites.py`, were removed from the branch; they remain in Git history, for example at `de4b291`. This sheet is kept as the record of the project's first, original kart.
 
 **Status (2026-10-20):** original runtime sprite generated, integrated and offline-validated on `claude/track-ui`. Actual WoW Forever loading, alpha, filtering, facing and tint appearance are **NOT RUN**. See [the client check](#client-check-not-run) below.
 

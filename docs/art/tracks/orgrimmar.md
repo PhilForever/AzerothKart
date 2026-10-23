@@ -38,6 +38,7 @@ Orgrimmar lies in Durotar's red canyons. Open ground is the valleys (Wisdom, Str
 - **Water:** the Valley of Spirits' pool beside the start, with a low red quay.
 - **Districts:** the Horde's buildings from Warcraft III (red team colour): burrows, troll burrows, barracks, war mills, spirit lodges, voodoo lounges, watch towers, chieftains' huts and tents; goblin merchants' stalls and the mercenary camp on the Drag; spirit lodges, tauren totems, totem poles and palms in the Valley of Wisdom; barrels, crates, hitching posts and orc banners along the streets. Buildings stand back 12 units from the street; grunts, peons, shamans, witch doctors and headhunters stand in front of them and on the ledges.
 - **Landmarks:** Grommash Hold (Warcraft III's great hall at its fortress stage) in the Valley of Wisdom; the bank (a stronghold), a watch tower, a wyvern cage and a wind rider in the Valley of Strength; the city gate behind the grid; red rock spires, a Barrens rock arch and spires on the canyon's rock.
+- **Start sign** (owner, 2026-10-23: "add an arrow indicator for left or right outside the track"): where the start road meets the loop, Warcraft III's goblin racing arrow post stands beyond the far wall, on the tip of the island where the canyon road merges, its red arrow pointing the race's way: north-east, keeping right. It is four times its Warcraft III scenery size and its arrow's paint is brightened, so it reads in the follow camera; no generated building or tree stands within 50 units of it. A board seen by the north-looking camera can point east, west or diagonally north, not straight north, so it takes the nearest of those to the loop's way. Scenery only: no collision ([the four signs in the follow camera](start-signs-review.png)).
 
 ## Files
 
@@ -59,6 +60,7 @@ python scripts/wc3casc.py %W3% models "^war3\.w3mod:(buildings/orc/[^/]+/[^/]+\.
 python scripts/wc3casc.py %W3% models "^war3\.w3mod:units/(orc/(grunt|peon|headhunter|shaman|witchdoctor|tauren|wolfrider|kotobeast|kotobeastnorider|riderlesswyvern|wyvernrider|battroll|thrall|thrallmountless|spiritwalker|orcwarlord|heroshadowhunter|herofarseer|heroblademaster|catapult|hellscream)|critters/(pig|vulture|skink))/[^/]+\.mdx$" WC3
 python scripts/wc3casc.py %W3% extract "^war3\.w3mod:terrainart/(barrens|outland|blackcitadel|lordaeronfall)/" WC3
 python scripts/wc3casc.py %W3% extract "^war3\.w3mod:replaceabletextures/(cliff|barrenstree)/" WC3
+python scripts/wc3casc.py %W3% models "^war3\.w3mod:_de\.w3mod:doodads/lordaeronsummer/props/goblinracingarrowpost/goblinracingarrowpost[02]\.mdx$" WC3
 python scripts/build_city_tracks.py --wc3 WC3 --preview --city orgrimmar_canyon
 python scripts/build_city_tracks.py --wc3 WC3 --check
 ```

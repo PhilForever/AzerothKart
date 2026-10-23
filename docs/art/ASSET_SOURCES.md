@@ -60,6 +60,19 @@ The current runtime `addon/AzerothKart/Assets/Tracks/SaltFlats/Background.tga` i
 
 The first runtime vehicle, `addon/AzerothKart/Assets/Karts/GoblinDragCar.tga`, is also original project art. It is painted procedurally by `scripts/build_kart_sprites.py` from its own shapes, palette and integer noise, with no Blizzard, WC3Vault, other third-party, concept-board or generated-image input. Authorship/source: Claude for Azeroth Kart; intended use: default runtime kart sprite, 2026-10-20. [Its asset sheet](karts/goblin-drag-car.md) records format, SHA-256, provenance and the pending client check.
 
+**Retired 2026-10-23:** at the owner's request the Goblin Pod Racer below took the drag car's slot. `GoblinDragCar.tga` and `scripts/build_kart_sprites.py` are removed (still in Git history, for example `de4b291`); [its asset sheet](karts/goblin-drag-car.md) remains as the record.
+
+**Goblin Pod Racer (2026-10-23, `claude/podracer-arrows-outline`).** `addon/AzerothKart/Assets/Karts/GoblinPodRacer.tga` (1024×1024, 64 headings) is rendered by `scripts/build_wc3_kart.py` from **Blizzard Entertainment's World of Warcraft** goblin rocket car, Mirage Raceway's own: model `creature/goblinrocketcar/goblinrocketcar.m2` with its skin and four BLP2 textures.
+
+- **Source:** the owner's own WoW Forever client (`wow_classic_beta` 1.60.1.70532), read without modification by `scripts/wowcasc.py` by FileDataID; four textures the client had not downloaded yet were fetched from Blizzard's CDN through the install's own indices (`--cdn`), as the client would. `scripts/wowmodel.py` reads the M2 and BLP2 files. FileDataIDs and SHA-256 hashes are in [its asset sheet](karts/goblin-pod-racer.md) and the script. The files are not stored in Git.
+- **Modifications:** none to the mesh, UVs or textures. The model is turned to face east, posed, scaled, lit and shadowed as the other karts, and its additive flame units are left out.
+- **Terms:** used at the owner's direction (2026-10-23), as ADR 0009 uses Warcraft III's own models ([its addendum](../adr/0009-warcraft-iii-asset-reuse.md#addendum-2026-10-23-a-world-of-warcraft-model)). Blizzard's permission to redistribute is not established: **unresolved** for release review.
+- **Credits:** Blizzard Entertainment (World of Warcraft), in the Garage and the How to Play credits.
+
+**Kart outline sheets (2026-10-23).** `addon/AzerothKart/Assets/Karts/Outlines/*.tga` (ten 512×512 sheets) are derived by `scripts/build_kart_outlines.py` from the kart sheets above alone: a line round each frame's opaque body, white for the game's tint. No other input. Each inherits its kart's source and status. See [the outline sheet](karts/outlines.md).
+
+**Start signs (2026-10-23).** The Stormwind, Ironforge, Orgrimmar and Darnassus pictures add Warcraft III: Reforged's goblin racing arrow posts, `war3.w3mod:_de.w3mod:doodads/lordaeronsummer/props/goblinracingarrowpost/goblinracingarrowpost{0,2}.mdx` with `arrowpost_diffuse.dds` (and `_de.w3mod:textures/black32.dds`), from the same install. They are drawn at four times their scenery size with the arrow's red paint brightened. Terms and credits as for the cities; each city's sources list names them.
+
 Four more runtime karts were imported on 2026-10-21, chosen by the owner from the rows above: `SteamTank.tga`, `DwarvenBiker.tga`, `GryphonRider.tga` and `Gyrocopter.tga` under `addon/AzerothKart/Assets/Karts/`.
 
 - **Source:** each is rendered by `scripts/build_wc3_kart.py` from its archive's model and JPEG BLP texture, decoded by `scripts/wc3jpeg.py`. The archive and file hashes are in [the roster](karts/roster.md); the files are kept outside Git under `local-artifacts/third-party/`.

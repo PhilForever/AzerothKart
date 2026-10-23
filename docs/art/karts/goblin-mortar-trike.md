@@ -43,7 +43,7 @@ The mesh, UVs and texture are used as published. Nothing is edited, repainted or
 | Layout | 8×8 frames of 128×128 texels. Frame k faces heading k × 2π/64, counter-clockwise from east, read left to right and top to bottom |
 | Frame quad | 41×41 world units (3.12 texels per unit), centered 3 units east of the kart position, which leaves room for the south-east shadow. With height and shadow, a frame reaches 15.6 units west, 21.9 east and 19.4 north or south of the kart |
 
-`Presentation.KART_SPRITES.goblin_mortar_trike` registers the sheet, and `Presentation.DEFAULT_KART` now names it. The Goblin Drag Car stays registered as a single-image kart.
+`Presentation.KART_SPRITES.goblin_mortar_trike` registers the sheet, and `Presentation.DEFAULT_KART` now names it. The Goblin Drag Car stayed registered as a single-image kart until 2026-10-23, when the [Goblin Pod Racer](goblin-pod-racer.md) sheet took its slot.
 
 UI loads the sheet once at creation. The load counts only if `SetTexture` returns `true`, a frame crop with `SetTexCoord` succeeds, and a neutral `SetVertexColor` succeeds; otherwise the orange primitive is kept.
 

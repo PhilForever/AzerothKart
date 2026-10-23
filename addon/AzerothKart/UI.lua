@@ -678,6 +678,9 @@ local function sizeKart()
     local sprite = UI.kartSprite
     UI.kart:SetSize((sprite and sprite.quadWidth or Presentation.KART_FOOTPRINT_WIDTH)*UI.view.scale,
         (sprite and sprite.quadHeight or Presentation.KART_FOOTPRINT_HEIGHT)*UI.view.scale)
+    if UI.kartOutline and sprite then -- the outline shares the kart's quad
+        UI.kartOutline:SetSize(sprite.quadWidth*UI.view.scale,sprite.quadHeight*UI.view.scale)
+    end
 end
 
 local function layoutTrack()
@@ -748,6 +751,29 @@ local function usePrimitiveKart()
     UI.kartRotationReady = type(kart.SetRotation) == "function" and pcall(kart.SetRotation,kart,0)
 end
 
+-- The optional bright line round the player's own kart (Settings: "Outline
+-- my kart"). Its sheet has the kart sheet's frames at half resolution and
+-- loads with the same guards, once per kart while the setting is on; a
+-- refused load hides the line and is not retried. It is drawn over the kart
+-- (never covering it) with the kart's crop, quad and position, and tinted;
+-- the kart itself stays untinted. Single images and the primitive have none.
+local function applyKartOutline()
+    local piece,sprite = UI.kartOutline,UI.kartSprite
+    if not piece then return end
+    local path = UI.outlineOn and sprite and sprite.frames and sprite.outline or nil
+    if path ~= UI.outlinePath then
+        UI.outlinePath,UI.outlineReady,UI.outlineFrame = path,false,nil
+        if path and type(piece.SetTexture) == "function" and type(piece.SetTexCoord) == "function"
+            and type(piece.SetVertexColor) == "function" then
+            local ok,loaded = pcall(piece.SetTexture,piece,path)
+            local color = Presentation.KART_OUTLINE.color
+            UI.outlineReady = ok and loaded == true
+                and pcall(piece.SetVertexColor,piece,color[1],color[2],color[3],1)
+        end
+    end
+    if UI.outlineReady then piece:Show() else piece:Hide() end
+end
+
 local function loadKartSprite()
     -- Once, at creation; a refusal keeps the primitive.
     local sprite = Presentation.KART_SPRITES[Presentation.DEFAULT_KART]
@@ -757,6 +783,7 @@ local function loadKartSprite()
         UI.kartSprite,UI.kartId = sprite,Presentation.DEFAULT_KART
         UI.kartTint,UI.kartRotationReady = 0,true
     else usePrimitiveKart() end
+    applyKartOutline()
 end
 
 local function kartLabel()
@@ -790,12 +817,25 @@ function UI.SelectKart(id)
     else
         usePrimitiveKart()
     end
+    applyKartOutline()
     sizeKart()
     resetEffects()
     render()
     if UI.kartButton then UI.kartButton:SetText(kartLabel()) end
     if AK.Menu then AK.Menu.OnKartChanged() end -- remember a deliberate choice
     return selected
+end
+
+-- Settings switch for the line round the player's own kart, in a run or
+-- stopped. Presentation only: the simulation never reads it.
+function UI.SetKartOutline(enabled)
+    enabled = enabled == true
+    if enabled == (UI.outlineOn == true) then return end
+    UI.outlineOn = enabled
+    if not UI.kartOutline or not UI.view then return end
+    applyKartOutline()
+    sizeKart()
+    render()
 end
 
 function UI.SelectTrack(id)
@@ -979,6 +1019,15 @@ render = function()
         end
         local scale = UI.view.scale
         UI.kart:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x + sprite.pivotX*scale,y + sprite.pivotY*scale)
+        if UI.outlineReady then -- the player's line: the same frame and place
+            local line = UI.kartOutline
+            if UI.outlineFrame ~= frame then
+                UI.outlineFrame = frame
+                line:SetTexCoord(Presentation.kartFrameCoords(sprite,frame))
+            end
+            line:ClearAllPoints()
+            line:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x + sprite.pivotX*scale,y + sprite.pivotY*scale)
+        end
     else
         UI.kart:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x,y)
         if UI.kartRotationReady ~= false then
@@ -1047,6 +1096,12 @@ function UI.Create()
     UI.backgroundStaging = texture(UI.canvas,"BACKGROUND")
     UI.backgroundStaging:Hide()
     UI.kart = texture(UI.canvas,"OVERLAY")
+    -- The player's optional outline: just over the kart, under its front flames.
+    UI.kartOutline = texture(UI.canvas,"OVERLAY")
+    if type(UI.kartOutline.SetDrawLayer) == "function" then
+        pcall(UI.kartOutline.SetDrawLayer,UI.kartOutline,"OVERLAY",1)
+    end
+    UI.kartOutline:Hide()
     loadKartSprite()
     UI.opponent = texture(UI.canvas,"OVERLAY")
     UI.opponent:SetColorTexture(0.18,0.85,1,1)

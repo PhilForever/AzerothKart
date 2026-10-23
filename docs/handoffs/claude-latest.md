@@ -1,130 +1,174 @@
-# Claude handoff — Undercity's slime river and no shoulders on city streets
+# Claude handoff — Goblin Pod Racer, start signs and the kart outline
 
-Prepared 2026-10-23 at about 12:00 CEST (Europe/Oslo) by Claude (rendering/UI/sprites owner); updated about 14:50 CEST with the grimmer Undercity light.
+Prepared 2026-10-23 at about 19:45 CEST (Europe/Oslo) by Claude (rendering/UI/sprites owner).
 
-This supersedes the Darnassus, Undercity and elevation handoff (`claude/darnassus-undercity` `9143949`). Codex reviewed that work and integrated it on `codex/two-city-integration` (merge `cac4290`, docs `505f054`), installed it as the combined candidate, and pushed it.
+This supersedes the Undercity river handoff (`claude/undercity-river` `e83c889`). Codex approved that work, pushed it and integrated it (merge `d3fd99d`, docs `de4b291`).
 
-**Base:** Codex's `codex/two-city-integration` at `505f054`. The new branch is **`claude/undercity-river`**; its commits are listed under [Branch, commits and workspace](#branch-commits-and-workspace).
-
-**Scope (changed):**
-
-- `scripts/city_layouts.py`: Undercity version 2 (the ring course `uc_course`, its bridges, the canal ring, each quarter's districts on both sides of the slime, landmarks, elevation); Ironforge's `full_speed_to_walls` and version 4; the module docstring.
-- `scripts/city_paint.py`:
-  - City streets are paved from wall to wall unless a city sets `shoulders`.
-  - Bridges gain a `deck` style (timber planks, or stone with its own colour), `force`, per-bridge `posts`, a timber side (edge beam, piles, the deck's shadow) and a timber `rail` wall.
-  - A bridge's side over water drawn whole now hangs only below its deck.
-- `addon/AzerothKart/CapitalCities.lua` (generated): Undercity version 2; Ironforge `version=4, fullSpeedToWalls=true`.
-- All five cities' `Background.tga` and `Preview.tga`.
-- `addon/AzerothKart/Menu.lua`: Undercity's catalog entry only (blurb and facts).
-- `tests/test_circuit.lua`: the Undercity block; the Ironforge assertions.
-- Docs: the five city sheets, `TRACKS.md`, `API_CONTRACTS.md`, ADR 0015, `ASSET_SOURCES.md`, `CHANGELOG.md`, `README.md` (one sentence), `tests/MANUAL_CLIENT_CHECKLIST.md`, plus the overview and review PNGs and the sources lists.
-
-No Lua module outside the generated data and the catalog entry changed. `UI.lua`, `Presentation.lua`, `RaceGrid.lua` and the multiplayer modules are untouched.
+**Base:** `de4b291`, Codex's docs commit on `d3fd99d`, the installed runtime. The new branch is **`claude/podracer-arrows-outline`**; its commits are listed under [Branch, commits and workspace](#branch-commits-and-workspace).
 
 ## Owner instructions
 
-- "Pushed by Codex. Actually I want to revamp the UC map. Let's make it a circular map through the outer ring. It's basically a river of slime with bridges at every section."
-  - He sent a new in-game Undercity map with a red route round the outer ring and a start arrow at the bottom heading east.
-  - He also sent two screenshots of the canals: timber plank bridges on posts, a humped stone bridge, and bright green slime.
-- Mid-task: "Players should be crossing the bridges (sharp turns) to cross the slimey river. See the other screenshots for reference. - and honestly - doesn't make sense to have shoulders on citymaps. Just extend widen the drivable track to the width of the shoulders."
-- After seeing version 2: "I want undercity to look more grim, do something about the lighting without making it too dark."
-- Standing instructions:
-  - no merge into `main`;
-  - no claim of in-game verification without the actual client;
-  - leave the simulation-control functions in `UI.lua` alone;
-  - the owner pushes and runs the client checks; Codex prepares coordinated installs.
+He wrote "Looks good. Codex has approved and is now working on enhancing the single player experience. Your Next tasks:", then:
+
+1. "On tracks that start outside of the "loop" - add an arrow indicator for left or right outside the track (wc3 asset?) helping users take the correct turn at the start of a race."
+2. "Create/add the goblin pod racer (see image) - replace it with our first kart (the only one that's not a wc3 asset)". His picture shows two red, rope-bound rocket pods with shark faces, roped to a goblin on a two-wheeled cart.
+3. "Visually it can sometimes be difficult to see your cart, add an option in the settings to enable an outline of your own cart when driving (like a bright yellow line or something)".
+
+The standing instructions still hold:
+
+- no merge into `main`;
+- no claim of in-game verification without the actual client;
+- leave the simulation-control functions in `UI.lua` alone;
+- the owner pushes and runs the client checks; Codex prepares coordinated installs.
+
+## Scope (reserved and changed)
+
+Codex's `codex/solo-highscores` reservation covers `UI.lua`'s successful Start context and solo `OnUpdate` finish accounting, `Menu.lua`'s home/Highscores/result notice, `Core.lua`, the TOCs, `tests/run.lua` and parts of `tests/test_menu.lua`/`test_ui.lua`. My regions stay clear of those:
+
+- **`addon/AzerothKart/UI.lua`, visual regions only:**
+  - `sizeKart`;
+  - the new local `applyKartOutline`, called from `loadKartSprite` and `UI.SelectKart` after the selection;
+  - the new `UI.SetKartOutline`;
+  - the outline's placement in the visual body of `render`, next to the kart's;
+  - one texture created in `UI.Create` beside `UI.kart`.
+
+  No `step`, `Start`/`Stop`, `OnUpdate`, input, clock, lifecycle or selection-transaction change.
+- **`addon/AzerothKart/Menu.lua`:**
+  - the pod racer's blurb and credit (`Menu.KARTS`) and the How to Play credits;
+  - the Settings screen: a new check, with the checks below it moved down;
+  - `Menu.SetOutline`;
+  - one line each in `readPreferences`, `save` and `Menu.Create`.
+- **`addon/AzerothKart/Presentation.lua`:** the kart table (`goblin_drag_car` is now a sheet; each sheet names its `outline`; `KART_OUTLINE`). The drag car's effects override is removed.
+- **Assets:**
+  - new: `Assets/Karts/GoblinPodRacer.tga` and `Assets/Karts/Outlines/*.tga` (ten);
+  - removed: `Assets/Karts/GoblinDragCar.tga`;
+  - replaced: the Stormwind, Ironforge, Orgrimmar and Darnassus `Background.tga`/`Preview.tga`.
+- **Scripts:**
+  - new: `wowcasc.py`, `wowmodel.py`, `build_kart_outlines.py`;
+  - changed: `build_wc3_kart.py` (`--wow`, `WOW_VEHICLES`, the review helpers), `city_layouts.py` (start signs), `build_mirage_background.py` (review views only), `validate_project.py`;
+  - removed: `build_kart_sprites.py`.
+- **Tests:** `tests/test_presentation.lua`, `tests/test_ui.lua`, `tests/test_menu.lua`. Details are under [Tests performed](#tests-performed).
+- **Docs:**
+  - new: kart sheets `goblin-pod-racer.md` and `outlines.md`;
+  - updated: `goblin-drag-car.md` (retired), `roster.md`, `goblin-mortar-trike.md` (one line), the four city sheets, `ASSET_SOURCES.md`, `ASSETS.md`, `ARCHITECTURE.md`, `API_CONTRACTS.md`, the ADR 0009 addendum, `drift-boost.md`, `MIRAGE_RACEWAY.md`, `mirage-background.md`, `ui/front-end.md`, `README.md`, `README_ADDON.md`, `CHANGELOG.md` and `tests/MANUAL_CLIENT_CHECKLIST.md`;
+  - images: the review PNGs, the four overview PNGs and sources lists, and the Mirage views PNG (now drawing the default kart).
+
+`RaceGrid.lua`, `CapitalCities.lua`, `Circuit.lua`, `Courses.lua`, the physics and the multiplayer modules are untouched.
 
 ## Delivered
 
-- **Undercity Slime Circuit version 2** ([sheet](../art/tracks/undercity.md), review picture sent to the owner).
-  - The slime is the canal ring round the Trade Quarter: radius 610 from the city's centre, 120 wide.
-  - From his arrow below the Apothecarium, the course runs counter-clockwise along the outer walkway (778 from the centre) and the inner one (442).
-  - It changes walkway on a bridge at every section, as his red line crosses the ring. There are six bridges, timber and stone by turns. Each is a turn of radius 70 on the centerline (a little over 90 degrees) onto a 197-unit straight across the slime at right angles, then the same turn off the other way.
-  - Six gates: Rogues' Quarter, Magic Quarter, Ruins of Lordaeron, War Quarter, Apothecarium, and The Canals (the finish).
-  - A 5,797-unit lap (version 1 was 7,327), still with no approach road: the spawn is on the loop, 136 units past the finish gate.
-  - Data: `fullSpeedToWalls`, `wallClearance` 14 with 1,340 junctions.
-  - The Trade Quarter stays sunk 30 beside the course. The stone bridges rise in painted humps 6 high; karts drive them flat.
-  - Each quarter now draws its buildings on both sides of the slime.
-- **Grimmer Undercity light** (art only): a new optional painter pass, `grade` (`paint_grade`, with a chamfer distance field), over the finished picture.
-  - Away from lights the city is dimmed to 62%, cooled toward violet, greyed by 30% and darker toward the cavern's far reaches.
-  - The slime lights the walkways green for about 110 units; braziers and the slime well cast green pools; the bridges' lanterns (now brighter) cast yellow ones.
-  - The street keeps at least 72% of its light. The slime itself is left untouched.
-  - Only Undercity sets `grade`; the other cities' bytes are unchanged.
-- **No shoulders on city maps.**
-  - Every city's street is paved from wall to wall, to a kerb at the walls' foot. Stormwind's pavement, Ironforge's flagstones, Orgrimmar's gravel and Darnassus's moss strips are gone.
-  - Stormwind, Orgrimmar, Darnassus and Undercity already had full grip to their walls, so for them only the paint changes.
-  - Ironforge version 4 now has full grip to its walls too (`fullSpeedToWalls=true`). It is the one change of handling.
-  - The generated `roadRadius` stays 56. Routes, gates, spawns, Ironforge's narrows, every wall and every junction are unchanged.
+### 1. Start signs
+
+Stormwind, Ironforge, Orgrimmar and Darnassus start on a road off the loop. Where it joins the loop, Warcraft III's goblin racing arrow post stands beyond the far wall, its red arrow pointing the race's way ([review](../art/tracks/start-signs-review.png)). The posts are `war3.w3mod:_de.w3mod:doodads/lordaeronsummer/props/goblinracingarrowpost/goblinracingarrowpost{0,2}.mdx`.
+
+- **The four signs:**
+  - Stormwind: in the corner of the bend, north-east.
+  - Ironforge: across the street from the gate hall's road, north-west.
+  - Orgrimmar: on the tip of the island where the canyon road merges, north-east (keep right).
+  - Darnassus: straight ahead of the Warrior's Terrace road, north-west.
+- **Why diagonal arrows:** a board facing the karts' north-looking camera can point east, west or diagonally north, but not straight north. Each sign takes the nearest of those to the loop's direction at the junction.
+- **Readability:**
+  - four times the scenery size;
+  - the arrow's dark red paint brightened (`recolor` on that saturated red only);
+  - a 50-unit clearing kept free of generated buildings, trees and trim (`reserved`).
+- **No data change:** pictures only; `CapitalCities.lua` is unchanged. Undercity starts on its loop and has no sign.
+
+### 2. Goblin Pod Racer
+
+It is World of Warcraft's own goblin rocket car, Mirage Raceway's: `creature/goblinrocketcar/goblinrocketcar.m2`, from the owner's WoW Forever client. It takes the drag car's slot ([asset sheet](../art/karts/goblin-pod-racer.md)).
+
+- **New tools:**
+  - `scripts/wowcasc.py` reads the client read-only, by FileDataID.
+  - With `--cdn` it fetches files the client has not downloaded, through the install's own CDN indices, as the client does. Four of the six files needed it, on both machines.
+  - `scripts/wowmodel.py` reads M2 and BLP2.
+  - `build_wc3_kart.py --wow` renders the car like every kart: 64 headings, quad 44, pivot (1.2, 0), 36 units long.
+- **Effects:** drift dust from the cart's wheels; boost flame and soot from the pods' tails.
+- **Slot:** the id `goblin_drag_car` is kept, so saved choices and RaceGrid's kart code 9 still work. It is shown as **Goblin Pod Racer**.
+- **The old drag car:** its 64×128 sprite and `build_kart_sprites.py` are removed (still in history at `de4b291`). Two of that script's review helpers moved into `build_wc3_kart.py`.
+
+### 3. Outline my kart
+
+A new Settings check, off by default and saved as `preferences.outline` ([sheet](../art/karts/outlines.md)).
+
+- **Outline sheets:** each kart sheet has a 512×512 white outline sheet, derived by `scripts/build_kart_outlines.py` from the sheet alone. The line is 5 kart texels wide plus a 1-texel fade round the opaque body, never over it.
+- **Drawing:** `UI.kartOutline` is drawn over the kart (OVERLAY sublevel 1, under the front flames) in bright yellow, with the kart's frame crop, quad and position.
+- **Loading:** the current kart's sheet loads once per kart while the setting is on. A refused load hides the line and is not retried.
+- **No outline:** single images and the primitive show none, and neither does any opponent.
 
 ## Changes Codex must review
 
-1. **Undercity version 2**, using existing fields only.
-   - The new loop has turns tighter than the wall radius. The inner corner at each bridge's end is a sharp wall corner (the bridge's abutment). The offline probe below found no disagreement between `surfaceAt` and an independent disc-inside-union test round those corners.
-   - The spawn is still on the loop. `RaceGrid.pose` on it gives host (996.2, 228.6) and guest (997.4, 264.6), both on road (checked offline with Lupa, as for the other four cities).
-   - The version is 2 because the geometry changed completely.
-2. **Ironforge version 4** (`fullSpeedToWalls=true`), at the owner's request.
-   - The strip that version 3 kept rough is road now.
-   - `tests/test_circuit.lua` now expects road at the gate-hall corner, along a straight wall and before the narrows.
-   - The rough-tunnel regression sets `fullSpeedToWalls=nil` on its copy, so it still tests `Circuit.new`'s default rough policy.
-   - `Courses.lua` still carries Ironforge's `rough` label, which nothing reaches now; I left it so a revert is one flag, the version and the tests.
-   - This is a handling change: please judge it under your Physics/compatibility policy.
-   - **Documented conflict:** `AGENTS.md`'s shared-city row says to "preserve … Ironforgev3/narrows and rough-shoulder exposed-wall metadata". The owner's instruction comes first under `AGENTS.md`'s own precedence rule. So version 4 keeps the narrows and every exposed-wall junction (`wallVertices` unchanged) and changes only the rough-shoulder policy. I did not edit `AGENTS.md`; please update that row at integration if you accept the change.
-3. **Painter default:** no shoulders unless a city sets `shoulders`. All five pictures change.
-   - The `grade` pass is a second, optional painter step: picture only, set by Undercity alone; no data or collision change.
-   - Darnassus's sources list loses one texture (its old shoulder tile).
-   - The other cities' model placements are unchanged.
-4. **Install:** ten changed files (five backgrounds, five previews) at their existing paths, plus `CapitalCities.lua` and `Menu.lua`. No new files. Changed textures at the same paths need a full client restart.
-5. **Contracts and docs:** `API_CONTRACTS.md` proposes Undercity version 2 and Ironforge version 4 under Capital Cities. ADR 0015's consequences note the humps. No new definition field and no Circuit change.
+1. **Object counts:** +1 texture (the outline) and +1 frame +2 font strings (the Settings check). The explicit budget becomes 80/167/83 on this branch.
+   - **Expected textual conflict with `codex/solo-highscores`:** the budget assertion in `tests/test_menu.lua` (that branch says 85/166/133). Merged, it should read **86/167/135**.
+   - `tests/test_ui.lua` keeps the outline's counts in new lines (`UI_TEXTURES` 112, `OUTLINE_CHECK_FRAMES/FONTS`), away from that branch's `MENU_*` line.
+   - The draw-layer assertions now expect two explicit scene sublevels: the grass and the outline.
+2. **`UI.lua`:** see the reserved regions above. Please check the outline's placement next to the kart's in `render` and the call order in `SelectKart` (outline, then size, effects, render).
+3. **A single kart path without a shipped kart:** no kart is a single image any more. The UI tests register a test-only single image (`singleImageKart`) where they used the drag car, keeping the rotated path and the sheet/single-image rollback covered. The drag car's landmark assertions in `test_presentation.lua` are removed.
+4. **Kart id:** `goblin_drag_car` now names the pod racer. Renaming it would touch `RaceGrid.lua`'s codes and your tests; I left it.
+5. **Assets and rights:** a World of Warcraft model is a new source.
+   - The ADR 0009 addendum and the source ledger rows are proposed: same terms, Blizzard, redistribution unresolved.
+   - The start signs are Warcraft III's own, as for the cities.
+6. **Install:** these files change.
+   - New: `GoblinPodRacer.tga` and ten `Outlines/*.tga`.
+   - Removed: `GoblinDragCar.tga`.
+   - Replaced: eight city pictures, `Menu.lua`, `UI.lua` and `Presentation.lua`.
+   - New files need a full client restart. The removed file should be deleted from the installed folder.
 
 ## Tests performed
 
 | Command / check | Result |
 |---|---|
-| `python scripts/test_lua.py --runtime both` | **PASS** in the cloud (Python 3.13, Lupa 2.8) and on the developer machine's Linux shell (Python 3.10.12, Lupa 2.8) at `48f571a`: 59 files parsed; the full suite on Lua 5.1 and 5.4 |
-| `tests/test_circuit_boundary.py` | **PASS** (11 tests), in the cloud and on the developer machine |
-| `python scripts/build_city_tracks.py --wc3 … --check` | **CHECK PASS** for `CapitalCities.lua` and all ten pictures, both in the cloud (Python 3.13) and on the developer machine at `48f571a` (Python 3.10.12, its own Warcraft III extraction, its own rendered sprites). The bytes are identical on both: Stormwind `8f48089c…`, Ironforge `c98c1a54…`, Orgrimmar `6ba18ce8…`, Darnassus `0e1267f7…`, Undercity `7868cc3e…`. After the light change (`f0810ca`): Undercity `caedb2c9…` on both machines (cloud: all five cities checked, the other four unchanged; developer machine: Undercity) |
-| Collision probe (offline, Lupa) | `surfaceAt` against an independent disc-inside-union test (a 14-unit disc inside the visual capsules), at points just inside and beyond the walls. Undercity: 15,120 points, round the bridges' sharp corners too, **no mismatch**. Ironforge: 18,600 points, **no mismatch** with the Forlorn Cavern's narrows modelled at their own radius; the probe's first run, which treated every capsule as 90, disagreed only inside those tunnels, where Circuit is right |
-| `RaceGrid.pose` (offline, Lupa) | Host and guest slots on road for all five cities |
+| `python scripts/test_lua.py --runtime both` | **PASS** in the cloud (Python 3.13, Lupa 2.8): 60 files parsed; the full suite on Lua 5.1 and 5.4. New checks: every outline sheet; the outline's UI behaviour (off and unloaded by default, one load per kart, follows frame/quad/pose through a drive, refusal hidden and not retried, single image none, switch-off); the setting, its save and its return after reload. The pod racer's sheet passes the sheet checks with its coverage floor (0.08) |
+| `python scripts/build_city_tracks.py --wc3 … --check` | **CHECK PASS** in the cloud for `CapitalCities.lua` and all ten pictures: Stormwind `ec016e7e…`, Ironforge `5cf1e688…`, Orgrimmar `3abf44b2…`, Darnassus `80a6715e…`; Undercity unchanged `caedb2c9…` |
+| `python scripts/build_wc3_kart.py --wow WOW --vehicle goblin_drag_car` | Sheet `88a0dfbd…af5c2ccb`, 1,548–1,807 opaque texels per frame. The six source files' hashes match on both machines (the developer machine extracted them with this `wowcasc.py --cdn`) |
+| `python scripts/build_kart_outlines.py` | Ten sheets; every frame has a line, a clear border and no line over the kart |
+| `python scripts/build_mirage_background.py --check` | **CHECK PASS** (its review views now draw the trike's sheet) |
 | `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in PROGRESS.md fail |
-| Review | Undercity's overview and nine 533×320 follow-camera views (the review picture); before/after crops of Stormwind, Ironforge and Orgrimmar streets |
+| Review | Follow-camera views of the four junctions with the pod racer; the pod racer beside three other karts; every kart with and without its outline |
 
-**NOT RUN:** the client (any city's look, the new Undercity drive and its turns, Ironforge's feel, performance), any install, and multiplayer.
+The developer machine's check (Python 3.10.12, its own Warcraft III and WoW extractions) is recorded in the next commit.
+
+**NOT RUN:** the client (the pod racer, the signs, the outline, performance), any install, and multiplayer.
 
 ## Client check (owner; NOT RUN; after Codex's coordinated install)
 
-Run [the Undercity version 2 and paving section of the client checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-undercity-version-2-and-wall-to-wall-paving-check-proposed-claudeundercity-river):
+See [the new section of the client checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-goblin-pod-racer-start-signs-and-kart-outline-check-proposed-claudepodracer-arrows-outline):
 
-- Undercity's start, its six bridges and their turns, and its gates in order;
-- every city paved from wall to wall, with full speed along every wall;
-- Ironforge's feel without its rough strip;
-- frame rate and Print Probe.
+- the pod racer at every heading, with its effects;
+- whether each start sign's arrow reads in time to choose the turn;
+- the outline: on, off, kept after `/reload`, and following kart changes;
+- Print Probe's counts.
 
 ## Pending PROGRESS ledger entry (integrator to append; PROGRESS.md was not edited)
 
-> ### 2026-10-23 ~12:00 CEST — Claude / `claude/undercity-river`, Undercity's slime river and no shoulders
+> ### 2026-10-23 ~19:45 CEST — Claude / `claude/podracer-arrows-outline`, pod racer, start signs, kart outline
 >
-> - Undercity version 2, the owner's revamp: the canal ring as the slime river and the course along its walkways, crossing it on six bridges (timber and stone by turns), each a sharp turn on, a straight across and a sharp turn off. Six gates, a 5,797-unit lap, spawn on the loop 136 past the finish, 1,340 junctions, `fullSpeedToWalls`. Painted stone-bridge humps; the Trade Quarter is still sunk. Existing fields only.
-> - No shoulders on city maps (the owner): every city is paved from wall to wall. Ironforge version 4 gets `fullSpeedToWalls=true`, the one handling change, proposed for Codex review. All five pictures were rebuilt.
-> - `test_lua.py --runtime both` PASS; `test_circuit_boundary.py` PASS; `build_city_tracks.py --check` PASS for all five cities, byte-identical in the cloud and on the developer machine (Python 3.10.12, its own extraction and sprites); collision probe 33,720 points, no mismatch; `RaceGrid.pose` on road for all five cities; validator: only the 2 pre-existing PROGRESS links.
+> - Goblin Pod Racer: World of Warcraft's goblin rocket car (Mirage Raceway's), from the owner's Forever client via the new read-only `wowcasc.py` (`--cdn` for files the client streams) and `wowmodel.py`. It takes the drag car's slot (id kept); the drag car sprite and its painter are removed.
+> - Start signs: Warcraft III goblin racing arrow posts beyond the far wall where Stormwind's, Ironforge's, Orgrimmar's and Darnassus's start roads join the loop, pointing the race's way. Pictures only.
+> - Outline my kart: a Settings check (off by default, saved). Each kart sheet has a 512×512 outline sheet; the player's own kart gets a bright yellow line. +1 texture, +1 frame, +2 font strings (80/167/83).
+> - `test_lua.py --runtime both` PASS; all city `--check` PASS; the outline and sheet builds validate; validator: only the 2 pre-existing PROGRESS links.
 > - **NOT RUN:** the client; install.
 
 ## Branch, commits and workspace
 
 | Item | Value |
 |---|---|
-| Worktree / branch | `AzerothKart-Claude` / `claude/undercity-river` (the worktree previously held `claude/darnassus-undercity` `9143949`, unchanged) |
-| Commits | `claude/undercity-river` on `505f054`: Undercity version 2, the wall-to-wall paving, Ironforge version 4, catalog, tests, docs and this handoff; later commits only record checks |
-| Push | Owner only, because this session's git proxy refuses the repository: `git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/undercity-river` |
+| Worktree / branch | `AzerothKart-Claude` / `claude/podracer-arrows-outline` (the worktree previously held `claude/undercity-river` `e83c889`, unchanged) |
+| Commits | `claude/podracer-arrows-outline` on `de4b291`: the pod racer, the start signs, the outline, tests, docs and this handoff; later commits only record checks |
+| Push | Owner only, because this session's git proxy refuses the repository: `git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/podracer-arrows-outline` |
 | Not done | No merge into `main` or any Codex branch; no tag, release, install or client input. Codex's branches and worktrees were only read |
 
 **Workspace notes:**
 
 - Commits are made in a cloud clone with this repository's local identity, then moved as git bundles (`local-artifacts/bundles/`), so the hashes are identical on the developer machine.
 - Git runs from a Linux shell on the developer machine with `--git-dir=.git/worktrees/AzerothKart-Claude`. It never prunes or garbage-collects.
-- The bridges' lantern posts (`doodads/lordaeronsummer/props/lanternpost/`) are already in both machines' Warcraft III extractions. Undercity's rebuild command in its sheet now names them.
+- **Warcraft III files:** the goblin racing arrow posts come from the same Reforged install; each city sheet's rebuild commands now name them.
+- **World of Warcraft files:** `wowcasc.py` read them from the owner's `World of Warcraft` folder without writing to it. They are not stored in Git.
 
 ## Next
 
-1. The owner's reaction to the review picture: the bridges' turns (too sharp or too gentle?), the slime, the lap.
-2. Codex: review Undercity version 2, the paving and Ironforge version 4, then install when the owner wants them.
-3. If the owner wants the bridges to feel like bridges, the elevation proposal's slopes (ADR 0015) would make the stone humps physical. That remains Codex's decision.
+1. The owner's reaction:
+   - the pod racer's size (it is the longest kart);
+   - whether the signs read in time;
+   - the outline's colour and width (one constant and one script setting).
+2. Codex: review, then install when the owner wants it; resolve the one expected counts conflict with `codex/solo-highscores`.
+3. Optionally rename the `goblin_drag_car` id (Codex's grid codes and tests).

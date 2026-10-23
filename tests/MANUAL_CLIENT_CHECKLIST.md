@@ -1,5 +1,23 @@
 # Manual client acceptance — F0/F1/F2/F5
 
+## Deferred Goblin Pod Racer, start signs and kart outline check (proposed, `claude/podracer-arrows-outline`)
+
+**NOT RUN.** After a coordinated install, **fully restart the client**: `Assets/Karts/GoblinPodRacer.tga` and the ten `Assets/Karts/Outlines/` sheets are new files, and four city pictures are replaced. The owner runs these; Claude does not control the client.
+
+1. **Pod racer.** Garage: the last kart reads **Goblin Pod Racer**, credited to Blizzard Entertainment (World of Warcraft), and spins on the turntable. Drive a lap:
+   - the pods lead at every heading, with no mirroring or neighbouring-frame sliver;
+   - drift dust starts at the cart's wheels and boost flames at the pods' tails.
+   A saved choice of the old drag car comes back as the pod racer.
+2. **Start signs.** On Stormwind, Ironforge, Orgrimmar and Darnassus, leave the grid. Where the start road meets the loop, a wooden goblin racing sign beyond the far wall shows a bright red arrow pointing the race's way:
+   - north-east in Stormwind and Orgrimmar;
+   - north-west in Ironforge and Darnassus.
+   Record whether the arrow reads at a glance and whether it is in view in time to choose the turn.
+3. **Outline.** Settings: **Outline my kart** starts unchecked. Check it and race:
+   - a bright yellow line hugs your kart at every heading, over its shadow and never over the kart;
+   - there is no box or sliver, and no hitch;
+   - changing karts, the line follows each one's shape.
+   `/reload` keeps the setting. Unchecking hides the line. Print Probe: 80 frames, 167 textures, 83 font strings (more with any newer integrated front-end work).
+
 ## Deferred Stormwind City Circuit check (proposed, `claude/capital-cup`)
 
 **NOT RUN.** After a coordinated install, **fully restart the client** (`Circuit.lua`, `CapitalCities.lua`, `Courses.lua` and the `Assets/Tracks/Stormwind/` pictures are new files). The owner runs these; Claude does not control the client.

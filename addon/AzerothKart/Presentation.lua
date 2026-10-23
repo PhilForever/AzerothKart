@@ -265,22 +265,32 @@ end
 Presentation.KART_FOOTPRINT_WIDTH = 17
 Presentation.KART_FOOTPRINT_HEIGHT = 31
 Presentation.DEFAULT_KART = "goblin_mortar_trike"
--- Sheets rendered from Warcraft III models by scripts/build_wc3_kart.py; see
--- docs/art/karts/ for each model's source, author, terms and credits.
+-- The optional line round the player's own kart (Settings: "Outline my
+-- kart"). Each sheet's `outline` is a 512x512 sheet of the same 64 frames,
+-- white, drawn over the kart with the kart's crop, quad and pivot, tinted
+-- this colour (scripts/build_kart_outlines.py derives it from the sheet).
+Presentation.KART_OUTLINE = {textureWidth = 512, textureHeight = 512, color = {1, 0.92, 0.16}}
+local OUTLINES = "Interface\\AddOns\\AzerothKart\\Assets\\Karts\\Outlines\\"
+-- Sheets rendered from Warcraft III and World of Warcraft models by
+-- scripts/build_wc3_kart.py; see docs/art/karts/ for each model's source,
+-- author, terms and credits.
 local function sheet(file, name, quad, pivotX, effects)
     return {
         name = name, path = "Interface\\AddOns\\AzerothKart\\Assets\\Karts\\" .. file,
         textureWidth = 1024, textureHeight = 1024, quadWidth = quad, quadHeight = quad,
-        frames = 64, columns = 8, pivotX = pivotX, pivotY = 0, effects = effects,
+        frames = 64, columns = 8, pivotX = pivotX, pivotY = 0, effects = effects, outline = OUTLINES .. file,
     }
 end
 Presentation.KART_SPRITES = {
-    goblin_drag_car = {
-        name = "Goblin Drag Car",
-        path = "Interface\\AddOns\\AzerothKart\\Assets\\Karts\\GoblinDragCar.tga",
-        textureWidth = 64, textureHeight = 128, -- texels; power-of-two TGA
-        quadWidth = 20, quadHeight = 40,        -- world units; 3.2 texels per unit
-    },
+    -- Rendered from World of Warcraft's goblin rocket car (Blizzard
+    -- Entertainment), Mirage Raceway's own; see docs/art/karts/goblin-pod-racer.md.
+    -- It replaced the original Goblin Drag Car in the same slot, so the id
+    -- (saved choices, multiplayer kart codes) is unchanged.
+    goblin_drag_car = sheet("GoblinPodRacer.tga", "Goblin Pod Racer", 44, 1.2, {
+        wheels = {{-12.6, 0.8}, {-12.6, -4.9}},          -- the cart's two wheels
+        exhausts = {{2.3, 7.6, 3.0}, {2.4, -8.1, 2.9}},  -- the rocket pods' tails
+        view = {0.8, 0.6},
+    }),
     -- Rendered from the Warcraft III Goblin Mortar Trike model by erwtenpeller
     -- and Chriz (Vast Graphics); see docs/art/karts/goblin-mortar-trike.md.
     goblin_mortar_trike = {
@@ -290,6 +300,7 @@ Presentation.KART_SPRITES = {
         quadWidth = 41, quadHeight = 41,           -- world units per frame; 3.12 texels per unit
         frames = 64, columns = 8,                  -- 5.625 degrees between headings
         pivotX = 3, pivotY = 0,                    -- frame centre offset; room for the south-east shadow
+        outline = OUTLINES .. "GoblinMortarTrike.tga",
         -- Effect anchors from the model: the rear tyres' trailing edge (the
         -- model's own wheel-dust emitters) and its two exhaust stacks.
         effects = {
@@ -361,12 +372,6 @@ function Presentation.nextKart(id)
     end
     return order[1]
 end
--- The drag car's slicks end 14 units behind its centre; its rocket bell's lip
--- is at 15.3 (scripts/build_kart_sprites.py). Overhead art has no tilt.
-Presentation.KART_SPRITES.goblin_drag_car.effects = {
-    wheels = {{-14.0, 6.6}, {-14.0, -6.6}}, exhausts = {{-15.3, 0, 0}}, view = {1, 0},
-}
-
 -- Nearest directional frame (0-based) for a heading in radians.
 function Presentation.kartFrame(sprite, heading)
     assert(type(sprite) == "table" and type(sprite.frames) == "number" and finite(heading),

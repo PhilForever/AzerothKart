@@ -192,7 +192,16 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
 end
 
 local KART_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Karts\\GoblinMortarTrike.tga"
-local DRAG_CAR_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Karts\\GoblinDragCar.tga"
+-- No shipped kart is a single image since the Goblin Pod Racer took the
+-- original drag car's slot. This test-only kart keeps that rotated path
+-- covered; the mock loads any path.
+local SINGLE_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Karts\\SingleImageFixture.tga"
+local function singleImageKart(env)
+    env.namespace.Presentation.KART_SPRITES.single_image={name="Single Image Fixture",path=SINGLE_PATH,
+        textureWidth=64,textureHeight=128,quadWidth=20,quadHeight=40,
+        effects={wheels={{-14,6.6},{-14,-6.6}},exhausts={{-15.3,0,0}},view={1,0}}}
+    return "single_image"
+end
 -- Where the active kart visual is anchored for a projected kart position, and
 -- whether it faces a heading: a directional sheet shows the nearest frame,
 -- unrotated, offset by its pivot; a single image or the primitive rotates.
@@ -279,10 +288,13 @@ local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=68,9,68   -- ten kart buttons since t
 local GATE_STRIPS=8
 -- One additional hidden staging texture preserves the visible background on
 -- failed city/Mirage picture loads without relying on a second load to undo it.
-local UI_TEXTURES=111+GATE_STRIPS+EFFECT_TEXTURES+MENU_TEXTURES
--- The Close results and Kart buttons add two Frames to the earlier nine.
-local UI_FRAMES=11+MENU_FRAMES
-local UI_FONTS=13+MENU_FONTS
+-- One more is the player's optional kart outline, hidden until switched on.
+local UI_TEXTURES=112+GATE_STRIPS+EFFECT_TEXTURES+MENU_TEXTURES
+-- The Close results and Kart buttons add two Frames to the earlier nine; the
+-- Settings check "Outline my kart" adds a button and its two lines of text.
+local OUTLINE_CHECK_FRAMES,OUTLINE_CHECK_FONTS=1,2
+local UI_FRAMES=11+MENU_FRAMES+OUTLINE_CHECK_FRAMES
+local UI_FONTS=13+MENU_FONTS+OUTLINE_CHECK_FONTS
 local PARTICLES_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Effects\\Particles.tga"
 local FLAME_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Effects\\Flame.tga"
 local function effectPieces(UI)
@@ -373,8 +385,9 @@ withMock(nil, false, function(env,UI)
         "full-canvas grass must be explicitly below the outer bands")
     assert(rawget(grass,"snappingBias")==nil and rawget(grass,"snapToGrid")==nil,
         "grass snapping stays unchanged; explicit draw priority separates it from the road")
-    assert(sceneLayerCalls(env,UI)==1 and env.drawLayerCalls==1+EFFECT_TEXTURES,
-        "only the grass and the once-created effect pools configure explicit draw sublevels")
+    assert(sceneLayerCalls(env,UI)==2 and env.drawLayerCalls==2+EFFECT_TEXTURES and
+           UI.kartOutline.layer=="OVERLAY" and UI.kartOutline.sublevel==1,
+        "only the grass, the kart outline (over the kart) and the effect pools set explicit draw sublevels")
     assert(env.snappingCalls==192,"only the 96 road bands configure snapping once")
     assert(#walls==4,"four preallocated wall strips mark the play boundary")
     local thickness=4
@@ -1380,9 +1393,9 @@ withMock(nil,false,function(env,UI)
     UI.Stop("before creation")
     -- The single-image kart rotates continuously, so it exposes the exact
     -- interpolated heading; the directional sheet is covered separately.
-    env.namespace.Presentation.DEFAULT_KART="goblin_drag_car"
+    env.namespace.Presentation.DEFAULT_KART=singleImageKart(env)
     env.fire("ADDON_LOADED","AzerothKart")
-    assert(UI.kart.texturePath==DRAG_CAR_PATH and not UI.kartSprite.frames,"rotating kart fixture")
+    assert(UI.kart.texturePath==SINGLE_PATH and not UI.kartSprite.frames,"rotating kart fixture")
     UI.Toggle(); UI.Start()
     local function close(actual,expected,label)
         assert(math.abs(actual-expected)<1e-10,label)
@@ -1691,7 +1704,8 @@ for _,mode in ipairs({"missing", "throws"}) do
         assert(UI.active and UI.state.tick==1,"optional snapping APIs cannot block driving: "..mode)
         assert(UI.objects.frames==UI_FRAMES and UI.objects.textures==UI_TEXTURES and UI.objects.fontStrings==UI_FONTS,
             "snapping fallback preserves UI object budget: "..mode)
-        assert(sceneLayerCalls(env,UI)==1,"grass priority remains explicit when snapping is unavailable: "..mode)
+        assert(sceneLayerCalls(env,UI)==2,
+            "grass and kart outline priorities remain explicit when snapping is unavailable: "..mode)
     end,nil,mode)
 end
 
@@ -2368,14 +2382,14 @@ withMock(nil,false,function(env,UI)
     sameCounts(env,counts,"sprite phases and switches allocate no UI objects")
 end)
 
--- A single-image sprite (the original drag car) keeps the rotated path: one
--- north-facing image centered on the kart and turned by heading - pi/2.
+-- A single-image sprite keeps the rotated path: one north-facing image
+-- centered on the kart and turned by heading - pi/2.
 withMock(nil,false,function(env,UI)
     local P=env.namespace.Presentation
-    P.DEFAULT_KART="goblin_drag_car"
+    P.DEFAULT_KART=singleImageKart(env)
     env.fire("ADDON_LOADED","AzerothKart")
-    assert(UI.kartSprite==P.KART_SPRITES.goblin_drag_car and UI.kart.texturePath==DRAG_CAR_PATH and
-           loads(env,DRAG_CAR_PATH)==1 and loads(env,KART_PATH)==0 and UI.kartFrame==nil,
+    assert(UI.kartSprite==P.KART_SPRITES.single_image and UI.kart.texturePath==SINGLE_PATH and
+           loads(env,SINGLE_PATH)==1 and loads(env,KART_PATH)==0 and UI.kartFrame==nil,
         "a single-image default loads only its own file")
     assert(UI.kart.width==20 and UI.kart.height==40 and UI.kart.point[4]==UI.state.x and
            UI.kart.point[5]==UI.state.y and UI.kart.rotation==UI.state.heading-math.pi/2 and
@@ -2592,13 +2606,14 @@ end)
 -- Restore all of them along with the previous frame/metadata, in both sheet and
 -- single-image directions. A failed rollback must leave a consistent primitive.
 for _,fixture in ipairs({
-    {"goblin_drag_car","steam_tank","SetVertexColor"},
-    {"goblin_drag_car","steam_tank","SetRotation"},
-    {"steam_tank","goblin_drag_car","SetTexCoord"},
-    {"steam_tank","goblin_drag_car","SetVertexColor"},
+    {"single_image","steam_tank","SetVertexColor"},
+    {"single_image","steam_tank","SetRotation"},
+    {"steam_tank","single_image","SetTexCoord"},
+    {"steam_tank","single_image","SetVertexColor"},
 }) do
     withMock(nil,false,function(env,UI)
         env.fire("ADDON_LOADED","AzerothKart")
+        singleImageKart(env)
         UI.Toggle()
         assert(UI.SelectKart(fixture[1]))
         UI.Start(); UI.OnUpdate(1/60); UI.Stop("kart rollback fixture")
@@ -2639,7 +2654,7 @@ for _,method in ipairs({"SetTexCoord","SetRotation","SetVertexColor"}) do
     withMock(nil,false,function(env,UI)
         env.fire("ADDON_LOADED","AzerothKart")
         UI.Toggle()
-        assert(UI.SelectKart("goblin_drag_car"))
+        assert(UI.SelectKart(singleImageKart(env)))
         UI.Start(); UI.OnUpdate(1/60); UI.Stop("kart fallback fixture")
         local state,race,result,track,laps=UI.state,UI.race,UI.result,UI.trackId,UI.laps
         local setter=UI.kart[method]
@@ -2659,6 +2674,58 @@ for _,method in ipairs({"SetTexCoord","SetRotation","SetVertexColor"}) do
                kartFaces(env,UI,state.heading),"later deliberate selection recovers after API restoration")
     end)
 end
+
+-- The player's optional outline (Settings: "Outline my kart"): off and never
+-- loaded by default; switched on, the current kart's outline sheet loads once
+-- and follows the kart's frame, quad and position through a drive; a new kart
+-- loads its own; a refused load hides the line without retries; a single
+-- image or the primitive shows none. It never touches the simulation.
+local outlineSummary
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    local P=env.namespace.Presentation
+    local trike=P.KART_SPRITES.goblin_mortar_trike
+    assert(not UI.kartOutline:IsShown() and loads(env,trike.outline)==0,"the outline is off and unloaded by default")
+    UI.Toggle()
+    local state=UI.state
+    UI.SetKartOutline(true)
+    local line=UI.kartOutline
+    local function follows(label)
+        local sprite=UI.kartSprite
+        local l,r,t,b=P.kartFrameCoords(sprite,UI.kartFrame)
+        local uv,kp,lp=line.texCoords,UI.kart.point,line.point
+        assert(line:IsShown() and line.texturePath==sprite.outline and uv[1]==l and uv[2]==r and uv[3]==t and
+               uv[4]==b and line.width==UI.kart.width and line.height==UI.kart.height and
+               lp[1]=="CENTER" and lp[4]==kp[4] and lp[5]==kp[5],label..": the line has the kart's frame and place")
+    end
+    follows("switched on")
+    local color=P.KART_OUTLINE.color
+    assert(loads(env,trike.outline)==1 and line.vertexColor[1]==color[1] and line.vertexColor[2]==color[2] and
+           line.vertexColor[3]==color[3] and sameRGB(UI.kart.vertexColor,NEUTRAL) and UI.state==state,
+        "one load, tinted line, untinted kart, unchanged state")
+    UI.Start()
+    env.key(UI,"OnKeyDown","W"); env.key(UI,"OnKeyDown","A")
+    for _=1,240 do UI.OnUpdate(1/60) end
+    follows("driving")
+    assert(loads(env,trike.outline)==1,"driving never reloads the outline")
+    UI.Stop("outline fixture")
+    assert(UI.SelectKart("steam_tank") and loads(env,P.KART_SPRITES.steam_tank.outline)==1 and
+           loads(env,trike.outline)==1,"a new kart loads its own outline once")
+    follows("new kart")
+    env.textureModes={[P.KART_SPRITES.gyrocopter.outline]="false"}
+    assert(UI.SelectKart("gyrocopter") and UI.kartId=="gyrocopter" and not line:IsShown(),
+        "a refused outline hides the line and keeps the kart")
+    for _=1,3 do UI.OnUpdate(1/60) end
+    assert(loads(env,P.KART_SPRITES.gyrocopter.outline)==1,"a refused outline is not retried")
+    env.textureModes=nil
+    assert(UI.SelectKart(singleImageKart(env)) and not line:IsShown(),"a single image has no outline")
+    UI.SetKartOutline(false)
+    assert(UI.SelectKart("steam_tank") and not line:IsShown() and loads(env,P.KART_SPRITES.steam_tank.outline)==1,
+        "switched off, the line hides and nothing loads")
+    outlineSummary="mock kart outline: off and unloaded by default; one load per kart while on; follows the "..
+        "kart's frame, quad and pose through a drive; a refused load hidden, not retried"
+end)
+print(outlineSummary)
 
 -- A refused effect atlas leaves every effect hidden and the drive unchanged.
 withMock(nil,false,function(env,UI)

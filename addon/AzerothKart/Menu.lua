@@ -76,8 +76,8 @@ Menu.KARTS = {
         credit=BLIZZARD},
     glaive_thrower={blurb="A Night Elf ballista on wheels, its great glaive cocked. It trails wind, not flame.",
         credit=BLIZZARD},
-    goblin_drag_car={blurb="A rocket-powered goblin dragster, happiest on the straights.",
-        credit="Original Azeroth Kart art"},
+    goblin_drag_car={blurb="Mirage Raceway's own rocket car: two shark-faced pods roped to a goblin on a cart.",
+        credit="Model: Blizzard Entertainment (World of Warcraft)"},
 }
 
 Menu.CONTROLS = {
@@ -179,6 +179,7 @@ function Menu.readPreferences(db)
     if type(raw.effects) == "boolean" then prefs.effects = raw.effects end
     if type(raw.devInfo) == "boolean" then prefs.devInfo = raw.devInfo end
     if type(raw.sound) == "boolean" then prefs.sound = raw.sound end
+    if type(raw.outline) == "boolean" then prefs.outline = raw.outline end -- off unless saved on
     for _,scale in ipairs(Menu.SCALES) do
         if raw.scale == scale then prefs.scale = scale end
     end
@@ -425,6 +426,7 @@ local function save()
     local p = Menu.prefs
     record.version, record.track, record.kart, record.effects = 1, p.track, p.kart, p.effects
     record.devInfo, record.scale, record.sound = p.devInfo, p.scale, p.sound
+    record.outline = p.outline
     AzerothKartDB.preferences = record
 end
 
@@ -892,7 +894,8 @@ local function buildHelp()
     wrap(newText(box, FONT.graySmall, "TOPLEFT", 40, -440,
         "The keyboard is only captured during a race you start yourself, out of combat. " ..
         "Kart models: Goblin Mortar Trike by erwtenpeller and Chriz (Vast Graphics); Steam Tank, Dwarven " ..
-        "Biker, Gryphon Rider and Gyrocopter from the wc3c ITE project. Scenery, drag car and effects are original."),
+        "Biker, Gryphon Rider and Gyrocopter from the wc3c ITE project; the other karts are Blizzard's own, " ..
+        "the Goblin Pod Racer from World of Warcraft. The Mirage scenery and the effects are original."),
         700)
     newButton(box, "Back", 150, 30, "BOTTOMLEFT", 30, 26, function() Menu.Show("home") end)
 end
@@ -922,18 +925,21 @@ local function buildSettings()
     end
     view.effects = check("Drift and boost effects", "Tyre dust, sparks, exhaust flames and soot.", -156,
         function() Menu.SetEffects(not Menu.prefs.effects) end)
-    view.sound = check("Sound effects", "Menu clicks, the countdown beeps and the finish fanfare.", -226,
+    view.outline = check("Outline my kart", "A bright yellow line round your own kart, so you never lose it.", -226,
+        function() Menu.SetOutline(not Menu.prefs.outline) end)
+    view.sound = check("Sound effects", "Menu clicks, the countdown beeps and the finish fanfare.", -296,
         function() Menu.SetSound(not Menu.prefs.sound) end)
-    view.devInfo = check("Show developer info", "Adds the timing line and the Print Probe button under the track.", -296,
+    view.devInfo = check("Show developer info", "Adds the timing line and the Print Probe button under the track.", -366,
         function() Menu.SetDevInfo(not Menu.prefs.devInfo) end)
-    newButton(box, "Reset window position", 220, 28, "TOPLEFT", 60, -376, function() Menu.ResetPosition() end)
-    newText(box, FONT.graySmall, "TOPLEFT", 296, -382, "Drag the window by its title bar to move it.")
+    newButton(box, "Reset window position", 220, 28, "TOPLEFT", 60, -440, function() Menu.ResetPosition() end)
+    newText(box, FONT.graySmall, "TOPLEFT", 296, -446, "Drag the window by its title bar to move it.")
     newText(box, FONT.graySmall, "BOTTOM", 0, 100, "Settings are saved for your account.")
     newButton(box, "Back", 150, 30, "BOTTOMLEFT", 30, 26, function() Menu.Show("home") end)
     refresh.settings = function()
         markSelected(sizes, glow, Menu.prefs.scale)
         for scale,button in pairs(sizes) do setEnabled(button, Menu.Fits(scale)) end
         call(view.effects, "SetChecked", Menu.prefs.effects)
+        call(view.outline, "SetChecked", Menu.prefs.outline == true)
         call(view.sound, "SetChecked", Menu.prefs.sound)
         call(view.devInfo, "SetChecked", Menu.prefs.devInfo)
     end
@@ -973,6 +979,13 @@ end
 function Menu.SetEffects(enabled)
     Menu.prefs.effects = enabled == true
     if UI.SetEffectsEnabled then UI.SetEffectsEnabled(Menu.prefs.effects) end
+    save()
+    if Menu.screen == "settings" then refresh.settings() end
+end
+
+function Menu.SetOutline(enabled)
+    Menu.prefs.outline = enabled == true
+    if UI.SetKartOutline then UI.SetKartOutline(Menu.prefs.outline) end
     save()
     if Menu.screen == "settings" then refresh.settings() end
 end
@@ -1371,6 +1384,7 @@ function Menu.Create(ui)
     applyScale()
     if UI.SetEffectsEnabled then UI.SetEffectsEnabled(Menu.prefs.effects) end
     if Menu.prefs.kart and Menu.prefs.kart ~= UI.kartId then UI.SelectKart(Menu.prefs.kart) end
+    if UI.SetKartOutline then UI.SetKartOutline(Menu.prefs.outline == true) end -- after the kart: one load
     Menu.seenKart = UI.kartId or false
     Menu.seenTrack = UI.trackId
     Menu.wasActive = UI.active

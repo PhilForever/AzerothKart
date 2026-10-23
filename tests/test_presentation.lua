@@ -390,7 +390,8 @@ local addonPrefix = "Interface\\AddOns\\AzerothKart\\"
 local spriteFiles = 0
 local coverageFloors = {goblin_mortar_trike=0.12, steam_tank=0.12,
     dwarven_biker=0.12, gryphon_rider=0.08, gyrocopter=0.06,
-    dwarf_car=0.10, orc_demolisher=0.10, meat_wagon=0.10, glaive_thrower=0.10}
+    dwarf_car=0.10, orc_demolisher=0.10, meat_wagon=0.10, glaive_thrower=0.10,
+    goblin_drag_car=0.08} -- the pod racer: two pods and a cart, open between them
 for id, sprite in pairs(P.KART_SPRITES) do
     local w, h = sprite.textureWidth, sprite.textureHeight
     assert(type(sprite.path) == "string" and sprite.path:sub(1, #addonPrefix) == addonPrefix
@@ -491,23 +492,77 @@ for id, sprite in pairs(P.KART_SPRITES) do
         assert(solid > 0.4 * 4 * halfW * halfH, id .. ": substantial opaque silhouette")
         assert(math.abs((left + right + 1) / 2 - w / 2) <= 0.5 and math.abs((top + bottom + 1) / 2 - h / 2) <= 1,
                id .. ": silhouette centered on the quad (kart pivot)")
-        if id == "goblin_drag_car" then
-            -- North-facing landmarks: pointed nose up, open front corners, wide rear slicks.
-            assert(alpha(w / 2, 16) > 0 and alpha(w / 2 - 1, 16) > 0, id .. ": nose points north")
-            for row = 15, 21 do
-                for column = 5, 21 do
-                    assert(alpha(column, row) == 0 and alpha(w - 1 - column, row) == 0,
-                           id .. ": front corners stay open")
-                end
-            end
-            assert(alpha(8, 96) == 255 and alpha(w - 9, 96) == 255, id .. ": wide rear slicks sit south")
-        end
         spriteFiles = spriteFiles + 1
         print(("offline kart sprite %s: %dx%d TGA, %d visible/%d opaque texels inside %dx%d body")
             :format(id, w, h, visible, solid, P.KART_FOOTPRINT_WIDTH, P.KART_FOOTPRINT_HEIGHT))
     end
 end
 assert(spriteFiles >= 1, "at least one kart sprite is validated")
+
+-- The player's optional outline (Settings): every directional sheet names a
+-- half-resolution outline sheet of the same frames (build_kart_outlines.py).
+-- White so the UI tints it; a clear border per frame; a line in every frame
+-- that never covers the kart's body (texels at least half opaque).
+do
+    local O = P.KART_OUTLINE
+    assert(type(O) == "table" and O.textureWidth == 512 and O.textureHeight == 512 and #O.color == 3,
+           "outline sheet size and tint declared")
+    for _, c in ipairs(O.color) do assert(c >= 0 and c <= 1, "outline tint is a colour") end
+    local function read(path)
+        local file = assert(io.open("addon/AzerothKart/" .. (path:sub(#addonPrefix + 1):gsub("\\", "/")), "rb"),
+                            path .. ": declared file exists in the addon")
+        local data = file:read("*a")
+        file:close()
+        return data
+    end
+    local outlines = 0
+    for id, sprite in pairs(P.KART_SPRITES) do
+        if sprite.frames then
+            local file = sprite.path:match("([%w]+%.tga)$")
+            assert(sprite.outline == addonPrefix .. "Assets\\Karts\\Outlines\\" .. file,
+                   id .. ": the outline sheet shares the kart sheet's name")
+            local data, kart = read(sprite.outline), read(sprite.path)
+            local w, h = O.textureWidth, O.textureHeight
+            local function u16(index) return data:byte(index) + 256 * data:byte(index + 1) end
+            assert(data:byte(3) == 2 and u16(13) == w and u16(15) == h and data:byte(17) == 32 and
+                   data:byte(18) == 8 and #data == 18 + w * h * 4, id .. ": outline BGRA32, bottom-left, 512x512")
+            local kw, kh = sprite.textureWidth, sprite.textureHeight
+            local function kartAlpha(column, rowFromTop)
+                return kart:byte(18 + ((kh - 1 - rowFromTop) * kw + column) * 4 + 4)
+            end
+            local fw, fh = w / sprite.columns, h / (sprite.frames / sprite.columns)
+            local fewest = fw * fh
+            for frame = 0, sprite.frames - 1 do
+                local ox, oy = (frame % sprite.columns) * fw, math.floor(frame / sprite.columns) * fh
+                local lit = 0
+                for row = 0, fh - 1 do
+                    local base = 18 + (h - 1 - (oy + row)) * w * 4
+                    for column = 0, fw - 1 do
+                        local at = base + (ox + column) * 4
+                        local a = data:byte(at + 4)
+                        if row == 0 or column == 0 or row == fh - 1 or column == fw - 1 then
+                            assert(a == 0, id .. ": outline frame " .. frame .. " keeps a clear border")
+                        end
+                        if a > 0 then
+                            lit = lit + 1
+                            assert(data:byte(at + 1) == 255 and data:byte(at + 2) == 255 and data:byte(at + 3) == 255,
+                                   id .. ": the outline is white, for the UI's tint")
+                            local kx, ky = 2 * (ox + column), 2 * (oy + row)
+                            assert(math.min(kartAlpha(kx, ky), kartAlpha(kx + 1, ky), kartAlpha(kx, ky + 1),
+                                            kartAlpha(kx + 1, ky + 1)) < 128,
+                                   id .. ": outline frame " .. frame .. " never covers the kart")
+                        end
+                    end
+                end
+                assert(lit > 0, id .. ": outline frame " .. frame .. " has a line")
+                fewest = math.min(fewest, lit)
+            end
+            outlines = outlines + 1
+            print(("offline kart outline %s: %dx%d white TGA, at least %d lit texels per frame"):format(id, w, h, fewest))
+        end
+    end
+    assert(outlines >= 1, "at least one outline sheet is validated")
+end
 
 -- Drift and boost effects: the shipped atlases match Presentation.EFFECTS, and
 -- the particle logic follows drift/boost state without writing it. Offline

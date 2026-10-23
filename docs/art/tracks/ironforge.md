@@ -54,6 +54,7 @@ The city is underground. Open floor is the halls: a band of 165 units either sid
 - **Water:** the Forlorn Cavern's lake and the Mystic Ward's pool, dark, with spiral rings of stone.
 - **Light:** braziers and torches along the halls cast warm pools on the stone; the Mystic Ward's crystal lamps a violet one.
 - **Districts:** each from its own palette, sparse, at most a few of each model: smithies, workshops, the tavern and market in the Commons (dark slate roofs); arcane buildings in the Mystic Ward (violet roofs); rocks, stalagmites and chains in the Forlorn Cavern; shelves, tables and fossils in the Hall of Explorers; smithies and weapon racks at the Forge; workshops (verdigris roofs), the great machine, junk and a gyrocopter in Tinker Town; barracks and towers (red roofs), steam tanks and banners in the Military Ward. People: dwarven riflemen and peasants, citizens and the guard, standing back from the street.
+- **Start sign** (owner, 2026-10-23: "add an arrow indicator for left or right outside the track"): where the start road meets the loop, Warcraft III's goblin racing arrow post stands beyond the far wall, across the street from the gate hall's road, its red arrow pointing the race's way: north-west, left and up the hall. It is four times its Warcraft III scenery size and its arrow's paint is brightened, so it reads in the follow camera; no generated building or tree stands within 50 units of it. A board seen by the north-looking camera can point east, west or diagonally north, not straight north, so it takes the nearest of those to the loop's way. Scenery only: no collision ([the four signs in the follow camera](start-signs-review.png)).
 
 ## Files
 
@@ -75,6 +76,7 @@ Extract [Stormwind's files](stormwind.md#rebuilding), then add Ironforge's:
 python scripts/wc3casc.py %W3% models "^war3\.w3mod:(doodads/(dungeon|underground|northrend)|units/(human/(rifleman|mortarteam|gryphonrider|heromountainking|muradin|gyrocopter|warwagon)|other/dwarfcar))/" WC3
 python scripts/wc3casc.py %W3% extract "^war3\.w3mod:terrainart/(dungeon|dungeon2|lordaeronwinter|northrend|icecrown)/" WC3
 python scripts/wc3casc.py %W3% extract "^war3\.w3mod:replaceabletextures/(northrendtree|undergroundtree)/" WC3
+python scripts/wc3casc.py %W3% models "^war3\.w3mod:_de\.w3mod:doodads/lordaeronsummer/props/goblinracingarrowpost/goblinracingarrowpost[02]\.mdx$" WC3
 python scripts/build_city_tracks.py --wc3 WC3 --preview --city ironforge_gp
 python scripts/build_city_tracks.py --wc3 WC3 --check
 ```

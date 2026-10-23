@@ -45,7 +45,8 @@ addon/AzerothKart/Assets/
   Tracks/SaltFlats/Foreground.tga   # optional transparent occlusion
   Tracks/SaltFlats/Preview.tga
   Karts/GoblinMortarTrike.tga       # default kart: 64-heading sheet from the WC3 model (owner-approved 2026-10-20)
-  Karts/GoblinDragCar.tga           # original single-image sprite, now an alternative
+  Karts/GoblinPodRacer.tga          # World of Warcraft's goblin rocket car; replaced the original GoblinDragCar.tga (2026-10-23)
+  Karts/Outlines/*.tga              # each sheet's outline, for the "Outline my kart" setting
   Karts/GnomeDragCar.tga
   Props/OilBarrel.tga
   Props/Wreckage.tga

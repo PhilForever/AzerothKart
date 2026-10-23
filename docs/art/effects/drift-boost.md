@@ -69,7 +69,7 @@ Each kart sprite may carry `effects = {wheels, exhausts, view}`. The fields are:
 | Kart | Wheels | Exhausts | Source |
 |---|---|---|---|
 | Goblin Mortar Trike | (−5.9, ±6.0) | (−13.9, 5.4, 10.6) and (−14.8, −4.9, 10.5) | The model's own emitters, listed by `build_wc3_kart.py --source DIR --emitters`. The wheel anchors take x from its rear-wheel dust emitters (−5.85) and y from the tyres' ground contact (±6.0). The exhausts are its two exhaust emitters. Tilt (0.8, 0.6) |
-| Goblin Drag Car | (−14.0, ±6.6) | (−15.3, 0, 0) | The slicks' trailing edge and the rocket bell's lip in `build_kart_sprites.py`. Overhead, no tilt |
+| Goblin Pod Racer (since 2026-10-23; the retired Goblin Drag Car used (−14.0, ±6.6) and (−15.3, 0, 0), overhead) | (−12.6, 0.8) and (−12.6, −4.9) | (2.3, 7.6, 3.0) and (2.4, −8.1, 2.9) | The cart's two wheels where they touch the ground, and the rocket pods' tails where the model's own fire rings start (`build_wc3_kart.py --wow WOW --vehicle goblin_drag_car --emitters`). Tilt (0.8, 0.6) |
 | Primitive kart | (−13, ±7) | (−15.5, 0, 0) | The rear corners of the 17×31 body. Overhead, no tilt |
 
 The anchors are positions read from the published model, not pixels from it; the trike's provenance and credits are in [its sheet](../karts/goblin-mortar-trike.md).

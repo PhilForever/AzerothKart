@@ -1349,7 +1349,10 @@ def validate(image, canvas, geo):
 # ---------------------------------------------------------------------------
 # Review images (not runtime files; PNG bytes depend on the local zlib).
 
-KART = ROOT / "addon" / "AzerothKart" / "Assets" / "Karts" / "GoblinDragCar.tga"
+# The default kart, Presentation.KART_SPRITES.goblin_mortar_trike: a sheet of
+# 64 headings, 128-texel frames over a 41-unit quad centred 3 units east.
+KART = ROOT / "addon" / "AzerothKart" / "Assets" / "Karts" / "GoblinMortarTrike.tga"
+KART_QUAD, KART_PIVOT = 41.0, (3.0, 0.0)
 GATES = ((550, 844, 550, 956), (354, 520, 466, 520), (540, 84, 540, 196), (644, 360, 756, 360))
 
 
@@ -1384,8 +1387,8 @@ def play_view(canvas, kart_px, kx, ky, heading, next_gate, width=600, height=360
     left = max(0.0, min(SIZE - view_w, cx - view_w / 2))
     bottom = max(0.0, min(SIZE - view_h, cy - view_h / 2))
     top = bottom + view_h
-    angle = heading - pi / 2
-    ca, sa = cos(angle), sin(angle)
+    k = int(floor(heading / (2 * pi / 64) + 0.5)) % 64      # the sheet's nearest heading, shown unrotated
+    frame = [row[(k % 8) * 128:(k % 8) * 128 + 128] for row in kart_px[(k // 8) * 128:(k // 8) * 128 + 128]]
     red, green, blue = canvas.red, canvas.green, canvas.blue
     rows = []
     for oy in range(height):
@@ -1413,11 +1416,10 @@ def play_view(canvas, kart_px, kx, ky, heading, next_gate, width=600, height=360
                     col = [col[c] * (1.0 - a) + tint[c] * a for c in range(3)]
             if min(wx, wy, SIZE - wx, SIZE - wy) < 4.0:
                 col = [107.0, 112.0, 122.0]
-            dx, dy = wx - kx, wy - ky
-            lx, ly = dx * ca + dy * sa, -dx * sa + dy * ca
-            ku, kv = (lx + 10.0) * 3.2, (20.0 - ly) * 3.2
-            if -1.0 < ku < 65.0 and -1.0 < kv < 129.0:
-                r, g, b, a = sample_bilinear(kart_px, ku, kv)
+            dx, dy = wx - kx - KART_PIVOT[0], wy - ky - KART_PIVOT[1]
+            ku, kv = (dx + KART_QUAD / 2) / KART_QUAD * 128, (KART_QUAD / 2 - dy) / KART_QUAD * 128
+            if 0.0 <= ku < 128.0 and 0.0 <= kv < 128.0:
+                r, g, b, a = sample_bilinear(frame, ku, kv)
                 a /= 255.0
                 col = [r * a + col[0] * (1.0 - a), g * a + col[1] * (1.0 - a), b * a + col[2] * (1.0 - a)]
             row.append([int(min(255.0, c) + 0.5) for c in col] + [255])

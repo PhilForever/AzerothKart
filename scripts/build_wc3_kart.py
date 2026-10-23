@@ -3,6 +3,7 @@
 python scripts/build_wc3_kart.py --source DIR [--vehicle ID]   # write one runtime TGA (default: the trike)
 python scripts/build_wc3_kart.py --all ROOT [--wc3 WC3]        # every vehicle, sources in ROOT/<slug>/
 python scripts/build_wc3_kart.py --wc3 WC3 --vehicle ID        # one of Warcraft III's own vehicles
+python scripts/build_wc3_kart.py --wow WOW --vehicle ID        # one of World of Warcraft's own vehicles
     --check     verify exact bytes/invariants, write nothing
     --preview   also write a review sheet under docs/art/karts/
     --emitters  list a model's effect emitters and rear ground contacts (kart frame)
@@ -12,8 +13,11 @@ out as published (see VEHICLES and docs/art/karts/). Warcraft III's own
 vehicles (a "wc3" entry: the Dwarf Car, Meat Wagon, Demolisher and Glaive
 Thrower) come from the owner's Reforged install instead, extracted by
 scripts/wc3casc.py into the folder WC3 (MDX 1800 models and DDS textures,
-read by wc3render.py). Models and textures are verified by SHA-256 and are
-not stored in this repository.
+read by wc3render.py). World of Warcraft's own (a "wow" entry: the Goblin
+Pod Racer) come from the owner's WoW Forever client, extracted by
+scripts/wowcasc.py into the folder WOW (M2 models and BLP2 textures, read by
+wowmodel.py). Models and textures are verified by SHA-256 and are not
+stored in this repository.
 
 The models' meshes, UVs and textures are used as published. The script does
 what a game engine does when it shows the unit, from a fixed Warcraft
@@ -178,6 +182,43 @@ WC3_VEHICLES = {
     },
 }
 VEHICLES.update(WC3_VEHICLES)
+# World of Warcraft's own models (Blizzard Entertainment), from the owner's
+# WoW Forever client, extracted by scripts/wowcasc.py under their listfile
+# paths (the FileDataIDs are in docs/art/karts/): "wow" names the model and
+# its skin profile; "textures" maps the model's texture FileDataIDs (its TXID
+# chunk) to the files its drawn units read. WoW models face -y; "turn" is the
+# quarter turns counter-clockwise that make them face +x, as here.
+WOW_VEHICLES = {
+    # The slot keeps the original drag car's id, so saved choices and the
+    # multiplayer kart codes still name it. It now holds Mirage Raceway's own
+    # goblin rocket car, the owner's "goblin pod racer": two rocket pods roped
+    # to a goblin on a two-wheeled cart.
+    "goblin_drag_car": {
+        "name": "Goblin Pod Racer", "output": "GoblinPodRacer.tga", "slug": "goblin-pod-racer",
+        "wow": ("creature/goblinrocketcar/goblinrocketcar.m2", "creature/goblinrocketcar/goblinrocketcar00.skin"),
+        "textures": {
+            197786: "world/generic/goblin/passivedoodads/goblinrocketcarts/rocketcart01.blp",
+            197800: "world/generic/goblin/passivedoodads/goblintntwagon/goblinwagonwheel01.blp",
+            197788: "world/generic/goblin/passivedoodads/goblinrocketcarts/westfallwagonwood copy.blp",
+            124223: "creature/goblin/goblin.blp",
+        },
+        "turn": 1, "fit": ("length", 36.0), "hover": None, "quad": 44.0, "pivot": (1.2, 0.0), "min_solid": 0.08,
+        "sha256": {
+            "creature/goblinrocketcar/goblinrocketcar.m2":
+                "2d1f0ce6def2d9f6c23b94447effd0ace2b20fd63d3fad54587e4b225e82208d",
+            "creature/goblinrocketcar/goblinrocketcar00.skin":
+                "d537e55732128c01e8abd853d96708fae168c7474f542a5375db370f83889773",
+            "world/generic/goblin/passivedoodads/goblinrocketcarts/rocketcart01.blp":
+                "d0c382c8b6f680346e5a96d1dc3e01f78f693d48918634d697f1ddb3cbcc0ad2",
+            "world/generic/goblin/passivedoodads/goblintntwagon/goblinwagonwheel01.blp":
+                "516bdd4e12b2ec2c9be6cd35385f0870efee565740d13f0d30439d9fe411673b",
+            "world/generic/goblin/passivedoodads/goblinrocketcarts/westfallwagonwood copy.blp":
+                "7fbf7fdb2b8087dfe8ac8b25e15e8e2bdf97049dc0f4bd5426f85b4407f3b194",
+            "creature/goblin/goblin.blp": "bd09f69ededbefec0a00507ea804670c59e8c8ff878d8bdbef70f36c64abe9ec",
+        },
+    },
+}
+VEHICLES.update(WOW_VEHICLES)
 TRIKE = VEHICLES["goblin_mortar_trike"]
 
 # ---------------------------------------------------------------------------
@@ -705,11 +746,31 @@ def wc3_triangles(source, vehicle):
     return model, samplers, triangles
 
 
+def turned(points, quarters):
+    """Positions or normals turned by quarter turns counter-clockwise about z: (x, y) -> (-y, x), exactly."""
+    for _ in range(quarters):
+        points = [(-p[1], p[0], p[2]) for p in points]
+    return points
+
+
+def wow_triangles(source, vehicle):
+    """A World of Warcraft vehicle from the extracted client files `source`:
+    model, samplers and triangles through wowmodel (M2, BLP2), facing +x."""
+    import wowmodel
+    model, samplers, triangles = wowmodel.load(source, *vehicle["wow"], vehicle["textures"])
+    quarters = vehicle.get("turn", 0)
+    triangles = [(tuple(turned(pts, quarters)), tuple(turned(normals, quarters)), uvs, material)
+                 for pts, normals, uvs, material in triangles]
+    return model, samplers, triangles
+
+
 def pose(source, vehicle=TRIKE):
     if "wc3" in vehicle:
         model, samplers, triangles = wc3_triangles(source, vehicle)
         triangles = [t for t in triangles if renderable(model, samplers, model["materials"][t[3]])]
         return fitted(model, samplers, triangles, vehicle)
+    if "wow" in vehicle:
+        return fitted(*wow_triangles(source, vehicle), vehicle)
     model = read_model((source / vehicle["model"]).read_bytes())
     # Textures shipped with the vehicle, matched by the model's own paths
     # (case-insensitively; a bare file name may also match). Layers whose
@@ -755,6 +816,22 @@ def emitters(source, posed, vehicle=TRIKE):
     the rear-wheel dust emitters set where tire effects start and the exhaust
     emitters are the boost flames' pipes. Not part of the sheet's bytes."""
     model, samplers, triangles, fit, cx, cy = posed
+    if "wow" in vehicle:
+        # A WoW model has no Warcraft III emitters: its own effect units
+        # (rocket flames, glows), each side's centre and trailing edge.
+        import wowmodel
+        found = []
+        for fdid, mode, points in wowmodel.effect_units(source, *vehicle["wow"]):
+            points = [((p[0] - cx) * fit, (p[1] - cy) * fit, p[2] * fit) for p in turned(points, vehicle.get("turn", 0))]
+            for sign, side in ((1, "left"), (-1, "right")):
+                part = [p for p in points if p[1] * sign > 0.0]
+                if part:
+                    n = len(part)
+                    found.append((f"unit {fdid} (blend {mode}) {side} centre", total(p[0] for p in part) / n,
+                                  total(p[1] for p in part) / n, total(p[2] for p in part) / n))
+                    rear = min(part, key=lambda p: p[0])
+                    found.append((f"unit {fdid} (blend {mode}) {side} trailing point", rear[0], rear[1], rear[2]))
+        return found
     interval = model["sequences"][vehicle["sequence"]]
     world = world_matrices(model, interval[0], interval)
     path = model_path(source, vehicle)
@@ -864,6 +941,8 @@ def model_path(source, vehicle):
     if "wc3" in vehicle:
         import wc3render
         return wc3render.archive_file(source, vehicle["wc3"])
+    if "wow" in vehicle:
+        return source / vehicle["wow"][0]
     return source / vehicle["model"]
 
 
@@ -873,6 +952,9 @@ def verify_sources(source, vehicle=TRIKE):
             import wc3render
             path = wc3render.archive_file(source, name)
             where = "extract it from the Warcraft III install with scripts/wc3casc.py (see docs/art/karts/)"
+        elif "wow" in vehicle:
+            path = source / name
+            where = "extract it from the World of Warcraft client with scripts/wowcasc.py (see docs/art/karts/)"
         else:
             path = source / name
             where = f"extract {vehicle['archive']} there (see docs/art/karts/)"
@@ -887,9 +969,37 @@ def verify_sources(source, vehicle=TRIKE):
 # Review sheet (not a runtime file; PNG bytes depend on the local zlib).
 
 
+BACKGROUND = ROOT / "addon" / "AzerothKart" / "Assets" / "Tracks" / "SaltFlats" / "Background.tga"
+
+
+def load_background():
+    image = BACKGROUND.read_bytes()
+    fields = struct.unpack("<BBBHHBHHHHBB", image[:18])
+    assert fields[2] == 2 and fields[10] == 32 and fields[11] == 8, "unexpected background format"
+    return fields[8], fields[9], image
+
+
+def background_color(bg, wx, wy):
+    """Bilinear world-space fetch from the bottom-left-origin Mirage TGA."""
+    width, height, image = bg
+    u, v = wx - 0.5, wy - 0.5
+    x0, y0 = int(floor(u)), int(floor(v))
+    fx, fy = u - x0, v - y0
+    out = [0.0, 0.0, 0.0]
+    for dy, wy_ in ((0, 1.0 - fy), (1, fy)):
+        for dx, wx_ in ((0, 1.0 - fx), (1, fx)):
+            x, y = min(max(x0 + dx, 0), width - 1), min(max(y0 + dy, 0), height - 1)
+            offset = 18 + (y * width + x) * 4
+            blue, green, red = image[offset], image[offset + 1], image[offset + 2]
+            weight = wx_ * wy_
+            out[0] += red * weight
+            out[1] += green * weight
+            out[2] += blue * weight
+    return out
+
+
 def review_sheet(frames, vehicle=TRIKE):
     from math import pi                   # preview-only; not part of the asset bytes
-    from build_kart_sprites import background_color, load_background
     from paintkit import sample_bilinear
     bg = load_background()
 
@@ -979,6 +1089,8 @@ def main():
     where.add_argument("--all", type=Path, metavar="ROOT", help="build every vehicle from ROOT/<slug>/")
     parser.add_argument("--wc3", type=Path, metavar="WC3",
                         help="Warcraft III files extracted from the install (its own vehicles)")
+    parser.add_argument("--wow", type=Path, metavar="WOW",
+                        help="World of Warcraft files extracted from the client (its own vehicles)")
     parser.add_argument("--vehicle", choices=sorted(VEHICLES), default="goblin_mortar_trike",
                         help="the vehicle in --source (default: the Goblin Mortar Trike)")
     parser.add_argument("--check", action="store_true", help="verify exact runtime bytes without writing")
@@ -986,17 +1098,25 @@ def main():
     parser.add_argument("--emitters", action="store_true",
                         help="list each model's particle emitters and rear ground contacts in the kart's frame")
     args = parser.parse_args()
+    game = {"wc3": args.wc3, "wow": args.wow}               # the games' own vehicles: their extracted files
     if args.source:
         jobs = [(VEHICLES[args.vehicle], args.source)]
     elif args.all:
-        jobs = [(vehicle, args.wc3 if "wc3" in vehicle else args.all / vehicle["slug"])
-                for vehicle in VEHICLES.values() if "wc3" not in vehicle or args.wc3]
-        if not args.wc3:
-            print("NOTE: no --wc3: Warcraft III's own vehicles are skipped")
-    elif args.wc3 and "wc3" in VEHICLES[args.vehicle]:
-        jobs = [(VEHICLES[args.vehicle], args.wc3)]
+        jobs = []
+        for vehicle in VEHICLES.values():
+            kind = next((key for key in game if key in vehicle), None)
+            if kind is None:
+                jobs.append((vehicle, args.all / vehicle["slug"]))
+            elif game[kind]:
+                jobs.append((vehicle, game[kind]))
+        for kind, name in (("wc3", "Warcraft III"), ("wow", "World of Warcraft")):
+            if not game[kind]:
+                print(f"NOTE: no --{kind}: {name}'s own vehicles are skipped")
+    elif any(game[kind] and kind in VEHICLES[args.vehicle] for kind in game):
+        kind = next(kind for kind in game if kind in VEHICLES[args.vehicle])
+        jobs = [(VEHICLES[args.vehicle], game[kind])]
     else:
-        parser.error("give --source, --all, or --wc3 with one of Warcraft III's own --vehicle ids")
+        parser.error("give --source, --all, or --wc3/--wow with one of that game's own --vehicle ids")
     for vehicle, source in jobs:
         if args.emitters:
             verify_sources(source, vehicle)
