@@ -189,7 +189,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     end
     local ok, err=pcall(function()
         local namespace={}
-        for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Courses", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "Highscores", "SoloRecords", "UI", "Menu", "RaceProtocol", "PeerSession", "ClockProtocol", "StartClock", "RaceStart", "LiveProtocol", "LiveRace", "RaceGrid", "NetworkProbe", "TransportProbe", "SessionTransport", "Core"}) do
+        for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Courses", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "Highscores", "SoloRecords", "UI", "Menu", "RaceProtocol", "PeerSession", "ClockProtocol", "StartClock", "RaceStart", "LiveProtocol", "LiveRace", "RaceGrid", "NetworkProbe", "TransportProbe", "SessionTransport", "ScoreChannelProbe", "Core"}) do
             assert(loadfile("addon/AzerothKart/"..name..".lua"))("AzerothKart",namespace)
         end
         env.namespace=namespace
@@ -231,6 +231,7 @@ withMock(nil,false,function(env,UI)
     env.fire("ADDON_LOADED","AzerothKart")
     local transport=env.namespace.TransportProbe
     local session=env.namespace.SessionTransport
+    local scores=env.namespace.ScoreChannelProbe
     local bootstrap=env.frames[1]
     assert(transport.frame==bootstrap and not session.IsActive() and not bootstrap.akNetworkOwner
         and not bootstrap.events.CHAT_MSG_ADDON_LOGGED
@@ -239,6 +240,19 @@ withMock(nil,false,function(env,UI)
     SlashCmdList.AZEROTHKART(" net report ")
     assert(#env.output==before+1 and env.output[#env.output]:find("Idle:",1,true)
         and not UI.window:IsShown() and not UI.active,"net slash routes without toggling the kart")
+    local scoreCommand,scoreEvent,scoreLifecycle
+    scores.Command=function(arg) scoreCommand=arg end
+    scores.Message=function(...) scoreEvent={...} end
+    scores.HandleEvent=function(event) scoreLifecycle=event end
+    SlashCmdList.AZEROTHKART(" scores check ")
+    assert(scoreCommand=="check" and not UI.window:IsShown() and not UI.active,
+        "explicit score check dispatch never starts a drive")
+    bootstrap.scripts.OnEvent(bootstrap,"CHAT_MSG_ADDON_LOGGED","AZKSCP1","1|H|1","CHANNEL",
+        "Lene Conradi","7. AzerothKartScoresProbe",0,7,"AzerothKartScoresProbe",0)
+    assert(#scoreEvent==9 and scoreEvent[7]==7 and scoreEvent[8]=="AzerothKartScoresProbe",
+        "Core preserves numeric channel metadata for the route check")
+    bootstrap.scripts.OnEvent(bootstrap,"PLAYER_LEAVING_WORLD")
+    assert(scoreLifecycle=="PLAYER_LEAVING_WORLD","score check receives lifecycle cleanup")
     local received
     transport.Message=function(...) received={...} end
     bootstrap.scripts.OnEvent(bootstrap,"CHAT_MSG_ADDON","AZKART1","payload","WHISPER","Tester-Realm")

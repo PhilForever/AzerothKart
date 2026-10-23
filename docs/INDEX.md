@@ -5,6 +5,10 @@
 Local records are implemented/offline-tested; actual-client persistence and a
 supported global distribution/persistence route remain open.
 
+**Shared score route:** [dedicated channel evidence and simple next check](SCORE_CHANNEL.md).
+Build70532 on the owner's private server accepts the native send; delivery is
+still unverified. No production score broadcasting is enabled.
+
 **Latest multiplayer follow-up:** [first owner race evidence](evidence/2026-10-23-first-live-race.md), [updated two-player steps](MULTIPLAYER_PLAYTEST.md), and [grid/profile/display contract](API_CONTRACTS.md). Revised native behavior remains pending; current source/deployment is in PROGRESS.
 
 **First:** `VISION.md` → `GAME_DESIGN.md` → `FEASIBILITY.md` → `ARCHITECTURE.md` → `ROADMAP.md` → `PROGRESS.md`.

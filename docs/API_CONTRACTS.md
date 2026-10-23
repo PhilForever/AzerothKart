@@ -548,3 +548,20 @@ fraction WALL_SPEED_CAP=0.80. Forward/reverse contact bounds160/-44, normal
 free-driving bounds unchanged. At high speed the cap can exceed the initial
 10% penalty. Steering, geometry, continuous40units/s² drag and15state fields
 remain unchanged. Versions7/8/9 are refused before live GO. Native feel pending.
+
+## Implemented score-channel diagnostic (2026-10-24)
+
+`AK.ScoreChannelProbe` is a finite diagnostic, not the score-publishing service.
+Core calls `Init(frame)`, forwards the complete nine-field logged event to
+`Message(...)`, forwards lifecycle events to `HandleEvent(event)`, and routes
+`/akart scores check|report|stop` through `Command(argument)`.
+`Start()` returns an arming boolean; `Stop(reason)` terminates; `GetView()`
+returns a detached scalar snapshot (`phase`, `reason`, `sent`, `accepted`,
+`selfEchoes`, `peerHellos`, `peerAcks`, native result/build/channel diagnostics).
+No queue/identity roster/native function is exposed. A future Claude diagnostic
+action may call these methods; it must not interpret accepted sends as delivery.
+
+It owns the same exclusive Core frame lease as both existing transports, with
+no work at load/login. Runtime checks and cleanup are independent of physics,
+Menu and Highscores. Public score APIs and schemas are unchanged. Native route
+evidence and the remaining gate are in [SCORE_CHANNEL](SCORE_CHANNEL.md).

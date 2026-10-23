@@ -54,6 +54,12 @@ normal SavedVariables persistence.
 
 ## Global publication — open dependency
 
+2026-10-24 update: [dedicated logged channel investigation](SCORE_CHANNEL.md)
+selected the community-cache candidate and executed a one-packet private-server
+check on client70532. Join and native send succeeded; no receive event was
+observed. Cross-client/public-server delivery and global publishing remain open.
+The bounded two-client check is implemented/offline-tested, not installed.
+
 The owner delegated the architecture choice to the most efficient reliable
 approach. A genuinely complete, offline-available board needs a persistent
 shared destination. There is no implemented/verified Forever leaderboard

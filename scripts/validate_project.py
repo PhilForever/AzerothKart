@@ -56,6 +56,7 @@ REQUIRED=[
  'addon/AzerothKart/Laps.lua','tests/test_laps.lua',
  'addon/AzerothKart/Race.lua','tests/test_race.lua',
  'addon/AzerothKart/Highscores.lua','addon/AzerothKart/SoloRecords.lua',
+ 'addon/AzerothKart/ScoreChannelProbe.lua','tests/test_score_channel_probe.lua',
  'tests/test_highscores.lua','tests/test_solo_records.lua','docs/HIGHSCORES.md',
  'addon/AzerothKart/UI.lua','addon/AzerothKart/Core.lua','tests/run.lua',
  'addon/AzerothKart/RaceProtocol.lua','tests/test_race_protocol.lua',
@@ -80,7 +81,7 @@ for tocname in ('AzerothKart.toc','AzerothKart_Camelot.toc'):
  if '## Interface: 16001' not in lines: errors.append(f'{tocname}: unexpected interface')
  if '## SavedVariables: AzerothKartDB' not in lines: errors.append(f'{tocname}: missing SavedVariables')
  loads=[x.strip() for x in lines if x.strip() and not x.startswith('##')]
- if loads!=['Track.lua','MirageRaceway.lua','Circuit.lua','CapitalCities.lua','Courses.lua','Physics.lua','Input.lua','Loop.lua','Performance.lua','Presentation.lua','Checkpoints.lua','Laps.lua','Race.lua','Highscores.lua','SoloRecords.lua','UI.lua','Menu.lua','RaceProtocol.lua','PeerSession.lua','ClockProtocol.lua','StartClock.lua','RaceStart.lua','LiveProtocol.lua','LiveRace.lua','RaceGrid.lua','NetworkProbe.lua','TransportProbe.lua','SessionTransport.lua','Core.lua']:
+ if loads!=['Track.lua','MirageRaceway.lua','Circuit.lua','CapitalCities.lua','Courses.lua','Physics.lua','Input.lua','Loop.lua','Performance.lua','Presentation.lua','Checkpoints.lua','Laps.lua','Race.lua','Highscores.lua','SoloRecords.lua','UI.lua','Menu.lua','RaceProtocol.lua','PeerSession.lua','ClockProtocol.lua','StartClock.lua','RaceStart.lua','LiveProtocol.lua','LiveRace.lua','RaceGrid.lua','NetworkProbe.lua','TransportProbe.lua','SessionTransport.lua','ScoreChannelProbe.lua','Core.lua']:
   errors.append(f'{tocname}: unexpected source load order: {loads}')
  for f in loads:
   if not (ADDON/f).is_file():errors.append(f'{tocname}: missing {f}')

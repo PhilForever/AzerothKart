@@ -1,5 +1,65 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-24 00:34 +02:00 (Europe/Oslo) — score-channel candidate; private native acceptance
+
+Owner explicitly requests establishing the shared publication route. Continued
+on own `codex/score-channel-route`, base30ab625; no milestone completed.
+Selected a dedicated logged CHANNEL candidate with eventual community caches,
+documented in [SCORE_CHANNEL](SCORE_CHANNEL.md). This is not a complete central
+board or a verified public-server transport. Source70450 plus installed Chomp
+provided primary API/implementation references; source declarations alone did
+not establish Forever delivery. The earlier UI inventory attempt hit an
+approval-review quota failure and executed nothing; resumed after the owner
+opened the game on October24.
+
+Implemented `ScoreChannelProbe`: deliberate `/akart scores check|report|stop`,
+30-second finite window, eight-second join limit, three HELLOs/up to three peer
+ACKs, six-send ceiling and two-second minimum send spacing. Uses the existing
+exclusive Core lease, preserves prior membership, leaves its own join, stops on
+native refusal/lifecycle/drive/clock problems, and never sends scores or writes
+SavedVariables. Reentrant native cancellation cannot reacquire/overwrite
+another transport's callbacks; fractional/protected enums refuse startup.
+Bounded first-event metadata prevents silent loss of diagnostic context when
+the native event shape differs. Core forwarding, TOCs/load lists and focused
+regressions updated; no Menu/UI behavior, art, geometry or Physics10 change.
+
+**Executed native check:** owner says public Forever beta is closed until
+November4, and authorized the currently open private AnoCore server instead.
+Desktop inventory resolved its client to the existing `_classic_beta_/WowB.exe`.
+GetBuildInfo returned1.60.1/70532/interface16001; required API functions exist.
+Owner personally accepted WoW's custom-script prompt. Verified UI/probe/session
+inactive, then used a temporary one-packet API receiver rather than install or
+restart the addon. Prefix registration0; dedicated channel ID6; logged CHANNEL
+pcall returned true,0; native Success0/InvalidChatType4. Matching logged receipt
+count remained0. Timed/explicit cleanup removed the handler and joined channel;
+final lookup0,nil,0,false. No ordinary chat send, score upload, movement input,
+other-addon change or filesystem persistence. Exact scope/results in the guide.
+This proves native call acceptance only, not delivery, loss, peer reach or
+public Forever behavior. The new module itself has not been run natively.
+
+**Executed offline:** actual Lua5.1 `scripts/test_lua.py --runtime lua51 --tests
+score_channel_probe` PASS (including follow-up cancellation/enum regressions);
+`--tests ui menu multiplayer_integration` PASS3modules. 66Lua files parsed.
+Core retains all nine native event arguments; startup has no new network work;
+explicit UI pool stays85/166/133. `git diff --check` PASS after removing added
+trailing blank lines. `scripts/validate_project.py` FAIL only the two known
+historical expired computer-use skill links in this ledger. No broad suite,
+second client, score exchange/persistence or public-server check was run.
+
+**Parallel/deployment audit:** original checkout5570968 and installed54files
+still match the baseline. The overnight foreign-checkout comparison detected
+Claude's own new branch `claude/podracer-arrows-outline` at0afeedf, three commits
+over de4b291. Read its updated handoff and left its branch, files and untracked
+outputs untouched; this is not a preservation PASS against its older e83c889
+snapshot. No automatic integration, push, install, ZIP or release.
+
+Owner confirms no second client is available and asks to save the checkpoint.
+Global publication remains **INCOMPLETE**. Next exact task: reciprocal receipt
+with two consenting clients using the short score-channel check; public
+Forever scope must be verified separately when available. Proceed to bounded
+score synchronization only after that evidence, preserving versioned boards
+and self-reported/incomplete-cache labeling.
+
 ## 2026-10-23 15:52 +02:00 (Europe/Oslo) — solo totals and saved Highscores; global route open
 
 Latest owner direction: happy with handling; finish single player before more

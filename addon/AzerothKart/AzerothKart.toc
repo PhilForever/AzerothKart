@@ -33,4 +33,5 @@ RaceGrid.lua
 NetworkProbe.lua
 TransportProbe.lua
 SessionTransport.lua
+ScoreChannelProbe.lua
 Core.lua

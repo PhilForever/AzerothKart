@@ -7,6 +7,7 @@ AK.events = {}
 local eventFrame = CreateFrame("Frame")
 AK.TransportProbe.Init(eventFrame) -- Reuse bootstrap; no network registration/traffic on load.
 AK.SessionTransport.Init(eventFrame) -- Exclusive lease; menu actions opt in later.
+AK.ScoreChannelProbe.Init(eventFrame) -- Explicit channel check; no score publishing.
 local failures = {}
 for _,event in ipairs({"ADDON_LOADED","PLAYER_REGEN_DISABLED","PLAYER_REGEN_ENABLED",
     "PLAYER_LEAVING_WORLD","PLAYER_LOGOUT"}) do
@@ -36,9 +37,11 @@ eventFrame:SetScript("OnEvent",function(_,event,...)
     elseif event == "CHAT_MSG_ADDON_LOGGED" then
         AK.TransportProbe.Message(...)
         AK.SessionTransport.Message(...)
+        AK.ScoreChannelProbe.Message(...)
     else
         AK.TransportProbe.HandleEvent(event)
         AK.SessionTransport.HandleEvent(event)
+        AK.ScoreChannelProbe.HandleEvent(event)
         AK.UI.HandleEvent(event,arg1)
     end
 end)
@@ -54,5 +57,7 @@ SlashCmdList.AZEROTHKART = function(message)
         AK.UI.PerformanceCommand(argument)
     elseif command == "net" then
         AK.TransportProbe.Command(argument)
+    elseif command == "scores" then
+        AK.ScoreChannelProbe.Command(argument)
     else AK.UI.Toggle() end
 end

@@ -1,4 +1,43 @@
-# Codex handoff — solo totals/Highscores; global publication blocked
+# Codex handoff — dedicated score-channel route investigation
+
+Checkpoint saved 2026-10-24 00:34+02:00 at the owner's request: no second client
+is available. Own branch `codex/score-channel-route`, base30ab625. Implemented
+the finite source probe plus Core/TOC/module-list wiring, focused tests and
+[route/evidence guide](../SCORE_CHANNEL.md). Lua5.1 probe and UI/Menu/two-peer
+mock integration PASS (four focused modules total,66parsed); source validator
+retains only two historical expired skill links. No milestone advancement.
+
+Native direct one-packet check on private AnoCore/client70532: join ID6,
+prefix0, logged CHANNEL pcall true,0 (Success0); receive count0. Cleaned up
+listener/global/membership; final channel lookup0. This is acceptance-only;
+cross-client/public Forever delivery, score sharing and persistence remain
+unverified. New addon probe not installed/native-run. Installed54files remain
+d3fd99d. No push/install/ZIP/release or other addon/WTF file changes.
+
+Claude independently advanced overnight to `claude/podracer-arrows-outline`
+0afeedf (three commits over de4b291). Read its new handoff; did not integrate
+or touch its files/branch/outputs. Current reservation does not edit its visual
+regions. Next exact task: install a coordinated combined candidate and run
+`/akart scores check` on two consenting clients within five seconds; after30s
+compare reciprocal peerACK reports. Keep public-server verification separate.
+
+## Reservation and implementation plan (completed)
+
+Active reservation, 2026-10-23: `codex/score-channel-route`, base `30ab625`.
+Owner explicitly requests establishing the shared route. Reserved: new
+`addon/AzerothKart/ScoreChannelProbe.lua`, `tests/test_score_channel_probe.lua`;
+Core initialization/event/slash dispatch; both TOCs; module lists in
+`tests/test_ui.lua`, `tests/run.lua`, `scripts/validate_project.py`; route guide,
+HIGHSCORES/FEASIBILITY/INDEX/API_CONTRACTS/PROGRESS and this handoff.
+No Menu/UI/physics/art/score-store changes, other worktree edits or race traffic.
+Plan: implement a finite, explicit logged CHANNEL capability check; run focused
+Lua tests; inspect native delivery when the actual client is available. A send
+return or self echo cannot establish cross-client delivery or global persistence.
+Initial native inventory found the client closed; resumed with the owner's
+private-server client after the quota interruption. See checkpoint above for
+actual native results. Installed build70532 differs from pinned source70450.
+
+## Previous solo-record checkpoint
 
 2026-10-23 15:55+02:00. Owner now prioritizes finishing single player before further
 multiplayer tests, including total finish time/name/date and a shared highscore

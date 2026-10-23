@@ -191,3 +191,14 @@ rate increase or new transport gate result. Read-only forecasts cap at500ms
 and stop at map walls/solids; their sample age uses uncertain mapped epochs,
 not measured one-way latency. Native revised checks remain NOT RUN. Follow
 [one short race procedure](MULTIPLAYER_PLAYTEST.md), not another net probe.
+
+## Score channel capability checkpoint — 2026-10-24
+
+See [SCORE_CHANNEL](SCORE_CHANNEL.md) for primary source references, exact
+native results, limits and the single-command two-client procedure. Client
+1.60.1/build70532/interface16001 on the owner's private AnoCore server joined
+channel6 and returned `Success=0` for one logged CHANNEL send. Prefix
+registration returned0; matching logged events remained0. Cleanup left the
+channel (lookup0). **Receiving/global publication remain unverified**; this is
+not public Forever server evidence or a packet-loss measurement. The new
+source probe passed focused offline Lua5.1 checks but is not installed/native-run.

@@ -1,6 +1,7 @@
 -- Usage: from repository root: lua tests/run.lua
 -- Pure tests plus explicitly mocked UI lifecycle checks, not a WoW client test.
 local tests = {
+    "tests/test_score_channel_probe.lua",
     "tests/test_highscores.lua", "tests/test_solo_records.lua",
     "tests/test_clock_protocol.lua", "tests/test_start_clock.lua", "tests/test_race_start.lua",
     "tests/test_live_protocol.lua", "tests/test_race_grid.lua", "tests/test_live_race.lua",
