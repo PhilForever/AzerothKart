@@ -1,3 +1,17 @@
+# Active reservation — slight wall-contact penalty
+
+2026-10-23 Europe/Oslo. Owner reports v8 wall slides feel almost penalty-free
+and requests a very small slowdown. Own clean codex/wall-penalty fromdc52148.
+Reserve Physics.lua (first-contact retention/contact speed ceiling), focused
+wall-slide and Physics/native version assertions, current API/physics/readme
+docs, PROGRESS/INTEGRATION_STATUS and own handoff. Add a5% initial loss and95%
+normal-speed ceiling only during contact; preserve steering, recovery, geometry,
+scrape drag and parking turns. Physics9 avoids mixed deterministic tuning.
+Use focused Lua5.1 checks, then backup/hash-verified install and refreshed ZIP
+for the continuing owner test. No art/Claude checkout edits or push/release.
+
+## Previous completed checkpoint
+
 # Codex handoff — published Claude river update and wall handling v8
 
 2026-10-23 14:11+02:00, Europe/Oslo. Owner asks to review/push Claude latest,
