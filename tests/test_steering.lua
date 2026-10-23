@@ -98,7 +98,8 @@ close(driftYaw/normalYaw,0.75,"drift uses a wider, gentler turn than normal stee
 assert(wide.drifting and wide.speed==normal.speed,"wider drift does not reduce straight-line speed")
 local wall={spawn=open.spawn,isDrivable=function() return false end}
 local hit=P.step(charged,leftInput,dt,wall)
-assert(hit.impacts==charged.impacts+1 and hit.steering==0,"collision resets progressive steering")
+assert(hit.impacts==charged.impacts+1 and hit.steering==charged.steering,
+    "a blocked step retains held steering so the kart can turn away")
 local grass={spawn=open.spawn,isDrivable=function() return false end,surfaceAt=function() return "grass" end,
              constrainPosition=function(x,y) return x,y,false end}
 local offRoad=P.step(charged,{accelerate=true,left=true,drift=true},dt,grass)

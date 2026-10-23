@@ -298,3 +298,13 @@ Only schema initialization exists. A schema value recreated at load does not pro
 - [ ] Test sentinel removed; inactive post-load controls verified; evidence: ______
 
 Do not mark settings/ghost saves, migrations or corrupt-save recovery passed: those features are not implemented. Persist observed outcomes, exact errors and evidence links in `docs/FEASIBILITY.md` and `docs/PROGRESS.md`, keeping any unexecuted row pending.
+
+## Deferred wall-slide Physics8 check — NOT RUN
+
+After a full client restart for the revised city pictures, drive a shallow and
+a45degree approach into a city wall with throttle held: slide along it while
+steering away, without needing reverse. Try a frontal hit then hold throttle
+and turn; it should release promptly, while a straight blocked hit still stops.
+Check stationary turning is quicker and drift/boost cancels at contact. Do not
+claim every corner/FPS/performance case passed from one drive. Both friends
+need Physics8 before the next Multiplayer race; the usual menu flow applies.

@@ -240,7 +240,7 @@ do
     assert(p.guest:view().offer.trackVersion==1 and p.guest:view().start.seed==42
         and p.guest:view().stats.sendAttempts~=999 and p.guest:view().traffic.attempts~=999)
     assert(p.host.raceCalls==0 and p.guest.raceCalls==0 and not p.host.namespace.UI.active
-        and p.host.namespace.Physics.VERSION==7 and p.host.namespace.Track.version==2,
+        and p.host.namespace.Physics.VERSION==8 and p.host.namespace.Track.version==2,
         "control proposals never activate or mutate local simulation")
     assertPacing(p.host); assertPacing(p.guest)
     p.host:call("Stop","left"); p.guest:call("Stop","left")
@@ -249,11 +249,13 @@ end
 do
     local e=client(GUEST)
     assert(e:call("Listen","  Åmber   Stone  ",CODE))
-    local offer=wire(e,"INVITE",1,{physicsVersion=7,trackId="test_oval",trackVersion=2,laps=3})
+    local offer=wire(e,"INVITE",1,{physicsVersion=e.namespace.Physics.VERSION,
+        trackId="test_oval",trackVersion=2,laps=3})
     receive(e,offer,"Åmber Stone","OTHER")
     receive(e,offer,"Åmber Stone",nil,"PARTY")
     receive(e,offer,"Åmber Wrong")
-    receive(e,wire(e,"INVITE",1,{session="OLD123",physicsVersion=7,trackId="test_oval",trackVersion=2,laps=3}),"Åmber Stone")
+    receive(e,wire(e,"INVITE",1,{session="OLD123",physicsVersion=e.namespace.Physics.VERSION,
+        trackId="test_oval",trackVersion=2,laps=3}),"Åmber Stone")
     receive(e,"malformed","Åmber Stone")
     assert(e:view().phase=="listening" and #e.sends==0)
     receive(e,offer,"Åmber sToNe")
@@ -301,8 +303,23 @@ do
 end
 do
     local e=client(GUEST); assert(e:call("Listen",HOST,CODE))
-    receive(e,wire(e,"INVITE",1,{physicsVersion=8,trackId="test_oval",trackVersion=2,laps=3}))
+    receive(e,wire(e,"INVITE",1,{physicsVersion=e.namespace.Physics.VERSION+1,
+        trackId="test_oval",trackVersion=2,laps=3}))
     assert(e:view().phase=="closed" and e:view().reason=="incompatible" and #e.sends==0)
+    detached(e)
+end
+do
+    -- The wall-slide revision changes deterministic handling: an installed
+    -- v7 peer must be refused before grid agreement, countdown or GO.
+    local e=client(GUEST,true); assert(e:call("ListenLive",HOST,CODE,"steam_tank"))
+    receive(e,wire(e,"INVITE",1,{physicsVersion=7,trackId="test_oval",trackVersion=2,laps=3}))
+    local rejected=e:view()
+    assert(rejected.phase=="closed" and rejected.reason=="incompatible"
+        and rejected.clock==nil and rejected.live==nil and not e.namespace.UI.active and #e.sends==0,
+        "v7 peers cannot enter the v8 live start sequence")
+    assert(e:call("TakeRaceStart")==nil)
+    e:update(30)
+    assert(#e.sends==0,"incompatible v7 offers cannot produce delayed grid or clock traffic")
     detached(e)
 end
 
@@ -508,7 +525,8 @@ do
     local h=assert(p.host:call("TakeRaceStart"))
     local g=assert(p.guest:call("TakeRaceStart"))
     for _,bundle in ipairs({h,g}) do
-        assert(bundle.trackId=="mirage_raceway" and bundle.trackVersion==1 and bundle.physicsVersion==7)
+        assert(bundle.trackId=="mirage_raceway" and bundle.trackVersion==1
+            and bundle.physicsVersion==p.host.namespace.Physics.VERSION)
         assert(bundle.seed==42 and bundle.fixedDt==1/60 and bundle.vehicle.tick==0
             and bundle.race.status=="running" and bundle.race.startTick==0
             and bundle.race.laps.completedLaps==0,"real Physics/Race begin once at GO without another countdown")
@@ -547,7 +565,7 @@ do
     local p=armedPair()
     local epoch=p.host:view().clock.localEpochMS/1000
     p:step(epoch-p.now)
-    p.host.namespace.Physics.VERSION=8
+    p.host.namespace.Physics.VERSION=p.host.namespace.Physics.VERSION+1
     assert(p.host:call("TakeRaceStart")==nil,"launch must retain the negotiated physics version")
     detached(p.host)
 end

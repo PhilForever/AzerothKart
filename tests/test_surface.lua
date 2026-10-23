@@ -60,8 +60,8 @@ fast.boostTicks,fast.slipAngle=20,0.4
 local cancelled=P.step(fast,{accelerate=true,left=true,drift=true},dt,allGrass)
 noCharge(cancelled,"starting on grass cannot sustain drift or boost")
 
--- Clamp the crossed axis and retain motion along the wall. A corner scrubs
--- speed once, rather than multiplying the penalty separately for both axes.
+-- Clamp the crossed axis and retain motion along the wall. A fully blocked
+-- corner stops; a glancing contact retains the useful tangential movement.
 local boundX,boundY=T.width-T.wallInset,T.height-T.wallInset
 local side=place(boundX,T.centerY,math.pi/4,P.MAX_SPEED)
 local corner=place(boundX,boundY,math.pi/4,P.MAX_SPEED)
@@ -69,7 +69,7 @@ side=P.step(side,{accelerate=true},dt,T)
 corner=P.step(corner,{accelerate=true},dt,T)
 assert(side.x==boundX and side.y>T.centerY and side.surface=="wall" and side.impacts==1,"wall retains tangential movement")
 assert(corner.x==boundX and corner.y==boundY and corner.impacts==1,"corner remains inside both walls")
-assert(side.speed==corner.speed and side.speed>0,"corner contact applies one speed scrub")
+assert(side.speed>0 and corner.speed==0,"only the fully blocked corner stops")
 side.heading=math.pi
 local recovered=P.step(side,{accelerate=true},dt,T)
 assert(recovered.x<side.x and recovered.impacts==side.impacts and recovered.surface=="grass","steering away recovers from a wall")
@@ -79,7 +79,7 @@ charged.boostTicks,charged.slipAngle=20,0.4
 local wall=P.step(charged,{accelerate=true,left=true,drift=true},dt,T)
 assert(wall.surface=="wall","charged fixture reaches wall")
 noCharge(wall,"wall clears drift, boost and slip")
-assert(wall.steering==0,"wall contact resets steering")
+assert(wall.steering>0,"wall contact retains steering for recovery")
 
 -- Real track geometry with a spawn near its wall ensures this short replay
 -- covers both grass and contact. All simulation fields must match each tick.

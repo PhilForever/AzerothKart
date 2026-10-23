@@ -1658,7 +1658,18 @@ withMock(nil,false,function(env,UI)
     finishCountdown(UI)
     UI.state.x=env.namespace.Track.wallInset; UI.state.y=240
     UI.state.heading=math.pi; UI.state.speed=120
+    UI.state.steering=1
+    UI.state.drifting=true; UI.state.driftDirection=1
+    UI.state.driftTicks=60; UI.state.driftTier=2; UI.state.driftGraceTicks=1
+    UI.state.boostTicks=20; UI.state.slipAngle=0.2
+    env.key(UI,"OnKeyDown","A")
+    env.key(UI,"OnKeyDown","SPACE")
     UI.OnUpdate(1/60)
+    assert(UI.state.steering==1 and not UI.state.drifting and
+           UI.state.driftDirection==0 and UI.state.driftTicks==0 and
+           UI.state.driftTier==0 and UI.state.driftGraceTicks==0 and
+           UI.state.boostTicks==0 and UI.state.slipAngle==0,
+        "wall contact clears drift, boost and slip while retaining the steering command")
     UI.Stop("wall fixture")
     assert(UI.state.surface=="wall" and UI.driftHud.text:find("Last drive | Wall |",1,true),
         "wall contact has visible feedback in the retained sample")

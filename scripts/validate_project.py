@@ -17,6 +17,7 @@ REQUIRED=[
  'addon/AzerothKart/RaceGrid.lua','tests/test_race_grid.lua',
  'tests/test_multiplayer_integration.lua','docs/MULTIPLAYER_PLAYTEST.md',
  'addon/AzerothKart/Track.lua','addon/AzerothKart/Physics.lua',
+ 'tests/test_wall_slide.lua',
  'addon/AzerothKart/MirageRaceway.lua','tests/test_mirage.lua',
  'scripts/build_mirage_layout.py','docs/art/mirage-layout.json','docs/art/mirage-layout.svg',
  'scripts/build_mirage_background.py','scripts/paintkit.py',

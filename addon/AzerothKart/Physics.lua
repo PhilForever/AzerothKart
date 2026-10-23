@@ -3,7 +3,7 @@
 local _, namespace = ...
 
 local Physics = {}
-Physics.VERSION = 7
+Physics.VERSION = 8
 Physics.FIXED_DT = 1/60
 Physics.MAX_SPEED = 200
 Physics.REVERSE_MAX = 55
@@ -13,6 +13,9 @@ Physics.COAST = 78
 Physics.STEER_RATE = 2.6
 Physics.STEERING_RISE_RATE = 8
 Physics.STEERING_CENTER_RATE = 16
+Physics.LOW_SPEED_STEER_BONUS = 1.2
+Physics.LOW_SPEED_STEER_LIMIT = 80
+Physics.WALL_SCRAPE_DRAG = 40
 Physics.DRIFT_MIN_SPEED = 90
 Physics.DRIFT_TIER1_TICKS = 30
 Physics.DRIFT_TIER2_TICKS = 60
@@ -141,7 +144,11 @@ function Physics.step(state, input, dt, track)
     -- Directional steering; reverse turns opposite. Slip separates the kart's
     -- facing direction from travel direction for an actual bounded slide.
     local speedRatio = math.min(1, math.abs(speed)/Physics.MAX_SPEED)
-    local yaw = Physics.STEER_RATE * (0.28 + speedRatio * 0.72) * dt
+    -- Parking/recovery turns get help that fades out before drift speed.
+    -- Racing-speed and drift yaw retain their existing response.
+    local parkingAssist = Physics.LOW_SPEED_STEER_BONUS *
+        (1-math.min(1,math.abs(speed)/Physics.LOW_SPEED_STEER_LIMIT))
+    local yaw = (Physics.STEER_RATE * (0.28 + speedRatio * 0.72) + parkingAssist) * dt
     if drifting then yaw = yaw * Physics.DRIFT_STEER_MULTIPLIER end
     if speed < 0 then yaw = -yaw end
     local heading = state.heading + steering * yaw
@@ -155,6 +162,7 @@ function Physics.step(state, input, dt, track)
     -- x points right, y points up; (cos,sin) is forward.
     local nx = state.x + math.cos(travelHeading) * speed * dt
     local ny = state.y + math.sin(travelHeading) * speed * dt
+    local targetX,targetY = nx,ny
     local hit
     if track.resolveMovement then
         -- Optional swept solids receive the whole fixed-step segment. The
@@ -173,9 +181,22 @@ function Physics.step(state, input, dt, track)
         speed = math.min(speed,speedBeforeBoost)
     end
     if hit then
-        -- One scrub per contact step, even when both axes hit a corner.
-        speed = speed * 0.25
-        steering = 0
+        -- Geometry has already removed blocked displacement. Charge the
+        -- initial loss once according to permitted movement, then use a
+        -- time-scaled scrape drag while contact persists. Repeated glances
+        -- must not compound a 75% speed cut or prevent steering from building.
+        local dx,dy = targetX-state.x,targetY-state.y
+        local mx,my = nx-state.x,ny-state.y
+        local requestedSquared,movedSquared = dx*dx+dy*dy,mx*mx+my*my
+        if requestedSquared<=1e-12 or movedSquared<=1e-12 then
+            speed = 0 -- A fully blocked frontal/corner hit cannot drive through.
+        elseif state.surface~="wall" then
+            -- Recovery from an invalid pose may move further than requested;
+            -- it must never award speed or count as a larger impact reward.
+            speed = speed * math.min(1,math.sqrt(movedSquared/requestedSquared))
+        else
+            speed = approachZero(speed,Physics.WALL_SCRAPE_DRAG*dt)
+        end
         drifting, direction, driftTicks, tier, boostTicks, slip = false, 0, 0, 0, 0, 0
         grace = 0
     end

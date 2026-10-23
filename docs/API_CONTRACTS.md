@@ -1,6 +1,6 @@
 # Implemented simulation and rendering contracts
 
-**Checkpoint:** 2026-10-22, `codex/ui-backend-integration`: merge `6cd611a` combines reviewed Claude UI `1b2d3d5` with Codex backend `192c6de`; `9b22f12` applies Claude's isolated preference fix `4ffe184` without its city-track dependencies. Subsequent city merge f9f2af0 now preserves Claude capital-cup78d97a1 and those modules; the reviewed loader repair stages new backgrounds before changing the visible picture. The combined source retains the reviewed six-kart rendering, Forever transport correction, session adapter and start-clock foundation. Physics compatibility version remains **7** (v6 handling retained). This describes the local solo prototype, measured transport experiment and offline control foundation; it does not claim a released engine or playable multiplayer. See [PROGRESS](PROGRESS.md) and [the latest handoff](handoffs/codex-latest.md).
+**Checkpoint:** 2026-10-22, `codex/ui-backend-integration`: merge `6cd611a` combines reviewed Claude UI `1b2d3d5` with Codex backend `192c6de`; `9b22f12` applies Claude's isolated preference fix `4ffe184` without its city-track dependencies. Subsequent city merge f9f2af0 now preserves Claude capital-cup78d97a1 and those modules; the reviewed loader repair stages new backgrounds before changing the visible picture. The combined source retains the reviewed six-kart rendering, Forever transport correction, session adapter and start-clock foundation. Physics compatibility is **8** after reviewed wall-slide/parking tuning (high-speed drift retained). This describes the local solo prototype, measured transport experiment and offline control foundation; it does not claim a released engine or playable multiplayer. See [PROGRESS](PROGRESS.md) and [the latest handoff](handoffs/codex-latest.md).
 
 **Current multiplayer checkpoint, 2026-10-23:** the owner reports a completed two-client drive on `c581a52`, with GO-only startup, square peer markers and lag/clipping. The current `codex/multiplayer-grid` source adds profile agreement, a visible shared grid/countdown, selected peer art and time-aware bounded display prediction. These new changes are **NOT RUN in Forever**. Earlier unwired/Coming soon descriptions below are historical where superseded by the implemented contracts here; no production capacity, kart contact or agreed results are established.
 
@@ -184,7 +184,7 @@ Start forwards backend parameters and TakeStartProposal is a backend-only one-sh
 Implemented in [`Physics.lua`](../addon/AzerothKart/Physics.lua):
 
 ```lua
-Physics.VERSION = 7
+Physics.VERSION = 8
 Physics.FIXED_DT = 1/60
 Physics.new(track) -> state
 Physics.step(state, input, dt, track) -> nextState
@@ -213,7 +213,7 @@ There are **15 fields**; no `vx`, `vy`, acceleration vector, collision normal, d
 
 Current limits: road speed 200, reverse 55, boosted speed 260; rough-ground forward/reverse targets 70/30, reached by gradual drag. Drift requires road, no brake and forward speed at least 90. Drift yaw is 0.75 times ordinary yaw. Releasing Space spends a ready tier if still eligible, including correction grace; braking, low speed, rough ground and wall contact clear charge. Read exported Physics constants for visual thresholds rather than inventing new ones.
 
-Test Oval now sweeps center movement against its perimeter and two axis-aligned solid rectangles expanded by 18 units on each side. This conservative square clearance encloses the rotated 17×31 body; it is not an exact oriented-body or rounded-corner collision shape. Earliest contacts remove inward normal displacement while retaining tangent motion, using at most three movement iterations and no temporary tables. Recovery from a starting overlap is deterministic and bounded to four passes for these disjoint, perimeter-contained fixtures; arbitrary overlapping obstacle clusters are unsupported. Mirage retains its original endpoint perimeter clamp and no obstacles. Contact multiplies speed by 0.25 once per Physics step, clears steering/slip/drift/grace/boost and reports `surface="wall"`; `impacts` still counts contact ticks. No state fields, collision-normal stream, road-edge walls or vehicle-to-vehicle collision were added. Rendering may compare consecutive `impacts`, but must not increment it or treat it as a trustworthy network event.
+Test Oval now sweeps center movement against its perimeter and two axis-aligned solid rectangles expanded by 18 units on each side. This conservative square clearance encloses the rotated 17×31 body; it is not an exact oriented-body or rounded-corner collision shape. Earliest contacts remove inward normal displacement while retaining tangent motion, using at most three movement iterations and no temporary tables. Recovery from a starting overlap is deterministic and bounded to four passes for these disjoint, perimeter-contained fixtures; arbitrary overlapping obstacle clusters are unsupported. Mirage retains its original endpoint perimeter clamp and no obstacles. Physics8 scales the first contact’s speed by permitted/attempted travel (capped at1); persistent contact uses40units/s² scrape drag. Fully blocked motion stops. Contact clears slip/drift/grace/boost, retains progressive steering and reports `surface="wall"`; `impacts` still counts contact ticks. Low-speed yaw adds1.2rad/s tapered to zero by80units/s; racing/drift90+ yaw is unchanged. No state fields, collision-normal stream, road-edge walls or vehicle-to-vehicle collision were added. Rendering may compare consecutive `impacts`, but must not increment it or treat it as a trustworthy network event.
 
 ## Input and fixed-step ownership
 
@@ -476,3 +476,20 @@ These interfaces are retained in the combined source; binding them to Claude's m
 ### Experimental multiplayer integration checkpoint (2026-10-22)
 
 The native and player-facing integration in [LIVE_RACE](LIVE_RACE.md#implemented-native-and-player-flow-integration) supersedes older unwired/Coming soon notes above for this branch. Existing solo APIs remain compatible. Additive backend PeerSession.beginRace consumes only coordinating state and keeps terminal cancellation after negotiation. UI.MultiplayerAction owns command safety; the menu invokes it through Core's registered view/action bridge. Input and local Physics have one owner. Explicit pool79/166/81. No agreed remote result, contact, production authority or actual-client acceptance is claimed. Owner explicitly assigned this wiring to Codex; Claude's worktree/art/handoff remain unchanged.
+
+## Reviewed wall handling revision8 (2026-10-23)
+
+The public state remains15fields, with no new normal/velocity/event API. Geometry
+hooks remain read-only and unchanged. Physics8’s response replaces repeated
+quarter-speed/steering reset with an admitted-motion first-impact ratio and
+dt-scaled40units/s² persistent scrape; exact blocking still stops. Steering
+remains held, with faster parking yaw below80. Existing native compatibility
+uses Physics.VERSION, so v7 peers are refused before grid/countdown/GO. Both
+players must update. Scalar speed can exceed actual tangent travel during
+contact; remote forecasts remain approximate. Native handling NOT RUN.
+
+Reviewed Claudeee144b5 adds Undercityv2’s six flat canal crossings/sixgates and
+Ironforgev4 fullgrip to its existing walls. All city paving is wall-to-wall;
+tunnels and exposed-wall vertices remain. These are solo city definitions;
+multiplayer’s negotiated tracks remain Mirage/TestOval. Decorative humps are
+not an accepted slope/layer implementation.

@@ -85,8 +85,8 @@ end
 assert(not pcall(T.resolveMovement,-1e308,240,1e308,240),
     "overflowing displacement rejected despite finite endpoints")
 
--- The optional movement hook uses the same once-per-step wall response even
--- when a charged drift and active boost arrive together at a solid fixture.
+-- A charged drift and active boost still cancel on a solid contact, while
+-- the useful movement and held steering remain available for recovery.
 local charged=P.new(T)
 charged.x,charged.y,charged.heading,charged.speed=251.5,410,0,200
 charged.drifting,charged.driftDirection,charged.driftTicks,charged.driftTier=true,1,60,2
@@ -94,12 +94,12 @@ charged.driftGraceTicks,charged.boostTicks,charged.slipAngle,charged.steering=5,
 local contact=P.step(charged,{accelerate=true,left=true,drift=true},P.FIXED_DT,T)
 assert(contact.x==252 and contact.surface=="wall" and contact.impacts==1,
     "charged step hits the obstacle through the swept movement hook")
-assert(math.abs(contact.speed-(200+P.ACCEL*P.FIXED_DT)*0.25)<1e-9,
-    "contact removes boost acceleration and scrubs speed once")
+assert(contact.speed>0 and contact.speed<charged.speed,
+    "an angled solid contact loses speed without discarding all useful motion")
 assert(not contact.drifting and contact.driftDirection==0 and contact.driftTicks==0
     and contact.driftTier==0 and contact.driftGraceTicks==0 and contact.boostTicks==0
-    and contact.slipAngle==0 and contact.steering==0,
-    "solid contact clears drift, correction grace, boost, slip and steering")
+    and contact.slipAngle==0 and contact.steering==charged.steering,
+    "solid contact clears drift, correction grace, boost and slip but retains steering")
 assert(charged.x==251.5 and charged.boostTicks==20 and charged.drifting,
     "solid collision does not mutate the supplied Physics state")
 contact.heading=math.pi

@@ -47,3 +47,7 @@ Combat/world changes end it; there is no automatic reconnect or resume.
 Only the two listed tracks are negotiated in this candidate. Stormwind,
 Ironforge and Orgrimmar remain available for solo driving. New art and rights
 status are unchanged; this is a private developer test package, not a release.
+
+**Handling update:** this candidate uses Physics8 for wall sliding and faster
+parking turns. Both players must update; older Physics7 peers are rejected as
+incompatible before countdown. City art updates also need a full restart.
