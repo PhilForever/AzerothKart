@@ -1,97 +1,90 @@
-# Active reservation — review and integrate Claude's two cities
+# Codex handoff — reviewed Darnassus/Undercity combined build
 
-2026-10-23 10:19+02:00, Europe/Oslo. Owner explicitly asks to review recent
-Claude work and integrate if approved. Own clean codex/two-city-integration
-from1733eac; targetclaude/darnassus-undercity9143949 (base6ad66d1). Reserve the
-reviewed merge of that branch's35changedfiles, shared catalog/Menu/test/doc/list
-conflict resolutions, API/architecture/ADR0015 review disposition, PROGRESS,
-INTEGRATION_STATUS and this named handoff. Preserve all eb2055a multiplayer
-grid/profile/prediction changes, existing city bytes/geometry and both foreign
-checkouts. Independent reviewers cover geometry/gates, art/pipeline/provenance,
-and Menu compatibility; no new slope/bridge physics is part of this integration.
-Native city checks stay NOT RUN. Prepare combined install/friend ZIP only after
-source review/checks pass, within the continuing requested test-build workflow.
-No push/main merge/release. Claude's authored handoff is imported unchanged.
+2026-10-23 10:28+02:00, Europe/Oslo. Owner requested review and integration if
+approved. Own **codex/two-city-integration**, base1733eac/reservation381cb46;
+normal two-parent merge/runtime **cac4290dd8421457196a96985135511a96948431**
+integrates exact Claude **91439490703c67ff7e90efbfc74e6eff8b66bc72** from6ad66d1
+while retaining multiplayer eb2055a. Following handoff commit changes docs only.
+[Review](../reviews/2026-10-23-two-city-integration.md). No main merge/push/release.
 
-## Previous completed checkpoint
+## Delivered and boundary
 
-# Codex handoff — multiplayer grid/countdown and peer presentation
+Darnassus and Undercity are selectable solo courses, with four new TGAs and
+previews/catalog/pipeline/provenance. Seven available solo tracks, ten cosmetic
+karts; ThunderBluff soon. Darnassus6gates/3895units/206approach; Undercity5gates/
+7327units/noapproach/spawnonloop. Ordered gate tests cover both. Existingcity
+data/art and fullgrip/wall semantics remain. Painted tiers/ramps and inert
+generated height arrays are accepted; Circuit does not read elevation and
+handling stays flat. ADR0015's physical slopes/crests/bridges/kartheight designs
+remain proposals, with Physics compatibility and route/layer/replication review
+needed. No new simulation feature or milestone acceptance is declared.
 
-2026-10-23 09:05+02:00, Europe/Oslo. Owner asks to continue from first real
-two-client feedback. Own **codex/multiplayer-grid**, base6ad66d1,
-reservationf5e6918, tested/installed runtime **eb2055a22034bc63d3bfe01538f097f4cbfab4ba**.
-Following handoff commit changes documentation only. No new milestone or push.
+All eb2055a multiplayer grid/profile/cues/chosenpeerart/boundedprediction code is
+retained. Multiplayer still negotiates only Mirage/TestOval. No kartcontact,
+agreedwinner, authoritative correction or automatic reconnect added.
 
-## What is implemented and verified
+## Review and executed tests
 
-- Bounded pure RaceGrid/profile codec on AZKGRD1: chosen cosmetic IDs immutable,
-  Ready/Start held until agreement, role-specific start slots36units apart.
-- Deliberate Start shows both chosen sprites, GET READY then full3–2–1–GO.
-  StartClock reserves3000ms before GO; no preGOsteps/laps. Held keys carry to
-  actual single backend launch. Staged exit releases input; old finished
-  summaries cannot return after a grid abort. Solo/legacy behavior retained.
-- Exact40-byte AZKRUN2 snapshots add monotonic sampleMS. Copied sampleAgeMS is
-  mapped-clock age, not measured one-way latency. Reuses existing peer texture,
-  neutral art tint, atlas heading/pivot/rotation with guarded square fallback.
-- Cached500ms/31-point display forecast follows bounded travel/yaw and stops
-  at walls/solids; no extra interpolation interval. Offscreen direction/distance
-  is not race position. Unknown steering/braking/clock error can cause corrections.
-- Rate stays2Hz/94payload+prefixB per peer/188pair; all four prefixes share
-  the same Core lease/persistent0.5s/2calls/158B local gate. Pool79/166/81.
-  No art/Physics/geometry changes, kart contact or agreed winner added.
+Complete Claude canonical handoff9143949 read/imported unchanged. Independent
+read-only reviews cover geometry/gates, art/pipeline/provenance and Menu; root
+inspected both panoramic sheets. No blocker. Only README conflicted; resolved
+as current multiplayer text plus newcity choices. No whole-file Menu/UI/native
+replacement. Corrected Darnassus shortest-city claim, stale count and elevation
+proposal's physical-compatibility omission. Claude's original commits remain.
 
-Final actual Lua5.1 **31testmodules/59parsedfiles PASS** after focused tests.
-All-TOC mock peers traverse realCore/menu/UI/native flow at700ms syntheticRTT,
-5sclockoffset, profiles, distinct sprites/slots, each3/2/1, zero preGOsteps,
-held throttle afterGO and cleanup. Native profile-loss/gating,32sLeave,
-failure/reentry, timestamp/syntax/copy, bounded wall prediction and old-result
-regressions pass. Final independent native review found no further blocker.
-`git diff --check` PASS. Structural validator FAIL only the historical two
-expired skill links; do not call it passed. Lua5.4/full art rebuild/native
-revised countdown/sprites/input/timing/feel/FPS **NOT RUN**. See
-[PROGRESS](../PROGRESS.md) for commands/results and [owner evidence](../evidence/2026-10-23-first-live-race.md)
-for earlierc581a52 local finishes35.42/36.42s and usability issues. Neither the
-old local times nor new offline passes establish synchronized/shared results.
+Final actual Lua5.1 **sixmodules/59parsedfiles PASS**:
+`scripts/test_lua.py --runtime lua51 --tests circuit menu ui race_grid session_transport multiplayer_integration`.
+New tests cover both savedcity restores/correctpreviews and false/throwing
+backgrounds retaining actual prior results/state/picture/prefs/counts. Existing
+native/E2E grid/countdown/heldinput/peerart/pacing tests passed unchanged. Pool
+79frames/166textures/81fonts. Agent's isolated circuit/gridposes and focusedmenu
+checks pass. Geometry-only generated check PASS; boundaryPython11tests PASS;
+threepipelineAST/TGAheaders/finiteheights/provenance/whitespace checks PASS.
+Structuralvalidator FAILonlythetwo historical expired skill links, not a pass.
+Lua5.4/fullbroad/fullartrebuild/nativecities/FPS/feel NOT RUN. Claude's separate
+two-machine fullrebuild/tests remain attributed author evidence.
 
-## Installation and archive
+## Installed candidate and friend archive
 
-Backup/hash installer actually deployed50files to `_classic_beta_/Interface/AddOns/AzerothKart`.
-Prior49files independently matchc581a52 receipt+before.csv; all50source/target/
-manifest/ZIP paths+SHA256 match. Manifest `local-artifacts/multiplayer-grid-20261023/backups/20261023-090347-158-a74d717dd9c84f9184be9cbf9ff9a508/install.json`.
-ZIP created directly from installed folder, CRC checked, trees unchanged:
-`C:/Users/bakke/Downloads/Forever_Addons/AzerothKart-Multiplayer-eb2055a.zip`,
-33,930,577bytes, SHA256 `83a1211c312f047d4f7aa905abfd8b6747d888386d882a06e8d7f00381e14c24`.
-Ignored receipt/logs: `local-artifacts/multiplayer-grid-20261023/`.
-Old archive retained; no otheraddon/WTF/SavedVariables/clientinput changes.
+Source **cac4290** installed to `_classic_beta_/Interface/AddOns/AzerothKart`,
+54files independently matchsource/manifest/ZIP. Prior50files matcheb2055a
+receipt and verifiedbackup/before.csv. Manifest `local-artifacts/two-city-integration-20261023/backups/20261023-102735-053-4fa3216003b74641bd0466db614bcfb2/install.json`.
+ZIP created from actual installed directory, CRC/exactpaths/SHA256 verified:
+`C:/Users/bakke/Downloads/Forever_Addons/AzerothKart-Multiplayer-cac4290.zip`,
+46,956,754bytes, SHA256 `3e1ba05309ccefc548050106c8d7654d66cc2d9a21738f3abb2d0e5d1885254d`.
+OldZIPs retained; nootheraddon/WTF/SavedVariables/clientinput touched.
+Ignoredreceipt/logs/snapshots: `local-artifacts/two-city-integration-20261023/`.
+Native newcity loading/look/drive/walls/performance/preferences and revised
+multiplayer feel remain NOT RUN. Fully restart WoW for the four new textures.
 
-## Coordination and ownership
+## Parallel work and synchronization
 
-Read Claude’s latest authored handoff at **e96044b / claude/darnassus-undercity**,
-which independently advances from6ad66d1 and explicitly acknowledges our active
-reservation. Newcity Menu/test changes are catalog data only. Its checkout,
-untracked outputs and authored handoff are untouched; the old Orgrimmar ref
-72b362f remains. Canonical5570968 unchanged.370foreignfilehashes/HEADs/branches/
-statuses preserved after that observed advancement;39critical core/art files
-unchanged from6ad66d1. No newcity/elevation integration, history rewrite, main
-merge, branch publication or direct Claude acknowledgment claimed.
+Claude checkout remains9143949 on claude/darnassus-undercity with its preexisting
+untrackedoutputs, canonical5570968 unchanged.370foreignfilehashes/HEADs/branches/
+statuses preserved;46existingruntimefiles exactlyeb2055a. OnlyCapitalCities/
+Courses/Menu catalog/addonreadme differ, plus four newimages. No direct Claude
+conversation/acknowledgment claimed; source/contracts/handoffs are the record.
 
-Root reservation now complete. Changed native scope: LiveProtocol/LiveRace,
-RaceGrid, SessionTransport and StartClock; coordinated UI/Menu/Presentation
-scope: grid capture/cues, selectedpeertexture, bounded forecast/label and tests.
-Both TOCs/runner/validator and shared contract/evidence/playtest docs aligned.
-Contracts are in [API_CONTRACTS](../API_CONTRACTS.md),
-[LIVE_RACE](../LIVE_RACE.md), [START_CLOCK](../START_CLOCK.md) and
-[SESSION_MENU_API](../SESSION_MENU_API.md). Future city integration must retain
-these newer Menu/UI/native changes instead of installing its standalone branch.
-Do not switch/reset another worktree or automatically merge/push.
+After checking/finishing its own work, Claude may use this same repository's
+local combined ref as the next visual baseline, without resetting its branch:
 
-## Pending and next exact task
+```powershell
+git -C "C:/Users/bakke/Downloads/Forever_Addons/AzerothKart_Codex_Project_Pack/AzerothKart-Claude" status --short
+git -C "C:/Users/bakke/Downloads/Forever_Addons/AzerothKart_Codex_Project_Pack/AzerothKart-Claude" switch -c claude/from-two-city-integration codex/two-city-integration
+```
 
-Both testers fully restart WoW with this identical updated build (new module,
-new wire prefix). Follow [the short menu steps](../MULTIPLAYER_PLAYTEST.md);
-verify visible shared grid/countdown, correct peer sprites and nearby driving
-feel. No standalone net probe requested. Actual forecast corrections/clock skew,
-final-ACK ambiguity, contact, trusted finish/authority, full socket reconnect,
-production acceptance and redistribution review remain open. Record native
-feedback before deciding the next replication/contact/results slice. Milestones
-stay open; no claim that the lag is fixed from synthetic tests.
+These commands are provided, **not executed** in the foreign checkout. The new
+branch name must be unused; Git must refuse conflicting work rather than reset
+it. Nothing has been pushed; cloud use needs a separately authorized publication
+or the established local bundle transfer. Do not install the older standalone
+Claude branch over this combined candidate.
+
+## Next exact task
+
+Owner fullrestart then inspect/drive Darnassus and Undercity in SinglePlayer
+([city checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md)). Record actual load/
+feel before acceptance. A friendrace uses this identical ZIP and the existing
+[short multiplayer steps](../MULTIPLAYER_PLAYTEST.md); no standalone netprobe.
+Continue multiplayer based on realgrid/peerdisplay feedback; slope/bridge design
+remains deferred to a separate task. Productionauthority/contact/trustedfinish,
+fullsocketrecovery, nativecost and redistribution review remain open.

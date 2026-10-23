@@ -5,6 +5,23 @@ Updated2026-10-22 16:33 +0200, Europe/Oslo. Codex is the designated integrator f
 
 
 
+## Latest combined build — two reviewed cities, 2026-10-23 10:28+02:00
+
+**cac4290** on `codex/two-city-integration` combines Claude9143949 with the
+eb2055a multiplayer grid/profile/countdown/peerart/prediction fixes. Seven solo
+tracks/ten karts; Darnassus and Undercity use painted levels with flat handling.
+Physical slopes/bridges remain proposals. [Review](reviews/2026-10-23-two-city-integration.md).
+Focused actual Lua5.1 sixmodules/59parsed PASS, geometrycheck/boundary11 PASS,
+pool79/166/81; structuralvalidator still fails the two historical skill links.
+All native newcity/revisedmultiplayer acceptance remains NOT RUN.
+
+Installed54files/source/manifest/ZIP hashes exact,50priorfiles verified in
+backup. ZIP from installedfolder: `AzerothKart-Multiplayer-cac4290.zip`,
+46,956,754bytes. Exacthash/manifest/receipts in PROGRESS/Codexhandoff.
+Fullrestart for newtextures. Multiplayer remains Mirage/TestOval only. Claude's
+checkout/source/authoredhandoff and canonicalcheckout preserved; no push/main
+merge/release. Earlier entries below are historical checkpoints.
+
 ## Multiplayer grid/display follow-up — 2026-10-23
 
 `codex/multiplayer-grid` builds on6ad66d1/c581a52 with immutable kart-profile
