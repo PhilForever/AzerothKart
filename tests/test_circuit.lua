@@ -195,23 +195,26 @@ for _,course in ipairs(Courses.LIST) do
             Courses.build(course.id, Track.crossesGate) == nil, "a coming-soon city cannot be built")
     end
 end
-assert(soon == 3 and Courses.available("stormwind_city") and Courses.available("ironforge_gp")
-    and Courses.available("orgrimmar_canyon"), "Stormwind, Ironforge and Orgrimmar are ready; three cities are coming")
+assert(soon == 1 and Courses.available("stormwind_city") and Courses.available("ironforge_gp")
+    and Courses.available("darnassus_canopy") and Courses.available("orgrimmar_canyon")
+    and Courses.available("undercity_slime") and not Courses.available("thunder_bluff_skyway"),
+    "five cities are ready; Thunder Bluff is coming")
 assert(Courses.next("test_oval") == "mirage_raceway" and Courses.next("mirage_raceway") == "stormwind_city"
-    and Courses.next("stormwind_city") == "ironforge_gp" and Courses.next("ironforge_gp") == "orgrimmar_canyon"
-    and Courses.next("orgrimmar_canyon") == "test_oval", "the Track button cycles the ready tracks")
+    and Courses.next("stormwind_city") == "ironforge_gp" and Courses.next("ironforge_gp") == "darnassus_canopy"
+    and Courses.next("darnassus_canopy") == "orgrimmar_canyon" and Courses.next("orgrimmar_canyon") == "undercity_slime"
+    and Courses.next("undercity_slime") == "test_oval", "the Track button cycles the ready tracks")
 assert(Courses.build("test_oval", Track.crossesGate) == Track, "the oval is the original track")
 local stormwind = Courses.build("stormwind_city", Track.crossesGate)
 assert(stormwind and Courses.build("stormwind_city", Track.crossesGate) == stormwind, "built once, kept")
 
--- A walk of a city's course from its spawn (the approach, then the loop
--- twice until the lap completes): the gate names passed in order, and how
--- many walk points met a wall.
+-- A walk of a city's course from its spawn (the approach, if any, then the
+-- loop twice until the lap completes): the gate names passed in order, and
+-- how many walk points met a wall.
 local function walk(track, data)
     local spawn = track.spawn()
     assert(track.surfaceAt(spawn.x, spawn.y) == "road", data.id .. ": the start grid is on the road")
     local path = {}
-    for _,point in ipairs(data.branches[1]) do path[#path + 1] = point end
+    for _,point in ipairs(data.branches[1] or {}) do path[#path + 1] = point end
     for _=1,2 do
         for _,point in ipairs(data.centerline) do path[#path + 1] = point end
     end
@@ -480,8 +483,68 @@ for _=1,90 do
     orc = Physics.step(orc, {accelerate=true}, Physics.FIXED_DT, orgrimmar)
 end
 assert(orc.surface == "road" and orc.impacts == 0, "throttle from Orgrimmar's grid stays on the road")
+
+-- Darnassus: the spawn sits on the road in from the Warrior's Terrace; the
+-- walk joins the loop at the central terrace and passes the six district
+-- gates counter-clockwise, never meeting a wall. Its terraces and ramps are
+-- painted; the generated heights (a proposed contract) are data only.
+local darnassus = Courses.build("darnassus_canopy", Track.crossesGate)
+local elfData = namespace.CapitalCities.darnassus_canopy
+assert(darnassus and darnassus.wallRadius == 76 and #darnassus.gates == 6 and #darnassus.solids == 0
+    and #elfData.plazas == 0 and #elfData.branches == 1, "Darnassus's street: the same road and walls, six gates")
+assert(darnassus.version == 1 and darnassus.wallClearance == 14 and #elfData.wallVertices > 0
+    and darnassus.fullSpeedToWalls, "Darnassus uses the exposed-wall clearance and full grip to the walls")
+local elfNames, elfWalls = walk(darnassus, elfData)
+assert(elfNames == "Craftsmen's Terrace,Cenarion Enclave,Temple Gardens,Temple of the Moon,"
+    .. "Tradesmen's Terrace,Warrior's Terrace", "Darnassus's gates in order: " .. elfNames)
+assert(elfWalls == 0, "Darnassus's centerline never meets a wall")
+
+-- Undercity: no approach road; the spawn sits on the loop itself below the
+-- Apothecarium, just past the finish line. The walk passes the five gates
+-- (the outer ring counter-clockwise, then round the Trade Quarter) and
+-- completes the lap, never meeting a wall.
+local undercity = Courses.build("undercity_slime", Track.crossesGate)
+local ucData = namespace.CapitalCities.undercity_slime
+assert(undercity and undercity.wallRadius == 76 and #undercity.gates == 5 and #undercity.solids == 0
+    and #ucData.plazas == 0 and #ucData.branches == 0, "Undercity's street: one loop, five gates")
+assert(undercity.version == 1 and undercity.wallClearance == 14 and #ucData.wallVertices > 0
+    and undercity.fullSpeedToWalls, "Undercity uses the exposed-wall clearance and full grip to the walls")
+local ucNames, ucWalls = walk(undercity, ucData)
+assert(ucNames == "Rogues' Quarter,Magic Quarter,War Quarter,Trade Quarter,Apothecarium",
+    "Undercity's gates in order: " .. ucNames)
+assert(ucWalls == 0, "Undercity's centerline never meets a wall")
+
+for _,city in ipairs({{darnassus, elfData}, {undercity, ucData}}) do
+    local track, cityData = city[1], city[2]
+    for _,gate in ipairs(track.gates) do
+        assert(track.surfaceAt(gate.ax,gate.ay) == "wall" and track.surfaceAt(gate.bx,gate.by) == "wall",
+            "both ends of a gate close the street: " .. cityData.id .. "/" .. gate.name)
+    end
+    local kart = Physics.new(track)
+    for _=1,90 do
+        kart = Physics.step(kart, {accelerate=true}, Physics.FIXED_DT, track)
+    end
+    assert(kart.surface == "road" and kart.impacts == 0, "throttle from the grid stays on the road: " .. cityData.id)
+    -- The proposed elevation data: one finite height per centerline and
+    -- branch point. Nothing in the game reads it yet.
+    local heights = cityData.elevation
+    assert(heights and #heights.centerline == #cityData.centerline and #heights.branches == #cityData.branches,
+        "heights follow the course's points: " .. cityData.id)
+    for _,value in ipairs(heights.centerline) do
+        assert(type(value) == "number" and value == value and math.abs(value) < 200, "a finite height")
+    end
+    for index,branch in ipairs(heights.branches) do
+        assert(#branch == #cityData.branches[index], "a height per branch point: " .. cityData.id)
+    end
+end
+assert(namespace.CapitalCities.stormwind_city.elevation == nil and orcData.elevation == nil
+    and ironData.elevation == nil, "cities on one level carry no heights")
+
 print(("circuit: street walls, plazas and solids; Stormwind %d-unit loop, %d gates in order; "
-    .. "Ironforge %d-unit loop, %d gates in order; Orgrimmar %d-unit loop, %d gates in order; %d solids")
+    .. "Ironforge %d-unit loop, %d gates in order; Darnassus %d-unit loop, %d gates in order; "
+    .. "Orgrimmar %d-unit loop, %d gates in order; Undercity %d-unit loop, %d gates in order; %d solids")
     :format(math.floor(stormwind.length + 0.5), #stormwind.gates, math.floor(ironforge.length + 0.5),
-        #ironforge.gates, math.floor(orgrimmar.length + 0.5), #orgrimmar.gates,
-        #stormwind.solids + #ironforge.solids + #orgrimmar.solids))
+        #ironforge.gates, math.floor(darnassus.length + 0.5), #darnassus.gates,
+        math.floor(orgrimmar.length + 0.5), #orgrimmar.gates, math.floor(undercity.length + 0.5),
+        #undercity.gates, #stormwind.solids + #ironforge.solids + #darnassus.solids + #orgrimmar.solids
+        + #undercity.solids))

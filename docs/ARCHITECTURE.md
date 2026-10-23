@@ -152,3 +152,20 @@ Tick input comes from `Input.sample(held, reusedOutput)`. UI sprites are created
 The legacy backend-only `TakeRaceStart` yields exactly one actual Physics/Race bundle at mapped GO, then releases control hooks. Live mode instead adopts that bundle internally into LiveRace and retains the same transport lease/budget; UI cannot take the ticket. Race.newRunning begins at tick zero without replaying the solo countdown. Live mode now stages the shared three-second display first, captures UI driving keys, advances the local kart only after GO and transmits bounded observations. It still establishes no standings. Existing UI.Start is the solo path and explicitly stops session transport. Rendering receives borrowed state only; shared menu/clock/visual edits remain coordinated.
 
 Reviewed city integration2026-10-22: three ready solo tracks, including the six-gate Stormwind street circuit. Failed background loads now operate on one pooled hidden staging texture and cannot destroy the visible map. The pool is71/165/80, client cost/loading still NOT RUN. Physics/Track/Mirage and the session/clock/native backend remain unchanged; Stormwind is not added to the multiplayer compatibility list.
+
+## Reviewed two-city integration — 2026-10-23
+
+Claude9143949 adds Darnassus and Undercity as solo Courses entries with their
+independent analytic collision definitions and four precomposed TGA files.
+Existing city definitions/art and eb2055a’s grid/profile/countdown/prediction
+backend remain intact. Menu additions are catalog/previews only, reusing eight
+pooled track buttons. There are seven available solo tracks and ten cosmetic
+karts; multiplayer still negotiates only Test Oval/Mirage. Native newcity
+checks remain NOT RUN.
+
+ADR0015 is accepted only for painted levels and inert generated endpoint
+height arrays. Circuit’s named-field copy deliberately omits elevation. No
+slope force, airborne state, layered collision, deck overlay or kart-height
+rendering is implemented. Those designs need separate simulation/route/public
+contract review; slopes affect Physics compatibility, and bridges also affect
+replicated layer membership. Integration does not silently select that design.

@@ -187,6 +187,68 @@ def _segment_distance(px, py, a, b):
     return sqrt(ex * ex + ey * ey)
 
 
+# ---------------------------------------------------------------------------
+# Elevation. A city may stand on several levels: `elevation` = {"ground":
+# height, "levels": [(world polygon, height)...] (later ones win), "street":
+# [(loop arc, height)...], "branches": [height per branch], ...}. Heights are
+# world units above the city's datum. The street's height runs between its
+# anchors in smooth ramps (eased at both ends); a level is flat. The painter
+# draws what the heights make visible from the karts' camera (retaining
+# walls, raised streets, ramps, shadows); the karts' physics does not read
+# them (a proposed contract: docs/API_CONTRACTS.md).
+
+
+def loop_length(line):
+    """The closed line's length."""
+    return sum(sqrt((line[i][0] - line[i - 1][0]) ** 2 + (line[i][1] - line[i - 1][1]) ** 2)
+               for i in range(len(line)))
+
+
+class Profile:
+    """The street's height along the loop: (height, slope per unit of arc)
+    at any arc, from (arc, height) anchors joined by smoothstep ramps. One
+    anchor or none: flat."""
+
+    def __init__(self, anchors, length):
+        self.length = length
+        self.anchors = sorted((a % length, h) for a, h in anchors)
+
+    def at(self, arc):
+        anchors = self.anchors
+        if not anchors:
+            return 0.0, 0.0
+        if len(anchors) == 1:
+            return float(anchors[0][1]), 0.0
+        arc %= self.length
+        k = 0
+        while k < len(anchors) and anchors[k][0] <= arc:
+            k += 1
+        s0, h0 = anchors[k - 1] if k > 0 else (anchors[-1][0] - self.length, anchors[-1][1])
+        s1, h1 = anchors[k] if k < len(anchors) else (anchors[0][0] + self.length, anchors[0][1])
+        span = s1 - s0
+        t = (arc - s0) / span if span > 0 else 0.0
+        return h0 + (h1 - h0) * t * t * (3.0 - 2.0 * t), (h1 - h0) * 6.0 * t * (1.0 - t) / span if span > 0 else 0.0
+
+
+def street_heights(city):
+    """The street's height at every centerline point and every branch point
+    (tenths), or None for a city on one level: data for the proposed slope
+    physics."""
+    spec = city.get("elevation")
+    if not spec:
+        return None
+    line = city["centerline"]
+    profile = Profile(spec["street"], loop_length(line))
+    arc, loop = 0.0, []
+    for i in range(len(line)):
+        if i:
+            arc += sqrt((line[i][0] - line[i - 1][0]) ** 2 + (line[i][1] - line[i - 1][1]) ** 2)
+        loop.append(round(profile.at(arc)[0], 1))
+    branches = [[round(float(height), 1)] * len(branch)
+                for branch, height in zip(city.get("branches", []), spec.get("branches", []))]
+    return {"centerline": loop, "branches": branches}
+
+
 
 
 # ---------------------------------------------------------------------------
@@ -1480,4 +1542,601 @@ ORGRIMMAR = {
     ],
 }
 
-CITIES = [STORMWIND, IRONFORGE, ORGRIMMAR]
+# ---------------------------------------------------------------------------
+# Darnassus Canopy Run
+#
+# The owner's red loop on the in-game Darnassus map (1000 x 660 pixels),
+# counter-clockwise as his blue arrow points: the start grid on the road in
+# from the Warrior's Terrace (his red marks), a right turn north at the
+# central terrace, up past the Craftsmen's Terrace, west below the Cenarion
+# Enclave, down the causeway through the Temple Gardens' lake, round the
+# Temple of the Moon and back up past the Tradesmen's Terrace. The city
+# stands in Teldrassil's crown: its terraces and gardens are floor, beyond
+# them the World Tree's bark; the lakes are traced from the map's water.
+
+DN_MAP = {"scale": 4.3, "left": 287, "bottom": 585}
+
+
+def DW(mx, my):
+    return ((mx - DN_MAP["left"]) * DN_MAP["scale"], (DN_MAP["bottom"] - my) * DN_MAP["scale"])
+
+
+def dpoly(*points):
+    return [DW(*q) for q in points]
+
+
+def dprop(model, mx, my, **kw):
+    x, y = DW(mx, my)
+    return prop(model, round(x, 1), round(y, 1), **kw)
+
+
+DN_LOOP = [  # driving order (counter-clockwise), from the central terrace where the start road joins
+    (585.0, 327.7), (572.7, 324.3), (562.6, 318.6), (558.7, 307.9), (562.0, 296.1), (568.7, 281.0), (577.1, 267.4),
+    (581.3, 252.1), (583.2, 236.0), (595.2, 225.8), (600.3, 211.8), (598.6, 198.0), (586.0, 187.9), (565.5, 180.9),
+    (545.0, 179.3), (519.4, 171.6), (500.0, 161.3), (485.4, 163.2), (477.7, 172.0), (475.4, 188.1), (472.6, 203.0),
+    (458.2, 214.3), (440.2, 215.6), (422.7, 222.6), (416.9, 237.8), (423.5, 247.6), (435.3, 259.5), (441.2, 277.0),
+    (438.9, 291.6), (427.6, 305.6), (417.0, 318.7), (411.0, 332.1), (416.5, 345.6), (423.1, 360.0), (424.4, 380.0),
+    (423.4, 404.9), (424.5, 430.0), (426.0, 454.8), (431.2, 473.4), (439.8, 486.3), (452.2, 491.7), (464.9, 498.9),
+    (473.7, 509.1), (481.8, 518.8), (495.1, 519.9), (503.8, 512.3), (506.4, 499.4), (514.7, 487.5), (527.5, 476.2),
+    (541.1, 465.6), (551.1, 451.6), (565.2, 439.2), (579.5, 434.7), (588.7, 424.6), (593.8, 408.1), (591.8, 387.3),
+    (587.8, 367.8), (586.2, 348.0),
+]
+DN_ROAD = [(642, 328), (625, 328), (608, 328), (594, 328)]          # start spur, from the Warrior's Terrace
+DARNASSUS_LINE = catmull_rom([DW(*p) for p in smooth(DN_LOOP, passes=2)], step=16.0)
+DARNASSUS_SPUR = catmull_rom([DW(*p) for p in DN_ROAD], closed=False, step=16.0)
+
+
+def dn_arc(mx, my):
+    return arc_at(DARNASSUS_LINE, mx, my, DW)
+
+
+DARNASSUS_START, DARNASSUS_START_HEADING = along_spur(60.0, DARNASSUS_SPUR)
+
+# The lakes, traced from the map's water (the Temple Gardens' lake west of
+# the course, the lake inside it, the Cenarion Enclave's pool).
+DARNASSUS_WATER = [
+    dpoly((365, 512), (352, 510), (332, 486), (334, 467), (328, 453), (328, 443), (336, 418), (334, 385), (324, 366),
+          (328, 357), (322, 342), (306, 330), (310, 326), (322, 332), (328, 321), (321, 312), (304, 310), (328, 300),
+          (344, 268), (363, 262), (403, 268), (426, 260), (428, 264), (424, 278), (432, 293), (408, 310), (401, 326),
+          (397, 328), (387, 316), (370, 308), (357, 294), (334, 310), (348, 337), (342, 357), (347, 368), (365, 370),
+          (372, 354), (386, 354), (394, 357), (384, 374), (392, 396), (382, 409), (380, 422), (386, 424), (416, 404),
+          (418, 407), (420, 427), (400, 432), (396, 436), (394, 460), (398, 466), (410, 470), (404, 478), (391, 484),
+          (384, 476), (386, 457), (375, 442), (365, 436), (351, 440), (340, 451), (336, 466), (342, 477), (354, 486),
+          (372, 484), (380, 493)),
+    dpoly((524, 460), (518, 458), (514, 445), (494, 428), (464, 446), (462, 440), (466, 428), (460, 422), (468, 413),
+          (462, 408), (442, 414), (442, 419), (452, 426), (449, 428), (435, 428), (432, 413), (432, 390), (435, 388),
+          (452, 392), (463, 382), (468, 396), (482, 406), (488, 398), (491, 384), (502, 388), (512, 402), (524, 408),
+          (526, 424), (530, 430), (530, 439), (538, 447)),
+    dpoly((484, 322), (462, 322), (446, 309), (446, 298), (456, 292), (464, 280), (466, 271), (460, 259), (462, 256),
+          (474, 258), (480, 265), (478, 288), (483, 296), (501, 296), (508, 288), (514, 286), (522, 294), (530, 290),
+          (536, 296), (532, 311), (525, 322), (509, 322), (505, 310), (490, 310), (484, 315), (486, 320)),
+    dpoly((512, 376), (495, 370), (480, 359), (492, 354), (495, 342), (505, 348), (514, 342), (523, 340), (526, 344),
+          (518, 357), (524, 371)),
+    dpoly((382, 240), (376, 238), (368, 213), (365, 210), (360, 214), (356, 206), (359, 204), (363, 206), (373, 196),
+          (393, 190), (396, 193), (386, 201), (382, 214), (386, 233)),
+]
+
+ELVEN = "war3.w3mod:doodads/silvermoon/structures/"
+NIGHTELF = "war3.w3mod:buildings/nightelf/"
+ASHEN = "war3.w3mod:doodads/ashenvale/"
+RUINS = "war3.w3mod:doodads/ruins/"
+NE_UNITS = UNITS + "nightelf/"
+# Silvermoon's teal domes and gold trim made Darnassus's violet and silver.
+NIGHTELF_ROOFS = [(150.0, 235.0, 272.0, 0.12, 1.0, 0.95), (20.0, 70.0, 250.0, 0.25, 0.25, 1.05)]
+DARNASSUS_TERRAIN = [   # draw order, lowest first
+    {"name": "leaves", "tile": T + "ashenvale/ashen_leaves.dds", "shade": (0.95, 1.0, 1.05)},
+    {"name": "grass", "tile": T + "ashenvale/ashen_grass.dds", "variety": 40},
+    {"name": "lumpy", "tile": T + "ashenvale/ashen_grasslumpy.dds", "variety": 40},
+    {"name": "dirt", "tile": T + "ashenvale/ashen_dirt.dds", "variety": 30},
+    {"name": "mosaic", "tile": T + "ruins/ruins_roundtiles.dds", "shade": (1.05, 0.95, 1.15, 0.45)},
+    {"name": "slabs", "tile": T + "ruins/ruins_largebricks.dds", "shade": (1.1, 1.06, 1.16, 0.3), "variety": 30},
+]
+ASHEN_TREES = [kind("war3.w3mod:doodads/terrain/ashentree/ashentree%d.mdx" % n, alpha_shadow=True, limit=6)
+               for n in (0, 2, 4, 6, 8)]
+CANOPY = kind(ASHEN + "plants/ashencanopytree/ashencanopytree0.mdx", alpha_shadow=True, weight=0.6, limit=4)
+ELF_HOUSES = [
+    kind(ELVEN + "silvermoonresidentialbuildings_%s/silvermoonresidentialbuildings_%s.mdx" % (a, a),
+         recolor=NIGHTELF_ROOFS, limit=6) for a in ("0", "45", "90", "135")
+] + [kind(NIGHTELF + "huntershall/huntershall.mdx", weight=0.7, limit=3),
+     kind(NIGHTELF + "bearden/bearden.mdx", weight=0.6, limit=2),
+     kind(ELVEN + "silvermoontowerdoodadssmall/silvermoontowerdoodadssmall.mdx", recolor=NIGHTELF_ROOFS,
+          weight=0.6, limit=4)]
+MOON_LAMP = kind(ASHEN + "props/brazier/brazier.mdx", limit=10)
+NE_TRIM = [MOON_LAMP, kind(ASHEN + "props/obelisk/obelisk0.mdx", weight=0.6, limit=4),
+           kind(RUINS + "props/ruinspillar/ruinspillar0.mdx", weight=0.6, limit=4),
+           kind(RUINS + "plants/ruins_shrub/ruins_shrub0.mdx", weight=0.8, limit=6),
+           kind(RUINS + "plants/ruins_flower/ruins_flower0.mdx", weight=0.8, limit=6)]
+NIGHT_ELVES = [kind(NE_UNITS + "archer/archer.mdx"), kind(NE_UNITS + "huntress/huntress.mdx", weight=0.6),
+               kind(NE_UNITS + "dryad/dryad.mdx", weight=0.6), kind(NE_UNITS + "druidoftheclaw/druidoftheclaw.mdx", weight=0.4),
+               kind(NE_UNITS + "runner/runner.mdx", weight=0.7)]
+
+DARNASSUS_DISTRICTS = [
+    {"name": "Craftsmen's Terrace", "ground": "grass",
+     "seeds": [DW(560, 160), DW(640, 190), DW(520, 230), DW(660, 250), DW(545, 270)],
+     "buildings": ELF_HOUSES + ASHEN_TREES, "density": {"buildings": 0.75, "trim": 0.8, "people": 0.8},
+     "trim": NE_TRIM, "people": NIGHT_ELVES},
+    {"name": "Warrior's Terrace", "ground": "lumpy",
+     "seeds": [DW(680, 330), DW(720, 420), DW(650, 300), DW(700, 260)],
+     "buildings": [kind(NIGHTELF + "huntershall/huntershall.mdx", limit=2),
+                   kind(NIGHTELF + "ancientprotector/ancientprotector.mdx", weight=0.5, limit=2)] + ASHEN_TREES,
+     "trim": NE_TRIM, "people": [kind(NE_UNITS + "archer/archer.mdx"), kind(NE_UNITS + "huntress/huntress.mdx")]},
+    {"name": "Tradesmen's Terrace", "ground": "grass",
+     "seeds": [DW(560, 420), DW(640, 470), DW(600, 540), DW(520, 560), DW(650, 400)],
+     "buildings": ELF_HOUSES + [kind(OTHER + "merchant/merchant.mdx", weight=0.4, limit=2)] + ASHEN_TREES,
+     "density": {"buildings": 0.75, "trim": 0.8, "people": 0.8}, "trim": NE_TRIM, "people": NIGHT_ELVES},
+    {"name": "Temple Gardens", "ground": "lumpy",
+     "seeds": [DW(360, 330), DW(390, 440), DW(330, 500), DW(460, 350), DW(480, 420), DW(500, 470)],
+     "buildings": ASHEN_TREES + [CANOPY, kind(NIGHTELF + "moonwell/moonwell.mdx", limit=4)],
+     "density": {"buildings": 0.6, "trim": 0.7, "people": 0.6},
+     "trim": NE_TRIM, "people": [kind(NE_UNITS + "dryad/dryad.mdx"), kind(NE_UNITS + "archer/archer.mdx")]},
+    {"name": "Cenarion Enclave", "ground": "leaves",
+     "seeds": [DW(360, 170), DW(420, 140), DW(320, 230), DW(440, 180)],
+     "buildings": [kind(NIGHTELF + "ancientoflore/ancientoflore.mdx", limit=2),
+                   kind(NIGHTELF + "ancientofwind/ancientofwind.mdx", limit=2),
+                   kind(NIGHTELF + "ancientofwar/ancientofwar.mdx", weight=0.5, limit=1),
+                   kind(NIGHTELF + "bearden/bearden.mdx", limit=2), CANOPY] + ASHEN_TREES,
+     "trim": NE_TRIM, "people": [kind(NE_UNITS + "druidoftheclaw/druidoftheclaw.mdx"), kind(NE_UNITS + "dryad/dryad.mdx")]},
+    {"name": "Temple of the Moon", "ground": "slabs",
+     "seeds": [DW(470, 560), DW(400, 560), DW(540, 575)],
+     "buildings": [kind(ASHEN + "props/sentinelstatue/sentinelstatue.mdx", limit=4)] + ASHEN_TREES[:2],
+     "trim": [MOON_LAMP], "people": [kind(NE_UNITS + "heromoonpriestess/heromoonpriestess.mdx", limit=3),
+                                     kind(NE_UNITS + "archer/archer.mdx")]},
+    {"name": "The Howling Oak", "ground": "leaves", "seeds": [DW(480, 115)], "buildings": ASHEN_TREES + [CANOPY]},
+]
+
+DARNASSUS = {
+    "id": "darnassus_canopy",
+    "version": 1,
+    "wall_clearance": KART,
+    "full_speed_to_walls": True,
+    "name": "Darnassus Canopy Run",
+    "folder": "Darnassus",
+    "size": (2048, 2048),
+    "team": (0.42, 0.22, 0.70),                  # Darnassus violet
+    "lean": 0.6,
+    "kart_clearance": KART,
+    "street_reach": 100,
+    "centerline": DARNASSUS_LINE,
+    "branches": [DARNASSUS_SPUR],
+    "plazas": [],
+    "gates": [
+        gate_on("Craftsmen's Terrace", DARNASSUS_LINE, *DW(600.3, 211.8)),
+        gate_on("Cenarion Enclave", DARNASSUS_LINE, *DW(458.2, 214.3)),
+        gate_on("Temple Gardens", DARNASSUS_LINE, *DW(424.4, 380.0)),
+        gate_on("Temple of the Moon", DARNASSUS_LINE, *DW(481.8, 518.8)),
+        gate_on("Tradesmen's Terrace", DARNASSUS_LINE, *DW(551.1, 451.6)),
+        gate_on("Warrior's Terrace", DARNASSUS_LINE, *DW(562.0, 296.1)),
+    ],
+    "spawn": DARNASSUS_START + (DARNASSUS_START_HEADING,),
+    "replaceables": {11: T + "ashenvale/ashen_cliff0.dds",
+                     32: "war3.w3mod:replaceabletextures/ashenvaletree/ashentree.dds"},
+    "terrain": DARNASSUS_TERRAIN,
+    "districts": DARNASSUS_DISTRICTS,
+    # The road on from the start grid to the Warrior's Terrace and out.
+    "zones": [{"terrain": "slabs", "shape": ("rect", (DW(640, 0)[0], DARNASSUS_SPUR[0][1] - 60, 2048,
+                                                        DARNASSUS_SPUR[0][1] + 60))}],
+    "water": DARNASSUS_WATER,
+    "land": [],
+    "canals": [],
+    "bridges": [],
+    # Teldrassil's bark beyond the city's floors.
+    "rock": {
+        "band": 124,
+        "floors": [
+            dpoly((287, 109), (530, 109), (575, 132), (640, 140), (700, 178), (722, 280), (763, 296), (763, 362),
+                  (726, 382), (722, 472), (694, 552), (650, 585), (287, 585)),
+        ],
+        "top_texture": ("war3.w3mod:doodads/ashenvale/structures/worldtree/worldtree256.dds", (0, 0, 256, 256),
+                        (1.0, 0.92, 0.86, 0.9)),
+        "face_texture": ("war3.w3mod:replaceabletextures/ashenvaletree/ashentree.dds", (130, 0, 188, 128),
+                         (0.95, 0.88, 0.82, 0.9)),
+        "height": 70, "fade": 50, "dark": 0.82,
+    },
+    # The terraces: the Craftsmen's and Warrior's Terraces (and the Cenarion
+    # Enclave) on the upper tier, the Tradesmen's Terrace a step lower, the
+    # Temple Gardens, the lake and the Temple of the Moon at the bottom. The
+    # start road and the course's north run on the upper tier; the course
+    # ramps down past the Enclave to the gardens' causeway and climbs back up
+    # past the Tradesmen's Terrace to the start road's junction.
+    "elevation": {
+        "ground": 0,
+        "levels": [
+            (dpoly((287, 109), (763, 109), (763, 345), (570, 350), (548, 300), (548, 252), (445, 248), (412, 250),
+                   (380, 262), (287, 262)), 44),                                   # the Craftsmen's and Warrior's tier
+            (dpoly((763, 345), (763, 585), (600, 585), (560, 500), (575, 455), (570, 350)), 22),  # the Tradesmen's
+        ],
+        "street": [(dn_arc(485.4, 163.2), 44), (dn_arc(423.5, 247.6), 0), (dn_arc(527.5, 476.2), 0),
+                   (dn_arc(586.2, 348.0), 44)],
+        "branches": [44],
+        "face_texture": (T + "ashenvale/ashen_cliff0.dds", (0, 0, 192, 63), (1.0, 0.96, 1.04, 0.8)),
+        "slope_shade": 4.0, "ramp_joints": 22, "shadow": 0.30, "height_light": 0.0035,
+    },
+    "rings": [],
+    "reserved": [],
+    "lights": [],
+    "sections": [],
+    "road_default": (T + "ruins/ruins_largebricks.dds", (1.15, 1.12, 1.22, 0.3)),
+    "alleys": [],
+    "steps": [],
+    "squares": [],
+    "bridge_depth": 15,
+    "arch_every": 34,
+    "water_texture": "war3.w3mod:replaceabletextures/water/water00.dds",
+    "water_tint": (0.22, 0.44, 0.56),
+    "water_rim": (206, 200, 220),
+    "quay_face": (150, 142, 172),
+    "quay_depth": 8,
+    "road_tile": T + "ruins/ruins_largebricks.dds",
+    "road_shade": 1.0,
+    "sidewalk_tile": T + "ruins/ruins_roundtiles.dds",
+    "sidewalk_shade": (1.0, 0.95, 1.12, 0.5),
+    "plaza_tile": T + "ruins/ruins_roundtiles.dds",
+    "plaza_shade": 0.9,
+    "curb_color": (212, 206, 224),
+    "gutter_color": (92, 86, 116),
+    "hedged": [],
+    "bridge_posts": None,
+    "wall_styles": {
+        "parapet": ((190, 184, 206), (234, 230, 244), (112, 106, 132)),
+        "land": ((176, 168, 194), (222, 216, 234), (98, 92, 118)),
+    },
+    "wall": {"thickness": 4, "height": 10, "pillar_height": 17, "pillar_every": 56,
+             "face": (176, 168, 194), "cap": (222, 216, 234), "shadow": (98, 92, 118)},
+    "fill": {"step": 20, "reach": 360, "gap": 10, "spacing": 6},
+    "trim": {"step": 26, "reach": 44, "gap": 3, "spacing": 10},
+    "people": {"step": 22, "reach": 34, "gap": 2, "spacing": 6},
+    "furniture": [
+        {"prop": prop(ASHEN + "props/brazier/brazier.mdx", 0, 0), "every": 190, "offset": 6, "start": 80,
+         "where": "land"},
+    ],
+    "solids": [],
+    "props": [
+        # The Temple of the Moon: its shrine and moon well behind the course's
+        # southern curve.
+        dict(dprop(NIGHTELF + "altarofelders/altarofelders.mdx", 470, 552, scale=0.55), nudge=True),
+        dict(dprop(NIGHTELF + "moonwell/moonwell.mdx", 430, 548, scale=0.4), nudge=True),
+        dict(dprop(NIGHTELF + "moonwell/moonwell.mdx", 512, 548, scale=0.4), nudge=True),
+        # The Cenarion Enclave: the Tree of Eternity among its ancients.
+        dict(dprop(NIGHTELF + "treeoflife/treeoflife.mdx", 380, 150, sequence="Stand Upgrade Second", scale=0.4),
+             nudge=True),
+        # The Warrior's Terrace: its hall beside the road the karts start on.
+        dict(dprop(NIGHTELF + "huntershall/huntershall.mdx", 735, 420, scale=0.34, yaw=180), nudge=True),
+        dict(dprop(NE_UNITS + "hippogryph/hippogryph.mdx", 700, 290, yaw=225), nudge=True),
+        # The Howling Oak, north beyond the Craftsmen's Terrace.
+        dict(dprop(ASHEN + "plants/ashencanopytree/ashencanopytree0.mdx", 484, 118, scale=0.5, alpha_shadow=True),
+             nudge=True),
+    ],
+}
+
+# ---------------------------------------------------------------------------
+# Undercity Slime Circuit
+#
+# The owner's red line on the in-game Undercity map (717 x 734 pixels), with
+# his blue arrow: the karts start on the Canals' southern stretch below the
+# Apothecarium, heading east. Counter-clockwise round the outer ring past
+# the Rogues' Quarter, the Magic Quarter and the War Quarter, then a hairpin
+# into the inner city: east into the Trade Quarter, clockwise round its
+# centre, out to the south, west along the inner canal and round its end
+# back onto the start straight. The route never crosses itself. Undercity
+# lies under the Ruins of Lordaeron: its round city and the quarters' halls
+# are floor, the earth round them rock; the green canals are traced from the
+# map's slime (the green texels), simplified by hand.
+
+UC_MAP = {"scale": 3.8, "left": 68, "bottom": 642}
+
+
+def UW(mx, my):
+    return ((mx - UC_MAP["left"]) * UC_MAP["scale"], (UC_MAP["bottom"] - my) * UC_MAP["scale"])
+
+
+def upoly(*points):
+    return [UW(*q) for q in points]
+
+
+def uprop(model, mx, my, **kw):
+    x, y = UW(mx, my)
+    return prop(model, round(x, 1), round(y, 1), **kw)
+
+
+def ucircle(mx, my, radius, count=48):
+    """A circle on the map (map pixels) as a world polygon (tenths, so every
+    machine's sine and cosine give the same points)."""
+    out = []
+    for k in range(count):
+        x, y = UW(mx + radius * cos(2 * pi * k / count), my + radius * sin(2 * pi * k / count))
+        out.append((round(x, 1), round(y, 1)))
+    return out
+
+
+UC_LOOP = [  # driving order (counter-clockwise outside, clockwise round the centre), from the start straight
+    (266.0, 573.2), (300.3, 576.6), (340.0, 578.6), (380.0, 579.5), (419.6, 574.9), (448.3, 568.9), (480, 556),
+    (505, 540), (520, 528), (540, 507), (548.4, 497.4), (554.9, 479.4), (550.4, 461.9), (531.4, 449.1),
+    (515.7, 439.1), (512.7, 420.3), (520.1, 396.1), (524.3, 370.6), (524.0, 339.7), (523.7, 309.6), (518.5, 278.7),
+    (505.1, 255.0), (488.2, 237.4), (468.3, 216.7), (444.9, 197.2), (419.3, 188.0), (389.6, 182.0), (360.0, 180.5),
+    (329.9, 181.9), (304.6, 188.5), (289.4, 196.5), (275.3, 200.4), (262.0, 198.0), (236, 184), (222.1, 170.5),
+    (200.0, 164.9), (180.4, 170.7), (164.0, 183.8), (153.7, 200.6), (145.0, 225.0), (137.7, 255.0), (128.7, 289.7),
+    (120.7, 329.9), (118.6, 370.1), (120.7, 404.8), (130.0, 427.8), (138.9, 444.4), (150.6, 453.0), (167.2, 451.2),
+    (183.4, 435.9), (188.6, 415.0), (183.9, 395.9), (174.7, 378.8), (176.6, 361.4), (189.4, 348.6), (210.0, 342.5),
+    (234.9, 341.9), (253.6, 350.6), (279.5, 359.9), (298.7, 358.8), (304.4, 344.8), (306.9, 324.8), (319.0, 306.8),
+    (335.6, 298.1), (360.1, 296.5), (383.6, 302.4), (403.8, 317.2), (417.0, 339.5), (418.1, 365.0), (408.3, 381.5),
+    (391.4, 395.9), (373.3, 406.0), (362.4, 419.7), (354.0, 439.8), (355.0, 470.0), (351.7, 500.0), (350.4, 519.4),
+    (334.9, 527.4), (310.0, 525.6), (285.3, 519.2), (262.6, 519.3), (250.3, 530.2), (248.0, 548.0), (255.5, 564.4),
+]
+UNDERCITY_LINE = catmull_rom([UW(*p) for p in smooth(UC_LOOP, passes=2)], step=16.0)
+
+
+def uc_arc(mx, my):
+    return arc_at(UNDERCITY_LINE, mx, my, UW)
+
+
+def along_loop(distance, line):
+    """The point `distance` units along a closed line from its first point,
+    and its heading: a start on the loop itself."""
+    return along_spur(distance, list(line) + [line[0]])
+
+
+# The start: on the loop below the Apothecarium where the owner's blue arrow
+# points, heading east; the finish line a little behind it.
+UNDERCITY_START, UNDERCITY_START_HEADING = along_loop(uc_arc(335, 578), UNDERCITY_LINE)
+
+# The city's centre (the Trade Quarter's rose window) and the radius of the
+# Trade Quarter's wall, on the map.
+UC_CENTRE = (352, 355)
+UC_INNER_WALL = 115
+
+# The slime canals, traced from the map's green.
+UNDERCITY_WATER = [
+    upoly((553, 450), (542, 446), (532, 437), (538, 430), (540, 418), (546, 410), (546, 401), (550, 390), (554, 363),
+          (552, 315), (546, 286), (536, 276), (532, 257), (528, 247), (518, 238), (508, 219), (508, 199), (482, 196),
+          (474, 190), (476, 182), (473, 178), (462, 172), (454, 174), (448, 171), (454, 166), (458, 148), (493, 170),
+          (506, 182), (510, 196), (518, 200), (520, 212), (542, 225), (544, 231), (538, 238), (547, 250), (552, 252),
+          (564, 244), (568, 247), (560, 259), (564, 274), (570, 280), (570, 295), (578, 316), (576, 386), (570, 394),
+          (574, 402), (566, 424), (558, 437), (560, 442)),                                    # the Magic Quarter's
+    upoly((157, 448), (156, 435), (148, 426), (150, 419), (136, 378), (136, 332), (142, 296), (156, 254), (176, 217),
+          (181, 216), (197, 220), (207, 216), (208, 218), (200, 230), (197, 234), (188, 230), (180, 244), (184, 254),
+          (174, 276), (162, 315), (160, 375), (166, 396), (172, 405), (178, 435)),          # the War Quarter's
+    upoly((354, 576), (295, 566), (262, 552), (255, 552), (252, 547), (264, 524), (303, 540), (366, 546), (407, 542),
+          (412, 538), (423, 538), (431, 532), (445, 528), (456, 549), (437, 560), (419, 564), (405, 570),
+          (386, 570)),                                                                       # the southern
+    upoly((476, 536), (462, 516), (485, 502), (496, 488), (506, 484), (515, 488), (518, 486), (521, 476), (526, 480),
+          (531, 470), (536, 470), (534, 488), (526, 494), (524, 499), (506, 518), (490, 524)),  # the Rogues' Quarter's
+    upoly((232, 536), (228, 533), (232, 522), (227, 516), (219, 510), (210, 518), (200, 506), (192, 501), (188, 492),
+          (182, 489), (193, 484), (197, 488), (211, 486), (235, 506), (243, 508), (246, 515)),  # the Apothecarium's
+]
+
+DALARAN_RUINS = T + "dalaranruins/"
+DUNGEON2 = T + "dungeon2/"
+UNDEAD = "war3.w3mod:buildings/undead/"
+UD_UNITS = UNITS + "undead/"
+UNDERCITY_TERRAIN = [   # draw order, lowest first
+    {"name": "bricks", "tile": DALARAN_RUINS + "druins_bricktiles.dds", "shade": (1.35, 1.35, 1.35, 0.5)},
+    {"name": "violet", "tile": DALARAN_RUINS + "druins_squaretiles.dds", "shade": (1.3, 1.2, 1.32, 0.7)},
+    {"name": "marble", "tile": DALARAN_RUINS + "druins_blackmarble.dds", "shade": (1.7, 1.5, 1.6, 0.7)},
+    {"name": "green", "tile": DUNGEON2 + "gsquaretiles.dds", "shade": (1.3, 1.36, 1.22, 0.7)},
+]
+# The Scourge's red fires made the Forsaken's sickly green.
+FORSAKEN_GREEN = [(330.0, 360.1, 100.0, 0.25), (0.0, 25.0, 100.0, 0.25)]
+# A brazier's flame made green, and its pool of green light.
+GREEN_FIRE = [(8.0, 62.0, 104.0, 0.3)]
+SLIME_LIGHT = (34, (18, 62, 14))
+SLIME_TEAM = (0.30, 0.85, 0.12)              # a team-coloured pool filled with the canals' slime
+FEL_BRAZIER = kind(SUMMER + "props/brazier/brazier.mdx", recolor=GREEN_FIRE, light=SLIME_LIGHT, limit=8)
+UD_BUILDINGS = {
+    name: kind(UNDEAD + "%s/%s.mdx" % (name, name), recolor=FORSAKEN_GREEN, limit=2)
+    for name in ("altarofdarkness", "boneyard", "crypt", "gargoylespire", "graveyard", "sacrificialpit",
+                 "slaughterhouse", "templeofthedamned", "tombofrelics", "ziggurat")
+}
+DUNGEON_PROPS = DUNGEON + "props/"
+NORTH_PROPS = NORTH + "props/"
+GRAVES = [kind(SUMMER + "props/grave/grave.mdx", weight=0.7, limit=6),
+          kind(NORTH_PROPS + "northrendgrave/northrendgrave.mdx", weight=0.5, limit=4),
+          kind(NORTH_PROPS + "northrendtombstone/northrendtombstone0.mdx", weight=0.6, limit=4),
+          kind(CITY + "props/citygrave/citygrave0.mdx", weight=0.6, limit=4)]
+TORMENT = [kind(DUNGEON_PROPS + "ironmaiden/ironmaiden.mdx", limit=3),
+           kind(DUNGEON_PROPS + "torturetable/torturetable.mdx", limit=3),
+           kind(DUNGEON_PROPS + "chainpost/chainpost.mdx", limit=4),
+           kind(SUMMER + "props/cage/cage.mdx", weight=0.6, limit=3)]
+SEWER = [kind(DUNGEON_PROPS + "sewervent/sewervent%d.mdx" % n, weight=0.5, limit=3) for n in (0, 1)] + \
+        [kind(DUNGEON_PROPS + "junkpile/junkpile0.mdx", weight=0.5, limit=3)]
+BONES = [kind(SUMMER + "props/skullpile/skullpile0.mdx", weight=0.6, limit=4),
+         kind(SUMMER + "props/ribbones/ribbones0.mdx", weight=0.4, limit=2)]
+GHOUL = kind(UD_UNITS + "ghoul/ghoul.mdx")
+ACOLYTE = kind(UD_UNITS + "acolyte/acolyte.mdx")
+SKELETON = kind(UD_UNITS + "skeleton/skeleton.mdx", weight=0.7)
+BANSHEE = kind(UD_UNITS + "banshee/banshee.mdx", weight=0.7)
+FORSAKEN = [GHOUL, ACOLYTE, SKELETON, BANSHEE, kind(UD_UNITS + "necromancer/necromancer.mdx", weight=0.6),
+            kind("war3.w3mod:units/critters/rat/rat.mdx", weight=0.4)]
+
+
+def uc_ring(radius, start, stop, step=15):
+    """District seeds round the city's centre (map pixels, degrees counter-
+    clockwise from east, every `step` from start + step / 2): rings of seeds
+    either side of a circle put the districts' border on it."""
+    out = []
+    a = start + step / 2
+    while a < stop:
+        x, y = UW(UC_CENTRE[0] + radius * cos(a * pi / 180), UC_CENTRE[1] - radius * sin(a * pi / 180))
+        out.append((round(x, 1), round(y, 1)))
+        a += step
+    return out
+
+
+UNDERCITY_DISTRICTS = [
+    {"name": "Trade Quarter", "ground": "bricks",          # under the sunken floor the elevation paints
+     "seeds": [UW(*UC_CENTRE)] + uc_ring(90, 0, 360),
+     "buildings": [kind(OTHER + "merchant/merchant.mdx", recolor=FORSAKEN_GREEN, limit=3),
+                   kind(DUNGEON_PROPS + "table/table.mdx", limit=4), FEL_BRAZIER] + BONES,
+     "density": {"buildings": 0.55, "trim": 0.7, "people": 0.9},
+     "trim": [kind(DUNGEON_PROPS + "bookshelf/bookshelf.mdx", limit=3), BARRELS, BOXES, FEL_BRAZIER],
+     "people": FORSAKEN},
+    {"name": "War Quarter", "ground": "bricks",
+     "seeds": uc_ring(140, 90, 180) + uc_ring(225, 90, 180) + [UW(100, 140)],
+     "buildings": [UD_BUILDINGS["crypt"], UD_BUILDINGS["slaughterhouse"], UD_BUILDINGS["boneyard"],
+                   UD_BUILDINGS["ziggurat"], FEL_BRAZIER],
+     "density": {"buildings": 0.7, "trim": 0.8, "people": 0.8},
+     "trim": [WEAPONS, ARMOR] + TORMENT[2:] + BONES,
+     "people": [kind(UD_UNITS + "abomination/abomination.mdx", weight=0.5, limit=4),
+                kind(UD_UNITS + "herodeathknight/herodeathknight.mdx", weight=0.4, limit=2), SKELETON, GHOUL,
+                kind(UD_UNITS + "cryptfiend/cryptfiend.mdx", weight=0.5, limit=3)]},
+    {"name": "Magic Quarter", "ground": "violet",
+     "seeds": uc_ring(140, 0, 90) + uc_ring(225, 0, 90) + [UW(595, 125)],
+     "buildings": [UD_BUILDINGS["templeofthedamned"], UD_BUILDINGS["tombofrelics"], UD_BUILDINGS["gargoylespire"],
+                   FEL_BRAZIER],
+     "density": {"buildings": 0.7, "trim": 0.8, "people": 0.8},
+     "trim": [kind(DUNGEON_PROPS + "bookshelf/bookshelf.mdx", limit=4), kind(DUNGEON_PROPS + "table/table.mdx", limit=3),
+              kind(CITY + "props/crystallamp/crystallamp.mdx", limit=4),
+              kind(NORTH_PROPS + "northrendobilisk/northrendobilisk.mdx", weight=0.5, limit=2),
+              kind(DUNGEON_PROPS + "dungeonobilisk/dungeonobilisk.mdx", weight=0.5, limit=2)],
+     "people": [kind(UD_UNITS + "necromancer/necromancer.mdx"), BANSHEE,
+                kind(UD_UNITS + "skeletonmage/skeletonmage.mdx", weight=0.6), ACOLYTE]},
+    {"name": "Rogues' Quarter", "ground": "marble",
+     "seeds": uc_ring(140, 270, 360) + uc_ring(225, 270, 360) + [UW(600, 610), UW(500, 615)],
+     "buildings": [UD_BUILDINGS["graveyard"], UD_BUILDINGS["crypt"], UD_BUILDINGS["altarofdarkness"],
+                   kind(NORTH + "structures/northrendcrypt/northrendcrypt.mdx", limit=2), FEL_BRAZIER],
+     "density": {"buildings": 0.7, "trim": 0.8, "people": 0.8},
+     "trim": TORMENT + GRAVES,
+     "people": [kind(UD_UNITS + "shade/shade.mdx", limit=4), GHOUL, ACOLYTE,
+                kind(UD_UNITS + "herodreadlord/herodreadlord.mdx", weight=0.4, limit=2)]},
+    {"name": "Apothecarium", "ground": "green",
+     "seeds": uc_ring(140, 180, 270) + uc_ring(225, 180, 270) + [UW(105, 610), UW(200, 615)],
+     "buildings": [UD_BUILDINGS["altarofdarkness"], UD_BUILDINGS["sacrificialpit"],
+                   UD_BUILDINGS["templeofthedamned"], FEL_BRAZIER],
+     "density": {"buildings": 0.7, "trim": 0.8, "people": 0.8},
+     "trim": [kind(SUMMER + "props/cauldronwithheads/cauldronwithheads.mdx", limit=4),
+              kind(DUNGEON_PROPS + "table/table.mdx", limit=3)] + SEWER + BONES,
+     "people": [ACOLYTE, kind(UD_UNITS + "abomination/abomination.mdx", weight=0.5, limit=3),
+                kind(UD_UNITS + "necromancer/necromancer.mdx"), kind("war3.w3mod:units/critters/rat/rat.mdx")]},
+    {"name": "The stair to the Ruins", "ground": "bricks", "seeds": [UW(352, 120)],
+     "buildings": GRAVES, "trim": GRAVES, "people": [BANSHEE]},
+    {"name": "The Canals' south wall", "ground": "bricks", "seeds": [UW(340, 625)],
+     "buildings": SEWER + GRAVES, "trim": SEWER, "people": [GHOUL]},
+]
+
+UNDERCITY = {
+    "id": "undercity_slime",
+    "version": 1,
+    "wall_clearance": KART,
+    "full_speed_to_walls": True,
+    "name": "Undercity Slime Circuit",
+    "folder": "Undercity",
+    "size": (2048, 2048),
+    "team": (0.36, 0.12, 0.46),                  # Forsaken violet
+    "lean": 0.6,
+    "kart_clearance": KART,
+    "street_reach": 100,
+    "centerline": UNDERCITY_LINE,
+    "branches": [],
+    "plazas": [],
+    "gates": [
+        gate_on("Rogues' Quarter", UNDERCITY_LINE, *UW(554.9, 479.4)),
+        gate_on("Magic Quarter", UNDERCITY_LINE, *UW(523.7, 309.6)),
+        gate_on("War Quarter", UNDERCITY_LINE, *UW(120.7, 329.9)),
+        gate_on("Trade Quarter", UNDERCITY_LINE, *UW(360.1, 296.5)),
+        gate_on("Apothecarium", UNDERCITY_LINE, *UW(300.3, 576.6)),
+    ],
+    "spawn": UNDERCITY_START + (UNDERCITY_START_HEADING,),
+    "replaceables": {11: DUNGEON2 + "gcliff0.dds"},
+    "terrain": UNDERCITY_TERRAIN,
+    "districts": UNDERCITY_DISTRICTS,
+    "zones": [],
+    "water": UNDERCITY_WATER,
+    "land": [],
+    "canals": [],
+    "bridges": [],
+    # The earth round the round city and the quarters' halls.
+    "rock": {
+        "band": 96,
+        "floors": [
+            ucircle(UC_CENTRE[0], UC_CENTRE[1], 258),
+            upoly((68, 103), (205, 103), (205, 175), (130, 205), (68, 215)),          # the War Quarter's halls
+            upoly((470, 103), (607, 103), (607, 270), (560, 230), (500, 160)),        # the Magic Quarter's
+            upoly((607, 420), (607, 642), (420, 642), (432, 590), (530, 545)),        # the Rogues' Quarter's
+            upoly((68, 450), (175, 470), (255, 560), (262, 642), (68, 642)),          # the Apothecarium's
+            upoly((300, 103), (404, 103), (404, 160), (300, 160)),                    # the stair to the Ruins
+            upoly((240, 590), (460, 590), (460, 642), (240, 642)),                    # under the start straight
+        ],
+        "top": (T + "dungeon/cave_darkrocks.dds", (0.95, 1.05, 0.9, 0.15)),
+        "face": (DALARAN_RUINS + "druins_bricktiles.dds", (1.2, 1.25, 1.15, 0.5)),
+        "course": 5,
+        "height": 64, "fade": 44, "dark": 0.6,
+    },
+    # The Trade Quarter sunk below the rings round it: the course ramps down
+    # into it from the west and climbs out to the south.
+    "elevation": {
+        "ground": 0,
+        "levels": [(ucircle(UC_CENTRE[0], UC_CENTRE[1], UC_INNER_WALL), -30,
+                    (T + "blackcitadel/citadel_darktiles.dds", (1.5, 1.45, 1.5, 0.25)))],
+        "street": [(uc_arc(196, 346), 0), (uc_arc(279.5, 359.9), -30), (uc_arc(356, 430), -30),
+                   (uc_arc(352, 506), 0)],
+        "branches": [],
+        "face": (DALARAN_RUINS + "druins_bricktiles.dds", (1.9, 1.95, 1.8, 0.3)), "course": 4,
+        "slope_shade": 4.0, "ramp_joints": 22, "shadow": 0.34, "height_light": 0.0035,
+    },
+    "rings": [],
+    "reserved": [],
+    "lights": [],
+    "sections": [],
+    "road_default": (DUNGEON2 + "gsquaretiles.dds", (1.55, 1.6, 1.5, 0.35)),
+    "alleys": [],
+    "steps": [],
+    "squares": [],
+    "bridge_depth": 15,
+    "arch_every": 34,
+    "water_texture": "war3.w3mod:replaceabletextures/water/water00.dds",
+    "water_tint": (0.30, 0.66, 0.08),
+    # The slime: the Dungeon's lava as Undercity's green ooze, glowing.
+    "water_tile": (DUNGEON2 + "glava.dds", (0.7, 0.95, 0.18, 0.75)),
+    "water_glow": (16, 48, 6), "water_glow_reach": 26,
+    "water_rim": (100, 108, 90),
+    "quay_face": (78, 86, 70),
+    "quay_depth": 9,
+    "road_tile": DUNGEON2 + "gsquaretiles.dds",
+    "road_shade": 1.0,
+    "sidewalk_tile": DALARAN_RUINS + "druins_bricktiles.dds",
+    "sidewalk_shade": (1.1, 1.14, 1.06, 0.4),
+    "plaza_tile": DALARAN_RUINS + "druins_bricktiles.dds",
+    "plaza_shade": 0.9,
+    "curb_color": (124, 132, 112),
+    "gutter_color": (44, 50, 38),
+    "hedged": [],
+    "bridge_posts": None,
+    "wall_styles": {
+        "parapet": ((88, 96, 80), (134, 142, 122), (46, 50, 42)),
+        "land": ((96, 92, 104), (142, 138, 152), (50, 48, 56)),
+    },
+    # Iron railings along the street, a spike every few strides.
+    "land_wall": {"style": "land", "height": 9, "spike_every": 22, "spike_width": 2.0, "spike_height": 15},
+    "wall": {"thickness": 4, "height": 10, "pillar_height": 17, "pillar_every": 56,
+             "face": (96, 92, 104), "cap": (142, 138, 152), "shadow": (50, 48, 56)},
+    "fill": {"step": 20, "reach": 360, "gap": 10, "spacing": 6},
+    "trim": {"step": 26, "reach": 44, "gap": 3, "spacing": 10},
+    "people": {"step": 22, "reach": 34, "gap": 2, "spacing": 6},
+    "furniture": [
+        {"prop": prop(SUMMER + "props/brazier/brazier.mdx", 0, 0, recolor=GREEN_FIRE, light=SLIME_LIGHT),
+         "every": 230, "offset": 6, "start": 120, "where": "land"},
+    ],
+    "solids": [],
+    "props": [
+        # The Trade Quarter: a well of slime at its heart, inside the course's
+        # turn round the centre.
+        dict(uprop(UNDEAD + "sacrificialpit/sacrificialpit.mdx", 361, 352, scale=0.34, recolor=FORSAKEN_GREEN,
+                   team=SLIME_TEAM), nudge=True),
+        # The stair up to the Ruins of Lordaeron: Sylvanas before the old throne.
+        dict(uprop(CITY + "props/throne/throne.mdx", 352, 118, scale=0.55), nudge=True),
+        dict(uprop(UD_UNITS + "evilsylvanas/evilsylvanas.mdx", 352, 136, scale=0.45), nudge=True),
+        dict(uprop(UD_UNITS + "banshee/banshee.mdx", 328, 138, scale=0.32), nudge=True),
+        dict(uprop(UD_UNITS + "banshee/banshee.mdx", 376, 138, scale=0.32), nudge=True),
+        # The quarters' halls beyond the outer ring.
+        dict(uprop(UD_BUILDINGS["slaughterhouse"]["prop"]["model"], 112, 150, scale=0.32,
+                   recolor=FORSAKEN_GREEN), nudge=True),
+        dict(uprop(UD_BUILDINGS["templeofthedamned"]["prop"]["model"], 585, 140, scale=0.32,
+                   recolor=FORSAKEN_GREEN), nudge=True),
+        dict(uprop(UD_BUILDINGS["graveyard"]["prop"]["model"], 585, 600, scale=0.32, recolor=FORSAKEN_GREEN),
+             nudge=True),
+        dict(uprop(UD_BUILDINGS["altarofdarkness"]["prop"]["model"], 150, 600, scale=0.32,
+                   recolor=FORSAKEN_GREEN), nudge=True),
+        dict(uprop(UD_UNITS + "obsidianstatue/obsidianstatue.mdx", 480, 610, scale=0.3), nudge=True),
+    ],
+}
+
+CITIES = [STORMWIND, IRONFORGE, ORGRIMMAR, DARNASSUS, UNDERCITY]

@@ -460,6 +460,59 @@ withMock({schemaVersion=1, preferences={version=1, track="ironforge_gp"}}, funct
     sameCounts(env, before, "saved and explicitly selected Ironforge")
 end)
 
+-- Both new cities use deferred saved selection and their own preview cells.
+-- A refused background must preserve an actual ended run, not just an idle pose.
+for _,city in ipairs({{id="darnassus_canopy",cell="darnassus",refusal="false"},
+                     {id="undercity_slime",cell="undercity",refusal="throws"}}) do
+    withMock({schemaVersion=1,preferences={version=1,track=city.id}},function(env,UI,Menu,AK)
+        local before=counts(env)
+        assert(UI.trackId=="test_oval" and not UI.active and UI.race==nil,
+            city.id..": saved city waits for the shown window")
+        UI.Toggle()
+        assert(UI.trackId==city.id and UI.backgroundPath==AK.Courses.get(city.id).background
+            and Menu.screen=="home" and UI.state.tick==0 and UI.race==nil and UI.clock==nil
+            and not UI.active and AzerothKartDB.preferences.track==city.id,
+            city.id..": first open restores its scenery without starting a run")
+        click(Menu.view.homeButtons[1])
+        local preview,cell=Menu.view.trackPreview,Menu.PREVIEW_CELLS[city.cell]
+        assert(preview:IsShown() and preview.texturePath==cell.path
+            and preview.width==cell.width and preview.height==cell.height
+            and preview.texCoords[1]==cell.left and preview.texCoords[2]==cell.right
+            and preview.texCoords[3]==cell.top and preview.texCoords[4]==cell.bottom,
+            city.id..": saved selection displays its complete city preview")
+        sameCounts(env,before,city.id..": saved restore and preview")
+    end)
+    withMock({schemaVersion=1,preferences={version=1,track="mirage_raceway"}},function(env,UI,Menu,AK)
+        UI.Toggle(); Menu.Show(nil); UI.Start(); UI.OnUpdate(1/60)
+        env.combat=true; UI.InterruptCombat(); env.combat=false; UI.OnCombatEnded(); UI.Toggle()
+        assert(UI.result and UI.result.status=="interrupted" and UI.summary:IsShown(),
+            "fixture preserves the actual interrupted result before choosing another track")
+        click(find(env,UI.summary,"Change Track"))
+        local state,race,clock,result,laps,progress=UI.state,UI.race,UI.clock,UI.result,UI.laps,UI.checkpoints
+        local track,id,background,picture=UI.track,UI.trackId,UI.backgroundPath,UI.mirageBackground
+        local coords={}
+        for index,value in ipairs(picture.texCoords) do coords[index]=value end
+        local oldResultReason,oldTicks=result.reason,race.totalTicks
+        local before=counts(env)
+        env.textureModes[AK.Courses.get(city.id).background]=city.refusal
+        click(Menu.view.trackButtons[city.id])
+        assert(UI.track==track and UI.trackId==id and UI.backgroundPath==background
+            and UI.mirageBackground==picture and picture.texturePath==background,
+            city.id..": refused scenery preserves the old authoritative track and visible picture")
+        for index,value in ipairs(coords) do
+            assert(picture.texCoords[index]==value,city.id..": refusal preserves the old camera crop")
+        end
+        assert(UI.state==state and UI.race==race and UI.clock==clock and UI.result==result
+            and UI.laps==laps and UI.checkpoints==progress and not UI.active
+            and result.reason==oldResultReason and race.totalTicks==oldTicks,
+            city.id..": refusal preserves the actual result, pose, laps and timing references")
+        assert(AzerothKartDB.preferences.track==id and Menu.prefs.track==id and Menu.screen=="tracks"
+            and Menu.messages.tracks.text:find("background unavailable",1,true),
+            city.id..": refusal explains the failure without saving a failed selection")
+        sameCounts(env,before,city.id..": refused background selection")
+    end)
+end
+
 -- Choices made with the bar's quick buttons are remembered too, and a saved
 -- choice that fails to load is kept for next time rather than overwritten.
 local BACKGROUND = "Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\SaltFlats\\Background.tga"
@@ -484,8 +537,14 @@ withMock({schemaVersion=1, preferences={version=1, kart="gyrocopter", track="mir
     assert(UI.trackId == "ironforge_gp" and AzerothKartDB.preferences.track == "ironforge_gp",
         "and on to Ironforge")
     click(UI.trackButton)
+    assert(UI.trackId == "darnassus_canopy" and AzerothKartDB.preferences.track == "darnassus_canopy",
+        "and on to Darnassus")
+    click(UI.trackButton)
     assert(UI.trackId == "orgrimmar_canyon" and AzerothKartDB.preferences.track == "orgrimmar_canyon",
         "and on to Orgrimmar")
+    click(UI.trackButton)
+    assert(UI.trackId == "undercity_slime" and AzerothKartDB.preferences.track == "undercity_slime",
+        "and on to Undercity")
     click(UI.trackButton)
     assert(UI.trackId == "test_oval" and AzerothKartDB.preferences.track == "test_oval",
         "switching back is remembered too")
@@ -525,7 +584,7 @@ end)
 -- The coming-soon cities are listed, disabled and inert.
 withMock(nil, function(env, UI, Menu)
     UI.Toggle(); click(Menu.view.homeButtons[1])
-    local soon = Menu.view.soonButtons.darnassus_canopy
+    local soon = Menu.view.soonButtons.thunder_bluff_skyway
     assert(soon and not soon:IsEnabled() and not soon.scripts.OnClick and soon.text:find("(soon)", 1, true),
         "a coming-soon city is listed, disabled and inert")
 end)

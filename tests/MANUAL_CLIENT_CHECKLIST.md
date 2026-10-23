@@ -36,6 +36,17 @@
 4. **Walls.** The palisade and the canyon's cliffs stop the kart as Stormwind's walls do; the gravel strip before them keeps full road speed, drift and boost (no "Off-road" message), as in Stormwind.
 5. **Camera and performance.** Frame rate while driving; Print Probe 75/165/80 with the ten karts (71/165/80 without them): Orgrimmar adds no frames.
 
+## Deferred Darnassus and Undercity check (proposed, `claude/darnassus-undercity`)
+
+**NOT RUN.** After Codex's review and coordinated install, fully restart the client (the `Assets/Tracks/Darnassus/` and `Assets/Tracks/Undercity/` pictures are new files). The owner runs these.
+
+1. **Track screen.** *Capital Cities Cup* lists Stormwind City Circuit, Ironforge Grand Prix, Darnassus Canopy Run, Orgrimmar Canyon Rush and Undercity Slime Circuit, then Thunder Bluff Skyway "(soon)". Choose each new city: its preview and three facts appear. The bar's Track button steps Stormwind, Ironforge, Darnassus, Orgrimmar, Undercity, then Test Oval.
+2. **Load.** The fourth and fifth 2048×2048 TGAs (the staging loader still holds at most two). Record a refusal ("... background unavailable | Test Oval remains available") and any hitch when switching between the cities.
+3. **Darnassus.** The kart starts on the road in from the Warrior's Terrace facing west; at the central terrace the course turns north (the finish line is there), then counter-clockwise: past the Craftsmen's Terrace, along the top, down past the Cenarion Enclave, the causeway by the lake, round the Temple of the Moon, up past the Tradesmen's Terrace. The HUD names each next gate (six). Record whether the terraces read as higher and lower ground (stone walls along the tiers, the gardens darker below them) and whether the ramps read as ramps.
+4. **Undercity.** The kart starts on the loop below the Apothecarium facing east, just past the finish line, the green canal on its left. Counter-clockwise round the Rogues', Magic and War Quarters, the hairpin, down the ramp into the Trade Quarter, clockwise round its slime well, up the ramp and round the southern canal's end to the line; five gates. Record whether the Trade Quarter reads as sunk below the rings, whether the green slime is too bright, and whether the lap (the longest city, 7,327 units) feels too long.
+5. **Walls.** The railings, parapets and terrace walls stop the kart as Stormwind's walls do; the strip before them keeps full road speed, drift and boost. The ramps drive flat (no slope physics yet): note whether that feels wrong.
+6. **Camera and performance.** Frame rate while driving each city; Print Probe unchanged (79/166/81 in the integrated build): the new cities add no frames.
+
 ## Deferred front-end check (proposed, `claude/ui-flow`)
 
 **NOT RUN.** Follow [the front-end client check](../docs/art/ui/front-end.md#client-check-not-run) after a coordinated install and a full client restart (`Menu.lua` and `Assets/UI/TrackPreviews.tga` are new files). With the front end, the window opens on the main menu; the first run starts from **Single Player → Race!**, and the bar's Start reads **Start Race**. Print Probe shows only with Settings → **Show developer info**; `/akart probe` always works. The checks below that start a drive use **Start Race** or **Race!**, and explicit counts become 71 frames/164 textures/80 font strings with the Capital Cities Cup (65/160/79 before it).
