@@ -231,7 +231,13 @@ def load(root, path, team=(0.0, 0.26, 1.0), replaceables=None):
     mod = path.rsplit(":", 1)[0] if ":" in path else "war3.w3mod"
     model = read_model(archive_file(root, path).read_bytes())
     samplers = {}
+    # Only the textures the layers draw. A Reforged material also names its
+    # normal, ORM and environment maps (BC5 and others, not decoded here),
+    # which `wc3casc.py models` extracts with the model.
+    drawn = {layer["texture"] for material in model["materials"] for layer in material}
     for index, entry in enumerate(model["textures"]):
+        if index not in drawn:
+            continue
         found = None
         if entry["replaceable"] and replaceables and entry["replaceable"] in replaceables:
             found = archive_file(root, replaceables[entry["replaceable"]])
