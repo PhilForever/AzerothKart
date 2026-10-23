@@ -12,9 +12,11 @@ the city, and the picture shows the city around it from the karts' camera
    the banks, with the stone quay face below every bank that faces the camera
    and the bank's shadow on the water.
 3. The street: every texel within the karts' reach of the course (the wall
-   radius plus a kart's half-length) is paved: the road (cobbles, kerbs
-   striped round corners, the chequered finish line), the rough kerb-side
-   strip (sidewalk flags) and plazas (marble), with the walls' shadows.
+   radius plus a kart's half-length) is paved: the road from wall to wall
+   (a city street has no shoulders), a kerb at each wall's foot, bridge
+   decks, the chequered finish line and plazas (marble), with the walls'
+   shadows. A city may keep the old rough kerb-side strip (sidewalk flags
+   beyond the road radius) with `shoulders`.
    A city on several levels (`elevation`) then shows them: retaining walls,
    raised streets, brinks, the sun's shadows and lit ramps (Relief).
 4. Everything with height, north to south so nearer things cover farther
@@ -561,6 +563,8 @@ def water_masks(city, geometry, street):
         elif inner[i] and gap <= thick + widest + 0.5:
             water[i] = 0
     bridge = bytearray(w * h)
+    forced = bytearray(w * h)
+    hung = []
     for c in city.get("bridges", []):
         px, py, tx, ty = course_point(street, c["at"])
         nx, ny = -ty, tx                       # left of travel
@@ -571,11 +575,37 @@ def water_masks(city, geometry, street):
                    (px - tx * half + nx * left, py - ty * half + ny * left),
                    (px - tx * half - nx * right, py - ty * half - ny * right),
                    (px + tx * half - nx * right, py + ty * half - ny * right)]
-        fill_polygon(bridge, w, h, corners)
+        face = 2 if c.get("deck") == "planks" else 1      # its side: timber piles or stone arches
+        # A bridge over a traced canal carries the canal under it (`force`);
+        # one over a river drawn whole only marks its sides.
+        if c.get("force", True):
+            fill_polygon(bridge, w, h, corners, face)
+            fill_polygon(forced, w, h, corners)
+        else:
+            hung.append((corners, face))
     for i in range(w * h):
-        if bridge[i]:
+        if forced[i]:
             if street.gap[i] > thick + 0.5:
                 water[i] = 1
+    # Over a river drawn whole, a bridge's side hangs only below its deck,
+    # not below the river's own banks within its strip.
+    span = city.get("bridge_depth", 15)
+    for corners, face in hung:
+        own = bytearray(w * h)
+        fill_polygon(own, w, h, corners)
+        xs, ys = [p[0] for p in corners], [p[1] for p in corners]
+        for y in range(max(0, int(floor(min(ys)))), min(h, int(floor(max(ys))) + 1)):
+            row = h - 1 - y
+            for x in range(max(0, int(floor(min(xs)))), min(w, int(floor(max(xs))) + 1)):
+                i = row * w + x
+                if not own[i] or not water[i]:
+                    continue
+                j, k = i - w, 0
+                while j >= 0 and water[j] and k < span:
+                    j -= w
+                    k += 1
+                if j >= 0 and k < span and street.gap[j] <= thick + 0.5:
+                    bridge[i] = face
     return water, bridge
 
 
@@ -599,12 +629,31 @@ def paint_water(pic, city, water, tiles, bridge):
             up[i] = min(250, up[i - w] + 1)
     span = city.get("bridge_depth", 15)
     arch = city.get("arch_every", 34)
+    timber = city.get("deck_planks", (104, 72, 44))
+    piles = city.get("pile_every", 30)
     for i in range(w * h):
         if not water[i]:
             continue
         row, c = divmod(i, w)
         k = up[i]
-        if bridge[i] and k < span and row - k - 1 >= 0:
+        dim = 1.0
+        if bridge[i] == 2 and k < span and row - k - 1 >= 0:
+            # A timber bridge's side: its edge beam, then its piles standing
+            # in the water, the deck's shadow on the water between them.
+            pile = c % piles < 4
+            if k < 3 or pile:
+                if k < 3:
+                    shade = 0.80 - 0.12 * k
+                else:
+                    shade = 0.64 - 0.30 * k / span
+                    if c % piles == 0:
+                        shade *= 0.72                              # the pile's shaded side
+                pic.r[i] = min(255, int(timber[0] * shade + 0.5))
+                pic.g[i] = min(255, int(timber[1] * shade + 0.5))
+                pic.b[i] = min(255, int(timber[2] * shade + 0.5))
+                continue
+            dim = city.get("deck_shadow", 0.55)
+        elif bridge[i] and k < span and row - k - 1 >= 0:
             # A bridge's side: a parapet course, then arches over the water.
             phase = c % arch - arch / 2.0 + 0.5
             radius = arch * 0.36
@@ -619,7 +668,7 @@ def paint_water(pic, city, water, tiles, bridge):
             pic.g[i] = min(255, int(face[1] * shade + 0.5))
             pic.b[i] = min(255, int(face[2] * shade + 0.5))
             continue
-        if k < depth and row - k - 1 >= 0:
+        if dim == 1.0 and k < depth and row - k - 1 >= 0:
             # Quay face: courses of ashlar, joints offset each course.
             course = k // 3
             joint = (c + course * 7) % 14 == 0 or k % 3 == 2
@@ -631,7 +680,9 @@ def paint_water(pic, city, water, tiles, bridge):
             pic.b[i] = min(255, int(face[2] * shade + 0.5))
             continue
         shade = 0.70 + 0.30 * near[i] / 12.0              # darker along the banks
-        if k < depth + 7 and row - k - 1 >= 0:
+        if dim != 1.0:
+            shade *= dim                                   # under a timber deck
+        elif k < depth + 7 and row - k - 1 >= 0:
             shade *= 0.62                                  # the bank's shadow
         if surface is not None:
             # A liquid drawn from a terrain tile (Undercity's slime).
@@ -1336,13 +1387,28 @@ def _within(arc, lo, hi, total):
     return arc >= lo or arc <= hi            # wraps past the loop's start
 
 
-def deck_color(arc, offset, seed):
-    """A bridge deck's stone slabs, laid across the street."""
+def deck_color(arc, offset, seed, style=None, palette=None):
+    """A bridge deck: stone slabs laid across the street (`palette`: the
+    stone's colour), or for `style` "planks" timber boards across it, their
+    ends staggered (`palette`: the wood's colour)."""
+    if style == "planks":
+        board = int(arc // 9)
+        along = arc % 9
+        across = offset + 400.0 + (board % 3) * 23
+        grain = hash32(board, int(across // 64), seed) % 21 - 10
+        wr, wg, wb = palette or (104, 72, 44)
+        r, g, b = wr + grain, wg + grain * 3 // 4, wb + grain // 2
+        if along < 1.5:
+            r, g, b = r * 2 // 5, g * 2 // 5, b * 2 // 5          # the gap between boards
+        elif across % 64 < 1.3:
+            r, g, b = r * 3 // 5, g * 3 // 5, b * 3 // 5          # a board's end
+        return r, g, b
     slab = int(arc // 20)
     along = arc % 20
     across = offset + 400.0 + (slab % 2) * 13
-    stone = hash32(slab, int(across // 26), seed) % 21 - 10
-    r, g, b = 196 + stone, 186 + stone, 166 + stone
+    vary = hash32(slab, int(across // 26), seed) % 21 - 10
+    sr, sg, sb = palette or (196, 186, 166)
+    r, g, b = sr + vary, sg + vary, sb + vary
     if along < 1.3 or across % 26 < 1.3:
         r, g, b = r * 3 // 4, g * 3 // 4, b * 3 // 4
     return r, g, b
@@ -1369,7 +1435,9 @@ def paint_street(pic, city, geometry, street, tiles, course):
                 deck = course.bridge(arc) if not street.plaza[i] else None
                 if deck is not None:
                     offset = lane if course.side(i, x, y) == "left" else -lane
-                    r, g, b = deck_color(arc, offset, 31)
+                    style = deck.get("deck")
+                    r, g, b = deck_color(arc, offset, 31, style,
+                                         city.get("deck_planks" if style == "planks" else "deck_stone"))
                 elif street.plaza[i] and lane <= road - 1.0:
                     tile, shade = course.road(arc, branch)
                     r, g, b, _ = tiles.whole(tile, x, y, shade=shade)
@@ -1574,7 +1642,11 @@ def wall_columns(city, street, course, water, steps=None, squares=None, rock=Non
                 square = (squares is not None and 0 <= px < w and 0 <= py < h and
                           squares[(h - 1 - py) * w + px])
                 side = course.side(i, x, y) if street.seg[i] >= 0 else "left"
-                if course.bridge(arc) is not None:
+                deck = course.bridge(arc)
+                if deck is not None and deck.get("deck") == "planks":
+                    style = "rail"                           # timber posts and a rail between
+                    height = 14 if along % city.get("pile_every", 30) < 3 else 7
+                elif deck is not None:
                     style = "bridge"
                     height = 15 if along % 14 < 8 else 10
                 elif lava is not None and 0 <= px < w and 0 <= py < h and lava[(h - 1 - py) * w + px]:
@@ -1612,6 +1684,7 @@ WALL_STYLES = {   # face, coping, foot
     "lava": ((52, 38, 32), (84, 62, 50), (28, 20, 18)),
     "palisade": ((112, 74, 46), (150, 106, 68), (58, 38, 24)),
     "spike": ((70, 60, 52), (196, 184, 160), (42, 36, 32)),
+    "rail": ((96, 66, 40), (138, 100, 62), (52, 36, 22)),
 }
 
 
@@ -1629,6 +1702,8 @@ def paint_wall_row(pic, city, y, columns):
             row = base - k
             if row < 0:
                 break
+            if style == "rail" and height < 10 and 0 < k < rise - 1:
+                continue                                      # the deck shows between a railing's rails
             i = row * w + x
             if k >= rise - 1:
                 r, g, b = cap
@@ -1925,13 +2000,14 @@ def street_furniture(wc3, city, street, water, taken, cache):
 
 
 def bridge_furniture(wc3, city, street, water, taken, cache):
-    """A lamp at each corner of every bridge, just outside its parapets."""
+    """A lamp at each corner of every bridge, just outside its parapets (a
+    bridge's own `posts` instead of the city's `bridge_posts`)."""
     placed = []
-    spec = city.get("bridge_posts")
-    if not spec:
-        return placed
-    edge = street.wall + street.kart + city["wall"]["thickness"] + spec["offset"]
     for b in city.get("bridges", []):
+        spec = b.get("posts", city.get("bridge_posts"))
+        if not spec:
+            continue
+        edge = street.wall + street.kart + city["wall"]["thickness"] + spec["offset"]
         for end in (-1, 1):
             px, py, tx, ty = course_point(street, b["at"] + end * (b["length"] / 2 - spec["inset"]))
             for side in (-1, 1):
@@ -2002,6 +2078,10 @@ def build(wc3, city, geometry, check=False, preview=False, log=print):
     tiles = Tileset(wc3)
     kart = city["kart_clearance"]
     street = Street(geometry, kart, city["street_reach"], city["fill"]["reach"] + 40)
+    if not city.get("shoulders"):
+        # No shoulders on a city street (owner, 2026-10-23): the paving runs
+        # out to a kerb at the foot of each wall, the karts' whole reach.
+        street.road = street.wall + kart - 2.0
     log(f"  street field {time.time() - started:.0f}s")
     pic = Picture(w, h)
     paint_terrain(pic, city, tiles)
