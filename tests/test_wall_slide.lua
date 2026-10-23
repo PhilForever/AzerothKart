@@ -41,18 +41,21 @@ assert(square.surfaceAt(upper.x,upper.y)=="road" and upper.y<=130,
 
 local graze=placed(square,200,129.999,math.pi/12,200)
 graze=advance(graze,{accelerate=true},square,20)
-assert(graze.speed>180 and graze.speed<=190 and graze.x>260 and graze.impacts==20,
+assert(graze.speed>150 and graze.speed<=160 and graze.x>250 and graze.impacts==20,
     "sustained shallow contact stays mobile but cannot regain full road speed")
 local brushStart=placed(square,200,129.999,math.pi/60,200)
 local brush=P.step(brushStart,{accelerate=true},dt,square)
-assert(brush.speed>180 and brush.speed<=190 and brush.steering==brushStart.steering,
-    "a very shallow first brush has a small noticeable penalty without losing control")
+assert(brush.speed>150 and brush.speed<=160 and brush.steering==brushStart.steering,
+    "a full-speed brush respects the 80-percent scraping cap without losing control")
+local lowBrush=P.step(placed(square,200,129.999,math.pi/60,100),{accelerate=true},dt,square)
+assert(lowBrush.speed>91 and lowBrush.speed<93,
+    "below the scrape cap a shallow first hit applies the requested ten-percent loss")
 local clean=placed(square,200,100,math.pi/60,200)
 clean=P.step(clean,{accelerate=true},dt,square)
-assert(clean.speed==200 and brush.speed<clean.speed*0.96 and brush.speed>clean.speed*0.90,
-    "the new contact penalty is small and applies only on contact")
-local clear=P.step(placed(square,250,130,-math.pi/4,190),{accelerate=true},dt,square)
-assert(clear.impacts==0 and clear.speed>190,
+assert(clean.speed==200 and brush.speed==160,
+    "normal top speed remains available only away from contact")
+local clear=P.step(placed(square,250,130,-math.pi/4,160),{accelerate=true},dt,square)
+assert(clear.impacts==0 and clear.speed>160,
     "leaving the wall immediately releases the contact speed ceiling")
 
 -- The same center sweep remains useful against an actual Test Oval crate.
@@ -86,8 +89,8 @@ end
 local reverse=placed(square,200,129.999,-3*math.pi/4,-P.REVERSE_MAX)
 for _=1,20 do
     reverse=P.step(reverse,{brake=true},dt,square)
-    assert(reverse.speed<=0 and reverse.speed>=-52.25,
-        "a reverse wall slide remains signed with the same small contact penalty")
+    assert(reverse.speed<=0 and reverse.speed>=-44,
+        "a reverse wall slide remains signed with the same 80-percent contact cap")
 end
 assert(reverse.x>210 and reverse.impacts==20,
     "reverse motion can slide along the same wall")

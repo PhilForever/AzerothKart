@@ -1,6 +1,6 @@
 # Racing physics, deterministic time and game feel
 
-The current `Physics.lua` is a pure version-9 local-handling prototype (angle-aware wall response and parking-turn assistance; racing-speed drift tuning retained). The formulas and production state below remain targets beyond this implemented prototype.
+The current `Physics.lua` is a pure version-10 local-handling prototype (angle-aware wall response and parking-turn assistance; racing-speed drift tuning retained). The formulas and production state below remain targets beyond this implemented prototype.
 
 ## Implemented progressive keyboard steering
 
@@ -101,3 +101,15 @@ immediately uses normal caps. Native feel remains NOT RUN. Focused Lua5.1
 checks retain53-tick frontal recovery and104.45degree stationary turning; the
 30-tick45degree wall tape moves58.327units and ends at189.934speed. Physics9
 compatibility prevents peers using older handling from starting together.
+
+## Requested wall penalty v10
+
+Owner found the5%/95% v9 tuning too mild. Initial wall retention is now90%
+(`WALL_SPEED_RETAIN`); a separate80% cap (`WALL_SPEED_CAP`) applies on all
+contact:160forward/44reverse. At normal top speed this cap also limits the
+first impact; below it the initial10% loss can be measured independently.
+The loss is not multiplied every tick. Drag40units/s², active steering,
+53-tick recovery and parking yaw are unchanged; leaving contact removes the
+cap immediately. Focused Lua5.1 tape:160speed/54.438travel after30ticks of
+45degree contact. Physics10 rejects earlier handling versions. Native feel
+is pending; v9's user-reported weak penalty is feedback, not live telemetry.

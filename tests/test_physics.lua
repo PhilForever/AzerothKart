@@ -21,7 +21,7 @@ local collided=P.step(edge,{accelerate=true},P.FIXED_DT,T)
 assert(collided.impacts==1,"outer bound collision detected")
 assert(collided.x==edge.x and collided.y==edge.y and collided.surface=="wall","wall clamps penetration")
 assert(collided.speed<edge.speed,"collision scrubs speed")
-assert(P.VERSION==9,"the small wall-contact penalty changes replay compatibility")
+assert(P.VERSION==10,"the requested wall penalty changes replay compatibility")
 
 -- Measure handling without track impacts obscuring speed clamps.
 local openTrack={spawn=T.spawn,isDrivable=function() return true end}

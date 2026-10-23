@@ -1,6 +1,6 @@
 # Implemented simulation and rendering contracts
 
-**Checkpoint:** 2026-10-22, `codex/ui-backend-integration`: merge `6cd611a` combines reviewed Claude UI `1b2d3d5` with Codex backend `192c6de`; `9b22f12` applies Claude's isolated preference fix `4ffe184` without its city-track dependencies. Subsequent city merge f9f2af0 now preserves Claude capital-cup78d97a1 and those modules; the reviewed loader repair stages new backgrounds before changing the visible picture. The combined source retains the reviewed six-kart rendering, Forever transport correction, session adapter and start-clock foundation. Physics compatibility is **9** after light wall-penalty tuning (high-speed drift retained). This describes the local solo prototype, measured transport experiment and offline control foundation; it does not claim a released engine or playable multiplayer. See [PROGRESS](PROGRESS.md) and [the latest handoff](handoffs/codex-latest.md).
+**Checkpoint:** 2026-10-22, `codex/ui-backend-integration`: merge `6cd611a` combines reviewed Claude UI `1b2d3d5` with Codex backend `192c6de`; `9b22f12` applies Claude's isolated preference fix `4ffe184` without its city-track dependencies. Subsequent city merge f9f2af0 now preserves Claude capital-cup78d97a1 and those modules; the reviewed loader repair stages new backgrounds before changing the visible picture. The combined source retains the reviewed six-kart rendering, Forever transport correction, session adapter and start-clock foundation. Physics compatibility is **10** after requested wall-penalty tuning (high-speed drift retained). This describes the local solo prototype, measured transport experiment and offline control foundation; it does not claim a released engine or playable multiplayer. See [PROGRESS](PROGRESS.md) and [the latest handoff](handoffs/codex-latest.md).
 
 **Current multiplayer checkpoint, 2026-10-23:** the owner reports a completed two-client drive on `c581a52`, with GO-only startup, square peer markers and lag/clipping. The current `codex/multiplayer-grid` source adds profile agreement, a visible shared grid/countdown, selected peer art and time-aware bounded display prediction. These new changes are **NOT RUN in Forever**. Earlier unwired/Coming soon descriptions below are historical where superseded by the implemented contracts here; no production capacity, kart contact or agreed results are established.
 
@@ -184,7 +184,7 @@ Start forwards backend parameters and TakeStartProposal is a backend-only one-sh
 Implemented in [`Physics.lua`](../addon/AzerothKart/Physics.lua):
 
 ```lua
-Physics.VERSION = 9
+Physics.VERSION = 10
 Physics.FIXED_DT = 1/60
 Physics.new(track) -> state
 Physics.step(state, input, dt, track) -> nextState
@@ -503,3 +503,11 @@ drag stays40units/s². The percentage is not multiplied again each contact tick.
 Leaving the wall immediately removes the ceiling. Steering, geometry, drift
 cancellation, parking assistance and15state fields are unchanged. Both peers
 needPhysics9; v7/v8 offers are rejected before GO. Native tuning NOT RUN.
+
+### Requested 10% / 80% tuning — Physics10
+
+Current first-contact factor WALL_SPEED_RETAIN=0.90; separate contact maximum
+fraction WALL_SPEED_CAP=0.80. Forward/reverse contact bounds160/-44, normal
+free-driving bounds unchanged. At high speed the cap can exceed the initial
+10% penalty. Steering, geometry, continuous40units/s² drag and15state fields
+remain unchanged. Versions7/8/9 are refused before live GO. Native feel pending.

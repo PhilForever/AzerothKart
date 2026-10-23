@@ -53,3 +53,5 @@ parking turns. Both players must update; older Physics7 peers are rejected as
 incompatible before countdown. City art updates also need a full restart.
 
 The latest light wall-penalty tuning is Physics9; both racers must update. A `/reload` is enough for this Lua-only follow-up.
+
+Latest build: Physics10 uses10% initial wall loss and80% contact top speed; both friends must update. The new Undercity lighting also requires a full restart.
