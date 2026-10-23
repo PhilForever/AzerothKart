@@ -35,15 +35,15 @@ The sheets have the route, play, look, files, rebuild commands and provenance: [
 
 | Command / check | Result |
 |---|---|
-| `python scripts/test_lua.py --runtime both` | **PASS** in the cloud (Python 3.13, Lupa 2.8): 57 files parsed, the full suite on Lua 5.1 and 5.4 |
-| `python -m pytest tests/test_circuit_boundary.py` | **PASS** (11 tests) |
-| `python scripts/build_city_tracks.py --wc3 … --check` | **CHECK PASS** in the cloud for `CapitalCities.lua` and all ten pictures: Stormwind `078a7805…`, Ironforge `258bc9be…` and Orgrimmar `5b00f6cf…` byte-identical to their committed bytes after the painter changes; Darnassus `70b3bb8c…` and Undercity `2c367c03…` reproduce |
+| `python scripts/test_lua.py --runtime both` | **PASS** in the cloud (Python 3.13, Lupa 2.8) and on the developer machine's Linux shell (Python 3.10.12, Lupa 2.8) at `e96044b`: 57 files parsed, the full suite on Lua 5.1 and 5.4 |
+| `tests/test_circuit_boundary.py` | **PASS** (11 tests), in the cloud and on the developer machine |
+| `python scripts/build_city_tracks.py --wc3 … --check` | **CHECK PASS** in the cloud for `CapitalCities.lua` and all ten pictures: Stormwind `078a7805…`, Ironforge `258bc9be…` and Orgrimmar `5b00f6cf…` byte-identical to their committed bytes after the painter changes; Darnassus `70b3bb8c…` and Undercity `2c367c03…` reproduce. **CHECK PASS on the developer machine** at `e96044b` (Python 3.10.12, its own Warcraft III extraction, its own rendered sprites) for all five cities, with the same SHA-256 values |
 | Collision probe (offline, Lupa) | `surfaceAt` against an independent disc-inside-union test (a 14-unit disc inside the 90-unit visual capsules), every 1/4 degree round the walls: Darnassus 10,200 points, Undercity 18,240 points, **no mismatch** |
 | `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in PROGRESS.md fail |
 | `python scripts/preview_ui.py` | Regenerated `docs/art/ui/front-end-review.png` (the track list with five cities ready); one-off runs with each new city selected showed their previews, blurbs and facts fit, and a mock drive from each grid (not committed) |
 | Review | Each city's overview and nine 533×320 follow-camera views (the review pictures) |
 
-**NOT RUN:** the client (both cities' load, look, drives, walls, camera, performance); any install; multiplayer. Developer-machine checks: see the next commit's update of this table if present.
+**NOT RUN:** the client (both cities' load, look, drives, walls, camera, performance); any install; multiplayer.
 
 ## Client check (owner; NOT RUN; after Codex's coordinated install)
 
@@ -55,7 +55,7 @@ The sheets have the route, play, look, files, rebuild commands and provenance: [
 >
 > - The owner's Darnassus and Undercity maps: Darnassus counter-clockwise from the Warrior's Terrace road (six gates, 3,895-unit lap, 206-unit approach); Undercity from his blue arrow below the Apothecarium, the spawn on the loop (five gates, 7,327-unit lap, no branch). Both `fullSpeedToWalls`, `wallClearance` 14; no Circuit change.
 > - Elevation, the owner's first of three chosen steps: painted levels (retaining walls, raised streets, brinks, sun shadows, height's light, lit ramps with joints); Darnassus three terraces, Undercity's sunken Trade Quarter. Proposed inert `elevation` heights in `CapitalCities.lua`; slopes/crests/bridges/kart height proposed for Codex (ADR 0015, API_CONTRACTS). Unchanged cities byte-identical.
-> - `test_lua.py --runtime both` PASS; `test_circuit_boundary.py` PASS; `build_city_tracks.py --check` PASS (all five cities); collision probe 28,440 points, no mismatch; validator: only the 2 pre-existing PROGRESS links.
+> - `test_lua.py --runtime both` PASS; `test_circuit_boundary.py` PASS; `build_city_tracks.py --check` PASS (all five cities), in the cloud and on the developer machine (Python 3.10.12, its own extraction and sprites); collision probe 28,440 points, no mismatch; validator: only the 2 pre-existing PROGRESS links.
 > - **NOT RUN:** the client; install.
 
 ## Branch, commits and workspace
