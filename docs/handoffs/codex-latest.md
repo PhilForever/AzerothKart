@@ -1,4 +1,31 @@
-# Codex handoff — requested10%/80% wall tuning and Undercity lighting
+# Codex handoff — solo finish records (reserved)
+
+2026-10-23. Owner now prioritizes finishing single player before further
+multiplayer tests, including total finish time/name/date and a shared highscore
+board. Own branch `codex/solo-highscores`, base `de4b291` (installed runtime
+`d3fd99d`). No milestone acceptance is implied by the owner's handling approval.
+
+Reserved: new pure `Highscores.lua`/`tests/test_highscores.lua`; new native
+`SoloRecords.lua`/`tests/test_solo_records.lua`; `UI.lua` successful Start context,
+solo OnUpdate finish/drop accounting only; `Core.lua` record-store initialization;
+both TOCs; `tests/run.lua`, UI lifecycle regressions. Supporting narrow menu
+integration: `Menu.lua` home Highscores entry, bounded pooled board screen and
+result saving notice; `tests/test_menu.lua` matching navigation/view tests.
+Contracts/priority/progress/highscore guide docs are reserved in this checkout.
+Rendering, art, physics, geometry, multiplayer state/transport, Claude's checkout
+and Claude's handoff are not reserved and will remain unchanged. This is a
+coordinated additive UI/backend boundary for the owner's request, not a claim
+of direct acknowledgment from Claude.
+
+Plan: bounded immutable best-per-player records, guarded native identity/date,
+exact-once successful solo capture, visible board, focused Lua5.1 regressions.
+Global publication is an OPEN capability/architecture dependency: only explicit
+two-peer logged WHISPER is client-verified. No automatic public traffic or
+external upload, global completeness, trusted anti-cheat or native persistence
+claim. The owner delegated selection to the most efficient reliable approach;
+that does not establish an available all-player persistent endpoint.
+
+## Previous verified deployment checkpoint
 
 2026-10-23 15:00+02:00. Own codex/wall-penalty-10, base455d233,
 reservationd96557f, tuningc70c8b8, combined/installed runtime
