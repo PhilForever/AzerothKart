@@ -21,7 +21,8 @@ local function visible(item)
     return true
 end
 local function client(identity,offset)
-    local e={identity=identity,offset=offset,now=offset,frames={},sends={},output={},objects=0}
+    local e={identity=identity,offset=offset,now=offset,frames={},sends={},output={},objects=0,
+        cues={},cueOrder={}}
     local methods={}
     local function object(parent)
         e.objects=e.objects+1
@@ -88,7 +89,7 @@ local function client(identity,offset)
         return frame
     end
     e.globals.C_ChatInfo={RegisterAddonMessagePrefix=function(prefix)
-        assert(prefix=="AZKART2" or prefix=="AZKCLK1" or prefix=="AZKRUN1")
+        assert(prefix=="AZKART2" or prefix=="AZKCLK1" or prefix=="AZKRUN2" or prefix=="AZKGRD1")
         return 0
     end,InChatMessagingLockdown=function() return false end,
     SendAddonMessageLogged=function(prefix,payload,channel,target)
@@ -124,6 +125,14 @@ local function client(identity,offset)
         end
         assert(e.core and e.core.scripts.OnEvent)
         e.core.scripts.OnEvent(e.core,"ADDON_LOADED","AzerothKart")
+        local onCue=ns.Menu.OnCue
+        ns.Menu.OnCue=function(cue)
+            if cue then
+                e.cues[cue]=(e.cues[cue] or 0)+1
+                e.cueOrder[#e.cueOrder+1]=cue
+            end
+            return onCue(cue)
+        end
         assert(ns.Menu.bridge and type(ns.Menu.bridge.action)=="function","Core installs real command bridge")
         ns.UI.Toggle()
         ns.Menu.Show("multiplayer")
@@ -148,6 +157,24 @@ function p:step()
             end
         end)
         local ui=e.ns.UI
+        if ui.gridStaged then
+            assert(not ui.active and not ui.liveActive and ui.state.tick==0
+                and (not ui.race or ui.race.totalTicks==0)
+                and (not ui.laps or ui.laps.completedLaps==0),
+                "visible starting-grid/countdown frames never advance Physics, race time or laps")
+            assert(visible(ui.opponent) and visible(ui.opponentLabel),
+                "both karts are visible on the staged grid")
+            e.stagedGrid=ui.gridView
+            if not e.heldBeforeGO then
+                e:run(ui.window.scripts.OnKeyDown,ui.window,"W")
+                assert(ui.keys.W==true)
+                e.heldBeforeGO=true
+            end
+        elseif ui.liveActive and not e.goPose then
+            e.goPose={x=ui.state.x,y=ui.state.y,heading=ui.state.heading}
+            assert(e.heldBeforeGO and ui.keys.W==true,
+                "held throttle from the grid survives authoritative GO adoption")
+        end
         if ui.liveView and ui.liveView.remote and ui.liveView.remote.tick>0
             and visible(ui.opponent) and visible(ui.opponentLabel) and ui.opponent.point then
             e.sawMovingOpponent=true
@@ -171,6 +198,8 @@ function p:untilTrue(predicate)
 end
 
 local h,g=p.host,p.guest
+h:run(function() assert(h.ns.UI.SelectKart("steam_tank")) end)
+g:run(function() assert(g.ns.UI.SelectKart("goblin_drag_car")) end)
 for _,entry in ipairs({{h,GUEST},{g,HOST}}) do
     entry[1]:run(function()
         local view=entry[1].ns.Menu.view
@@ -187,20 +216,31 @@ h:click(h.ns.Menu.view.ready); g:click(g.ns.Menu.view.ready)
 assert(h.ns.UI.liveArmed and g.ns.UI.liveArmed and not h.ns.UI.active and not g.ns.UI.active)
 p:untilTrue(function() return h.ns.Menu.view.start.enabled end)
 h:click(h.ns.Menu.view.start)
-p:untilTrue(function() return h.ns.UI.liveActive and g.ns.UI.liveActive end)
 local counts={host=h.objects,guest=g.objects}
+p:untilTrue(function() return h.ns.UI.liveActive and g.ns.UI.liveActive end)
 for _,e in ipairs({h,g}) do
     assert(e.ns.UI.active and e.ns.UI.window.keyboard and not e.ns.UI.window.propagate)
     assert(e.ns.UI.trackId=="mirage_raceway" and e.ns.UI.race.countdownTicks==0)
-    e:run(e.ns.UI.window.scripts.OnKeyDown,e.ns.UI.window,"W")
+    assert(e.stagedGrid and e.cues["GET READY"] and e.cues["3"]==1 and e.cues["2"]==1
+        and e.cues["1"]==1,"every peer sees GET READY and one transition through each countdown numeral")
+    assert(e.cueOrder[1]=="GET READY" and e.cueOrder[2]=="3" and e.cueOrder[3]=="2"
+        and e.cueOrder[4]=="1","the visible grid precedes the three-second numeric countdown")
 end
+assert(math.abs((h.goPose.x-g.goPose.x)^2+(h.goPose.y-g.goPose.y)^2-36^2)<0.001,
+    "coordinated GO starts the real vehicles in distinct 36-unit-apart slots")
+assert(h.goPose.x==g.stagedGrid.peerPose.x and h.goPose.y==g.stagedGrid.peerPose.y
+    and g.goPose.x==h.stagedGrid.peerPose.x and g.goPose.y==h.stagedGrid.peerPose.y)
 for _=1,180 do p:step() end
 for _,role in ipairs({"host","guest"}) do
     local e=p[role]; local ui=e.ns.UI
     assert(ui.active and ui.state.tick>=175 and ui.state.tick<=190)
+    assert(ui.state.speed>0,"pre-GO held W accelerates the real kart after GO")
     assert(ui.liveView.remote and ui.liveView.remote.tick>0 and ui.liveView.remoteVerified==false)
     assert(e.sawMovingOpponent and visible(ui.opponentLabel),
         "received peer pose reaches the real pooled canvas marker and label")
+    assert(ui.opponentAssetId==(role=="host" and "goblin_drag_car" or "steam_tank")
+        and ui.opponentSprite and ui.opponent.path==ui.opponentSprite.path,
+        "the pooled opponent renders the other player's agreed selected kart")
     assert(e.objects==counts[role],"live menu/canvas updates allocate no widgets")
     for i,packet in ipairs(e.sends) do
         if i>1 then assert(packet.time-e.sends[i-1].time>=0.5) end

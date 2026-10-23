@@ -176,3 +176,18 @@ SessionTransport now wires the pure AZKART2 controller to the same source-verifi
 ## F4 implementation checkpoint — bounded start clock, 2026-10-21
 
 The opt-in [start-clock candidate](START_CLOCK.md) shares the existing native budget/lease, estimates an offset interval from three paced four-timestamp samples, and gates one actual Physics/Race initialization at future GO. Focused synthetic and mocked native checks passed as recorded in PROGRESS. This adds no measured transport or synchronization result. Clock drift, native AZKCLK1 delivery, launch skew and last-ACK/cancel behavior under actual loss remain NOT RUN. Full race replication, correction/finish agreement and socket recovery remain open. No client update, new download or manual test is needed for this source checkpoint.
+
+## F4 first live race and grid/display follow-up — 2026-10-23
+
+[Owner evidence](evidence/2026-10-23-first-live-race.md) shows two local three-lap
+finishes (36.42/35.42 seconds) and reports peer squares, missing countdown and
+lag/clipping. No packet statistics, native timing/skew or agreed result follows.
+The revised candidate exchanges kart IDs before Ready, stages both karts,
+reserves a full three-second countdown, and sends monotonic sampleMS in40-byte
+AZKRUN2 snapshots. Rate remains2Hz:47payload+prefixB each,94B/s per peer,188pair;
+all four prefixes still share persistent0.5s/2calls/158B local ceilings. AZKGRD1
+startup packets are12+7bytes, paced/retried within that same gate. There is no
+rate increase or new transport gate result. Read-only forecasts cap at500ms
+and stop at map walls/solids; their sample age uses uncertain mapped epochs,
+not measured one-way latency. Native revised checks remain NOT RUN. Follow
+[one short race procedure](MULTIPLAYER_PLAYTEST.md), not another net probe.

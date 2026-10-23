@@ -199,6 +199,130 @@ assert(current.x == 30 and current.y == -12 and current.heading == 0.8 and
 assert(select("#", P.pose(previous, current, 0.5)) == 3,
        "render pose returns exactly three scalars")
 
+-- Remote display uses the packet's estimated state age, without adding a
+-- receive-time interpolation interval. This is bounded visual prediction,
+-- not input replay, authoritative correction or a promise of the real pose.
+do
+    local straight = {resolveMovement=function(x,y,tx,ty) return tx,ty,false end}
+    local older = {x=10,y=30,heading=0,speed=100,sampleMS=0,status="running",marker=marker}
+    local latest = {x=60,y=30,heading=0,speed=100,sampleMS=500,status="running",marker=marker}
+    local function copy(value)
+        local result = {}
+        for key,item in pairs(value) do result[key]=item end
+        return result
+    end
+    local beforeOlder,beforeLatest = copy(older),copy(latest)
+    local path = P.buildRemotePath(older,latest,straight)
+    assert(#path.points==31 and path.maxAgeMS==500 and P.MAX_REMOTE_PREDICTION_MS==500,
+        "one observation caches at most thirty fixed steps plus the observed pose")
+    local function remote(path,age,x,y,h,predicted,message)
+        local rx,ry,rh,rp = P.remotePose(path,age)
+        near(rx,x,message.." x"); near(ry,y,message.." y"); near(rh,h,message.." heading")
+        assert(rp==predicted,message.." prediction label")
+    end
+    remote(path,0,60,30,0,false,"zero age is exactly the latest observation")
+    remote(path,350,95,30,0,true,"350ms wire age advances from the sender pose")
+    remote(path,500,110,30,0,true,"500ms forecast cap")
+    remote(path,1500,110,30,0,true,"stale data freezes at the same cap")
+    remote(path,-100,60,30,0,false,"negative age clamps to latest")
+    for _,age in ipairs({0/0,math.huge,-math.huge,false,"350"}) do
+        remote(path,age,60,30,0,false,"invalid age never poisons the pose")
+    end
+    remote(path,nil,60,30,0,false,"missing age does not guess latency")
+    assert(select("#",P.remotePose(path,350))==4,"remote rendering returns four scalars")
+    -- Skipped, repeated and out-of-order rendered frames read the same path.
+    local px,py,ph = P.remotePose(path,350)
+    for _,age in ipairs({16,400,10,500,350,1000,0}) do P.remotePose(path,age) end
+    local rx,ry,rh = P.remotePose(path,350)
+    assert(px==rx and py==ry and ph==rh,"remote pose is independent of render cadence")
+    for key,value in pairs(older) do assert(beforeOlder[key]==value,"older observation stays read-only") end
+    for key,value in pairs(latest) do assert(beforeLatest[key]==value,"latest observation stays read-only") end
+    for key,value in pairs(beforeOlder) do assert(older[key]==value,"older fields retained") end
+    for key,value in pairs(beforeLatest) do assert(latest[key]==value,"latest fields retained") end
+    assert(older.marker==marker and latest.marker==marker,"nested observation references are untouched")
+
+    local fast = copy(latest); fast.speed=1e300
+    local capped = P.buildRemotePath(nil,fast,straight)
+    remote(capped,500,190,30,0,true,"excessive signed speed is bounded at 260 units/s")
+    fast.speed=-100
+    remote(P.buildRemotePath(nil,fast,straight),350,25,30,0,true,"reverse travels behind the heading")
+    local lateral = copy(older); lateral.x,lateral.y=60,-20
+    remote(P.buildRemotePath(lateral,latest,straight),350,60,65,0,true,
+        "valid measured travel direction preserves drift without changing facing")
+    local teleported = copy(older); teleported.x=-1000
+    remote(P.buildRemotePath(teleported,latest,straight),350,95,30,0,true,
+        "unbounded baseline displacement cannot choose the travel direction")
+    for _,stamp in ipairs({500,600,0/0,math.huge,-10000}) do
+        local baseline = copy(lateral); baseline.sampleMS=stamp
+        remote(P.buildRemotePath(baseline,latest,straight),350,95,30,0,true,
+            "invalid or old baseline duration falls back to current speed and heading")
+    end
+    local noStamp = copy(lateral); noStamp.sampleMS=nil
+    remote(P.buildRemotePath(noStamp,latest,straight),350,95,30,0,true,
+        "missing baseline duration falls back to current speed and heading")
+    local seamBefore = {x=10,y=30,heading=tau-0.05,speed=100,sampleMS=0,status="running"}
+    local seamNow = copy(latest); seamNow.heading=0.05
+    local seam = P.buildRemotePath(seamBefore,seamNow,straight)
+    local _,_,seamHeading = P.remotePose(seam,500)
+    near(seamHeading,0.15,"remote yaw follows the short arc across zero")
+    seamBefore.heading=-3
+    local turning = P.buildRemotePath(seamBefore,seamNow,straight)
+    local _,_,turnHeading = P.remotePose(turning,500)
+    near(turnHeading,0.05+2.6/2,"remote heading rate is bounded")
+
+    local wall = {resolveMovement=function(x,y,tx,ty)
+        assert(math.sqrt((tx-x)^2+(ty-y)^2)<=260/60+1e-9,"small projection sweep")
+        return math.min(tx,100),ty,tx>100
+    end}
+    remote(P.buildRemotePath(older,latest,wall),500,100,30,0,true,
+        "a forecast freezes at the first resolved wall contact")
+    local road = {isDrivable=function(x,y) return x<=95 end}
+    local roadPath = P.buildRemotePath(older,latest,road)
+    local roadX = P.remotePose(roadPath,500)
+    assert(roadX<=95 and roadX>=95-100/60,"road-only fallback never projects an outside endpoint")
+    local clamped = {resolveMovement=function(x,y,tx,ty) return tx-1,ty,false end}
+    local clampPath = P.buildRemotePath(older,latest,clamped)
+    assert(#clampPath.points==2,"a geometry clamp freezes even without an explicit hit flag")
+    local badResolver = {resolveMovement=function() return 0/0,math.huge,false end}
+    remote(P.buildRemotePath(older,latest,badResolver),500,60,30,0,false,
+        "nonfinite geometry output falls back to the last valid point")
+    local recovery = {resolveMovement=function() return 5000,30,true end}
+    remote(P.buildRemotePath(older,latest,recovery),500,60,30,0,false,
+        "far recovery cannot become a projected teleport")
+    local Oval = dofile("addon/AzerothKart/Track.lua")
+    local nearCrate = {x=240,y=410,heading=0,speed=200,sampleMS=500,status="running"}
+    local cratePath = P.buildRemotePath(nil,nearCrate,Oval)
+    local crateX,crateY = P.remotePose(cratePath,500)
+    near(crateX,252,"actual Oval sweep stops at the crate's expanded west face")
+    near(crateY,410,"actual Oval sweep retains the observed lane")
+
+    for _,status in ipairs({"finished","stopped","stale"}) do
+        local terminal = copy(latest); terminal.status=status
+        remote(P.buildRemotePath(older,terminal,straight),500,60,30,0,false,
+            "non-running observations stay frozen")
+    end
+    local stopped = copy(latest); stopped.speed=0
+    remote(P.buildRemotePath(older,stopped,straight),500,60,30,0,false,"zero speed stays frozen")
+    for _,invalid in ipairs({0/0,math.huge,-math.huge,false,"100"}) do
+        local badSpeed = copy(latest); badSpeed.speed=invalid
+        remote(P.buildRemotePath(older,badSpeed,straight),500,60,30,0,false,
+            "invalid speed stays finite and frozen")
+        for _,field in ipairs({"x","y","heading"}) do
+            local malformed = copy(latest); malformed[field]=invalid
+            remote(P.buildRemotePath(older,malformed,straight),500,10,30,0,false,
+                "invalid pose falls back to the previous valid observation")
+        end
+    end
+    local absentStatus = copy(latest); absentStatus.status=nil
+    remote(P.buildRemotePath(older,absentStatus,straight),500,60,30,0,false,"unknown status stays frozen")
+    remote(P.buildRemotePath(nil,latest,{}),500,60,30,0,false,"missing geometry stays frozen")
+    assert(P.buildRemotePath(nil,{x=0/0,y=0,heading=0},straight)==nil,
+        "no valid observation draws no invented pose")
+    assert(P.remotePose(nil,500)==nil and P.remotePose({points={{x=0/0,y=0,heading=0}}},500)==nil,
+        "invalid paths never return NaN to the renderer")
+    print("offline remote presentation: bounded 500ms/31-point forecast, wall/solid stops, read-only observations and cadence-independent sampling")
+end
+
 local config = dofile("addon/AzerothKart/Physics.lua")
 local state = {surface="road", drifting=true, driftTicks=29, driftTier=2, boostTicks=0, driftGraceTicks=0}
 local function meter(ticks, fraction, phase)

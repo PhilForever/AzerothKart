@@ -877,6 +877,42 @@ withMock(nil, function(env, UI, Menu, AK)
     UI.Stop("sound run")
 end)
 
+-- The shared starting grid is a race scene without solo simulation. Showing
+-- that canvas must not invoke Leave merely because active is still false.
+withMock(nil,function(env,UI,Menu)
+    UI.Toggle(); Menu.Show("multiplayer")
+    local before=counts(env)
+    local commands={}
+    local session={phase="coordinating",liveMode=true,transportBusy=true,canLeave=true,
+        clock={phase="armed"},grid={ready=true,staged=true,cue="3"}}
+    Menu.SetSessionBridge({view=function() return session end,action=function(action)
+        commands[#commands+1]=action; return true
+    end})
+    local state,race,clock=UI.state,UI.race,UI.clock
+    UI.gridStaged,UI.liveArmed,UI.multiplayer,UI.liveSession=true,true,true,"GRID01"
+    UI.gridView=session.grid
+    Menu.Sync(); Menu.RefreshRaceHud()
+    assert(Menu.screen==nil and not Menu.root:IsShown() and Menu.overlay:IsShown()
+        and UI.stopButton:IsShown() and not UI.startButton:IsShown(),
+        "a staged grid uncovers the race canvas and Stop before simulation starts")
+    assert(Menu.view.lap.text=="STARTING GRID" and Menu.view.time.text=="0:00.0"
+        and Menu.view.best.text=="HOLD W/UP FOR GO",
+        "grid HUD describes the pending start rather than an old lap or race time")
+    Menu.Show("home")
+    assert(Menu.screen==nil and #commands==0,
+        "grid canvas transitions and attempts to cover it never implicitly send Leave")
+    assert(UI.state==state and UI.race==race and UI.clock==clock and not UI.active,
+        "grid navigation leaves authoritative state untouched")
+    env.sounds={}
+    Menu.OnCue("GET READY"); Menu.OnCue("3"); Menu.OnCue("2"); Menu.OnCue("1"); Menu.OnCue("GO")
+    assert(table.concat(env.sounds,",")=="25477,25477,25477,25478",
+        "shared grid has only the three numeric countdown beeps and GO")
+    sameCounts(env,before,"shared grid scene and HUD")
+    UI.gridStaged,UI.liveArmed,UI.multiplayer,UI.liveSession=false,false,false,nil
+    UI.gridView=nil
+    Menu.SetSessionBridge(nil)
+end)
+
 -- Missing client templates fall back to plain panel buttons -----------------------
 withMock(nil, function(env, UI, Menu)
     assert(not Menu.disabled and Menu.view.homeButtons[1].template == "UIPanelButtonTemplate",

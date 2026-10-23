@@ -138,6 +138,98 @@ function Presentation.pose(previous, current, alpha)
            previous.heading + delta * alpha
 end
 
+-- A remote observation is already old when it arrives. Do not add another
+-- snapshot interval by interpolating backwards from its receive time. Build a
+-- short display-only forecast once per observation, then sample it without
+-- allocations at render cadence. It is an estimate, never authoritative state:
+-- unknown braking/steering and clock uncertainty can cause later corrections.
+Presentation.MAX_REMOTE_PREDICTION_MS = 500
+local remoteStepMS, remoteMaxSpeed, remoteMaxYaw = 1000 / 60, 260, 2.6
+
+local function remoteObservation(value)
+    return type(value) == "table" and finite(value.x) and finite(value.y)
+        and finite(value.heading)
+end
+
+function Presentation.buildRemotePath(previous, current, track)
+    local validCurrent = remoteObservation(current)
+    local source = validCurrent and current or (remoteObservation(previous) and previous)
+    if not source then return nil end -- Invalid data must not create a kart at an invented location.
+    local x,y,heading = source.x,source.y,source.heading
+    local points = {{x=x, y=y, heading=heading}}
+    local path = {points=points, stepMS=remoteStepMS,
+        maxAgeMS=Presentation.MAX_REMOTE_PREDICTION_MS, predicted=false}
+    if not validCurrent or current.status ~= "running" or not finite(current.speed)
+        or current.speed == 0 or type(track) ~= "table" then return path end
+    if type(track.resolveMovement) ~= "function" and type(track.isDrivable) ~= "function" then
+        return path
+    end
+
+    local speed = math.min(remoteMaxSpeed, math.abs(current.speed))
+    local facing = heading % tau
+    local direction = current.speed < 0 and -1 or 1
+    local vx,vy = math.cos(facing)*direction,math.sin(facing)*direction
+    local yaw = 0
+    if remoteObservation(previous) and finite(previous.sampleMS) and finite(current.sampleMS) then
+        local interval = (current.sampleMS-previous.sampleMS)/1000
+        -- Adjacent 2 Hz snapshots normally span 0.5s. A zero, reordered or
+        -- excessively old baseline does not describe the current turn.
+        if finite(interval) and interval > 0 and interval <= 2 then
+            local dx,dy = current.x-previous.x,current.y-previous.y
+            local distanceSquared = dx*dx+dy*dy
+            local reach = remoteMaxSpeed*interval
+            if finite(distanceSquared) and distanceSquared > 0
+                and distanceSquared <= reach*reach then
+                local distance = math.sqrt(distanceSquared)
+                vx,vy = dx/distance,dy/distance
+            end
+            local delta = (facing-(previous.heading % tau)+pi) % tau-pi
+            yaw = math.max(-remoteMaxYaw,math.min(remoteMaxYaw,delta/interval))
+        end
+    end
+
+    local turn = yaw/60
+    local cosTurn,sinTurn = math.cos(turn),math.sin(turn)
+    for index=1,30 do
+        local nextVX,nextVY = vx*cosTurn-vy*sinTurn,vx*sinTurn+vy*cosTurn
+        local targetX,targetY = x+nextVX*speed/60,y+nextVY*speed/60
+        if not finite(targetX) or not finite(targetY) then break end
+        local nx,ny,hit = targetX,targetY,false
+        if type(track.resolveMovement) == "function" then
+            nx,ny,hit = track.resolveMovement(x,y,targetX,targetY)
+            if not finite(nx) or not finite(ny) then break end
+            local dx,dy = nx-x,ny-y
+            -- Recovery may move an invalid observation far away; a display
+            -- forecast must not turn that into a teleport through the map.
+            if dx*dx+dy*dy > (speed/60+1e-6)^2 then break end
+            hit = hit or math.abs(nx-targetX) > 1e-6 or math.abs(ny-targetY) > 1e-6
+        elseif not track.isDrivable(targetX,targetY) then
+            break
+        end
+        heading = facing+turn*index
+        points[#points+1] = {x=nx, y=ny, heading=heading}
+        path.predicted = path.predicted or nx ~= x or ny ~= y or turn ~= 0
+        x,y,vx,vy = nx,ny,nextVX,nextVY
+        if hit then break end -- Freeze at the first wall/solid; never slide a forecast onward.
+    end
+    return path
+end
+
+function Presentation.remotePose(path, ageMS)
+    if type(path) ~= "table" or type(path.points) ~= "table" or #path.points == 0 then
+        return nil,nil,nil,false
+    end
+    if not finite(ageMS) then ageMS = 0 end
+    local age = math.max(0,math.min(Presentation.MAX_REMOTE_PREDICTION_MS,ageMS))
+    local at = age/remoteStepMS
+    local first = math.min(#path.points,math.floor(at)+1)
+    local a,b = path.points[first],path.points[math.min(#path.points,first+1)]
+    if not remoteObservation(a) or not remoteObservation(b) then return nil,nil,nil,false end
+    local alpha = first < #path.points and at-math.floor(at) or 0
+    local x,y,heading = Presentation.pose(a,b,alpha)
+    return x,y,heading,path.predicted and age > 0
+end
+
 function Presentation.meter(state, config)
     assert(state and config, "state and meter config required")
     -- Surface cancellation takes precedence even for a retained/stale charge.

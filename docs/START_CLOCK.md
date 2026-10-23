@@ -31,7 +31,7 @@ When a valid control proposal is available, `PeerSession.handoffStart(state,nowS
 | ACK | PREPARE/COMMIT kind and sequence | 15 |
 | CANCEL | closed reason | 12 |
 
-`StartClock.new({role,session,seed},nowMS,ClockProtocol)` injects integer monotonic time. `update(state,nowMS,sendFn,sendAllowed?)` alone invokes `sendFn(payload)`, returning accepted/failed/throttled/unknown. `receive`, `view`, `cancel`, and `takeTicket` are pure. Views are copies; controller internals remain Codex-owned. There are no game, UI, input or wall-clock calls.
+`StartClock.new({role,session,seed,countdownMS?},nowMS,ClockProtocol)` injects integer monotonic time. `update(state,nowMS,sendFn,sendAllowed?)` alone invokes `sendFn(payload)`, returning accepted/failed/throttled/unknown. `receive`, `view`, `cancel`, and `takeTicket` are pure. Views are copies; controller internals remain Codex-owned. There are no game, UI, input or wall-clock calls.
 
 The host collects three sequential four-timestamp samples. `t1` is formed at the paced host send; `t2` at guest receipt; `t3` at the paced guest send; `t4` at host receipt. Guest queue time is removed:
 
@@ -42,7 +42,7 @@ guest-minus-host offset interval = [t3 - t4 - 2, t2 - t1 + 2] ms
 
 RTT outside 0–2000 ms, backward clocks, overflow and empty intersections close negotiation. The three offset intervals are intersected; the guest also checks PREPARE's upper bound against every locally observed `t2-t1+2`. The displayed midpoint is an estimate under an approximately constant offset during this short exchange. `uncertaintyMS=ceil(intervalWidth/2)`, at most 1002 ms, accounts for the interval and millisecond boundary allowance; it is not measured one-way latency, a clock-drift guarantee, authentication or a bound on actual launch skew. Asymmetric paths are allowed; no symmetric-route assumption is used to claim accuracy.
 
-After calibration, the host chooses GO eight seconds ahead. The guest maps it using `floor((low+high)/2)` and requires 3–12 seconds of remaining local lead. PREPARE → ACK → COMMIT → ACK must finish at least one second before each peer's mapped epoch. Host arms after matching COMMIT ACK; guest arms after its own COMMIT ACK was accepted locally. **Final ACK loss can leave only the guest armed. No finite handshake guarantees atomic GO.** The host cancels best effort on failure; a lost cancellation cannot establish peer state.
+After calibration, the host chooses GO eight seconds ahead. The guest maps it using `floor((low+high)/2)` and requires 3–12 seconds of remaining local lead. PREPARE → ACK → COMMIT → ACK must finish before each peer’s mapped epoch minus the reserved countdown. Legacy calls use a one-second margin; optional countdownMS accepts only 0/default or 3000. Live-grid mode reserves the full three seconds and refuses late negotiation rather than showing a shortened countdown. Views expose countdownMS and countdownStartMS; staged input never advances Physics/Race before GO. Host arms after matching COMMIT ACK; guest arms after its own COMMIT ACK was accepted locally. **Final ACK loss can leave only the guest armed. No finite handshake guarantees atomic GO.** The host cancels best effort on failure; a lost cancellation cannot establish peer state.
 
 Pending host commands retry at two seconds, up to three attempts. Payload timestamps stay fixed across retransmissions. A lost calibration packet can therefore make corrected RTT exceed the two-second limit and conservatively abort; recovery then requires a fresh explicit session. PREPARE/COMMIT ACK retries can recover within the finite lead. No automatic restart or socket rejoin exists. The coordinator caps queued/deferred entries at eight, seen sequences at 64 and scoped decoded events at 256; conflicting accepted sequence payloads close. Identical duplicates reuse responses without reapplying state or producing another ticket. ACKs are not ACKed. Reentrant receives are deferred until the native send outcome is accepted; nested updates cannot send or advance the clock.
 
@@ -74,5 +74,7 @@ On `codex/live-multiplayer-integration`, explicit HostLive/ListenLive selects th
 [opt-in native live path](LIVE_RACE.md#implemented-native-and-player-flow-integration).
 Native Update consumes GO without releasing/reacquiring the frame or pacing
 history; legacy TakeRaceStart remains compatible outside that mode. Menus never
-consume GO. The first friend candidate is wired but actual timing/delivery/feel
-checks remain NOT RUN.
+consume GO. The first owner-reported local race completed on both clients; the revised
+three-second grid/countdown behavior and quantitative timing/skew remain NOT RUN.
+Live mode reserves countdownMS=3000 before arming. A staged canvas shows both
+role-specific slots but runs no simulation until the same existing GO gate.

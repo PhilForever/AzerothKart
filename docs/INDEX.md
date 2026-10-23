@@ -1,5 +1,7 @@
 # Documentation index / reading order
 
+**Latest multiplayer follow-up:** [first owner race evidence](evidence/2026-10-23-first-live-race.md), [updated two-player steps](MULTIPLAYER_PLAYTEST.md), and [grid/profile/display contract](API_CONTRACTS.md). Revised native behavior remains pending; current source/deployment is in PROGRESS.
+
 **First:** `VISION.md` → `GAME_DESIGN.md` → `FEASIBILITY.md` → `ARCHITECTURE.md` → `ROADMAP.md` → `PROGRESS.md`.
 
 **Engineering:** `CLIENT_API.md`, `PHYSICS.md`, `TRACKS.md`, `MULTIPLAYER.md`, `PROTOCOL.md`, `TEST_PLAN.md`, `SECURITY.md`.

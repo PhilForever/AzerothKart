@@ -1,13 +1,13 @@
 -- Pure, bounded observational telemetry. Peer authorization and delivery are
 -- controller policy; a valid packet grants no race or physics authority.
 local _, namespace = ...
-local Protocol = {VERSION=1, PREFIX="AZKRUN1", MAX_BYTES=34, MAX_SEQUENCE=46655, MAX_TICK=108000}
+local Protocol = {VERSION=2, PREFIX="AZKRUN2", MAX_BYTES=40, MAX_SEQUENCE=46655, MAX_TICK=108000}
 local digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 local statuses = {running="0", finished="1", stopped="2", interrupted="3"}
 local statusNames = {["0"]="running", ["1"]="finished", ["2"]="stopped", ["3"]="interrupted"}
 local fields = {kind=true, session=true, sequence=true, tick=true, x=true, y=true,
     headingQ=true, speedQ=true, driftTier=true, boosting=true, completedLaps=true,
-    passed=true, status=true}
+    passed=true, status=true, sampleMS=true}
 
 local function integer(value, minimum, maximum)
     return type(value)=="number" and value==value and value>=minimum and value<=maximum
@@ -71,14 +71,16 @@ function Protocol.encode(message)
     if not laps or not passed then return nil,"invalid_progress" end
     local status = type(message.status)=="string" and statuses[message.status]
     if not status then return nil,"invalid_status" end
-    return "1S"..message.session..sequence..tick..x..y..heading..speed..drift
-        ..(message.boosting and "1" or "0")..laps..passed..status
+    local stamp=encodeInteger(message.sampleMS,6,0,1800000)
+    if not stamp then return nil,"invalid_sample" end
+    return "2S"..message.session..sequence..tick..x..y..heading..speed..drift
+        ..(message.boosting and "1" or "0")..laps..passed..status..stamp
 end
 
 function Protocol.decode(payload)
     if type(payload)~="string" or #payload~=Protocol.MAX_BYTES then return nil,"invalid_size" end
     if payload:find("[^A-Z0-9]") then return nil,"invalid_alphabet" end
-    if payload:sub(1,1)~="1" then return nil,"invalid_version" end
+    if payload:sub(1,1)~="2" then return nil,"invalid_version" end
     if payload:sub(2,2)~="S" then return nil,"invalid_kind" end
     local sequence = decodeInteger(payload,9,11)
     if sequence==0 then return nil,"invalid_sequence" end
@@ -94,10 +96,12 @@ function Protocol.decode(payload)
     if laps>3 or passed>8 then return nil,"invalid_progress" end
     local status = statusNames[payload:sub(34,34)]
     if not status then return nil,"invalid_status" end
+    local sampleMS=decodeInteger(payload,35,40)
+    if sampleMS>1800000 then return nil,"invalid_sample" end
     return {kind="STATE", session=payload:sub(3,8), sequence=sequence, tick=tick,
         x=decodeInteger(payload,18,20)/4, y=decodeInteger(payload,21,23)/4,
         headingQ=decodeInteger(payload,24,26), speedQ=speed-550, driftTier=drift,
-        boosting=boosting=="1", completedLaps=laps, passed=passed, status=status}
+        boosting=boosting=="1", completedLaps=laps, passed=passed, status=status,sampleMS=sampleMS}
 end
 
 if type(namespace)=="table" then namespace.LiveProtocol = Protocol end

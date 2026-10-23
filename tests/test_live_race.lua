@@ -22,7 +22,7 @@ local function new(track,m)
 end
 local function message(sequence,tick,changes)
     local m={kind="STATE",session="RACE01",sequence=sequence,tick=tick,x=666,y=240,
-        headingQ=0,speedQ=0,driftTier=0,boosting=false,completedLaps=0,passed=0,status="running"}
+        headingQ=0,speedQ=0,driftTier=0,boosting=false,completedLaps=0,passed=0,status="running",sampleMS=math.floor(tick*1000/60)}
     for k,v in pairs(changes or {}) do m[k]=v end
     return assert(Protocol.encode(m))
 end
@@ -95,7 +95,7 @@ local b=assert(Live.new(bundle("guest",nil,5000),"Amber Stone",15000,modules))
 local wire,attempts={},{}
 local function sender(target,offset,identity,now)
     return function(payload,peer,prefix)
-        assert(#payload==34 and #prefix==7 and type(peer)=="string")
+        assert(#payload==40 and #prefix==7 and type(peer)=="string")
         wire[#wire+1]={target=target,at=now+350,offset=offset,sender=identity,prefix=prefix,payload=payload}
         attempts[#attempts+1]={at=now,identity=identity,bytes=#payload+#prefix}
         return "accepted"

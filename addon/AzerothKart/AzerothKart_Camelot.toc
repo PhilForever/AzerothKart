@@ -27,6 +27,7 @@ StartClock.lua
 RaceStart.lua
 LiveProtocol.lua
 LiveRace.lua
+RaceGrid.lua
 NetworkProbe.lua
 TransportProbe.lua
 SessionTransport.lua

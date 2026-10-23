@@ -181,7 +181,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     end
     local ok, err=pcall(function()
         local namespace={}
-        for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Courses", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "UI", "Menu", "RaceProtocol", "PeerSession", "ClockProtocol", "StartClock", "RaceStart", "LiveProtocol", "LiveRace", "NetworkProbe", "TransportProbe", "SessionTransport", "Core"}) do
+        for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Courses", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "UI", "Menu", "RaceProtocol", "PeerSession", "ClockProtocol", "StartClock", "RaceStart", "LiveProtocol", "LiveRace", "RaceGrid", "NetworkProbe", "TransportProbe", "SessionTransport", "Core"}) do
             assert(loadfile("addon/AzerothKart/"..name..".lua"))("AzerothKart",namespace)
         end
         env.namespace=namespace
@@ -2744,19 +2744,27 @@ originalPrint(summary.." (mock regression only; live-client probes pending)")
 local function liveFixture(env,UI,trackId)
     local AK=env.namespace
     local clock=1000
-    local token,closed,phase=nil,false,"lobby"
+    local token,closed,phase,grid=nil,false,"lobby",nil
     local calls={ready=0,advance=0,stop=0}
     local transport={}
     local session="AKTUI1"
+    local function liveView()
+        local view=token and AK.LiveRace.view(token) or nil
+        if view then
+            view.localKartId=grid and grid.localKartId or "basic"
+            view.peerKartId=grid and grid.peerKartId or "basic"
+        end
+        return view
+    end
     function transport.GetView()
         return {session=session,phase=phase,liveMode=true,transportBusy=not closed,
             canSetReady=phase=="lobby",offer={trackId=trackId or "test_oval"},
-            live=token and AK.LiveRace.view(token) or nil}
+            peer="Amber Stone",grid=grid,live=liveView()}
     end
     function transport.Ready(ready) calls.ready=calls.ready+1; calls.readyValue=ready; return true end
     function transport.PrepareStart() calls.prepared=true; return true end
-    function transport.HostLive() return true end
-    function transport.ListenLive() return true end
+    function transport.HostLive(...) calls.host={...}; return true end
+    function transport.ListenLive(...) calls.listen={...}; return true end
     function transport.Join() return true end
     function transport.Leave() calls.left=true; transport.Stop("stopped"); return true end
     function transport.Stop(reason)
@@ -2767,20 +2775,34 @@ local function liveFixture(env,UI,trackId)
     function transport.AdvanceLive(input)
         calls.advance=calls.advance+1
         AK.LiveRace.advance(token,clock,input)
-        return AK.LiveRace.view(token)
+        return liveView()
     end
     AK.SessionTransport=transport
     local function launch()
         local track=UI.track
+        local vehicle=AK.Physics.new(track)
+        if grid then
+            vehicle.x,vehicle.y,vehicle.heading=grid.localPose.x,grid.localPose.y,grid.localPose.heading
+            grid.staged=false
+        end
         token=assert(AK.LiveRace.new({session=session,role="host",seed=0,trackId=track.id,
             trackVersion=track.version,physicsVersion=AK.Physics.VERSION,localEpochMS=clock,
             hostEpochMS=clock,uncertaintyMS=352,peerAcknowledged=true,track=track,
-            vehicle=AK.Physics.new(track),race=AK.Race.newRunning(track,AK.Checkpoints,AK.Laps,0),
+            vehicle=vehicle,race=AK.Race.newRunning(track,AK.Checkpoints,AK.Laps,0),
             fixedDt=AK.Physics.FIXED_DT},"Amber Stone",clock,AK))
         phase="racing"
         return token
     end
-    return calls,transport,launch,function(ms) clock=clock+ms end
+    local function stage(cue,peerKartId)
+        if not grid then
+            local here,there=assert(AK.RaceGrid.pose(UI.track,"host"))
+            grid={ready=true,staged=true,localPose=here,peerPose=there,
+                localKartId=UI.kartId or "basic",peerKartId=peerKartId or "steam_tank"}
+        end
+        phase,grid.cue="coordinating",cue or "GET READY"
+        return grid
+    end
+    return calls,transport,launch,function(ms) clock=clock+ms end,stage
 end
 
 withMock(nil,false,function(env,UI)
@@ -2816,7 +2838,7 @@ withMock(nil,false,function(env,UI)
     assert(UI.state.x~=1,"next authoritative view replaces changed presentation copy")
     local LP=env.namespace.LiveProtocol
     local payload=assert(LP.encode({kind="STATE",session="AKTUI1",sequence=1,tick=1,x=400,y=100,
-        headingQ=0,speedQ=0,driftTier=0,boosting=false,completedLaps=0,passed=0,status="running"}))
+        headingQ=0,speedQ=0,driftTier=0,boosting=false,completedLaps=0,passed=0,status="running",sampleMS=0}))
     assert(env.namespace.LiveRace.receive(token,1221,LP.PREFIX,payload,"WHISPER","Amber Stone"))
     advance(17); UI.OnUpdate(0.017)
     assert(UI.opponent:IsShown() and UI.opponentLabel:IsShown()
@@ -2923,7 +2945,7 @@ withMock(nil,false,function(env,UI)
     local LP=env.namespace.LiveProtocol
     local function observation(sequence,tick,x,y)
         return assert(LP.encode({kind="STATE",session="AKTUI1",sequence=sequence,tick=tick,x=x,y=y,
-            headingQ=0,speedQ=0,driftTier=0,boosting=false,completedLaps=0,passed=0,status="running"}))
+            headingQ=0,speedQ=0,driftTier=0,boosting=false,completedLaps=0,passed=0,status="running",sampleMS=0}))
     end
     assert(env.namespace.LiveRace.receive(token,1000,LP.PREFIX,observation(1,1,400,100),"WHISPER","Amber Stone"))
     advance(1601); UI.OnUpdate(1.601)
@@ -2932,6 +2954,9 @@ withMock(nil,false,function(env,UI)
     assert(env.namespace.LiveRace.receive(token,2601,LP.PREFIX,observation(2,2,0,0),"WHISPER","Amber Stone"))
     advance(1601); UI.OnUpdate(1.601)
     assert(not UI.opponent:IsShown(),"off-viewport rotated marker cannot draw beyond canvas")
+    assert(UI.opponentLabel:IsShown() and UI.opponentLabel.text:find("off-screen",1,true)
+        and UI.opponentLabel.text:find("units",1,true) and not UI.opponentLabel.text:find("behind",1,true),
+        "off-screen bearing and distance do not invent a behind/ahead race position")
     assert(UI.MultiplayerAction("leave") and not UI.active and calls.left and calls.stop==1,
         "explicit Leave releases capture then invokes paced cancellation once")
 end)
@@ -2941,12 +2966,188 @@ for _,action in ipairs({"host","listen"}) do
         env.fire("ADDON_LOADED","AzerothKart"); UI.Toggle()
         local calls,transport=liveFixture(env,UI)
         assert(UI.MultiplayerAction(action,"Amber Stone","AKTUI1","test_oval"))
+        local command=calls[action]
+        assert(command[1]=="Amber Stone" and command[2]=="AKTUI1"
+            and command[action=="host" and 4 or 3]==UI.kartId,
+            "Host/Listen explicitly pass the selected local kart profile")
         assert(not UI.liveArmed and not UI.liveSession and not UI.active,
             "pre-Ready session never owns input")
+        local chosen=UI.kartId
+        assert(not UI.SelectKart("steam_tank") and UI.kartId==chosen,
+            "kart profile cannot change programmatically after Host/Listen starts agreement")
         UI.window:Hide()
         assert(calls.left and calls.stop==1 and not UI.active,
             "hiding window cancels even pre-Ready "..action.." session")
     end)
 end
 
-originalPrint("test_ui live integration: deliberate GO, copied local/remote state, no double stepping, exits PASS")
+-- Native shared grid is presentation-only until mapped GO. Held controls are
+-- consumed there without advancing Physics, laps or the solo countdown.
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart"); UI.Toggle()
+    local calls,transport,launch,advance,stage=liveFixture(env,UI)
+    local objects={}; for key,value in pairs(env.counts) do objects[key]=value end
+    assert(UI.MultiplayerAction("ready",true)); assert(UI.MultiplayerAction("start"))
+    local state,race,clock=UI.state,UI.race,UI.clock
+    local grid=stage()
+    UI.OnUpdate(0)
+    local displayState,displayLaps=UI.state,UI.laps
+    assert(UI.gridStaged and UI.multiplayer and not UI.active and UI.liveArmed,
+        "matching explicit Start stages the copied grid, never starts the solo loop")
+    assert(displayState~=state and UI.race==nil and UI.clock==nil and UI.state.tick==0
+        and UI.laps.completedLaps==0 and UI.laps.currentLapTicks==0,
+        "a deliberate staged start resets only the ended tick-zero display")
+    assert(UI.window.keyboard and UI.window.propagate==false and UI.opponent:IsShown(),
+        "both grid karts show before GO and throttle cannot move the WoW character")
+    assert(UI.countdownCue.text=="GET READY" and UI.countdownCue:IsShown(),
+        "grid is visible before the timed 3-2-1")
+    assert(env.namespace.Menu.screen==nil and not env.namespace.Menu.root:IsShown()
+        and UI.stopButton:IsShown() and UI.stopButton:IsEnabled(),
+        "grid hides lobby without Leave and keeps the explicit Stop control")
+    local sprite=env.namespace.Presentation.KART_SPRITES.steam_tank
+    assert(UI.opponentSprite==sprite and UI.opponent.texturePath==sprite.path
+        and UI.opponent.rotation==0 and UI.opponent.vertexColor[1]==1,
+        "peer's chosen directional art is shown neutrally, instead of a square")
+    local P=env.namespace.Presentation
+    local frame=P.kartFrame(sprite,grid.peerPose.heading)
+    local left,right,top,bottom=P.kartFrameCoords(sprite,frame)
+    assert(UI.opponentFrame==frame and UI.opponent.texCoords[1]==left
+        and UI.opponent.texCoords[2]==right and UI.opponent.texCoords[3]==top
+        and UI.opponent.texCoords[4]==bottom,
+        "peer sheet uses the same heading-to-frame crop as the own kart")
+    local kartLoads=loads(env,sprite.path)
+    env.key(UI,"OnKeyDown","W"); env.key(UI,"OnKeyDown","F")
+    for _,cue in ipairs({"3","2","1"}) do
+        stage(cue); advance(1000); UI.OnUpdate(1)
+        assert(UI.countdownCue:IsShown() and UI.countdownCue.text==cue,
+            "shared countdown shows "..cue)
+        assert(UI.state==displayState and UI.race==nil and UI.clock==nil and UI.state.tick==0
+            and UI.laps==displayLaps and UI.laps.completedLaps==0 and calls.advance==0,
+            "grid cue cannot run Physics, laps or either game loop")
+    end
+    assert(loads(env,sprite.path)==kartLoads,"grid image loads once, never per callback")
+    local released=env.keyboardReleaseCalls
+    local localX,localY=grid.localPose.x,grid.localPose.y
+    launch(); UI.OnUpdate(0)
+    assert(not UI.gridStaged and UI.active and UI.liveActive and UI.state.tick==0
+        and UI.state.x==localX and UI.state.y==localY and UI.race.totalTicks==0
+        and UI.race.countdownTicks==0 and UI.countdownCue.text=="GO",
+        "GO adopts the actual offset grid spawn without a second countdown")
+    assert(env.keyboardReleaseCalls==released and next(UI.keys)~=nil,
+        "GO retains staged held input without releasing/reacquiring capture")
+    advance(17); UI.OnUpdate(0.017)
+    assert(UI.state.speed>0 and UI.state.tick==1 and UI.input.accelerate,
+        "held grid throttle reaches the first native simulation tick")
+    UI.Stop("grid test stopped")
+    assert(not UI.gridStaged and not UI.gridView and not UI.window.keyboard
+        and next(UI.keys)==nil and not UI.countdownCue:IsShown(),
+        "Stop clears all grid/cue/capture state")
+    for key,value in pairs(objects) do assert(env.counts[key]==value,"grid allocated objects: "..key) end
+end)
+
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart"); UI.Toggle()
+    local AK=env.namespace
+    UI.race=AK.Race.newRunning(UI.track,AK.Checkpoints,AK.Laps,0)
+    UI.race.status,UI.race.totalTicks="finished",300
+    UI.laps=UI.race.laps
+    UI.laps.completedLaps,UI.laps.currentLapTicks=3,0
+    UI.laps.lastLapTicks,UI.laps.bestLapTicks,UI.laps.bestLapNumber=100,100,1
+    UI.checkpoints=UI.laps.checkpoints
+    UI.Stop("prior finish")
+    assert(UI.summary:IsShown() and UI.race.status=="finished","fixture retains a previous completed run")
+    local ended=UI.race
+    local calls,transport,launch,advance,stage=liveFixture(env,UI)
+    assert(UI.MultiplayerAction("ready",true))
+    assert(UI.race==ended and UI.summary:IsShown(),"Ready alone preserves the previous result display")
+    assert(UI.MultiplayerAction("start")); stage("3"); UI.OnUpdate(0)
+    assert(UI.race==nil and UI.laps.completedLaps==0 and UI.state.tick==0 and not UI.summary:IsShown(),
+        "first legitimate shared grid clears old three-lap presentation without simulation")
+    UI.Stop("grid cancelled")
+    assert(not UI.summary:IsShown() and UI.race==nil and UI.laps.completedLaps==0,
+        "cancelling this new grid cannot resurrect the previous completed race")
+end)
+
+for _,mode in ipairs({"not_ready","wrong_session"}) do
+    withMock(nil,false,function(env,UI)
+        env.fire("ADDON_LOADED","AzerothKart"); UI.Toggle()
+        local calls,transport,launch,advance,stage=liveFixture(env,UI)
+        if mode=="wrong_session" then
+            assert(UI.MultiplayerAction("ready",true)); UI.liveSession="OTHER1"
+        end
+        stage("3"); UI.OnUpdate(1)
+        assert(not UI.gridStaged and not UI.active and not UI.window.keyboard and calls.advance==0,
+            "a copied grid alone cannot capture without the matching explicit Ready: "..mode)
+    end)
+end
+
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart"); UI.Toggle()
+    local calls,transport,launch,advance=liveFixture(env,UI)
+    assert(UI.MultiplayerAction("ready",true)); local token=launch(); UI.OnUpdate(0)
+    local Live,P=env.namespace.LiveRace,env.namespace.Presentation
+    local view=Live.view(token)
+    view.remote={x=400,y=100,heading=0,speed=200,status="running",sampleMS=0,
+        receivedAtMS=1200,sampleAgeMS=350}
+    view.peerKartId="steam_tank"
+    transport.AdvanceLive=function() return view end
+    local builds=0
+    local builder=P.buildRemotePath
+    P.buildRemotePath=function(...) builds=builds+1; return builder(...) end
+    UI.OnUpdate(0)
+    local path=UI.remotePath
+    local x,y=P.remotePose(path,350)
+    local projectedX,projectedY=P.project(UI.view,x,y)
+    local sprite=P.KART_SPRITES.steam_tank
+    assert(UI.opponent.point[4]==projectedX+sprite.pivotX*UI.view.scale
+        and UI.opponent.point[5]==projectedY+sprite.pivotY*UI.view.scale and x>400,
+        "peer is displayed at mapped sample age instead of an extra interval behind")
+    for age=351,360 do view.remote.sampleAgeMS=age; UI.OnUpdate(0) end
+    assert(builds==1 and UI.remotePath==path,"the bounded future path is rebuilt once per received snapshot")
+    view.remote.receivedAtMS=1500; UI.OnUpdate(0)
+    assert(builds==2,"a new snapshot refreshes the cached future path")
+    assert(view.remote.x==400 and view.remote.y==100,"remote display prediction cannot modify observed state")
+    P.buildRemotePath=builder
+    UI.Stop("prediction fixture")
+end)
+
+for _,exit in ipairs({"escape","stop","combat","focus","chat","close","world","native"}) do
+    withMock(nil,false,function(env,UI)
+        env.fire("ADDON_LOADED","AzerothKart"); UI.Toggle()
+        local calls,transport,launch,advance,stage=liveFixture(env,UI)
+        assert(UI.MultiplayerAction("ready",true)); assert(UI.MultiplayerAction("start"))
+        stage("3"); UI.OnUpdate(0); env.key(UI,"OnKeyDown","W")
+        if exit=="escape" then env.key(UI,"OnKeyDown","ESCAPE")
+        elseif exit=="stop" then UI.Stop("Stopped")
+        elseif exit=="combat" then env.combat=true; UI.HandleEvent("PLAYER_REGEN_DISABLED")
+        elseif exit=="focus" then env.focused=false; UI.OnUpdate(0)
+        elseif exit=="chat" then env.key(UI,"OnKeyDown","ENTER")
+        elseif exit=="close" then UI.window:Hide()
+        elseif exit=="world" then UI.HandleEvent("PLAYER_LEAVING_WORLD")
+        else transport.Stop("timeout"); UI.OnUpdate(0) end
+        assert(not UI.active and not UI.gridStaged and not UI.liveArmed
+            and not UI.window.keyboard and next(UI.keys)==nil and not UI.countdownCue:IsShown()
+            and calls.advance==0 and UI.state.tick==0,
+            "staged lifecycle releases input without simulation: "..exit)
+        assert(env.combatPropagationCalls==0,"staged combat never calls propagation setters")
+    end)
+end
+
+for _,mode in ipairs({"false","throws"}) do
+    withMock(nil,false,function(env,UI)
+        env.fire("ADDON_LOADED","AzerothKart"); UI.Toggle()
+        local calls,transport,launch,advance,stage=liveFixture(env,UI)
+        local sprite=env.namespace.Presentation.KART_SPRITES.steam_tank
+        env.textureModes={[sprite.path]=mode}
+        assert(UI.MultiplayerAction("ready",true)); assert(UI.MultiplayerAction("start"))
+        stage("3"); UI.OnUpdate(0)
+        local tried=loads(env,sprite.path)
+        assert(not UI.opponentSprite and UI.opponent:IsShown() and UI.opponent.color[2]==0.85,
+            "refused peer image has a visible cyan primitive fallback: "..mode)
+        UI.OnUpdate(0); UI.OnUpdate(0)
+        assert(loads(env,sprite.path)==tried,"refused peer image is not retried every frame")
+        UI.Stop("peer art test")
+    end)
+end
+
+originalPrint("test_ui live integration: shared static grid/cues, held GO, peer sprites, copied observations and exits PASS")

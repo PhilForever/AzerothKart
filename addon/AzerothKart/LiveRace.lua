@@ -50,7 +50,7 @@ local function dependencies(m)
         if type(m[module])~="table" then return false end
         for _,method in ipairs(methods) do if type(m[module][method])~="function" then return false end end
     end
-    return m.LiveProtocol.PREFIX=="AZKRUN1" and m.LiveProtocol.MAX_BYTES==34
+    return m.LiveProtocol.PREFIX=="AZKRUN2" and m.LiveProtocol.MAX_BYTES==40
         and m.Physics.FIXED_DT==1/60
 end
 
@@ -145,7 +145,8 @@ local function packet(s)
         headingQ=math.floor((v.heading%turn)/turn*46656+0.5)%46656,
         speedQ=math.floor(v.speed*10+0.5),driftTier=v.driftTier or 0,
         boosting=(v.boostTicks or 0)>0,completedLaps=r.laps.completedLaps,
-        passed=r.laps.checkpoints.passed,status=r.status})
+        passed=r.laps.checkpoints.passed,status=r.status,
+        sampleMS=math.max(0,s.advancedAt-s.bundle.localEpochMS)})
 end
 
 -- Only output path: latest pose, never a history queue, ACK or catch-up burst.
@@ -201,6 +202,7 @@ function Live.receive(token, nowMS, prefix, payload, channel, sender)
         or (message.completedLaps==3)~=(message.status=="finished")
         or (message.status=="finished" and message.passed~=0) then return reject("bounds") end
     if s.remote and message.tick<s.remote.tick then return reject("tick") end
+    if s.remote and message.sampleMS<s.remote.sampleMS then return reject("stamp") end
     if s.remote and s.remote.status=="finished" and message.status~="finished" then return reject("terminal") end
     -- Fresh sequence numbers with a frozen running tick are not fresh progress.
     if not s.remote or message.tick>s.remote.tick or message.status~="running" then s.peerProgressAt=nowMS end
@@ -208,6 +210,7 @@ function Live.receive(token, nowMS, prefix, payload, channel, sender)
     local remote={x=message.x,y=message.y,heading=message.headingQ/46656*(2*math.pi),
         speed=message.speedQ/10,tick=message.tick,driftTier=message.driftTier,boosting=message.boosting,
         completedLaps=message.completedLaps,passed=message.passed,status=message.status,receivedAtMS=nowMS}
+    remote.sampleMS=message.sampleMS
     s.remotePrevious,s.remote=s.remote or remote,remote
     s.remoteSequence,s.peerAt=message.sequence,nowMS
     s.counters.received=s.counters.received+1
@@ -228,13 +231,16 @@ end
 -- physics corrections, checkpoint awards, standings or agreed finish results.
 function Live.view(token)
     local s=runs[token]; if not s then return nil,"run" end
+    local remote=copy(s.remote)
+    if remote then remote.sampleAgeMS=math.max(0,s.lastNow-s.bundle.localEpochMS-remote.sampleMS) end
     return {phase=s.phase,reason=s.reason,session=s.bundle.session,role=s.bundle.role,peer=s.peer,
         trackId=s.bundle.trackId,trackVersion=s.bundle.trackVersion,physicsVersion=s.bundle.physicsVersion,
         localEpochMS=s.bundle.localEpochMS,hostEpochMS=s.bundle.hostEpochMS,
         uncertaintyMS=s.bundle.uncertaintyMS,peerAcknowledged=s.bundle.peerAcknowledged,
         vehicle=copy(s.vehicle),previous=copy(s.previous),race=copy(s.race),clock=copy(s.clock),
         alpha=s.phase=="running" and s.clock.accumulator/s.clock.dt or 1,
-        remote=copy(s.remote),remotePrevious=copy(s.remotePrevious),remoteVerified=false,
+        remote=remote,remotePrevious=copy(s.remotePrevious),remoteVerified=false,
+        elapsedMS=math.max(0,s.lastNow-s.bundle.localEpochMS),
         remoteAgeMS=s.remote and s.lastNow-s.remote.receivedAtMS or nil,
         remoteStale=not s.remote or s.lastNow-s.remote.receivedAtMS>Live.STALE_MS,
         resultVerified=false,sequence=s.sequence,remoteSequence=s.remoteSequence,

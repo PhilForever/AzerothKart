@@ -251,7 +251,8 @@ end
 
 local function refreshCountdown()
     if not UI.countdownCue then return end
-    local cue = UI.active and UI.race and Race.cue(UI.race) or nil
+    local cue = UI.gridStaged and UI.gridView and UI.gridView.cue or
+        (UI.active and UI.race and Race.cue(UI.race) or nil)
     if cue == UI.cueText then return end
     UI.cueText = cue
     if cue then
@@ -265,6 +266,14 @@ end
 
 local function refreshHud()
     if not UI.hud or not UI.state then return end
+    if UI.gridStaged then
+        UI.hud:SetText("Starting grid | Simulation and race clock begin at GO")
+        UI.lapHud:SetText("Laps: 0 | Current: 0.00s")
+        UI.checkpointHud:SetText("Hold W/Up for GO | Stop / Esc: leave")
+        UI.driftHud:SetText("Both karts are staged | Waiting for the shared start")
+        if AK.Menu then AK.Menu.Sync() end
+        return
+    end
     local c = UI.clock
     UI.hud:SetText(("Speed: %d | Ticks: %d | Dropped: %.3fs | Sample: %.1fs"):format(
         math.floor(math.abs(UI.state.speed)+0.5),UI.state.tick,
@@ -340,7 +349,7 @@ function UI.Stop(reason)
     local pending=pendingNativeLive()
     if UI.liveArmed or UI.liveActive or (UI.multiplayer and UI.liveSession) or pending then
         UI.liveSession=UI.liveSession or (pending and pending.session)
-        UI.active,UI.liveArmed,UI.liveActive = false,false,false
+        UI.active,UI.liveArmed,UI.liveActive,UI.gridStaged = false,false,false,false
         UI.ReleaseInput() -- release before a paced Leave checks the local-drive guard
         local transport = AK.SessionTransport
         if transport then
@@ -364,6 +373,7 @@ function UI.Stop(reason)
         end
     end
     UI.active = false
+    UI.gridStaged,UI.gridView,UI.remotePath,UI.remotePathAt=false,nil,nil,nil
     -- Closing an already interrupted drive cannot replace its terminal reason.
     if UI.result and (UI.result.status == "interrupted" or UI.result.status == "finished") then
         reason = UI.result.reason
@@ -409,7 +419,7 @@ function UI.InterruptCombat()
 end
 
 local function keyEvent(key, down)
-    if not UI.active then return end
+    if not UI.active and not UI.gridStaged then return end
     if inCombat() then UI.InterruptCombat(); return end
     if type(GetCurrentKeyBoardFocus) == "function" and GetCurrentKeyBoardFocus() then
         UI.Stop("Text input has focus"); return
@@ -713,8 +723,8 @@ local kartColors = {
 -- Every application establishes the complete visual configuration. A failed
 -- sheet load may already have cropped a previous single image (or vice versa),
 -- so restoration must set UVs and orientation as well as the texture and tint.
-local function applyKartSprite(sprite,frame,heading)
-    local kart = UI.kart
+local function applyKartSprite(sprite,frame,heading,target)
+    local kart = target or UI.kart
     if not sprite or type(kart.SetTexture) ~= "function"
         or type(kart.SetVertexColor) ~= "function" or type(kart.SetTexCoord) ~= "function"
         or type(kart.SetRotation) ~= "function" then return false end
@@ -766,7 +776,7 @@ end
 -- drives the same 17x31 body. The choice is not saved.
 function UI.SelectKart(id)
     local sprite = Presentation.KART_SPRITES[id]
-    if not UI.kart or UI.active or UI.liveArmed or livePending() or not sprite then return false end
+    if not UI.kart or UI.active or UI.liveArmed or livePending() or pendingNativeLive() or not sprite then return false end
     if id == UI.kartId then return true end
     local previous,previousFrame = UI.kartSprite,UI.kartFrame
     local _,_,heading = Presentation.pose(UI.previousState,UI.state,1)
@@ -839,6 +849,7 @@ function UI.SelectTrack(id)
     UI.checkpoints,UI.previousState = UI.laps.checkpoints,UI.state
     UI.race,UI.result,UI.clock,UI.performance,UI.summaryRace = nil,nil,nil,nil,nil
     UI.multiplayer,UI.liveView,UI.liveSession=false,nil,nil
+    UI.gridStaged,UI.gridView,UI.remotePath,UI.remotePathAt=false,nil,nil,nil
     UI.dismissedSummaryRace = nil
     UI.hudElapsed = 0
     UI.stopReason = "Track selected"
@@ -851,36 +862,88 @@ function UI.SelectTrack(id)
     return true
 end
 
+local function opponentSprite(id)
+    id = type(id)=="string" and id or "basic"
+    if UI.opponentAssetId==id then return UI.opponentSprite end
+    UI.opponentAssetId,UI.opponentFrame=id,nil
+    local sprite = Presentation.KART_SPRITES[id]
+    if sprite and applyKartSprite(sprite,0,nil,UI.opponent) then
+        UI.opponentSprite,UI.opponentFrame=sprite,sprite.frames and 0 or nil
+        UI.opponentRotationReady=true
+    else
+        UI.opponentSprite=nil
+        -- One guarded attempt per profile change, never an image load each
+        -- render. Missing or refused peer art keeps the cyan primitive.
+        if type(UI.opponent.SetTexCoord)=="function" then pcall(UI.opponent.SetTexCoord,UI.opponent,0,1,0,1) end
+        if type(UI.opponent.SetVertexColor)=="function" then pcall(UI.opponent.SetVertexColor,UI.opponent,1,1,1,1) end
+        UI.opponentRotationReady=type(UI.opponent.SetRotation)=="function"
+            and pcall(UI.opponent.SetRotation,UI.opponent,0)
+        UI.opponent:SetColorTexture(0.18,0.85,1,1)
+    end
+    return UI.opponentSprite
+end
+
 local function renderOpponent()
     if not UI.opponent then return end
     local view = UI.liveView
-    local remote = view and view.remote
+    local grid = UI.gridStaged and UI.gridView
+    local remote = grid and grid.peerPose or (view and view.remote)
     if not UI.multiplayer or not remote then
         UI.opponent:Hide()
         UI.opponentLabel:Hide()
         return
     end
-    -- Interpolate one received interval behind; clamp rather than extrapolate.
-    -- This consumes copied observations only and never writes local physics.
-    local previous = view.remotePrevious or remote
-    local interval = remote.receivedAtMS - previous.receivedAtMS
-    local alpha = interval > 0 and math.min(1,math.max(0,(view.remoteAgeMS or 0)/interval)) or 1
-    local x,y,heading = Presentation.pose(previous,remote,alpha)
-    x,y = Presentation.project(UI.view,x,y)
+    local wx,wy,heading,predicted
+    if grid then wx,wy,heading=remote.x,remote.y,remote.heading
+    else
+        -- Cache bounded collision-aware display prediction once per packet.
+        -- Its age includes transit time; no extra received-interval delay.
+        if UI.remotePathAt~=remote.receivedAtMS or not UI.remotePath then
+            UI.remotePathAt=remote.receivedAtMS
+            UI.remotePath=Presentation.buildRemotePath(view.remotePrevious,remote,Track)
+        end
+        wx,wy,heading,predicted=Presentation.remotePose(UI.remotePath,remote.sampleAgeMS or view.remoteAgeMS or 0)
+    end
+    if not wx then UI.opponent:Hide(); UI.opponentLabel:Hide(); return end
+    local x,y = Presentation.project(UI.view,wx,wy)
     local scale = UI.view.scale
-    local radius = 18*scale -- rotated 17x31 body fits inside this radius
-    local visible = x>=radius and x<=800-radius and y>=radius and y<=480-radius
+    local sprite=opponentSprite((grid and grid.peerKartId) or (view and view.peerKartId) or
+        (UI.gridView and UI.gridView.peerKartId))
+    local px,py=sprite and sprite.pivotX or 0,sprite and sprite.pivotY or 0
+    local width,height=sprite and sprite.quadWidth or 36,sprite and sprite.quadHeight or 36
+    local cx,cy=x+px*scale,y+py*scale
+    local visible = cx>=width*scale/2 and cx<=800-width*scale/2
+        and cy>=height*scale/2 and cy<=480-height*scale/2
     if visible then
-        UI.opponent:SetSize(17*scale,31*scale)
+        UI.opponent:SetSize((sprite and sprite.quadWidth or 17)*scale,
+            (sprite and sprite.quadHeight or 31)*scale)
         UI.opponent:ClearAllPoints()
-        UI.opponent:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x,y)
-        if UI.opponentRotationReady then
+        UI.opponent:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",cx,cy)
+        if sprite and sprite.frames then
+            local frame=Presentation.kartFrame(sprite,heading)
+            if frame~=UI.opponentFrame then
+                UI.opponentFrame=frame
+                UI.opponent:SetTexCoord(Presentation.kartFrameCoords(sprite,frame))
+            end
+        elseif UI.opponentRotationReady then
             UI.opponentRotationReady = pcall(UI.opponent.SetRotation,UI.opponent,heading-math.pi/2)
         end
-        UI.opponent:SetAlpha(view.remoteStale and 0.35 or 0.9)
+        UI.opponent:SetAlpha(view and view.remoteStale and 0.35 or 1)
         UI.opponent:Show()
     else UI.opponent:Hide() end
-    local label = (view.peer or "Friend") .. (view.remoteStale and " | signal stale" or " | observed kart")
+    local peer = (view and view.peer) or UI.gridPeer or "Friend"
+    local label = peer .. (grid and " | starting grid" or
+        (view.remoteStale and " | signal stale" or (predicted and " | estimated kart" or " | observed kart")))
+    if not visible then
+        local pose=grid and grid.localPose or UI.state
+        local distance=math.sqrt((wx-pose.x)^2+(wy-pose.y)^2)
+        local vertical=y>480 and "north" or (y<0 and "south" or "")
+        local horizontal=x>800 and "east" or (x<0 and "west" or "")
+        local direction=vertical..(vertical~="" and horizontal~="" and "-" or "")..horizontal
+        if direction=="" then direction="at edge" end
+        label=peer.." | off-screen "..direction..(" | %.0f units"):format(distance)
+        if view and view.remoteStale then label=label.." | signal stale" end
+    end
     if label~=UI.opponentCaption then
         UI.opponentCaption=label
         UI.opponentLabel:SetText(label)
@@ -890,7 +953,10 @@ end
 
 render = function()
     local alpha = UI.active and UI.clock and UI.clock.accumulator/UI.clock.dt or 1
-    local x,y,heading = Presentation.pose(UI.previousState,UI.state,alpha)
+    local gridPose=UI.gridStaged and UI.gridView and UI.gridView.localPose
+    local x,y,heading
+    if gridPose then x,y,heading=gridPose.x,gridPose.y,gridPose.heading
+    else x,y,heading=Presentation.pose(UI.previousState,UI.state,alpha) end
     if UI.view.follow then
         local oldX,oldY = UI.view.offsetX,UI.view.offsetY
         Presentation.follow(UI.view,x,y,heading,60)
@@ -919,9 +985,9 @@ render = function()
             UI.kartRotationReady = pcall(UI.kart.SetRotation,UI.kart,heading - math.pi/2)
         end
     end
-    renderEffects(x,y,alpha)
+    if not UI.gridStaged then renderEffects(x,y,alpha) end
     local state = UI.state
-    local tint = UI.kartSprite and 0 or
+    local tint = (UI.gridStaged or UI.kartSprite) and 0 or
         (state.boostTicks > 0 and 4 or (state.drifting and (1 + state.driftTier) or 0))
     if tint ~= UI.kartTint then
         UI.kartTint = tint
@@ -1107,8 +1173,12 @@ function UI.MultiplayerAction(action,...)
     if not UI.window or not UI.window:IsShown() then return false,"window_hidden" end
     if inCombat() then return false,"combat" end
     local accepted,reason
-    if action=="host" then accepted,reason=transport.HostLive(...)
-    elseif action=="listen" then accepted,reason=transport.ListenLive(...)
+    if action=="host" then
+        local peer,code,trackId=...
+        accepted,reason=transport.HostLive(peer,code,trackId,UI.kartId or "basic")
+    elseif action=="listen" then
+        local peer,code=...
+        accepted,reason=transport.ListenLive(peer,code,UI.kartId or "basic")
     elseif action=="join" then accepted,reason=transport.Join()
     elseif action=="ready" then
         local ready=...
@@ -1134,6 +1204,8 @@ function UI.MultiplayerAction(action,...)
     if accepted and (action=="host" or action=="listen") then
         UI.liveArmed,UI.liveActive,UI.liveSession=false,false,nil
         UI.multiplayer,UI.liveView=false,nil
+        UI.gridStaged,UI.gridView,UI.remotePath,UI.remotePathAt=false,nil,nil,nil
+        UI.opponentAssetId=nil
     end
     return accepted,reason
 end
@@ -1147,7 +1219,7 @@ applyLiveView = function(view)
 end
 
 finishLive = function(reason)
-    UI.active,UI.liveActive,UI.liveArmed=false,false,false
+    UI.active,UI.liveActive,UI.liveArmed,UI.gridStaged=false,false,false,false
     UI.ReleaseInput()
     UI.previousState=UI.state
     UI.stopReason=reason or "Experimental race ended"
@@ -1169,19 +1241,57 @@ pollLive = function()
     if not transport then return end
     local view=transport.GetView()
     local live=view.live
+    local grid=view.grid
+    if UI.gridStaged and view.phase=="closed" then UI.Stop("Start session ended"); return end
+    if UI.liveArmed and view.session==UI.liveSession and grid and grid.ready and grid.staged
+        and grid.localPose and grid.peerPose then
+        local eligible,why=captureEligibility()
+        if not eligible then
+            if why=="combat" then UI.InterruptCombat() else UI.Stop("Live start unavailable") end
+            return
+        end
+        UI.gridView,UI.gridPeer=grid,view.peer
+        if not UI.gridStaged then
+            UI.gridStaged,UI.multiplayer=true,true
+            -- A deliberate fresh start replaces an ended display only now.
+            -- This is a tick-zero presentation reset, not backend adoption or
+            -- a pre-GO simulation step; the role poses remain separate.
+            UI.state=Physics.new(Track)
+            UI.previousState=UI.state
+            UI.laps=Laps.new(Track,Checkpoints,0)
+            UI.checkpoints=UI.laps.checkpoints
+            UI.race,UI.clock=nil,nil
+            UI.result,UI.summaryRace,UI.dismissedSummaryRace=nil,nil,nil
+            UI.summary:Hide()
+            resetEffects()
+            UI.ReleaseInput()
+            UI.window:SetPropagateKeyboardInput(false)
+            UI.window:EnableKeyboard(true)
+            UI.startButton:Disable(); UI.stopButton:Enable(); UI.trackButton:Disable(); UI.kartButton:Disable()
+            UI.kartButtonActive=true
+        end
+        render()
+        refreshHud()
+        UI.status:SetText("Starting grid | Hold W/Up for GO | Stop / Esc: leave")
+    end
     if live and live.session==UI.liveSession then
         if UI.liveArmed and view.phase=="racing" then
             local eligible=captureEligibility()
             if not eligible or live.trackId~=UI.trackId then UI.Stop("Live start unavailable"); return end
             applyLiveView(live)
-            UI.multiplayer,UI.liveActive,UI.active,UI.liveArmed=true,true,true,false
+            local staged=UI.gridStaged
+            UI.multiplayer,UI.liveActive,UI.active,UI.liveArmed,UI.gridStaged=true,true,true,false,false
             UI.result,UI.summaryRace,UI.dismissedSummaryRace=nil,nil,nil
             UI.hudElapsed=0
             UI.performance=UI.performanceEnabled and Performance.new() or nil
             UI.summary:Hide()
-            UI.ReleaseInput()
-            UI.window:SetPropagateKeyboardInput(false)
-            UI.window:EnableKeyboard(true)
+            -- Staged controls stay held through GO. Capture is already owned;
+            -- clearing it here would discard the player's held throttle.
+            if not staged then
+                UI.ReleaseInput()
+                UI.window:SetPropagateKeyboardInput(false)
+                UI.window:EnableKeyboard(true)
+            end
             UI.stopReason="Experimental live race"
             UI.startButton:Disable()
             UI.stopButton:Enable()
@@ -1201,6 +1311,7 @@ pollLive = function()
             end
         elseif view.phase=="closed" then UI.liveArmed=false end
     elseif view.phase=="closed" then
+        if UI.gridStaged then UI.Stop("Start session ended"); return end
         UI.liveArmed=false
     end
     if UI.multiplayer and not UI.active then
@@ -1230,6 +1341,7 @@ function UI.Start()
     if AK.SessionTransport then AK.SessionTransport.Stop("local_drive") end
     UI.ReleaseInput()
     UI.liveArmed,UI.liveActive,UI.liveSession,UI.multiplayer,UI.liveView=false,false,nil,false,nil
+    UI.gridStaged,UI.gridView,UI.remotePath,UI.remotePathAt=false,nil,nil,nil
     UI.state = Physics.new(Track)
     UI.race = Race.new(Track,Checkpoints,Laps,UI.state.tick)
     UI.laps = UI.race.laps

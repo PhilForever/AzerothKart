@@ -4,7 +4,7 @@ Implemented on `codex/live-race-controller`, from4544108, within the accepted
 [two-peer experiment](adr/0013-two-player-experiment-scope.md). This is a pure
 backend lifecycle and observational pose path. The subsequent native/menu/canvas
 integration on `codex/live-multiplayer-integration` now makes an opt-in friend-test
-candidate; actual Forever gameplay is **NOT RUN**. No production
+candidate. The [first owner-reported race](evidence/2026-10-23-first-live-race.md) completed locally on both peers, exposing countdown/sprite/delay issues. The revised grid/display candidate’s native checks are **NOT RUN**. No production
 authority, kart contact, agreed results or release decision is made here.
 
 ## Ownership and activation
@@ -54,7 +54,7 @@ calculated, and a remote progress claim never awards a local checkpoint/lap.
 
 Peer silence, or frozen running ticks despite fresh sequence numbers, closes
 at five seconds; stale/duplicate/wrong-session/invalid packets do not renew
-liveness. Age over1500ms marks remoteStale without extrapolation. At most the
+liveness. Age over1500ms marks remoteStale. Presentation may forecast at most500ms through the read-only geometry helper; authoritative local simulation is never extrapolated from received poses. At most the
 latest two observations are kept; there is no packet history allocation. The
 common update/advance deadline check enforces frozen-progress timeout even if
 no further packet arrives. Duration is capped at30minutes/108000 driving ticks.
@@ -63,19 +63,20 @@ duplicate traffic. No automatic recovery/rejoin is implemented.
 
 ## Observational wire format
 
-`LiveProtocol.lua`: VERSION1, separate prefix `AZKRUN1`, exactly34 uppercase
+`LiveProtocol.lua`: VERSION2, separate prefix `AZKRUN2`, exactly40 uppercase
 ASCII/base36 bytes. Unknown fields, metatables, invalid types, noncanonical
 lengths/alphabet, NaN/infinity, bad bounds and wrong versions are refused.
 
 | Field | Bytes | Range/meaning |
 |---|---:|---|
-| version/kind/session/sequence | 11 | 1/S, six-character session, sequence1..46655; no wrap |
+| version/kind/session/sequence | 11 | 2/S, six-character session, sequence1..46655; no wrap |
 | tick | 6 | sender simulation tick0..108000, not a trusted timestamp |
 | x/y | 3 each | quarter-unit positions0..11663.75; controller rounds, codec does not |
 | headingQ | 3 | integer0..46655, one turn divided into46656 bins |
 | speedQ | 3 | tenths of a world unit/second, -550..2600; encoded with +550 offset |
 | driftTier/boosting | 1 each | 0..2, strict boolean |
 | completedLaps/passed/status | 1 each | 0..3, 0..8, running/finished/stopped/interrupted |
+| sampleMS | 6 | integer0..1800000, sender sample time relative to its mapped GO; monotonic |
 
 The controller further restricts coordinates to this map, passed to the current
 gate count and finished to completedLaps3/passed0. Backward ticks and attempts to
@@ -84,7 +85,7 @@ physical trajectory validation, anti-cheat or trusted remote race progress.
 
 Output is latest-only at most every500ms, two calls and158 payload-plus-prefix
 bytes per rolling second, with no ACK per pose, queue replay or catch-up burst.
-Each pose is41bytes including its7-byte prefix:82B/s per peer,164B/s per pair at
+Each pose is47bytes including its7-byte prefix:94B/s per peer,188B/s per pair at
 nominal2Hz, before unmeasured native overhead. All attempts, including failures,
 are charged. Unknown/failed/throttled/thrown send outcomes close without retry.
 Reentrant sends/advance are refused; reentrant Stop cannot be undone by a send
@@ -108,9 +109,9 @@ one-shot/reentrant initialization, malformed data, unauthorized peers, aliases,
 stale/reordered packets, flood/timeouts, hitches, exact finish, stop/combat and
 send failures. These are offline tests, not measured network results.
 
-Native AZKRUN1 delivery, bidirectional race traffic, input/canvas/menu activation,
-remote sprite interpolation/appearance, start skew/drift and actual game feel
-are **NOT RUN/unimplemented**. Test Oval and Mirage remain the existing session
+That original backend-only checkpoint did not test native delivery or appearance.
+Later native integration and owner feedback are recorded below; revised grid/sprite/forecast
+behavior, start skew/drift and corrected game feel remain **NOT RUN** in the client. Test Oval and Mirage remain the existing session
 codec's only negotiated tracks; five solo maps do not imply five network maps.
 Production authority/correction/finish reconciliation and socket recovery stay
 open. No new manual probe or friend download is needed for this source slice.
@@ -122,13 +123,13 @@ Claude menu/canvas binding then makes a friend-testable candidate.
 
 ## Implemented native and player-flow integration
 
-SessionTransport now exposes `HostLive(peer,code,trackId)` / `ListenLive(peer,code)`
+SessionTransport now exposes `HostLive(peer,code,trackId,kartId?)` / `ListenLive(peer,code,kartId?)` (default trike)
 in addition to the unchanged legacy/coordinated actions. Join, Ready and
-PrepareStart remain explicit. Live mode registers AZKRUN1 only when armed. At GO,
+PrepareStart remain explicit. Live mode registers AZKRUN2 and AZKGRD1 only on explicit arm. Bounded immutable kart profiles must be agreed before Ready/Start are enabled. At GO,
 the native Update consumes its private initializer once, creates LiveRace, then
 calls backend-only PeerSession.beginRace. This removes the old30s negotiation
 deadline while retaining control state solely for a paced final cancellation.
-No hook/lease release or new sender occurs at GO. All three prefixes share the
+No hook/lease release or new sender occurs at GO. All four prefixes share the
 same persistent0.5s/2calls/158B gate across modes/sessions. Failed/unknown/throttled
 live sends close and release immediately, without attempting another notice.
 
@@ -145,14 +146,9 @@ Core binds the menu's copied view/action bridge after UI.Create. Multiplayer
 now supplies full-name/code inputs, supported-track selection, Host/Listen/Join/
 Ready/Start/Leave and5Hz visible status refresh. UI.MultiplayerAction validates
 commands; deliberate Ready aligns the offered map and arms input eligibility.
-Only matching-session GO can activate a shown, focused, out-of-combat canvas
-without text focus. No menu navigation consumes a ticket or starts Physics.
+Only a matching explicitly readied live session can stage/capture a shown, focused, out-of-combat canvas without text focus. GET READY and the full3–2–1 countdown show both role-specific karts; only GO activates real backend ticks. Host/guest start36units apart on the same line; these copied poses do not modify solo track data. No menu navigation consumes a ticket or starts Physics.
 
-UI owns one additional pooled cyan marker and one label (no art load). It
-interpolates copied last/current observations one received interval behind,
-clamps without extrapolation, fades stale data and hides off-canvas markers.
-Remote kart choice is not exchanged. At high latency/speed the marker can leave
-the follow camera; actual usefulness is a playtest question. Explicit object
+UI reuses its one pooled opponent texture and label for the peer’s chosen atlas (neutral tint; primitive fallback on load failure). A cached path uses sample timestamps, signed speed, measured direction and bounded heading change; rendering samples without allocation or another snapshot interval of delay. Forecast caps at500ms/31points/speed260/yaw2.6rad/s, stopping at track walls/solids. sampleAgeMS is an estimate using the existing mapped epochs, not measured one-way latency. Unknown steering/braking, hitches and clock uncertainty can still cause corrections. Stale data fades; off-screen direction/distance is not a placement claim. Actual usefulness remains a playtest question. Explicit object
 pool now79frames/166textures/81fonts, including four additional menu controls.
 No widgets are created during driving.
 

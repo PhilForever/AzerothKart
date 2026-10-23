@@ -5,6 +5,23 @@ Updated2026-10-22 16:33 +0200, Europe/Oslo. Codex is the designated integrator f
 
 
 
+## Multiplayer grid/display follow-up — 2026-10-23
+
+`codex/multiplayer-grid` builds on6ad66d1/c581a52 with immutable kart-profile
+agreement, two role-specific grid slots, full3–2–1–GO and timestamp-aware bounded
+opponent display. First owner race feedback is [recorded](evidence/2026-10-23-first-live-race.md);
+revised native behavior remains NOT RUN. The final source commit/install/package
+receipt is recorded in PROGRESS and the Codex handoff. No asset/track/Physics
+change, kart contact, agreed winner, main merge or publication is included.
+
+Claude independently advanced to e96044b on `claude/darnassus-undercity`, from
+the same6ad66d1 baseline. Its handoff explicitly preserves the multiplayer
+reservation, with catalog-only Menu/test additions. That worktree, its untracked
+outputs and existing Orgrimmar ref remain untouched; no new city integration is
+included here. Future integration must combine catalog rows with these newer
+session/capture/render changes rather than installing the older branch alone.
+All older entries below are historical checkpoints.
+
 ## Authorized publication and shared baseline
 
 2026-10-22 16:38 +0200: `codex/ironforge-narrows` is published at `c6bb0e5699b5f30d9f684d50283c76b5fd4d4a8b` (normal push/live remote exact); following publication documentation goes on that same branch. All current Claude9461f9c history is included; its checkout is tracked-clean and unchanged. Main remainsf923d15. [Open the combined GitHub branch](https://github.com/PhilForever/AzerothKart/tree/codex/ironforge-narrows), rather than expecting the main landing page to contain it. Installed runtime remains tested82d57eb:41 exact files,41 verified prior-file backup. Native v3 acceptance pending. Codex's [handoff](handoffs/codex-latest.md#authorized-publication-and-claude-alignment) gives Claude safe fetch/new-branch commands; no foreign checkout was switched and no direct Claude acknowledgment is claimed. No release or automatic future publication.

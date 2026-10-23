@@ -6,12 +6,14 @@ assert(type(AK)=="table", "addon namespace required")
 local Session, Protocol = assert(AK.PeerSession), assert(AK.RaceProtocol)
 local Clock, ClockProtocol, RaceStart = AK.StartClock, AK.ClockProtocol, AK.RaceStart
 local Live, LiveProtocol = AK.LiveRace, AK.LiveProtocol
+local Grid=AK.RaceGrid
 local Transport = {ROUTE="WHISPER_LOGGED"}
 AK.SessionTransport = Transport
 
 local frame, control, lastView, lastError, lastNow, busy, drainDeadline
 local coordinated, clockState, raceGate, trackSet, lastClock
 local liveMode, liveRun, lastLive
+local liveKartId,liveGrid,gridInfo
 local registered, sendAPI, sendSuccess, failedCodes, throttleCodes = {}
 local used, usedCount, attempts, lastAttempt = {}, 0, {}, nil
 local traffic = {attempts=0, accepted=0, failed=0, unknown=0, throttled=0,
@@ -54,6 +56,7 @@ local function hardStop(reason)
         lastClock=Clock.view(clockState)
     end
     if raceGate then RaceStart.cancel(raceGate) end
+    if liveGrid then Grid.stop(liveGrid,math.floor((lastNow or 0)*1000),"stopped"); liveGrid=nil end
     if liveRun then
         pcall(Live.stop,liveRun,math.floor((lastNow or 0)*1000),reason=="clock_error" and "clock" or reason)
         lastLive=Live.view(liveRun)
@@ -111,6 +114,7 @@ local function finish(now)
         clockState=nil
     end
     if raceGate then RaceStart.cancel(raceGate); raceGate=nil end
+    if liveGrid then Grid.stop(liveGrid,math.floor(now*1000),"stopped"); liveGrid=nil end
     if liveRun then
         local snapshot=Live.view(liveRun)
         if snapshot.phase~="closed" then Live.stop(liveRun,math.floor(now*1000),"stopped") end
@@ -155,6 +159,7 @@ local function capabilities(wantClock,wantLive)
     local prefixes={Protocol.PREFIX}
     if wantClock then prefixes[2]=ClockProtocol.PREFIX end
     if wantLive then prefixes[3]=LiveProtocol.PREFIX end
+    if wantLive then prefixes[4]=Grid.PREFIX end
     for _, prefix in ipairs(prefixes) do
         if not registered[prefix] then
             local raw = C_ChatInfo.RegisterAddonMessagePrefix(prefix)
@@ -180,8 +185,10 @@ local function nativeSend(expected, payload, peer, prefix, stampMS)
     prefix=prefix or Protocol.PREFIX
     local clockPacket=coordinated and prefix==ClockProtocol.PREFIX
     local livePacket=liveMode and liveRun and prefix==LiveProtocol.PREFIX
-    local cap=clockPacket and ClockProtocol.MAX_BYTES or (livePacket and LiveProtocol.MAX_BYTES or 23)
-    if (prefix~=Protocol.PREFIX and not clockPacket and not livePacket) or type(payload)~="string"
+    local gridPacket=liveMode and liveGrid and prefix==Grid.PREFIX
+    local cap=clockPacket and ClockProtocol.MAX_BYTES or (livePacket and LiveProtocol.MAX_BYTES
+        or (gridPacket and Grid.MAX_BYTES or 23))
+    if (prefix~=Protocol.PREFIX and not clockPacket and not livePacket and not gridPacket) or type(payload)~="string"
         or #payload>cap or not readyToSend(now,#payload+#prefix) then
         hardStop("error"); return "failed"
     end
@@ -231,7 +238,7 @@ function Transport.Stop(reason)
     return active
 end
 
-local function arm(role, peer, code, trackId, wantClock, wantLive)
+local function arm(role, peer, code, trackId, wantClock, wantLive, kartId)
     if busy or control or not frame or frame.akNetworkOwner or frame.akNetworkSending then
         return false,"busy"
     end
@@ -245,9 +252,12 @@ local function arm(role, peer, code, trackId, wantClock, wantLive)
     -- Validate and construct geometry metadata without touching UI.track.
     if wantClock and (type(Clock)~="table" or type(ClockProtocol)~="table"
         or type(RaceStart)~="table" or type(AK.Race)~="table") then return fail("invalid_options") end
-    if wantLive and (type(Live)~="table" or type(LiveProtocol)~="table" or type(AK.Loop)~="table") then
+    if wantLive and (type(Live)~="table" or type(LiveProtocol)~="table" or type(AK.Loop)~="table"
+        or type(Grid)~="table") then
         return fail("invalid_options")
     end
+    kartId=kartId or "goblin_mortar_trike"
+    if wantLive and not Grid.encode({kind="PROFILE",session=code,kartId=kartId}) then return fail("invalid_options") end
     local tracks
     local ok, candidate = pcall(function()
         local mirage = AK.MirageRaceway.new(AK.Track.crossesGate)
@@ -284,6 +294,7 @@ local function arm(role, peer, code, trackId, wantClock, wantLive)
     control, lastView, lastError, drainDeadline = state, nil, nil, nil
     coordinated, clockState, raceGate, lastClock, trackSet = wantClock==true,nil,nil,nil,tracks
     liveMode,liveRun,lastLive=wantLive==true,nil,nil
+    liveKartId,liveGrid,gridInfo=kartId,nil,nil
     used[code], usedCount=true,usedCount+1
     busy=false
     return true
@@ -292,8 +303,8 @@ function Transport.Host(peer,code,trackId) return arm("host",peer,code,trackId) 
 function Transport.Listen(peer,code) return arm("guest",peer,code) end
 function Transport.HostCoordinated(peer,code,trackId) return arm("host",peer,code,trackId,true) end
 function Transport.ListenCoordinated(peer,code) return arm("guest",peer,code,nil,true) end
-function Transport.HostLive(peer,code,trackId) return arm("host",peer,code,trackId,true,true) end
-function Transport.ListenLive(peer,code) return arm("guest",peer,code,nil,true,true) end
+function Transport.HostLive(peer,code,trackId,kartId) return arm("host",peer,code,trackId,true,true,kartId) end
+function Transport.ListenLive(peer,code,kartId) return arm("guest",peer,code,nil,true,true,kartId) end
 
 local function action(method,...)
     if busy then return false,"busy" end
@@ -310,13 +321,17 @@ local function action(method,...)
     return accepted==true,why
 end
 function Transport.Join() return action(Session.join) end
-function Transport.Ready(ready) return action(Session.setReady,ready) end
+function Transport.Ready(ready)
+    if liveMode and ready==true and (not liveGrid or Grid.view(liveGrid).phase~="ready") then return false,"grid_pending" end
+    return action(Session.setReady,ready)
+end
 function Transport.Start(startTick,seed)
     if coordinated and control then return false,"coordinated_start_required" end
     return action(Session.start,startTick,seed)
 end
 function Transport.PrepareStart(seed)
     if not coordinated then return false,"coordinated_mode_required" end
+    if liveMode and (not liveGrid or Grid.view(liveGrid).phase~="ready") then return false,"grid_pending" end
     -- Seed is backend metadata until a seeded subsystem exists; no UI setting.
     if seed==nil then seed=0 end
     return action(Session.start,AK.Race.COUNTDOWN_TICKS,seed)
@@ -331,6 +346,41 @@ function Transport.Leave()
     return action(Session.cancel,"left",true)
 end
 
+local function ensureGrid(now,expected)
+    if not liveMode or liveRun or control~=expected then return false end
+    local view=Session.view(expected)
+    if view.phase~="lobby" and view.phase~="starting" and view.phase~="coordinating" then return false end
+    if not liveGrid then
+        local track=view.offer and trackSet and trackSet[view.offer.trackId]
+        local localPose,peerPose
+        if track then localPose,peerPose=Grid.pose(track,view.role) end
+        if control~=expected or not owns() then return false end
+        if not localPose or not peerPose then hardStop("controller_error"); return false end
+        local candidate=Grid.new({session=view.session,role=view.role,kartId=liveKartId},math.floor(now*1000))
+        if control~=expected or not owns() then
+            if candidate then Grid.stop(candidate,math.floor(now*1000),"stopped") end
+            return false
+        end
+        if not candidate then hardStop("controller_error"); return false end
+        liveGrid=candidate
+        gridInfo={localPose=localPose,peerPose=peerPose,localKartId=liveKartId,ready=false}
+    end
+    return true
+end
+
+local function gridFailure(now)
+    if not liveGrid or not control then return end
+    local view=Grid.view(liveGrid)
+    if view.phase=="closed" then
+        lastError="grid_"..(view.reason or "error")
+        if view.reason and view.reason:match("^send_") then hardStop(view.reason); return end
+        Session.cancel(control,now,"error",true)
+        finish(now)
+    else
+        gridInfo.peerKartId,gridInfo.ready=view.peerKartId,view.phase=="ready"
+    end
+end
+
 local function handoff(now)
     if not coordinated or not control or clockState then return end
     local view=Session.view(control)
@@ -342,7 +392,8 @@ local function handoff(now)
         or trackSet[view.offer.trackId].version~=view.offer.trackVersion then
         hardStop("controller_error"); return
     end
-    clockState=Clock.new({role=view.role,session=view.session,seed=proposal.seed},
+    if liveMode and (not gridInfo or not gridInfo.ready) then hardStop("controller_error"); return end
+    clockState=Clock.new({role=view.role,session=view.session,seed=proposal.seed,countdownMS=liveMode and 3000 or 0},
         math.floor(now*1000),ClockProtocol)
     if not clockState then hardStop("clock_error") end
 end
@@ -366,6 +417,12 @@ local function initializeRace(now,expected,view)
     clockFailure(now)
     if not ticket or control~=expected then return nil,why end
     local track=view.offer and trackSet[view.offer.trackId]
+    if liveMode then
+        if not gridInfo or not gridInfo.ready then return nil,"grid" end
+        track=copy(track)
+        local pose=copy(gridInfo.localPose)
+        track.spawn=function() return copy(pose) end
+    end
     raceGate,why=RaceStart.new(ticket,track,view.offer.physicsVersion)
     if not raceGate then return nil,why end
     return RaceStart.take(raceGate,ms,AK.Physics,AK.Race,AK.Checkpoints,AK.Laps)
@@ -447,6 +504,25 @@ function Transport.Update()
         now,reason=checked()
         if not now then hardStop(reason); busy=false; return false,reason end
     end
+    if control==expected and liveMode then
+        local gridOK,gridSent=pcall(function()
+            if not ensureGrid(now,expected) then return false end
+            local token=liveGrid
+            local attempted=Grid.update(token,math.floor(now*1000),function(payload)
+                return nativeSend(expected,payload,Session.view(expected).peer,Grid.PREFIX)
+            end,not sent and readyToSend(now,Grid.MAX_BYTES+#Grid.PREFIX))
+            if liveGrid==token and control==expected then gridFailure(lastNow) end
+            return attempted
+        end)
+        if not gridOK then hardStop("controller_error"); busy=false; return false,"controller_error" end
+        sent=sent or gridSent
+        if control==expected then
+            -- A scoped receive can advance GetTime during the profile native
+            -- send callback. Do not feed its earlier stamp into the clock FSM.
+            now,reason=checked()
+            if not now then hardStop(reason); busy=false; return false,reason end
+        end
+    end
     if control==expected then
         local handed, err=pcall(handoff,now)
         if not handed then hardStop("controller_error"); busy=false; return false,"controller_error" end
@@ -469,6 +545,24 @@ function Transport.Update()
     return sent==true,why
 end
 function Transport.Message(prefix,payload,channel,nativeSender)
+    if liveMode and not liveRun and control and prefix==Grid.PREFIX then
+        local now,reason=checked()
+        if not now then return hardStop(reason) end
+        local expected=control
+        local view=Session.view(expected)
+        local function key(v)
+            if type(v)~="string" or #v>96 or v:find("[%z\001-\031\127|]") then return nil end
+            return (v:gsub(" +"," "):match("^ *(.-) *$"):gsub("[A-Z]",function(c) return string.char(c:byte()+32) end))
+        end
+        if channel~="WHISPER" or key(nativeSender)~=key(view.peer) then return false,"unrelated" end
+        local ok,accepted,why=pcall(function()
+            if not ensureGrid(now,expected) then return false,"phase" end
+            return Grid.receive(liveGrid,math.floor(now*1000),payload)
+        end)
+        if not ok then return hardStop("controller_error") end
+        if control==expected then gridFailure(now) end
+        return accepted==true,why
+    end
     if liveRun and control then
         local now,reason=checked()
         if not now then return hardStop(reason) end
@@ -551,7 +645,25 @@ function Transport.GetView()
     if coordinated then view.canStart=false end
     view.liveMode=liveMode==true
     view.live=liveRun and Live.view(liveRun) or copy(lastLive)
+    if liveMode and gridInfo then
+        view.grid=copy(gridInfo)
+        view.grid.staged=control~=nil and not view.live and gridInfo.ready and
+            (view.phase=="starting" or view.phase=="coordinating") or false
+        view.grid.cue="GET READY"
+        local clock=view.clock
+        if clock and clock.phase=="armed" and clock.localEpochMS then
+            local remaining=clock.localEpochMS-math.floor((lastNow or 0)*1000)
+            view.grid.remainingMS=math.max(0,remaining)
+            view.grid.localEpochMS=clock.localEpochMS
+            if remaining>0 and remaining<=3000 then view.grid.cue=tostring(math.ceil(remaining/1000)) end
+        end
+    end
+    if liveMode and not (gridInfo and gridInfo.ready) then
+        view.canSetReady,view.canPrepareStart=false,false
+    end
     if view.live then
+        view.live.localKartId=gridInfo and gridInfo.localKartId
+        view.live.peerKartId=gridInfo and gridInfo.peerKartId
         view.phase=view.live.phase=="running" and "racing" or view.live.phase
         view.reason=view.live.reason
         view.canJoin,view.canSetReady,view.canStart,view.canPrepareStart=false,false,false,false
@@ -563,7 +675,12 @@ end
 function Transport.AdvanceLive(input)
     if busy then return nil,"busy" end
     if not liveRun or not control then
-        if liveMode and lastLive and lastLive.phase=="closed" then return copy(lastLive) end
+        if liveMode and lastLive and lastLive.phase=="closed" then
+            local snapshot=copy(lastLive)
+            snapshot.localKartId=gridInfo and gridInfo.localKartId
+            snapshot.peerKartId=gridInfo and gridInfo.peerKartId
+            return snapshot
+        end
         return nil,"inactive"
     end
     busy=true
@@ -574,6 +691,8 @@ function Transport.AdvanceLive(input)
     if not ok then hardStop("controller_error"); busy=false; return nil,"controller_error" end
     if liveRun~=token or control~=expected then busy=false; return nil,"closed" end
     local snapshot=Live.view(token)
+    snapshot.localKartId=gridInfo and gridInfo.localKartId
+    snapshot.peerKartId=gridInfo and gridInfo.peerKartId
     if snapshot.phase=="closed" then finishLive(lastNow) end
     busy=false
     -- Terminal state is a valid final presentation snapshot. Returning only

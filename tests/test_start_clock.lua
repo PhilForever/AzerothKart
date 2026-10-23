@@ -7,7 +7,8 @@ assert(Clock.SEND_INTERVAL_MS==500 and Clock.RETRY_INTERVAL_MS==2000 and Clock.M
 local CODE="CLK123"
 local function fresh(role,now,options)
     options=options or {}
-    return assert(Clock.new({role=role,session=CODE,seed=options.seed or 17},now or 100000,Protocol))
+    return assert(Clock.new({role=role,session=CODE,seed=options.seed or 17,
+        countdownMS=options.countdownMS},now or 100000,Protocol))
 end
 local function wire(kind,sequence,fields)
     local packet={kind=kind,session=CODE,sequence=sequence}
@@ -23,8 +24,8 @@ end
 local function pair(config)
     config=config or {}
     local p={now=100000,offset=config.offset or 5000,packets={},history={},config=config}
-    p.host=fresh("host",p.now)
-    p.guest=fresh("guest",p.now+p.offset)
+    p.host=fresh("host",p.now,config)
+    p.guest=fresh("guest",p.now+p.offset,config)
     function p:localTime(role) return self.now+(role=="guest" and self.offset or 0) end
     function p:send(from)
         return function(payload)
@@ -101,6 +102,9 @@ do
     end
     assert(Clock.new({role="host",session="abcdef",seed=17},100000,Protocol)==nil)
     assert(Clock.new({role="host",session=CODE,seed=-1},100000,Protocol)==nil)
+    for _,duration in ipairs({false,1,2999,3001,"3000"}) do
+        assert(Clock.new({role="host",session=CODE,seed=17,countdownMS=duration},100000,Protocol)==nil)
+    end
     local host=fresh("host")
     assert(not Clock.update(host,100000,function() error("must not call") end,"yes"))
     assert(view(host).stats.sendAttempts==0)
@@ -115,6 +119,31 @@ do
     assert(view(guest).stats.received==0)
     Clock.update(guest,130000,function() error("deadline") end,false)
     closed(guest,"timeout")
+end
+
+-- Live-grid launches reserve the entire three-second countdown after arming.
+-- A delayed COMMIT closes the negotiation instead of shortening that window.
+do
+    local p=pair({countdownMS=3000})
+    assert(p:armed())
+    for _,role in ipairs({"host","guest"}) do
+        local state=view(p[role])
+        assert(state.countdownMS==3000 and state.countdownStartMS==state.localEpochMS-3000)
+        assert(p:localTime(role)<=state.countdownStartMS)
+        assert(Clock.takeTicket(p[role],state.countdownStartMS)==nil)
+        local ticket=assert(Clock.takeTicket(p[role],state.localEpochMS))
+        assert(ticket.session==CODE and Clock.takeTicket(p[role],state.localEpochMS)==nil)
+    end
+    pacing(p)
+    local late=pair({countdownMS=3000,delay=function(packet)
+        if packet.message.kind=="COMMIT" then return 5500 end
+        return packet.from=="host" and 100 or 600
+    end})
+    assert(late:pumpUntil(function(q) return view(q.host).phase=="closed" end))
+    closed(late.host,"late")
+    assert(Clock.takeTicket(late.host,late:localTime("host"))==nil)
+    assert(late:pumpUntil(function(q) return view(q.guest).phase=="closed" end))
+    assert(Clock.takeTicket(late.guest,late:localTime("guest"))==nil)
 end
 
 -- Three real four-timestamp exchanges under a deliberately asymmetric 700 ms path.

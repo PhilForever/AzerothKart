@@ -40,7 +40,7 @@ local function advance(state, now)
                 close(state,"late")
                 return false,"late"
             end
-        elseif now>=state.localEpochMS-Clock.HANDSHAKE_MARGIN_MS then
+        elseif now>=state.localEpochMS-math.max(Clock.HANDSHAKE_MARGIN_MS,state.options.countdownMS) then
             close(state,"late")
             return false,"late"
         end
@@ -240,10 +240,11 @@ function Clock.new(options, now, codec)
         or not integer(now,0,codec.MAX_TIME-Clock.DURATION_MS)
         or (options.role~="host" and options.role~="guest")
         or type(options.session)~="string" or #options.session~=6
-        or options.session:find("[^A-Z0-9]") or not integer(options.seed,0,2147483647) then
+        or options.session:find("[^A-Z0-9]") or not integer(options.seed,0,2147483647)
+        or (options.countdownMS~=nil and options.countdownMS~=0 and options.countdownMS~=3000) then
         return nil,"invalid_options"
     end
-    local state={options={role=options.role,session=options.session,seed=options.seed},
+    local state={options={role=options.role,session=options.session,seed=options.seed,countdownMS=options.countdownMS or 0},
         codec=codec,phase="calibrating",lastNow=now,deadline=now+Clock.DURATION_MS,
         nextSequence=1,queue={},seen={},seenCount=0,commandHighwater=0,
         eventCount=0,deferred={},sampleCount=0,sampleDetails={},peerAcknowledged=false,
@@ -356,6 +357,8 @@ function Clock.view(state)
         rttMS=state.rttMS,offsetLowMS=state.offsetLowMS,offsetHighMS=state.offsetHighMS,
         uncertaintyMS=state.uncertaintyMS,localEpochMS=state.localEpochMS,
         hostEpochMS=state.hostEpochMS,peerAcknowledged=state.peerAcknowledged,
+        countdownMS=state.options.countdownMS,
+        countdownStartMS=state.localEpochMS and state.localEpochMS-state.options.countdownMS,
         pendingKind=state.pending and state.pending.kind,
         pendingAttempts=state.pending and state.pending.attempts or 0,
         hasPendingOutput=#state.queue>0 or state.pending~=nil,stats=copy(state.stats)}

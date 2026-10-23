@@ -47,3 +47,15 @@ The original actions above remain compatible. [START_CLOCK](START_CLOCK.md) adds
 ## Live bridge action names
 
 `bridge.action(name,...)` delegates to UI.MultiplayerAction with names host(peer,code,trackId), listen(peer,code), join(), ready(bool), start() and leave(). It returns true or false/fixedReason; call with dot syntax. Display capabilities are refreshed/revalidated on every click, and EditBox focus is cleared first. A view-only bridge remains supported and disables all commands. Ready loads the offered supported map and arms eligibility; start invokes PrepareStart, never UI.Start. The native API uses HostLive/ListenLive; UI.OnUpdate alone calls AdvanceLive. Menu/canvas rendering consumes copied views only. Opening/back navigation never readies or starts; deliberately leaving the lobby calls Leave. Finishing is local and unverified, with no winner assertion.
+
+## Live grid/profile addition (2026-10-23)
+
+UI supplies the stopped Garage selection to HostLive/ListenLive. The selection
+is immutable until that session closes; Ready and Start stay disabled until
+bounded AZKGRD1 profile agreement. GetView.grid is a copied view of readiness,
+local/peer kart IDs and poses, staged/countdown cue and remaining time. Explicit
+Start stages both karts and captures eligible input; no Physics steps/laps occur
+before the mapped GO. Captured held controls carry through GO. Legacy action
+signatures and solo countdowns remain compatible. Both peers need the revised
+AZKRUN2/RaceGrid build; old peers time out rather than silently racing with
+incompatible telemetry. Revised native UI/profile/countdown acceptance NOT RUN.

@@ -221,7 +221,7 @@ local CLOCK_PHASES = {
     calibrating="Measuring start timing. Keep this window open.",
     preparing="Preparing the coordinated start. Keep this window open.",
     committing="Confirming the coordinated start. Keep this window open.",
-    armed="Start armed. Controls will be captured at GO; keep the window open.",
+    armed="Start armed. Hold W/Up on the starting grid for GO.",
     launched="Starting the race...",
     closed="Start coordination ended. Use a fresh code to try again.",
 }
@@ -279,7 +279,8 @@ end
 -- The countdown's 3, 2, 1 tick and GO sounds as the cue changes.
 function Menu.OnCue(cue)
     if Menu.disabled then return end
-    if cue == "GO" then Menu.Play("go") elseif cue then Menu.Play("tick") end
+    if cue == "GO" then Menu.Play("go")
+    elseif cue == "3" or cue == "2" or cue == "1" then Menu.Play("tick") end
 end
 
 -- ---------------------------------------------------------------------------
@@ -1128,7 +1129,7 @@ function Menu.RefreshRaceHud()
     local view = Menu.view
     if Menu.disabled or not view.lap then return end
     local race, laps, progress = UI.race, UI.laps, UI.checkpoints
-    local status = race and race.status or "none"
+    local status = UI.gridStaged and "grid" or (race and race.status or "none")
     local ticks = race and race.totalTicks or 0
     local unit = status == "running" and math.floor(ticks / 6) or ticks
     local best = laps and laps.bestLapTicks or -1
@@ -1138,13 +1139,16 @@ function Menu.RefreshRaceHud()
         and nextGate == view.hudGate and completed == view.hudLaps and UI.track == view.hudTrack then return end
     view.hudStatus, view.hudUnit, view.hudBest = status, unit, best
     view.hudGate, view.hudLaps, view.hudTrack = nextGate, completed, UI.track
-    local lap, time, bestText = Menu.raceLines(race, laps)
+    local lap, time, bestText
+    if UI.gridStaged then lap,time,bestText="STARTING GRID",Menu.formatTime(0,1),"HOLD W/UP FOR GO"
+    else lap,time,bestText=Menu.raceLines(race,laps) end
     view.lap:SetText(lap)
     view.time:SetText(time)
     view.best:SetText(bestText)
     local gates = UI.track and UI.track.gates
     local gate = ""
-    if race and status ~= "finished" and gates and gates[nextGate] then
+    if UI.gridStaged then gate="Both karts ready | Stop / Esc: leave"
+    elseif race and status ~= "finished" and gates and gates[nextGate] then
         gate = "Next gate: " .. gates[nextGate].name
     end
     view.gate:SetText(gate)
@@ -1186,7 +1190,7 @@ end
 
 local function scene()
     if Menu.screen then return "menu" end
-    if UI.active then return "race" end
+    if UI.active or UI.gridStaged then return "race" end
     if UI.summary and UI.summary:IsShown() then return "results" end
     return "track"
 end
@@ -1194,9 +1198,10 @@ end
 function Menu.Sync()
     if Menu.disabled or not Menu.root then return end
     rememberTrack()
-    if UI.active ~= Menu.wasActive then
-        Menu.wasActive = UI.active
-        if UI.active and Menu.screen then Menu.Show(nil); return end
+    local driving = UI.active or UI.gridStaged or false
+    if driving ~= Menu.wasActive then
+        Menu.wasActive = driving
+        if driving and Menu.screen then Menu.Show(nil); return end
     end
     if UI.race then recordLaps() end
     local current = scene()
@@ -1217,7 +1222,7 @@ end
 
 function Menu.Show(screen)
     if Menu.disabled or not Menu.root then return end
-    if screen and UI.active then screen = nil end -- never cover a live run
+    if screen and (UI.active or UI.gridStaged) then screen = nil end -- never cover a live run/grid
     local leavingLobby = Menu.screen == "multiplayer" and screen ~= "multiplayer"
     local session = (leavingLobby or (screen and screen ~= "multiplayer" and UI.multiplayer)) and sessionView()
     -- Results can be shown while the native owner still drains finish poses.
@@ -1225,7 +1230,7 @@ function Menu.Show(screen)
     -- lease blocks the next track/kart choice. GO's Show(nil) never does this.
     local leavingLiveResults = screen and screen ~= "multiplayer" and UI.multiplayer and UI.liveSession
         and session and session.liveMode and session.transportBusy
-    if not UI.active and session and session.canLeave and sessionCommands() and
+    if not UI.active and not UI.gridStaged and session and session.canLeave and sessionCommands() and
         (leavingLiveResults or (leavingLobby and session.phase ~= "racing" and session.phase ~= "finishing")) then
         lobbyAction("leave")
     end
@@ -1262,7 +1267,7 @@ function Menu.OnWindowShown()
         Menu.seenTrack = UI.trackId
     end
     Menu.Play("open")
-    if UI.active or (UI.summary and UI.summary:IsShown()) then Menu.Show(nil)
+    if UI.active or UI.gridStaged or (UI.summary and UI.summary:IsShown()) then Menu.Show(nil)
     else Menu.Show("home") end
 end
 
