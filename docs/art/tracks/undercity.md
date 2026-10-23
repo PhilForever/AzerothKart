@@ -56,6 +56,10 @@ This is the Forsaken's city under the Ruins of Lordaeron. It uses Warcraft III's
 - **The Trade Quarter:** a round hall of dark octagonal tiles, sunk 30 below the ring round it. Its wall's dressed stone shows round its north side and its brink is lit round the south. A slime well stands at its heart.
 - **Street:** green-grey slabs from wall to wall, with a kerb at the foot of an iron railing that has a spike every 22 units. Braziers burn green along it.
 - **Rock:** the round city's hall, one hall per quarter in the corners, and the stair up to the ruins are floor. The earth beyond them is rock.
+- **Light:** grim, at the owner's request ("I want undercity to look more grim, do something about the lighting without making it too dark").
+  - Away from any light the city is dimmed to about 60%, cooled toward violet and partly greyed, and darker still toward the cavern's far reaches.
+  - The slime is the main light: it lights the walkways and quays green for about 110 units. Each brazier and the slime well casts a green pool; each bridge lantern a yellow one.
+  - The street keeps at least 72% of its light, so the course stays readable; the slime itself is left at full brightness.
 - **Districts:** each quarter draws its buildings on both sides of the slime:
   - the Scourge's buildings, their red fires made the Forsaken's green (crypts, graveyards, temples of the damned, tombs of relics, slaughterhouses, boneyards, altars of darkness, gargoyle spires, ziggurats), plus Northrend crypts and goblin merchants;
   - graves and tombstones, iron maidens, torture tables, chain posts, cages, cauldrons, bookshelves, tables, crystal lamps, sewer vents, weapon racks and skulls;
@@ -103,6 +107,7 @@ Version 2 adds these painter options, all optional per city:
 - **A bridge's `force`:** false for a bridge over water drawn whole, so it carries no canal strip of its own.
 - **A bridge's `posts`:** its own corner lamps.
 - **City-wide:** `deck_planks` and `deck_stone` (the decks' colours), `pile_every`, and `deck_shadow`.
+- **`grade`:** the city's light, applied to the finished picture: an `ambient` dimming with a `shadow` colour and `desaturate` away from lights; glowing `water` and every model's light (`lamp`) lifting it, tinted by their colour (`tint`); a brightness floor on the `street`; an optional `vignette`. Cities without it paint as before.
 
 ## Provenance and rights
 

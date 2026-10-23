@@ -1018,6 +1018,170 @@ def paint_lights(pic, lights):
                 pic.b[i] = min(255, pic.b[i] + int(gb * f + 0.5))
 
 
+def chamfer_distance(mask, w, h, limit):
+    """Per cell of a w x h grid (row 0 south), the distance in cells to the
+    nearest set cell of `mask`, by two chamfer passes (steps of 1 and the
+    diagonal's sqrt 2; within 8% of the true distance), capped at `limit`."""
+    diagonal = sqrt(2.0)
+    far = float(limit)
+    d = array("d", [0.0 if m else far for m in mask])
+    for y in range(h):
+        base = y * w
+        for x in range(w):
+            i = base + x
+            v = d[i]
+            if v == 0.0:
+                continue
+            if x and d[i - 1] + 1.0 < v:
+                v = d[i - 1] + 1.0
+            if y:
+                j = i - w
+                if d[j] + 1.0 < v:
+                    v = d[j] + 1.0
+                if x and d[j - 1] + diagonal < v:
+                    v = d[j - 1] + diagonal
+                if x + 1 < w and d[j + 1] + diagonal < v:
+                    v = d[j + 1] + diagonal
+            d[i] = v
+    for y in range(h - 1, -1, -1):
+        base = y * w
+        for x in range(w - 1, -1, -1):
+            i = base + x
+            v = d[i]
+            if v == 0.0:
+                continue
+            if x + 1 < w and d[i + 1] + 1.0 < v:
+                v = d[i + 1] + 1.0
+            if y + 1 < h:
+                j = i + w
+                if d[j] + 1.0 < v:
+                    v = d[j] + 1.0
+                if x + 1 < w and d[j + 1] + diagonal < v:
+                    v = d[j + 1] + diagonal
+                if x and d[j - 1] + diagonal < v:
+                    v = d[j - 1] + diagonal
+            d[i] = v
+    return d
+
+
+def paint_grade(pic, city, street, water, lights):
+    """A city's light (`grade`), over the finished picture: away from any
+    light everything is dimmed to `ambient`, cooled toward the `shadow`
+    colour and partly greyed (`desaturate`); glowing water (`water`: reach,
+    strength, tint) and every lamp and brazier (`lamp`: its light's radius
+    times this, strength) lift the dark round them, tinted by their light
+    (`tint`: how much). The street keeps at least `street` of its light, so
+    the course stays readable; `vignette` (centre, from, to, amount) dims the
+    city's far reaches further. The water itself, the light's source, is
+    left as it is. Computed on a grid of `cell` texels."""
+    spec = city["grade"]
+    w, h = pic.w, pic.h
+    cell = spec.get("cell", 2)
+    cw, ch = (w + cell - 1) // cell, (h + cell - 1) // cell
+    n = cw * ch
+    lit = array("d", [0.0]) * n
+    tr, tg, tb = array("d", [0.0]) * n, array("d", [0.0]) * n, array("d", [0.0]) * n
+    mix = spec.get("tint", 0.35)
+
+    def tint_of(rgb):
+        mean = (rgb[0] + rgb[1] + rgb[2]) / 3.0
+        return tuple(1.0 + (v / mean - 1.0) * mix for v in rgb)
+
+    # Each cell's sample texel (its world centre, rounded down).
+    def sample(cx, cy):
+        x, y = min(w - 1, cx * cell + cell // 2), min(h - 1, cy * cell + cell // 2)
+        return (h - 1 - y) * w + x
+
+    if spec.get("water"):
+        reach, strength, colour = spec["water"]
+        t0, t1, t2 = tint_of(colour)
+        wet = bytearray(n)
+        for cy in range(ch):
+            for cx in range(cw):
+                if water[sample(cx, cy)]:
+                    wet[cy * cw + cx] = 1
+        limit = reach / cell
+        dist = chamfer_distance(wet, cw, ch, limit + 1)
+        for c in range(n):
+            d = dist[c]
+            if d >= limit:
+                continue
+            f = strength * (1.0 - d / limit) * (1.0 - d / limit)
+            lit[c] += f
+            tr[c] += f * t0
+            tg[c] += f * t1
+            tb[c] += f * t2
+    scale, strength = spec.get("lamp", (2.5, 0.5))
+    for lx, ly, radius, colour in lights:
+        t0, t1, t2 = tint_of(colour)
+        reach = radius * scale / cell
+        px, py = lx / cell, ly / cell
+        for cy in range(max(0, int(py - reach)), min(ch, int(py + reach) + 2)):
+            dy = cy + 0.5 - py
+            for cx in range(max(0, int(px - reach)), min(cw, int(px + reach) + 2)):
+                dx = cx + 0.5 - px
+                d = sqrt(dx * dx + dy * dy)
+                if d >= reach:
+                    continue
+                f = strength * (1.0 - d / reach) * (1.0 - d / reach)
+                c = cy * cw + cx
+                lit[c] += f
+                tr[c] += f * t0
+                tg[c] += f * t1
+                tb[c] += f * t2
+    # Each cell's multipliers: dimmed, cooled and greyed in the dark, lit
+    # and tinted by its lights.
+    ambient, floor_ = spec["ambient"], spec.get("street", spec["ambient"])
+    fade = spec.get("street_fade", 30.0)
+    sr, sg, sb = spec.get("shadow", (1.0, 1.0, 1.0))
+    grey = spec.get("desaturate", 0.0)
+    vignette = spec.get("vignette")
+    mr, mg, mb, md = array("d", [0.0]) * n, array("d", [0.0]) * n, array("d", [0.0]) * n, array("d", [0.0]) * n
+    for cy in range(ch):
+        for cx in range(cw):
+            c = cy * cw + cx
+            gap = street.gap[sample(cx, cy)]
+            near = 1.0 if gap <= 0.0 else (0.0 if gap >= fade else 1.0 - gap / fade)
+            base = ambient + (floor_ - ambient) * near
+            if vignette:
+                (vx, vy), r0, r1, amount = vignette
+                dx, dy = cx * cell + cell / 2.0 - vx, cy * cell + cell / 2.0 - vy
+                r = sqrt(dx * dx + dy * dy)
+                if r > r0:
+                    u = 1.0 if r >= r1 else (r - r0) / (r1 - r0)
+                    base *= 1.0 - amount * u * u * (3.0 - 2.0 * u)
+            raw = lit[c]
+            light = raw if raw < 1.0 else 1.0
+            if raw > 0.0:
+                l0, l1, l2 = tr[c] / raw, tg[c] / raw, tb[c] / raw
+            else:
+                l0 = l1 = l2 = 1.0
+            k = base + (1.0 - base) * light
+            mr[c] = k * (sr + (l0 - sr) * light)
+            mg[c] = k * (sg + (l1 - sg) * light)
+            mb[c] = k * (sb + (l2 - sb) * light)
+            md[c] = grey * (1.0 - light)
+    pr, pg, pb = pic.r, pic.g, pic.b
+    for row in range(h):
+        y = h - 1 - row
+        line = (y // cell) * cw
+        base = row * w
+        for x in range(w):
+            i = base + x
+            if water[i]:
+                continue
+            c = line + x // cell
+            r, g, b = pr[i], pg[i], pb[i]
+            d = md[c]
+            if d:
+                v = 0.30 * r + 0.59 * g + 0.11 * b
+                r, g, b = r + (v - r) * d, g + (v - g) * d, b + (v - b) * d
+            r, g, b = int(r * mr[c] + 0.5), int(g * mg[c] + 0.5), int(b * mb[c] + 0.5)
+            pr[i] = r if r < 255 else 255
+            pg[i] = g if g < 255 else 255
+            pb[i] = b if b < 255 else 255
+
+
 # ---------------------------------------------------------------------------
 # Sunken ground: a chasm below the city's level (the Cleft of Shadow).
 
@@ -2168,6 +2332,9 @@ def build(wc3, city, geometry, check=False, preview=False, log=print):
         for y, columns in lava_rims(city, lava, street, rock).items():
             walls.setdefault(y, []).extend(columns)
     paint_scenery(pic, city, walls, models)
+    if city.get("grade"):
+        paint_grade(pic, city, street, water, lights)
+        log(f"  grade {time.time() - started:.0f}s")
     log(f"  painted {time.time() - started:.0f}s")
     image = pic.tga()
     preview_rows = pic.rows(4)
