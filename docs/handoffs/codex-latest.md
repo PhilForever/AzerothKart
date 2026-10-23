@@ -1,3 +1,17 @@
+# Active reservation — requested 10% impact / 80% scrape tuning and Undercity grade
+
+2026-10-23 Europe/Oslo. Owner requests exactly10% initial wall loss and80%
+contact speed cap, plus pushing Claude's latest Undercity update. Own clean
+codex/wall-penalty-10 from455d233; review targete83c889, two new commits after
+reviewedee144b5. Reserve Physics.lua constants/cap split, focused wall/version
+tests, current contracts/docs/PROGRESS/ownhandoff and reviewed11-file art merge.
+Preserve all steering/recovery/geometry/native implementation. Physics10 avoids
+mixed tuning. Independently review art before non-force publication; install
+combined candidate and ZIP after focused checks. No main push/merge/release,
+foreign checkout or author-history changes.
+
+## Previous completed checkpoint
+
 # Codex handoff — slight wall penalty, Physics9
 
 2026-10-23 14:44+02:00. Owner requests only a very small extra wall slowdown.
