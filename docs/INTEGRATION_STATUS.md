@@ -5,6 +5,16 @@ Updated2026-10-22 16:33 +0200, Europe/Oslo. Codex is the designated integrator f
 
 
 
+## Latest tuning — Physics9, 2026-10-23 14:44+02:00
+
+Installed58925eb on local codex/wall-penalty adds a light5% initial wall penalty
+and95% contact-speed ceiling, preserving the improved sliding/steering recovery.
+Focusedfour-module Lua5.1 checks PASS; native feel pending.54installed files and
+installed-folderZIP exact;54priorfiles backed up. Archive:
+`AzerothKart-Multiplayer-58925eb.zip`. Both peers update toPhysics9; `/reload`
+suffices for this Lua-only follow-up. Exact receipt/hash in PROGRESS/handoff.
+Other worktrees/art unchanged. No push/release. Entries below are historical.
+
 ## Latest installed build — river update and wall handling, 2026-10-23 14:11+02:00
 
 **df21866** on local `codex/wall-slide` combines reviewed Claudeee144b5 with
