@@ -13,7 +13,7 @@ authority, kart contact, agreed results or release decision is made here.
 [`RaceStart`](START_CLOCK.md). `LiveRace.new(bundle, fullPeerName, nowMS, modules)`
 returns an opaque local token or `nil,fixedReason`. `modules` supplies existing
 Physics, Race, Checkpoints, Laps, Loop and LiveProtocol modules. Admission is
-between mapped GO and GO+250ms inclusive, with the negotiated Physics version8/fixed1/60dt,
+between mapped GO and GO+250ms inclusive, with the negotiated Physics version9/fixed1/60dt,
 three laps, one to eight gates and coordinates within the codec's bounds.
 
 The bundle's data is copied; read-only geometry closures remain shared. One

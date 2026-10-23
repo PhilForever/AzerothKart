@@ -240,7 +240,7 @@ do
     assert(p.guest:view().offer.trackVersion==1 and p.guest:view().start.seed==42
         and p.guest:view().stats.sendAttempts~=999 and p.guest:view().traffic.attempts~=999)
     assert(p.host.raceCalls==0 and p.guest.raceCalls==0 and not p.host.namespace.UI.active
-        and p.host.namespace.Physics.VERSION==8 and p.host.namespace.Track.version==2,
+        and p.host.namespace.Physics.VERSION==9 and p.host.namespace.Track.version==2,
         "control proposals never activate or mutate local simulation")
     assertPacing(p.host); assertPacing(p.guest)
     p.host:call("Stop","left"); p.guest:call("Stop","left")
@@ -308,18 +308,17 @@ do
     assert(e:view().phase=="closed" and e:view().reason=="incompatible" and #e.sends==0)
     detached(e)
 end
-do
-    -- The wall-slide revision changes deterministic handling: an installed
-    -- v7 peer must be refused before grid agreement, countdown or GO.
+for _,oldVersion in ipairs({7,8}) do
+    -- Previous handling revisions must be refused before the live start.
     local e=client(GUEST,true); assert(e:call("ListenLive",HOST,CODE,"steam_tank"))
-    receive(e,wire(e,"INVITE",1,{physicsVersion=7,trackId="test_oval",trackVersion=2,laps=3}))
+    receive(e,wire(e,"INVITE",1,{physicsVersion=oldVersion,trackId="test_oval",trackVersion=2,laps=3}))
     local rejected=e:view()
     assert(rejected.phase=="closed" and rejected.reason=="incompatible"
         and rejected.clock==nil and rejected.live==nil and not e.namespace.UI.active and #e.sends==0,
-        "v7 peers cannot enter the v8 live start sequence")
+        "older physics cannot enter the current live start sequence")
     assert(e:call("TakeRaceStart")==nil)
     e:update(30)
-    assert(#e.sends==0,"incompatible v7 offers cannot produce delayed grid or clock traffic")
+    assert(#e.sends==0,"incompatible offers cannot produce delayed grid or clock traffic")
     detached(e)
 end
 

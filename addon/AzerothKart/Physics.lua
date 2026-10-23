@@ -3,7 +3,7 @@
 local _, namespace = ...
 
 local Physics = {}
-Physics.VERSION = 8
+Physics.VERSION = 9
 Physics.FIXED_DT = 1/60
 Physics.MAX_SPEED = 200
 Physics.REVERSE_MAX = 55
@@ -16,6 +16,7 @@ Physics.STEERING_CENTER_RATE = 16
 Physics.LOW_SPEED_STEER_BONUS = 1.2
 Physics.LOW_SPEED_STEER_LIMIT = 80
 Physics.WALL_SCRAPE_DRAG = 40
+Physics.WALL_SPEED_RETAIN = 0.95
 Physics.DRIFT_MIN_SPEED = 90
 Physics.DRIFT_TIER1_TICKS = 30
 Physics.DRIFT_TIER2_TICKS = 60
@@ -193,10 +194,14 @@ function Physics.step(state, input, dt, track)
         elseif state.surface~="wall" then
             -- Recovery from an invalid pose may move further than requested;
             -- it must never award speed or count as a larger impact reward.
-            speed = speed * math.min(1,math.sqrt(movedSquared/requestedSquared))
+            speed = speed * math.min(1,math.sqrt(movedSquared/requestedSquared)) * Physics.WALL_SPEED_RETAIN
         else
             speed = approachZero(speed,Physics.WALL_SCRAPE_DRAG*dt)
         end
+        -- A small contact ceiling makes wall riding slower even under full
+        -- throttle, without multiplying the impact penalty every fixed tick.
+        speed = math.max(-Physics.REVERSE_MAX*Physics.WALL_SPEED_RETAIN,
+            math.min(Physics.MAX_SPEED*Physics.WALL_SPEED_RETAIN,speed))
         drifting, direction, driftTicks, tier, boostTicks, slip = false, 0, 0, 0, 0, 0
         grace = 0
     end

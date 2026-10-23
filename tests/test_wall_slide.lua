@@ -41,8 +41,19 @@ assert(square.surfaceAt(upper.x,upper.y)=="road" and upper.y<=130,
 
 local graze=placed(square,200,129.999,math.pi/12,200)
 graze=advance(graze,{accelerate=true},square,20)
-assert(graze.speed>180 and graze.x>260 and graze.impacts==20,
-    "a shallow brush retains substantially more speed than a hard angle")
+assert(graze.speed>180 and graze.speed<=190 and graze.x>260 and graze.impacts==20,
+    "sustained shallow contact stays mobile but cannot regain full road speed")
+local brushStart=placed(square,200,129.999,math.pi/60,200)
+local brush=P.step(brushStart,{accelerate=true},dt,square)
+assert(brush.speed>180 and brush.speed<=190 and brush.steering==brushStart.steering,
+    "a very shallow first brush has a small noticeable penalty without losing control")
+local clean=placed(square,200,100,math.pi/60,200)
+clean=P.step(clean,{accelerate=true},dt,square)
+assert(clean.speed==200 and brush.speed<clean.speed*0.96 and brush.speed>clean.speed*0.90,
+    "the new contact penalty is small and applies only on contact")
+local clear=P.step(placed(square,250,130,-math.pi/4,190),{accelerate=true},dt,square)
+assert(clear.impacts==0 and clear.speed>190,
+    "leaving the wall immediately releases the contact speed ceiling")
 
 -- The same center sweep remains useful against an actual Test Oval crate.
 local solid=placed(T,252,390,math.pi/4,200)
@@ -75,8 +86,8 @@ end
 local reverse=placed(square,200,129.999,-3*math.pi/4,-P.REVERSE_MAX)
 for _=1,20 do
     reverse=P.step(reverse,{brake=true},dt,square)
-    assert(reverse.speed<=0 and reverse.speed>=-P.REVERSE_MAX,
-        "a reverse wall slide remains signed and bounded")
+    assert(reverse.speed<=0 and reverse.speed>=-52.25,
+        "a reverse wall slide remains signed with the same small contact penalty")
 end
 assert(reverse.x>210 and reverse.impacts==20,
     "reverse motion can slide along the same wall")

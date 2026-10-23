@@ -1,6 +1,6 @@
 # Racing physics, deterministic time and game feel
 
-The current `Physics.lua` is a pure version-8 local-handling prototype (angle-aware wall response and parking-turn assistance; racing-speed drift tuning retained). The formulas and production state below remain targets beyond this implemented prototype.
+The current `Physics.lua` is a pure version-9 local-handling prototype (angle-aware wall response and parking-turn assistance; racing-speed drift tuning retained). The formulas and production state below remain targets beyond this implemented prototype.
 
 ## Implemented progressive keyboard steering
 
@@ -30,7 +30,7 @@ While Space stays held and road/speed conditions remain valid, a steering correc
 
 Release Space while on the road at speed 90+ without braking to spend an existing tier, including during the correction grace. Tier 1 boosts for 30 steps (0.5 s), tier 2 for 48 (0.8 s), counting the release step. Boost adds 300 units/s² and raises the speed cap from 200 to 260; brake or leaving the road cancels it. Braking, low speed, rough ground or wall contact immediately clears drift and grace without reward; wall contact also clears active boost and slip. A cleared charge cannot be spent later. Active charging moves signed slip toward ±0.40 radians at 1.8 rad/s; release or correction recovers toward zero at 3 rad/s. Travel follows `heading - slipAngle`, separately from the kart's facing direction.
 
-Implemented state is `x,y,heading,speed,tick,impacts,drifting,driftDirection,driftTicks,driftTier,driftGraceTicks,boostTicks,slipAngle,surface,steering`. `driftGraceTicks` is zero while charging and 1–12 during a retained correction. `surface` reports Wall on a contact step, otherwise the endpoint's road/grass classification. Version 6 introduced the drift handling and grace state; current compatibility v8 retains their high-speed tuning and v7’s swept hook while changing wall response and low-speed yaw. Focused checks target charge/grace boundaries, retained corrections and reversals, valid releases, immediate cancellation, unchanged normal steering, boost bounds and deterministic fixed-tick state. Exact executed checks belong in `PROGRESS.md`; latest client handling is **NOT RUN**.
+Implemented state is `x,y,heading,speed,tick,impacts,drifting,driftDirection,driftTicks,driftTier,driftGraceTicks,boostTicks,slipAngle,surface,steering`. `driftGraceTicks` is zero while charging and 1–12 during a retained correction. `surface` reports Wall on a contact step, otherwise the endpoint's road/grass classification. Version 6 introduced the drift handling and grace state; current compatibility v9 retains their high-speed tuning and v7’s swept hook while changing wall response and low-speed yaw. Focused checks target charge/grace boundaries, retained corrections and reversals, valid releases, immediate cancellation, unchanged normal steering, boost bounds and deterministic fixed-tick state. Exact executed checks belong in `PROGRESS.md`; latest client handling is **NOT RUN**.
 
 ## State and units
 World units ~= UI logical pixels in the prototype. Production world units are independent of pixels, with camera transforming to screen. Coordinates: x right, y up; orientation radians counterclockwise. Kart state `x,y,heading,speed,steer,driftState,driftCharge,boostTicks,stunTicks,lap,checkpointIndex`, simulation tick as integer.
@@ -90,3 +90,14 @@ actualsolid/perimeter/Stormwindwall, escape, racingyaw and deterministic tapes.
 Both multiplayer peers must usePhysics8; incompatible7offers close beforegrid
 orGO. No wirelayout/rate, wallgeometry, chassis, checkpoint or art change is
 part of this Physics slice. Native usability remains NOT RUN.
+
+## Light wall penalty v9 — native tuning pending
+
+The owner found v8 nearly penalty-free. First contact now retains95% of the
+previous angle-adjusted speed. Sustained contact caps speed at95% of the normal
+maximum (190forward/52.25reverse);40units/s² scrape drag remains. This avoids
+per-tick percentage decay and preserves active steering/recovery. Free driving
+immediately uses normal caps. Native feel remains NOT RUN. Focused Lua5.1
+checks retain53-tick frontal recovery and104.45degree stationary turning; the
+30-tick45degree wall tape moves58.327units and ends at189.934speed. Physics9
+compatibility prevents peers using older handling from starting together.

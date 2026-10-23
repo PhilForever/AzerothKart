@@ -51,3 +51,5 @@ status are unchanged; this is a private developer test package, not a release.
 **Handling update:** this candidate uses Physics8 for wall sliding and faster
 parking turns. Both players must update; older Physics7 peers are rejected as
 incompatible before countdown. City art updates also need a full restart.
+
+The latest light wall-penalty tuning is Physics9; both racers must update. A `/reload` is enough for this Lua-only follow-up.

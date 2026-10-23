@@ -25,7 +25,7 @@ local function noCharge(s, context)
         and s.driftGraceTicks==0,context)
 end
 
-assert(P.VERSION==8,"wall sliding and low-speed steering change replay compatibility")
+assert(P.VERSION==9,"the small wall-contact penalty changes replay compatibility")
 assert(P.DRIFT_TIER1_TICKS==30 and P.DRIFT_TIER2_TICKS==60,
     "tier one charges in half a second and tier two in one second")
 local initial=P.new(open)
