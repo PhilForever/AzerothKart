@@ -1,3 +1,20 @@
+# Active reservation — review and integrate Claude's two cities
+
+2026-10-23 10:19+02:00, Europe/Oslo. Owner explicitly asks to review recent
+Claude work and integrate if approved. Own clean codex/two-city-integration
+from1733eac; targetclaude/darnassus-undercity9143949 (base6ad66d1). Reserve the
+reviewed merge of that branch's35changedfiles, shared catalog/Menu/test/doc/list
+conflict resolutions, API/architecture/ADR0015 review disposition, PROGRESS,
+INTEGRATION_STATUS and this named handoff. Preserve all eb2055a multiplayer
+grid/profile/prediction changes, existing city bytes/geometry and both foreign
+checkouts. Independent reviewers cover geometry/gates, art/pipeline/provenance,
+and Menu compatibility; no new slope/bridge physics is part of this integration.
+Native city checks stay NOT RUN. Prepare combined install/friend ZIP only after
+source review/checks pass, within the continuing requested test-build workflow.
+No push/main merge/release. Claude's authored handoff is imported unchanged.
+
+## Previous completed checkpoint
+
 # Codex handoff — multiplayer grid/countdown and peer presentation
 
 2026-10-23 09:05+02:00, Europe/Oslo. Owner asks to continue from first real
