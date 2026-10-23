@@ -45,7 +45,7 @@ Codex's `codex/solo-highscores` reservation covers `UI.lua`'s successful Start c
   - replaced: the Stormwind, Ironforge, Orgrimmar and Darnassus `Background.tga`/`Preview.tga`.
 - **Scripts:**
   - new: `wowcasc.py`, `wowmodel.py`, `build_kart_outlines.py`;
-  - changed: `build_wc3_kart.py` (`--wow`, `WOW_VEHICLES`, the review helpers), `city_layouts.py` (start signs), `build_mirage_background.py` (review views only), `validate_project.py`;
+  - changed: `build_wc3_kart.py` (`--wow`, `WOW_VEHICLES`, the review helpers), `city_layouts.py` (start signs), `wc3render.py` (decodes only the textures a model's layers draw), `build_mirage_background.py` (review views only), `validate_project.py`;
   - removed: `build_kart_sprites.py`.
 - **Tests:** `tests/test_presentation.lua`, `tests/test_ui.lua`, `tests/test_menu.lua`. Details are under [Tests performed](#tests-performed).
 - **Docs:**
@@ -117,15 +117,15 @@ A new Settings check, off by default and saved as `preferences.outline` ([sheet]
 
 | Command / check | Result |
 |---|---|
-| `python scripts/test_lua.py --runtime both` | **PASS** in the cloud (Python 3.13, Lupa 2.8): 60 files parsed; the full suite on Lua 5.1 and 5.4. New checks: every outline sheet; the outline's UI behaviour (off and unloaded by default, one load per kart, follows frame/quad/pose through a drive, refusal hidden and not retried, single image none, switch-off); the setting, its save and its return after reload. The pod racer's sheet passes the sheet checks with its coverage floor (0.08) |
-| `python scripts/build_city_tracks.py --wc3 … --check` | **CHECK PASS** in the cloud for `CapitalCities.lua` and all ten pictures: Stormwind `ec016e7e…`, Ironforge `5cf1e688…`, Orgrimmar `3abf44b2…`, Darnassus `80a6715e…`; Undercity unchanged `caedb2c9…` |
-| `python scripts/build_wc3_kart.py --wow WOW --vehicle goblin_drag_car` | Sheet `88a0dfbd…af5c2ccb`, 1,548–1,807 opaque texels per frame. The six source files' hashes match on both machines (the developer machine extracted them with this `wowcasc.py --cdn`) |
-| `python scripts/build_kart_outlines.py` | Ten sheets; every frame has a line, a clear border and no line over the kart |
+| `python scripts/test_lua.py --runtime both` | **PASS** in the cloud (Python 3.13, Lupa 2.8) and on the developer machine's Linux shell (Python 3.10.12, Lupa 2.8) at `37a0cdb`: 60 files parsed; the full suite on Lua 5.1 and 5.4. New checks: every outline sheet; the outline's UI behaviour (off and unloaded by default, one load per kart, follows frame/quad/pose through a drive, refusal hidden and not retried, single image none, switch-off); the setting, its save and its return after reload. The pod racer's sheet passes the sheet checks with its coverage floor (0.08) |
+| `python scripts/build_city_tracks.py --wc3 … --check` | **CHECK PASS** for `CapitalCities.lua` and all ten pictures, in the cloud (Python 3.13) and on the developer machine at `37a0cdb` (Python 3.10.12, its own Warcraft III extraction including the arrow posts, its own rendered sprites). Byte-identical on both: Stormwind `ec016e7e…`, Ironforge `5cf1e688…`, Orgrimmar `3abf44b2…`, Darnassus `80a6715e…`; Undercity unchanged `caedb2c9…` |
+| `python scripts/build_wc3_kart.py --wow WOW --vehicle goblin_drag_car --check` | **CHECK PASS** in the cloud and on the developer machine: sheet `88a0dfbd…af5c2ccb`, 1,548–1,807 opaque texels per frame. The four Warcraft III vehicles' sheets still check in the cloud after the `wc3render.py` change. The six source files' hashes match on both machines (the developer machine extracted them with this `wowcasc.py --cdn`) |
+| `python scripts/build_kart_outlines.py --check` | **CHECK PASS** for all ten, in the cloud and on the developer machine; every frame has a line, a clear border and no line over the kart |
 | `python scripts/build_mirage_background.py --check` | **CHECK PASS** (its review views now draw the trike's sheet) |
 | `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in PROGRESS.md fail |
 | Review | Follow-camera views of the four junctions with the pod racer; the pod racer beside three other karts; every kart with and without its outline |
 
-The developer machine's check (Python 3.10.12, its own Warcraft III and WoW extractions) is recorded in the next commit.
+**Found and fixed on the developer machine:** a fresh `wc3casc.py models` extraction of the arrow posts also writes their Reforged normal, ORM and environment maps. The normal map is BC5, which `wc3render.read_dds` does not decode, so the city build stopped. `37a0cdb` makes `wc3render.load` decode only the textures a model's layers draw. Every picture, sheet and sources list is unchanged.
 
 **NOT RUN:** the client (the pod racer, the signs, the outline, performance), any install, and multiplayer.
 
@@ -145,7 +145,7 @@ See [the new section of the client checklist](../../tests/MANUAL_CLIENT_CHECKLIS
 > - Goblin Pod Racer: World of Warcraft's goblin rocket car (Mirage Raceway's), from the owner's Forever client via the new read-only `wowcasc.py` (`--cdn` for files the client streams) and `wowmodel.py`. It takes the drag car's slot (id kept); the drag car sprite and its painter are removed.
 > - Start signs: Warcraft III goblin racing arrow posts beyond the far wall where Stormwind's, Ironforge's, Orgrimmar's and Darnassus's start roads join the loop, pointing the race's way. Pictures only.
 > - Outline my kart: a Settings check (off by default, saved). Each kart sheet has a 512×512 outline sheet; the player's own kart gets a bright yellow line. +1 texture, +1 frame, +2 font strings (80/167/83).
-> - `test_lua.py --runtime both` PASS; all city `--check` PASS; the outline and sheet builds validate; validator: only the 2 pre-existing PROGRESS links.
+> - `test_lua.py --runtime both` PASS; `build_city_tracks.py --check` (all five cities), `build_wc3_kart.py --wow … --check` and `build_kart_outlines.py --check` PASS, byte-identical in the cloud and on the developer machine (Python 3.10.12, its own extractions); validator: only the 2 pre-existing PROGRESS links.
 > - **NOT RUN:** the client; install.
 
 ## Branch, commits and workspace
@@ -153,7 +153,7 @@ See [the new section of the client checklist](../../tests/MANUAL_CLIENT_CHECKLIS
 | Item | Value |
 |---|---|
 | Worktree / branch | `AzerothKart-Claude` / `claude/podracer-arrows-outline` (the worktree previously held `claude/undercity-river` `e83c889`, unchanged) |
-| Commits | `claude/podracer-arrows-outline` on `de4b291`: the pod racer, the start signs, the outline, tests, docs and this handoff; later commits only record checks |
+| Commits | `claude/podracer-arrows-outline` on `de4b291`: `52be01f` (the pod racer, the start signs, the outline, tests, docs and this handoff), `37a0cdb` (`wc3render.py`: decode only drawn textures), then this record of both machines' checks |
 | Push | Owner only, because this session's git proxy refuses the repository: `git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/podracer-arrows-outline` |
 | Not done | No merge into `main` or any Codex branch; no tag, release, install or client input. Codex's branches and worktrees were only read |
 
