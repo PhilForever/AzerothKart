@@ -5,6 +5,22 @@ Updated2026-10-22 16:33 +0200, Europe/Oslo. Codex is the designated integrator f
 
 
 
+## Latest installed build — river update and wall handling, 2026-10-23 14:11+02:00
+
+**df21866** on local `codex/wall-slide` combines reviewed Claudeee144b5 with
+Physics8: preserved steering and useful angled wall travel, continuous scrape
+drag, faster parking turns, unchanged high-speed drift. [Claude review](reviews/2026-10-23-undercity-river.md).
+Claude's exact river branch was pushed/live-verified; main remainsf923d15.
+The later local Physics8 branch has not been pushed. Both peers must update.
+
+Actual Lua5.1 full32module/60parsed suite PASS; geometry check and whitespace
+PASS. Validator still flags two historical local skill links. Native city/handling/
+multiplayer feel NOT RUN. Installed54files/source/manifest/ZIP hashes exact,
+54priorfiles backed up and verified. ZIP from installed folder:
+`AzerothKart-Multiplayer-df21866.zip`,47,241,029bytes. Fullrestart for the
+changed city textures. Source/hashes/manifests in PROGRESS/Codexhandoff.
+Other worktrees preserved; no main merge/release. Older entries below are history.
+
 ## Latest combined build — two reviewed cities, 2026-10-23 10:28+02:00
 
 **cac4290** on `codex/two-city-integration` combines Claude9143949 with the

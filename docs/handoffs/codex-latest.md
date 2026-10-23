@@ -1,107 +1,101 @@
-# Active reservation — Claude river review/publication, then wall-slide handling
+# Codex handoff — published Claude river update and wall handling v8
 
-2026-10-23 Europe/Oslo. Owner requests review/push of Claude latest, then fixing
-sticky angled/side wall contact and slow stationary turning. Own clean
-codex/wall-slide from505f054; review targetee144b5/claude/undercity-river. Reserve
-reviewed36-file integration, AGENTS Ironforgepolicy wording, ownhandoff/PROGRESS/
-review/contracts/deploymentdocs; afterward Physics.lua, focusedwallhandlingtests,
-existing physics/steering/obstacle/drift/surface fixtures, Physics compatibility
-assertions in native tests and runner/validator if needed. No renderer or art
-implementation edits; preserve Claude checkout and whole current multiplayer
-grid/profile/camera/menu code. First approve/publish exact Claude branch; then
-integrate and make one deterministic wall-handling slice, with fixed-step replay
-and handling metrics. Installation/ZIP follows source checks in ongoing test
-workflow. No main push/merge/release or force/history rewrite.
+2026-10-23 14:11+02:00, Europe/Oslo. Owner asks to review/push Claude latest,
+then improve sticky wall contact and slow parking turns. Own **codex/wall-slide**,
+base505f054, reservation04db93e, reviewed mergefeba3f8, tested/installed runtime
+**df2186697439b307055072be0a990137ce379660**. Following handoff commit is docs only.
 
-## Previous completed checkpoint
+## Publication and reviewed integration
 
-# Codex handoff — reviewed Darnassus/Undercity combined build
+Approved exact Claude **ee144b5d26fd8522ffdd3b1f7826151a049af074** on
+`claude/undercity-river`; normal push and live SHA verification succeeded before
+Physics work. Main remainsf923d15; no main merge/force/tag/release. Own later
+physics branch is **not pushed**. [Review](../reviews/2026-10-23-undercity-river.md).
+Prior combined/city refs queried before this push were absent; the authored
+Claude handoff's earlier-publication claim is not repeated as fact.
 
-2026-10-23 10:28+02:00, Europe/Oslo. Owner requested review and integration if
-approved. Own **codex/two-city-integration**, base1733eac/reservation381cb46;
-normal two-parent merge/runtime **cac4290dd8421457196a96985135511a96948431**
-integrates exact Claude **91439490703c67ff7e90efbfc74e6eff8b66bc72** from6ad66d1
-while retaining multiplayer eb2055a. Following handoff commit changes docs only.
-[Review](../reviews/2026-10-23-two-city-integration.md). No main merge/push/release.
+Claude's Undercityv2 has six flat canal crossings, six gates,1,340junctions and
+a5,797-unit lap. Every city is paved to its walls. Ironforgev4 full grip changes
+only its policy/version: both narrows and all1,682wall vertices remain. Other
+city geometry is unchanged. AGENTS records the reviewed replacement of the old
+rough-shoulder rule. Humpelevations remain painted; no slope/layer design adopted.
 
-## Delivered and boundary
+## Implemented handling and preserved interfaces
 
-Darnassus and Undercity are selectable solo courses, with four new TGAs and
-previews/catalog/pipeline/provenance. Seven available solo tracks, ten cosmetic
-karts; ThunderBluff soon. Darnassus6gates/3895units/206approach; Undercity5gates/
-7327units/noapproach/spawnonloop. Ordered gate tests cover both. Existingcity
-data/art and fullgrip/wall semantics remain. Painted tiers/ramps and inert
-generated height arrays are accepted; Circuit does not read elevation and
-handling stays flat. ADR0015's physical slopes/crests/bridges/kartheight designs
-remain proposals, with Physics compatibility and route/layer/replication review
-needed. No new simulation feature or milestone acceptance is declared.
+Physics8 retains all15state fields and existing movement hooks. First wall
+contact loses speed according to admitted travel, capped at1; continuous
+contact loses40units/s² rather than repeatedly multiplying speed by0.25.
+Blocked frontal/corner movement still stops. Steering remains held, and up to
+1.2rad/s of extra parking yaw fades to zero by80speed. Racing/drift90+ yaw,
+progressive8/4/12tick steering, charges and boost durations remain unchanged.
+Contact clears drift/grace/boost/slip and release acceleration, with no bounce
+or automatic facing alignment. Geometry remains authoritative and unchanged.
 
-All eb2055a multiplayer grid/profile/cues/chosenpeerart/boundedprediction code is
-retained. Multiplayer still negotiates only Mirage/TestOval. No kartcontact,
-agreedwinner, authoritative correction or automatic reconnect added.
+Native compatibility uses actual Physics.VERSION, now8. Explicit tests reject
+v7 peers before grid/countdown/GO; both friends must update. No wire/rate change,
+UI object allocation, input policy or new renderer/velocity API. Scalar speed
+is requested longitudinal speed; actual wall-tangent movement may be smaller,
+and the existing bounded remote forecast can overestimate during wall pressure.
 
-## Review and executed tests
+## Executed verification
 
-Complete Claude canonical handoff9143949 read/imported unchanged. Independent
-read-only reviews cover geometry/gates, art/pipeline/provenance and Menu; root
-inspected both panoramic sheets. No blocker. Only README conflicted; resolved
-as current multiplayer text plus newcity choices. No whole-file Menu/UI/native
-replacement. Corrected Darnassus shortest-city claim, stale count and elevation
-proposal's physical-compatibility omission. Claude's original commits remain.
+Actual WindowsPython3.14/pinnedLupa2.8, Lua5.1. Focused handling/native/UI passes,
+then final `scripts/test_lua.py --runtime lua51` **PASS32modules/60parsedfiles**.
+New regressions cover glancing/persistent/solid/perimeter/realcity contacts,
+mirrors/reverse/coasting/frontal/corner/recovery, stationary and racing yaw,
+all15fields across30/144FPS delivery, plus current native grid/GO/pacing/cleanup
+and v7 refusal. Pool remains79frames/166textures/81fonts. Independent source
+review found no blocker. One initial new-test lower-bound estimate was corrected
+from29to25units against actual28.172; source was not changed to hide a failure.
 
-Final actual Lua5.1 **sixmodules/59parsedfiles PASS**:
-`scripts/test_lua.py --runtime lua51 --tests circuit menu ui race_grid session_transport multiplayer_integration`.
-New tests cover both savedcity restores/correctpreviews and false/throwing
-backgrounds retaining actual prior results/state/picture/prefs/counts. Existing
-native/E2E grid/countdown/heldinput/peerart/pacing tests passed unchanged. Pool
-79frames/166textures/81fonts. Agent's isolated circuit/gridposes and focusedmenu
-checks pass. Geometry-only generated check PASS; boundaryPython11tests PASS;
-threepipelineAST/TGAheaders/finiteheights/provenance/whitespace checks PASS.
-Structuralvalidator FAILonlythetwo historical expired skill links, not a pass.
-Lua5.4/fullbroad/fullartrebuild/nativecities/FPS/feel NOT RUN. Claude's separate
-two-machine fullrebuild/tests remain attributed author evidence.
+Reproducible before/after metrics:45degree contact30ticks travels4.306→60.744units,
+ending speed0.861→197.005; frontal throttle+left recovery releases at53ticks in
+v8 (v7 still blocked at60); stationary60ticks turns39.44→104.45degrees with zero
+translation. Ignored handling-metrics.json/metrics.py retain exact tapes/source
+hashes. These are offline behavior, not a claim about native feel or every angle.
+Geometry-only generated check PASS, review AST/TGA/provenance checks PASS,
+whitespace PASS. Validator FAIL only two historical expired skill links. Full
+Lua5.4/art rebuild/native loading/bridge turns/handling/FPS/traffic NOT RUN.
+Claude's reported full rebuilds remain separately attributed evidence.
 
-## Installed candidate and friend archive
+## Installation and friend archive
 
-Source **cac4290** installed to `_classic_beta_/Interface/AddOns/AzerothKart`,
-54files independently matchsource/manifest/ZIP. Prior50files matcheb2055a
-receipt and verifiedbackup/before.csv. Manifest `local-artifacts/two-city-integration-20261023/backups/20261023-102735-053-4fa3216003b74641bd0466db614bcfb2/install.json`.
-ZIP created from actual installed directory, CRC/exactpaths/SHA256 verified:
-`C:/Users/bakke/Downloads/Forever_Addons/AzerothKart-Multiplayer-cac4290.zip`,
-46,956,754bytes, SHA256 `3e1ba05309ccefc548050106c8d7654d66cc2d9a21738f3abb2d0e5d1885254d`.
-OldZIPs retained; nootheraddon/WTF/SavedVariables/clientinput touched.
-Ignoredreceipt/logs/snapshots: `local-artifacts/two-city-integration-20261023/`.
-Native newcity loading/look/drive/walls/performance/preferences and revised
-multiplayer feel remain NOT RUN. Fully restart WoW for the four new textures.
+Installed runtime df21866 at `_classic_beta_/Interface/AddOns/AzerothKart`,
+54files matching tested source/manifest/ZIP. All54priorfiles matchcac4290
+receipt and verified backup/before.csv. Manifest `local-artifacts/wall-slide-20261023/backups/20261023-141009-111-f42c06aa0c944f65a9a4927419acab14/install.json`.
+ZIP created from actual installed folder, CRC/exactpaths/all SHA256 verified:
+`C:/Users/bakke/Downloads/Forever_Addons/AzerothKart-Multiplayer-df21866.zip`,
+47,241,029bytes, SHA256 `40884600082c3e0d04fce0ace33f2a9573a634a6a61d82aafeb24aeeab22b92a`.
+OldZIPs preserved; no other-addon/WTF/SavedVariables or client input touched.
+Ignored receipts/logs/snapshots: `local-artifacts/wall-slide-20261023/`.
 
 ## Parallel work and synchronization
 
-Claude checkout remains9143949 on claude/darnassus-undercity with its preexisting
-untrackedoutputs, canonical5570968 unchanged.370foreignfilehashes/HEADs/branches/
-statuses preserved;46existingruntimefiles exactlyeb2055a. OnlyCapitalCities/
-Courses/Menu catalog/addonreadme differ, plus four newimages. No direct Claude
-conversation/acknowledgment claimed; source/contracts/handoffs are the record.
+Claude stays ee144b5 on claude/undercity-river, canonical5570968 unchanged.
+All376foreign tracked/untracked file hashes, statuses, branches and HEADs are
+preserved. Sixteen rendering/geometry/native production modules and all assets
+match reviewedee144b5. Only Physics/addonreadme change in the runtime handling
+slice. Claude's authored handoff is imported unchanged; no direct conversation
+or acknowledgment claimed. Source/contracts/handoffs provide coordination.
 
-After checking/finishing its own work, Claude may use this same repository's
-local combined ref as the next visual baseline, without resetting its branch:
+After Claude checks/finishes its own work, a new visual branch may start at
+the local combined ref; commands are provided, **not executed**:
 
 ```powershell
 git -C "C:/Users/bakke/Downloads/Forever_Addons/AzerothKart_Codex_Project_Pack/AzerothKart-Claude" status --short
-git -C "C:/Users/bakke/Downloads/Forever_Addons/AzerothKart_Codex_Project_Pack/AzerothKart-Claude" switch -c claude/from-two-city-integration codex/two-city-integration
+git -C "C:/Users/bakke/Downloads/Forever_Addons/AzerothKart_Codex_Project_Pack/AzerothKart-Claude" switch -c claude/from-wall-slide codex/wall-slide
 ```
 
-These commands are provided, **not executed** in the foreign checkout. The new
-branch name must be unused; Git must refuse conflicting work rather than reset
-it. Nothing has been pushed; cloud use needs a separately authorized publication
-or the established local bundle transfer. Do not install the older standalone
-Claude branch over this combined candidate.
+The name must be unused and conflicting work must cause refusal, never reset.
+Cloud use of Physics8 needs separately authorized publication or the established
+local bundle transfer. GitHub's Claude river branch is published; it precedes
+the local Physics8 changes. Do not install it over this newer combined build.
 
 ## Next exact task
 
-Owner fullrestart then inspect/drive Darnassus and Undercity in SinglePlayer
-([city checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md)). Record actual load/
-feel before acceptance. A friendrace uses this identical ZIP and the existing
-[short multiplayer steps](../MULTIPLAYER_PLAYTEST.md); no standalone netprobe.
-Continue multiplayer based on realgrid/peerdisplay feedback; slope/bridge design
-remains deferred to a separate task. Productionauthority/contact/trustedfinish,
-fullsocketrecovery, nativecost and redistribution review remain open.
+Owner fullrestart, then one short angled/frontal wall recovery and stationary
+turn check using [the deferred checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-wall-slide-physics8-check--not-run).
+Record direct play before more tuning. Both players use this Physics8 archive
+for the next Multiplayer menu race. Native acceptance, sharp bridge feel,
+trusted finish/contact authority, full socket reconnect, physical slopes/layers
+and redistribution review remain open. No milestone completed from source alone.
