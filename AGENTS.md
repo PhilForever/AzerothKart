@@ -10,6 +10,18 @@ You are a development agent for **Azeroth Kart**, a top-down 2D WoW Forever arca
 
 ## Current owner priority
 
+Latest direction, 2026-10-23: **finish single player before further multiplayer
+playtests**, starting with saved full-race total/name/date and highscores.
+[ADR 0016](docs/adr/0016-solo-records-and-global-score-gate.md) and
+[HIGHSCORES](docs/HIGHSCORES.md) supersede the immediate scheduling priority below.
+The local board does not fulfill global publication: a supported shared
+distribution/persistence route remains open. Do not invent global delivery,
+enable automatic public traffic or insert ghosts as a prerequisite.
+Codex owns `Highscores.lua`, `SoloRecords.lua` and their tests; menu presentation
+remains Claude's scope, with this requested narrow additive screen integrated
+on Codex's branch and documented in the handoff. No direct Claude acknowledgment
+is implied. Retain the existing multiplayer/release gates.
+
 Per [ADR 0010](docs/adr/0010-multiplayer-release-priority.md), multiplayer takes priority over dedicated time trials and ghosts. Finish the needed driving/collision/race foundations, then advance the actual-client transport gate and verified multiplayer; do not insert ghost/time-trial features as prerequisites. New solid-obstacle fixtures belong only on **Test Oval**; **Mirage Raceway needs no obstacles**. The release target combines Codex's mechanical/race/network responsibilities through verified multiplayer with Claude's **three ready maps and eight ready karts**. Eight karts is a content target, not evidence of eight-player capacity. A failed transport gate requires owner review; a ghost fallback does not satisfy this release target. This target authorizes neither a release nor automatic pushes/integration.
 
 ## Ownership and parallel development

@@ -1,5 +1,14 @@
 # Technical architecture
 
+Current additive solo-record boundary (2026-10-23): pure `Highscores` stores
+bounded compatible personal bests; native `SoloRecords` supplies guarded full
+Forever names/server timestamps and owns its versioned SavedVariables child.
+`UI.Start` creates a run token, solo terminal OnUpdate submits once before
+Stop/result cleanup. Rendering only consumes copied score views/status. No
+physics/race/geometry/transport behavior is changed, and no score messages are
+sent. New totals/Highscores do not implement global publication; see
+[HIGHSCORES](HIGHSCORES.md) and [ADR0016](adr/0016-solo-records-and-global-score-gate.md).
+
 For implemented signatures, state fields and the Codex/Claude boundary, use [API_CONTRACTS.md](API_CONTRACTS.md) and [AGENTS.md](../AGENTS.md). The system diagram includes future components; it is not evidence of a separate Renderer/GameSession or production authority API. Current `codex/multiplayer-grid` retains the integrated solo/menu/city work, including Stormwind full-speed/exposed-wall boundaries, Ironforge's per-segment narrows/rough shoulders and pooled guarded background selection. The new grid/profile and peer-display work does not change global Physics or authoritative track geometry. Test Oval solids and Mirage/Claude artwork remain independent; only Test Oval and Mirage are currently supported by the two-peer experiment.
 
 **Multiplayer checkpoint, 2026-10-23:** [LiveRace/LiveProtocol](LIVE_RACE.md) own one coordinated tick-zero bundle and fixed-step local driving with copied observational remote poses. The owner completed an actual two-client drive on `c581a52`, reporting GO without countdown, square peers and lag/clipping. This revision adds RaceGrid profile agreement, a visible shared start and selected peer sprites, plus time-aware bounded display forecasts. These new changes are **NOT RUN in Forever**. That earlier drive is not evidence of production capacity, inter-kart collision, agreed placements or a winner. [ADR 0013](adr/0013-two-player-experiment-scope.md) retains the bounded experiment scope.

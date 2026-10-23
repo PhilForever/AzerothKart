@@ -171,9 +171,10 @@ end
 -- version may write the record: a newer version's record is read, not replaced.
 function Menu.readPreferences(db)
     local prefs = {effects=true, devInfo=false, scale=1, sound=true}
+    local rootWritable = db == nil or (type(db) == "table" and db.schemaVersion == 1)
     local raw = type(db) == "table" and db.preferences
-    if type(raw) ~= "table" then return prefs, true end
-    local writable = not (type(raw.version) == "number" and raw.version > 1)
+    if type(raw) ~= "table" then return prefs, rootWritable end
+    local writable = rootWritable and not (type(raw.version) == "number" and raw.version > 1)
     if type(raw.track) == "string" and Courses and Courses.available(raw.track) then prefs.track = raw.track end
     if type(raw.kart) == "string" and Presentation.KART_SPRITES[raw.kart] then prefs.kart = raw.kart end
     if type(raw.effects) == "boolean" then prefs.effects = raw.effects end
@@ -417,8 +418,11 @@ end
 -- Preferences (account-wide AzerothKartDB.preferences, version 1).
 
 local function save()
-    if type(AzerothKartDB) ~= "table" or not Menu.prefsWritable then return end
+    if type(AzerothKartDB) ~= "table" or AzerothKartDB.schemaVersion ~= 1 or not Menu.prefsWritable then return end
     local record, old = {}, AzerothKartDB.preferences
+    -- Recheck at write time: another component may have replaced the child
+    -- since Menu.Create captured its initial writable flag.
+    if type(old) == "table" and type(old.version) == "number" and old.version > 1 then return end
     if type(old) == "table" then
         for key,value in pairs(old) do record[key] = value end -- keep fields this version does not know
     end
@@ -473,7 +477,7 @@ local function buildHome()
     Menu.view.logo = logo
     Menu.view.tagline = newText(root, FONT.white, "TOP", 0, -90,
         "Goblin-powered racing from the Shimmering Flats to Stormwind")
-    local box = panel(root, DIALOG, 300, 270, "TOP", 0, -124)
+    local box = panel(root, DIALOG, 300, 314, "TOP", 0, -124)
     Menu.screens.home = box
     box:Hide()
     local entries = {
@@ -482,6 +486,7 @@ local function buildHome()
         {"Garage", function() Menu.Show("garage") end},
         {"How to Play", function() Menu.Show("help") end},
         {"Settings", function() Menu.Show("settings") end},
+        {"Highscores", function() Menu.Show("highscores") end},
     }
     Menu.view.homeButtons = {}
     for index,entry in ipairs(entries) do
@@ -492,6 +497,98 @@ local function buildHome()
         "Fan-made addon, not affiliated with Blizzard Entertainment. Your track, kart and settings are remembered.")
     refresh.home = function()
         Menu.view.selection:SetText(("Track: %s    Kart: %s"):format(trackName(), kartName()))
+    end
+end
+
+-- A bounded saved-record view. Browsing never selects a driving track, writes
+-- saved data, or publishes anything. The backend is queried only by deliberate
+-- open/track/page actions; Sync/OnUpdate do not refresh or sort this board.
+local function buildHighscores()
+    local box = screenBox("highscores", "Saved Highscores", 780, 570)
+    local view = Menu.view
+    view.highscoreScope = newText(box, FONT.gray, "TOP", 0, -65, "Local cache | Global publishing pending")
+    view.highscoreTrack = newButton(box, "Track", 420, 30, "TOP", 0, -91, function()
+        Menu.highscoreTrackIndex = (Menu.highscoreTrackIndex or 1) % #Menu.TRACKS + 1
+        Menu.highscorePage = 1
+        refresh.highscores()
+    end)
+    newText(box, FONT.graySmall, "TOPLEFT", 38, -140, "Fastest completed three-lap totals for the current rules")
+    newText(box, FONT.normal, "TOPLEFT", 38, -170, "Rank")
+    newText(box, FONT.normal, "TOPLEFT", 96, -170, "Name")
+    newText(box, FONT.normal, "TOPLEFT", 422, -170, "Total")
+    newText(box, FONT.normal, "TOPLEFT", 548, -170, "Date UTC")
+    view.highscoreRows = {}
+    for index=1,10 do
+        local row = {}
+        local y = -199 - (index - 1) * 23
+        row.rank = newText(box, FONT.white, "TOPLEFT", 38, y, "")
+        row.name = wrap(newText(box, FONT.white, "TOPLEFT", 96, y, ""), 306)
+        call(row.name, "SetWordWrap", false)
+        call(row.name, "SetMaxLines", 1)
+        row.total = newText(box, FONT.white, "TOPLEFT", 422, y, "")
+        row.date = newText(box, FONT.white, "TOPLEFT", 548, y, "")
+        view.highscoreRows[index] = row
+    end
+    view.highscoreEmpty = newText(box, FONT.gray, "TOP", 0, -215, "")
+    view.highscoreStatus = wrap(newText(box, FONT.graySmall, "BOTTOM", 0, 108, ""), 700, "CENTER")
+    call(view.highscoreStatus, "SetMaxLines", 2)
+    view.highscorePage = newText(box, FONT.normal, "BOTTOM", 0, 72, "Page 1 / 1")
+    view.highscorePrevious = newButton(box, "Previous", 130, 28, "BOTTOMLEFT", 170, 66, function()
+        Menu.highscorePage = math.max(1, (Menu.highscorePage or 1) - 1)
+        refresh.highscores()
+    end)
+    view.highscoreNext = newButton(box, "Next", 130, 28, "BOTTOMRIGHT", -170, 66, function()
+        Menu.highscorePage = (Menu.highscorePage or 1) + 1
+        refresh.highscores()
+    end)
+    newButton(box, "Back", 150, 30, "BOTTOMLEFT", 30, 22, function() Menu.Show("home") end)
+    refresh.highscores = function()
+        local index = Menu.highscoreTrackIndex or 1
+        local track = Menu.TRACKS[index] or Menu.TRACKS[1]
+        local backend = AK.SoloRecords
+        local snapshot
+        if type(backend) == "table" and type(backend.GetView) == "function" then
+            local ok, result = pcall(backend.GetView, track.id)
+            if ok and type(result) == "table" then snapshot = result end
+        end
+        local rows = snapshot and type(snapshot.rows) == "table" and snapshot.rows or {}
+        local pages = math.max(1, math.ceil(#rows / 10))
+        local page = math.max(1, math.min(Menu.highscorePage or 1, pages))
+        Menu.highscorePage = page
+        view.highscoreTrack:SetText("Track: " .. track.name)
+        view.highscoreScope:SetText("Local cache | Global publishing pending")
+        view.highscorePage:SetText(("Page %d / %d"):format(page, pages))
+        setEnabled(view.highscorePrevious, page > 1)
+        setEnabled(view.highscoreNext, page < pages)
+        view.highscoreEmpty:SetText(not snapshot and "Saved records unavailable." or
+            (#rows == 0 and snapshot.problem and "Saved records cannot be displayed in this build." or
+            (#rows == 0 and "No completed solo records for this track yet." or "")))
+        local status = snapshot and snapshot.lastResult
+        local note = type(status) == "table" and type(status.message) == "string" and status.message or ""
+        if snapshot and snapshot.writable == false then note = "Saved records are read-only in this build." end
+        view.highscoreStatus:SetText(note)
+        for slot,line in ipairs(view.highscoreRows) do
+            local rank = (page - 1) * 10 + slot
+            local row = rows[rank]
+            if type(row) == "table" then
+                line.rank:SetText(tostring(rank))
+                local name = type(row.playerName) == "string" and row.playerName or "Unknown player"
+                line.name:SetText(name:gsub("|", "||"))
+                local total, date = "--", "--"
+                if type(backend.FormatTime) == "function" then
+                    local ok, text = pcall(backend.FormatTime, row.totalTicks)
+                    if ok and type(text) == "string" then total = text end
+                end
+                if type(backend.FormatDate) == "function" then
+                    local ok, text = pcall(backend.FormatDate, row.finishedAt)
+                    if ok and type(text) == "string" then date = text end
+                end
+                line.total:SetText(total)
+                line.date:SetText(date)
+            else
+                line.rank:SetText(""); line.name:SetText(""); line.total:SetText(""); line.date:SetText("")
+            end
+        end
     end
 end
 
@@ -1064,7 +1161,7 @@ end
 -- keep their text and behaviour.
 local function arrangeResults()
     local summary = UI.summary
-    summary:SetSize(460, 312)
+    summary:SetSize(460, 336)
     local level = (UI.canvas:GetFrameLevel() or 1) + 8 -- above the race overlay
     call(summary, "SetFrameLevel", level)
     for _,button in ipairs({UI.restartButton, UI.dismissSummaryButton}) do call(button, "SetFrameLevel", level + 1) end
@@ -1084,6 +1181,8 @@ local function arrangeResults()
     call(UI.summaryDetail, "SetSpacing", 4)
     place(UI.summaryDetail, "TOP", 0, -86, "CENTER")
     view.resultLaps = newText(summary, FONT.white, "TOP", 0, -172, "")
+    view.resultScore = wrap(newText(summary, FONT.graySmall, "TOP", 0, -196, ""), 404, "CENTER")
+    call(view.resultScore, "SetMaxLines", 2)
     place(UI.summaryHint, "BOTTOM", 0, 92, "CENTER")
     color(UI.summaryHint, {0.62, 0.62, 0.62})
     place(UI.restartButton, "BOTTOMLEFT", 28, 54)
@@ -1132,6 +1231,8 @@ function Menu.OnResults()
         times[index] = ticks == best and #view.lapTimes > 1 and "|cff66ff66" .. line .. "|r" or line
     end
     view.resultLaps:SetText(#times > 0 and table.concat(times, "     ") or "")
+    local score = UI.scoreResult
+    view.resultScore:SetText(type(score) == "table" and type(score.message) == "string" and score.message or "")
     Menu.barKey = nil
     Menu.Sync()
 end
@@ -1237,6 +1338,12 @@ end
 function Menu.Show(screen)
     if Menu.disabled or not Menu.root then return end
     if screen and (UI.active or UI.gridStaged) then screen = nil end -- never cover a live run/grid
+    if screen == "highscores" and Menu.screen ~= "highscores" then
+        Menu.highscoreTrackIndex, Menu.highscorePage = 1, 1
+        for index,track in ipairs(Menu.TRACKS) do
+            if track.id == UI.trackId then Menu.highscoreTrackIndex = index; break end
+        end
+    end
     local leavingLobby = Menu.screen == "multiplayer" and screen ~= "multiplayer"
     local session = (leavingLobby or (screen and screen ~= "multiplayer" and UI.multiplayer)) and sessionView()
     -- Results can be shown while the native owner still drains finish poses.
@@ -1363,6 +1470,7 @@ function Menu.Create(ui)
     arrangeResults()
     buildRoot()
     buildHome()
+    buildHighscores()
     buildTracks()
     buildKarts()
     buildMultiplayer()

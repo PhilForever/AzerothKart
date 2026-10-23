@@ -1,5 +1,15 @@
 # Verification and QA plan
 
+Latest solo finish-record slice: run the focused Lua5.1 modules `highscores
+solo_records ui menu race loop multiplayer_integration` using scripts/test_lua.py.
+They cover exact total ticks, once-only finish, dropped-time eligibility versus
+terminal remainder, full names/dates, compatible rankings, bounded storage,
+malformed/future saves, native callback races/reentry and visible pooled menu
+navigation. No broad dual-runtime rerun is required without a new concern.
+The deferred native check and open global route are in [HIGHSCORES](HIGHSCORES.md).
+Offline results do not prove native timestamp availability, restart persistence,
+UI placement, frame cost or global delivery.
+
 ## Current start-clock slice
 
 Executed Lua 5.1 focused commands and outcomes are recorded in PROGRESS. The changed modules use `--tests clock_protocol start_clock race_start race peer_session session_transport`; native lease/UI regression uses `--tests session_transport transport_probe ui`. Codec cases cover exact wire fields/bounds; pure clock cases include asymmetric synthetic 700 ms RTT, independent offsets, queued reply subtraction, retries/duplicates, malformed/conflicting packets, finite deadlines, late callbacks, reentrant outcomes and final-ACK ambiguity. RaceStart checks actual Physics/Race initialization, exactly-once/cancel/error handling and a 900-tick identical input tape. Native doubles cover both prefixes sharing a persistent budget, delayed delivery/five-second offset, scoped sender, exception/Stop cleanup and callback clock advancement. No client synchronization, clock drift, opponent movement, finish agreement or race feel is inferred. See [START_CLOCK](START_CLOCK.md); no new manual probe/download requested.

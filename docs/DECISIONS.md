@@ -1,6 +1,13 @@
 # Decisions and open questions
 
 ## Accepted now
+
+- 2026-10-23: owner prioritizes finishing single player before more multiplayer
+  playtests and requests total finish time/name/date/global highscores. Local
+  records and a bounded visible board are implemented; global publication
+  requires a supported shared destination and remains open. Architecture choice
+  was delegated to the efficient reliable approach, not proof of a capability.
+  [ADR0016](adr/0016-solo-records-and-global-score-gate.md).
 - Name `Azeroth Kart` and format top-down 2D.
 - Native WoW addon in Lua; no browser overlay or external executable.
 - Deterministic fixed-step pure simulation; UI is a separate renderer.

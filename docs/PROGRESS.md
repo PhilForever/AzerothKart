@@ -1,5 +1,76 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-23 15:52 +02:00 (Europe/Oslo) — solo totals and saved Highscores; global route open
+
+Latest owner direction: happy with handling; finish single player before more
+multiplayer tests, saving full finish total/name/date and publishing a global
+board. The owner delegates the efficient reliable architecture choice. Own
+clean `codex/solo-highscores` from `de4b291`, reservation `18d5eb6`. This is the
+next M3 persistence slice; no milestone completion or multiplayer acceptance.
+[ADR0016](adr/0016-solo-records-and-global-score-gate.md) records the current
+priority and [HIGHSCORES](HIGHSCORES.md) the exact implemented scope/dependency.
+
+Implemented pure bounded `Highscores` and native `SoloRecords`, loaded before
+UI in both TOCs (29modules). Completed solo three-lap races save exact total
+ticks, full Forever name, finish timestamp and compatibility metadata. Personal
+bests are partitioned by track/version/Physics10/laps/60Hz/scoring rules; cosmetic
+karts share a board. Equal/slower runs retain the earlier best/date. Bounds:
+32boards,50bestplayers/board, no unbounded run/ghost history. Root schema and
+preferences/custom fields preserved; malformed/future data refuses writes.
+Checks repeat after native callbacks to protect concurrent root/child changes.
+
+UI creates one token only on accepted Start, submits once at actual solo finish
+and freezes before callback. Close/reopen/Stop/combat/partial/live runs cannot
+award records. A saving exception leaves results and control release usable.
+Genuine lost running-time ticks exclude the score; discarded post-finish frame
+remainder does not. Native full-name APIs preserve Forever first+surname, with
+no realm inference; guarded GetServerTime/date UTC reads remain new/unverified
+in this addon. Missing identity/date yields an explicit saving refusal.
+
+Narrow supporting menu integration adds reachable Highscores (home entry6),
+track browsing without changing selected geometry, ten pooled rows/pages,
+name/total/UTCdate and saved-result notice. Six frames/52fonts added; measured
+explicit pool **85/166/133**, textures unchanged. Resultsheight336 separates
+the saving note. Preferences now also recheck root/current child versions at
+write time. Physics10, rendering primitives, art, geometry and multiplayer
+transport source are unchanged; Claude's worktree/handoff were not edited and
+no direct acknowledgment is claimed.
+
+Executed actual `python scripts/test_lua.py --runtime lua51 --tests highscores
+solo_records ui menu race loop multiplayer_integration`: **PASS7modules,
+64Lua files parsed**. Includes bounded schema/ranking/UTF8, full-name/date,
+native callback write races/reentry, exactly-once capture, terminal remainder vs
+earlier hitch, stopped/live exclusions, menu pages/readonly/empty/tail clearing,
+no per-tick score reads/allocations and two delayed mocked peers. Initial
+integration checks exposed old hardcoded79/166/81 and312height assertions; these
+were updated to the measured new pool/336height, then the seven-module run
+passed. Fullsuite/Lua5.4/native new layout/date/persistence/globaldelivery:
+**NOT RUN**, respecting focused validation. `git diff --check` PASS.
+`python scripts/validate_project.py` **FAIL only the same two pre-existing
+expired computer-use skill links in historical PROGRESS**; current module/load
+order and added documentation produce no additional validator findings.
+
+Source audit: both foreign branches/HEADs/statuses and377tracked/untracked file
+hashes preserved; installed54files remain exactly the prior `d3fd99d` runtime.
+Ignored evidence `local-artifacts/solo-highscores-20261023/{baseline,preservation}.json`.
+No installation, ZIP, push, release, client input, other addon or WTF/SavedVariables
+file writes occurred. Test builds need explicit install coordination and full
+restart for the two new Lua files.
+
+**Open global dependency:** local records are not global publication. Audits of
+current transport/IOU/build70450 source found no implemented/verified all-player
+endpoint, uploader or addon broadcast route. Only named-peer logged WHISPER has
+client evidence; generic chat API declarations do not establish global/offline
+delivery. No score traffic/service/hidden companion was enabled. Scores remain
+client-reported, without server/anti-cheat guarantees. Native score persistence
+and appearance checks are also pending; owner handling approval is not those
+checks. The requested global scope remains incomplete and flagged for review.
+
+Next exact task: establish a supported persistent global publication/query route
+with Forever capability evidence before wiring score distribution. A shared
+community cache must be explicitly described as eventual/incomplete, not a
+complete all-player board. Further live-race tests remain deferred by the owner.
+
 ## 2026-10-23 15:00 +02:00 (Europe/Oslo) — requested10%/80% penalty and latest Undercity
 
 Owner found5%/95% too mild and explicitly requests10% initial wall loss,80% scraping top speed, plus pushing Claude's latest Undercity. Own clean codex/wall-penalty-10 from455d233, reservationd96557f. Tuning **c70c8b8** separates initial retention0.90 from contact maximum0.80 (160forward/44reverse). At high speed the cap also limits the first hit; below it the10% initial loss is tested independently. No repeated percentage decay; drag40units/s², active steering, parking turns, geometry and15state fields retained. Physics10 rejects7/8/9 before live GO.

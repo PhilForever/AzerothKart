@@ -2,6 +2,14 @@
 
 **Not a schedule promise.** Milestones are completed only after measurable acceptance criteria. Codex should complete one small vertical slice per run and update `PROGRESS.md`.
 
+**Latest owner priority, 2026-10-23:** finish single player before further
+multiplayer playtests. The next M3 persistence slice saves complete solo total
+time/name/date and exposes local Highscores. Global publication remains blocked
+on a supported shared route; local scores do not complete that requirement or
+M3. Dedicated ghosts/replay remain deferred. [ADR 0016](adr/0016-solo-records-and-global-score-gate.md),
+[implementation and global dependency](HIGHSCORES.md). No acceptance boxes are
+changed by this priority update.
+
 **Owner priority, 2026-10-19:** build playable local mechanics with roughly 80% implementation / 20% focused validation. M0's remaining manual checks are deferred and stay open; they no longer block M1 development. Long probe sessions and repeated broad test matrices wait for a concrete blocker or integration checkpoint. [ADR 0007](adr/0007-build-first-development.md) records this change; multiplayer still requires measured feasibility.
 
 **Owner priority, 2026-10-20:** multiplayer takes priority over dedicated time trials/ghosts. Build the needed M1/M3 mechanical and race foundations, then prioritize M2 transport evidence and M6/M7 live-race work when supported by that evidence. M4/M11 are deferred rather than prerequisites. The release target is Codex's responsibilities through **verified multiplayer**, plus Claude's **three ready maps and eight ready karts**; eight karts does not imply eight simultaneous players. New solid-obstacle fixtures are for **Test Oval only**, with none added to Mirage Raceway. [ADR 0010](adr/0010-multiplayer-release-priority.md) records this direction; the pending checklist is in [RELEASE.md](RELEASE.md#current-release-target-pending). Milestone numbers and phase groupings below are identifiers, not a required execution order.

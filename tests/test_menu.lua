@@ -180,6 +180,9 @@ withMock(nil, function(_, _, Menu, AK)
     assert(junk.track == nil and junk.kart == nil and junk.effects == true and junk.devInfo == false and
            junk.scale == 1, "unknown ids, types and sizes fall back to defaults")
     assert(Menu.readPreferences({preferences="broken"}).scale == 1, "a non-table record is ignored")
+    local _, blankWritable = Menu.readPreferences(nil)
+    local _, futureRootWritable = Menu.readPreferences({schemaVersion=777, preferences={version=1}})
+    assert(blankWritable and not futureRootWritable, "blank defaults are writable but a future root is read-only")
 
     local Physics = AK.Physics
     local lap, time, best = Menu.raceLines(nil, {bestLapTicks=nil})
@@ -250,8 +253,9 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu)
     -- Eight track buttons under two cup headings; eight pooled gate strips.
     -- Ten kart buttons; the lobby adds two EditBoxes and Listen/track buttons.
     -- The observational remote kart adds one texture and one font string.
-    assert(UI.objects.frames == 79 and UI.objects.textures == 166 and UI.objects.fontStrings == 81,
-        ("explicit budget 79/166/81, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
+    -- Saved highscores add six frames and 52 labels, including the results notice.
+    assert(UI.objects.frames == 85 and UI.objects.textures == 166 and UI.objects.fontStrings == 133,
+        ("explicit budget 85/166/133, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
             UI.objects.fontStrings))
     assert(AzerothKartDB.preferences == nil, "creation saves nothing")
     local before = counts(env)
@@ -267,9 +271,9 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu)
     for _,button in ipairs(Menu.view.homeButtons) do labels[#labels + 1] = button.text end
     local experimental = Menu.bridge and type(Menu.bridge.action) == "function"
     local mpLabel = experimental and "Multiplayer |cffff8c26(experimental)|r" or "Multiplayer |cffff8c26(soon)|r"
-    assert(table.concat(labels, ",") == "Single Player," .. mpLabel .. ",Garage,How to Play,Settings",
+    assert(table.concat(labels, ",") == "Single Player," .. mpLabel .. ",Garage,How to Play,Settings,Highscores",
         "the main menu offers clear choices: " .. table.concat(labels, ","))
-    for _,screen in ipairs({"multiplayer", "help", "settings", "garage", "tracks", "karts", "home"}) do
+    for _,screen in ipairs({"multiplayer", "help", "settings", "garage", "tracks", "karts", "highscores", "home"}) do
         Menu.Show(screen)
         assert(Menu.screen == screen and Menu.screens[screen]:IsShown(), screen .. " shows")
         local shown, seen = 0, {}
@@ -284,6 +288,88 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu)
     sameCounts(env, before, "menu navigation")
     assert(AzerothKartDB.custom.keep == true and AzerothKartDB.schemaVersion == 1 and AzerothKartDB.preferences == nil,
         "browsing saves nothing and other saved fields stay intact")
+end)
+
+-- Saved highscores are a pooled, read-only view; browsing cannot select a track.
+withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu, AK)
+    local before, selected, state = counts(env), UI.trackId, UI.state
+    local db, rows, reads, requested = AzerothKartDB, {}, 0, {}
+    for index=1,25 do
+        rows[index] = {playerName="Racer " .. index, totalTicks=3600 + index,
+            finishedAt=1700000000 + index, kartId="steam_tank"}
+    end
+    rows[1].playerName = "Pipe|Name"
+    AK.SoloRecords = {
+        GetView=function(id)
+            reads = reads + 1; requested[#requested + 1] = id
+            return {scope="local", publication="Global publishing pending", writable=true,
+                rows=rows, trackId=id, lastResult={message="Saved on this computer."}}
+        end,
+        FormatTime=function(ticks) return "T" .. ticks end,
+        FormatDate=function(epoch) return "D" .. epoch end,
+    }
+    local select = UI.SelectTrack
+    UI.SelectTrack = function() error("highscore browsing must not select a driving track") end
+    UI.Toggle()
+    assert(reads == 0, "opening the home menu does not read or sort scores")
+    click(Menu.view.homeButtons[6])
+    assert(Menu.screen == "highscores" and reads == 1 and requested[1] == selected,
+        "Highscores opens the current track's saved board on explicit request")
+    assert(Menu.view.highscoreScope.text == "Local cache | Global publishing pending" and
+        Menu.view.highscorePage.text == "Page 1 / 3" and not Menu.view.highscorePrevious.enabled and
+        Menu.view.highscoreNext.enabled, "local scope, pending publication and bounded pages are explicit")
+    local first = Menu.view.highscoreRows[1]
+    assert(#Menu.view.highscoreRows == 10 and first.rank.text == "1" and first.name.text == "Pipe||Name" and
+        first.total.text == "T3601" and first.date.text == "D1700000001",
+        "ten pooled rows show escaped names, full totals and UTC dates from the backend")
+    for _=1,20 do Menu.Sync(); UI.OnUpdate(1 / 60) end
+    assert(reads == 1, "frame updates and menu sync never query or sort records")
+    click(Menu.view.highscoreNext)
+    assert(reads == 2 and Menu.view.highscoreRows[1].rank.text == "11" and Menu.view.highscorePage.text == "Page 2 / 3",
+        "Next refreshes the second bounded page")
+    click(Menu.view.highscoreNext)
+    assert(Menu.view.highscoreRows[1].rank.text == "21" and Menu.view.highscoreRows[5].name.text == "Racer 25" and
+        Menu.view.highscoreRows[6].name.text == "" and not Menu.view.highscoreNext.enabled,
+        "the last page clears unused rows and disables Next")
+    click(Menu.view.highscorePrevious)
+    assert(Menu.view.highscorePage.text == "Page 2 / 3", "Previous returns one page")
+    click(Menu.view.highscoreTrack)
+    assert(Menu.highscorePage == 1 and requested[#requested] ~= selected and UI.trackId == selected,
+        "track browsing resets only the board page and leaves the driving track alone")
+    click(find(env, Menu.screens.highscores, "Back")); click(Menu.view.homeButtons[6])
+    assert(Menu.screen == "highscores" and requested[#requested] == selected and Menu.highscorePage == 1,
+        "reopening uses the current driving track without changing it")
+    assert(UI.state == state and UI.race == nil and not UI.active and AzerothKartDB == db and
+        AzerothKartDB.custom.keep and AzerothKartDB.preferences == nil and rows[1].playerName == "Pipe|Name",
+        "browsing preserves physics, saved preferences and borrowed rows")
+    UI.SelectTrack = select
+    sameCounts(env, before, "highscore pages, track browsing and revisit")
+end)
+
+withMock({schemaVersion=1, highscores={version=99, future="keep"}}, function(env, UI, Menu, AK)
+    local saved, before = AzerothKartDB.highscores, counts(env)
+    AK.SoloRecords = {GetView=function()
+        return {scope="local", writable=false, problem="future_schema", rows={}}
+    end}
+    UI.Toggle(); click(Menu.view.homeButtons[6])
+    assert(Menu.view.highscoreStatus.text == "Saved records are read-only in this build." and
+        Menu.view.highscoreEmpty.text == "Saved records cannot be displayed in this build." and
+        not Menu.view.highscoreNext.enabled and not Menu.view.highscorePrevious.enabled,
+        "an unknown future store remains read-only with no fake ranking")
+    assert(AzerothKartDB.highscores == saved and saved.version == 99 and saved.future == "keep",
+        "the board never rewrites unknown saved versions")
+    AK.SoloRecords = nil
+    Menu.Show("home"); Menu.Show("highscores")
+    assert(Menu.view.highscoreEmpty.text == "Saved records unavailable.", "missing backend has a graceful empty state")
+    AK.SoloRecords = {GetView=function() error("unavailable") end}
+    click(Menu.view.highscoreTrack)
+    assert(Menu.view.highscoreEmpty.text == "Saved records unavailable.", "a refused backend cannot break the menu")
+    UI.scoreResult = {message="Solo time saved. Global publishing pending."}
+    Menu.OnResults()
+    assert(Menu.view.resultScore.text == UI.scoreResult.message, "results show the preallocated save notice")
+    UI.scoreResult = nil; Menu.OnResults()
+    assert(Menu.view.resultScore.text == "", "a later run cannot retain the previous result's save notice")
+    sameCounts(env, before, "unknown, absent and refused score backends and result notice")
 end)
 
 -- Single Player: track, kart, race, results and back to the menu -------------
@@ -645,6 +731,45 @@ withMock({schemaVersion=1, preferences={version=2, kart="steam_tank", newShape={
     assert(UI.kartId == "gyrocopter" and AzerothKartDB.preferences.version == 2 and
            AzerothKartDB.preferences.kart == "steam_tank", "a newer version's record is never overwritten")
 end)
+withMock({schemaVersion=777, preferences={version=1, track="test_oval", kart="steam_tank", effects=true,
+    sound=true, devInfo=false, scale=1, futureField={keep="exact"}}, unknown={keep=true}}, function(env, UI, Menu)
+    local root, preferences = AzerothKartDB, AzerothKartDB.preferences
+    local unknown, child = root.unknown, preferences.futureField
+    assert(not Menu.prefsWritable, "an unsupported root never grants preference write permission")
+    UI.Toggle(); click(Menu.view.homeButtons[5])
+    Menu.SetScale(1.1); click(Menu.view.effects); click(Menu.view.sound); click(Menu.view.devInfo)
+    click(find(env, Menu.screens.settings, "Back"))
+    click(Menu.view.homeButtons[3]); click(Menu.view.kartButtons.gyrocopter)
+    click(Menu.view.race); click(Menu.view.homeButtons[1]); click(Menu.view.trackButtons.mirage_raceway)
+    click(find(env, Menu.screens.tracks, "Back")); click(Menu.view.homeButtons[6])
+    assert(AzerothKartDB == root and root.schemaVersion == 777 and root.preferences == preferences and
+        root.unknown == unknown and unknown.keep and preferences.version == 1 and preferences.track == "test_oval" and
+        preferences.kart == "steam_tank" and preferences.effects and preferences.sound and not preferences.devInfo and
+        preferences.scale == 1 and preferences.futureField == child and child.keep == "exact",
+        "settings, kart/track buttons and highscore navigation preserve the exact future root and child")
+    assert(UI.kartId == "gyrocopter" and UI.trackId == "mirage_raceway" and Menu.screen == "highscores",
+        "read-only persistence does not disable ordinary menu choices")
+end)
+withMock({schemaVersion=1, preferences={version=1, kart="steam_tank"}}, function(env, UI, Menu)
+    assert(Menu.prefsWritable, "fixture initially permits preference writes")
+    local future = {version=777, kart="steam_tank", newShape={keep="exact"}}
+    local shape = future.newShape
+    AzerothKartDB.preferences = future
+    UI.Toggle(); click(Menu.view.homeButtons[5])
+    Menu.SetScale(1.1); click(Menu.view.effects); click(Menu.view.sound); click(Menu.view.devInfo)
+    click(find(env, Menu.screens.settings, "Back")); click(Menu.view.homeButtons[3])
+    click(Menu.view.kartButtons.gyrocopter)
+    assert(AzerothKartDB.preferences == future and future.version == 777 and future.kart == "steam_tank" and
+        future.newShape == shape and shape.keep == "exact" and future.scale == nil and future.effects == nil,
+        "each save rechecks a future preference child installed after menu creation")
+end)
+withMock({schemaVersion=1, preferences={version=1, sound=true, futureField="keep"}}, function(env, UI, Menu)
+    local preferences = AzerothKartDB.preferences
+    AzerothKartDB.schemaVersion = 777
+    UI.Toggle(); click(Menu.view.homeButtons[5]); click(Menu.view.sound)
+    assert(AzerothKartDB.schemaVersion == 777 and AzerothKartDB.preferences == preferences and
+        preferences.sound and preferences.futureField == "keep", "each save also rechecks the current root version")
+end)
 withMock({schemaVersion=1, preferences={version=2, track="mirage_raceway", kart="gyrocopter",
     newShape={owner="future", keep=true}}}, function(env, UI, Menu, AK)
     local record = AzerothKartDB.preferences
@@ -978,5 +1103,5 @@ withMock(nil, function(env, UI, Menu)
         "the Game Menu button template is optional")
 end, function(env) env.refuseTemplate = "MainMenuFrameButtonTemplate" end)
 
-print("mock menus: 7 screens, single-player flow, results paths, garage, settings, saved choices, " ..
+print("mock menus: 8 screens, single-player flow, saved highscore pages, results paths, garage, settings, saved choices, " ..
     "explicit experimental lobby actions and fallbacks (client appearance still pending)")

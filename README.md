@@ -21,6 +21,13 @@
 
 **First production map:** Mirage Raceway on the dry Shimmering Flats. Its selectable blockout uses one original precomposed salt-flat background, painted as [scenery v1](docs/art/mirage-background.md) with both engineering camps, and a closer north-up camera that follows the kart, drawn by default as the [Goblin Mortar Trike](docs/art/karts/goblin-mortar-trike.md) rendered from a Warcraft III model by erwtenpeller and Chriz. While stopped, a Kart button also offers a Steam Tank, Dwarven Biker, Gryphon Rider and Gyrocopter rendered from Warcraft III models of the wc3c ITE project, and the original drag car ([roster](docs/art/karts/roster.md)). The [map/vehicle brief](docs/art/MIRAGE_RACEWAY.md), [asset-source shortlist](docs/art/ASSET_SOURCES.md) and [concept board](docs/art/concepts/mirage-raceway-direction-v1.png) record the intended Warcraft III-like machines and scenery. Props, further effects and the remaining karts follow separately; the [layout guide](docs/art/mirage-layout.svg) shows the whole road, gates and spawn for authoring.
 
+**Current single-player slice:** completed solo races save the full three-lap
+total, full Forever name and finish date in **Main Menu → Highscores**, keeping
+each player's best compatible total. This is a local saved board; global
+publication is pending a supported shared route. Source is offline-tested;
+new native name/date/persistence and appearance checks are NOT RUN. See
+[Highscores and the global dependency](docs/HIGHSCORES.md).
+
 ## Start here (for a human)
 1. Read `docs/VISION.md`, `docs/FEASIBILITY.md` and `docs/ROADMAP.md`.
 2. Open this folder as the Codex workspace. Paste `PROMPT_01_MASTER.md` into Codex. Keep `AGENTS.md` in the repository root.

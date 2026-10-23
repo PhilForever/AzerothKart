@@ -1261,6 +1261,7 @@ pollLive = function()
             UI.laps=Laps.new(Track,Checkpoints,0)
             UI.checkpoints=UI.laps.checkpoints
             UI.race,UI.clock=nil,nil
+            UI.soloRun,UI.scoreResult=nil,nil
             UI.result,UI.summaryRace,UI.dismissedSummaryRace=nil,nil,nil
             UI.summary:Hide()
             resetEffects()
@@ -1344,6 +1345,8 @@ function UI.Start()
     UI.gridStaged,UI.gridView,UI.remotePath,UI.remotePathAt=false,nil,nil,nil
     UI.state = Physics.new(Track)
     UI.race = Race.new(Track,Checkpoints,Laps,UI.state.tick)
+    UI.soloRun = AK.SoloRecords.Begin(Track, UI.kartId)
+    UI.scoreResult = nil
     UI.laps = UI.race.laps
     UI.checkpoints = UI.laps.checkpoints
     UI.previousState = UI.state
@@ -1405,9 +1408,22 @@ function UI.OnUpdate(elapsed)
         applyLiveView(live)
         steps=UI.state.tick-previousTick
         if live.phase~="running" then finishLive(live.reason or "Local finish — waiting for friend"); return end
-    else steps = Loop.advance(UI.clock,elapsed,step) end
+    else
+        local droppedBefore = UI.clock.droppedSeconds
+        steps = Loop.advance(UI.clock,elapsed,step)
+        -- Post-finish remainder is deliberately discarded by Loop and is not
+        -- racing time. Only lost ticks while still running invalidate a score.
+        if UI.soloRun and UI.race.status == "running"
+            and UI.clock.droppedSeconds - droppedBefore > Physics.FIXED_DT * 0.5 then
+            UI.soloRun.timingLost = true
+        end
+    end
     local afterSimulation = p and readPerformanceClock(UI.performanceReader)
     if UI.race.status == "finished" then
+        UI.active = false -- prevent native-hook reentry from advancing a finished kart
+        local ok, score = pcall(AK.SoloRecords.Finish, UI.soloRun, UI.race,
+            UI.multiplayer or UI.liveActive or UI.liveSession or UI.gridStaged)
+        UI.scoreResult = ok and score or {message="Score unavailable; run finished normally"}
         UI.result = {status="finished",reason=UI.race.reason,tick=UI.state.tick,
             totalTicks=UI.race.totalTicks,completedLaps=UI.laps.completedLaps}
         UI.Stop(UI.result.reason)

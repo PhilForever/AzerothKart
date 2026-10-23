@@ -17,9 +17,13 @@ if #failures > 0 then AK.eventFailures = table.concat(failures,",") end
 eventFrame:SetScript("OnEvent",function(_,event,...)
     local arg1 = ...
     if event == "ADDON_LOADED" and arg1 == addonName then
-        -- Preserve unknown fields/schema versions; this M0 probe only initializes v1.
-        if type(AzerothKartDB) ~= "table" then AzerothKartDB = {} end
-        if AzerothKartDB.schemaVersion == nil then AzerothKartDB.schemaVersion = 1 end
+        -- Initialize absent data/version markers. Malformed/future saves stay available
+        -- for recovery; neither preferences nor highscores may reset them.
+        if AzerothKartDB == nil then AzerothKartDB = {} end
+        if type(AzerothKartDB) == "table" and AzerothKartDB.schemaVersion == nil then
+            AzerothKartDB.schemaVersion = 1
+        end
+        AK.SoloRecords.Init()
         AK.UI.Create()
         if AK.Menu and type(AK.Menu.SetSessionBridge)=="function" then
             AK.Menu.SetSessionBridge({view=AK.SessionTransport.GetView,

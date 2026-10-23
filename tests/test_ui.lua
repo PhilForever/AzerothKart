@@ -6,7 +6,7 @@ local globalNames = {
     "GetCurrentKeyBoardFocus", "IsGameWindowFocused", "GetBuildInfo",
     "GetFramerate", "GetTime", "debugprofilestop", "DEFAULT_CHAT_FRAME", "C_AddOns",
     "SlashCmdList", "SLASH_AZEROTHKART1", "SLASH_AZEROTHKART2",
-    "AzerothKart", "AzerothKartDB", "print",
+    "AzerothKart", "AzerothKartDB", "print", "NameUtil", "UnitNameUnmodified", "Constants", "GetServerTime", "date", "issecretvalue",
 }
 
 local function withMock(savedDB, initialCombat, test, unsupportedEvent, snappingMode)
@@ -167,6 +167,14 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     _G.C_AddOns=nil
     _G.AzerothKart=nil
     _G.AzerothKartDB=savedDB
+    _G.NameUtil={GetUnmodifiedUnitFullName=function()
+        env.nameReads=(env.nameReads or 0)+1; return "Lene Conradi"
+    end}
+    _G.UnitNameUnmodified=nil
+    _G.Constants=nil
+    _G.GetServerTime=function() env.dateReads=(env.dateReads or 0)+1; return 1792756800 end
+    _G.date=function() return "2026-10-23" end
+    _G.issecretvalue=nil
 
     function env.fire(event, arg1)
         for _,frame in ipairs(env.frames) do
@@ -181,7 +189,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     end
     local ok, err=pcall(function()
         local namespace={}
-        for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Courses", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "UI", "Menu", "RaceProtocol", "PeerSession", "ClockProtocol", "StartClock", "RaceStart", "LiveProtocol", "LiveRace", "RaceGrid", "NetworkProbe", "TransportProbe", "SessionTransport", "Core"}) do
+        for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Courses", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "Highscores", "SoloRecords", "UI", "Menu", "RaceProtocol", "PeerSession", "ClockProtocol", "StartClock", "RaceStart", "LiveProtocol", "LiveRace", "RaceGrid", "NetworkProbe", "TransportProbe", "SessionTransport", "Core"}) do
             assert(loadfile("addon/AzerothKart/"..name..".lua"))("AzerothKart",namespace)
         end
         env.namespace=namespace
@@ -273,7 +281,7 @@ local EFFECT_TEXTURES=20+14+2*2
 -- results buttons once with the window; it replaced the old title line. The
 -- track list holds eight buttons (five tracks, three coming-soon cities) under
 -- two cup headings.
-local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=68,9,68   -- ten kart buttons since the four Warcraft III vehicles
+local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=74,9,120 -- ten pooled score rows and bounded navigation/result notice
 -- City circuits have up to eight gates: the gate pool holds eight strips
 -- (the oval's four plus four kept hidden on the oval and Mirage Raceway).
 local GATE_STRIPS=8
@@ -1270,6 +1278,13 @@ withMock(nil,false,function(env,UI)
             "a faster second lap replaces the best and a tied third keeps lap two")
     end
     local race,result,clock,pose=UI.race,UI.result,UI.clock,UI.state
+    local records=env.namespace.SoloRecords
+    local savedScores,finishedRun=AzerothKartDB.highscores,UI.soloRun
+    local score=records.GetView("test_oval").rows[1]
+    assert(UI.scoreResult.saved and UI.soloRun.attempted and score.totalTicks==14 and
+        score.playerName=="Lene Conradi" and score.finishedAt==1792756800 and
+        env.nameReads==1 and env.dateReads==1,
+        "one solo total/name/date saved at the actual finish, excluding post-finish remainder")
     assert(not UI.active and race.status=="finished" and race.finishTick==countdownTicks+14 and
            race.totalTicks==14 and race.laps.completedLaps==3 and
            race.laps.lastLapTicks==4 and pose.tick==countdownTicks+14,
@@ -1292,7 +1307,7 @@ withMock(nil,false,function(env,UI)
     assert(UI.checkpointHud.text:find("Checkpoints: 3-lap run complete",1,true),
         "terminal checkpoint HUD explains completion instead of requesting another circuit")
     assert(UI.summary:IsShown() and UI.summary.parent==UI.canvas and
-           UI.summary.width==460 and UI.summary.height==312 and
+           UI.summary.width==460 and UI.summary.height==336 and
            UI.summaryTitle.text=="RUN COMPLETE",
         "finished run displays its preallocated summary panel")
     assert(UI.summaryDetail.text:find("3/3",1,true) and
@@ -1307,6 +1322,8 @@ withMock(nil,false,function(env,UI)
     local output=#env.output
     local finishReason,finishHud,finishDetail=UI.stopReason,UI.hud.text,UI.summaryDetail.text
     UI.OnUpdate(1); UI.Stop("later ordinary stop"); UI.Toggle(); UI.Toggle()
+    assert(AzerothKartDB.highscores==savedScores and env.nameReads==1 and env.dateReads==1,
+        "Stop/close/reopen/inactive callbacks do not resubmit a completed score")
     assert(UI.race==race and UI.result==result and UI.clock==clock and UI.state==pose and
            UI.state.tick==countdownTicks+14 and UI.stopReason==finishReason and UI.hud.text==finishHud and
            UI.summaryDetail.text==finishDetail and UI.summary:IsShown() and
@@ -1332,6 +1349,8 @@ withMock(nil,false,function(env,UI)
         "refused text-focus Start preserves the same completed summary")
     env.focus=nil
     UI.restartButton.scripts.OnClick(UI.restartButton)
+    assert(UI.soloRun~=finishedRun and not UI.soloRun.attempted and UI.scoreResult==nil,
+        "accepted Restart creates a fresh capture and clears its saved notice")
     assert(UI.active and UI.race~=race and UI.race.status=="countdown" and
            UI.result==nil and UI.state.tick==0 and UI.clock~=clock and
            UI.laps==UI.race.laps and UI.laps.completedLaps==0 and
@@ -1369,6 +1388,8 @@ withMock(nil,false,function(env,UI)
            UI.laps.bestLapNumber==nil and UI.lapHud.text:find("Best: --",1,true),
         "explicit Restart clears the interrupted best-lap record")
     UI.Stop("finish/best-lap fixture done")
+    assert(AzerothKartDB.highscores==savedScores and env.nameReads==1 and env.dateReads==1,
+        "partial Stop/combat/rejected Starts never overwrite the completed personal best")
     for key,value in pairs(counts) do
         assert(env.counts[key]==value,"finish/restart/partial flow allocated UI objects: "..key)
     end
@@ -2262,7 +2283,12 @@ for _,fixture in ipairs({
     local originalSchema=type(fixture.value)=="table" and fixture.value.schemaVersion or nil
     withMock(fixture.value, false, function(env)
         env.fire("ADDON_LOADED","AzerothKart")
-        assert(type(AzerothKartDB)=="table","non-table save receives minimal table")
+        if type(fixture.value)~="table" then
+            assert(AzerothKartDB==fixture.value,"malformed root save is preserved for recovery")
+            assert(not env.namespace.SoloRecords.GetView("test_oval").writable,"malformed root makes scores read-only")
+            return
+        end
+        assert(type(AzerothKartDB)=="table","table save remains a table")
         local expected=originalSchema
         if expected==nil then expected=1 end
         local actual=AzerothKartDB.schemaVersion
@@ -3158,6 +3184,42 @@ for _,mode in ipairs({"false","throws"}) do
         UI.OnUpdate(0); UI.OnUpdate(0)
         assert(loads(env,sprite.path)==tried,"refused peer image is not retried every frame")
         UI.Stop("peer art test")
+    end)
+end
+
+for _,scenario in ipairs({"hitch", "save_error", "reentrant_save"}) do
+    withMock(nil,false,function(env,UI)
+        env.fire("ADDON_LOADED","AzerothKart")
+        UI.Toggle(); UI.Start(); finishCountdown(UI)
+        local ns,dt=env.namespace,env.namespace.Physics.FIXED_DT
+        if scenario=="hitch" then
+            UI.OnUpdate(0.5)
+            assert(UI.soloRun.timingLost and UI.race.status=="running", "nonterminal dropped time disqualifies the score")
+        elseif scenario=="save_error" then
+            ns.SoloRecords.Finish=function() error("save failed") end
+        else
+            local original=_G.GetServerTime
+            _G.GetServerTime=function()
+                local tick=UI.state.tick
+                UI.OnUpdate(dt)
+                assert(UI.state.tick==tick and not UI.active, "native callback cannot advance a finished kart")
+                return original()
+            end
+        end
+        for lap=1,3 do
+            for _,gate in ipairs(ns.Track.gates) do
+                UI.state.x=(gate.ax+gate.bx)/2-gate.nx
+                UI.state.y=(gate.ay+gate.by)/2-gate.ny
+                UI.state.heading=gate.nx==1 and 0 or gate.nx==-1 and math.pi or
+                    gate.ny==1 and math.pi/2 or -math.pi/2
+                UI.state.speed=200; UI.state.steering=0
+                UI.OnUpdate(dt)
+            end
+        end
+        assert(not UI.active and UI.race.status=="finished" and UI.summary:IsShown()
+            and UI.window.keyboard==false and UI.window.propagate, "score problems must not wedge finish or controls")
+        if scenario=="reentrant_save" then assert(UI.scoreResult.saved and AzerothKartDB.highscores)
+        else assert(not UI.scoreResult.saved and AzerothKartDB.highscores==nil) end
     end)
 end
 

@@ -1,5 +1,10 @@
 # Documentation index / reading order
 
+**Current single-player work:** [saved solo totals and Highscores](HIGHSCORES.md),
+[updated priority/global publication gate, ADR 0016](adr/0016-solo-records-and-global-score-gate.md).
+Local records are implemented/offline-tested; actual-client persistence and a
+supported global distribution/persistence route remain open.
+
 **Latest multiplayer follow-up:** [first owner race evidence](evidence/2026-10-23-first-live-race.md), [updated two-player steps](MULTIPLAYER_PLAYTEST.md), and [grid/profile/display contract](API_CONTRACTS.md). Revised native behavior remains pending; current source/deployment is in PROGRESS.
 
 **First:** `VISION.md` → `GAME_DESIGN.md` → `FEASIBILITY.md` → `ARCHITECTURE.md` → `ROADMAP.md` → `PROGRESS.md`.

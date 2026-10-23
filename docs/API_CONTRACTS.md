@@ -1,5 +1,42 @@
 # Implemented simulation and rendering contracts
 
+## Implemented solo finish records — 2026-10-23
+
+`Highscores` is pure and owns no simulation/UI/transport state. `Load(raw)`
+returns a detached valid store, writable flag and optional reason; absent data
+starts version1, malformed/future data returns its original identity read-only.
+`BoardKey(context)` uses `trackId:trackVersion:physicsVersion:lapCount:tickRate:rulesVersion`.
+`Submit(store,record)` returns a new store/change flag/reason; `View(store,context)`
+returns detached sorted rows. Both store and view inputs remain untouched.
+Compatibility fields plus `playerName,totalTicks,finishedAt,kartId` form a row.
+Maximum32boards/50bestplayers perboard; equal/slower totals preserve existingdate.
+Unknown v1 fields refuse writes rather than being discarded. See
+[full persistence/publication contract](HIGHSCORES.md).
+
+`SoloRecords` is the native adapter. Core calls `Init()` after root initialization.
+Only successful solo `UI.Start` calls `Begin(track,kartId)`; only its actual solo
+finish transition calls `Finish(token,race,multiplayer)`. The token latches the
+attempt before native calls. UI freezes active simulation before calling out,
+protects the callback with pcall, and still performs ordinary result/input
+cleanup after a saving error. Nonterminal running-time drops set the token's
+timingLost flag; post-finish Loop remainder does not. No changes to Physics,
+Race, Laps, Loop, authoritative geometry or multiplayer transport were made.
+
+Rendering uses `SoloRecords.GetView(trackId)` (copied rows/context, scope=`local`,
+publication=`Global publishing pending`, writable/problem), `FormatTime(ticks)`
+and `FormatDate(epoch)`. Result presentation consumes `UI.scoreResult.message`;
+it never saves a score. The eight-screen Menu adds reachable Highscores,
+ten preallocated rows, track browsing and paging. Track browsing does not call
+UI.SelectTrack or alter race state. Store/date reads happen only at finish or
+explicit board actions, not every OnUpdate. Resultsheight336. New explicit
+pool85/166/133 (frames/textures/fonts), replacing79/166/81 for this branch.
+Native layout/performance/persistence remain NOT RUN.
+
+Global publication/service/discovery is **not implemented**; no score packets
+or new transport hooks exist. This local board must not be described as global,
+complete, server-verified or cheat-proof. Immediate priority follows
+[ADR0016](adr/0016-solo-records-and-global-score-gate.md).
+
 **Checkpoint:** 2026-10-22, `codex/ui-backend-integration`: merge `6cd611a` combines reviewed Claude UI `1b2d3d5` with Codex backend `192c6de`; `9b22f12` applies Claude's isolated preference fix `4ffe184` without its city-track dependencies. Subsequent city merge f9f2af0 now preserves Claude capital-cup78d97a1 and those modules; the reviewed loader repair stages new backgrounds before changing the visible picture. The combined source retains the reviewed six-kart rendering, Forever transport correction, session adapter and start-clock foundation. Physics compatibility is **10** after requested wall-penalty tuning (high-speed drift retained). This describes the local solo prototype, measured transport experiment and offline control foundation; it does not claim a released engine or playable multiplayer. See [PROGRESS](PROGRESS.md) and [the latest handoff](handoffs/codex-latest.md).
 
 **Current multiplayer checkpoint, 2026-10-23:** the owner reports a completed two-client drive on `c581a52`, with GO-only startup, square peer markers and lag/clipping. The current `codex/multiplayer-grid` source adds profile agreement, a visible shared grid/countdown, selected peer art and time-aware bounded display prediction. These new changes are **NOT RUN in Forever**. Earlier unwired/Coming soon descriptions below are historical where superseded by the implemented contracts here; no production capacity, kart contact or agreed results are established.
@@ -16,7 +53,7 @@ The interfaces below exist in source today. `Renderer`, `GameSession`, collision
 
 ## Modules and data access
 
-The two TOCs load `Track`, `MirageRaceway`, `Circuit`, `CapitalCities`, `Courses`, `Physics`, `Input`, `Loop`, `Performance`, `Presentation`, `Checkpoints`, `Laps`, `Race`, `UI`, `Menu`, `RaceProtocol`, `PeerSession`, `ClockProtocol`, `StartClock`, `RaceStart`, `LiveProtocol`, `LiveRace`, `RaceGrid`, `NetworkProbe`, `TransportProbe`, `SessionTransport`, `Core` in that order. The integrated front end loads `Menu` right after `UI`, for 27 modules in each TOC ([below](#implemented-front-end-menus-race-hud-and-results)). Pure modules receive `local _, namespace = ...`, optionally register their module on that explicit table, and return it for offline loading. They do not access WoW globals. Core exports the same namespace as `_G.AzerothKart` for diagnostics.
+The two TOCs load `Track`, `MirageRaceway`, `Circuit`, `CapitalCities`, `Courses`, `Physics`, `Input`, `Loop`, `Performance`, `Presentation`, `Checkpoints`, `Laps`, `Race`, `Highscores`, `SoloRecords`, `UI`, `Menu`, `RaceProtocol`, `PeerSession`, `ClockProtocol`, `StartClock`, `RaceStart`, `LiveProtocol`, `LiveRace`, `RaceGrid`, `NetworkProbe`, `TransportProbe`, `SessionTransport`, `Core` in that order, for 29 modules in each TOC. `Highscores` is pure; `SoloRecords` reads native identity/time and writes only its SavedVariables child. Other pure modules receive `local _, namespace = ...`, optionally register their module on that explicit table, and return it for offline loading. They do not access WoW globals. Core exports the same namespace as `_G.AzerothKart` for diagnostics.
 
 The current render path reads `AK.UI.state`, `.previousState`, `.race`, `.laps`, `.checkpoints`, `.track`, `.trackId`, `.clock` and `.active`. These are mutable Lua tables exposed for integration/diagnostics, **not enforced read-only objects or security boundaries**. Treat them as borrowed read-only references in rendering: do not add, remove or alter authoritative fields, normalize headings in place, alter input, call a simulation step, or assign interpolated/camera coordinates back to them.
 

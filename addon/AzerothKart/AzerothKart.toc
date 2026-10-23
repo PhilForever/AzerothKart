@@ -18,6 +18,8 @@ Presentation.lua
 Checkpoints.lua
 Laps.lua
 Race.lua
+Highscores.lua
+SoloRecords.lua
 UI.lua
 Menu.lua
 RaceProtocol.lua
