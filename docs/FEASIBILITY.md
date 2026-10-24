@@ -1,5 +1,13 @@
 # M0–M2 feasibility — evidence gates
 
+**Score-prefix control, 2026-10-24 20:18+02:00:** owner supplied an actual
+AZKSCP1 logged WHISPER event at the score receiver: WHISPER/localID0/
+nameunavailable/rejected=event_fields. Expected route guard; no score accepted.
+At least one new-prefix event received; repeated sender calls have no reconciled
+receipt count/latency. [Evidence and server handoff](evidence/2026-10-24-score-prefix-whisper-control.md).
+Stop repeating both successful whisper controls. CHANNEL/global publication
+remain unverified; next is actual server membership/prefix/fanout inspection.
+
 **AKW001 positive control, 2026-10-24:** owner supplied both native endpoints:
 4attempted/4accepted DATA,4unique receipts,4accepted/matched ACKs, no reported
 error/throttle/timeout/reject/duplicate/reorder/outstanding. Sender's planned5
@@ -13,8 +21,9 @@ private AnoCore reports on client70532 show3accepted sends each and no peer
 receipt/reply or matching-event metadata. Reciprocal gate NOT MET; delivery,
 loss and public-server support cannot be inferred. Static receiver review found
 no clear filter/bootstrap defect. [Full evidence and the short private-server
-WHISPER control](evidence/2026-10-24-score-channel-no-receipts.md). That control
-is NOT RUN. Global publishing remains disabled; no rate increase or fallback.
+WHISPER control](evidence/2026-10-24-score-channel-no-receipts.md). The later
+controls are recorded above. Global publishing remains disabled; no rate
+increase or fallback.
 
 **Front end, 2026-10-21 (Claude, proposed on `claude/ui-flow`; no client evidence):** the window opens on a main menu, and the first run of a session starts from **Single Player → Race!**. The bar's Start Test Drive button now reads **Start Race**, and Print Probe shows only with Settings → Show developer info; `/akart probe` is unchanged. Procedures below that name Start Test Drive use Start Race or Race!. Explicit counts become 65 frames/160 textures/79 font strings. Its client appearance, fonts and sounds are **NOT RUN** ([client check](art/ui/front-end.md#client-check-not-run)).
 

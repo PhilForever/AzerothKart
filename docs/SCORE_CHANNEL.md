@@ -9,12 +9,20 @@ global publication. Public Forever behavior cannot be inferred from a private
 server. The owner reports the public beta is closed until November 4; this is
 owner-provided scheduling context, not independently verified service status.
 
+**Newest evidence, 20:18+02:00:** an AZKSCP1 logged WHISPER is now observed at
+the actual score receiver. `event route=WHISPER` with `rejected=event_fields`
+is the expected control result, not a receiver bug. The private CHANNEL gate
+remains unmet. [Observed values and server integration handoff](evidence/2026-10-24-score-prefix-whisper-control.md).
+Stop repeating friend controls; inspect actual channel membership, server-side
+recipient prefix registration and channel forwarding next.
+
 Latest control: [AKW001](evidence/2026-10-24-akw001-private-whisper-control.md)
 successfully delivered/acknowledged all4attempted logged WHISPER messages on
 the private server. One planned slot was never attempted, not network loss.
 Owner reports both characters are Horde; a local prefix readback returnedtrue,
-but no channel roster appeared. The remaining uncertainty is the new prefix/
-channel path, not general addon delivery. Do not rerun the successful control.
+but no channel roster appeared. General delivery and the new prefix's client
+receive path now have positive controls; server channel membership/registration/
+fanout remain unverified. Do not rerun the successful controls.
 
 ## Route and evidence
 
@@ -130,9 +138,8 @@ route, with self-reported scores and an explicitly incomplete community cache.
 If the native route is refused or peers cannot receive, keep publishing off
 and review the evidence before selecting an alternative service.
 
-**After the reported no-receipt window:** AKW001 is now an executed positive
-control; keep its reports and do not repeat it. Before further channel trials,
-isolate the new prefix with one directed logged-WHISPER observation while the
-score check is listening. See the [recorded control and exact remaining scope](evidence/2026-10-24-akw001-private-whisper-control.md).
-No new download, unlogged fallback, rate increase or server change is required.
-The new-prefix control is **NOT RUN**; publication remains off.
+**After the reported no-receipt window:** both whisper controls are executed
+positives at their stated scope. Preserve their reports; do not repeat them,
+relax receiver checks or increase the rate. Next is the [server integration
+inspection](evidence/2026-10-24-score-prefix-whisper-control.md). Publication
+remains off pending verified shared delivery.

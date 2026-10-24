@@ -1,5 +1,27 @@
 # Codex handoff — approved Claude visuals and combined score-channel package
 
+Latest reservation/evidence, 2026-10-24 20:18+02:00: continue clean
+`codex/whisper-control-evidence` fromd918b49. Owner supplied the new-prefix
+control: recipient metadata **event route=WHISPER/localID0/nameunavailable/
+rejected=event_fields**, while CHANNEL peer counters stay0. Sender has several
+`AK control true0` lines, so do not claim an exact one-packet or loss result.
+At least one AZKSCP1 logged WHISPER reached the actual score receiver; rejection
+as a channel message is intentional. This control PASSES at that limited scope.
+Reserved: new evidence/server-integration handoff, SCORE_CHANNEL, FEASIBILITY,
+PROGRESS, prior AKW001 note status and this handoff. No runtime/server changes,
+traffic, more friend tests, publish or install. Global channel gate remains open.
+
+Next exact task: review the private server's named-channel membership,
+incoming channel target mapping and recipient-prefix registration/fanout path.
+Only server binaries/template are available locally; actual AnoCore handler
+source/effective runtime state remain unavailable. Prepare an actionable
+read-only server handoff, not a speculative addon fix. Upstream comparison is
+not proof of AnoCore behavior. Do not repeat either successful whisper control,
+relax filters, raise rate or enable score sharing. Public Forever scope is
+separate and needs its own bounded check when available.
+
+## Earlier whisper-control checkpoint
+
 Latest checkpoint, 2026-10-24: AKW001 **positive control PASS**. Owner's two
 private-server reports reconcile4attempted/accepted DATA,4unique listener
 receipts/accepted ACKs,4matched sender ACKs; zero reported errors/throttles/

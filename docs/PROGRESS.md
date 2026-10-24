@@ -1,5 +1,34 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-24 20:18 +02:00 — score prefix reached receiver; channel integration remains blocked
+
+Owner supplied both control screenshots. Recipient completed its score window:
+CHANNEL_LOGGED,3sends/accepted3,channel6/native0/build70532,membership_preserved,
+selfEcho0/peerHello0/peerACK0. Crucially, matching-prefix incoming metadata now
+shows **WHISPER/localID0/nameunavailable/rejected=event_fields**. This is an
+expected non-CHANNEL rejection after receipt, not a bug. At least one AZKSCP1
+event reached the actual receiver; local prefix/event/Core forwarding works on
+that recipient. Sender shows several accepted manual invocations; no received
+count/sequence/RTT/reverse-new-prefix evidence, so no complete-delivery claim.
+[Evidence and actionable server handoff](evidence/2026-10-24-score-prefix-whisper-control.md).
+
+Continued clean `codex/whisper-control-evidence` fromd918b49. Reserved new
+evidence, prior AKW001 note status, SCORE_CHANNEL/FEASIBILITY/PROGRESS/handoff
+only. No runtime, server/config/GM, packet-budget, other-worktree or installed
+file change; no new native traffic/computer input/suite rerun by Codex. The
+positive is owner-executed. Documentation diff/link checks only; two historical
+expired skill links remain the known structural-validator failures. No push,
+install, release or milestone completion.
+
+Both whisper controls are now narrow positives; do not repeat them or relax
+the score receiver. Shared membership, server recipient-prefix state, channel
+target mapping/fanout and public Forever scope remain unverified. Actual
+AnoCore handler source/effective runtime state were unavailable; upstream
+TrinityCore's recipient-prefix filter is a comparison, not a verified cause.
+Global publishing remains disabled. Next exact task: inspect those server-side
+paths using actual source/observability, then retest only after an identified
+fix or when the public Forever route is available. Stop repeated friend trials.
+
 ## 2026-10-24 — AKW001 private whisper control passed; global channel still gated
 
 Owner supplied both private-server native reports. Sender4DATAcalls/accepted4,

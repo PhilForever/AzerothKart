@@ -75,5 +75,6 @@ sends one plain ASCII logged WHISPER to that character under **AZKSCP1**. The
 existing score receiver records matching-prefix event metadata before rejecting
 the WHISPER route for score purposes. A report with `event route=WHISPER` would
 establish that new prefix/native receive path without changing filters or
-publishing any score. This specific control is **NOT RUN**. Channel fanout,
+publishing any score. **Subsequently executed:** the [new owner report](2026-10-24-score-prefix-whisper-control.md)
+shows `event route=WHISPER`, confirming that narrow receive path. Channel fanout,
 server prefix state, shared membership and public Forever behavior stay open.
