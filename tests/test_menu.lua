@@ -254,8 +254,9 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu)
     -- Ten kart buttons; the lobby adds two EditBoxes and Listen/track buttons.
     -- The observational remote kart adds one texture and one font string.
     -- Saved highscores add six frames and 52 labels, including the results notice.
-    assert(UI.objects.frames == 85 and UI.objects.textures == 166 and UI.objects.fontStrings == 133,
-        ("explicit budget 85/166/133, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
+    -- The player's kart outline adds a texture, its Settings check a button and two labels.
+    assert(UI.objects.frames == 86 and UI.objects.textures == 167 and UI.objects.fontStrings == 135,
+        ("explicit budget 86/167/135, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
             UI.objects.fontStrings))
     assert(AzerothKartDB.preferences == nil, "creation saves nothing")
     local before = counts(env)
@@ -496,6 +497,13 @@ withMock({schemaVersion=1}, function(env, UI, Menu)
     assert(UI.effectsOff and AzerothKartDB.preferences.effects == false, "effects can be switched off")
     click(Menu.view.devInfo)
     assert(AzerothKartDB.preferences.devInfo == true and UI.hud:IsShown(), "developer info shows the timing line")
+    assert(not Menu.view.outline:GetChecked() and AzerothKartDB.preferences.outline == nil and
+           not UI.kartOutline:IsShown(), "the kart outline starts off")
+    click(Menu.view.outline)
+    assert(AzerothKartDB.preferences.outline == true and UI.outlineOn and UI.kartOutline:IsShown() and
+           Menu.view.outline:GetChecked() == true, "the kart outline switches on, shows and is remembered")
+    assert(Menu.readPreferences({preferences={outline=true}}).outline == true and
+           Menu.readPreferences({preferences={outline="yes"}}).outline == nil, "a saved outline is read defensively")
     Menu.Show(nil)
     assert(UI.probeButton:IsShown(), "developer info shows Print Probe on the track view")
     click(Menu.view.mainMenu); click(Menu.view.homeButtons[1]); click(Menu.view.trackNext); click(Menu.view.race)
@@ -517,6 +525,14 @@ withMock({schemaVersion=1, preferences={version=1, track="mirage_raceway", kart=
     assert(UI.trackId == "mirage_raceway" and Menu.screen == "home", "the saved track returns on first open")
     Menu.Show(nil)
     assert(UI.probeButton:IsShown() and UI.hud:IsShown(), "developer info returns")
+end)
+
+-- A saved kart outline returns at load, drawn round the saved kart.
+withMock({schemaVersion=1, preferences={version=1, kart="goblin_drag_car", outline=true}}, function(env, UI, Menu)
+    local sprite = env.namespace.Presentation.KART_SPRITES.goblin_drag_car
+    assert(UI.kartId == "goblin_drag_car" and UI.outlineOn and Menu.prefs.outline == true and
+           UI.kartOutline:IsShown() and UI.kartOutline.texturePath == sprite.outline,
+        "the saved outline returns on the saved kart")
 end)
 
 -- A saved city follows the same deferred restore and explicit-selection path

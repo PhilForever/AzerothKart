@@ -2217,4 +2217,40 @@ UNDERCITY = {
     ],
 }
 
+# ---------------------------------------------------------------------------
+# Start-turn signs. The owner (2026-10-23): "On tracks that start outside of
+# the loop - add an arrow indicator for left or right outside the track (wc3
+# asset?) helping users take the correct turn at the start of a race."
+# Where each start spur joins its loop, Warcraft III's goblin racing arrow
+# post stands beyond the far wall, its board turned to the camera and its
+# red arrow pointing the race's way. A board standing up, seen by the karts'
+# north-looking camera, can point east, west or diagonally north, but not
+# straight north: each sign takes the nearest of those to the loop's way.
+ARROW_POST = "war3.w3mod:_de.w3mod:doodads/lordaeronsummer/props/goblinracingarrowpost/goblinracingarrowpost%d.mdx"
+# The two tall posts: the board faces the model's +x (south at yaw 270);
+# post 0's arrow points along the model's +y, post 2's along its -y.
+ARROW_WAYS = {"east": (0, 270), "north-east": (0, 315), "north-west": (2, 225), "west": (2, 270)}
+# The arrow's dark red paint brightened (only that saturated red: the wood
+# stays), so it reads on the board from the follow camera.
+ARROW_PAINT = [(330, 360, 0, 0.7, 1.1, 1.8), (0, 15, 0, 0.7, 1.1, 1.8)]
+
+
+def start_sign(city, x, y, way, scale=1.0, clearing=50):
+    """A goblin racing arrow post at world (x, y) pointing `way`, at four
+    times its Warcraft III scenery size so the arrow reads in the follow
+    camera. The ground within `clearing` units of it (an octagon) is kept
+    free of generated buildings, trees and trim, so nothing hides it."""
+    post, yaw = ARROW_WAYS[way]
+    city["props"].append(prop(ARROW_POST % post, x, y, yaw=yaw, scale=scale, recolor=ARROW_PAINT))
+    r, h = clearing, round(clearing * 0.4142, 1)
+    city.setdefault("reserved", []).append([(x + r, y - h), (x + r, y + h), (x + h, y + r), (x - h, y + r),
+                                            (x - r, y + h), (x - r, y - h), (x - h, y - r), (x + h, y - r)])
+
+
+# Each stands beyond the wall, facing a driver who has just left the grid.
+start_sign(STORMWIND, 1239.0, 798.0, "north-east")   # in the bend's corner: right, then north
+start_sign(IRONFORGE, 420.0, 682.0, "north-west")    # across the street: left, up the hall
+start_sign(ORGRIMMAR, 1047.0, 377.0, "north-east")   # on the island's tip: keep right
+start_sign(DARNASSUS, 1083.0, 1095.0, "north-west")  # straight ahead: right, then north
+
 CITIES = [STORMWIND, IRONFORGE, ORGRIMMAR, DARNASSUS, UNDERCITY]

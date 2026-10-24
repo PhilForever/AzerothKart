@@ -37,7 +37,7 @@ open window ─► Main menu ─► Single Player ─► Choose a Track ─► C
 | Garage | The same kart choice from the main menu, with **Done** instead of Race! |
 | Multiplayer | **COMING SOON**. Disabled **Host a Race** and **Join a Race**, a disabled lobby preview (you, an open slot, track, Ready/Start/Leave), and how to help with today's connection test (`/akart net help`) |
 | How to Play | The controls and the racing rules, plus the model credits |
-| Settings | Window size (80–125%; sizes that would not fit the screen are disabled), drift and boost effects, sound effects, developer info (the timing line and Print Probe), and reset window position. The window can be dragged by its title bar |
+| Settings | Window size (80–125%; sizes that would not fit the screen are disabled), drift and boost effects, **Outline my kart** (a bright yellow line round your own kart; [outlines](../karts/outlines.md), since 2026-10-23), sound effects, developer info (the timing line and Print Probe), and reset window position. The window can be dragged by its title bar |
 | Race | Big **LAP x/3** and the next gate at top left. The clock in tenths and the best lap at top right. "Controls active - Esc to release" at the bottom. A large gold 3-2-1-GO. **Stop** sits away from where Start was, so a double click cannot start and stop |
 | Results | A dark dialog with the result title, track and kart, total/last/best times and every lap time, the fastest in green. **Restart**, **Close results**, **Change Kart**, **Change Track** and **Main Menu** |
 | Track view (after Close results) | The frozen run and its HUD, with **Start Race**, **Track**, **Kart** and **Main Menu** on the bar |
@@ -87,6 +87,7 @@ python scripts/preview_ui.py              # this page's layout picture (needs pi
 | `kart` | a `Presentation.KART_SPRITES` id | none: the trike |
 | `effects`, `sound` | booleans | true |
 | `devInfo` | boolean | false |
+| `outline` | boolean (since 2026-10-23) | absent: off |
 | `scale` | 0.8, 0.9, 1, 1.1 or 1.25 | 1 |
 
 Rules:

@@ -80,7 +80,7 @@ To move or add scenery, edit `paint_scenery()`. The build refuses any placement 
 |---|---|---|---|---|
 | `addon/AzerothKart/Assets/Tracks/SaltFlats/Background.tga`, `docs/art/mirage-background-overview.png`, `docs/art/mirage-background-views.png` | Original procedural art by Claude for Azeroth Kart, painted by `scripts/build_mirage_background.py` | Project-authored; no third-party input | 2026-10-20 | Mirage runtime background (scenery v1) and its review images |
 
-Inputs are the Lua track geometry and the generator's own shapes, palette and integer noise. The views sheet also composites the project-authored Goblin Drag Car sprite. The [map brief](MIRAGE_RACEWAY.md) informed the composition: dry salt, a rocky mound by the northern bend, rival goblin and gnome camps, and wreckage and bones away from the lane.
+Inputs are the Lua track geometry and the generator's own shapes, palette and integer noise. The views sheet also composites the default kart's sheet (the project-authored Goblin Drag Car's sprite until 2026-10-23, when that kart was retired). The [map brief](MIRAGE_RACEWAY.md) informed the composition: dry salt, a rocky mound by the northern bend, rival goblin and gnome camps, and wreckage and bones away from the lane.
 
 No screenshot, concept-board crop, Blizzard or Warcraft III file, WC3Vault model, other third-party texture or model, or image-generation output is copied or traced. [ADR 0009](../adr/0009-warcraft-iii-asset-reuse.md) permits Warcraft III material, but this pass imported none, so it carries no third-party credit. Log any later import in [the source ledger](ASSET_SOURCES.md).
 

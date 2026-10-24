@@ -35,6 +35,7 @@ The city in Teldrassil's crown, in Warcraft III's Ashenvale and Ruins art: the W
 - **Water:** the Temple Gardens' lake and the gardens' pools, traced from the map's water, with pale quays.
 - **Districts:** Silvermoon's houses and small towers with their roofs made Darnassus violet, hunter's halls, bear dens, ancients, moon wells; Ashenvale trees and canopy trees; obelisks, Ruins pillars, sentinel statues, shrubs and flowers; archers and runners.
 - **Landmarks:** the Temple of the Moon (the altar of elders between two moon wells), the Tree of Eternity in the Cenarion Enclave, a hunter's hall and a hippogryph on the Warrior's Terrace, the Howling Oak.
+- **Start sign** (owner, 2026-10-23: "add an arrow indicator for left or right outside the track"): where the start road meets the loop, Warcraft III's goblin racing arrow post stands beyond the far wall, straight ahead of the Warrior's Terrace road, its red arrow pointing the race's way: north-west, right and then north. It is four times its Warcraft III scenery size and its arrow's paint is brightened, so it reads in the follow camera; no generated building or tree stands within 50 units of it. A board seen by the north-looking camera can point east, west or diagonally north, not straight north, so it takes the nearest of those to the loop's way. Scenery only: no collision ([the four signs in the follow camera](start-signs-review.png)).
 
 ## Files
 
@@ -54,6 +55,7 @@ Extract the earlier cities' files ([Stormwind](stormwind.md#rebuilding), [Ironfo
 ```
 python scripts/wc3casc.py %W3% models "^war3\.w3mod:(buildings/nightelf/[^/]+/[^/]+\.mdx|doodads/(ashenvale|ruins|silvermoon)/.*\.mdx|doodads/terrain/ashentree/ashentree[0-9]\.mdx|units/nightelf/[^/]+/[^/]+\.mdx)$" WC3
 python scripts/wc3casc.py %W3% extract "^war3\.w3mod:(terrainart/(ashenvale|ruins)/|replaceabletextures/(ashenvaletree|water)/|doodads/ashenvale/structures/worldtree/)" WC3
+python scripts/wc3casc.py %W3% models "^war3\.w3mod:_de\.w3mod:doodads/lordaeronsummer/props/goblinracingarrowpost/goblinracingarrowpost[02]\.mdx$" WC3
 python scripts/build_city_tracks.py --wc3 WC3 --preview --city darnassus_canopy
 python scripts/build_city_tracks.py --wc3 WC3 --check
 ```
