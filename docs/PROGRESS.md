@@ -1,5 +1,17 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-24 18:34 +02:00 (Europe/Oslo) — resume and finalize saved route checkpoint
+
+Confirmed clean `codex/score-channel-route` at implementation/evidence commit
+**317ace6**. The previous quota failure prevented only the final documentation
+reference update; the source, tests and native observations were already
+committed. Recorded that reference in the Codex handoff. Claude remains at
+`claude/podracer-arrows-outline`0afeedf with its existing untracked outputs;
+its checkout was not edited. No new runtime changes, test reruns, client input,
+installation, publishing or milestone acceptance. The executed results below
+remain the evidence. Next task remains reciprocal logged CHANNEL receipt with
+two consenting clients; the owner last reported none available.
+
 ## 2026-10-24 00:34 +02:00 (Europe/Oslo) — score-channel candidate; private native acceptance
 
 Owner explicitly requests establishing the shared publication route. Continued

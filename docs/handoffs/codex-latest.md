@@ -1,5 +1,11 @@
 # Codex handoff — dedicated score-channel route investigation
 
+Resumed 2026-10-24 18:34+02:00 after the approval-review quota interruption.
+Implementation/evidence commit **317ace6** is saved on
+`codex/score-channel-route`; the checkout was clean on resume. The following
+documentation commit records this reference only. No new client test or
+delivery claim; the owner's last availability answer remains no second client.
+
 Checkpoint saved 2026-10-24 00:34+02:00 at the owner's request: no second client
 is available. Own branch `codex/score-channel-route`, base30ab625. Implemented
 the finite source probe plus Core/TOC/module-list wiring, focused tests and
