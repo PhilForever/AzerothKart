@@ -1,5 +1,16 @@
 # Codex handoff — dedicated score-channel route investigation
 
+Active review/integration reservation, 2026-10-24: own
+`codex/podracer-score-review` from98b3ce2; review Claude
+`claude/podracer-arrows-outline`0afeedf and publish if approved, as requested.
+Prepare one combined source/test package for the requested second-client check.
+Reserve reviewed merge of Claude's exact files, additive test count resolution,
+ADR0009 review status, `docs/reviews/2026-10-24-podracer-score-integration.md`,
+SCORE_CHANNEL/INTEGRATION_STATUS/PROGRESS and this handoff. Preserve the Codex
+score store/probe, control/lifecycle, preference guards and both TOCs; preserve
+Claude's authored branch/commits/worktree/untracked outputs. No main merge,
+release or public score traffic. Native art/delivery remain pending.
+
 Resumed 2026-10-24 18:34+02:00 after the approval-review quota interruption.
 Implementation/evidence commit **317ace6** is saved on
 `codex/score-channel-route`; the checkout was clean on resume. The following
