@@ -1,5 +1,13 @@
 # M0–M2 feasibility — evidence gates
 
+**AKW001 positive control, 2026-10-24:** owner supplied both native endpoints:
+4attempted/4accepted DATA,4unique receipts,4accepted/matched ACKs, no reported
+error/throttle/timeout/reject/duplicate/reorder/outstanding. Sender's planned5
+includes one unattempted local slot. RTT n4/p50162ms/max292ms. General logged
+WHISPER is confirmed at this narrow scope on private AnoCore; no sustained/global
+gate is completed. Both factions reportedHorde; local AZKSCP1 prefix true but
+no roster output. [Evidence/limits and the remaining same-prefix control](evidence/2026-10-24-akw001-private-whisper-control.md).
+
 **Latest score-channel evidence, 2026-10-24 19:48+02:00:** two owner-supplied
 private AnoCore reports on client70532 show3accepted sends each and no peer
 receipt/reply or matching-event metadata. Reciprocal gate NOT MET; delivery,

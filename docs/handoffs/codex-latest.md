@@ -1,5 +1,34 @@
 # Codex handoff — approved Claude visuals and combined score-channel package
 
+Latest checkpoint, 2026-10-24: AKW001 **positive control PASS**. Owner's two
+private-server reports reconcile4attempted/accepted DATA,4unique listener
+receipts/accepted ACKs,4matched sender ACKs; zero reported errors/throttles/
+timeouts/rejects/duplicates/reordering/outstanding. Planned5/missedSlots1 at
+sender is one unattempted slot, not loss. RTTn4/p50162ms/max292ms. Two CSV rows
+and [evidence](../evidence/2026-10-24-akw001-private-whisper-control.md) preserve
+scope/unknowns. No general capacity or global channel/public-server gate passed.
+
+Owner reports both factionsHorde/Horde; one unsplit reply says AZKSCP1 local
+registrationtrue and no roster output. Shared membership/server prefix state
+remain unverified. UpstreamTrinityCore's channel send checks server-side prefix
+registration, unlike its whisper path; do not claim this is verified AnoCore
+implementation. New-prefix/channel distinction remains after AZKART1 succeeds.
+No runtime/codec/filter/server changes, traffic, suite reruns, push or install.
+
+Next task: existing ScoreProbe active on recipient, one plain ASCII logged
+WHISPER underAZKSCP1 from the other consenting client, inspect `event route`
+metadata. This is NOT RUN. No download or relaxed receiver filter. Do not repeat
+the successful AKW001 or raise rate. Global scores remain unpublished.
+
+## Evidence reservation
+
+Active evidence reservation, 2026-10-24: own `codex/whisper-control-evidence`
+from1e480db. Record owner's AKW001 positive control and both-Horde readback;
+reserve PROGRESS, SCORE_CHANNEL, FEASIBILITY, network-ledger.csv, new
+`docs/evidence/2026-10-24-akw001-private-whisper-control.md` and this handoff.
+No runtime/server/config/UI changes or new automated traffic. Investigate
+same-channel membership/native prefix registration before another packet test.
+
 2026-10-24 19:48+02:00 — newest evidence/reservation on
 `codex/score-channel-receipts`, base2ae3f7a. Owner supplied both native reports:
 check_complete, sent3/accepted3, selfEcho0/peerHello0/peerACK0 on both;

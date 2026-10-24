@@ -1,5 +1,39 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-24 — AKW001 private whisper control passed; global channel still gated
+
+Owner supplied both private-server native reports. Sender4DATAcalls/accepted4,
+listener4unique receipts/ACKcalls/accepted4, sender4matched ACKs. Bothwindow_complete;
+no reported reject/duplicate/reorder/throttle/error/timeout/late/outstanding.
+Planned5 includes sender missedSlots1, an unattempted opportunity rather than
+network loss. Payload64/prefix28bytes per endpoint. Sender RTTn4,p50162ms,
+p95/p99/max292ms; listener gapsn3,p501946ms,p95/p99/max2211ms. No exact sequence
+maps, build/interface or captureUTC supplied in these reports. Two ledger rows
+retain those unknowns. [Evidence and limits](evidence/2026-10-24-akw001-private-whisper-control.md).
+
+Own clean `codex/whisper-control-evidence` from1e480db, scope: new evidence,
+network ledger, SCORE_CHANNEL/FEASIBILITY/PROGRESS/Codex handoff. No runtime,
+packet budget, art, server/config or other-worktree changes. No repeated Lua
+tests or new native traffic by Codex; validation is documentary/CSV structural.
+Owner subsequently reports both characters' UnitFactionGroup returnsHorde/Horde.
+Local AZKSCP1 prefix query returnedtrue but ListChannelByName printed no roster;
+endpoint scope of that last reply is not separately attested. Do not treat no
+roster output as an empty or shared roster. General logged receive works with
+AZKART1; global/new-prefix CHANNEL delivery still has no proof.
+
+Primary upstreamTrinityCore comparison found server-side recipient prefix
+filtering for channel fanout, a distinction from whispers. This is not actual
+AnoCore handler verification. Local registered=true need not prove the server's
+registration state. No evidence-backed codec bug was found; no speculative
+delimiter change or ordinary/unlogged fallback was introduced. No push/install/
+release/milestone completion. Public Forever behavior remains separate.
+
+Next exact task: one plain-ASCII directed logged WHISPER underAZKSCP1 while
+the recipient's existing score check is active, inspecting its matching-event
+metadata. This new-prefix control is NOT RUN, needs no package and awards no
+score. Do not rerun AKW001 or escalate throughput; review that narrow result
+before further channel work or selecting a shared distribution architecture.
+
 ## 2026-10-24 19:48 +02:00 — both score-channel reports have no observed receipt
 
 Owner supplied two client screenshots for the installed score-channel check.

@@ -9,6 +9,13 @@ global publication. Public Forever behavior cannot be inferred from a private
 server. The owner reports the public beta is closed until November 4; this is
 owner-provided scheduling context, not independently verified service status.
 
+Latest control: [AKW001](evidence/2026-10-24-akw001-private-whisper-control.md)
+successfully delivered/acknowledged all4attempted logged WHISPER messages on
+the private server. One planned slot was never attempted, not network loss.
+Owner reports both characters are Horde; a local prefix readback returnedtrue,
+but no channel roster appeared. The remaining uncertainty is the new prefix/
+channel path, not general addon delivery. Do not rerun the successful control.
+
 ## Route and evidence
 
 Prefer an opt-in dedicated channel with bounded peer synchronization and local
@@ -123,11 +130,9 @@ route, with self-reported scores and an explicitly incomplete community cache.
 If the native route is refused or peers cannot receive, keep publishing off
 and review the evidence before selecting an alternative service.
 
-**After the reported no-receipt window:** do not repeat the same channel check
-or raise its rate. First establish the existing logged-WHISPER positive control
-on the private server using the installed build. Listener runs
-`/akart net listen "<sender full name>" AKW001 0.5 16 10`, sender immediately
-runs `/akart net start "<listener full name>" AKW001 0.5 16 10`; after20seconds
-both run `/akart net report`. Use a fresh code if the same one was already
-used in this UI session. This control is currently **NOT RUN**. Preserve both
-reports and discriminate the receive path before further channel trials.
+**After the reported no-receipt window:** AKW001 is now an executed positive
+control; keep its reports and do not repeat it. Before further channel trials,
+isolate the new prefix with one directed logged-WHISPER observation while the
+score check is listening. See the [recorded control and exact remaining scope](evidence/2026-10-24-akw001-private-whisper-control.md).
+No new download, unlogged fallback, rate increase or server change is required.
+The new-prefix control is **NOT RUN**; publication remains off.
