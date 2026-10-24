@@ -1,5 +1,12 @@
 # Implemented simulation and rendering contracts
 
+Current combined visual/score checkpoint, 2026-10-24: runtime77a1891 retains
+the score/transport contracts below and adds Claude's optional local-kart
+outline, saved `preferences.outline` and Pod Racer art under the existing
+`goblin_drag_car` ID. Explicit pool is now **86/167/135** (frames/textures/fonts).
+This supersedes earlier current-budget statements, preserving their historical
+scope. See [review](reviews/2026-10-24-podracer-score-integration.md).
+
 ## Implemented solo finish records — 2026-10-23
 
 `Highscores` is pure and owns no simulation/UI/transport state. `Load(raw)`

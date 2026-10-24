@@ -65,6 +65,21 @@ or turn this successful return code into a claim that publication works.
 
 ## Implemented bounded addon check
 
+**Ready test package, 2026-10-24:** combined runtime77a1891 contains the reviewed
+Claude visuals, saved solo scores and this probe. Send the same
+`AzerothKart-ScoreChannel-77a1891.zip` from the project-pack directory to both
+testers. It is not installed yet. Fully exit WoW on both computers, unpack the
+archive and copy its `AzerothKart` folder into each client's
+`Interface/AddOns/` folder, replacing the addon files. The layout must be
+`Interface/AddOns/AzerothKart/AzerothKart_Camelot.toc` (not a nested project-pack
+folder). Keep each prior addon folder as a backup; do not edit WTF/SavedVariables.
+Relaunch WoW and make sure Azeroth Kart is enabled in AddOns.
+
+Use two characters on the **same server** (both on the private test server if
+that is the available environment). Record their client builds/zones/factions
+when reporting results. No group, nearby-character check or racing is part of
+this probe; cross-zone/faction delivery is still an observation to record.
+
 `ScoreChannelProbe.lua` is offline-tested in the source branch. It is not yet
 installed. Once that exact combined candidate is installed and loaded:
 
@@ -72,6 +87,15 @@ installed. Once that exact combined candidate is installed and loaded:
 2. Both type **`/akart scores check`**, within about five seconds of each other.
 3. Wait 30 seconds. The result prints automatically. Save each result; use
    **`/akart scores report`** to repeat it. **`/akart scores stop`** cancels.
+
+Both should first print `Checking dedicated score channel for 30 seconds`.
+At completion, both should show `stopped (check_complete)` and **peerHello>=1,
+peerACK>=1** for reciprocal receipt evidence. `selfEcho=0` is allowed; a success
+return or self echo without a peer reply is insufficient. Send the final report
+from each client. If only a menu opens, that client loaded an older build;
+check the folder/install and fully restart. If the check refuses, stops for
+another reason or has no peer reply, report both results without increasing
+the rate or repeating the check in a loop.
 
 There are no character names, realms, codes or numeric options to type. The
 check sends diagnostic tokens only, never score/name/date records. Membership

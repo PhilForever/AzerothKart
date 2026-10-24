@@ -1,6 +1,44 @@
-# Codex handoff — dedicated score-channel route investigation
+# Codex handoff — approved Claude visuals and combined score-channel package
 
-Active review/integration reservation, 2026-10-24: own
+2026-10-24 18:44+02:00. Owner requested Claude review/push and simple second-client
+steps. Claude **0afeedf** approved after runtime/pipeline/preview review; source
+base **98b3ce2**, reservationde229b7, merge/runtime **77a1891** on
+`codex/podracer-score-review`. Exact Claude and combined refs were atomically
+pushed and remote-readback verified. Following documentation commits change
+no runtime files. Main and Claude's worktree/commits/outputs are preserved.
+
+No blocking findings. One expected merge conflict in the test count, resolved
+to the actual **86/167/135** pool. New visuals preserve saved/wire kart identity,
+Physics10, geometry, control/lifecycle, score eligibility, preference version
+guards and the exclusive transport lease. New WoW art source is accepted for
+the owner's requested Pod Racer; third-party redistribution rights remain
+unresolved for release. [Full review](../reviews/2026-10-24-podracer-score-integration.md).
+
+Executed focused actual Lua5.1 presentation/ui/menu/highscores/solo_records/
+score_channel_probe/multiplayer_integration PASS7modules,66parsed. Exact outline
+rebuild check PASS10. Static validator FAIL only two historical expired skill
+links in PROGRESS. No full source-model/city rebuild, Lua5.4 or native visual/
+peer delivery check performed in this review. No simulation assertions relaxed.
+Both foreign states and400filehashes, plus installed54files, match baseline.
+
+Prepared **AzerothKart-ScoreChannel-77a1891.zip**, project-pack directory,
+67source-matched files/50,949,416bytes, SHA256
+`99145cdf76689f363a061afb36885496a286a932aa4c9c92d7277d907305543c`.
+CRC/member hashes/TOC entries validated; the retired drag sprite is absent.
+Not installed; installed runtime remains d3fd99d. No game input or release.
+
+Next task: both clients install this same ZIP and fully restart; on the same
+server, both run `/akart scores check` within five seconds. After30s collect
+both reports: stopped/check_complete and peerHello>=1/peerACK>=1 on both is
+the reciprocal receipt gate. `/akart scores report` repeats; stop cancels.
+See [simple setup/interpretation](../SCORE_CHANNEL.md). Self echo0 is allowed;
+send acceptance alone is not proof. Scores remain local/unpublished until
+delivery is verified; private AnoCore results do not establish public Forever
+scope. The prior one-packet native result below retains its exact limited scope.
+
+## Completed review/integration reservation
+
+Review/integration reservation, 2026-10-24: own
 `codex/podracer-score-review` from98b3ce2; review Claude
 `claude/podracer-arrows-outline`0afeedf and publish if approved, as requested.
 Prepare one combined source/test package for the requested second-client check.

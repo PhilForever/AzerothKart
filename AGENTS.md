@@ -52,6 +52,16 @@ The additive pure [LiveRace/LiveProtocol backend](docs/LIVE_RACE.md) is Codex-ow
 
 ## Current integration checkpoint
 
+Latest reviewed source/package (2026-10-24): `codex/podracer-score-review`
+runtime77a1891 combines Codex98b3ce2 local scores/finite channel diagnostic and
+Claude0afeedf Pod Racer/start signs/optional outline. Both feature branches
+are published after review; [review/evidence](docs/reviews/2026-10-24-podracer-score-integration.md).
+Explicit pool86/167/135. Test ZIP has67files and is not installed; installed
+runtime remains d3fd99d. Preserve `Highscores`, `SoloRecords`, `ScoreChannelProbe`
+(Codex-owned), defensive preference guards, and the retained goblin_drag_car
+save/wire ID. Do not overwrite with Claude's older standalone source. Native
+peer delivery and public-server scope remain open; use [SCORE_CHANNEL](docs/SCORE_CHANNEL.md).
+
 [INTEGRATION_STATUS](docs/INTEGRATION_STATUS.md) records the current combined candidate on `codex/ui-backend-integration`: UI/backend merge6cd611a and authored preference fix9b22f12/regressions0eb6c63, followed by reviewed city mergef9f2af0 from Claude78d97a1. Codex reviewed Circuit/Courses and generalized track selection; a pooled staging background protects the visible map on load refusal. Claude's active city checkout/reservation remains unchanged. Use the combined source for the user-authorized push/install, with backup and SHA256 verification, then let the owner test after a full restart. No main merge, release, author rewrite, force push, other checkout switch or future automatic install/publication. The newer `codex/ironforge-integration` adds reviewed Claude `de2fa5f` while preserving Stormwindv3/full-speed, staged background loading and all backend/preferences regressions. The newer `codex/ironforge-narrows` integrates reviewed Claude `9461f9c`: Ironforgev3 adds two radius42 tunnels with the same exposed-wall fix; rough shoulders remain elsewhere. Preserve the additive per-segment radius contract and tests. Its own handoff/status records the exact deployment. Inspect `git show codex/ironforge-narrows:docs/INTEGRATION_STATUS.md` if a checkout is stale; do not install Claude's older standalone branch.
 
 ## Branch, review and integration protocol

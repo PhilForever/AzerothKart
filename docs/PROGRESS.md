@@ -1,5 +1,52 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-24 18:44 +02:00 — approved/published Claude visuals; combined score-check package
+
+Owner requested latest Claude review/push plus second-client steps. Read the
+canonical Claude handoff and complete0afeedf/de4b291 diff. Runtime, pipeline,
+provenance and generated preview review found no blocker. Own branch
+`codex/podracer-score-review` from98b3ce2, reservationde229b7; reviewed merge
+**77a1891** preserves both agents' work. Sole merge conflict: test_menu pool
+assertion resolved additively to measured86frames/167textures/135fonts.
+Highscores/menu version guards, score eligibility, control, both TOCs, all
+network modules, Physics10 and geometry remain intact. Existing
+goblin_drag_car save/wire ID now displays the Pod Racer. Original authored
+Claude branch0afeedf remains unchanged. WoW art source use accepted for the
+requested project asset; Blizzard redistribution remains unresolved for release.
+
+Executed `scripts/test_lua.py --runtime lua51 --tests presentation ui menu
+highscores solo_records score_channel_probe multiplayer_integration`:
+**PASS7modules/66parsed**. `scripts/build_kart_outlines.py --check`: **PASS10**
+exact rebuilds. Read-only changed-Python syntax and TGA format/size checks
+PASS. `scripts/validate_project.py` FAIL only two known historical expired
+skill links; `git diff --check` PASS. No full source-model/city rebuild,
+Lua5.4, native art/performance or second-client transport check run. No
+milestone/release gate marked complete.
+
+Authorized atomic Git push succeeded; fresh remote readback matches exact
+`claude/podracer-arrows-outline`**0afeedf8f185d4c4a2f5eeee434540e54b361e1f**
+and initial combined `codex/podracer-score-review`
+**77a18912a028db249cc4e45be1df597e2ecad879**. Following documentation updates
+change no runtime files and are pushed to the same combined feature branch.
+Main, both foreign worktrees' branch/HEAD/status/400hashes and installed54files
+remain unchanged. No native input, install, forced push, tag or release.
+
+Prepared `AzerothKart-ScoreChannel-77a1891.zip` in the project-pack directory:
+67runtime files,50,949,416bytes, SHA256
+`99145cdf76689f363a061afb36885496a286a932aa4c9c92d7277d907305543c`.
+Verified CRC, exact archive path set, every decompressed member against source
+and both TOC lists. Contains the new art, local scores and channel probe; no
+development/private data or retired drag sprite. **Not installed**; existing
+install remains d3fd99d. Receipts under ignored
+`local-artifacts/podracer-score-review-20261024/`.
+
+[Review](reviews/2026-10-24-podracer-score-integration.md) and
+[simple two-client setup/check](SCORE_CHANNEL.md) are updated. Next exact task:
+load this same ZIP on two consenting clients, fully restart, then both run
+`/akart scores check` within five seconds. After30s collect both terminal
+reports. Global publication stays off pending reciprocal receipt; no inference
+of public Forever delivery from the private-server acceptance-only result.
+
 ## 2026-10-24 18:34 +02:00 (Europe/Oslo) — resume and finalize saved route checkpoint
 
 Confirmed clean `codex/score-channel-route` at implementation/evidence commit

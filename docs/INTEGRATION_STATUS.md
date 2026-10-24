@@ -1,5 +1,18 @@
 # Shared integration and deployment status
 
+## Latest reviewed source/package — 2026-10-24
+
+Runtime **77a1891**, `codex/podracer-score-review`, integrates Claude0afeedf
+Pod Racer/start signs/optional outline with Codex98b3ce2 scores/channel probe.
+Both feature branches were pushed and exact remote heads checked. Main is
+unchanged. [Review and executed checks](reviews/2026-10-24-podracer-score-integration.md).
+Measured pool86/167/135; seven focused Lua5.1 modules and ten outline rebuilds
+PASS. No native art/delivery claim. Test ZIP `AzerothKart-ScoreChannel-77a1891.zip`
+has67files and is hash/TOC-verified; **not installed**. Installed runtime remains
+d3fd99d/54files. Both testers need this exact package and full restart before
+[the short second-client check](SCORE_CHANNEL.md). Claude's checkout/handoff
+and existing untracked outputs are preserved. No release.
+
 Updated2026-10-22 16:33 +0200, Europe/Oslo. Codex is the designated integrator for the owner's request to combine the agents' work without losing either side. The reviewed combined developer source is installed for owner testing; no release is authorized. See [PROGRESS](PROGRESS.md), [ownership](UI_FLOW_OWNERSHIP.md), [API contracts](API_CONTRACTS.md) and both agent handoffs.
 
 

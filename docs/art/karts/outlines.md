@@ -2,7 +2,7 @@
 
 The owner (2026-10-23): "Visually it can sometimes be difficult to see your cart, add an option in the settings to enable an outline of your own cart when driving (like a bright yellow line or something)".
 
-**Status:** proposed on `claude/podracer-arrows-outline` for Codex review and integration. **NOT RUN in the client:** see [the client check](#client-check-not-run).
+**Status:** reviewed and integrated by Codex on 2026-10-24, runtime77a1891 ([review](../../reviews/2026-10-24-podracer-score-integration.md)). **NOT RUN in the client:** see [the client check](#client-check-not-run).
 
 ![Every kart at two headings at about 1440p size, without and with its outline, enlarged 2x](kart-outlines-review.png)
 

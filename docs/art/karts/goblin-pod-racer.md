@@ -2,7 +2,7 @@
 
 The owner (2026-10-23), with a picture of a goblin pod racer: "Create/add the goblin pod racer (see image) - replace it with our first kart (the only one that's not a wc3 asset)". His picture shows two red, rope-bound rocket pods with shark faces, roped to a goblin driver on a two-wheeled cart.
 
-**Status:** proposed on `claude/podracer-arrows-outline` for Codex review and integration. **NOT RUN in the client.** See [the client check](#client-check-not-run).
+**Status:** reviewed and integrated by Codex on 2026-10-24, runtime77a1891 ([review](../../reviews/2026-10-24-podracer-score-integration.md)). **NOT RUN in the client.** See [the client check](#client-check-not-run).
 
 ![The runtime sheet and the pod racer on the Mirage background](goblin-pod-racer-review.png)
 
