@@ -1,5 +1,13 @@
 # M0–M2 feasibility — evidence gates
 
+**Latest score-channel evidence, 2026-10-24 19:48+02:00:** two owner-supplied
+private AnoCore reports on client70532 show3accepted sends each and no peer
+receipt/reply or matching-event metadata. Reciprocal gate NOT MET; delivery,
+loss and public-server support cannot be inferred. Static receiver review found
+no clear filter/bootstrap defect. [Full evidence and the short private-server
+WHISPER control](evidence/2026-10-24-score-channel-no-receipts.md). That control
+is NOT RUN. Global publishing remains disabled; no rate increase or fallback.
+
 **Front end, 2026-10-21 (Claude, proposed on `claude/ui-flow`; no client evidence):** the window opens on a main menu, and the first run of a session starts from **Single Player → Race!**. The bar's Start Test Drive button now reads **Start Race**, and Print Probe shows only with Settings → Show developer info; `/akart probe` is unchanged. Procedures below that name Start Test Drive use Start Race or Race!. Explicit counts become 65 frames/160 textures/79 font strings. Its client appearance, fonts and sounds are **NOT RUN** ([client check](art/ui/front-end.md#client-check-not-run)).
 
 **Menu follow-up, 2026-10-21:** a pooled Close results button dismisses only the result panel and retains the stopped run. The combined source retains Claude's 38 effect textures: explicit pool is now 10 frames/151 textures/13 font strings; earlier counts below retain their historical scope. `/akart net help` prints plain connection-test steps without registering or sending. Focused Lua5.1 UI/adapter checks pass; the combined build was installed and Close results/help were observed in the client at 00:24–00:28 CEST (PROGRESS); motion/performance and all network windows remain pending.

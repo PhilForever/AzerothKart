@@ -1,7 +1,10 @@
 # Shared score route — dedicated logged channel
 
-Status, 2026-10-24: **candidate selected; native send accepted on the owner's
-private AnoCore server; delivery remains UNVERIFIED**. This does not complete
+Status, 2026-10-24: **candidate only; the two-client private-server window did
+not meet the reciprocal receipt gate**. Both report sent3/accepted3 but no
+peerHello/peerACK or matching-event metadata. [Recorded results and next
+control](evidence/2026-10-24-score-channel-no-receipts.md). Delivery remains
+UNVERIFIED. This does not complete
 global publication. Public Forever behavior cannot be inferred from a private
 server. The owner reports the public beta is closed until November 4; this is
 owner-provided scheduling context, not independently verified service status.
@@ -114,8 +117,17 @@ per-tick UI allocations, or rate escalation. Combat/world exit/logout/drive
 activation cancel it. Malformed/replayed/wrong-channel events are ignored;
 diagnostics retain bounded readable event metadata to investigate API differences.
 
-**Next task:** verify reciprocal receipt with this check on two consenting
+**Remaining gate:** verify reciprocal receipt with this check on two consenting
 clients. If it succeeds, implement bounded versioned record exchange over this
 route, with self-reported scores and an explicitly incomplete community cache.
 If the native route is refused or peers cannot receive, keep publishing off
 and review the evidence before selecting an alternative service.
+
+**After the reported no-receipt window:** do not repeat the same channel check
+or raise its rate. First establish the existing logged-WHISPER positive control
+on the private server using the installed build. Listener runs
+`/akart net listen "<sender full name>" AKW001 0.5 16 10`, sender immediately
+runs `/akart net start "<listener full name>" AKW001 0.5 16 10`; after20seconds
+both run `/akart net report`. Use a fresh code if the same one was already
+used in this UI session. This control is currently **NOT RUN**. Preserve both
+reports and discriminate the receive path before further channel trials.

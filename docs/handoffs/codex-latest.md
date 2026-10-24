@@ -1,5 +1,34 @@
 # Codex handoff — approved Claude visuals and combined score-channel package
 
+2026-10-24 19:48+02:00 — newest evidence/reservation on
+`codex/score-channel-receipts`, base2ae3f7a. Owner supplied both native reports:
+check_complete, sent3/accepted3, selfEcho0/peerHello0/peerACK0 on both;
+CHANNEL_LOGGED/channel6/send0/build70532/membership_preserved. No matching-event
+metadata line appears. [Evidence](../evidence/2026-10-24-score-channel-no-receipts.md).
+Reciprocal receipt gate is NOT MET. Public server, global publishing and score
+exchange remain unverified; do not select/enable the dissemination architecture.
+
+Reserved/changed: this handoff, PROGRESS, SCORE_CHANNEL, FEASIBILITY and the new
+evidence note only. Static source/API review found no clear bootstrap/receiver
+bug; no runtime changes or repeated tests/traffic. Native eventCount is recorded
+before route/name/payload filters, so those filters do not explain the missing
+event line when a matching-prefix logged event reaches receive. Native prefix
+registration/event subscription/server fanout still need actual discrimination.
+Do not call acceptance delivery or classify all missing packets as proven loss.
+
+Installed source readback now matches **all67files of77a1891**, plus one harmless
+unreferenced legacy GoblinDragCar.tga from the owner's overlay copy. Preserved
+it; no installation/deletion/WTF changes by Codex. Claude's checkout is intact.
+Next exact task: short existing logged-WHISPER control on the same two private
+clients, `/akart net listen|start "<other full name>" AKW001 0.5 16 10`, then
+both `/akart net report` after20seconds. No new package. Positive receipt would
+establish that known route on AnoCore, not prove the new prefix/CHANNEL fanout.
+Control is NOT RUN. If it also has no incoming messages, investigate the private
+server addon-message handling before more channel trials. No unlogged fallback,
+rate increase, server configuration edits, push or release in this checkpoint.
+
+## Previous reviewed package checkpoint
+
 2026-10-24 18:44+02:00. Owner requested Claude review/push and simple second-client
 steps. Claude **0afeedf** approved after runtime/pipeline/preview review; source
 base **98b3ce2**, reservationde229b7, merge/runtime **77a1891** on

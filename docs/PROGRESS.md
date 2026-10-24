@@ -1,5 +1,37 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-24 19:48 +02:00 — both score-channel reports have no observed receipt
+
+Owner supplied two client screenshots for the installed score-channel check.
+Both stopped/check_complete; sent3/accepted3, selfEcho0,peerHello0,peerACK0;
+CHANNEL_LOGGED/channel6/native0/build70532/membership_preserved. Neither shows
+matching-event metadata. [Transcribed evidence, limits and next control](evidence/2026-10-24-score-channel-no-receipts.md).
+Reciprocal receipt gate NOT MET in this private-server window. No inferred
+packet-loss percentage, public Forever verdict, milestone completion or global
+publishing claim. Exact overlap, zone/faction and callback delivery are unmeasured.
+
+Own clean branch `codex/score-channel-receipts` from2ae3f7a. Reserved evidence
+note/SCORE_CHANNEL/FEASIBILITY/PROGRESS/Codex handoff only. Read-only source/API
+review found no clear bootstrap/filter bug: eventCount is recorded before
+route/localID/name/payload checks; both screenshots lack that diagnostic line.
+The local AnoCore pack advertises70532 and its template AddonChannel=1; that
+does not prove running configuration/handler support. No server source handler
+was available. No code/runtime changes, new native traffic, computer input,
+repeated Lua suite, server/config/GM changes, installation, push or release.
+
+Installed readback **matches all67tested77a1891source files**, plus one
+unreferenced legacy GoblinDragCar.tga from the overlay copy. Preserved that
+extra file. No other addon or WTF/SavedVariables access/write. Claude's branch
+and outputs remain intact. Documentation diff/link checks accompany the record;
+the two historical expired skill links remain a known validator failure.
+
+Next exact task: one short existing logged-WHISPER positive control between
+the same two private clients, 0.5DATA/s/16bytes/10second send plus10second drain;
+then both net reports. It needs no new package and is **NOT RUN**. If positive,
+discriminate CHANNEL/new-prefix behavior; if no incoming messages, investigate
+private server addon-message handling before further channel checks. Keep
+global publication off and do not substitute an unverified architecture.
+
 ## 2026-10-24 18:44 +02:00 — approved/published Claude visuals; combined score-check package
 
 Owner requested latest Claude review/push plus second-client steps. Read the
