@@ -1,5 +1,17 @@
 # Implemented simulation and rendering contracts
 
+## Central persistence component — 2026-10-24
+
+Python `services.leaderboard.store.LeaderboardStore(path, *, deployment_id,
+allowed_boards)` is server-side code, not a new native addon API.
+`submit(trusted_actor_name, record)` returns `{status,changed,best}`;
+`query(context, *, limit=10, offset=0)` returns `{rows,total,limit,offset}`.
+Records use the same10fields and6-field compatibility key as Highscores.
+Atomic lower-tick-only updates make retries idempotent; server storage retains
+all personal bests while pages are capped50. Actor identity comes from the
+eventual trusted session adapter, not the record. No HTTP/native bridge exists
+in this slice. See [full boundary](../services/leaderboard/README.md).
+
 Current combined visual/score checkpoint, 2026-10-24: runtime77a1891 retains
 the score/transport contracts below and adds Claude's optional local-kart
 outline, saved `preferences.outline` and Pod Racer art under the existing

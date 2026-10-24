@@ -1,5 +1,13 @@
 # Technical architecture
 
+Central leaderboard direction (2026-10-24): a separate transactional SQLite
+submit/query store under `services/leaderboard/` consumes the existing record
+contract and a generated compatible-board catalogue. It is server-side only;
+no native HTTP/RPC endpoint or transport bridge has been established. Identity
+must be supplied by a trusted adapter. The addon does not import this Python
+code, watch files, upload results or query a web service. [Boundary](../services/leaderboard/README.md),
+[ADR0017](adr/0017-central-score-store.md). UI/physics/local capture stay separate.
+
 Current additive solo-record boundary (2026-10-23): pure `Highscores` stores
 bounded compatible personal bests; native `SoloRecords` supplies guarded full
 Forever names/server timestamps and owns its versioned SavedVariables child.

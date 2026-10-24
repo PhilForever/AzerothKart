@@ -1,5 +1,50 @@
 # Codex handoff — approved Claude visuals and combined score-channel package
 
+Latest checkpoint, 2026-10-24 20:54+02:00: `codex/central-score-store` fromed52ce4.
+Implemented **server-side component only**: transactional SQLite submit/query,
+all-player PB retention, trusted-adapter identity match, compatibility catalogue,
+schema/application/deployment guards and idempotent strictly-better updates.
+Operator JSON CLI is not public authentication. Catalogue exports7actual Lua
+course/record contexts. [Usage and boundary](../../services/leaderboard/README.md),
+[ADR0017](../adr/0017-central-score-store.md). No live/global connection claimed.
+
+Actual Python3.14 `-W error::ResourceWarning -m unittest discover -s tests -p
+test_leaderboard_store.py -v`: **PASS13tests**, including rollback, concurrent
+writes, >50retained players, future/unrelated/live-changed schema and deployment
+refusal. First run failed on default AppContainer temp permissions; corrected
+to containment-checked ignored workspace temp paths, then passed. Actual CLI
+five-process smoke PASS (submit/retry/reopen query, duplicate JSON and wrong
+deployment rejected without DB mutation). Synthetic receipt under
+`local-artifacts/central-score-cli-5864359510ad44b3b81290bdb2906a38/`.
+Catalogue --check PASS7; changed Python syntax PASS; Git-normalized runtime
+source/file-set unchanged. Raw blob audit first flagged pre-existing TOC CRLF
+normalization; no runtime modification. No native/Lua/global test or install.
+
+Primary642-file70450API/Camelot audit found no generic native HTTP/custom RPC/
+remote addon store;70532is not exhaustively ruled out, but there is no supported
+endpoint to wire. Empty RPC constants and fixed browser/purchase/game-board APIs
+are not an integration. No HTTP listener, account/secret, desktop uploader or
+always-online scorekeeper assumed/installed. Owner's addon-only versus uploader
+answer remains pending. Next exact task: resolve that bridge constraint, then
+implement a supported submit/query adapter. Global requirement INCOMPLETE;
+no more friend probes, push/release, server/other-worktree/WTF changes.
+
+## Central-store reservation
+
+Active central-store reservation, 2026-10-24: own `codex/central-score-store`
+fromed52ce4. Owner approved the central persistent leaderboard direction after
+the channel investigation. Plan: implement the minimal durable submit/query
+store with current record compatibility/identity rules and focused persistence
+tests; no fake in-game HTTP route. Reserved: new `services/leaderboard/` source,
+catalog/contract/README; `tests/test_leaderboard_store.py`; ADR0017, README,
+HIGHSCORES/INDEX/API_CONTRACTS/ARCHITECTURE/PROGRESS and this handoff, plus the
+structural validator's required paths if appropriate. No UI/physics/transport,
+other-worktree/server configuration, automatic installation or publishing.
+The available source audit found no generic native HTTP/RPC/store endpoint.
+The addon-only versus explicit-uploader constraint is pending owner reply;
+connection/deployment stays open. Backend-only work must not be called a live
+global leaderboard, and no credentials are embedded in the addon.
+
 Latest reservation/evidence, 2026-10-24 20:18+02:00: continue clean
 `codex/whisper-control-evidence` fromd918b49. Owner supplied the new-prefix
 control: recipient metadata **event route=WHISPER/localID0/nameunavailable/

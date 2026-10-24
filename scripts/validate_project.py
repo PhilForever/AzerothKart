@@ -8,6 +8,11 @@ import sys
 ROOT=Path(__file__).resolve().parents[1]
 ADDON=ROOT/'addon'/'AzerothKart'
 REQUIRED=[
+ 'services/__init__.py','services/leaderboard/__init__.py','services/leaderboard/store.py',
+ 'services/leaderboard/__main__.py','services/leaderboard/catalog.json',
+ 'services/leaderboard/example-result.json','services/leaderboard/README.md',
+ 'scripts/export_score_catalog.py','tests/test_leaderboard_store.py',
+ 'docs/adr/0017-central-score-store.md',
  'README.md','AGENTS.md','PROMPT_01_MASTER.md','PROMPT_02_SCHEDULED_CONTINUE.md',
  'docs/INDEX.md','docs/FEASIBILITY.md','docs/ARCHITECTURE.md',
  'docs/ROADMAP.md','docs/PROGRESS.md','docs/TEST_PLAN.md','docs/CLIENT_API.md','docs/SESSION_MENU_API.md',

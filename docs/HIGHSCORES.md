@@ -1,5 +1,11 @@
 # Solo finish records and highscores
 
+Central-store work, 2026-10-24: [ADR0017](adr/0017-central-score-store.md) accepts
+the owner's central leaderboard direction. [The durable server-side component](../services/leaderboard/README.md)
+stores/query-pages compatible personal bests; it is not connected to the addon.
+The supported bridge and addon-only/external-uploader constraint remain open.
+Local capture/menu behavior below is unchanged; no global traffic is enabled.
+
 Implemented on `codex/solo-highscores`, based on `de4b291` / Physics10.
 This is a saved **local leaderboard**, not an all-player global service.
 Global publication remains blocked on a supported dissemination/persistence

@@ -1,0 +1,12 @@
+{
+  "trackId": "test_oval",
+  "trackVersion": 2,
+  "physicsVersion": 10,
+  "lapCount": 3,
+  "tickRate": 60,
+  "rulesVersion": 1,
+  "playerName": "Test Racer",
+  "totalTicks": 2345,
+  "finishedAt": 1792860000,
+  "kartId": "goblin_mortar_trike"
+}

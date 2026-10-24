@@ -1,5 +1,10 @@
 # Documentation index / reading order
 
+**Central leaderboard work:** [accepted direction and open bridge, ADR0017](adr/0017-central-score-store.md),
+[server-side submit/query store](../services/leaderboard/README.md).
+The component is not a deployed or connected global board; no generic native
+web endpoint has been established. The local racer remains independent.
+
 **Current single-player work:** [saved solo totals and Highscores](HIGHSCORES.md),
 [updated priority/global publication gate, ADR 0016](adr/0016-solo-records-and-global-score-gate.md).
 Local records are implemented/offline-tested; actual-client persistence and a

@@ -1,5 +1,43 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-24 20:54 +02:00 — central persistence built; live bridge remains open
+
+Owner approved the central persistent leaderboard direction. Own clean
+`codex/central-score-store` fromed52ce4; new server-side source/CLI/catalogue/
+example, focused Python tests and aligned docs. [ADR0017](adr/0017-central-score-store.md),
+[component/usage](../services/leaderboard/README.md). Implemented atomic strictly-
+better submit, full personal-best retention, consistent bounded query pages,
+ASCII identity rules/full UTF8 names, compatibility allowlist and application/
+schema/deployment safeguards, including changes after opening. No migration,
+native adapter, public endpoint or in-game global claim. Catalogue is generated
+from7actual Lua course/record contexts; the CLI is an operator tool, not auth.
+
+**Executed:** Python3.14 `-W error::ResourceWarning -m unittest discover -s tests
+-p test_leaderboard_store.py -v` **PASS13tests**: persistence/retry/order/names,
+identity/inputs/catalogue, >50players/paging, COMMIT-denied rollback, concurrent
+writers, unknown/future/live-changed schema/deployment refusal. Initial attempt
+failed due inaccessible default AppContainer temp paths; tests now use resolved
+and containment-checked ignored workspace temp paths, then passed. Actual five-
+process CLI smoke PASS: synthetic submit, replay, reopened query and duplicate-
+JSON/wrong-deployment refusal without DB mutation. Catalogue --check PASS7;
+changed Python syntax PASS. Raw blob/file audit initially flagged existing
+TOC CRLF normalization; Git-filtered runtime source/file-set check PASS.
+No new Lua/native/global checks run. Validator still reports two historical
+expired skill links. No actual game SavedVariables data used.
+
+Primary642-generated-file70450API plus Camelot-callers audit found no generic
+HTTP/custom RPC/remote addon-store endpoint; not exhaustive70532runtime absence
+proof, but no supported route to wire. Empty RPC constants, purchases, fixed
+browser targets and game-specific leader APIs do not provide one. No hidden
+server, listener, account/secret, uploader, native workaround or dead menu was
+added. All addon runtime files remain unchanged; no install/push/release/server
+configuration or other-worktree changes. No milestone completed.
+
+Owner's addon-only versus desktop-uploader constraint remains pending; no
+dependent adapter chosen. **Global publication remains INCOMPLETE.** Next exact
+task: resolve that constraint and implement the actual supported client/server
+bridge. Keep local records usable; no more friend packet probes requested.
+
 ## 2026-10-24 20:18 +02:00 — score prefix reached receiver; channel integration remains blocked
 
 Owner supplied both control screenshots. Recipient completed its score window:
