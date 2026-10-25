@@ -27,14 +27,18 @@ capacity. `SoloRecords.PlayerName()` exposes its guarded native full-name read.
 Successful eligible solo Finish queues sharing after local saving under pcall;
 errors cannot prevent normal results/local persistence.
 
-**Proposed for Codex (Claude, 2026-10-25, `claude/thunder-bluff`):** `ScoreSync`
-knows seven courses by one-letter code and `Sync.new` requires exactly seven
-contexts. `ScoreSharing` builds one context per selectable course, so with Thunder
-Bluff Skyway selectable it offers eight and the sync cannot start, for any course
-(local saving is unaffected). A tested patch is
-in Claude's handoff: an eighth code `T` for `thunder_bluff_skyway`, and a HELLO with
-one board hash per course (ten fields). Older builds would refuse the new HELLO, as
-they already refuse a different catalogue. Codex's decision; not applied.
+**Proposed for Codex (Claude, 2026-10-25, `claude/thunder-bluff`; extended on
+`claude/scarlet-graveyard`):** `ScoreSync` knows seven courses by one-letter code,
+and `Sync.new` requires exactly seven contexts. `ScoreSharing` builds one context
+per selectable course. With Thunder Bluff Skyway selectable it offers eight, and
+nine with Scarlet Graveyard. The sync then cannot start, for any course; local
+saving is unaffected. A tested patch is in Claude's handoff:
+
+- codes `T` for `thunder_bluff_skyway` and `G` for `scarlet_graveyard`;
+- a HELLO with one board hash per course, eleven fields with both.
+
+Older builds would refuse the new HELLO, as they already refuse a different
+catalogue. Codex's decision; not applied.
 
 `SoloRecords.GetView` supplies the copied community view when initialized,
 including rows/scope/publication/connected/queued and save problems; otherwise
@@ -432,7 +436,7 @@ These pure modules return new accepted progress, or the same reference for rejec
 
 Lap fields: `checkpoints`, `completedLaps`, `lapStartTick`, `currentLapTicks`, `lastLapTicks`, `bestLapTicks`, `bestLapNumber`, `lastTick`, `lastFinishTick`. The fourth gate finishes a lap and rearms North on that same tick. Best values start nil, update only on a completed strictly faster lap, and keep the earlier lap on ties. They are in-memory, per-run values, not saved personal records.
 
-Race fields: `status`, `laps`, `targetLaps`, `countdownTicks`, `startTick`, `lastTick`, `totalTicks`, `finishTick`, `reason`. Status is `"countdown"`, `"running"`, `"finished"`, `"stopped"` or `"interrupted"`. The current target is three laps; it is not a user setting.
+Race fields: `status`, `laps`, `targetLaps`, `countdownTicks`, `startTick`, `lastTick`, `totalTicks`, `finishTick`, `reason`. Status is `"countdown"`, `"running"`, `"finished"`, `"stopped"` or `"interrupted"`. The current target is three laps; it is not a user setting. (Proposed on `claude/scarlet-graveyard`: a course may set its target with `track.laps`; see [dungeon sprints](#proposed-dungeon-sprints-the-scarlet-crusade-cup).)
 
 Countdown starts at 180. Cues show 3 for remaining 180–121, 2 for 120–61, 1 for 60–1. At physics tick 180, Race becomes running and resets the lap origin; the kart remains at spawn. Held driving input first applies at tick 181. GO displays for `totalTicks` 0–59. Race/lap seconds are integer durations multiplied by `Physics.FIXED_DT`, excluding countdown, dropped time and stopped time; physics/loop/probe ticks include countdown. The third accepted lap fixes `finishTick`, returns finished and stops catch-up before another physics step. Terminal step/stop calls retain the same race object.
 
@@ -617,6 +621,67 @@ The owner asked for a way "to add elevation to maps, as some of our maps clearly
 - **Not claimed:** no game-client run, no physics change, no route that needs a bridge over the track yet (neither Darnassus nor Undercity crosses itself; Undercity version 2's bridges cross its slime, not the course).
 - **Multiplayer:** SessionTransport's supported track list is Codex's; neither city is in its compatibility list; city multiplayer is not wired.
 - **Current integrated counts:** 79 frames, 166 textures and 81 font strings; eight pooled track buttons now show seven available tracks and Thunder Bluff coming soon. On `claude/thunder-bluff` (proposed) the same eight buttons show eight available tracks. No per-city or per-frame widget allocation; native cost remains unmeasured.
+
+<a id="proposed-dungeon-sprints-the-scarlet-crusade-cup"></a>
+
+### Proposed: dungeon sprints (the Scarlet Crusade Cup)
+
+Proposed by Claude on `claude/scarlet-graveyard`, 2026-10-25, for Codex's review. The owner approved Claude making the minimal Race and SoloRecords changes there for that review ([ADR 0020](adr/0020-dungeon-sprints.md)). Not integrated. Client NOT RUN. See [the Scarlet Graveyard sheet](art/tracks/scarlet-graveyard.md).
+
+- **`track.laps`** (optional; Codex's `Race`, proposed). An integer from 1 to 9; absent means 3.
+  - `Race.new` takes `targetLaps` from it and refuses anything else outside that range; `Race.newRunning` inherits it.
+  - The finish `reason` is "Sprint complete" for 1, "Three-lap run complete" for 3 (unchanged), and "N-lap run complete" otherwise.
+  - Checkpoints and Laps are unchanged. A sprint finishes on its first completed lap, at its last gate.
+  - `LiveRace` still refuses a launch bundle whose `targetLaps` is not 3.
+- **`SoloRecords.Context(track)`** (Codex's, proposed): `lapCount = track.laps or 3`.
+  - A sprint's board holds one-run totals under its own key: lap count 1.
+  - `Finish` already requires `race.targetLaps == context.lapCount`.
+- **`Dungeon.new(definition, crossesGate)`** (new pure module, written by Claude; geometry for Codex's review). It returns the [track interface above](#track-geometry-and-assets), plus copies of `rooms`, `solids`, `gates` and the optional `laps`.
+  - **Definition:** `id, version?, name, width, height, wallInset, checkpointMaxStep?, laps?, rooms, solids?, gates, spawn`. Each room is `{x,y,width,height,surface}`, with surface `"road"` (stone) or `"rough"` (a lawn); each solid is `{id,x,y,width,height}`. Bottom-left origin, as every track.
+  - **The floor** is every room shrunk by `wallInset` on each side. Rooms that meet overlap by at least two insets, so the floor runs on through the doorway.
+  - **`surfaceAt`:**
+    - `"wall"` outside the inset perimeter, on a solid's footprint (edges included), or off the floor;
+    - otherwise `"road"` wherever a stone room covers the point;
+    - otherwise `"grass"` on a lawn: Physics' existing rough response, at most 70 units a second.
+  - **`isDrivable`:** on the floor, clear of every grown solid, and on stone.
+  - **`constrainPosition`:** the perimeter clamp only, as on Track.
+  - **`resolveMovement`:**
+    1. the perimeter and the solids, grown by the inset, as Track.lua's swept crate boxes (up to three slides);
+    2. then the walls: an end point off the floor moves to the nearest floor point no further from the step's start than the step was long, or stays at the start if none is found, and reports a hit.
+
+    A resolved step never moves further than requested, so `checkpointMaxStep=5` still holds. A centre that starts off the floor or inside a grown solid (never by driving) moves to the nearest allowed point, or back to the spawn.
+  - **Refused at construction:**
+    - missing fields;
+    - a room not wider and taller than two insets;
+    - an unknown surface;
+    - a non-finite solid;
+    - `laps` out of range;
+    - a spawn off the floor or inside a solid.
+  - **Cost:** a 64-unit grid of rooms and solids is built once. A step of up to 16 units on either axis checks only its cell's lists. A longer step checks every solid, plus every room when it ends off the floor. No allocation per step.
+- **`ScarletCrusade`** (generated data, `scripts/build_dungeon_tracks.py`). `ScarletCrusade.scarlet_graveyard`:
+  - version 1, 2048 × 1024, `wallInset` 18, `laps` 1;
+  - 18 rooms, 17 stone and the cloister's lawn, and 52 solids;
+  - three gates: Chamber of Atonement, Forlorn Cloister, Honor's Tomb (the finish);
+  - spawn (1945, 150), facing west;
+  - `route`, the reviewed way through. It is data for the tests and the review; `Dungeon.new` does not read it.
+
+  The generator refuses a layout unless every gate is unavoidable (a flood fill of the floor with the gate as a barrier) and the route crosses the gates in order without touching a wall or a solid.
+- **`Courses`:**
+  - `CUPS` gains `{id="scarlet", name="Scarlet Crusade Cup"}`;
+  - geometry `"dungeon"` builds `Dungeon.new(ScarletCrusade[id], crossesGate)`;
+  - Scarlet Graveyard is available; Scarlet Library, Scarlet Armory and Scarlet Monastery are listed `soon`.
+- **Load order (both TOCs):** `CapitalCities.lua`, `Dungeon.lua`, `ScarletCrusade.lua`, then `Courses.lua`.
+- **Presentation (Claude's regions).** When `targetLaps` is 1:
+  - UI `refreshCheckpoints` shows "Checkpoints: sprint complete";
+  - `refreshSummary` shows "Sprint | Total: …" and "All N gates" at the finish, or "Sprint | Time: …" and "Gates: n/N" when stopped;
+  - `refreshHud` shows "Sprint | Time: … | Last run: …";
+  - Menu's race lines show SPRINT, the time and GATES n/N, and results show "Run" for the lap time;
+  - the Highscores screen's rule line names a lap-count-1 board's times as sprints, reusing its label.
+
+  The status line in `UI.Start` and `step` (Codex's) still says "3 laps". A one-line wording change is proposed in Claude's handoff.
+- **Counts:** the Scarlet cup's heading and four track buttons bring the pool to **90 frames, 167 textures and 136 font strings**, from 86/167/135. They are created with the window.
+- **Score sync:** see the proposal under [automatic score sharing](#automatic-score-sharing--source-integration). Until Codex changes `ScoreSync`, community sync does not start with this course selectable. This branch must not be installed alone.
+- **Not claimed:** no client run, no multiplayer sprint, and no Physics change.
 
 ## Rendering cadence, resources and lifecycle
 

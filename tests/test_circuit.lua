@@ -7,7 +7,8 @@ local function load(name)
     local chunk = assert(loadfile("addon/AzerothKart/" .. name .. ".lua"))
     chunk("AzerothKart", namespace)
 end
-for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Courses", "Physics", "Checkpoints"}) do
+for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Dungeon", "ScarletCrusade", "Courses",
+        "Physics", "Checkpoints"}) do
     load(name)
 end
 local Track, Circuit, Courses = namespace.Track, namespace.Circuit, namespace.Courses
@@ -185,17 +186,18 @@ for _,bad in ipairs({{first=0,last=1,wallRadius=15}, {first=2,last=1,wallRadius=
     assert(not pcall(Circuit.new, definition, Track.crossesGate), "an invalid narrows is refused")
 end
 
--- The catalog: cups in order, coming-soon cities listed but not selectable.
-assert(#Courses.CUPS == 2 and Courses.CUPS[2].name == "Capital Cities Cup", "two cups")
+-- The catalog: cups in order, coming-soon courses listed but not selectable
+-- (the Scarlet Crusade Cup's next three dungeons, tests/test_dungeon.lua).
+assert(#Courses.CUPS == 3 and Courses.CUPS[2].name == "Capital Cities Cup", "three cups")
 local soon = 0
 for _,course in ipairs(Courses.LIST) do
     if course.soon then
         soon = soon + 1
-        assert(course.cup == "capital" and not Courses.available(course.id) and
-            Courses.build(course.id, Track.crossesGate) == nil, "a coming-soon city cannot be built")
+        assert(course.cup == "scarlet" and not Courses.available(course.id) and
+            Courses.build(course.id, Track.crossesGate) == nil, "a coming-soon course cannot be built")
     end
 end
-assert(soon == 0 and Courses.available("stormwind_city") and Courses.available("ironforge_gp")
+assert(soon == 3 and Courses.available("stormwind_city") and Courses.available("ironforge_gp")
     and Courses.available("darnassus_canopy") and Courses.available("orgrimmar_canyon")
     and Courses.available("thunder_bluff_skyway") and Courses.available("undercity_slime"),
     "all six cities are ready")
@@ -204,7 +206,8 @@ assert(Courses.next("test_oval") == "mirage_raceway" and Courses.next("mirage_ra
     and Courses.next("darnassus_canopy") == "orgrimmar_canyon"
     and Courses.next("orgrimmar_canyon") == "thunder_bluff_skyway"
     and Courses.next("thunder_bluff_skyway") == "undercity_slime"
-    and Courses.next("undercity_slime") == "test_oval", "the Track button cycles the ready tracks")
+    and Courses.next("undercity_slime") == "scarlet_graveyard"
+    and Courses.next("scarlet_graveyard") == "test_oval", "the Track button cycles the ready tracks")
 -- A course marked coming soon (Thunder Bluff was until it was built) is
 -- listed but neither available, built nor stepped to.
 local thunderCourse = Courses.get("thunder_bluff_skyway")

@@ -71,6 +71,42 @@ Owner handling correction2026-10-22: Stormwind has full road grip and normal spe
 
 **Stormwind City Circuit** (`stormwind_city`, version 3, `fullSpeedToWalls=true`): start on the Valley of Heroes approach, through the gate into the Trade District, over the canal along Old Town, round the canal's head in the Dwarven District, along the foot of the Cathedral of Light's steps in Cathedral Square (the square and its fountain across the street), over the canal onto the Park bank, past the Mage Quarter and back over the canal to the Trade District's finish. Six gates named for the districts; three bridges between districts; no plazas or solids. Offline: the course walk passes the gates in order, completes the lap's checkpoints and never meets a wall; walls behave as specified (`tests/test_circuit.lua`). The owner confirms the reported Stormwind corner works (2026-10-22); wider camera, appearance and performance acceptance remains open.
 
+## Scarlet Crusade Cup: dungeon sprints (proposed, `claude/scarlet-graveyard`)
+
+The owner's third cup runs through the Scarlet Monastery's four wings, from the start of each dungeon to its end: Scarlet Graveyard, Scarlet Library, Scarlet Armory and Scarlet Monastery. He wrote that there is no need for "a traditional track here, just recreate the dungeon and let players find their way to the end."
+
+Each is a **sprint**: one run from the entrance through its gates to the last, which is the finish ([ADR 0020](adr/0020-dungeon-sprints.md), proposed). The owner approved Claude adding the minimal rules for Codex's review:
+
+- a course's `track.laps` sets the race's target, and every other course keeps three laps;
+- a sprint keeps its own one-run boards.
+
+The geometry is `Dungeon.new` ([contract](API_CONTRACTS.md#proposed-dungeon-sprints-the-scarlet-crusade-cup)):
+
+- the floor is the dungeon's rooms, axis-aligned rectangles, with no road to follow;
+- stone has full grip, and lawns are rough ground;
+- walls slide the kart along them, as on the city streets;
+- graves, tombs and furniture are solid boxes, as on the test oval.
+
+One generator, `scripts/build_dungeon_tracks.py`, writes the data (`ScarletCrusade.lua`) and the picture. It validates the layout first:
+
+- the spawn stands on stone;
+- every solid stands on the floor;
+- the reviewed route crosses the gates in order without touching a wall or a solid;
+- each gate spans its doorway from wall to wall, and a flood fill of the floor with that gate as a barrier proves it cannot be driven round.
+
+**Scarlet Graveyard** (`scarlet_graveyard`, version 1, sprint; proposed): the owner's green route on his map of the wing, at karting scale.
+
+1. From the instance portal in the entrance hall, the run turns north up the long hall.
+2. It turns west through the east door of the Chamber of Atonement and passes its torture table.
+3. It leaves by the west door, then goes down the stairs into the Forlorn Cloister.
+4. It crosses the graveyard on the path round the ruined fountain, to Honor's Tomb.
+
+- 2048 × 1024; 18 rooms (the cloister's lawn is rough); 52 solids.
+- Three gates: *Chamber of Atonement*, *Forlorn Cloister* and *Honor's Tomb* (the finish).
+- About 2,200 units from the portal to the finish line along the reviewed route.
+
+Offline: the route walk crosses the gates in order and never meets a wall or a solid, and full throttle from the grid launches cleanly (`tests/test_dungeon.lua`). The Library, Armory and Monastery are listed as coming soon. See [the Scarlet Graveyard sheet](art/tracks/scarlet-graveyard.md).
+
 ## Test Oval checkpoint sequence
 
 `Track.gates` defines four ordered finite segments: North, West, South, then Start, following counterclockwise motion from the right-hand spawn facing north. The Start strip now runs horizontally across the right-hand road at `y=240`, from `x=570` to `770`; it is the fourth gate rather than an immediate spawn award. The other gates cross the road at its north, west and south extremities. Four pooled strips show pending, next and passed gates; a separate text HUD names the next target and the passed count.
@@ -108,6 +144,6 @@ UI releases capture, draws the exact finish pose and shows a pooled `RUN COMPLET
 - Document copyright/ownership of every texture, icon, music/sound asset. Start from plain colored tiles where feasible.
 
 ## Initial track sequence
-M0 `Test Oval` → M3 `Mirage Raceway` (dry, pre-flood Shimmering Flats) → M7 `Murloc Marsh` → M9 `Frost Gearway` and more based on performance metrics. Mirage replaces the planned Tinker Speedway name; no production-map acceptance is claimed. The owner's Capital Cities Cup (2026-10-21) comes first among the new maps: Stormwind, then Ironforge, Darnassus, Orgrimmar, Thunder Bluff and Undercity on the same pipeline.
+M0 `Test Oval` → M3 `Mirage Raceway` (dry, pre-flood Shimmering Flats) → M7 `Murloc Marsh` → M9 `Frost Gearway` and more based on performance metrics. Mirage replaces the planned Tinker Speedway name; no production-map acceptance is claimed. The owner's Capital Cities Cup (2026-10-21) comes first among the new maps: Stormwind, then Ironforge, Darnassus, Orgrimmar, Thunder Bluff and Undercity on the same pipeline. The Scarlet Crusade Cup's dungeon sprints follow (2026-10-25): the Graveyard first, then the Library, Armory and Monastery.
 
 Stormwind v3 wall alignment (2026-10-22): the white parapet is the exposed union of radius90 visual capsules. Collision now keeps14-unit centre clearance from that union, rather than separately shrinking every capsule to76 (which created invisible wedges at concave joins). Radius56 paving and normal straight-wall clearance are unchanged; generated exposed junctions/analytic projections provide the corner shape. Movement candidates obey the original step bound before nearest ranking. Artwork/gates/spawn and full-speed shoulders are unchanged.

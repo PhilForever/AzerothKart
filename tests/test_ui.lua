@@ -189,7 +189,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     end
     local ok, err=pcall(function()
         local namespace={}
-        for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Courses", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "Highscores", "SoloRecords", "UI", "Menu", "RaceProtocol", "PeerSession", "ClockProtocol", "StartClock", "RaceStart", "LiveProtocol", "LiveRace", "RaceGrid", "NetworkProbe", "TransportProbe", "SessionTransport", "ScoreChannelProbe", "Core"}) do
+        for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Dungeon", "ScarletCrusade", "Courses", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "Highscores", "SoloRecords", "UI", "Menu", "RaceProtocol", "PeerSession", "ClockProtocol", "StartClock", "RaceStart", "LiveProtocol", "LiveRace", "RaceGrid", "NetworkProbe", "TransportProbe", "SessionTransport", "ScoreChannelProbe", "Core"}) do
             assert(loadfile("addon/AzerothKart/"..name..".lua"))("AzerothKart",namespace)
         end
         env.namespace=namespace
@@ -315,8 +315,11 @@ local UI_TEXTURES=112+GATE_STRIPS+EFFECT_TEXTURES+MENU_TEXTURES
 -- The Close results and Kart buttons add two Frames to the earlier nine; the
 -- Settings check "Outline my kart" adds a button and its two lines of text.
 local OUTLINE_CHECK_FRAMES,OUTLINE_CHECK_FONTS=1,2
-local UI_FRAMES=11+MENU_FRAMES+OUTLINE_CHECK_FRAMES
-local UI_FONTS=13+MENU_FONTS+OUTLINE_CHECK_FONTS
+-- The Scarlet Crusade Cup adds its heading and four track buttons (Scarlet
+-- Graveyard and three coming-soon dungeons) to the track list.
+local SCARLET_CUP_FRAMES,SCARLET_CUP_FONTS=4,1
+local UI_FRAMES=11+MENU_FRAMES+OUTLINE_CHECK_FRAMES+SCARLET_CUP_FRAMES
+local UI_FONTS=13+MENU_FONTS+OUTLINE_CHECK_FONTS+SCARLET_CUP_FONTS
 local PARTICLES_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Effects\\Particles.tga"
 local FLAME_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Effects\\Flame.tga"
 local function effectPieces(UI)
@@ -1420,6 +1423,45 @@ withMock(nil,false,function(env,UI)
     for key,value in pairs(counts) do
         assert(env.counts[key]==value,"finish/restart/partial flow allocated UI objects: "..key)
     end
+end)
+
+-- A sprint (Scarlet Graveyard) finishes at its last gate after one run: the
+-- HUD, the checkpoint line and the summary say so, and the one-run score is
+-- saved on its own board.
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    UI.Toggle()
+    assert(UI.SelectTrack("scarlet_graveyard") and UI.track.laps==1,"the Graveyard is selectable: a sprint")
+    UI.Start()
+    local Physics=env.namespace.Physics
+    local dt=Physics.FIXED_DT
+    assert(UI.race.status=="countdown" and UI.race.targetLaps==1,"a sprint's race is one run")
+    local function cross(index)
+        local gate=UI.track.gates[index]
+        UI.state.x=(gate.ax+gate.bx)/2-gate.nx*2
+        UI.state.y=(gate.ay+gate.by)/2-gate.ny*2
+        UI.state.heading=gate.nx==1 and 0 or gate.nx==-1 and math.pi or
+            gate.ny==1 and math.pi/2 or -math.pi/2
+        UI.state.speed=200; UI.state.steering=0
+        UI.OnUpdate(dt)
+    end
+    finishCountdown(UI)
+    env.key(UI,"OnKeyDown","W")
+    UI.OnUpdate(dt)
+    assert(UI.lapHud.text:find("Sprint | Time:",1,true),"the lap line times the sprint")
+    cross(1); cross(2)
+    assert(UI.active and UI.race.status=="running" and UI.checkpoints.passed==2,"two gates down, one to go")
+    assert(UI.checkpointHud.text:find("Next: Honor's Tomb",1,true),"the HUD names the next gate")
+    cross(3)
+    assert(not UI.active and UI.race.status=="finished" and UI.race.reason=="Sprint complete"
+        and UI.race.laps.completedLaps==1,"the last gate finishes the sprint")
+    assert(UI.checkpointHud.text:find("Checkpoints: sprint complete",1,true),"the checkpoint line says the sprint is done")
+    assert(UI.summary:IsShown() and UI.summaryTitle.text=="RUN COMPLETE"
+        and UI.summaryDetail.text:find("Sprint | Total:",1,true) and UI.summaryDetail.text:find("All 3 gates",1,true),
+        "the summary shows the sprint's total")
+    local score=env.namespace.SoloRecords.GetView("scarlet_graveyard").rows[1]
+    assert(UI.scoreResult.saved and score and score.lapCount==1 and score.totalTicks==UI.race.totalTicks,
+        "the one-run total is saved on the Graveyard's own board")
 end)
 
 -- Render interpolation uses the retained fixed-step pair, including updates

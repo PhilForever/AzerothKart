@@ -1,6 +1,8 @@
 -- The selectable courses, grouped into cups: presentation data (names,
 -- scenery picture, off-road wording, dust colour) plus which pure geometry
 -- builds each one. Independent of WoW APIs; UI and the menus read it.
+-- A Scarlet Crusade Cup course is a dungeon sprint: one run from the start
+-- to the last gate (its geometry sets `laps`).
 local _, namespace = ...
 local Courses = {}
 
@@ -9,6 +11,7 @@ local TRACKS = "Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\"
 Courses.CUPS = {
     {id="proving", name="Proving Grounds"},
     {id="capital", name="Capital Cities Cup"},
+    {id="scarlet", name="Scarlet Crusade Cup"},
 }
 
 -- Display order. A course marked `soon` is listed but cannot be selected.
@@ -48,6 +51,13 @@ Courses.LIST = {
         background=TRACKS .. "Undercity\\Background.tga",
         dust={0.62,0.70,0.56}, ground={0.10,0.10,0.09},
         status="Undercity Slime Circuit | Start for 3 laps | Full speed to the street walls"},
+    {id="scarlet_graveyard", name="Scarlet Graveyard", short="Graveyard", cup="scarlet", geometry="dungeon",
+        background=TRACKS .. "ScarletGraveyard\\Background.tga",
+        dust={0.78,0.74,0.68}, ground={0.05,0.05,0.05},
+        status="Scarlet Graveyard | Sprint to Honor's Tomb | Grass slows you; graves block"},
+    {id="scarlet_library", name="Scarlet Library", cup="scarlet", soon=true},
+    {id="scarlet_armory", name="Scarlet Armory", cup="scarlet", soon=true},
+    {id="scarlet_monastery", name="Scarlet Monastery", cup="scarlet", soon=true},
 }
 
 local byId = {}
@@ -90,6 +100,9 @@ function Courses.build(id, crossesGate)
     elseif course.geometry == "city" then
         local definition = namespace.CapitalCities and namespace.CapitalCities[id]
         track = definition and namespace.Circuit.new(definition, crossesGate)
+    elseif course.geometry == "dungeon" then
+        local definition = namespace.ScarletCrusade and namespace.ScarletCrusade[id]
+        track = definition and namespace.Dungeon and namespace.Dungeon.new(definition, crossesGate)
     end
     built[id] = track
     return track

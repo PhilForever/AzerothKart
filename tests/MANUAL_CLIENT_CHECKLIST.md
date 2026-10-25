@@ -1,5 +1,41 @@
 # Manual client acceptance — F0/F1/F2/F5
 
+## Deferred Scarlet Graveyard check (proposed, `claude/scarlet-graveyard`)
+
+**NOT RUN.** Run it only after Codex's review and a coordinated install. Codex's review includes the sprint rules (ADR 0020) and the score-sync change in Claude's handoff.
+
+**Fully restart the client:** `Dungeon.lua`, `ScarletCrusade.lua` and `Assets/Tracks/ScarletGraveyard/` are new. The owner runs these checks; Claude does not control the client.
+
+1. **Track screen.**
+   - A third cup, *Scarlet Crusade Cup*, lists Scarlet Graveyard, then Scarlet Library, Scarlet Armory and Scarlet Monastery marked "(soon)".
+   - Choose the Graveyard: its 2:1 preview and three facts appear.
+   - The bar's Track button steps from Undercity to Scarlet Graveyard, then Test Oval.
+2. **Load.** The 2048×1024 TGA, the first that is not square. Record any refusal ("... background unavailable | Test Oval remains available") and any hitch when switching to it.
+3. **The drive.** The kart starts in the entrance hall facing west, by the blue portal swirl between two Scarlet guards. Find the way, as the owner intended:
+   - north up the long hall;
+   - through the east door of the Chamber of Atonement, the first gate, past the torture table;
+   - out of its west door and down the stairs, the second gate;
+   - across the Forlorn Cloister's graveyard, to the chequered line in Honor's Tomb's door, the finish.
+
+   The HUD reads "Sprint" with the run time and the gates passed (n/3). The race ends at the third gate.
+4. **Walls and graves.**
+   - Walls slide the kart along them.
+   - Doorways are wide enough at speed.
+   - Graves, crypts, trees, the fountain and the torture table block the kart.
+   - Record anything that blocks where nothing is drawn, or lets the kart through something drawn.
+5. **The lawn.** The cloister's grass slows the kart, as Mirage's rough ground does; the stone path is the fast way. Record whether that feels right.
+6. **Results and scores.**
+   - Results read "RUN COMPLETE" with "Sprint | Total: …" and "All 3 gates", and list one "Run" time instead of lap times.
+   - Highscores keeps the Graveyard's board apart from the lapped courses, under "Fastest completed sprints, one run each".
+   - Community sharing needs Codex's score-sync change. Without it, record what the Highscores screen says.
+7. **The look.** Record whether:
+   - the halls read as a monastery at night;
+   - the cloister reads as an open graveyard under the moon;
+   - the north walls' faces, carpets, torches and braziers read clearly in the follow camera.
+8. **Camera and performance.**
+   - The camera stops at the picture's edges: it is 1024 units tall, not 2048.
+   - Record the frame rate while driving. Print Probe shows 90 frames, 167 textures and 136 font strings.
+
 ## Deferred Thunder Bluff Skyway check (proposed, `claude/thunder-bluff`)
 
 **NOT RUN.** After Codex's review (including the score-sync change in Claude's handoff) and a coordinated install, **fully restart the client**: `Assets/Tracks/ThunderBluff/` is new. The owner runs these; Claude does not control the client.

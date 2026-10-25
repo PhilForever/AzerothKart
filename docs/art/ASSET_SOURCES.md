@@ -135,3 +135,21 @@ Mirage scenery v1 imports no Warcraft III file; it was painted procedurally so e
 - **Files:** 24 models, 158 placements, 26 textures; [the generated sources list](tracks/thunder_bluff_skyway-sources.txt) names them. Extracted files stay outside Git.
 - **Modifications:** as for the earlier cities, with these painted by the generator: the drop to the plain, the sandstone faces, the plain's shadows, trees and river, the bridges' plank decks, beams and hanging ropes, the rope fences, rims and brinks. Models' ground shadows are left off the drop.
 - **Terms and credits:** as for Stormwind: [ADR 0009](../adr/0009-warcraft-iii-asset-reuse.md); redistribution **unresolved** for release review; Blizzard Entertainment. The route follows the owner's blue line on his screenshot of the in-game Thunder Bluff map; his three screenshots of the mesas guided the look. None of them is stored. See [the Thunder Bluff sheet](tracks/thunder-bluff.md).
+
+**Scarlet Crusade Cup, Scarlet Graveyard (2026-10-25, `claude/scarlet-graveyard`, proposed).** `addon/AzerothKart/Assets/Tracks/ScarletGraveyard/Background.tga` (2048×1024) and `Preview.tga` (512×256) are composited by `scripts/build_dungeon_tracks.py` from the same Warcraft III Reforged install (build 3.0.1.24371). The sources are:
+
+- **Terrain:** the city's square, round and black-marble tiles, bricks and wall cliff; the Dungeon's tiles; the Dalaran ruins' grass; the village's stone path.
+- **Lordaeron:** graves, torches, braziers, the cage, skull piles, the sitting corpse, weapons and the armor rack; its trees, in the Dalaran ruins' dead-tree texture.
+- **Northrend:** tombstones, graves, a broken column and crypts.
+- **The Dungeon:** the torture table, iron maiden, chain post and bench.
+- **The city:** graves, obelisks, stone benches, the ruined fountain and lantern posts.
+- **Units:** the banshee, zombie and skeleton, and the Blood Mage hero as Bloodmage Thalnos.
+- **Reforged's own `_de.w3mod` set:** the Scarlet Crusade's standing banners, footman, cleric and invoker, and the Undercity's crypt tomb and coffins.
+
+- **Files:** 46 models, 88 placements, 38 textures; [the generated sources list](tracks/scarlet_graveyard-sources.txt) names them. Extracted files stay outside Git.
+- **Modifications:**
+  - models posed and rendered as sprites with the project's light, shadows and lean, in a crimson team colour;
+  - terrain atlases halved and shaded;
+  - the wall cliff's stones laid along the north walls' faces.
+  - These are painted by the generator: the masonry, the walls' faces and coping, the red carpets, the stairs, the kerbs, the portal's swirl, the chequered finish, the light pools, the moonlight and the mist.
+- **Terms and credits:** as for Stormwind: [ADR 0009](../adr/0009-warcraft-iii-asset-reuse.md); redistribution **unresolved** for release review; Blizzard Entertainment. The rooms follow the owner's map of the Scarlet Monastery Graveyard (MapsForTanks) and his green route on it, and his screenshot of the Grand Vestibule guided the look. Neither is stored. See [the Scarlet Graveyard sheet](tracks/scarlet-graveyard.md).
