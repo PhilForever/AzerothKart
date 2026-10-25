@@ -1,5 +1,44 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-25 22:58 +01:00 - all reviewed updates installed and packaged
+
+Owner explicitly requests installation of all missing updates. Tested runtime
+`c9ebf03` (documentationHEAD`a964a12`) is now actually installed in the existing
+`_classic_beta_/Interface/AddOns/AzerothKart`. It includes reviewed Thunder Bluff
+and solo Scarlet Graveyard, score-sync/catalogue fixes, retired Oval, seven-map
+experimental two-peer eligibility, smoother opponent motion and the finite
+opt-in GroupProbe. Claude's unfinished Library reservationb56d227 stays separate.
+No unreviewed source or other-worktree changes were deployed.
+
+Before installation, independent read-only audit confirmed all70previous source
+files still matched the priorbb085ac manifest; only the known legacy drag-car
+extra existed. PowerShell7 installer WhatIf PASS, followed by actual authorized
+backup/copy/hash verification. A separate Python readback verifies all77source/
+installed/manifest files, all71complete prior backup files, and the unchanged
+legacy extra (78installed files total). No deletions, WTF/player-data/other-addon
+changes, native client input or packets, push/release or milestone completion.
+
+Manifest: ignored `local-artifacts/deploy-20261025-all-updates/backups/
+20261025-225742-759-34351ea7d848497f9f3050bc89e79eb1/install.json`.
+Independent audit script and receipt are in the same deployment root. Friend
+ZIP from installed tested paths: `../AzerothKart-Combined-c9ebf03.zip`,77entries,
+61,237,736bytes, SHA256
+`8F563519F3DDDE25CE3C6CFADF9D4991D864CA4AC859EC3D42F77741F9B5E819`.
+Every ZIP entry was read back and matched against the tested source; the old
+unreferenced extra is preserved locally but excluded from the clean package.
+
+Source/runtime tests remain the actual previously recorded Lua51 passes; no
+runtime source changed for deployment. Catalogue8boards/whitespace checks PASS;
+structural validator retains only the2historical expired skill links. Installed
+file verification is not a native gameplay or group-delivery result.
+
+**Next:** both players update and fully exit/relaunch WoW (seven new files from
+the prior installed build), then check normal driving/nearby opponent motion.
+The short optional consenting PARTY/RAID procedure is in GROUP_DELIVERY.md;
+actual group receipt and8racer capacity remain NOT RUN. Existing two-player mode
+requires no group. Eight-player racing and live Graveyard remain unimplemented.
+
+
 ## 2026-10-25 22:52 +01:00 - smoother opponent motion and bounded group route check
 
 Tested source commit: `c9ebf03` (see Git for the full hash), on

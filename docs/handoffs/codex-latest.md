@@ -1,5 +1,46 @@
 # Codex handoff — production maps and Claude course review
 
+## Installed checkpoint - 2026-10-25 22:58 CET
+
+Owner-authorized deployment complete. Runtime`c9ebf03` is installed in the
+existing `_classic_beta_/Interface/AddOns/AzerothKart`, with all reviewed map,
+score, catalogue and multiplayer-motion updates. ClaudeLibraryb56d227 remains
+unfinished/separate. Source addon remains identical to testedc9ebf03.
+
+Independent SHA256 audit:77source/installed files,71complete prior backup files,
+and the harmless legacy drag-car extra unchanged. Manifest/receipt/script:
+`local-artifacts/deploy-20261025-all-updates/`. No deletion/playerdata/otheraddon/
+client input/push. FriendZIP `../AzerothKart-Combined-c9ebf03.zip` has77entries,
+61,237,736bytes, SHA256
+`8F563519F3DDDE25CE3C6CFADF9D4991D864CA4AC859EC3D42F77741F9B5E819`.
+ZIP was built from installed tested paths and fully read-back verified.
+
+Both players must fully exit and restart WoW: seven new files from priorbb085ac.
+Next is ordinary2player motion feedback and the short GROUP_DELIVERY.md check
+when consenting grouped clients are available. Grouping is not required for
+existing2player racing. Native feel/group receipt/eight-racer capacity NOT RUN;
+no eight-player mode or live Graveyard support is claimed. Keep Claude's current
+Library work and canonical untracked files intact; no automatic merges/deploys.
+
+
+
+## Active deployment - owner authorized all missing reviewed updates
+
+2026-10-25 22:57 CET: owner explicitly requests installation. Root is the sole
+deployment owner. Source is clean tested runtimec9ebf03 (documentationHEADa964a12),
+including reviewed Thunder Bluff/Graveyard, score/catalogue fixes, Oval removal,
+seven-map two-peer eligibility and smoother forecasts/finiteGroupProbe.
+Claude's new Library reservationb56d227 is unfinished and excluded; preserve
+its branch/worktree. No source merge or other-addon/player-data changes.
+
+Deploy only to the existing `_classic_beta_/Interface/AddOns/AzerothKart`,
+preserving the whole installed tree in ignored
+`local-artifacts/deploy-20261025-all-updates/backups`, with the existing reviewed
+PowerShell7 hash/backup helper. Its WhatIf preflight passed. Independently audit
+source/target/backup afterward, retain the harmless legacy extra and build a
+friendZIP from the installed tested source paths. No client automation, reload,
+push or release. New files require full client restart after successful install.
+
 ## Latest multiplayer checkpoint - 2026-10-25 22:52 CET
 
 Tested source commit: `c9ebf03` (see Git for the full hash), on
