@@ -28,6 +28,7 @@ from pathlib import Path
 import dungeon_layouts as L
 from build_city_tracks import number, prop_box, q
 from city_layouts import WALL_INSET, box
+from wc3render import forget_textures
 
 ROOT = Path(__file__).resolve().parents[1]
 LUA_OUTPUT = ROOT / "addon" / "AzerothKart" / "ScarletCrusade.lua"
@@ -50,6 +51,7 @@ def geometry(wc3, d):
             continue
         if solid is True:
             found = prop_box(wc3, d, item)
+            forget_textures()             # one model's decoded textures at a time
         else:
             x0, y0, x1, y1 = solid
             found = box(item["name"], int(round(x0)), int(round(y0)), int(round(x1)), int(round(y1)))

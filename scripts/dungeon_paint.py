@@ -31,6 +31,7 @@ from pathlib import Path
 
 from city_paint import Picture, Strata, Tileset, bank_distance, hash32, paint_sprite, sprite_for
 from paintkit import encode_png, encode_tga
+from wc3render import forget_textures
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -411,6 +412,7 @@ def build(wc3, d, geometry, check=False, preview=False, log=print):
     models = []
     for item in d["props"]:
         sprite = sprite_for(wc3, d, item, cache)
+        forget_textures()                 # Reforged's textures are large: one model's at a time
         models.append((item, sprite, int(round(item["x"])), int(round(item["y"]))))
     lights = [(X + 0.5, Y + 0.5, item["light"][0], item["light"][1]) for item, sprite, X, Y in models
               if item.get("light")]
