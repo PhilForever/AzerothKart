@@ -1,5 +1,35 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-25 16:08 +01:00 — combined update installed and packaged
+
+Committed runtime `6b4dc16d33004715714d072471bc3b1c99a8f6af` on
+`codex/automatic-score-sync`. Owner's requested installed-menu correction and
+combined synchronization build are now actually deployed with the existing
+PowerShell7 backup/hash helper into the existing `_classic_beta_/Interface/AddOns/AzerothKart`.
+No forced rollback, deletion, other-addon/WTF access or client automation.
+
+Installer reported Verified; independent readback confirms all70source files
+match installed bytes and manifest SHA256. All68prior files exactly match the
+verified backup. The harmless unreferenced legacy GoblinDragCar.tga remains
+unchanged as the single extra target file. Installed Menu no longer contains
+the identical-handling sentence; it has the current profile description control,
+and installed Physics is11. This verifies files, not an already-running UI.
+
+Manifest: ignored `local-artifacts/deploy-20261025-auto-scores/backups/
+20261025-160602-790-5d1f7ee188514b838bf6caeeaeb82490/install.json`.
+Independent receipt: `local-artifacts/deploy-20261025-auto-scores/receipt.json`.
+Package built from the70tested installed paths, then every ZIP entry rehashed:
+`../AzerothKart-AutomaticScores-6b4dc16.zip`,50,964,109bytes,
+SHA256`3F125C691C2157EBC8B38643ACD97AFF9151E8BC3B80BE53EB4561F2D112952C`.
+It contains only addon files, not backup data or player files.
+
+Other worktrees/HEADs/untracked work remain preserved. No push, release or
+native acceptance claimed. **Next:** fully exit/restart both updated clients
+(3newLua files), enter the world normally, and observe Highscores during an
+ordinary completed race. No manual result exchange/extra software/probe series.
+Native roster population, actual latency and capacity remain NOT RUN; the UI
+reports waiting/connected/capacity state instead of assuming delivery.
+
 ## 2026-10-25 16:03 +01:00 — automatic score delivery/notifications integrated
 
 Owner requested the automatic discovery/whisper synchronization, visible

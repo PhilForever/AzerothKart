@@ -1,5 +1,25 @@
 # Codex handoff — kart handling and automatic leaderboard work
 
+## Deployment checkpoint — installed and friend package verified
+
+2026-10-25 16:08 +01:00: actual runtime commit `6b4dc16` is installed in the
+existing Program Files `_classic_beta_/Interface/AddOns/AzerothKart` folder.
+All70source/target/manifest hashes verified independently; all68prior files
+backed up exactly. Legacy unreferenced GoblinDragCar.tga preserved as one extra.
+Installed Menu has new profile descriptions and Physics11, fixing the owner's
+old identical-handling copy once the client restarts.
+
+Verified friend ZIP from installed tested paths:
+`../AzerothKart-AutomaticScores-6b4dc16.zip`,70entries/50,964,109bytes,
+SHA256`3F125C691C2157EBC8B38643ACD97AFF9151E8BC3B80BE53EB4561F2D112952C`.
+Ignored receipt `local-artifacts/deploy-20261025-auto-scores/receipt.json`
+contains exact manifest/backup paths. No user SavedVariables files touched.
+
+Next is a full exit/restart for3newLua modules and ordinary play/Highscores
+observation, not manual exchange or another transport-probe sequence. Native
+roster availability/delivery/scale remain unverified. No push/release or other
+worktree changes. Documentation commits after runtime do not change addon bytes.
+
 ## Latest checkpoint — automatic score delivery integrated
 
 2026-10-25 16:03 +01:00, `codex/automatic-score-sync` from `1c029f8`.
