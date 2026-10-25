@@ -1,5 +1,16 @@
 # Manual client acceptance — F0/F1/F2/F5
 
+## Deferred drive-fixes check (proposed, `claude/drive-fixes`)
+
+**NOT RUN.** Run it after Codex's review and a coordinated install. The owner runs these checks; Claude does not control the client. No new files: a `/reload` is enough unless the install also brings the Library, whose folder is new (then fully restart).
+
+1. **Scarlet Graveyard, the chamber's west side** (his images 1 and 2). A wall stands either side of the Chamber of Atonement's west door, and the kart stops at it where it is drawn. The way west is through the door, into the west hall.
+2. **Nothing under the kart** (his images 3 and 4). The armour rack stands in the corner at the head of the stairs, off the steps, and there is no ghost on the cloister's path. The ghosts on the lawns, the sitting corpse and the stone benches block. Record anything else the kart drives over.
+3. **Thunder Bluff's start** (his image 5). At GO the kart stands at the foot of the Lower Rise's west side facing up it, the finish line ahead and the start sign on the right. Straight on is the way. Record the lap count after the first full loop: crossing the finish line just after GO counts nothing, as before.
+4. **Each lap's end at Thunder Bluff.** Coming west along the south side, the way on is right at the junction, up the west side; the road from the lift goes on west to the lift.
+5. **Scores.** Both courses are version 2: their Highscores boards start empty, and version 1 times stay saved under version 1.
+6. **The Library** (when installed): the courtyard's bushes, the kennel's cages, rib cage and hay, and the candles round Doan block; nothing else stands on the floor.
+
 ## Deferred Scarlet Library check (proposed, `claude/scarlet-library`)
 
 **NOT RUN.** Run it after Codex's review (round rooms in ADR 0020's addendum, and the score-sync change with the Library's code) and a coordinated install. **Fully restart the client:** `Assets/Tracks/ScarletLibrary/` is new. The owner runs these checks; Claude does not control the client.
@@ -13,7 +24,7 @@
    - north up the east hall into the Gallery of Treasures (the third gate in its door);
    - east through the two columned halls (the fourth gate in the Athenaeum's door) and south down the Athenaeum;
    - through the last hall to the chequered line in the round library's door, the finish.
-4. **The kennel's hairpin.** Record whether the turn round in the kennel is fair at speed. The houndmaster and his hounds block; the straw, cages and bones by the walls do not.
+4. **The kennel's hairpin.** Record whether the turn round in the kennel is fair at speed. The houndmaster, his hounds, the cages, the rib cage and the hay block; the straw piles and the skull pile by the walls stand off the floor.
 5. **Walls, columns and the round wall.** Record:
    - whether the arcade's columns and the courtyard's trees block where they are drawn;
    - whether the pillars in the halls leave enough room;

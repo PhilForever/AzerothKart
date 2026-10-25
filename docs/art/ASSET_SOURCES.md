@@ -160,10 +160,10 @@ Mirage scenery v1 imports no Warcraft III file; it was painted procedurally so e
 - **The city:** the arcade's columns, the statue fountain, a shield display and bushes.
 - **The Dungeon:** bookshelves (wall, diagonal and tall), tables with chairs, and treasure piles.
 - **Lordaeron:** torches, braziers, armour racks, cages, hay, rib bones, a skull pile, a trough, weapons and its summer trees.
-- **The ruins:** flowers. **Buildings and items:** the book of summoning as a lectern, and treasure chests.
+- **Buildings and items:** the book of summoning as a lectern, and treasure chests.
 - **Reforged's own `_de.w3mod` set:** the Scarlet Crusade's standing banners, footman, huntsman, cleric and invoker hero; the dark hound; a Lordaeron sword statue; an interior pillar; the Undercity's iron chest.
 
-- **Files:** 48 models, 180 placements, 39 textures; [the generated sources list](tracks/scarlet_library-sources.txt) names them. Extracted files stay outside Git.
+- **Files:** 40 models, 163 placements, 38 textures (on `claude/drive-fixes`, which removed the flowers and other props from the karts' floor; 48, 180 and 39 before); [the generated sources list](tracks/scarlet_library-sources.txt) names them. Extracted files stay outside Git.
 - **Modifications:**
   - as for the Graveyard, in a crimson team colour, with the hounds tinted red;
   - the columned halls' and the round library's tiles greyed;

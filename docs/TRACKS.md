@@ -63,7 +63,7 @@ The owner's second cup races through Azeroth's capitals along their real streets
 
 **Undercity Slime Circuit** (`undercity_slime`, version 2, `fullSpeedToWalls=true`, proposed on `claude/undercity-river`): the owner's revamp, "a river of slime with bridges at every section", the karts "crossing the bridges (sharp turns)". The slime is the canal ring round the Trade Quarter; from his arrow below the Apothecarium the course runs counter-clockwise along its outer and inner walkways and changes walkway on a bridge at every section (six: timber and stone by turns), each a sharp turn on, a straight across the slime and a sharp turn off: inside round the Rogues' Quarter's corner, outside up the Magic Quarter's side, inside under the Ruins of Lordaeron, outside down the War Quarter's side, inside round the Apothecarium's corner and out onto the start straight. Six gates named for the quarters (the finish is *The Canals*); a 5,797-unit lap; no approach road (the spawn is on the loop, 136 units past the finish line); no plazas, solids or narrows. The Trade Quarter is still painted 30 below the ring, and the stone bridges rise in painted humps (the karts drive flat). Version 1's loop down into the Trade Quarter is replaced. Offline: the walk from the loop passes the gates in order and never meets a wall. See [the Undercity sheet](art/tracks/undercity.md).
 
-**Thunder Bluff Skyway** (`thunder_bluff_skyway`, version 1, `fullSpeedToWalls=true`, proposed on `claude/thunder-bluff`): the owner's blue line, clockwise, as his stroke runs. Start on the road in from the lift at his X, bear left up the Lower Rise's west side, out over the west bridge and round the Spirit Rise, back over the north bridge, east along the north side, along the long bridge and round the Elder Rise, back over the lower bridge, down the east side, over the east bridge and across the Hunter Rise, back over the south-west bridge. Six gates named for the rises (the finish is *The Lift*); a 5,616-unit lap and a 285-unit approach; no plazas or solids. The six bridges are `narrows` (wall radius 54) over a painted drop to Mulgore's plain (the city's `chasm`); the course is on one level and the karts drive it flat. Offline: the walk passes the gates in order and never meets a wall; each bridge is road to its own wall. See [the Thunder Bluff sheet](art/tracks/thunder-bluff.md).
+**Thunder Bluff Skyway** (`thunder_bluff_skyway`, version 2 on `claude/drive-fixes`, `fullSpeedToWalls=true`; version 1 is integrated and installed): the owner's blue line, clockwise, as his stroke runs. Start at the foot of the Lower Rise's west side, facing up it with the finish line ahead (version 1 started on the road in from the lift at his X, with a left turn at the junction that the camera did not show: the owner, after his client run, found it "pretty unexpected"), then up the west side, out over the west bridge and round the Spirit Rise, back over the north bridge, east along the north side, along the long bridge and round the Elder Rise, back over the lower bridge, down the east side, over the east bridge and across the Hunter Rise, back over the south-west bridge. Six gates named for the rises (the finish is *The Lift*); a 5,616-unit lap and a 285-unit approach from the lift (unused by the race since version 2); no plazas or solids. The six bridges are `narrows` (wall radius 54) over a painted drop to Mulgore's plain (the city's `chasm`); the course is on one level and the karts drive it flat. Offline: the walk passes the gates in order and never meets a wall; each bridge is road to its own wall. See [the Thunder Bluff sheet](art/tracks/thunder-bluff.md).
 
 **Elevation** ([ADR 0015](adr/0015-track-elevation.md), proposed): the owner asked for elevation on the maps that need it and chose looks first, then slopes you can feel, then bridges over the track. Only the looks are built; the new cities' street heights are generated into `CapitalCities.lua` for the proposed physics.
 
@@ -92,20 +92,22 @@ One generator, `scripts/build_dungeon_tracks.py`, writes the data (`ScarletCrusa
 - the spawn stands on stone;
 - every solid stands on the floor;
 - the reviewed route crosses the gates in order without touching a wall or a solid;
-- each gate spans its doorway from wall to wall, and a flood fill of the floor with that gate as a barrier proves it cannot be driven round.
+- each gate spans its doorway from wall to wall, and a flood fill of the floor with that gate as a barrier proves it cannot be driven round;
+- wherever the karts' floor ends, a wall is painted beside it: no invisible wall (on `claude/drive-fixes`);
+- nothing the karts drive over is left non-solid: a model that does not block keeps its drawn body off their floor (on `claude/drive-fixes`).
 
-**Scarlet Graveyard** (`scarlet_graveyard`, version 1, sprint; proposed): the owner's green route on his map of the wing, at karting scale.
+**Scarlet Graveyard** (`scarlet_graveyard`, version 2 on `claude/drive-fixes`; version 1 is integrated and installed): the owner's green route on his map of the wing, at karting scale.
 
 1. From the instance portal in the entrance hall, the run turns north up the long hall.
 2. It turns west through the east door of the Chamber of Atonement and passes its torture table.
 3. It leaves by the west door, then goes down the stairs into the Forlorn Cloister.
 4. It crosses the graveyard on the path round the ruined fountain, to Honor's Tomb.
 
-- 2048 × 1024; 18 rooms (the cloister's lawn is rough); 52 solids.
+- 2048 × 1024; 18 rooms (the cloister's lawn is rough); 59 solids.
 - Three gates: *Chamber of Atonement*, *Forlorn Cloister* and *Honor's Tomb* (the finish).
 - About 2,200 units from the portal to the finish line along the reviewed route.
 
-Offline: the route walk crosses the gates in order and never meets a wall or a solid, and full throttle from the grid launches cleanly (`tests/test_dungeon.lua`). See [the Scarlet Graveyard sheet](art/tracks/scarlet-graveyard.md).
+Offline: the route walk crosses the gates in order and never meets a wall or a solid, and full throttle from the grid launches cleanly (`tests/test_dungeon.lua`). Version 2 answers the owner's client run: a wall either side of the chamber's west door, where the karts stopped at a wall the picture did not show, and nothing left on the floor for the karts to drive over (the ghost on the path is gone; the ghosts, the corpse and the benches on the floor block). See [the Scarlet Graveyard sheet](art/tracks/scarlet-graveyard.md).
 
 **Scarlet Library** (`scarlet_library`, version 1, sprint; proposed on `claude/scarlet-library`): the owner's route on his map of the Library wing. "Everything is inside except the first courtyard with the fountain/statue in the middle", ending "in the iconic round library".
 
@@ -116,7 +118,7 @@ Offline: the route walk crosses the gates in order and never meets a wall or a s
 5. East through two columned halls, then south down the Athenaeum's bookshelves.
 6. Through the last hall to Arcanist Doan's round library: a true circle, the first round room (`shape="disc"`).
 
-- 2048 × 2048; 41 rooms (the courtyard's lawn is rough; the fountain's court and the round library are round); 47 solids.
+- 2048 × 2048; 41 rooms (the courtyard's lawn is rough; the fountain's court and the round library are round); 65 solids (on `claude/drive-fixes`, where the bushes, cages, bones, hay and candles block and nothing else stands on the floor).
 - Five gates: *Huntsman's Cloister*, *Houndmaster Loksey*, *Gallery of Treasures*, *Athenaeum* and *Arcanist Doan* (the finish).
 - About 6,200 units from the portal to the finish line along the reviewed route.
 

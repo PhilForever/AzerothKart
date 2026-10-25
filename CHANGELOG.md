@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased — fixes from the owner's client run (2026-10-26, `claude/drive-fixes`)
+- The owner drove the installed build and sent five screenshots: "fix invisible wall at infront of kart on image 1 and 2. remove object under kart on image 3 and 4. image 5 shows the startline of thunderbluff - arrow is not in the picture, so it's literally impossible and pretty unexpected having to take a left turn at the start."
+- **Scarlet Graveyard version 2:**
+  - **The invisible wall:** the Chamber of Atonement's floor met the west hall's with no wall painted between them, and the karts stopped there. A wall now stands either side of the chamber's west door; the door is the way through.
+  - **Nothing under the kart:** the armour rack stands in the corner at the head of the stairs, off the steps, and the ghost on the cloister's path is gone. The ghosts, the sitting corpse and the stone benches left on the floor are solid. The skull piles, banners, iron maiden and weapons stand back against the walls.
+  - 59 solids (from 52). The route, the gates and the spawn are unchanged.
+- **Scarlet Library** (not installed yet, still version 1) gets the same treatment: the courtyard's bushes, the kennel's cages, bones and hay, and the round library's candles are solid; the flowers, the hay on the kennel's floor, a rib cage, the south walk's torches and the round library's south shelves and banners are gone; shelves, chests and braziers stand back against the walls. 65 solids (from 47).
+- **The generator's new rules** (`scripts/build_dungeon_tracks.py`, `scripts/dungeon_paint.py`):
+  - **no invisible wall:** wherever the karts' floor ends, the picture paints a wall within the inset (3 units' slack, measured square);
+  - **nothing to drive over:** a model that is not solid keeps its drawn body off the kart centre's floor (3 units' slack), so it stands against a wall, in a corner or behind a solid.
+
+  On the installed version 1 they flag the chamber's meeting floors and 17 props, the armour rack and the path's ghost among them; on the Library as first proposed, 71 props.
+- **Thunder Bluff Skyway version 2:** the grid stands on the loop at the foot of the Lower Rise's west side, facing up it, with the finish line 75 units ahead and the start sign in view. The race no longer starts on the road from the lift with a left turn the camera did not show coming. The road from the lift still joins behind the grid, and the picture is unchanged.
+- **Scores:** both courses are version 2, so their boards start afresh; version 1 times stay saved under version 1. The score catalogue is regenerated.
+- **Tests:** `test_dungeon` checks the chamber's west wall and the Library's lawn; `test_circuit` checks that Thunder Bluff's grid is on the loop, facing the way the course runs, the finish line ahead. The client checks are NOT RUN.
+
 ## Unreleased — Scarlet Crusade Cup: Scarlet Library (2026-10-25, `claude/scarlet-library`)
 - **Scarlet Library**, the cup's second dungeon sprint, is selectable. The owner: "Scarlet Library. Everything is inside except the first courtyard with the fountain/statue in the middle, everything else is inside - ending in the iconic round library." It follows his route on his map of the wing:
   - from the portal, north and east, then south down the long hall;

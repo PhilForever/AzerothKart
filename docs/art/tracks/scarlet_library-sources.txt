@@ -3,8 +3,8 @@
 
 ## Models (placements)
    8  war3.w3mod:_de.w3mod:doodads/cityscape/props/scarletcrusadestandingbanners/scarletcrusadestandingbanners0.mdx
-   6  war3.w3mod:_de.w3mod:doodads/cityscape/props/scarletcrusadestandingbanners/scarletcrusadestandingbanners1.mdx
-   6  war3.w3mod:_de.w3mod:doodads/cityscape/props/scarletcrusadestandingbanners/scarletcrusadestandingbanners2.mdx
+   5  war3.w3mod:_de.w3mod:doodads/cityscape/props/scarletcrusadestandingbanners/scarletcrusadestandingbanners1.mdx
+   5  war3.w3mod:_de.w3mod:doodads/cityscape/props/scarletcrusadestandingbanners/scarletcrusadestandingbanners2.mdx
    2  war3.w3mod:_de.w3mod:doodads/lordaeroncapital/props/statues/lordaeron_statue_sword.mdx
    6  war3.w3mod:_de.w3mod:doodads/lordaeroncapital/structures/pillarinterior/pillarinterior0.mdx
    2  war3.w3mod:_de.w3mod:doodads/undercity/props/treasurechest/treasurechest.mdx
@@ -19,8 +19,8 @@
    1  war3.w3mod:doodads/cityscape/props/crystalshield/crystalshield.mdx
   12  war3.w3mod:doodads/cityscape/structures/city_columnsingle/city_columnsingle.mdx
    1  war3.w3mod:doodads/dungeon/props/bigbookshelf/bigbookshelf.mdx
-  16  war3.w3mod:doodads/dungeon/props/bookshelfwall/bookshelfwall.mdx
-   4  war3.w3mod:doodads/dungeon/props/bookshelfwall45/bookshelfwall45.mdx
+  15  war3.w3mod:doodads/dungeon/props/bookshelfwall/bookshelfwall.mdx
+   2  war3.w3mod:doodads/dungeon/props/bookshelfwall45/bookshelfwall45.mdx
    3  war3.w3mod:doodads/dungeon/props/tablenchair/tablenchair.mdx
    1  war3.w3mod:doodads/dungeon/props/treasurepile/treasurepile0.mdx
    1  war3.w3mod:doodads/dungeon/props/treasurepile/treasurepile1.mdx
@@ -29,22 +29,14 @@
    1  war3.w3mod:doodads/lordaeronsummer/props/cage/cage.mdx
    1  war3.w3mod:doodads/lordaeronsummer/props/cageempty/cageempty.mdx
    1  war3.w3mod:doodads/lordaeronsummer/props/hay/hay0.mdx
-   1  war3.w3mod:doodads/lordaeronsummer/props/hay/hay1.mdx
-   1  war3.w3mod:doodads/lordaeronsummer/props/hay/hay2.mdx
    1  war3.w3mod:doodads/lordaeronsummer/props/hay/hay3.mdx
    1  war3.w3mod:doodads/lordaeronsummer/props/hay/hay4.mdx
-   3  war3.w3mod:doodads/lordaeronsummer/props/hayclump/hayclump.mdx
-   1  war3.w3mod:doodads/lordaeronsummer/props/ribbones/ribbones0.mdx
+   2  war3.w3mod:doodads/lordaeronsummer/props/hayclump/hayclump.mdx
    1  war3.w3mod:doodads/lordaeronsummer/props/ribbones/ribbones1.mdx
    1  war3.w3mod:doodads/lordaeronsummer/props/skullpile/skullpile2.mdx
-  29  war3.w3mod:doodads/lordaeronsummer/props/torchhuman/torchhuman.mdx
+  27  war3.w3mod:doodads/lordaeronsummer/props/torchhuman/torchhuman.mdx
    1  war3.w3mod:doodads/lordaeronsummer/props/trough/trough0.mdx
    1  war3.w3mod:doodads/lordaeronsummer/props/weapons/weapons.mdx
-   2  war3.w3mod:doodads/ruins/plants/ruins_flower/ruins_flower0.mdx
-   1  war3.w3mod:doodads/ruins/plants/ruins_flower/ruins_flower1.mdx
-   1  war3.w3mod:doodads/ruins/plants/ruins_flower/ruins_flower2.mdx
-   1  war3.w3mod:doodads/ruins/plants/ruins_flower/ruins_flower3.mdx
-   1  war3.w3mod:doodads/ruins/plants/ruins_flower/ruins_flower4.mdx
    1  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree0.mdx
    1  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree1.mdx
    1  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree2.mdx
@@ -87,7 +79,6 @@ war3.w3mod:textures/doodads0.dds
 war3.w3mod:textures/doodads1.dds
 war3.w3mod:textures/dungeondoodad0.dds
 war3.w3mod:textures/genericglow1.dds
-war3.w3mod:textures/ruins_plantlife.dds
 war3.w3mod:textures/shockwave_blue.dds
 war3.w3mod:textures/yellow_glow3.dds
 war3.w3mod:textures/yellow_star.dds

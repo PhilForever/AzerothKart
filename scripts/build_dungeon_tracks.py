@@ -22,7 +22,7 @@ Standard library only; integer compositing over IEEE-exact model rendering,
 so the bytes are reproducible.
 """
 import argparse
-from math import pi, sqrt
+from math import cos, pi, sin, sqrt
 from pathlib import Path
 
 import dungeon_layouts as L
@@ -35,6 +35,9 @@ LUA_OUTPUT = ROOT / "addon" / "AzerothKart" / "ScarletCrusade.lua"
 HEADINGS = {"north": ("math.pi/2", pi / 2), "south": ("-math.pi/2", -pi / 2),
             "east": ("0", 0.0), "west": ("math.pi", pi)}
 CHECKPOINT_MAX_STEP = 5
+# The picture's walls stand at the inset from the karts' floor; this much
+# more is allowed (a doorway's corner, a round wall's rounding).
+WALL_SLACK = 3
 
 
 # ---------------------------------------------------------------------------
@@ -137,6 +140,67 @@ def floor_gap(a, b):
     return max(0.0, sqrt(dx * dx + dy * dy) - reach)
 
 
+def painted_floor(g):
+    """The floor the picture paints, one byte per world unit (row y at
+    y * width): each room's texels (a round room's whose centres lie in its
+    disc), as dungeon_paint.py lays them. Everywhere else is masonry."""
+    w, h = g["width"], g["height"]
+    mask = bytearray(w * h)
+    for r in g["rooms"]:
+        x0, x1 = int(r["x0"]), int(r["x1"])
+        if r.get("shape") == "disc":
+            cx, cy, radius = (r["x0"] + r["x1"]) / 2, (r["y0"] + r["y1"]) / 2, (r["x1"] - r["x0"]) / 2
+            for y in range(int(r["y0"]), int(r["y1"])):
+                for x in range(x0, x1):
+                    if (x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2 <= radius * radius:
+                        mask[y * w + x] = 1
+            continue
+        for y in range(int(r["y0"]), int(r["y1"])):
+            mask[y * w + x0:y * w + x1] = b"\x01" * (x1 - x0)
+    return mask
+
+
+def hidden_walls(g, slack=WALL_SLACK):
+    """Where the karts' floor ends with no wall painted beside it: an
+    invisible wall. Along every edge of the kart centre's floor (a room's,
+    where no other room's floor runs on), the picture's masonry must lie
+    within the inset (and `slack`, for corners and rounding), measured
+    square, as the kart's clearance is. Returns the offending points."""
+    w, h, inset = g["width"], g["height"], g["wallInset"]
+    mask = painted_floor(g)
+    floor = Floor(g)
+    reach = int(inset + slack)
+    bad = []
+
+    def masonry_near(px, py):
+        x0, x1 = px - reach, px + reach + 1
+        if x0 < 0 or x1 > w or py - reach < 0 or py + reach + 1 > h:
+            return True                     # the world's edge is masonry
+        return any(0 in mask[y * w + x0:y * w + x1] for y in range(py - reach, py + reach + 1))
+
+    def edge(px, py, nx, ny):
+        if floor.on_floor(px + nx * 0.5, py + ny * 0.5):
+            return                          # another room's floor runs on: a doorway
+        if not masonry_near(int(round(px)), int(round(py))):
+            bad.append((int(round(px)), int(round(py))))
+
+    for x0, y0, x1, y1, disc in floor.rooms:
+        if disc is None:
+            for x in range(int(x0), int(x1) + 1):
+                edge(x, y1, 0, 1)
+                edge(x, y0, 0, -1)
+            for y in range(int(y0), int(y1) + 1):
+                edge(x1, y, 1, 0)
+                edge(x0, y, -1, 0)
+        else:
+            cx, cy, radius = disc
+            n = int(2 * pi * radius)
+            for k in range(n):
+                c, s = cos(2 * pi * k / n), sin(2 * pi * k / n)
+                edge(cx + radius * c, cy + radius * s, c, s)
+    return bad
+
+
 def reachable(floor, start, barrier=None, step=2):
     """Grid cells (step units) of the kart centre's floor reachable from
     `start`, optionally never crossing the `barrier` gate."""
@@ -170,9 +234,11 @@ def reachable(floor, start, barrier=None, step=2):
 
 def validate_geometry(g):
     """Authoring rules: rooms inside the world; the spawn on stone floor;
-    separate rooms far enough apart that no step jumps a wall; every gate
-    axis-aligned across one doorway, which the karts cannot pass round; the
-    route clear from the spawn through every gate; solids inside the floor."""
+    separate rooms far enough apart that no step jumps a wall; no invisible
+    wall (wherever the karts' floor ends, the picture paints a wall beside
+    it); every gate axis-aligned across one doorway, which the karts cannot
+    pass round; the route clear from the spawn through every gate; solids
+    inside the floor."""
     width, height, inset = g["width"], g["height"], g["wallInset"]
     floor = Floor(g)
     for r in g["rooms"]:
@@ -180,6 +246,11 @@ def validate_geometry(g):
         assert r["surface"] in ("road", "rough"), r["name"]
         assert r.get("shape", "rect") in ("rect", "disc"), r["name"]
         assert r.get("shape") != "disc" or r["x1"] - r["x0"] == r["y1"] - r["y0"], f"round room {r['name']} is square"
+    # Rooms that abut without a doorway look like one floor but stop the
+    # karts between them: paint a wall there, or run the floor on.
+    hidden = hidden_walls(g)
+    assert not hidden, "invisible wall: the karts' floor ends with no wall painted beside it at %s" % (
+        ", ".join("(%d, %d)" % p for p in hidden[::max(1, len(hidden) // 8)][:8]))
     # No tunnelling: the kart floors of rooms that do not meet stay apart.
     for a, ra in zip(floor.rooms, g["rooms"]):
         for b, rb in zip(floor.rooms, g["rooms"]):

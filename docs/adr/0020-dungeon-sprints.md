@@ -84,3 +84,12 @@ Evidence, offline only:
 - `build_dungeon_tracks.py --check` passes for both dungeons, byte for byte.
 
 **NOT RUN in the client:** the Library's drive (the kennel's hairpin above all), its walls and round wall, the 2048 × 2048 picture's load and performance.
+
+## Addendum: what you see is what you drive (proposed, `claude/drive-fixes`, 2026-10-26)
+
+The owner drove the installed Graveyard (version 1) and found two kinds of fault: "fix invisible wall at infront of kart on image 1 and 2. remove object under kart on image 3 and 4." Both are authoring faults; the runtime contract does not change. The generator now refuses them:
+
+- **No invisible wall.** Where two rooms abut without a doorway, the picture paints one floor but the karts' floors stop two insets apart. `build_dungeon_tracks.hidden_walls` walks every edge of the kart centre's floor where no other room's floor runs on, and requires the picture's masonry within the inset plus 3 units, measured square, as the kart's clearance is. The Graveyard's Chamber of Atonement abutted the west hall; version 2 moves its west wing 20 units east, so a wall stands either side of the west door.
+- **Nothing to drive over.** `dungeon_paint.check_props` refuses a model that is not solid with its drawn body (not its shadow) more than 3 units onto the kart centre's floor, where a solid's grown box also counts as off the floor. Scenery out on the floor is solid, or stands against a wall, in a corner or behind a solid. Version 2 of the Graveyard and the not-yet-installed Library are laid out so.
+
+Solids' leaned tops (a column drawn north of its base) are not checked: a kart can still pass over the drawn top of a tall solid it cannot drive into. Graveyard version 2 has its own score boards; the Library stays version 1, since it has not been installed.

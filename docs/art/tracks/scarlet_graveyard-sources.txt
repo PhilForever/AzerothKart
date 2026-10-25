@@ -32,7 +32,7 @@
    1  war3.w3mod:doodads/lordaeronsummer/props/skullpile/skullpile1.mdx
    1  war3.w3mod:doodads/lordaeronsummer/props/skullpile/skullpile2.mdx
    1  war3.w3mod:doodads/lordaeronsummer/props/skullpile/skullpile3.mdx
-   5  war3.w3mod:doodads/lordaeronsummer/props/torchhuman/torchhuman.mdx
+   6  war3.w3mod:doodads/lordaeronsummer/props/torchhuman/torchhuman.mdx
    1  war3.w3mod:doodads/lordaeronsummer/props/weapons/weapons.mdx
    1  war3.w3mod:doodads/northrend/props/northrendbrokencolumn/northrendbrokencolumn0.mdx
    1  war3.w3mod:doodads/northrend/props/northrendgrave/northrendgrave.mdx
@@ -44,7 +44,7 @@
    1  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree2.mdx
    2  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree3.mdx
    1  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree4.mdx
-   3  war3.w3mod:units/creeps/bansheeghost/bansheeghost.mdx
+   2  war3.w3mod:units/creeps/bansheeghost/bansheeghost.mdx
    1  war3.w3mod:units/creeps/zombie/zombie.mdx
    1  war3.w3mod:units/human/herobloodelf/herobloodelf.mdx
    1  war3.w3mod:units/undead/skeleton/skeleton.mdx

@@ -529,20 +529,36 @@ assert(ucNames == "Rogues' Quarter,Magic Quarter,Ruins of Lordaeron,War Quarter,
     "Undercity's gates in order: " .. ucNames)
 assert(ucWalls == 0, "Undercity's centerline never meets a wall")
 
--- Thunder Bluff: the spawn sits on the road in from the lift; the walk turns
--- up the Lower Rise's west side and passes the six gates clockwise, out to
--- each outer rise and back over its two rope bridges, never meeting a wall.
--- The bridges are narrows: road to their own nearer walls.
+-- Thunder Bluff: the grid stands at the foot of the Lower Rise's west side,
+-- facing up it; the walk passes the six gates clockwise, out to each outer
+-- rise and back over its two rope bridges, never meeting a wall. The
+-- bridges are narrows: road to their own nearer walls.
 local thunderBluff = Courses.build("thunder_bluff_skyway", Track.crossesGate)
 local tbData = namespace.CapitalCities.thunder_bluff_skyway
 assert(thunderBluff and thunderBluff.wallRadius == 76 and #thunderBluff.gates == 6 and #thunderBluff.solids == 0
     and #tbData.plazas == 0 and #tbData.branches == 1, "Thunder Bluff's street: one approach road, six gates")
-assert(thunderBluff.version == 1 and thunderBluff.wallClearance == 14 and #tbData.wallVertices > 0
+assert(thunderBluff.version == 2 and thunderBluff.wallClearance == 14 and #tbData.wallVertices > 0
     and thunderBluff.fullSpeedToWalls, "Thunder Bluff uses the exposed-wall clearance and full grip to the walls")
 local tbNames, tbWalls = walk(thunderBluff, tbData)
 assert(tbNames == "Spirit Rise,Lower Rise,Elder Rise,Wind Rider Roost,Hunter Rise,The Lift",
     "Thunder Bluff's gates in order: " .. tbNames)
 assert(tbWalls == 0, "Thunder Bluff's centerline never meets a wall, bridges included")
+-- Version 2: the grid is on the loop, facing the way the course runs, the
+-- finish line just ahead; the race no longer starts on the road from the
+-- lift with a turn at the junction that the camera did not show.
+local tbSpawn = thunderBluff.spawn()
+local tbNearest, tbBest = 1, math.huge
+for index,point in ipairs(tbData.centerline) do
+    local d = distance(point.x, point.y, tbSpawn.x, tbSpawn.y)
+    if d < tbBest then tbNearest, tbBest = index, d end
+end
+local tbA, tbB = tbData.centerline[tbNearest], tbData.centerline[tbNearest % #tbData.centerline + 1]
+local tbAlong = (math.cos(tbSpawn.heading) * (tbB.x - tbA.x) + math.sin(tbSpawn.heading) * (tbB.y - tbA.y))
+    / distance(tbA.x, tbA.y, tbB.x, tbB.y)
+local tbFinish = thunderBluff.gates[#thunderBluff.gates]
+assert(tbBest < 12 and tbAlong > 0.99 and tbFinish.name == "The Lift"
+    and tbFinish.ay > tbSpawn.y and tbFinish.ay - tbSpawn.y < 120,
+    "Thunder Bluff's grid stands on the loop facing up the west side, the finish line ahead")
 assert(#tbData.narrows == 6, "six rope bridges")
 local function tbAcross(index, offset)
     local line = tbData.centerline

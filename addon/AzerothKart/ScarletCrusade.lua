@@ -5,7 +5,7 @@ local _, namespace = ...
 local ScarletCrusade = {}
 
 ScarletCrusade["scarlet_graveyard"] = {
-    id="scarlet_graveyard", version=1, name="Scarlet Graveyard", laps=1,
+    id="scarlet_graveyard", version=2, name="Scarlet Graveyard", laps=1,
     width=2048, height=1024, wallInset=18, checkpointMaxStep=5,
     spawn={x=1945, y=150, heading=math.pi},
     rooms={
@@ -13,7 +13,7 @@ ScarletCrusade["scarlet_graveyard"] = {
         {x=1720, y=70, width=150, height=490, surface="road"}, -- north hall
         {x=1640, y=380, width=120, height=140, surface="road"}, -- chamber door
         {x=1380, y=300, width=260, height=360, surface="road"}, -- chamber
-        {x=1340, y=340, width=340, height=280, surface="road"}, -- chamber wings
+        {x=1360, y=340, width=320, height=280, surface="road"}, -- chamber wings
         {x=1300, y=440, width=100, height=120, surface="road"}, -- chamber west door
         {x=1180, y=420, width=160, height=300, surface="road"}, -- west hall
         {x=1000, y=550, width=220, height=140, surface="road"}, -- stairs
@@ -52,9 +52,16 @@ ScarletCrusade["scarlet_graveyard"] = {
         {id="dead tree_6", x=953, y=513, width=14, height=14},
         {id="obelisk", x=885, y=829, width=19, height=18},
         {id="obelisk_2", x=885, y=389, width=19, height=18},
+        {id="stone bench", x=808, y=897, width=44, height=17},
+        {id="stone bench_2", x=938, y=897, width=44, height=17},
+        {id="stone bench_3", x=808, y=458, width=44, height=17},
+        {id="stone bench_4", x=938, y=458, width=44, height=17},
+        {id="corpse", x=604, y=754, width=12, height=12},
         {id="broken column", x=732, y=892, width=16, height=16},
         {id="Scarlet guard", x=999, y=739, width=12, height=12},
         {id="Scarlet guard_2", x=999, y=494, width=12, height=12},
+        {id="ghost", x=424, y=794, width=12, height=12},
+        {id="ghost_2", x=604, y=464, width=12, height=12},
         {id="zombie", x=514, y=784, width=12, height=12},
         {id="skeleton", x=384, y=414, width=12, height=12},
         {id="torture table", x=1494, y=459, width=33, height=49},
@@ -168,6 +175,14 @@ ScarletCrusade["scarlet_library"] = {
         {id="tree_2", x=723, y=743, width=14, height=14},
         {id="tree_3", x=583, y=883, width=14, height=14},
         {id="tree_4", x=723, y=883, width=14, height=14},
+        {id="bush", x=536, y=758, width=25, height=24},
+        {id="bush_2", x=536, y=858, width=25, height=24},
+        {id="bush_3", x=760, y=758, width=25, height=24},
+        {id="bush_4", x=760, y=858, width=25, height=24},
+        {id="bush_5", x=598, y=696, width=25, height=24},
+        {id="bush_6", x=698, y=696, width=25, height=24},
+        {id="bush_7", x=598, y=920, width=25, height=24},
+        {id="bush_8", x=698, y=920, width=25, height=24},
         {id="huntsman", x=542, y=824, width=12, height=12},
         {id="huntsman_2", x=766, y=714, width=12, height=12},
         {id="hound", x=609, y=909, width=12, height=12},
@@ -177,6 +192,12 @@ ScarletCrusade["scarlet_library"] = {
         {id="hound_4", x=594, y=204, width=12, height=12},
         {id="hound_5", x=716, y=208, width=12, height=12},
         {id="hound_6", x=764, y=134, width=12, height=12},
+        {id="cage", x=530, y=118, width=17, height=26},
+        {id="cage_2", x=530, y=418, width=17, height=26},
+        {id="bones", x=762, y=273, width=49, height=40},
+        {id="hay", x=513, y=189, width=35, height=35},
+        {id="hay_2", x=551, y=311, width=28, height=29},
+        {id="hay_3", x=741, y=311, width=28, height=29},
         {id="table", x=830, y=1307, width=43, height=28},
         {id="treasure", x=1324, y=1284, width=33, height=21},
         {id="treasure_2", x=1322, y=1456, width=33, height=23},
@@ -196,6 +217,10 @@ ScarletCrusade["scarlet_library"] = {
         {id="pillar_6", x=1928, y=1018, width=24, height=24},
         {id="Arcanist Doan", x=1801, y=539, width=18, height=18},
         {id="lectern", x=1803, y=590, width=14, height=12},
+        {id="candles", x=1699, y=449, width=10, height=10},
+        {id="candles_2", x=1911, y=449, width=10, height=10},
+        {id="candles_3", x=1699, y=661, width=10, height=10},
+        {id="candles_4", x=1911, y=661, width=10, height=10},
     },
     route={
         {x=80,y=1668}, {x=80,y=1865}, {x=295,y=1865}, {x=295,y=1020}, {x=460,y=1020}, {x=460,y=620},

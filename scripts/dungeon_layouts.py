@@ -7,7 +7,10 @@ course is a sprint (`laps` 1): one run from the spawn through the gates, in
 order, to the finish. Collision is Dungeon.lua's: the kart centre stays
 WALL_INSET inside the rooms and outside every solid box grown by the same
 inset. Where rooms meet, they overlap by at least DOOR_OVERLAP (twice the
-inset), so the karts' floor runs on from one to the other.
+inset), so the karts' floor runs on from one to the other; rooms that do not
+meet keep a wall between them, never abutting where the karts would stop at
+an unpainted wall (build_dungeon_tracks.hidden_walls). Scenery the karts
+could drive over is solid; the rest stands against the walls.
 
 World units, bottom-left origin, one texel per unit in the picture. The
 painter (dungeon_paint.py) reads `floor` styles, walls, lights and props
@@ -21,7 +24,6 @@ SUMMER = "war3.w3mod:doodads/lordaeronsummer/props/"
 DUNGEON = "war3.w3mod:doodads/dungeon/props/"
 NORTHREND = "war3.w3mod:doodads/northrend/"
 TREES = "war3.w3mod:doodads/terrain/lordaerontree/"
-RUINS = "war3.w3mod:doodads/ruins/"
 DE = "war3.w3mod:_de.w3mod:"
 UNITS = "war3.w3mod:units/"
 DOOR_OVERLAP = 2 * WALL_INSET
@@ -74,9 +76,12 @@ SG_ROOMS = [
     room("north hall", 1720, 70, 1870, 560),
     # The Chamber of Atonement: a round chamber drawn as a cross of two
     # rectangles, its door in from the hall on the east and out on the west.
+    # A wall stands between it and the west hall either side of the west
+    # door (version 2: the two floors met there with no wall painted, and
+    # the karts stopped short of it, the owner's "invisible wall").
     room("chamber door", 1640, 380, 1760, 520, floor="door"),
     room("chamber", 1380, 300, 1640, 660, floor="chamber"),
-    room("chamber wings", 1340, 340, 1680, 620, floor="chamber"),
+    room("chamber wings", 1360, 340, 1680, 620, floor="chamber"),
     room("chamber west door", 1300, 440, 1400, 560, floor="door"),
     room("west hall", 1180, 420, 1340, 720),
     room("stairs", 1000, 550, 1220, 690, floor="stairs"),
@@ -229,9 +234,9 @@ SG_PROPS = (
      prop(DE + "doodads/undercity/props/coffin/coffin_wooden1.mdx", 130, 436, scale=0.22, solid=True,
           margin=2, name="coffins"),
      prop(BRAZIER, 205, 712, scale=0.3, light=TOMBLIGHT, tint=(0.7, 1.0, 0.75)),
-     prop(BRAZIER, 205, 528, scale=0.3, light=TOMBLIGHT, tint=(0.7, 1.0, 0.75)),
-     prop(SUMMER + "skullpile/skullpile1.mdx", 55, 705, scale=0.26),
-     prop(SUMMER + "skullpile/skullpile2.mdx", 55, 534, scale=0.26)]
+     prop(BRAZIER, 206, 528, scale=0.3, light=TOMBLIGHT, tint=(0.7, 1.0, 0.75)),
+     prop(SUMMER + "skullpile/skullpile1.mdx", 47, 705, scale=0.26),
+     prop(SUMMER + "skullpile/skullpile2.mdx", 48, 527, scale=0.26)]
     # The Forlorn Cloister: the court's ruined fountain, lanterns along the
     # path's north edge, crypts and dead trees among the graves, statues on
     # the paved walks, the dead walking and Scarlet guards by the stairs.
@@ -244,25 +249,31 @@ SG_PROPS = (
             name="obelisk"),
        prop(CITY + "props/city_oblisk/city_oblisk.mdx", 895, 398, scale=0.24, solid=True, margin=3,
             name="obelisk"),
-       prop(CITY + "props/citystonebench/citystonebench.mdx", 830, 905, scale=0.28),
-       prop(CITY + "props/citystonebench/citystonebench.mdx", 960, 905, scale=0.28),
-       prop(CITY + "props/citystonebench/citystonebench.mdx", 830, 466, scale=0.28),
-       prop(CITY + "props/citystonebench/citystonebench.mdx", 960, 466, scale=0.28),
-       prop(SUMMER + "sittingcorpse/sittingcorpse.mdx", 610, 760, scale=0.3),
+       prop(CITY + "props/citystonebench/citystonebench.mdx", 830, 905, scale=0.28, solid=True, margin=2,
+            name="stone bench"),
+       prop(CITY + "props/citystonebench/citystonebench.mdx", 960, 905, scale=0.28, solid=True, margin=2,
+            name="stone bench"),
+       prop(CITY + "props/citystonebench/citystonebench.mdx", 830, 466, scale=0.28, solid=True, margin=2,
+            name="stone bench"),
+       prop(CITY + "props/citystonebench/citystonebench.mdx", 960, 466, scale=0.28, solid=True, margin=2,
+            name="stone bench"),
+       prop(SUMMER + "sittingcorpse/sittingcorpse.mdx", 610, 760, scale=0.3, solid=solid_at(610, 760, 6, 6),
+            name="corpse"),
        prop(NORTHREND + "props/northrendbrokencolumn/northrendbrokencolumn0.mdx", 740, 900, scale=0.2,
             solid=solid_at(740, 900, 8, 8), name="broken column", tint=(0.9, 0.9, 0.92)),
        prop(DE + "units/human/scarletfootman/scarletfootman.mdx", 1005, 745, yaw=225, scale=0.3,
             solid=solid_at(1005, 745, 6, 6), name="Scarlet guard"),
        prop(DE + "units/human/scarletfootman/scarletfootman.mdx", 1005, 500, yaw=135, scale=0.3,
             solid=solid_at(1005, 500, 6, 6), name="Scarlet guard"),
-       prop(UNITS + "creeps/bansheeghost/bansheeghost.mdx", 430, 800, yaw=315, scale=0.26, name="ghost"),
-       prop(UNITS + "creeps/bansheeghost/bansheeghost.mdx", 610, 470, yaw=45, scale=0.26, name="ghost"),
-       prop(UNITS + "creeps/bansheeghost/bansheeghost.mdx", 840, 600, yaw=180, scale=0.26, name="ghost"),
+       prop(UNITS + "creeps/bansheeghost/bansheeghost.mdx", 430, 800, yaw=315, scale=0.26,
+            solid=solid_at(430, 800, 6, 6), name="ghost"),
+       prop(UNITS + "creeps/bansheeghost/bansheeghost.mdx", 610, 470, yaw=45, scale=0.26,
+            solid=solid_at(610, 470, 6, 6), name="ghost"),
        prop(UNITS + "creeps/zombie/zombie.mdx", 520, 790, yaw=225, scale=0.3, solid=solid_at(520, 790, 6, 6),
             name="zombie"),
        prop(UNITS + "undead/skeleton/skeleton.mdx", 390, 420, yaw=90, scale=0.3, solid=solid_at(390, 420, 6, 6),
             name="skeleton")]
-    + [prop(BANNER % 0, 1022, 724, scale=0.3), prop(BANNER % 1, 1022, 508, scale=0.3)]
+    + [prop(BANNER % 0, 1033, 724, scale=0.3), prop(BANNER % 1, 1033, 508, scale=0.3)]
     # The Chamber of Atonement: a torture table in the middle, Interrogator
     # Vishas and a torturer by the east wing, an iron maiden, a cage and
     # chain posts by the north wall, braziers at the cross's corners.
@@ -272,12 +283,12 @@ SG_PROPS = (
             solid=solid_at(1600, 600, 7, 7), name="Interrogator Vishas"),
        prop(DE + "units/human/scarletcleric/scarletcleric.mdx", 1560, 410, yaw=135, scale=0.28,
             solid=solid_at(1560, 410, 7, 7), name="torturer"),
-       prop(DUNGEON + "ironmaiden/ironmaiden.mdx", 1420, 642, scale=0.3, name="iron maiden"),
+       prop(DUNGEON + "ironmaiden/ironmaiden.mdx", 1420, 652, scale=0.3, name="iron maiden"),
        prop(SUMMER + "cage/cage.mdx", 1640, 588, scale=0.26, solid=solid_at(1640, 588, 9, 8), name="cage"),
        prop(DUNGEON + "chainpost/chainpost.mdx", 1500, 650, scale=0.24, name="chains"),
-       prop(SUMMER + "skullpile/skullpile0.mdx", 1352, 600, scale=0.26),
-       prop(SUMMER + "skullpile/skullpile3.mdx", 1352, 356, scale=0.26),
-       prop(SUMMER + "weapons/weapons.mdx", 1668, 356, scale=0.3)]
+       prop(SUMMER + "skullpile/skullpile0.mdx", 1368, 610, scale=0.26),
+       prop(SUMMER + "skullpile/skullpile3.mdx", 1370, 348, scale=0.26),
+       prop(SUMMER + "weapons/weapons.mdx", 1670, 356, scale=0.3)]
     + [prop(BRAZIER, x, y, scale=0.3, light=FIRELIGHT) for x, y in ((1392, 646), (1628, 646), (1392, 314),
                                                                      (1628, 314))]
     # The halls: Scarlet banners on the north walls and torches along them.
@@ -288,8 +299,8 @@ SG_PROPS = (
             solid=solid_at(1984, 204, 6, 6), name="Scarlet guard"),
        prop(DE + "units/human/scarletfootman/scarletfootman.mdx", 1984, 96, yaw=135, scale=0.3,
             solid=solid_at(1984, 96, 6, 6), name="Scarlet guard"),
-       prop(SUMMER + "armorrack/armorrack.mdx", 1190, 650, yaw=0, scale=0.3),
-       prop(DUNGEON + "bench/bench.mdx", 1192, 470, yaw=0, scale=0.3)]
+       prop(SUMMER + "armorrack/armorrack.mdx", 1190, 681, yaw=0, scale=0.3),
+       prop(DUNGEON + "bench/bench.mdx", 1191, 470, yaw=0, scale=0.3)]
     + wall_props(SG_ROOMS, "north hall", "east", TORCH, 120, light=TORCHLIGHT, scale=0.3, start=150)
     + wall_props(SG_ROOMS, "north hall", "west", TORCH, 120, light=TORCHLIGHT, scale=0.3, start=270)
     + wall_props(SG_ROOMS, "stairs", "north", TORCH, 110, light=TORCHLIGHT, scale=0.3, start=1060)
@@ -299,7 +310,7 @@ SG_PROPS = (
 )
 
 SCARLET_GRAVEYARD = {
-    "id": "scarlet_graveyard", "name": "Scarlet Graveyard", "version": 1, "folder": "ScarletGraveyard",
+    "id": "scarlet_graveyard", "name": "Scarlet Graveyard", "version": 2, "folder": "ScarletGraveyard",
     "size": (2048, 1024), "laps": 1,
     "rooms": SG_ROOMS, "gates": SG_GATES, "route": SG_ROUTE, "spawn": (1945, 150, "west"),
     "props": SG_PROPS,
@@ -456,43 +467,43 @@ SL_PROPS = (
     + wall_props(SL_ROOMS, "portal hall", "west", TORCH, 130, light=TORCHLIGHT, scale=0.3, start=1650)
     + wall_props(SL_ROOMS, "long hall", "west", TORCH, 170, light=TORCHLIGHT, scale=0.3, start=960)
     + wall_props(SL_ROOMS, "long hall", "east", TORCH, 170, light=TORCHLIGHT, scale=0.3, start=1045)
-    + [prop(BANNER % (k % 3), 352, y, scale=0.3) for k, y in enumerate((1180, 1460, 1760))]
+    + [prop(BANNER % (k % 3), 353, y, scale=0.3) for k, y in enumerate((1180, 1460, 1760))]
     # The Huntsman's Cloister: the arcade's columns round the courtyard, an
     # opening in the middle of each side; the statue in its fountain, four
-    # trees, bushes and flowers; huntsmen and their hounds.
+    # trees and bushes (solid: nothing stands on the lawn the karts drive
+    # over); huntsmen and their hounds.
     + [_column(x, y) for x, y in ((520, 680), (520, 725), (520, 915), (520, 960), (800, 680), (800, 725),
                                   (800, 915), (800, 960), (565, 680), (755, 680), (565, 960), (755, 960))]
     + [prop(CITY + "props/city_statue/city_statue.mdx", 660, 820, scale=0.25, solid=True, margin=6,
             name="cloister fountain")]
     + [prop(TREES + "lordaerontree%d.mdx" % n, x, y, scale=0.28, solid=solid_at(x, y, 7, 7), name="tree")
        for n, (x, y) in enumerate(((590, 750), (730, 750), (590, 890), (730, 890)))]
-    + [prop(CITY + "plants/citybush/citybush.mdx", x, y, scale=0.22) for x, y in
-       ((548, 770), (548, 870), (772, 770), (772, 870), (610, 708), (710, 708), (610, 932), (710, 932))]
-    + [prop(RUINS + "plants/ruins_flower/ruins_flower%d.mdx" % (k % 5), x, y, scale=0.24) for k, (x, y) in
-       enumerate(((560, 815), (760, 825), (655, 712), (665, 928), (620, 760), (700, 880)))]
+    + [prop(CITY + "plants/citybush/citybush.mdx", x, y, scale=0.22, solid=True, margin=3, name="bush")
+       for x, y in ((548, 770), (548, 870), (772, 770), (772, 870), (610, 708), (710, 708), (610, 932),
+                    (710, 932))]
     + [prop(HUNTSMAN, 548, 830, yaw=0, scale=0.3, solid=solid_at(548, 830, 6, 6), name="huntsman"),
        prop(HUNTSMAN, 772, 720, yaw=135, scale=0.3, solid=solid_at(772, 720, 6, 6), name="huntsman"),
        _hound(615, 915, 45), _hound(705, 725, 225), _hound(565, 720, 90)]
     + wall_props(SL_ROOMS, "west walk", "west", TORCH, 150, light=TORCHLIGHT, scale=0.3, start=620)
     + wall_props(SL_ROOMS, "east walk", "east", TORCH, 150, light=TORCHLIGHT, scale=0.3, start=620)
-    + wall_props(SL_ROOMS, "south walk", "south", TORCH, 140, light=TORCHLIGHT, scale=0.3, start=440)
     + wall_props(SL_ROOMS, "north walk", "north", TORCH, 140, light=TORCHLIGHT, scale=0.3, start=500)
     + [prop(BANNER % 0, 500, 1072, scale=0.3), prop(BANNER % 1, 890, 1072, scale=0.3)]
     # Houndmaster Loksey's kennel: the houndmaster and his hounds at the
-    # back, cages, bones and braziers.
+    # back, cages, bones, hay and braziers (the big ones solid, the rest
+    # against the walls).
     + [prop(HUNTSMAN, 660, 172, yaw=90, scale=0.42, solid=solid_at(660, 172, 9, 9), name="Houndmaster Loksey"),
        _hound(600, 210, 45), _hound(722, 214, 135), _hound(770, 140, 135),
-       prop(SUMMER + "cage/cage.mdx", 532, 140, scale=0.26), prop(SUMMER + "cageempty/cageempty.mdx", 532, 440,
-                                                                    scale=0.26),
-       prop(SUMMER + "ribbones/ribbones0.mdx", 700, 128, scale=0.26),
-       prop(SUMMER + "ribbones/ribbones1.mdx", 790, 300, scale=0.26),
-       prop(SUMMER + "skullpile/skullpile2.mdx", 528, 290, scale=0.24),
-       prop(SUMMER + "weapons/weapons.mdx", 792, 440, scale=0.3),
-       prop(SUMMER + "trough/trough0.mdx", 790, 220, yaw=0, scale=0.3)]
-    + [prop(SUMMER + "hay/hay%d.mdx" % (k % 5), x, y, scale=0.22) for k, (x, y) in
-       enumerate(((528, 205), (585, 124), (745, 124), (792, 370), (528, 360)))]
-    + [prop(SUMMER + "hayclump/hayclump.mdx", x, y, scale=0.26) for x, y in ((610, 300), (720, 330), (700, 160))]
-    + [prop(BRAZIER, x, y, scale=0.3, light=FIRELIGHT) for x, y in ((528, 462), (792, 462), (528, 128),
+       prop(SUMMER + "cage/cage.mdx", 532, 140, scale=0.26, solid=True, margin=2, name="cage"),
+       prop(SUMMER + "cageempty/cageempty.mdx", 532, 440, scale=0.26, solid=True, margin=2, name="cage"),
+       prop(SUMMER + "ribbones/ribbones1.mdx", 790, 300, scale=0.26, solid=True, margin=4, name="bones"),
+       prop(SUMMER + "skullpile/skullpile2.mdx", 516, 290, scale=0.24),
+       prop(SUMMER + "weapons/weapons.mdx", 802, 440, scale=0.3),
+       prop(SUMMER + "trough/trough0.mdx", 802, 220, yaw=0, scale=0.3),
+       prop(SUMMER + "hay/hay0.mdx", 531, 205, scale=0.22, solid=True, margin=4, name="hay"),
+       prop(SUMMER + "hay/hay3.mdx", 797, 370, scale=0.22), prop(SUMMER + "hay/hay4.mdx", 519, 360, scale=0.22)]
+    + [prop(SUMMER + "hayclump/hayclump.mdx", x, y, scale=0.26, solid=True, margin=4, name="hay")
+       for x, y in ((565, 330), (755, 330))]
+    + [prop(BRAZIER, x, y, scale=0.3, light=FIRELIGHT) for x, y in ((526, 462), (792, 462), (524, 128),
                                                                     (792, 128))]
     # The east hall and its side room: torches, a reading table.
     + wall_props(SL_ROOMS, "east hall", "west", TORCH, 160, light=TORCHLIGHT, scale=0.3, start=700)
@@ -516,13 +527,12 @@ SL_PROPS = (
             scale=0.1, solid=True, margin=8, name="statue"),
        prop(DE + "doodads/lordaeroncapital/props/statues/lordaeron_statue_sword.mdx", 996, 1865, yaw=0,
             scale=0.1, solid=True, margin=8, name="statue"),
-       prop(DE + "doodads/undercity/props/treasurechest/treasurechest.mdx", 1306, 1640, yaw=180, scale=0.3),
-       prop(DE + "doodads/undercity/props/treasurechest/treasurechest.mdx", 1306, 1980 - 12, yaw=270,
-            scale=0.3),
-       prop(SUMMER + "armorrack/armorrack.mdx", 1306, 1560, yaw=180, scale=0.3),
+       prop(DE + "doodads/undercity/props/treasurechest/treasurechest.mdx", 1311, 1640, yaw=180, scale=0.3),
+       prop(DE + "doodads/undercity/props/treasurechest/treasurechest.mdx", 1310, 1968, yaw=270, scale=0.3),
+       prop(SUMMER + "armorrack/armorrack.mdx", 1307, 1560, yaw=180, scale=0.3),
        prop(SUMMER + "armorrack/armorrack.mdx", 1142, 1480, yaw=0, scale=0.3),
        prop(BANNER % 0, 1170, 1982, scale=0.3), prop(BANNER % 2, 1280, 1982, scale=0.3)]
-    + [prop(BRAZIER, x, y, scale=0.3, light=FIRELIGHT) for x, y in ((1146, 1196), (1304, 1196), (1146, 1972),
+    + [prop(BRAZIER, x, y, scale=0.3, light=FIRELIGHT) for x, y in ((1144, 1196), (1306, 1196), (1146, 1972),
                                                                     (1304, 1972))]
     # The columned halls: two square pillars each, braziers in the corners,
     # banners on the north walls.
@@ -533,35 +543,34 @@ SL_PROPS = (
     + [prop(BANNER % 1, 1455, 1942, scale=0.3), prop(BANNER % 0, 1685, 1942, scale=0.3)]
     # The Athenaeum: bookshelves down both walls, reading tables in its
     # niches, candles, a Scarlet cleric at his books.
-    + [prop(SHELF, 1830, y, yaw=180, scale=0.3) for y in (1240, 1440, 1610, 1700, 1940)]
-    + [prop(SHELF, 2000, y, yaw=0, scale=0.3) for y in (1240, 1340, 1440, 1540, 1640, 1740, 1840, 1940)]
+    + [prop(SHELF, 1827, y, yaw=180, scale=0.3) for y in (1240, 1440, 1610, 1700, 1940)]
+    + [prop(SHELF, 2003, y, yaw=0, scale=0.3) for y in (1240, 1340, 1440, 1540, 1640, 1740, 1840, 1940)]
     + [prop(DUNGEON + "tablenchair/tablenchair.mdx", 1820, 1345, yaw=0, scale=0.28, solid=True, margin=4,
             name="table"),
        prop(DUNGEON + "tablenchair/tablenchair.mdx", 1820, 1505, yaw=0, scale=0.28, solid=True, margin=4,
             name="table"),
        prop(DE + "units/human/scarletcleric/scarletcleric.mdx", 1985, 1490, yaw=180, scale=0.28,
             solid=solid_at(1985, 1490, 6, 6), name="Scarlet cleric")]
-    + [prop(BRAZIER, x, y, scale=0.22, light=CANDLELIGHT) for x, y in ((1838, 1390), (1838, 1560), (1992, 1290),
-                                                                       (1992, 1590), (1992, 1890))]
+    + [prop(BRAZIER, x, y, scale=0.22, light=CANDLELIGHT) for x, y in ((1836, 1390), (1836, 1560), (1994, 1290),
+                                                                       (1994, 1590), (1994, 1890))]
     # The last hall: two pillars, braziers, banners.
     + [_pillar(1780, 1030), _pillar(1940, 1030)]
     + [prop(BRAZIER, x, y, scale=0.26, light=FIRELIGHT) for x, y in ((1702, 960), (1998, 960), (1702, 1100),
                                                                      (1998, 1100))]
-    + [prop(BANNER % 2, 1760, 1142, scale=0.3), prop(BANNER % 0, 1960, 1142, scale=0.3)]
-    # Arcanist Doan's round library: bookshelves round its wall, Doan at
-    # its centre before a lectern, banners and candles.
+    + [prop(BANNER % 2, 1760, 1142, scale=0.3), prop(BANNER % 0, 1820, 1142, scale=0.3)]
+    # Arcanist Doan's round library: bookshelves round the north of its
+    # wall (on the south wall a shelf would lean over the floor), Doan at
+    # its centre before a lectern, banners, and candles round him (solid).
     + [prop(DE + "units/human/scarletinvoker/scarletinvokerhero.mdx", 1810, 548, yaw=90, scale=0.42,
             solid=solid_at(1810, 548, 9, 9), name="Arcanist Doan"),
        prop("war3.w3mod:buildings/other/bookofsummoning/bookofsummoning.mdx", 1810, 596, yaw=270, scale=0.26,
             solid=solid_at(1810, 596, 7, 6), name="lectern")]
-    + [prop(SHELF, 1996, 560, yaw=0, scale=0.32), prop(SHELF, 1624, 560, yaw=180, scale=0.32),
-       prop(SHELF, 1810, 374, yaw=90, scale=0.32),
-       prop(SHELF45, 1942, 428, yaw=0, scale=0.3), prop(SHELF45, 1678, 428, yaw=90, scale=0.3),
-       prop(SHELF45, 1942, 692, yaw=90, scale=0.3), prop(SHELF45, 1678, 692, yaw=0, scale=0.3)]
+    + [prop(SHELF, 2004, 560, yaw=0, scale=0.32), prop(SHELF, 1616, 560, yaw=180, scale=0.32),
+       prop(SHELF45, 1945, 695, yaw=90, scale=0.3), prop(SHELF45, 1675, 695, yaw=0, scale=0.3)]
     + [prop(BANNER % (k % 3), x, y, scale=0.3) for k, (x, y) in
-       enumerate(((1740, 735), (1880, 735), (1983, 632), (1983, 488), (1637, 632), (1637, 488)))]
-    + [prop(BRAZIER, x, y, scale=0.22, light=CANDLELIGHT) for x, y in ((1704, 454), (1916, 454), (1704, 666),
-                                                                       (1916, 666))]
+       enumerate(((1740, 735), (1880, 735), (1983, 632), (1637, 632)))]
+    + [prop(BRAZIER, x, y, scale=0.22, light=CANDLELIGHT, solid=solid_at(x, y, 5, 5), name="candles")
+       for x, y in ((1704, 454), (1916, 454), (1704, 666), (1916, 666))]
 )
 
 SCARLET_LIBRARY = {

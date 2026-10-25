@@ -19,6 +19,14 @@ He wrote: "Scarlet Library. Everything is inside except the first courtyard with
 
 ![The way through and nine follow-camera views](scarlet_library-review.png)
 
+## Before integration: nothing under the kart
+
+The owner's client run of the Graveyard found objects the kart drove over. The rule the generator now enforces for both dungeons holds here too (on `claude/drive-fixes`, still version 1, since the Library has not been installed):
+
+- solid where they stand: the courtyard's eight bushes, the kennel's two cages, its rib cage by the east wall, a heap of hay by the west wall and two hay bales, and the round library's four candle stands;
+- gone: the courtyard's flowers, the hay and the rib cage on the kennel's floor by Loksey, the south walk's torches (they leaned out over the floor), and the round library's three southern shelves and two southern banners;
+- back against the walls: the skull pile, hay, weapons and trough in the kennel, the gallery's chests, rack and braziers, the Athenaeum's shelves and candles, the round library's eastern and western shelves, and the long hall's banners. The last hall's second banner moved from the doorway to the wall beside it.
+
 ## The course
 
 The rooms follow his map at karting scale. Halls are 120 to 140 units wide and doors 90 to 140, so a kart can drive them, and the layout keeps the map's plan. The run:
@@ -30,7 +38,7 @@ The rooms follow his map at karting scale. Halls are 120 to 140 units wide and d
    - a statue in its fountain at the centre, on a round court;
    - four trees;
    - Scarlet huntsmen and their hounds.
-4. **Houndmaster Loksey's kennel**, south of the cloister. His route goes in and back out. The second gate, *Houndmaster Loksey*, is his red line across the kennel. Past it the karts turn round by the houndmaster, his hounds and the straw, and drive back out; crossing the line backwards counts nothing.
+4. **Houndmaster Loksey's kennel**, south of the cloister. His route goes in and back out. The second gate, *Houndmaster Loksey*, is his red line across the kennel. Past it the karts turn round by the houndmaster, his hounds, the cages and the hay, and drive back out; crossing the line backwards counts nothing.
 5. **The east hall**, north from the cloister's east side, past a reading room, to the third gate, *Gallery of Treasures*, in the gallery's door.
 6. **The Gallery of Treasures**: a long hall north with treasure in its niches, chests, armour and shields, and statues in its two west alcoves.
 7. **Two columned halls** east, each a cross with two square pillars, the runner between them. The fourth gate, *Athenaeum*, is in the door beyond.
@@ -43,7 +51,7 @@ The rooms follow his map at karting scale. Halls are 120 to 140 units wide and d
 | The way through | about 6,200 units from the portal to the finish line, along the reviewed route |
 | Gates | five: Huntsman's Cloister, Houndmaster Loksey, Gallery of Treasures, Athenaeum, Arcanist Doan (the finish) |
 | Rooms | 41: 38 rectangles of stone, the courtyard's lawn, and two round rooms (the fountain's court and the round library) |
-| Solids | 47 boxes: 12 arcade columns, the fountain, 4 trees, 6 square pillars, the houndmaster and the huntsmen, 6 hounds, the guards, treasure, chests, statues and a shield, tables, the cleric, Doan and his lectern |
+| Solids | 65 boxes: 12 arcade columns, the fountain, 4 trees, 8 bushes, 6 square pillars, the houndmaster and the huntsmen, 6 hounds, 2 cages, a rib cage, a heap and two bales of hay, the guards, treasure, chests, statues and a shield, tables, the cleric, Doan, his lectern and 4 candle stands |
 
 ## How it plays
 
@@ -53,7 +61,7 @@ The rooms follow his map at karting scale. Halls are 120 to 140 units wide and d
 - **Open floor, no road.** Stone everywhere but the courtyard's lawn, which slows the karts as the Graveyard's does. Walls slide the kart along them.
 - **Round rooms** (new, `shape="disc"`): the round library and the fountain's court are true circles. The kart centre stays inside a round wall by the kart's inset, and slides round it.
 - **Loksey's kennel** is the one dead end on the way: in across his line, a hairpin turn, and back out. Checkpoints count only the crossing inward.
-- **Solids** block as on the test oval.
+- **Solids** block as on the test oval. Scenery that stands on the floor is solid; the rest stands against the walls, out of the karts' way.
 - **The gates** span their doors or halls from wall to wall. The generator checks with a flood fill that none can be driven round.
 - **Collision** comes from the generated data, never a pixel.
 
@@ -71,11 +79,11 @@ The Scarlet Monastery at night, in Warcraft III's city, dungeon, Dalaran and Lor
   - dark octagonal tiles at the round library's centre.
 - **The courtyard,** the only open sky:
   - lawn, stone paths with kerbs and the round court;
-  - the statue fountain, Lordaeron's summer trees, bushes and flowers;
+  - the statue fountain, Lordaeron's summer trees and bushes;
   - graded to a cool, green-tinged moonlight with drifts of mist.
 - **The round library:**
   - a gold ring on dark stone, the Scarlet red carpet out to its round wall;
-  - bookshelves round the wall, Scarlet banners and candles;
+  - bookshelves round the north of the wall, Scarlet banners, and candles round Doan;
   - the runner in through its door.
 - **Light:** torches along the halls, braziers in the kennel, gallery and halls, candles among the books.
 - **The Scarlet Crusade** (Reforged): standing banners, the guards at the portal, huntsmen in the cloister and as Houndmaster Loksey, a cleric in the Athenaeum, and an invoker hero as Arcanist Doan. Warcraft III's dark hounds, tinted red, are the Scarlet tracking hounds.
@@ -90,20 +98,20 @@ The Scarlet Monastery at night, in Warcraft III's city, dungeon, Dalaran and Lor
 | `addon/AzerothKart/Assets/Tracks/ScarletLibrary/Preview.tga` | 512×512 (the background reduced 4×) for the track screen; 1,048,594 bytes. |
 | [`scarlet_library-overview.png`](scarlet_library-overview.png) | The preview as PNG, for review. |
 | [`scarlet_library-sources.txt`](scarlet_library-sources.txt) | Every Warcraft III model and texture the picture uses, with placement counts. |
-| [`scarlet_library-review.png`](scarlet_library-review.png) | The way through and nine follow-camera views, as sent to the owner. |
+| [`scarlet_library-review.png`](scarlet_library-review.png) | The way through and nine follow-camera views. |
 
 ## Rebuilding
 
 Extract the files the Library draws on, then build. The build also computes the Graveyard's geometry, so extract its files too ([its sheet](scarlet-graveyard.md#rebuilding)):
 
 ```
-python scripts/wc3casc.py %W3% models "^war3\.w3mod:(doodads/(cityscape/(plants/citybush|props/(city_statue|crystalshield)|structures/city_columnsingle)|dungeon/props/(bigbookshelf|bookshelfwall|bookshelfwall45|tablenchair|treasurepile)|lordaeronsummer/props/(armorrack|brazier|cage|cageempty|hay|hayclump|ribbones|skullpile|torchhuman|trough|weapons)|ruins/plants/ruins_flower|terrain/lordaerontree)/[^/]+\.mdx|(buildings/other/bookofsummoning|objects/inventoryitems/treasurechest)/[^/]+\.mdx|_de\.w3mod:(doodads/(cityscape/props/scarletcrusadestandingbanners|lordaeroncapital/props/statues|lordaeroncapital/structures/pillarinterior|undercity/props/treasurechest)|units/(creeps/darkhound|human/(scarletcleric|scarletfootman|scarlethuntsman|scarletinvoker)))/[^/]+\.mdx)$" WC3
+python scripts/wc3casc.py %W3% models "^war3\.w3mod:(doodads/(cityscape/(plants/citybush|props/(city_statue|crystalshield)|structures/city_columnsingle)|dungeon/props/(bigbookshelf|bookshelfwall|bookshelfwall45|tablenchair|treasurepile)|lordaeronsummer/props/(armorrack|brazier|cage|cageempty|hay|hayclump|ribbones|skullpile|torchhuman|trough|weapons)|terrain/lordaerontree)/[^/]+\.mdx|(buildings/other/bookofsummoning|objects/inventoryitems/treasurechest)/[^/]+\.mdx|_de\.w3mod:(doodads/(cityscape/props/scarletcrusadestandingbanners|lordaeroncapital/props/statues|lordaeroncapital/structures/pillarinterior|undercity/props/treasurechest)|units/(creeps/darkhound|human/(scarletcleric|scarletfootman|scarlethuntsman|scarletinvoker)))/[^/]+\.mdx)$" WC3
 python scripts/wc3casc.py %W3% extract "^war3\.w3mod:(terrainart/(blackcitadel|cityscape|dalaran|dungeon|village)/|replaceabletextures/lordaerontree/)" WC3
 python scripts/build_dungeon_tracks.py --wc3 WC3 --preview
 python scripts/build_dungeon_tracks.py --wc3 WC3 --check
 ```
 
-The layout is `SCARLET_LIBRARY` in `scripts/dungeon_layouts.py`: its rooms (`disc_room` for the round ones), gates, spawn, reviewed route, props with their collision boxes, floors, carpets, the round library's `rings`, the courtyard's `moonlight` and `mist`. `scripts/build_dungeon_tracks.py` writes the data and validates the geometry as for the Graveyard. It now counts a route crossing a gate only across the gate's own segment, as the runtime does, since the Library's route passes beyond the ends of earlier gates. `scripts/dungeon_paint.py` paints the picture; the Graveyard's picture is byte for byte unchanged.
+The layout is `SCARLET_LIBRARY` in `scripts/dungeon_layouts.py`: its rooms (`disc_room` for the round ones), gates, spawn, reviewed route, props with their collision boxes, floors, carpets, the round library's `rings`, the courtyard's `moonlight` and `mist`. `scripts/build_dungeon_tracks.py` writes the data and validates the geometry as for the Graveyard, invisible walls included. It counts a route crossing a gate only across the gate's own segment, as the runtime does, since the Library's route passes beyond the ends of earlier gates. `scripts/dungeon_paint.py` paints the picture, and stops on a model that is not solid standing where the karts drive.
 
 ## Provenance and rights
 

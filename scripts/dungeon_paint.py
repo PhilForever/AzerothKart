@@ -17,7 +17,8 @@ leans north by `lean`, as in the cities). Layers, bottom to top:
 4. Lights, then the models, north to south so nearer things cover farther
    ones: banners, torches, braziers and lanterns, graves, tombs and trees,
    the dead and the living. Each model is rendered by wc3render.py with its
-   ground shadow.
+   ground shadow. Nothing stands where the karts drive unless it is solid
+   (check_props stops the build).
 5. Grade: moonlight on the open cloister (`moonlight`, `mist`); the halls
    stay lamplit.
 
@@ -389,6 +390,31 @@ def paint_grade(pic, d, sky, floor):
             pic.r[i], pic.g[i], pic.b[i] = r, g, b
 
 
+# A model that is not solid may reach this far onto the karts' floor at its
+# edges (a texel or two of a torch, a banner's hem).
+PROP_SLACK = 3
+
+
+def check_props(geometry, models):
+    """Nothing the karts drive over: a model that is not solid keeps its
+    drawn body (not its shadow) off the kart centre's floor, by the slack,
+    against a wall, in a corner or behind a solid. A model that stands out
+    on the floor is solid (it blocks) or moves. Stops the build at the
+    first that does not."""
+    from build_dungeon_tracks import Floor
+    w, h = geometry["width"], geometry["height"]
+    free = Floor(dict(geometry, wallInset=geometry["wallInset"] + PROP_SLACK))
+    for item, sprite, X, Y in models:
+        if item["solid"]:
+            continue
+        col0, row0 = X - sprite["ox"], h - Y - sprite["oy"]
+        for i, j in sprite["body_points"]:
+            x, y = col0 + i + 0.5, h - 1 - (row0 + j) + 0.5
+            if free.allowed(x, y):
+                raise SystemExit(f"LAYOUT: {item['name']} at ({X}, {Y}) stands where the karts drive "
+                                 f"(its body at {x:.0f}, {y:.0f}): make it solid or move it off the floor")
+
+
 def build(wc3, d, geometry, check=False, preview=False, log=print):
     import time
     started = time.time()
@@ -414,7 +440,8 @@ def build(wc3, d, geometry, check=False, preview=False, log=print):
         sprite = sprite_for(wc3, d, item, cache)
         forget_textures()                 # Reforged's textures are large: one model's at a time
         models.append((item, sprite, int(round(item["x"])), int(round(item["y"]))))
-    lights = [(X + 0.5, Y + 0.5, item["light"][0], item["light"][1]) for item, sprite, X, Y in models
+    check_props(geometry, models)
+    lights =[(X + 0.5, Y + 0.5, item["light"][0], item["light"][1]) for item, sprite, X, Y in models
               if item.get("light")]
     if lights:
         paint_room_lights(pic, lights, floor, faced)

@@ -235,6 +235,11 @@ local spawn = graveyard.spawn()
 assert(graveyard.surfaceAt(spawn.x, spawn.y) == "road" and near(spawn.heading, math.pi), "the grid faces west on stone")
 assert(graveyard.surfaceAt(400, 820) == "grass" and graveyard.surfaceAt(400, 620) == "road",
     "the cloister's lawn is grass, its path stone")
+-- Version 2: the chamber's west wall stands either side of its door, where
+-- the karts stopped at a wall the picture did not show; the door is the way
+-- from the chamber into the west hall.
+assert(graveyard.version == 2 and graveyard.surfaceAt(1350, 580) == "wall" and graveyard.surfaceAt(1350, 440) == "wall"
+    and graveyard.surfaceAt(1350, 500) == "road", "the karts leave the chamber west by its door")
 local progress = Checkpoints.new(graveyard, 0)
 previous = {x=spawn.x, y=spawn.y, tick=0}
 local names, walls = {}, 0
@@ -283,7 +288,7 @@ end
 assert(#round == 2, "two round rooms: the fountain's court and the round library")
 spawn = library.spawn()
 assert(library.surfaceAt(spawn.x, spawn.y) == "road" and near(spawn.heading, math.pi / 2), "the grid faces north on stone")
-assert(library.surfaceAt(548, 760) == "grass" and library.surfaceAt(660, 700) == "road"
+assert(library.surfaceAt(560, 740) == "grass" and library.surfaceAt(660, 700) == "road"
     and library.surfaceAt(1810, 450) == "road" and library.surfaceAt(1810, 340) == "wall",
     "the courtyard's lawn is grass, its path stone; the round library is stone to its round wall")
 progress = Checkpoints.new(library, 0)

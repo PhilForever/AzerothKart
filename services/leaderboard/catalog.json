@@ -51,7 +51,7 @@
     },
     {
       "trackId": "thunder_bluff_skyway",
-      "trackVersion": 1,
+      "trackVersion": 2,
       "physicsVersion": 12,
       "lapCount": 3,
       "tickRate": 60,
@@ -67,7 +67,7 @@
     },
     {
       "trackId": "scarlet_graveyard",
-      "trackVersion": 1,
+      "trackVersion": 2,
       "physicsVersion": 12,
       "lapCount": 1,
       "tickRate": 60,
