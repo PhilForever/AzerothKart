@@ -144,7 +144,7 @@ end
 -- allocations at render cadence. It is an estimate, never authoritative state:
 -- unknown braking/steering and clock uncertainty can cause later corrections.
 Presentation.MAX_REMOTE_PREDICTION_MS = 500
-local remoteStepMS, remoteMaxSpeed, remoteMaxYaw = 1000 / 60, 260, 2.6
+local remoteStepMS, remoteMaxSpeed, remoteMaxYaw = 1000 / 60, 260, 3.0
 
 local function remoteObservation(value)
     return type(value) == "table" and finite(value.x) and finite(value.y)

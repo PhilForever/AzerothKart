@@ -22,7 +22,7 @@ time. The board retains the fastest total per full player name, up to 50 players
 per compatible course. Local slower/equal finishes keep the original best's date; community ties converge to the earliest recorded date.
 Karts share one board under the owner's explicit2026-10-25 direction, despite
 the new balanced/heavy/agile handling profiles. No kart column or filter is
-added. Physics11 starts a fresh compatible board; old Physics10 data is retained.
+added. Physics12 starts a fresh compatible board; previous handling versions remain saved.
 
 Race time is exact integer `Race.totalTicks` at 60 Hz, excluding the countdown;
 hundredths are rounded for display only. Best lap and last lap are not used to

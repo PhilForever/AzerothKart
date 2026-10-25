@@ -1,5 +1,57 @@
 # Codex handoff — kart handling and automatic leaderboard work
 
+## Latest checkpoint — Physics12 drift payoff and profile spread
+
+2026-10-25 16:51 +01:00, `codex/drift-reward-tuning` from `65cb646`. Owner
+reports prior installed build tested well and requests stronger profile/boost
+feel. Physics12: heavy/agile208/192cruise,±8%accel/yaw,±15%steering build,
+±10%slip/recovery. Balanced unchanged. Boost48/78ticks with420acceleration,
+charge30/60unchanged, cap260/reverse55/body/wallrules unchanged. New drift
+charging resumes after active boost expiry, not during it; held Space works
+without another key press. Same15fields and live wire envelope.
+
+Dynamic meter labels0.65/1.3seconds; forecastyaw3.0 covers actualagile2.808.
+Current docs/catalogue are versioned12; older saves remain, all karts share
+the board, and old peers refuse negotiation. Existing score sync is preserved.
+
+Actual focused Lua5.1 handling/physics/UI/presentation/transport/records and
+live/score mocked integration checks PASS; final active-boost guard regressions
+and all-profile10k replays PASS. New clean3lap fixture actualLua51/54 gives
+958ticksplain,956priorreward-onlyreference,911newreward (4.91% gain),0grass/hits.
+It uses one adaptive steering policy, not identical inputs or optimal human
+laps. A review portability finding was fixed; no runtime blocker remains.
+Structural validator retains2historical expired links; whitespace/catalogue
+checks pass. Native feel/lap balance for this tuning NOT RUN.
+
+Next: verified backup/install/friend ZIP, then both clients `/reload` and ordinary
+handling feedback. No new addon files/assets require restart from the previous
+automatic-scores build. No push/other-worktree/source-history rewrite.
+
+## Active reservation — wider handling tradeoffs and stronger drift payoff
+
+2026-10-25: owner tested the installed combined build and reports "all good",
+then requests slightly larger kart differences and a worthwhile drift boost.
+The owner observes a non-drifting friend beating drifting/boosting driving;
+this is qualitative play feedback, not a controlled timing or full network-gate
+pass. Own `codex/drift-reward-tuning` from `65cb646`.
+
+Plan: widen the existing three handling profiles modestly; increase charged
+boost payoff using bounded duration/acceleration; compare clean drift/non-drift
+trajectories, preserve replay determinism and shared collision rules, then
+version/backup/install/package the tested update. Reserve Physics constants/
+private profiles; focused kart/drift/handling/current-version assertions and
+reward regression; only necessary meter/copy tests and text; current physics/
+API/ADR/HIGHSCORES/README/handoff/PROGRESS docs; score catalogue/example version.
+No art, geometry, input capture, score transport or other-worktree changes.
+Keep boost/reverse within existing live codec bounds unless an explicit new
+protocol change becomes necessary; shared leaderboard remains across karts.
+Also reserve Presentation's observational remote-yaw cap only, so the forecast
+contains the wider agile steering rate, and the UI meter's duration labels.
+No authority, camera, sprite, wire or allocation behavior changes are intended.
+Review found that the longer boost outlasts charge time. Reserve the narrow
+eligibility guard/test that prevents new drift charging during an active boost,
+avoiding sustained self-renewal and hidden charging behind the boost meter.
+
 ## Deployment checkpoint — installed and friend package verified
 
 2026-10-25 16:08 +01:00: actual runtime commit `6b4dc16` is installed in the

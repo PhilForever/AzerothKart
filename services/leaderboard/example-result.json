@@ -1,7 +1,7 @@
 {
   "trackId": "test_oval",
   "trackVersion": 2,
-  "physicsVersion": 11,
+  "physicsVersion": 12,
   "lapCount": 3,
   "tickRate": 60,
   "rulesVersion": 1,

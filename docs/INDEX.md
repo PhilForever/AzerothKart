@@ -1,6 +1,7 @@
 # Documentation index / reading order
 
 **Kart handling:** [three modest profiles and shared leaderboard, ADR 0019](adr/0019-balanced-kart-handling.md),
+[current stronger drift payoff, Physics12](PHYSICS.md#current-drift-payoff--physics12),
 [actual parameters and offline metrics](PHYSICS.md#implemented-kart-profiles--physics11),
 [run-latching API](API_CONTRACTS.md#implemented-kart-handling--physics11).
 Native balance/feel remains pending; no collision mass is claimed.

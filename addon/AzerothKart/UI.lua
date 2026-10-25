@@ -142,8 +142,9 @@ local function refreshMeter()
         elseif phase == "tier1" or heldTier == 1 then
             UI.meterFill:SetColorTexture(1.00,0.86,0.20,1)
         else UI.meterFill:SetColorTexture(0.35,0.65,1.00,1) end
-        UI.meterTier1Label:SetText(phase == "boost" and "0.4 s" or "Tier 1")
-        UI.meterTier2Label:SetText(phase == "boost" and "0.8 s" or "Tier 2")
+        local boostSeconds = Physics.BOOST_TIER2_TICKS * Physics.FIXED_DT
+        UI.meterTier1Label:SetText(phase == "boost" and ("%.2g s"):format(boostSeconds/2) or "Tier 1")
+        UI.meterTier2Label:SetText(phase == "boost" and ("%.2g s"):format(boostSeconds) or "Tier 2")
     end
     if changed or stopped ~= UI.meterStopped then
         UI.meterStopped = stopped

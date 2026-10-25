@@ -22,7 +22,7 @@ opening results and slower/equal finishes do not replay congratulations.
 
 All karts share the map board; no kart column or filter is added. Name, total
 time and UTC finish date remain visible. Historical handling versions remain
-saved separately. The garage and kart picker show Physics11's actual handling
+saved separately. The garage and kart picker show the current actual handling
 profiles, replacing the older installed identical-handling text.
 
 ## Status and limits

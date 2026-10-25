@@ -62,7 +62,7 @@ files are read and no result is uploaded by these commands.
 
 ```powershell
 python -m services.leaderboard --db local-artifacts/score-example.sqlite3 --deployment private-test submit --actor "Test Racer" --record services/leaderboard/example-result.json
-python -m services.leaderboard --db local-artifacts/score-example.sqlite3 --deployment private-test board --key test_oval:2:11:3:60:1
+python -m services.leaderboard --db local-artifacts/score-example.sqlite3 --deployment private-test board --key test_oval:2:12:3:60:1
 ```
 
 Run from the repository root after creating `local-artifacts/` if absent.

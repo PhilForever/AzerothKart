@@ -13,7 +13,7 @@ authority, kart contact, agreed results or release decision is made here.
 [`RaceStart`](START_CLOCK.md). `LiveRace.new(bundle, fullPeerName, nowMS, modules)`
 returns an opaque local token or `nil,fixedReason`. `modules` supplies existing
 Physics, Race, Checkpoints, Laps, Loop and LiveProtocol modules. Admission is
-between mapped GO and GO+250ms inclusive, with the negotiated Physics version11/fixed1/60dt,
+between mapped GO and GO+250ms inclusive, with the negotiated Physics version12/fixed1/60dt,
 three laps, one to eight gates and coordinates within the codec's bounds.
 
 The bundle's data is copied; read-only geometry closures remain shared. One
@@ -148,7 +148,7 @@ Ready/Start/Leave and5Hz visible status refresh. UI.MultiplayerAction validates
 commands; deliberate Ready aligns the offered map and arms input eligibility.
 Only a matching explicitly readied live session can stage/capture a shown, focused, out-of-combat canvas without text focus. GET READY and the full3–2–1 countdown show both role-specific karts; only GO activates real backend ticks. Host/guest start36units apart on the same line; these copied poses do not modify solo track data. No menu navigation consumes a ticket or starts Physics.
 
-UI reuses its one pooled opponent texture and label for the peer’s chosen atlas (neutral tint; primitive fallback on load failure). A cached path uses sample timestamps, signed speed, measured direction and bounded heading change; rendering samples without allocation or another snapshot interval of delay. Forecast caps at500ms/31points/speed260/yaw2.6rad/s, stopping at track walls/solids. sampleAgeMS is an estimate using the existing mapped epochs, not measured one-way latency. Unknown steering/braking, hitches and clock uncertainty can still cause corrections. Stale data fades; off-screen direction/distance is not a placement claim. Actual usefulness remains a playtest question. Explicit object
+UI reuses its one pooled opponent texture and label for the peer’s chosen atlas (neutral tint; primitive fallback on load failure). A cached path uses sample timestamps, signed speed, measured direction and bounded heading change; rendering samples without allocation or another snapshot interval of delay. Forecast caps at500ms/31points/speed260/yaw3.0rad/s, stopping at track walls/solids. sampleAgeMS is an estimate using the existing mapped epochs, not measured one-way latency. Unknown steering/braking, hitches and clock uncertainty can still cause corrections. Stale data fades; off-screen direction/distance is not a placement claim. Actual usefulness remains a playtest question. Explicit object
 pool now79frames/166textures/81fonts, including four additional menu controls.
 No widgets are created during driving.
 

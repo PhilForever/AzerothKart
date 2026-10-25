@@ -2,7 +2,13 @@
 
 ## Automatic highscores update
 
-This build adds three Lua files: fully exit and restart WoW after installation.
+Updating from the earlier build without automatic scores adds three Lua files
+and requires a full restart. From the automatic-scores build, this tuning update
+needs only `/reload`. Both racing clients must use the same handling version.
+Physics12 widens kart differences and awards0.8/1.3second charged boosts with
+stronger acceleration. New drift charging begins after the boost expires;
+holding Space will resume charging then. The leaderboard remains shared across
+karts; earlier handling-version records stay saved separately.
 Highscores automatically shares compatible saved solo bests with other addon
 users discovered in its dedicated channel. New finishes refresh connected
 players' boards, and top-3/top-10 entries produce a local chat/result notice.

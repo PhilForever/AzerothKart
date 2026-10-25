@@ -12,7 +12,7 @@ local function close(a,b,message) assert(math.abs(a-b)<1e-9,message) end
 local function same(a,b,message)
     for _,field in ipairs(fields) do assert(a[field]==b[field],message.." "..field) end
 end
-assert(P.VERSION==11,"kart profiles start a new handling compatibility version")
+assert(P.VERSION==12,"revised kart and drift tuning changes handling compatibility")
 local mapping={basic="balanced",goblin_mortar_trike="balanced",dwarf_car="balanced",
     glaive_thrower="balanced",goblin_drag_car="balanced",steam_tank="heavy",
     orc_demolisher="heavy",meat_wagon="heavy",dwarven_biker="agile",
@@ -26,7 +26,7 @@ for _,bad in ipairs({false,1,{},"","unknown_kart","Heavy","STEAM_TANK"}) do
 end
 local copied=P.GetHandling("steam_tank")
 copied.accel,copied.maxSpeed,copied.id=9999,9999,"changed"
-assert(P.GetHandling("steam_tank").accel==148.8 and P.GetHandling("steam_tank").id=="heavy")
+assert(P.GetHandling("steam_tank").accel==142.6 and P.GetHandling("steam_tank").id=="heavy")
 local fresh=P.new(open)
 local count=0
 for _ in pairs(fresh) do count=count+1 end
@@ -79,7 +79,8 @@ for _,case in ipairs(cases) do
         if tick==30 then tierOne=bend end
     end
     assert(tierOne.driftTier==1 and bend.driftTier==2,"same drift tier thresholds for every kart")
-    for _,reward in ipairs({{state=tierOne,ticks=30},{state=bend,ticks=48}}) do
+    for _,reward in ipairs({{state=tierOne,ticks=P.BOOST_TIER1_TICKS},
+            {state=bend,ticks=P.BOOST_TIER2_TICKS}}) do
         local released=P.step(reward.state,{accelerate=true,left=true},dt,open,kart)
         assert(released.boostTicks==reward.ticks-1 and released.speed>h.maxSpeed,
             "release awards the shared boost duration and consumes its first tick")
@@ -106,8 +107,8 @@ assert(a.half<b.half and b.half<h.half,"agile launch advantage trades against he
 assert(h.straight<b.straight and b.straight<a.straight,"heavy cruising advantage trades against agile top speed")
 assert(h.stop<b.stop and b.stop<a.stop,"heavy has stronger braking, agile requires earlier braking")
 assert(a.radius<b.radius and b.radius<h.radius,"agile turns tighter while heavy needs wider lines")
-assert(math.abs(h.straight/b.straight-1)<0.03 and math.abs(a.straight/b.straight-1)<0.03,
-    "first-pass straight tradeoffs remain modest rather than different performance tiers")
+assert(math.abs(h.straight/b.straight-1)<0.04 and math.abs(a.straight/b.straight-1)<0.04,
+    "wider kart identity retains modest straight tradeoffs rather than different performance tiers")
 
 -- Identical seed/input vectors replay all 15 fields at different render rates.
 local ticks=10000

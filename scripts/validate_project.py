@@ -15,6 +15,7 @@ REQUIRED=[
  'docs/adr/0017-central-score-store.md','docs/adr/0018-automatic-community-scores.md',
  'tests/test_community_scores.lua',
  'tests/test_kart_handling.lua','docs/adr/0019-balanced-kart-handling.md',
+ 'tests/test_drift_payoff.lua',
  'addon/AzerothKart/ScoreSync.lua','addon/AzerothKart/ScoreDiscovery.lua',
  'addon/AzerothKart/ScoreSharing.lua','tests/test_score_sync.lua',
  'tests/test_score_discovery.lua','tests/test_score_sharing.lua',

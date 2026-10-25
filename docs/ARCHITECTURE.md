@@ -7,7 +7,7 @@ The score receiver is one fixed frame, with sends yielding to the existing
 Core lease/budget. Native discovery/latency/scale remain pending;
 [implementation and limits](AUTOMATIC_SCORES.md) supersede earlier unwired notes.
 
-Current handling, 2026-10-25: Physics11 owns three private balanced/heavy/agile
+Current handling, 2026-10-25: Physics12 owns three private balanced/heavy/agile
 profiles. A selected kart-ID string is latched at successful solo Start or
 captured in the RaceStart bundle from RaceGrid, then held privately by LiveRace.
 Each step receives that ID; presentation gets copied handling descriptions.

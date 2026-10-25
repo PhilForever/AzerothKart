@@ -25,7 +25,7 @@ local function noCharge(s, context)
         and s.driftGraceTicks==0,context)
 end
 
-assert(P.VERSION==11,"kart handling profiles change replay compatibility")
+assert(P.VERSION==12,"revised kart and drift tuning changes replay compatibility")
 assert(P.DRIFT_TIER1_TICKS==30 and P.DRIFT_TIER2_TICKS==60,
     "tier one charges in half a second and tier two in one second")
 local initial=P.new(open)
@@ -54,6 +54,17 @@ assert(longBoost.boostTicks==0,"boost expires on fixed ticks")
 longBoost=P.step(longBoost,{accelerate=true},P.FIXED_DT,open)
 assert(longBoost.speed<=P.MAX_SPEED,"expired boost restores normal cap")
 assert(longBoost.slipAngle==0,"released slide recovers grip")
+
+local noRecharge=release(two)
+for _=1,P.BOOST_TIER2_TICKS-1 do
+    noRecharge=P.step(noRecharge,{accelerate=true,left=true,drift=true},P.FIXED_DT,open)
+    assert(noRecharge.driftTicks==0 and noRecharge.driftTier==0 and not noRecharge.drifting,
+        "holding drift during boost cannot precharge an indefinitely renewable reward")
+end
+assert(noRecharge.boostTicks==0,"the original boost still expires on its earned duration")
+noRecharge=P.step(noRecharge,{accelerate=true,left=true,drift=true},P.FIXED_DT,open)
+assert(noRecharge.boostTicks==0 and noRecharge.driftTicks==1,
+    "held drift begins a fresh charge after boost expires, without an extra key press")
 
 local forward={accelerate=true,drift=true,left=true}
 local slide=P.step(ready(),forward,P.FIXED_DT,open)

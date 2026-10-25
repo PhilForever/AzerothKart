@@ -1588,6 +1588,8 @@ end)
 withMock(nil,false,function(env,UI)
     env.fire("ADDON_LOADED","AzerothKart")
     UI.Toggle(); UI.Start()
+    local boostCapacity=env.namespace.Physics.BOOST_TIER2_TICKS
+    local halfBoost=boostCapacity/2
     local counts={}
     for key,value in pairs(env.counts) do counts[key]=value end
     local function close(actual,expected,label)
@@ -1642,11 +1644,11 @@ withMock(nil,false,function(env,UI)
     for channel,value in ipairs(tierOneColor) do
         assert(UI.meterFill.color[channel]==value,"holding retains tier-one color")
     end
-    sample(0,47); caption("BOOST REMAINING")
-    close(UI.meterFill.width,300*47/48,"boost uses the common maximum duration")
-    assert(UI.meterTier1Label.text=="0.4 s" and UI.meterTier2Label.text=="0.8 s",
+    sample(0,boostCapacity-1); caption("BOOST REMAINING")
+    close(UI.meterFill.width,300*(boostCapacity-1)/boostCapacity,"boost uses the common maximum duration")
+    assert(UI.meterTier1Label.text=="0.65 s" and UI.meterTier2Label.text=="1.3 s",
         "boost meter labels show remaining-time capacity")
-    sample(0,24)
+    sample(0,halfBoost)
     close(UI.meterFill.width,150,"half remaining boost reaches the same halfway mark")
     local sizeWrites,colorWrites,textWrites=UI.meterFill.sizeWrites,
         UI.meterFill.colorWrites,UI.meterCaption.textWrites
@@ -1655,18 +1657,18 @@ withMock(nil,false,function(env,UI)
            UI.meterCaption.textWrites==textWrites,
         "unchanged meter state does not repeat geometry, color or caption setters")
     for _,surface in ipairs({"grass","wall"}) do
-        sample(60,47,surface,1)
+        sample(60,boostCapacity-1,surface,1)
         assert(not UI.meterFill:IsShown(),surface.." clears stale charge and boost feedback")
         caption("DRIFT CHARGE")
     end
-    sample(0,24)
+    sample(0,halfBoost)
     UI.state.tick=1 -- A retained drive label requires an actual completed sample.
     UI.Stop("meter fixture")
     caption("Last drive | "); caption("BOOST REMAINING")
     close(UI.meterFill.width,150,"Stop retains the actual remaining boost")
     local frozenText=UI.meterCaption.text
     UI.OnUpdate(1)
-    assert(UI.meterCaption.text==frozenText and UI.state.boostTicks==24,
+    assert(UI.meterCaption.text==frozenText and UI.state.boostTicks==halfBoost,
         "stopped meter and boost stay frozen")
     UI.Start()
     assert(not UI.meterFill:IsShown() and UI.state.boostTicks==0,

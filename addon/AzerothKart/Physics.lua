@@ -3,7 +3,7 @@
 local _, namespace = ...
 
 local Physics = {}
-Physics.VERSION = 11
+Physics.VERSION = 12
 Physics.FIXED_DT = 1/60
 Physics.MAX_SPEED = 200
 Physics.REVERSE_MAX = 55
@@ -22,10 +22,10 @@ Physics.DRIFT_MIN_SPEED = 90
 Physics.DRIFT_TIER1_TICKS = 30
 Physics.DRIFT_TIER2_TICKS = 60
 Physics.DRIFT_GRACE_TICKS = 12
-Physics.BOOST_TIER1_TICKS = 30
-Physics.BOOST_TIER2_TICKS = 48
+Physics.BOOST_TIER1_TICKS = 48
+Physics.BOOST_TIER2_TICKS = 78
 Physics.BOOST_MAX_SPEED = 260
-Physics.BOOST_ACCEL = 300
+Physics.BOOST_ACCEL = 420
 Physics.DRIFT_STEER_MULTIPLIER = 0.75
 Physics.MAX_SLIP_ANGLE = 0.40
 Physics.SLIP_BUILD_RATE = 1.8
@@ -39,10 +39,10 @@ Physics.GRASS_DRAG = 360
 local profiles = {
     balanced={id="balanced", name="Balanced", maxSpeed=200, accel=155, brake=260,
         steerRate=2.6, steeringRiseRate=8, maxSlipAngle=0.40, slipRecoverRate=3},
-    heavy={id="heavy", name="Heavy", maxSpeed=204, accel=148.8, brake=273,
-        steerRate=2.496, steeringRiseRate=7.2, maxSlipAngle=0.38, slipRecoverRate=3.15},
-    agile={id="agile", name="Agile", maxSpeed=196, accel=161.2, brake=247,
-        steerRate=2.704, steeringRiseRate=8.8, maxSlipAngle=0.42, slipRecoverRate=2.85},
+    heavy={id="heavy", name="Heavy", maxSpeed=208, accel=142.6, brake=280.8,
+        steerRate=2.392, steeringRiseRate=6.8, maxSlipAngle=0.36, slipRecoverRate=3.3},
+    agile={id="agile", name="Agile", maxSpeed=192, accel=167.4, brake=239.2,
+        steerRate=2.808, steeringRiseRate=9.2, maxSlipAngle=0.44, slipRecoverRate=2.7},
 }
 local kartProfiles = {
     basic="balanced", goblin_mortar_trike="balanced", dwarf_car="balanced",
@@ -139,7 +139,10 @@ function Physics.step(state, input, dt, track, kartId)
     -- steering earns more. The bounded grace cannot bank charge on a straight.
     -- Space release may pay a held charge during that correction window.
     local drifting, direction, driftTicks, tier, grace = false, 0, 0, 0, 0
-    local eligible = startSurface == "road" and not brake and speed >= Physics.DRIFT_MIN_SPEED
+    -- Charging resumes after boost expires; longer rewards must not recharge
+    -- themselves behind the boost meter into continuous turbo.
+    local eligible = startSurface == "road" and not brake and boostTicks == 0
+        and speed >= Physics.DRIFT_MIN_SPEED
     local charging = eligible and steering * steer > 0
     local wasDrifting = state.drifting == true
     if wasDrifting and eligible then

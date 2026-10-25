@@ -240,7 +240,7 @@ do
     assert(p.guest:view().offer.trackVersion==1 and p.guest:view().start.seed==42
         and p.guest:view().stats.sendAttempts~=999 and p.guest:view().traffic.attempts~=999)
     assert(p.host.raceCalls==0 and p.guest.raceCalls==0 and not p.host.namespace.UI.active
-        and p.host.namespace.Physics.VERSION==11 and p.host.namespace.Track.version==2,
+        and p.host.namespace.Physics.VERSION==12 and p.host.namespace.Track.version==2,
         "control proposals never activate or mutate local simulation")
     assertPacing(p.host); assertPacing(p.guest)
     p.host:call("Stop","left"); p.guest:call("Stop","left")

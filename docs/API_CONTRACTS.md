@@ -34,13 +34,22 @@ only an already visible Highscores screen. Existing result text consumes the
 once-only notice, with no new widgets. UI pool remains86/167/135, plus Core and
 the score receiver's two fixed frames. Native behavior is pending verification.
 
-## Implemented kart handling — Physics11
+<a id="implemented-kart-handling--physics11"></a>
+
+## Implemented kart handling — Physics12
+
+Physics12 widens profile differences and increases charged boost rewards to
+48/78ticks with420acceleration, keeping the260speed envelope and30/60tick charge
+thresholds. New charging waits for the active boost to end. UI duration labels
+derive from the configured maximum; no state fields or packet format change.
+The observational forecast yaw bound is3.0rad/s, covering agile's2.808rad/s.
+See [payoff evidence](PHYSICS.md#current-drift-payoff--physics12).
 
 `Physics.GetHandling(kartId?) -> detachedProfile, error` returns
 `{id,name,maxSpeed,accel,brake,steerRate,steeringRiseRate,maxSlipAngle,slipRecoverRate}`.
 Nil/basic select balanced; an unknown ID returns nil/invalid_kart. Private
 parameters are never writable through this view. Mapping/values belong to
-Physics compatibility11; [ADR 0019](adr/0019-balanced-kart-handling.md) and
+Physics compatibility12; [ADR 0019](adr/0019-balanced-kart-handling.md) and
 [tuning/metrics](PHYSICS.md#implemented-kart-profiles--physics11).
 
 `Physics.step(state,input,dt,track,kartId?)` uses a captured kart-ID string;
@@ -55,13 +64,13 @@ adds it to the once-only launch bundle. Take validates known handling before
 initialization; LiveRace captures the ID privately and passes it into step.
 SessionTransport supplies RaceGrid's acknowledged localKartId. Copied views,
 bundle edits and later UI choices cannot retune that run. Legacy nil starts
-remain balanced. Existing wire formats stay unchanged; negotiated Physics11
+remain balanced. Existing wire formats stay unchanged; negotiated Physics12
 rejects peers running older mapping/parameters, and speeds remain within the
 existing -55..260 live codec range.
 
 Leaderboards remain one best per player per map/rules context, with no kart
 column or filter. Existing kartId metadata remains internal. Old Physics10
-boards are retained; current Physics11 contexts begin a new compatible board.
+boards are retained; current Physics12 contexts begin a new compatible board.
 
 ## Pure community merge and placement — 2026-10-25
 
@@ -444,7 +453,7 @@ kartFrameCoords(sprite, frame) -> left, right, top, bottom
 
 `pose` linearly interpolates position and uses the shortest heading arc; an exact half-turn chooses the negative arc. Missing/NaN alpha uses current pose, alpha ≤0 previous, alpha ≥1 current. During active rendering alpha is `clock.accumulator/clock.dt`; this is up to one fixed step behind simulation. Start/Stop/inactive drawing uses the exact current pose. Presentation values must never affect Physics, gates or lap time.
 
-`buildRemotePath` is a separate display-only helper for copied LiveRace observations. UI caches it when `remote.receivedAtMS` changes, then calls allocation-free `remotePose` with `remote.sampleAgeMS` at render cadence. It starts at the newest observation, with no extra 500 ms receive-time interpolation buffer. At most 31 points cover 30 fixed 1/60 s forecast steps: `MAX_REMOTE_PREDICTION_MS=500`, absolute speed cap 260 units/s and heading-rate cap 2.6 radians/s. Current signed speed/facing supply the fallback; a valid positive sample interval of at most 2 s supplies measured travel direction and shortest-arc yaw. It does not predict unknown acceleration, braking or new steering. `resolveMovement` is used where present; contact, clamp or invalid/far recovery stops further projection. A road-mask-only track refuses outside endpoints. This preserves the current geometry hooks' limits; it is not a new continuous collision guarantee.
+`buildRemotePath` is a separate display-only helper for copied LiveRace observations. UI caches it when `remote.receivedAtMS` changes, then calls allocation-free `remotePose` with `remote.sampleAgeMS` at render cadence. It starts at the newest observation, with no extra 500 ms receive-time interpolation buffer. At most 31 points cover 30 fixed 1/60 s forecast steps: `MAX_REMOTE_PREDICTION_MS=500`, absolute speed cap 260 units/s and heading-rate cap 3.0 radians/s. Current signed speed/facing supply the fallback; a valid positive sample interval of at most 2 s supplies measured travel direction and shortest-arc yaw. It does not predict unknown acceleration, braking or new steering. `resolveMovement` is used where present; contact, clamp or invalid/far recovery stops further projection. A road-mask-only track refuses outside endpoints. This preserves the current geometry hooks' limits; it is not a new continuous collision guarantee.
 
 `remotePose` clamps finite age to 0..500 ms, samples between cached points and freezes at the forecast's end. Invalid/missing age draws the observation without guessed latency. Non-running or invalid-speed observations stay frozen; invalid current pose falls back to a valid previous pose without forecasting, and no valid pose yields nil. Inputs are never written. The boolean labels an estimated pose; it does not verify where the peer really is. Later observations can correct it abruptly, and clock offset, abrupt turns/braking and loss remain visible limitations. Neither helper feeds local Physics/Race, awards progress, compares standings or sends packets. Native smoothness and visual edge behavior for this revision remain **NOT RUN**.
 

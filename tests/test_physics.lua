@@ -21,7 +21,7 @@ local collided=P.step(edge,{accelerate=true},P.FIXED_DT,T)
 assert(collided.impacts==1,"outer bound collision detected")
 assert(collided.x==edge.x and collided.y==edge.y and collided.surface=="wall","wall clamps penetration")
 assert(collided.speed<edge.speed,"collision scrubs speed")
-assert(P.VERSION==11,"kart handling profiles change replay compatibility")
+assert(P.VERSION==12,"revised kart and drift tuning changes replay compatibility")
 
 -- Measure handling without track impacts obscuring speed clamps.
 local openTrack={spawn=T.spawn,isDrivable=function() return true end}

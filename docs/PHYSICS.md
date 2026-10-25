@@ -1,28 +1,30 @@
 # Racing physics, deterministic time and game feel
 
-The current `Physics.lua` is a pure version-11 local-handling prototype with
+The current `Physics.lua` is a pure version-12 local-handling prototype with
 three kart profiles. Angle-aware wall response, parking assistance and drift
-rewards are retained. The production formulas/state below remain future targets.
+charging thresholds are retained. Production formulas/state below remain future targets.
 
-## Implemented kart profiles — Physics11
+<a id="implemented-kart-profiles--physics11"></a>
+
+## Implemented kart profiles — Physics12
 
 Owner approved modest handling differences and one shared leaderboard.
 [ADR 0019](adr/0019-balanced-kart-handling.md) records the decision.
 
 | Parameter | Balanced | Heavy | Agile |
 |---|---:|---:|---:|
-| Cruising speed | 200 | 204 | 196 |
-| Acceleration | 155 | 148.8 | 161.2 |
-| Braking | 260 | 273 | 247 |
-| Turn rate | 2.6 | 2.496 | 2.704 |
-| Steering build rate | 8 | 7.2 | 8.8 |
-| Maximum drift slip | 0.40 | 0.38 | 0.42 |
-| Slip recovery | 3 | 3.15 | 2.85 |
+| Cruising speed | 200 | 208 | 192 |
+| Acceleration | 155 | 142.6 | 167.4 |
+| Braking | 260 | 280.8 | 239.2 |
+| Turn rate | 2.6 | 2.392 | 2.808 |
+| Steering build rate | 8 | 6.8 | 9.2 |
+| Maximum drift slip | 0.40 | 0.36 | 0.44 |
+| Slip recovery | 3 | 3.3 | 2.7 |
 
 Balanced: Mortar Trike, Dwarf Car, Glaive Thrower, Pod Racer. Heavy: Steam Tank,
 Orc Demolisher, Meat Wagon. Agile: Dwarven Biker, Gryphon Rider, Gyrocopter.
 All use the same body and surface rules. Reverse55, boost260, drift charging
-30/60ticks, boost rewards30/48ticks and 90% initial wall retention are shared.
+30/60ticks, boost rewards48/78ticks and 90% initial wall retention are shared.
 Scraping caps speed at 80% of that profile's cruising cap. No collision mass or
 damage is implemented. Default calls without a kart ID retain balanced handling.
 
@@ -30,18 +32,40 @@ damage is implemented. Default calls without a kart ID retain balanced handling.
 optional fifth kart-ID argument, captured once at Start/GO. No per-step profile
 table allocation is added; the authoritative state remains 15 fields.
 
-Executed open-plane metrics, balanced/heavy/agile: 0–100 in39/41/38ticks,
-2,000units in639/629/649ticks, brake-to-zero in47/45/48ticks, turning radius
-76.923/81.731/72.485units at full cruise. All three reach tier2 on the60tick
+Executed open-plane metrics, balanced/heavy/agile: 0–100 in39/43/36ticks,
+2,000units in639/621/659ticks, brake-to-zero in47/45/49ticks, turning radius
+76.923/86.957/68.376units at full cruise. All three reach tier2 on the60tick
 Test Oval opening drift without impacts. Each profile reproduces every state
 field over10,000seeded fixed ticks at30/60/144FPS. These are offline metrics,
 not evidence of native game feel or equal lap times across maps.
+
+## Current drift payoff — Physics12
+
+Charging still takes 30/60 ticks (0.5/1.0 seconds). Releasing a valid tier now
+awards 48/78 boosted ticks (0.8/1.3 seconds), with boost acceleration420 and
+the existing260speed cap. Steering, slip, collision and rough-ground cancellation
+still apply. Charging a new drift waits until the current boost expires; held
+Space can start it on the following tick. This prevents the longer reward from
+recharging itself indefinitely or hiding new charge behind the boost meter.
+
+The remaining-time meter uses the actual maximum duration:0.65seconds at its
+midpoint and1.3seconds at full capacity. Tier1's0.8second reward starts above
+the midpoint. Labels are calculated from Physics rather than fixed strings.
+
+`test_drift_payoff.lua` drives actual Race/Checkpoints/Laps around one clean
+Test Oval ellipse using the same steering policy. Three laps take958ticks
+(15.967s) without drifting,956ticks (15.933s) with the prior reward constants,
+and911ticks (15.183s) with the new reward:0.783s/4.91% ahead of plain driving.
+Every run has zero impacts/rough ticks. The policy adapts its inputs to each
+resulting pose, so these are not identical input tapes or optimal human laps.
+It waits until a boost expires before charging again. Source tests separately
+verify deterministic replay and the no-recharge-during-boost rule.
 
 ## Implemented progressive keyboard steering
 
 Physics stores signed `steering` in [-1,1]. For the balanced profile, one held
 turn approaches full steering at8units/s: full lock takes8ticks at60Hz.
-Heavy/agile build at7.2/8.8units/s. All profiles center at16units/s; reversal
+Heavy/agile build at6.8/9.2units/s. All profiles center at16units/s; reversal
 centers first, then builds the new sign on following ticks. Both directions
 held cancel steering immediately. These simulation timings are not native
 input-to-display latency measurements.

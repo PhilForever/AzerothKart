@@ -268,7 +268,13 @@ do
     seamBefore.heading=-3
     local turning = P.buildRemotePath(seamBefore,seamNow,straight)
     local _,_,turnHeading = P.remotePose(turning,500)
-    near(turnHeading,0.05+2.6/2,"remote heading rate is bounded")
+    near(turnHeading,0.05+3.0/2,"remote heading rate is bounded")
+    local agileYaw=dofile("addon/AzerothKart/Physics.lua").GetHandling("dwarven_biker").steerRate
+    local agileBefore=copy(older); agileBefore.heading=seamNow.heading-agileYaw/2
+    local agilePath=P.buildRemotePath(agileBefore,seamNow,straight)
+    local _,_,agileHeading=P.remotePose(agilePath,500)
+    near(agileHeading,seamNow.heading+agileYaw/2,
+        "observed agile turning stays within the forecast bound without underprediction")
 
     local wall = {resolveMovement=function(x,y,tx,ty)
         assert(math.sqrt((tx-x)^2+(ty-y)^2)<=260/60+1e-9,"small projection sweep")
@@ -345,10 +351,11 @@ meter(60, 1, "holding")
 state.driftGraceTicks = 0
 state.drifting = false
 meter(60, 0, "idle")
-for _, remaining in ipairs({29, 47, 48, 100}) do
+for _, remaining in ipairs({config.BOOST_TIER1_TICKS-1, config.BOOST_TIER2_TICKS-1,
+        config.BOOST_TIER2_TICKS, config.BOOST_TIER2_TICKS+20}) do
     state.boostTicks = remaining
     local fraction, phase = P.meter(state, config)
-    near(fraction, math.min(1, remaining/48), "shared boost capacity")
+    near(fraction, math.min(1, remaining/config.BOOST_TIER2_TICKS), "shared boost capacity")
     assert(phase == "boost", "boost takes precedence over charge")
 end
 state.boostTicks = 0
@@ -369,7 +376,7 @@ assert(select("#", P.meter(state, config)) == 2, "meter returns exactly two scal
 for key, value in pairs(state) do assert(snapshot[key] == value, "meter preserves state") end
 for key, value in pairs(snapshot) do assert(state[key] == value, "meter retains every state field") end
 assert(config.DRIFT_TIER1_TICKS == 30 and config.DRIFT_TIER2_TICKS == 60
-       and config.BOOST_TIER2_TICKS == 48, "meter preserves injected configuration")
+       and config.BOOST_TIER2_TICKS == 78, "meter preserves injected configuration")
 
 -- Kart sprite registry and the shipped TGA bytes. This checks the packaging
 -- contract and offline alpha only; client loading, filtering and facing are

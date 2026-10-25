@@ -1,5 +1,63 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-25 16:51 +01:00 — wider kart tradeoffs and useful drift reward
+
+Owner reports the installed automatic-scores/profile build tested "all good",
+then asks for slightly larger kart differences and a more worthwhile drift/boost.
+The non-drifting friend comparison is qualitative play feedback, not controlled
+lap telemetry. No detailed native discovery/latency/scale evidence was supplied.
+Own `codex/drift-reward-tuning` from `65cb646`, with reservation before edits.
+
+Physics12 widens heavy/agile cruising caps from204/196 to208/192, acceleration/
+yaw from±4% to±8%, steering build from±10% to±15%, and slip/recovery to±10%.
+Balanced remains200/155/2.6 baseline. All keep common body, wall90%/80% rules,
+reverse55 and boost260. Charge30/60ticks is unchanged; reward30/48 becomes48/78
+ticks (0.8/1.3seconds), boost acceleration300→420. New charge waits for active
+boost expiry, preventing continuous self-renewal/hidden charging; held Space
+starts charging on the following tick. No input, geometry, score transport or
+packet-format change. Version12 rejects older peers and separates compatible
+scoreboards while preserving historical saves.
+
+UI boost labels now derive half/full capacity (0.65/1.3seconds) rather than
+hardcoded0.4/0.8. Presentation forecast yaw bound3.0 covers agile2.808 without
+changing authority or the260speed envelope. No new UI objects/assets/runtime
+files. Current physics/API/ADR/user copy and seven-board catalogue/example are
+aligned. Shared leaderboards remain without kart columns/filters.
+
+**Executed:** pinned real Lua5.1:
+
+- `scripts/test_lua.py --runtime lua51 --tests kart_handling drift physics
+  presentation ui session_transport solo_records`: agent PASS7modules/75files,
+  including current-version checks, profile tradeoffs, 15-field10k seeded
+  replays at30/60/144FPS, meter capacity and actual agile forecast.
+- `--tests drift_payoff live_race multiplayer_integration score_sharing`:
+  root PASS4modules/75files. Pure/native-mocked sharing and live codec remain
+  compatible with the new handling version.
+- Review found Lua5.4 lacks math.atan2; the new payoff fixture now uses the
+  established atan2-or-atan fallback. `--runtime both --tests drift_payoff`:
+  PASS in actual Lua5.1/5.4 with identical958/956/911tick results.
+- After adding the active-boost charging guard, final `--runtime lua51 --tests
+  drift drift_payoff kart_handling ui`: PASS4modules/75files. Holding drift
+  during boost cannot bank charge; charging resumes automatically after expiry.
+- Catalogue export/check PASS7canonical Physics12boards; whitespace PASS.
+  Structural validator retains only the2historical expired skill-link failures.
+
+Controlled actual Test Oval/Race/Checkpoints/Laps3lap fixture: no drift958ticks/
+15.967s; current handling with prior reward-only constants956/15.933s; new
+reward911/15.183s, a0.783s/4.91% gain over plain driving. All0grass/impacts.
+Same ellipse/steering policy adapts to pose; inputs/trajectories differ, so this
+is one repeatable feasible payoff, not universal/optimal human lap balance.
+Profiles measured balanced/heavy/agile:0–10039/43/36ticks;2,000units639/621/659;
+turning radius76.923/86.957/68.376. New tuning's native feel is NOT RUN.
+
+Source review found no remaining runtime blocker; its boost-chain caveat was
+addressed by the charging guard. No main/Claude branch merge, push or native
+automation. Other worktrees/untracked work preserved. Tested source is ready
+for the requested verified backup/install/package; deployment result follows.
+**Next exact task:** owner/friend update and reload, compare normal corner exits
+and charged releases, then tune only from new handling feedback. No new probe
+series or unrelated gameplay feature is required.
+
 ## 2026-10-25 16:08 +01:00 — combined update installed and packaged
 
 Committed runtime `6b4dc16d33004715714d072471bc3b1c99a8f6af` on
