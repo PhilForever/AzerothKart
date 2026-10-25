@@ -1,5 +1,31 @@
 # Changelog
 
+## Unreleased — Scarlet Crusade Cup: Scarlet Library (2026-10-25, `claude/scarlet-library`)
+- **Scarlet Library**, the cup's second dungeon sprint, is selectable. The owner: "Scarlet Library. Everything is inside except the first courtyard with the fountain/statue in the middle, everything else is inside - ending in the iconic round library." It follows his route on his map of the wing:
+  - from the portal, north and east, then south down the long hall;
+  - round the Huntsman's Cloister;
+  - into Houndmaster Loksey's kennel across the line he drew there, and back out;
+  - north up the east hall into the Gallery of Treasures;
+  - east through two columned halls and south down the Athenaeum;
+  - to Arcanist Doan's round library, where the finish is the chequered line in its door.
+
+  Five gates, about 6,200 units, one run. See `docs/art/tracks/scarlet-library.md`.
+- **Round rooms** in `Dungeon.lua` (`shape="disc"`; ADR 0020 addendum, for Codex's review): the round library and the courtyard fountain's court are true circles, and a kart slides round their walls. Rectangle rooms and the Graveyard are unchanged.
+- **The look:**
+  - the open courtyard under a green-tinged moon: a lawn, stone paths, a statue fountain, summer trees, the arcade's columns, Scarlet huntsmen and their red hounds;
+  - straw, cages and bones in the kennel;
+  - treasure, chests, shields and statues in the gallery;
+  - square pillars in the halls;
+  - bookshelves down the Athenaeum;
+  - in the round library, a gold ring on dark stone, the red carpet to its wall, bookshelves round it and Doan at his lectern.
+- The generator counts a route crossing only across a gate's own segment, as the runtime does. The Graveyard's data and picture are byte for byte unchanged.
+- **Tests:**
+  - `test_dungeon` adds a round room and walks the Library's five gates in order, back across Loksey's line once;
+  - `test_menu` and `test_circuit` follow the longer Track cycle and the square preview;
+  - the Highscores rule line names the Library's board a sprint;
+  - the score catalogue gains the Library's board (ten).
+- **Needs Codex:** the score-sync patch in the handoff now adds the Library's code `L` too. The drive and the picture in the client are NOT RUN.
+
 ## Unreleased — Scarlet Crusade Cup: Scarlet Graveyard (2026-10-25, `claude/scarlet-graveyard`)
 - **The Scarlet Crusade Cup**, the third cup, of dungeon sprints. The owner: "This will be A-B sprint type maps ... Start of dungeon to end of dungeon. Let's start with Scarlet Graveyard. It starts in a closed space and enters into an open graveyard. You don't need to put a traditional track here, just recreate the dungeon and let players find their way to the end." Scarlet Graveyard is selectable. Scarlet Library, Scarlet Armory and Scarlet Monastery are listed as coming soon.
 - **Scarlet Graveyard** follows his green route on his map of the wing:

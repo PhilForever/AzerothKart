@@ -21,6 +21,7 @@ SUMMER = "war3.w3mod:doodads/lordaeronsummer/props/"
 DUNGEON = "war3.w3mod:doodads/dungeon/props/"
 NORTHREND = "war3.w3mod:doodads/northrend/"
 TREES = "war3.w3mod:doodads/terrain/lordaerontree/"
+RUINS = "war3.w3mod:doodads/ruins/"
 DE = "war3.w3mod:_de.w3mod:"
 UNITS = "war3.w3mod:units/"
 DOOR_OVERLAP = 2 * WALL_INSET
@@ -31,6 +32,13 @@ def room(name, x0, y0, x1, y1, surface="road", floor="hall"):
     "rough", painted in the layout's `floor` style."""
     assert x1 - x0 > 2 * WALL_INSET and y1 - y0 > 2 * WALL_INSET, name
     return {"name": name, "x0": x0, "y0": y0, "x1": x1, "y1": y1, "surface": surface, "floor": floor}
+
+
+def disc_room(name, cx, cy, radius, surface="road", floor="hall"):
+    """A round room: the disc of `radius` about (cx, cy), in its square."""
+    assert radius > 2 * WALL_INSET, name
+    return {"name": name, "x0": cx - radius, "y0": cy - radius, "x1": cx + radius, "y1": cy + radius,
+            "surface": surface, "floor": floor, "shape": "disc"}
 
 
 def gate(name, ax, ay, bx, by, nx, ny):
@@ -106,7 +114,17 @@ SG_ROUTE = [
 
 
 def on_floor(rooms, x, y):
-    return any(r["x0"] <= x <= r["x1"] and r["y0"] <= y <= r["y1"] for r in rooms)
+    """Inside a room's painted floor (a round room's disc)."""
+    for r in rooms:
+        if not (r["x0"] <= x <= r["x1"] and r["y0"] <= y <= r["y1"]):
+            continue
+        if r.get("shape") != "disc":
+            return True
+        radius = (r["x1"] - r["x0"]) / 2
+        dx, dy = x - (r["x0"] + r["x1"]) / 2, y - (r["y0"] + r["y1"]) / 2
+        if dx * dx + dy * dy <= radius * radius:
+            return True
+    return False
 
 
 def wall_props(rooms, name, side, model, every, offset=7, margin=40, start=None, **kw):
@@ -312,4 +330,272 @@ SCARLET_GRAVEYARD = {
     "kerbed": ["path", "court", "walk"],
 }
 
-DUNGEONS = [SCARLET_GRAVEYARD]
+# ---------------------------------------------------------------------------
+# Scarlet Library.
+#
+# The owner (2026-10-25): "Scarlet Library. Everything is inside except the
+# first courtyard with the fountain/statue in the middle, everything else is
+# inside - ending in the iconic round library." His map (the Library's,
+# MapsForTanks) marks the route: from the portal ("!") north and east into
+# the long hall, south to the Huntsman's Cloister and down its west walk, in
+# and back out of Houndmaster Loksey's kennel across the red line he drew
+# there, up the east hall into the Gallery of Treasures, east through two
+# columned halls, south down the Athenaeum and through the last hall to
+# Arcanist Doan's round library: "END!", at the red line across its door.
+#
+# The map's rooms at karting scale in a 2048 x 2048 world: halls 120 to 140
+# units wide, the cloister's courtyard 280 square, the round library 200 in
+# radius. Only the courtyard is open to the sky.
+
+SL_ROOMS = [
+    # The portal hall, the upper hall east, and the long hall south to the
+    # cloister.
+    room("portal hall", 20, 1600, 140, 1930),
+    room("upper hall", 20, 1800, 360, 1930),
+    room("long hall", 230, 900, 360, 2010),
+    room("cloister door", 324, 970, 436, 1070, floor="door"),
+    # The Huntsman's Cloister: the open courtyard (its lawn, a cross of paths
+    # and the fountain's round court), then the four roofed walks round it,
+    # painted over the courtyard's edges.
+    room("courtyard", 484, 644, 836, 996, surface="rough", floor="lawn"),
+    room("courtyard path", 630, 644, 690, 996, floor="path"),
+    room("courtyard cross path", 484, 790, 836, 850, floor="path"),
+    disc_room("fountain court", 660, 820, 90, floor="court"),
+    room("west walk", 400, 560, 520, 1080, floor="walk"),
+    room("north walk", 400, 960, 920, 1080, floor="walk"),
+    room("east walk", 800, 560, 920, 1080, floor="walk"),
+    room("south walk", 400, 560, 920, 680, floor="walk"),
+    # Houndmaster Loksey's kennel, south of the cloister: in and back out.
+    room("kennel door", 590, 444, 730, 596, floor="door"),
+    room("kennel", 510, 110, 810, 480, floor="kennel"),
+    # The east hall, north to the Gallery of Treasures, with a side room.
+    room("cloister east door", 884, 760, 996, 880, floor="door"),
+    room("east hall", 960, 640, 1090, 1470),
+    room("east alcove door", 888, 1280, 1000, 1360, floor="door"),
+    room("east alcove", 780, 1250, 924, 1390),
+    # The Gallery of Treasures: a long hall, two alcoves on its west side,
+    # niches on its east.
+    room("gallery door", 1054, 1270, 1166, 1380, floor="door"),
+    room("gallery", 1130, 1180, 1320, 1990, floor="gallery"),
+    room("gallery alcove north door", 1054, 1820, 1166, 1910, floor="door"),
+    room("gallery alcove north", 960, 1800, 1090, 1930, floor="gallery"),
+    room("gallery alcove south door", 1054, 1580, 1166, 1670, floor="door"),
+    room("gallery alcove south", 960, 1560, 1090, 1690, floor="gallery"),
+    room("gallery niche south", 1284, 1250, 1360, 1340, floor="gallery"),
+    room("gallery niche north", 1284, 1420, 1360, 1510, floor="gallery"),
+    # Two columned halls east, each a cross (its corners stepped in).
+    room("first hall door", 1284, 1760, 1396, 1880, floor="door"),
+    room("first hall", 1360, 1730, 1550, 1910, floor="columns"),
+    room("first hall cross", 1395, 1690, 1515, 1950, floor="columns"),
+    room("second hall door", 1514, 1760, 1626, 1880, floor="door"),
+    room("second hall", 1590, 1730, 1780, 1910, floor="columns"),
+    room("second hall cross", 1625, 1690, 1745, 1950, floor="columns"),
+    # The Athenaeum, south, with niches on its west side.
+    room("Athenaeum door", 1744, 1760, 1856, 1880, floor="door"),
+    room("Athenaeum", 1820, 1180, 2010, 1990, floor="athenaeum"),
+    room("Athenaeum niche north", 1784, 1460, 1856, 1550, floor="athenaeum"),
+    room("Athenaeum niche south", 1784, 1300, 1856, 1390, floor="athenaeum"),
+    # The last hall, and Arcanist Doan's round library.
+    room("last hall door", 1855, 1114, 1975, 1216, floor="door"),
+    room("last hall", 1690, 950, 2010, 1110, floor="columns"),
+    room("last hall cross", 1730, 910, 1970, 1150, floor="columns"),
+    room("library door", 1750, 690, 1870, 950, floor="door"),
+    disc_room("round library", 1810, 560, 200, floor="library"),
+]
+
+# The gates, in driving order. Loksey's spans his kennel: the karts drive in
+# across it, turn and come back out (crossing it backwards counts nothing).
+SL_GATES = [
+    gate("Huntsman's Cloister", 230, 1700, 360, 1700, 0, -1),
+    gate("Houndmaster Loksey", 510, 400, 810, 400, 0, -1),
+    gate("Gallery of Treasures", 1110, 1270, 1110, 1380, 1, 0),
+    gate("Athenaeum", 1800, 1760, 1800, 1880, 1, 0),
+    gate("Arcanist Doan", 1750, 800, 1870, 800, 0, -1),
+]
+
+SL_ROUTE = [
+    (80, 1668), (80, 1865), (295, 1865), (295, 1020), (460, 1020), (460, 620), (620, 620),
+    (620, 300), (660, 250), (700, 300), (700, 620), (860, 620), (860, 820), (1025, 820),
+    (1025, 1325), (1225, 1325), (1225, 1820), (1915, 1820), (1915, 1160), (1860, 1030),
+    (1810, 900), (1810, 700),
+]
+
+COLUMN = CITY + "structures/city_columnsingle/city_columnsingle.mdx"
+PILLAR = DE + "doodads/lordaeroncapital/structures/pillarinterior/pillarinterior0.mdx"
+SHELF = DUNGEON + "bookshelfwall/bookshelfwall.mdx"
+SHELF45 = DUNGEON + "bookshelfwall45/bookshelfwall45.mdx"
+BIGSHELF = DUNGEON + "bigbookshelf/bigbookshelf.mdx"
+HUNTSMAN = DE + "units/human/scarlethuntsman/scarlethuntsman.mdx"
+HOUND = DE + "units/creeps/darkhound/darkhound.mdx"
+HOUND_TINT = (1.0, 0.42, 0.36)          # Warcraft III's dark hound, as the Scarlet tracking hounds
+CANDLELIGHT = (70, (96, 70, 30))
+
+
+def _column(x, y):
+    """One of the cloister arcade's columns: solid at its base."""
+    return prop(COLUMN, x, y, scale=0.2, solid=solid_at(x, y, 7, 7), name="arcade column")
+
+
+def _pillar(x, y):
+    """A columned hall's square pillar: solid."""
+    return prop(PILLAR, x, y, scale=0.3, solid=solid_at(x, y, 12, 12), name="pillar")
+
+
+def _hound(x, y, yaw):
+    return prop(HOUND, x, y, yaw=yaw, scale=0.24, tint=HOUND_TINT, solid=solid_at(x, y, 6, 6), name="hound")
+
+
+SL_PROPS = (
+    # The portal hall: two Scarlet guards by the portal, banners and torches.
+    [prop(DE + "units/human/scarletfootman/scarletfootman.mdx", 40, 1704, yaw=0, scale=0.3,
+          solid=solid_at(40, 1704, 5, 5), name="Scarlet guard"),
+     prop(DE + "units/human/scarletfootman/scarletfootman.mdx", 120, 1704, yaw=180, scale=0.3,
+          solid=solid_at(120, 1704, 5, 5), name="Scarlet guard"),
+     prop(BANNER % 0, 60, 1922, scale=0.3), prop(BANNER % 1, 190, 1922, scale=0.3),
+     prop(BANNER % 2, 295, 2002, scale=0.3)]
+    + wall_props(SL_ROOMS, "portal hall", "west", TORCH, 130, light=TORCHLIGHT, scale=0.3, start=1650)
+    + wall_props(SL_ROOMS, "long hall", "west", TORCH, 170, light=TORCHLIGHT, scale=0.3, start=960)
+    + wall_props(SL_ROOMS, "long hall", "east", TORCH, 170, light=TORCHLIGHT, scale=0.3, start=1045)
+    + [prop(BANNER % (k % 3), 352, y, scale=0.3) for k, y in enumerate((1180, 1460, 1760))]
+    # The Huntsman's Cloister: the arcade's columns round the courtyard, an
+    # opening in the middle of each side; the statue in its fountain, four
+    # trees, bushes and flowers; huntsmen and their hounds.
+    + [_column(x, y) for x, y in ((520, 680), (520, 725), (520, 915), (520, 960), (800, 680), (800, 725),
+                                  (800, 915), (800, 960), (565, 680), (755, 680), (565, 960), (755, 960))]
+    + [prop(CITY + "props/city_statue/city_statue.mdx", 660, 820, scale=0.25, solid=True, margin=6,
+            name="cloister fountain")]
+    + [prop(TREES + "lordaerontree%d.mdx" % n, x, y, scale=0.28, solid=solid_at(x, y, 7, 7), name="tree")
+       for n, (x, y) in enumerate(((590, 750), (730, 750), (590, 890), (730, 890)))]
+    + [prop(CITY + "plants/citybush/citybush.mdx", x, y, scale=0.22) for x, y in
+       ((548, 770), (548, 870), (772, 770), (772, 870), (610, 708), (710, 708), (610, 932), (710, 932))]
+    + [prop(RUINS + "plants/ruins_flower/ruins_flower%d.mdx" % (k % 5), x, y, scale=0.24) for k, (x, y) in
+       enumerate(((560, 815), (760, 825), (655, 712), (665, 928), (620, 760), (700, 880)))]
+    + [prop(HUNTSMAN, 548, 830, yaw=0, scale=0.3, solid=solid_at(548, 830, 6, 6), name="huntsman"),
+       prop(HUNTSMAN, 772, 720, yaw=135, scale=0.3, solid=solid_at(772, 720, 6, 6), name="huntsman"),
+       _hound(615, 915, 45), _hound(705, 725, 225), _hound(565, 720, 90)]
+    + wall_props(SL_ROOMS, "west walk", "west", TORCH, 150, light=TORCHLIGHT, scale=0.3, start=620)
+    + wall_props(SL_ROOMS, "east walk", "east", TORCH, 150, light=TORCHLIGHT, scale=0.3, start=620)
+    + wall_props(SL_ROOMS, "south walk", "south", TORCH, 140, light=TORCHLIGHT, scale=0.3, start=440)
+    + wall_props(SL_ROOMS, "north walk", "north", TORCH, 140, light=TORCHLIGHT, scale=0.3, start=500)
+    + [prop(BANNER % 0, 500, 1072, scale=0.3), prop(BANNER % 1, 890, 1072, scale=0.3)]
+    # Houndmaster Loksey's kennel: the houndmaster and his hounds at the
+    # back, cages, bones and braziers.
+    + [prop(HUNTSMAN, 660, 172, yaw=90, scale=0.42, solid=solid_at(660, 172, 9, 9), name="Houndmaster Loksey"),
+       _hound(600, 210, 45), _hound(722, 214, 135), _hound(770, 140, 135),
+       prop(SUMMER + "cage/cage.mdx", 532, 140, scale=0.26), prop(SUMMER + "cageempty/cageempty.mdx", 532, 440,
+                                                                    scale=0.26),
+       prop(SUMMER + "ribbones/ribbones0.mdx", 700, 128, scale=0.26),
+       prop(SUMMER + "ribbones/ribbones1.mdx", 790, 300, scale=0.26),
+       prop(SUMMER + "skullpile/skullpile2.mdx", 528, 290, scale=0.24),
+       prop(SUMMER + "weapons/weapons.mdx", 792, 440, scale=0.3),
+       prop(SUMMER + "trough/trough0.mdx", 790, 220, yaw=0, scale=0.3)]
+    + [prop(SUMMER + "hay/hay%d.mdx" % (k % 5), x, y, scale=0.22) for k, (x, y) in
+       enumerate(((528, 205), (585, 124), (745, 124), (792, 370), (528, 360)))]
+    + [prop(SUMMER + "hayclump/hayclump.mdx", x, y, scale=0.26) for x, y in ((610, 300), (720, 330), (700, 160))]
+    + [prop(BRAZIER, x, y, scale=0.3, light=FIRELIGHT) for x, y in ((528, 462), (792, 462), (528, 128),
+                                                                    (792, 128))]
+    # The east hall and its side room: torches, a reading table.
+    + wall_props(SL_ROOMS, "east hall", "west", TORCH, 160, light=TORCHLIGHT, scale=0.3, start=700)
+    + wall_props(SL_ROOMS, "east hall", "east", TORCH, 160, light=TORCHLIGHT, scale=0.3, start=780)
+    + [prop(DUNGEON + "tablenchair/tablenchair.mdx", 850, 1320, scale=0.3, solid=True, margin=4, name="table"),
+       prop(BIGSHELF, 850, 1382, yaw=270, scale=0.3),
+       prop(SUMMER + "armorrack/armorrack.mdx", 1082, 1180, yaw=180, scale=0.3)]
+    # The Gallery of Treasures: hoards in its niches and alcoves, chests,
+    # shields and armour along its walls, statues, braziers.
+    + [prop(DUNGEON + "treasurepile/treasurepile0.mdx", 1338, 1295, scale=0.22, solid=True, margin=4,
+            name="treasure"),
+       prop(DUNGEON + "treasurepile/treasurepile1.mdx", 1338, 1465, scale=0.22, solid=True, margin=4,
+            name="treasure"),
+       prop("war3.w3mod:objects/inventoryitems/treasurechest/treasurechest.mdx", 1160, 1462, yaw=0, scale=0.5,
+            solid=True, margin=3, name="treasure chest"),
+       prop("war3.w3mod:objects/inventoryitems/treasurechest/treasurechest.mdx", 1160, 1742, yaw=0, scale=0.5,
+            solid=True, margin=3, name="treasure chest"),
+       prop(CITY + "props/crystalshield/crystalshield.mdx", 1296, 1730, scale=0.28, solid=True, margin=6,
+            name="shield"),
+       prop(DE + "doodads/lordaeroncapital/props/statues/lordaeron_statue_sword.mdx", 996, 1625, yaw=0,
+            scale=0.1, solid=True, margin=8, name="statue"),
+       prop(DE + "doodads/lordaeroncapital/props/statues/lordaeron_statue_sword.mdx", 996, 1865, yaw=0,
+            scale=0.1, solid=True, margin=8, name="statue"),
+       prop(DE + "doodads/undercity/props/treasurechest/treasurechest.mdx", 1306, 1640, yaw=180, scale=0.3),
+       prop(DE + "doodads/undercity/props/treasurechest/treasurechest.mdx", 1306, 1980 - 12, yaw=270,
+            scale=0.3),
+       prop(SUMMER + "armorrack/armorrack.mdx", 1306, 1560, yaw=180, scale=0.3),
+       prop(SUMMER + "armorrack/armorrack.mdx", 1142, 1480, yaw=0, scale=0.3),
+       prop(BANNER % 0, 1170, 1982, scale=0.3), prop(BANNER % 2, 1280, 1982, scale=0.3)]
+    + [prop(BRAZIER, x, y, scale=0.3, light=FIRELIGHT) for x, y in ((1146, 1196), (1304, 1196), (1146, 1972),
+                                                                    (1304, 1972))]
+    # The columned halls: two square pillars each, braziers in the corners,
+    # banners on the north walls.
+    + [_pillar(x, y) for x, y in ((1455, 1750), (1455, 1890), (1685, 1750), (1685, 1890))]
+    + [prop(BRAZIER, x, y, scale=0.26, light=FIRELIGHT) for x, y in ((1370, 1742), (1540, 1742), (1370, 1898),
+                                                                     (1540, 1898), (1600, 1742), (1770, 1742),
+                                                                     (1600, 1898), (1770, 1898))]
+    + [prop(BANNER % 1, 1455, 1942, scale=0.3), prop(BANNER % 0, 1685, 1942, scale=0.3)]
+    # The Athenaeum: bookshelves down both walls, reading tables in its
+    # niches, candles, a Scarlet cleric at his books.
+    + [prop(SHELF, 1830, y, yaw=180, scale=0.3) for y in (1240, 1440, 1610, 1700, 1940)]
+    + [prop(SHELF, 2000, y, yaw=0, scale=0.3) for y in (1240, 1340, 1440, 1540, 1640, 1740, 1840, 1940)]
+    + [prop(DUNGEON + "tablenchair/tablenchair.mdx", 1820, 1345, yaw=0, scale=0.28, solid=True, margin=4,
+            name="table"),
+       prop(DUNGEON + "tablenchair/tablenchair.mdx", 1820, 1505, yaw=0, scale=0.28, solid=True, margin=4,
+            name="table"),
+       prop(DE + "units/human/scarletcleric/scarletcleric.mdx", 1985, 1490, yaw=180, scale=0.28,
+            solid=solid_at(1985, 1490, 6, 6), name="Scarlet cleric")]
+    + [prop(BRAZIER, x, y, scale=0.22, light=CANDLELIGHT) for x, y in ((1838, 1390), (1838, 1560), (1992, 1290),
+                                                                       (1992, 1590), (1992, 1890))]
+    # The last hall: two pillars, braziers, banners.
+    + [_pillar(1780, 1030), _pillar(1940, 1030)]
+    + [prop(BRAZIER, x, y, scale=0.26, light=FIRELIGHT) for x, y in ((1702, 960), (1998, 960), (1702, 1100),
+                                                                     (1998, 1100))]
+    + [prop(BANNER % 2, 1760, 1142, scale=0.3), prop(BANNER % 0, 1960, 1142, scale=0.3)]
+    # Arcanist Doan's round library: bookshelves round its wall, Doan at
+    # its centre before a lectern, banners and candles.
+    + [prop(DE + "units/human/scarletinvoker/scarletinvokerhero.mdx", 1810, 548, yaw=90, scale=0.42,
+            solid=solid_at(1810, 548, 9, 9), name="Arcanist Doan"),
+       prop("war3.w3mod:buildings/other/bookofsummoning/bookofsummoning.mdx", 1810, 596, yaw=270, scale=0.26,
+            solid=solid_at(1810, 596, 7, 6), name="lectern")]
+    + [prop(SHELF, 1996, 560, yaw=0, scale=0.32), prop(SHELF, 1624, 560, yaw=180, scale=0.32),
+       prop(SHELF, 1810, 374, yaw=90, scale=0.32),
+       prop(SHELF45, 1942, 428, yaw=0, scale=0.3), prop(SHELF45, 1678, 428, yaw=90, scale=0.3),
+       prop(SHELF45, 1942, 692, yaw=90, scale=0.3), prop(SHELF45, 1678, 692, yaw=0, scale=0.3)]
+    + [prop(BANNER % (k % 3), x, y, scale=0.3) for k, (x, y) in
+       enumerate(((1740, 735), (1880, 735), (1983, 632), (1983, 488), (1637, 632), (1637, 488)))]
+    + [prop(BRAZIER, x, y, scale=0.22, light=CANDLELIGHT) for x, y in ((1704, 454), (1916, 454), (1704, 666),
+                                                                       (1916, 666))]
+)
+
+SCARLET_LIBRARY = {
+    "id": "scarlet_library", "name": "Scarlet Library", "version": 1, "folder": "ScarletLibrary",
+    "size": (2048, 2048), "laps": 1,
+    "rooms": SL_ROOMS, "gates": SL_GATES, "route": SL_ROUTE, "spawn": (80, 1668, "north"),
+    "props": SL_PROPS,
+    "lean": 0.6, "team": (0.72, 0.04, 0.04), "supersample": 3,
+    "replaceables": {31: "war3.w3mod:replaceabletextures/lordaerontree/lordaeronsummertree.dds"},
+    "floors": {
+        "hall": {"tile": T + "cityscape/city_squaretiles.dds", "shade": (0.92, 0.88, 0.82, 0.8)},
+        "door": {"tile": T + "cityscape/city_squaretiles.dds", "shade": (0.92, 0.88, 0.82, 0.8)},
+        "walk": {"tile": T + "cityscape/city_squaretiles.dds", "shade": (1.0, 0.95, 0.86, 0.9)},
+        "lawn": {"tile": T + "cityscape/city_grass.dds", "shade": (0.92, 1.0, 0.9)},
+        "path": {"tile": T + "village/village_stonepath.dds", "shade": (0.95, 0.95, 0.92, 0.6)},
+        "court": {"tile": T + "cityscape/city_roundtiles.dds", "shade": (0.92, 0.92, 0.9)},
+        "kennel": {"tile": T + "dungeon/cave_squaretiles.dds", "shade": (1.0, 0.9, 0.86)},
+        "gallery": {"tile": T + "dalaran/dalaran_whitemarble.dds", "shade": (0.82, 0.78, 0.72)},
+        "columns": {"tile": T + "dalaran/dalaran_squaretiles.dds", "shade": (0.95, 0.92, 0.9, 0.25)},
+        "athenaeum": {"tile": T + "cityscape/city_bricktiles.dds", "shade": (0.86, 0.8, 0.72)},
+        "library": {"tile": T + "blackcitadel/citadel_darktiles.dds", "shade": (0.95, 1.0, 1.1, 0.15)},
+    },
+    "wall": {"face": (T + "cityscape/city_cliff1.dds", (0, 0, 192, 64), (0.9, 0.84, 0.76)),
+             "height": 70, "top": (34, 30, 30), "coping": (150, 140, 124)},
+    "open_sky": ["courtyard", "courtyard path", "courtyard cross path", "fountain court"],
+    "portal": (80, 1640, 38),
+    "carpets": [([(295, 1990), (295, 1020), (430, 1020)], 40),
+                ([(1025, 700), (1025, 1325), (1225, 1325)], 40),
+                ([(1225, 1210), (1225, 1820), (1915, 1820), (1915, 1030), (1810, 1030), (1810, 744)], 42)],
+    "kerbed": ["path", "court"],
+    # The round library's floor: dark stone, a gold ring, the red carpet.
+    "rings": {"room": "round library", "bands": [(104, "floor"), (116, "gold"), (188, "carpet")]},
+    # The courtyard under the monastery's green-tinged night sky.
+    "moonlight": (204, 232, 214), "mist": (146, 164, 156),
+}
+
+DUNGEONS = [SCARLET_GRAVEYARD, SCARLET_LIBRARY]

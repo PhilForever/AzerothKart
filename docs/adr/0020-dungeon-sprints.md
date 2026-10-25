@@ -65,3 +65,22 @@ Offline only:
 - `scripts/build_dungeon_tracks.py --check`, which runs every geometry check and requires byte-exact outputs.
 
 **NOT RUN in the client:** the drive, the feel of the walls and lawn, the HUD, the 2048 × 1024 picture's load and performance.
+
+## Addendum: round rooms and Scarlet Library (proposed, `claude/scarlet-library`, 2026-10-25)
+
+The Library's last room, "the iconic round library" in the owner's words, is a circle. Rectangles cannot give it, as foreseen above, so `Dungeon.new` gains one room shape.
+
+- **`shape="disc"`:** the disc inscribed in the room's square; width and height must match.
+  - The kart centre stays `wallInset` inside its round wall.
+  - A step that ends beyond the wall moves along the radius to the nearest point inside it, within the step's length, and counts as a hit, so a kart slides round the wall.
+  - Rectangle rooms, and the Graveyard's data and picture, are unchanged.
+- **Gates crossed by a route elsewhere:** the generator now counts a route crossing only across a gate's own segment, as `Track.crossesGate` does. The Library's route passes beyond the ends of earlier gates; the runtime never counted those.
+- **A dead-end gate:** Houndmaster Loksey's kennel is a dead end on the owner's route. Its gate spans the kennel, so the karts drive in across it, turn and drive back out. Checkpoints count only the inward crossing. The flood-fill check still proves it unavoidable.
+
+Evidence, offline only:
+
+- `tests/test_dungeon.lua` adds a rotunda: surfaces to the round wall, a doorway into it, a slide round the wall, and 2,000 random steps that never end off the round floor. Invalid shapes are refused.
+- It walks the Library's route through its five gates in order: once back across Loksey's line, never meeting a wall or a solid. It also checks a clean launch.
+- `build_dungeon_tracks.py --check` passes for both dungeons, byte for byte.
+
+**NOT RUN in the client:** the Library's drive (the kennel's hairpin above all), its walls and round wall, the 2048 × 2048 picture's load and performance.

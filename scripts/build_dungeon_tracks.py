@@ -67,17 +67,37 @@ def geometry(wc3, d):
 
 
 class Floor:
-    """The kart centre's floor of a definition, as Dungeon.lua tests it."""
+    """The kart centre's floor of a definition, as Dungeon.lua tests it: each
+    room inset on every side, a round room (`shape` "disc") to its radius
+    less the inset."""
 
     def __init__(self, g):
         self.g = g
         inset = g["wallInset"]
-        self.rooms = [(r["x0"] + inset, r["y0"] + inset, r["x1"] - inset, r["y1"] - inset) for r in g["rooms"]]
+        self.rooms = []
+        for r in g["rooms"]:
+            box = (r["x0"] + inset, r["y0"] + inset, r["x1"] - inset, r["y1"] - inset)
+            if r.get("shape") == "disc":
+                reach = (r["x1"] - r["x0"]) / 2 - inset
+                self.rooms.append(box + (((r["x0"] + r["x1"]) / 2, (r["y0"] + r["y1"]) / 2, reach),))
+            else:
+                self.rooms.append(box + (None,))
         self.solids = [(s["x"] - inset, s["y"] - inset, s["x"] + s["width"] + inset, s["y"] + s["height"] + inset)
                        for s in g["solids"]]
 
+    @staticmethod
+    def _in(room, x, y):
+        x0, y0, x1, y1, disc = room
+        if not (x0 <= x <= x1 and y0 <= y <= y1):
+            return False
+        if disc is None:
+            return True
+        cx, cy, reach = disc
+        dx, dy = x - cx, y - cy
+        return dx * dx + dy * dy <= reach * reach
+
     def on_floor(self, x, y):
-        return any(x0 <= x <= x1 and y0 <= y <= y1 for x0, y0, x1, y1 in self.rooms)
+        return any(self._in(room, x, y) for room in self.rooms)
 
     def allowed(self, x, y):
         inset = self.g["wallInset"]
@@ -86,8 +106,33 @@ class Floor:
         return self.on_floor(x, y) and not any(x0 < x < x1 and y0 < y < y1 for x0, y0, x1, y1 in self.solids)
 
     def road(self, x, y):
-        return any(r["x0"] <= x <= r["x1"] and r["y0"] <= y <= r["y1"] and r["surface"] == "road"
-                   for r in self.g["rooms"])
+        for r in self.g["rooms"]:
+            if r["surface"] != "road" or not (r["x0"] <= x <= r["x1"] and r["y0"] <= y <= r["y1"]):
+                continue
+            if r.get("shape") != "disc":
+                return True
+            radius = (r["x1"] - r["x0"]) / 2
+            dx, dy = x - (r["x0"] + r["x1"]) / 2, y - (r["y0"] + r["y1"]) / 2
+            if dx * dx + dy * dy <= radius * radius:
+                return True
+        return False
+
+
+def floor_gap(a, b):
+    """The distance between two rooms' kart floors (0 when they meet)."""
+    if a[4] is None and b[4] is None:
+        dx = max(a[0] - b[2], b[0] - a[2], 0.0)
+        dy = max(a[1] - b[3], b[1] - a[3], 0.0)
+        return sqrt(dx * dx + dy * dy)
+    if a[4] is None:
+        a, b = b, a
+    cx, cy, reach = a[4]
+    if b[4] is not None:                       # two round rooms
+        bx, by, other = b[4]
+        return max(0.0, sqrt((cx - bx) ** 2 + (cy - by) ** 2) - reach - other)
+    dx = max(b[0] - cx, cx - b[2], 0.0)        # a round room and a rectangle
+    dy = max(b[1] - cy, cy - b[3], 0.0)
+    return max(0.0, sqrt(dx * dx + dy * dy) - reach)
 
 
 def reachable(floor, start, barrier=None, step=2):
@@ -131,15 +176,16 @@ def validate_geometry(g):
     for r in g["rooms"]:
         assert 0 <= r["x0"] < r["x1"] <= width and 0 <= r["y0"] < r["y1"] <= height, f"room {r['name']} leaves the world"
         assert r["surface"] in ("road", "rough"), r["name"]
+        assert r.get("shape", "rect") in ("rect", "disc"), r["name"]
+        assert r.get("shape") != "disc" or r["x1"] - r["x0"] == r["y1"] - r["y0"], f"round room {r['name']} is square"
     # No tunnelling: the kart floors of rooms that do not meet stay apart.
     for a, ra in zip(floor.rooms, g["rooms"]):
         for b, rb in zip(floor.rooms, g["rooms"]):
             if ra is rb:
                 continue
-            dx = max(a[0] - b[2], b[0] - a[2], 0.0)
-            dy = max(a[1] - b[3], b[1] - a[3], 0.0)
-            if dx > 0 or dy > 0:
-                assert sqrt(dx * dx + dy * dy) >= 2 * CHECKPOINT_MAX_STEP, \
+            gap = floor_gap(a, b)
+            if gap > 0:
+                assert gap >= 2 * CHECKPOINT_MAX_STEP, \
                     f"rooms {ra['name']} and {rb['name']} are too close to keep a wall between them"
     sx, sy, heading = g["spawn"]
     assert heading in HEADINGS, "spawn heading is a compass word"
@@ -161,7 +207,12 @@ def validate_geometry(g):
             before = (ax - gt["ax"]) * gt["nx"] + (ay - gt["ay"]) * gt["ny"]
             after = (bx - gt["ax"]) * gt["nx"] + (by - gt["ay"]) * gt["ny"]
             if before < 0 <= after:
-                crossed.append(index)
+                # Across the gate's own segment, as Track.crossesGate counts it.
+                t = before / (before - after)
+                ix, iy = ax + (bx - ax) * t, ay + (by - ay) * t
+                if min(gt["ax"], gt["bx"]) <= ix <= max(gt["ax"], gt["bx"]) \
+                        and min(gt["ay"], gt["by"]) <= iy <= max(gt["ay"], gt["by"]):
+                    crossed.append(index)
     assert crossed == list(range(len(g["gates"]))), f"the route crosses the gates in order, once each: {crossed}"
     # Every gate: axis-aligned, its ends in the walls, unavoidable.
     free = reachable(floor, (sx, sy))
@@ -205,8 +256,9 @@ def lua_data(dungeons):
         lines.append("    spawn={x=%s, y=%s, heading=%s}," % (number(sx), number(sy), HEADINGS[heading][0]))
         lines.append("    rooms={")
         for r in g["rooms"]:
-            lines.append("        {x=%d, y=%d, width=%d, height=%d, surface=%s}, -- %s" % (
-                r["x0"], r["y0"], r["x1"] - r["x0"], r["y1"] - r["y0"], q(r["surface"]), r["name"]))
+            shape = ", shape=%s" % q(r["shape"]) if r.get("shape", "rect") != "rect" else ""
+            lines.append("        {x=%d, y=%d, width=%d, height=%d, surface=%s%s}, -- %s" % (
+                r["x0"], r["y0"], r["x1"] - r["x0"], r["y1"] - r["y0"], q(r["surface"]), shape, r["name"]))
         lines.append("    },")
         lines.append("    gates={")
         for gt in g["gates"]:

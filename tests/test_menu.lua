@@ -654,6 +654,9 @@ withMock({schemaVersion=1, preferences={version=1, kart="gyrocopter", track="mir
     assert(UI.trackId == "scarlet_graveyard" and AzerothKartDB.preferences.track == "scarlet_graveyard",
         "and on to the Scarlet Graveyard sprint")
     click(UI.trackButton)
+    assert(UI.trackId == "scarlet_library" and AzerothKartDB.preferences.track == "scarlet_library",
+        "and on to the Scarlet Library sprint")
+    click(UI.trackButton)
     assert(UI.trackId == "test_oval" and AzerothKartDB.preferences.track == "test_oval",
         "switching back is remembered too")
 end, function(env, AK)
@@ -1170,17 +1173,22 @@ withMock(nil, function(env, UI, Menu, AK)
     sameCounts(env,before,"automatic board refresh reuses pooled rows")
 end)
 
--- The Scarlet Crusade Cup: its heading, Scarlet Graveyard and three dungeons
--- coming soon; a sprint's race lines count its gates instead of laps, and
--- its saved board says it holds one-run times.
+-- The Scarlet Crusade Cup: its heading, Scarlet Graveyard and Scarlet
+-- Library, then two dungeons coming soon; a sprint's race lines count its
+-- gates instead of laps, and its saved board says it holds one-run times.
 withMock(nil, function(env, UI, Menu, AK)
     UI.Toggle(); click(Menu.view.homeButtons[1])
     local buttons, soon = Menu.view.trackButtons, Menu.view.soonButtons
-    assert(buttons.scarlet_graveyard and soon.scarlet_library and soon.scarlet_armory and soon.scarlet_monastery
-        and not soon.scarlet_library:IsEnabled(), "the cup lists the Graveyard and three coming-soon dungeons")
+    assert(buttons.scarlet_graveyard and buttons.scarlet_library and not soon.scarlet_library
+        and soon.scarlet_armory and soon.scarlet_monastery and not soon.scarlet_armory:IsEnabled(),
+        "the cup lists the Graveyard and the Library, then two coming-soon dungeons")
     local rows = Menu.trackRows()
-    assert(rows[#rows - 4].heading == "Scarlet Crusade Cup" and rows[#rows - 3].track.id == "scarlet_graveyard",
-        "the third cup's heading, then its ready sprint")
+    assert(rows[#rows - 4].heading == "Scarlet Crusade Cup" and rows[#rows - 3].track.id == "scarlet_graveyard"
+        and rows[#rows - 2].track.id == "scarlet_library", "the third cup's heading, then its ready sprints")
+    click(buttons.scarlet_library)
+    assert(UI.trackId == "scarlet_library" and Menu.previewReady
+        and Menu.view.trackPreview.width == 320 and Menu.view.trackPreview.height == 320,
+        "the Library shows its square preview")
     click(buttons.scarlet_graveyard)
     assert(UI.trackId == "scarlet_graveyard" and Menu.previewReady
         and Menu.view.trackPreview.width == 320 and Menu.view.trackPreview.height == 160,
@@ -1196,12 +1204,16 @@ withMock(nil, function(env, UI, Menu, AK)
     local before = counts(env)
     AK.SoloRecords = {GetView=function(id)
         return {scope="local", writable=true, rows={}, trackId=id,
-            context={trackId=id, lapCount=id == "scarlet_graveyard" and 1 or 3}}
+            context={trackId=id, lapCount=id:find("^scarlet_") and 1 or 3}}
     end}
     Menu.Show("home"); click(Menu.view.homeButtons[6])
     assert(Menu.screen == "highscores" and Menu.view.highscoreTrack.text == "Track: Scarlet Graveyard"
         and Menu.view.highscoreRule.text == "Fastest completed sprints, one run each, for the current rules",
         "the Graveyard's saved board holds one-run sprint times")
+    click(Menu.view.highscoreTrack)
+    assert(Menu.view.highscoreTrack.text == "Track: Scarlet Library"
+        and Menu.view.highscoreRule.text == "Fastest completed sprints, one run each, for the current rules",
+        "so does the Library's")
     click(Menu.view.highscoreTrack)
     assert(Menu.view.highscoreRule.text == "Fastest completed three-lap totals for the current rules",
         "the next board holds three-lap totals again")

@@ -55,7 +55,10 @@ Courses.LIST = {
         background=TRACKS .. "ScarletGraveyard\\Background.tga",
         dust={0.78,0.74,0.68}, ground={0.05,0.05,0.05},
         status="Scarlet Graveyard | Sprint to Honor's Tomb | Grass slows you; graves block"},
-    {id="scarlet_library", name="Scarlet Library", cup="scarlet", soon=true},
+    {id="scarlet_library", name="Scarlet Library", short="Library", cup="scarlet", geometry="dungeon",
+        background=TRACKS .. "ScarletLibrary\\Background.tga",
+        dust={0.80,0.74,0.66}, ground={0.05,0.05,0.05},
+        status="Scarlet Library | Sprint to Arcanist Doan | In and back out of Loksey's kennel"},
     {id="scarlet_armory", name="Scarlet Armory", cup="scarlet", soon=true},
     {id="scarlet_monastery", name="Scarlet Monastery", cup="scarlet", soon=true},
 }

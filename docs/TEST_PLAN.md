@@ -56,6 +56,16 @@ The generator refuses a layout unless:
 - each gate is axis-aligned, reaches the walls and is unavoidable, by a flood fill with the gate as a barrier;
 - the route crosses the gates in order.
 
+On `claude/scarlet-library`, `tests/test_dungeon.lua` also covers round rooms (`shape="disc"`):
+
+- a rotunda's floor to its round wall;
+- a doorway into it;
+- a step into the wall that slides round it;
+- 2,000 random steps that never end off the round floor;
+- refused shapes.
+
+It walks the Scarlet Library's reviewed route through its five gates in order, crossing back over Loksey's line once on the way out, never meeting a wall or a solid, and checks a clean launch and every solid. The menu tests follow the Library into the Track cycle, its square preview and its sprint board. The rebuild commands are in [the Scarlet Library sheet](art/tracks/scarlet-library.md#rebuilding).
+
 `test_score_sharing` needs Codex's score-sync change (the patch is in Claude's handoff). The drive, the lawn, the picture and the camera in the client are NOT RUN; see [the client checklist](../tests/MANUAL_CLIENT_CHECKLIST.md).
 
 ## Current front-end slice (proposed, `claude/ui-flow`)

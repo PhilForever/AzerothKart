@@ -7,9 +7,10 @@ leans north by `lean`, as in the cities). Layers, bottom to top:
 1. Masonry: everything off the floor is the walls' tops, dark stone in
    courses, darkest far from any room.
 2. Floors: each room's Warcraft III tile in its style (a later room paints
-   over an earlier: the cloister's path over its lawn), with the dungeon's
-   carpets, stairs and the portal the karts arrive through; shade along the
-   foot of every wall; the chequered finish across the last gate.
+   over an earlier: the cloister's path over its lawn; a round room is the
+   disc in its square), with the dungeon's carpets, a round room's rings,
+   stairs and the portal the karts arrive through; shade along the foot of
+   every wall; the chequered finish across the last gate.
 3. Walls: the camera sees a room's north wall, so it rises `height` x lean
    rows over the masonry beyond, in a Warcraft III city wall's stones, its
    coping lit along the top. Every other wall shows its coping edge.
@@ -17,7 +18,8 @@ leans north by `lean`, as in the cities). Layers, bottom to top:
    ones: banners, torches, braziers and lanterns, graves, tombs and trees,
    the dead and the living. Each model is rendered by wc3render.py with its
    ground shadow.
-5. Grade: moonlight on the open cloister; the halls stay lamplit.
+5. Grade: moonlight on the open cloister (`moonlight`, `mist`); the halls
+   stay lamplit.
 
 One texel per world unit; row 0 is the north edge. Integer compositing, no
 transcendental function feeds a pixel: the bytes are the same on every
@@ -42,11 +44,23 @@ def _masks(d, w, h):
     open_sky = set(d.get("open_sky", ()))
     for r in d["rooms"]:
         k = names.index(r["floor"])
+        open_ = 1 if r["name"] in open_sky else 0
         x0, x1 = int(r["x0"]), int(r["x1"])
+        if r.get("shape") == "disc":
+            # A round room: every texel whose centre lies within the radius.
+            cx, cy, radius = (r["x0"] + r["x1"]) / 2, (r["y0"] + r["y1"]) / 2, (r["x1"] - r["x0"]) / 2
+            for y in range(int(r["y0"]), int(r["y1"])):
+                base = (h - 1 - y) * w
+                for x in range(x0, x1):
+                    dx, dy = x + 0.5 - cx, y + 0.5 - cy
+                    if dx * dx + dy * dy <= radius * radius:
+                        style[base + x] = k
+                        sky[base + x] = open_
+            continue
         for y in range(int(r["y0"]), int(r["y1"])):
             base = (h - 1 - y) * w
             style[base + x0:base + x1] = bytes([k]) * (x1 - x0)
-            sky[base + x0:base + x1] = bytes([1 if r["name"] in open_sky else 0]) * (x1 - x0)
+            sky[base + x0:base + x1] = bytes([open_]) * (x1 - x0)
     return names, style, sky
 
 
@@ -133,6 +147,52 @@ def paint_carpets(pic, d, floor):
         pic.r[i] = max(0, min(255, c[0] + v))
         pic.g[i] = max(0, min(255, c[1] + v // 2))
         pic.b[i] = max(0, min(255, c[2] + v // 2))
+
+
+GOLD = (204, 160, 64)
+
+
+def paint_rings(pic, d, floor):
+    """A round room's floor in rings about its centre (the round library's
+    stone, gold ring and Scarlet carpet). `rings` = {"room": name, "bands":
+    [(outer radius, kind), ...]}, innermost first: "floor" keeps the room's
+    tile, "gold" lays a gilt ring, "carpet" the red carpet, its edges hemmed
+    dark and gold. Beyond the last band the tile runs on to the wall."""
+    spec = d.get("rings")
+    if not spec:
+        return
+    w, h = pic.w, pic.h
+    r = _room(d, spec["room"])
+    cx, cy = (r["x0"] + r["x1"]) / 2, (r["y0"] + r["y1"]) / 2
+    for y in range(int(r["y0"]), int(r["y1"])):
+        for x in range(int(r["x0"]), int(r["x1"])):
+            i = (h - 1 - y) * w + x
+            if not floor[i]:
+                continue
+            dist = sqrt((x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2)
+            inner, kind, outer = 0.0, None, 0.0
+            for outer, kind in spec["bands"]:
+                if dist < outer:
+                    break
+                inner = outer
+            else:
+                continue
+            if kind == "floor":
+                continue
+            edge = min(dist - inner, outer - dist)            # texels from the band's nearer edge
+            v = hash32(x // 2, y // 2, 431) % 11 - 5
+            if kind == "gold":
+                k = 200 if edge < 1.5 else 256
+                c = (GOLD[0] * k >> 8, GOLD[1] * k >> 8, GOLD[2] * k >> 8)
+            elif edge < 1.5:
+                c = (96, 14, 18)                                 # the carpet's dark hem
+            elif edge < 4.5:
+                c = CARPET_EDGE
+            else:
+                c = CARPET
+            pic.r[i] = max(0, min(255, c[0] + v))
+            pic.g[i] = max(0, min(255, c[1] + v // 2))
+            pic.b[i] = max(0, min(255, c[2] + v // 2))
 
 
 def paint_kerbs(pic, d, style, names, floor):
@@ -305,6 +365,7 @@ def paint_grade(pic, d, sky, floor):
     mist = _Noise(150, 421)
     fine = _Noise(46, 423)
     mr, mg, mb = d.get("mist", (150, 160, 176))
+    mr2, mg2, mb2 = d.get("moonlight", (214, 228, 250))     # the open sky's tint, of 256
     for row in range(h):
         y = h - 1 - row
         base = row * w
@@ -316,7 +377,7 @@ def paint_grade(pic, d, sky, floor):
                 r = (r * 3 + grey) >> 2
                 g = (g * 3 + grey) >> 2
                 b = (b * 3 + grey) >> 2
-                r, g, b = r * 214 >> 8, g * 228 >> 8, min(255, (b * 250 >> 8) + 10)
+                r, g, b = r * mr2 >> 8, g * mg2 >> 8, min(255, (b * mb2 >> 8) + 10)
                 m = mist.at(x, y) * 0.7 + fine.at(x, y) * 0.3
                 a = max(0.0, m - 0.42) * 0.42                    # 0 .. ~0.24 where the mist lies
                 r = int(r + (mr - r) * a + 0.5)
@@ -339,6 +400,7 @@ def build(wc3, d, geometry, check=False, preview=False, log=print):
     paint_floors(pic, d, tiles, names, style, floor)
     paint_kerbs(pic, d, style, names, floor)
     paint_carpets(pic, d, floor)
+    paint_rings(pic, d, floor)
     paint_stairs(pic, d)
     paint_portal(pic, d)
     paint_finish(pic, geometry["gates"][-1], floor, w, h)

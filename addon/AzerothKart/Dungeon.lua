@@ -3,7 +3,9 @@
 --
 -- A dungeon is its floor: axis-aligned rooms (halls, corridors, a chamber, a
 -- cloister's lawns and paths), each "road" (stone) or "rough" (a lawn: the
--- rough ground Physics slows on). There is no road to follow. The kart
+-- rough ground Physics slows on), and round rooms (`shape="disc"`: the disc
+-- inscribed in the room's square, such as a round library). There is no
+-- road to follow. The kart
 -- centre stays wallInset inside the union of the rooms (the walls stand a
 -- kart's half-diagonal clear of it) and outside every solid box (a grave, a
 -- tomb, a pillar) grown by the same inset, as the test oval's crates are.
@@ -13,9 +15,10 @@
 -- Solids use Track's swept-box resolution: a kart slides along a face and
 -- the contact counts as a hit. A step ending outside the floor moves back to
 -- the nearest floor point no further from the start than the step was long,
--- so a kart slides along a wall. Where rooms meet, their floors overlap by
--- at least twice the inset (a doorway): the union of the inset rooms is then
--- open from one to the other. Lookups use a 64-unit grid.
+-- so a kart slides along a wall (a round wall too: its nearest point is
+-- along the radius). Where rooms meet, their floors overlap by at least
+-- twice the inset (a doorway): the union of the inset rooms is then open
+-- from one to the other. Lookups use a 64-unit grid.
 local _, namespace = ...
 local Dungeon = {}
 
@@ -72,7 +75,8 @@ end
 
 -- definition: {id, version, name, width, height, wallInset,
 -- checkpointMaxStep (optional), laps (optional, 1-9),
--- rooms={{x,y,width,height,surface}...} (surface "road" or "rough"),
+-- rooms={{x,y,width,height,surface,shape}...} (surface "road" or "rough";
+-- shape nil, "rect" or "disc", a disc's square with width == height),
 -- solids={{id,x,y,width,height}...}, gates={{name,ax,ay,bx,by,nx,ny}...},
 -- spawn={x,y,heading}}. Bottom-left origin, as every track.
 function Dungeon.new(definition, crossesGate)
@@ -92,15 +96,24 @@ function Dungeon.new(definition, crossesGate)
         crossesGate=crossesGate,
         rooms=copyList(d.rooms), gates=copyList(d.gates), solids=copyList(d.solids),
     }
-    -- The kart centre's floor: each room inset on every side.
+    -- The kart centre's floor: each room inset on every side (a round
+    -- room's radius less the inset).
     local rooms = {}
     for index,room in ipairs(track.rooms) do
         assert(finite(room.x) and finite(room.y) and finite(room.width) and finite(room.height)
             and room.width > 2*inset and room.height > 2*inset, "a room wider than two insets required")
         assert(SURFACES[room.surface], "a room is road or rough")
-        rooms[index] = {x0=room.x, y0=room.y, x1=room.x+room.width, y1=room.y+room.height,
+        assert(room.shape == nil or room.shape == "rect" or (room.shape == "disc" and room.width == room.height),
+            "a room is a rectangle, or a disc in its square")
+        local r = {x0=room.x, y0=room.y, x1=room.x+room.width, y1=room.y+room.height,
             minX=room.x+inset, minY=room.y+inset, maxX=room.x+room.width-inset, maxY=room.y+room.height-inset,
-            road=room.surface == "road"}
+            road=room.surface == "road", disc=room.shape == "disc"}
+        if r.disc then
+            r.cx, r.cy, r.radius = room.x+room.width/2, room.y+room.height/2, room.width/2
+            r.reach = r.radius-inset
+            r.reachSquared, r.radiusSquared = r.reach*r.reach, r.radius*r.radius
+        end
+        rooms[index] = r
     end
     local solids = {}
     for index,box in ipairs(track.solids) do
@@ -135,12 +148,19 @@ function Dungeon.new(definition, crossesGate)
         return cells[math.floor(y/CELL)*columns+math.floor(x/CELL)+1]
     end
 
+    -- The kart centre's floor of one room.
+    local function inRoom(room, x, y)
+        if x < room.minX or x > room.maxX or y < room.minY or y > room.maxY then return false end
+        if not room.disc then return true end
+        local dx,dy = x-room.cx,y-room.cy
+        return dx*dx+dy*dy <= room.reachSquared
+    end
+
     local function onFloor(x, y)
         local list = cellOf(roomCells,x,y)
         if not list then return false end
         for i=1,#list do
-            local room = rooms[list[i]]
-            if x >= room.minX and x <= room.maxX and y >= room.minY and y <= room.maxY then return true end
+            if inRoom(rooms[list[i]],x,y) then return true end
         end
         return false
     end
@@ -169,8 +189,15 @@ function Dungeon.new(definition, crossesGate)
         for i=1,#list do
             local room = rooms[list[i]]
             if x >= room.x0 and x <= room.x1 and y >= room.y0 and y <= room.y1 then
-                if room.road then return "road" end
-                rough = true
+                local inside = true
+                if room.disc then
+                    local dx,dy = x-room.cx,y-room.cy
+                    inside = dx*dx+dy*dy <= room.radiusSquared
+                end
+                if inside then
+                    if room.road then return "road" end
+                    rough = true
+                end
             end
         end
         return rough and "grass" or nil
@@ -190,6 +217,20 @@ function Dungeon.new(definition, crossesGate)
         return bestX,bestY,best
     end
 
+    -- The nearest point of one room's inset floor to (x, y): clamped into a
+    -- rectangle, or along the radius onto a round room's reach (a hair
+    -- inside it, so rounding never leaves the point off the floor).
+    local function roomPoint(room, x, y)
+        if not room.disc then
+            return math.max(room.minX,math.min(room.maxX,x)),math.max(room.minY,math.min(room.maxY,y))
+        end
+        local dx,dy = x-room.cx,y-room.cy
+        local squared = dx*dx+dy*dy
+        if squared <= room.reachSquared then return x,y end
+        local k = (room.reach-1e-6)/math.sqrt(squared)
+        return room.cx+dx*k,room.cy+dy*k
+    end
+
     -- The nearest allowed floor point to (x, y): each room's nearest inset
     -- point or, where that lies inside a grown solid, the solid's faces.
     -- Searches the start cell's rooms, or every room when `anywhere`.
@@ -199,8 +240,7 @@ function Dungeon.new(definition, crossesGate)
         local bestX,bestY,best
         for i=1,count do
             local room = rooms[anywhere and i or list[i]]
-            local px = math.max(room.minX,math.min(room.maxX,x))
-            local py = math.max(room.minY,math.min(room.maxY,y))
+            local px,py = roomPoint(room,x,y)
             if inSolid(px,py) then
                 for k=1,#solids do
                     local box = solids[k]

@@ -153,3 +153,19 @@ Mirage scenery v1 imports no Warcraft III file; it was painted procedurally so e
   - the wall cliff's stones laid along the north walls' faces.
   - These are painted by the generator: the masonry, the walls' faces and coping, the red carpets, the stairs, the kerbs, the portal's swirl, the chequered finish, the light pools, the moonlight and the mist.
 - **Terms and credits:** as for Stormwind: [ADR 0009](../adr/0009-warcraft-iii-asset-reuse.md); redistribution **unresolved** for release review; Blizzard Entertainment. The rooms follow the owner's map of the Scarlet Monastery Graveyard (MapsForTanks) and his green route on it, and his screenshot of the Grand Vestibule guided the look. Neither is stored. See [the Scarlet Graveyard sheet](tracks/scarlet-graveyard.md).
+
+**Scarlet Crusade Cup, Scarlet Library (2026-10-25, `claude/scarlet-library`, proposed).** `addon/AzerothKart/Assets/Tracks/ScarletLibrary/Background.tga` (2048×2048) and `Preview.tga` (512×512) are composited the same way from the same install. The sources are:
+
+- **Terrain:** the city's square and round tiles, bricks, grass and wall cliff; Dalaran's square tiles and white marble; the Black Citadel's dark tiles; the Dungeon's tiles; the village's stone path; Lordaeron's summer tree texture.
+- **The city:** the arcade's columns, the statue fountain, a shield display and bushes.
+- **The Dungeon:** bookshelves (wall, diagonal and tall), tables with chairs, and treasure piles.
+- **Lordaeron:** torches, braziers, armour racks, cages, hay, rib bones, a skull pile, a trough, weapons and its summer trees.
+- **The ruins:** flowers. **Buildings and items:** the book of summoning as a lectern, and treasure chests.
+- **Reforged's own `_de.w3mod` set:** the Scarlet Crusade's standing banners, footman, huntsman, cleric and invoker hero; the dark hound; a Lordaeron sword statue; an interior pillar; the Undercity's iron chest.
+
+- **Files:** 48 models, 180 placements, 39 textures; [the generated sources list](tracks/scarlet_library-sources.txt) names them. Extracted files stay outside Git.
+- **Modifications:**
+  - as for the Graveyard, in a crimson team colour, with the hounds tinted red;
+  - the columned halls' and the round library's tiles greyed;
+  - painted by the generator: the round library's gold ring and carpet, the courtyard's kerbs and its green-tinged moonlight and mist.
+- **Terms and credits:** as for Stormwind: [ADR 0009](../adr/0009-warcraft-iii-asset-reuse.md); redistribution **unresolved** for release review; Blizzard Entertainment. The rooms follow the owner's map of the Scarlet Monastery Library (MapsForTanks) and his route on it; his screenshots of the Huntsman's Cloister and of Arcanist Doan's round library guided the look. None of them is stored. See [the Scarlet Library sheet](tracks/scarlet-library.md).

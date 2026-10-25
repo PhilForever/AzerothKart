@@ -67,6 +67,12 @@ Menu.TRACKS = {
             .. "the Forlorn Cloister and across its graveyard to Honor's Tomb. No road here: find your way.",
         facts={"Sprint: one run through 3 gates", "Grass slows you; graves and tombs block",
             "The finish is Honor's Tomb"}},
+    {id="scarlet_library", name="Scarlet Library", cell="scarletlibrary",
+        blurb="From the portal down the long hall to the Huntsman's Cloister, into Houndmaster Loksey's kennel "
+            .. "and back out, then up through the Gallery of Treasures and the Athenaeum to Arcanist Doan's "
+            .. "round library.",
+        facts={"Sprint: one run through 5 gates", "Loksey's kennel: in across his line, then back out",
+            "The finish is the round library's door"}},
 }
 
 local WC3C = "Model: ITE project (wc3c), author unknown"
@@ -129,9 +135,11 @@ Menu.PREVIEW_CELLS = {
         left=0, right=1, top=0, bottom=1, width=320, height=320},
     thunderbluff={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\ThunderBluff\\Preview.tga",
         left=0, right=1, top=0, bottom=1, width=320, height=320},
-    -- A dungeon's picture is twice as wide as tall (2048 x 1024 world units).
+    -- The Graveyard's picture is twice as wide as tall (2048 x 1024 world units); the Library's is square.
     scarletgraveyard={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\ScarletGraveyard\\Preview.tga",
         left=0, right=1, top=0, bottom=1, width=320, height=160},
+    scarletlibrary={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\ScarletLibrary\\Preview.tga",
+        left=0, right=1, top=0, bottom=1, width=320, height=320},
 }
 
 -- Fixed fonts; each falls back to GameFontNormal when the client lacks it.

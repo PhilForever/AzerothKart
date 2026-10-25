@@ -105,7 +105,22 @@ One generator, `scripts/build_dungeon_tracks.py`, writes the data (`ScarletCrusa
 - Three gates: *Chamber of Atonement*, *Forlorn Cloister* and *Honor's Tomb* (the finish).
 - About 2,200 units from the portal to the finish line along the reviewed route.
 
-Offline: the route walk crosses the gates in order and never meets a wall or a solid, and full throttle from the grid launches cleanly (`tests/test_dungeon.lua`). The Library, Armory and Monastery are listed as coming soon. See [the Scarlet Graveyard sheet](art/tracks/scarlet-graveyard.md).
+Offline: the route walk crosses the gates in order and never meets a wall or a solid, and full throttle from the grid launches cleanly (`tests/test_dungeon.lua`). See [the Scarlet Graveyard sheet](art/tracks/scarlet-graveyard.md).
+
+**Scarlet Library** (`scarlet_library`, version 1, sprint; proposed on `claude/scarlet-library`): the owner's route on his map of the Library wing. "Everything is inside except the first courtyard with the fountain/statue in the middle", ending "in the iconic round library".
+
+1. From the portal, north and east, then south down the long hall.
+2. Round the Huntsman's Cloister, whose four roofed walks surround the open courtyard: a lawn, stone paths, the statue fountain, trees, huntsmen and hounds.
+3. Into Houndmaster Loksey's kennel and back out: his gate spans the dead-end kennel, so the karts cross it inward, turn and leave.
+4. North up the east hall into the Gallery of Treasures.
+5. East through two columned halls, then south down the Athenaeum's bookshelves.
+6. Through the last hall to Arcanist Doan's round library: a true circle, the first round room (`shape="disc"`).
+
+- 2048 × 2048; 41 rooms (the courtyard's lawn is rough; the fountain's court and the round library are round); 47 solids.
+- Five gates: *Huntsman's Cloister*, *Houndmaster Loksey*, *Gallery of Treasures*, *Athenaeum* and *Arcanist Doan* (the finish).
+- About 6,200 units from the portal to the finish line along the reviewed route.
+
+Offline: the route walk crosses the five gates in order, crosses back over Loksey's line once on the way out (which counts nothing), and never meets a wall or a solid; full throttle from the grid launches cleanly. The Armory and the Monastery are listed as coming soon. See [the Scarlet Library sheet](art/tracks/scarlet-library.md).
 
 ## Test Oval checkpoint sequence
 
@@ -144,6 +159,6 @@ UI releases capture, draws the exact finish pose and shows a pooled `RUN COMPLET
 - Document copyright/ownership of every texture, icon, music/sound asset. Start from plain colored tiles where feasible.
 
 ## Initial track sequence
-M0 `Test Oval` → M3 `Mirage Raceway` (dry, pre-flood Shimmering Flats) → M7 `Murloc Marsh` → M9 `Frost Gearway` and more based on performance metrics. Mirage replaces the planned Tinker Speedway name; no production-map acceptance is claimed. The owner's Capital Cities Cup (2026-10-21) comes first among the new maps: Stormwind, then Ironforge, Darnassus, Orgrimmar, Thunder Bluff and Undercity on the same pipeline. The Scarlet Crusade Cup's dungeon sprints follow (2026-10-25): the Graveyard first, then the Library, Armory and Monastery.
+M0 `Test Oval` → M3 `Mirage Raceway` (dry, pre-flood Shimmering Flats) → M7 `Murloc Marsh` → M9 `Frost Gearway` and more based on performance metrics. Mirage replaces the planned Tinker Speedway name; no production-map acceptance is claimed. The owner's Capital Cities Cup (2026-10-21) comes first among the new maps: Stormwind, then Ironforge, Darnassus, Orgrimmar, Thunder Bluff and Undercity on the same pipeline. The Scarlet Crusade Cup's dungeon sprints follow (2026-10-25): the Graveyard and the Library, then the Armory and the Monastery.
 
 Stormwind v3 wall alignment (2026-10-22): the white parapet is the exposed union of radius90 visual capsules. Collision now keeps14-unit centre clearance from that union, rather than separately shrinking every capsule to76 (which created invisible wedges at concave joins). Radius56 paving and normal straight-wall clearance are unchanged; generated exposed junctions/analytic projections provide the corner shape. Movement candidates obey the original step bound before nearest ranking. Artwork/gates/spawn and full-speed shoulders are unchanged.
