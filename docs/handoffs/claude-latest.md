@@ -1,36 +1,437 @@
-# Claude handoff — Scarlet Library (in progress)
+# Claude handoff — Scarlet Library, the second Scarlet Crusade Cup sprint
 
-## Active reservation — Scarlet Crusade Cup: Scarlet Library (2026-10-25)
+Prepared 2026-10-25 at about 23:25 CET (Europe/Oslo) by Claude (rendering/UI/sprites owner).
 
-The owner sent his map of the Scarlet Monastery Library (MapsForTanks) with his route, a screenshot of the Huntsman's Cloister's courtyard and one of Arcanist Doan's round library. He wrote: "Scarlet Library. Everything is inside except the first courtyard with the fountain/statue in the middle, everything else is inside - ending in the iconic round library."
+**Base:** `claude/scarlet-graveyard` `1bc3ac8`. Thunder Bluff and Scarlet Graveyard are not integrated yet, so this branch carries both; their handoffs follow [below](#previous-scarlet-graveyard).
+
+**Branch:** `claude/scarlet-library`, with these commits:
+
+- `b56d227`: the reservation;
+- `362d415`: Scarlet Library;
+- `fa75cf4`: dungeon builds keep one model's decoded textures at a time;
+- this handoff.
+
+> **Do not install this branch on its own.** As for Thunder Bluff and the Graveyard, `ScoreSync` expects exactly seven courses. With ten selectable it does not start, and community score sharing stops for every course; local saving is unaffected. The [patch below](#needs-codex-score-sync-learns-the-library) covers all three new courses.
+
+## Owner instructions
+
+"Scarlet Library. Everything is inside except the first courtyard with the fountain/statue in the middle, everything else is inside - ending in the iconic round library."
+
+He sent three images:
+
+- his map of the Library wing (MapsForTanks) with his green route, two red lines and "END!";
+- a screenshot of the Huntsman's Cloister's courtyard;
+- a screenshot of Arcanist Doan's round library.
 
 His route:
 
-1. From the portal ("!") into the long hall south.
+1. From the portal ("!") north, east, then south down the long hall; a green line across it just past the turn.
 2. Round the Huntsman's Cloister.
-3. In and back out of Houndmaster Loksey's room (1), across the red line he drew there.
+3. Into Houndmaster Loksey's room (1) across a red line, and back out.
 4. North up the east hall into the Gallery of Treasures.
 5. East through two columned halls, then south down the Athenaeum.
-6. Through the last hall to the round library (2): "END!", at the red line across its door.
+6. Through the last hall to the round library (2): "END!", at a red line across its door.
 
-**Branch:** `claude/scarlet-library` from `claude/scarlet-graveyard` `1bc3ac8`. Thunder Bluff and Scarlet Graveyard are not integrated yet, so this branch carries both. Reserved, until this handoff says otherwise:
+Nothing new was asked this time. His Graveyard choices hold: Claude's sprint rules for Codex's review, and lawns that slow while solid scenery blocks.
 
-- **`addon/AzerothKart/Dungeon.lua`** (Claude's proposed module, not yet reviewed): round rooms (`shape="disc"`) for the round library. Rectangle rooms behave as before.
-- **Generated:** `addon/AzerothKart/ScarletCrusade.lua` gains the Library's entry; the Graveyard's stays byte for byte. New `addon/AzerothKart/Assets/Tracks/ScarletLibrary/`.
+The standing instructions still hold:
+
+- no merge into `main`;
+- no claim of in-game verification without the actual client;
+- the simulation-control functions in `UI.lua` stay untouched;
+- the owner pushes and runs the client checks, and Codex prepares coordinated installs.
+
+## Scope (reserved and changed)
+
+The reservation (`b56d227`) held. There is no change to `Race`, `SoloRecords`, physics, input, timing, networking, `Circuit` or `UI.lua`. `ScoreSync` is changed only as a proposal.
+
+- **`addon/AzerothKart/Dungeon.lua`** (Claude's proposed module, not yet reviewed): round rooms, `shape="disc"`. The diff is [below](#needs-codex-review-of-round-rooms).
+- **Generated:** `addon/AzerothKart/ScarletCrusade.lua` gains the Library's entry; the Graveyard's entry is unchanged. New: `addon/AzerothKart/Assets/Tracks/ScarletLibrary/Background.tga` (2048×2048, 16,777,234 bytes) and `Preview.tga` (512×512, 1,048,594 bytes).
 - **Scripts:**
-  - `scripts/dungeon_layouts.py`: a new Library section;
-  - `scripts/dungeon_paint.py`: round rooms and the Library's new layers; the Graveyard's picture stays byte for byte;
-  - `scripts/build_dungeon_tracks.py`: round rooms in the validator and the data.
-- **Shared:**
-  - `Courses.lua`: Scarlet Library becomes selectable;
-  - `services/leaderboard/catalog.json` (generated);
-  - `scripts/validate_project.py`.
-- **`Menu.lua`:** the Library's track copy and preview cell.
-- **Tests:** `tests/test_dungeon.lua`, `tests/test_circuit.lua` and `tests/test_menu.lua` (`test_ui.lua` only if a count moves).
-- **Proposal only:** `ScoreSync.lua`, the patch extended by the Library's code.
-- **Docs:** a track sheet, ADR 0020 (round rooms), and the shared lists that name the tracks.
+  - `scripts/dungeon_layouts.py`: `disc_room`, round-room-aware `on_floor`, and the Library section (`SL_*`, `SCARLET_LIBRARY`);
+  - `scripts/build_dungeon_tracks.py`: round rooms in `Floor`, the gap check and the data; a route crossing counts only across a gate's own segment; one model's decoded textures at a time;
+  - `scripts/dungeon_paint.py`: round rooms in the masks, `paint_rings` (the round library's floor), the open sky's `moonlight` setting, one model's textures at a time;
+  - `scripts/wc3render.py`: a new `forget_textures()` (the decoded-texture cache, cleared on request; nothing else changed, and the city builds do not call it).
 
-No change to `Race`, `SoloRecords`, physics, input, timing, networking, `Circuit` or `UI.lua`.
+  The Graveyard's data and pictures are byte for byte unchanged.
+- **Shared:**
+  - `Courses.lua`: Scarlet Library is selectable; the Armory and the Monastery stay `soon`;
+  - `services/leaderboard/catalog.json` (generated): ten boards;
+  - `scripts/validate_project.py`: the Library's required files.
+- **`Menu.lua`:** the Library's track copy and its square preview cell.
+- **Tests:**
+  - `tests/test_dungeon.lua`: a rotunda (round rooms), and the Library's catalogue entry, surfaces, route walk, launch and solids;
+  - `tests/test_circuit.lua`: the coming-soon count and the Track cycle;
+  - `tests/test_menu.lua`: the Track cycle, the Scarlet cup's rows, the square preview, the Library's sprint board.
+
+  `test_ui.lua` is unchanged: the counts stay 90/167/136.
+- **Docs:**
+  - new: the [track sheet](../art/tracks/scarlet-library.md), with its overview, review image and sources list;
+  - updated: ADR 0020 (an addendum), `API_CONTRACTS.md`, `TRACKS.md`, `README.md`, `ASSETS.md`, `INDEX.md`, `ASSET_SOURCES.md`, `CHANGELOG.md`, `TEST_PLAN.md` and `tests/MANUAL_CLIENT_CHECKLIST.md`.
+
+`docs/PROGRESS.md` was not edited; the entry is [below](#progress-ledger-entry-for-the-integrator-scarlet-library).
+
+## Delivered
+
+![The way through and nine follow-camera views](../art/tracks/scarlet_library-review.png)
+
+Scarlet Library, the second dungeon sprint. The [track sheet](../art/tracks/scarlet-library.md) has the full record.
+
+- **The way through**, from his route:
+  1. The grid stands at the portal, between two Scarlet guards, facing north.
+  2. North and east, then south down the long hall on its red runner. The first gate, *Huntsman's Cloister*, is his green line.
+  3. Round the Huntsman's Cloister: four roofed walks round the one open courtyard, with an arcade of columns open in the middle of each side. In the courtyard: lawn, kerbed stone paths, the statue fountain on its round court, four summer trees, Scarlet huntsmen and red hounds.
+  4. Into Houndmaster Loksey's kennel across the second gate, *Houndmaster Loksey* (his red line), turn round by the houndmaster and his hounds, and back out.
+  5. North up the east hall to the third gate, *Gallery of Treasures*, in the gallery's door.
+  6. North through the gallery's treasure, east through two columned halls to the fourth gate, *Athenaeum*, then south down its bookshelves.
+  7. Through the last hall to the finish, *Arcanist Doan*: the chequered line in the round library's door. Inside, Doan stands at his lectern on a gold ring and red carpet among the bookshelves.
+- **Size:**
+  - 2048 × 2048 world units;
+  - 41 rooms and 47 solids;
+  - about 6,200 units from the portal to the finish along the reviewed route, nearly three times the Graveyard.
+- **Round rooms:** the round library and the fountain's court are true circles, painted and collided the same way.
+
+## Decisions for review
+
+1. **Karting scale, 2048 × 2048.** The map's rooms run in a long chain east to west, so halls are 120 to 140 units and doors 90 to 140. The layout keeps his plan: the long hall, the ring round the courtyard, the kennel to its south, the east hall, the gallery with its alcoves, the halls in a row, the Athenaeum and the round library below it. Some halls are narrower than the map draws them, to fit the width.
+2. **Loksey's kennel, in and out, as drawn.** His gate spans the dead-end kennel, so it is unavoidable, and the karts cross it inward, turn and leave. Checkpoints count only the inward crossing. The kennel is 300 × 370 so a kart can turn round in it. Record in the client whether the hairpin is fair at speed.
+3. **His green line is the first gate,** just past the start, as a start line.
+4. **Round rooms** in `Dungeon.lua` (the ADR 0020 addendum). The owner called the round library iconic, and rectangles cannot give a circle. A round wall pushes the kart along the radius, so it slides round.
+5. **The courtyard is drivable.** It is lawn, slow as the Graveyard's, with stone paths and the fountain's round court. Each side's arcade is open in the middle and columned elsewhere. The paths give no shortcut: across the courtyard is as long as round the walks.
+6. **The generator's gate count** now uses a gate's own segment, as the runtime does. The Library's route passes beyond the ends of earlier gates; the Graveyard's result is unchanged.
+7. **Memory:** the dungeon build drops decoded textures after each model. The Library's Reforged models would otherwise fill the developer machine's 3.9 GB. Outputs are byte for byte the same.
+
+## Needs Codex: score sync learns the Library
+
+**Problem:** as for Thunder Bluff and the Graveyard, now with ten courses. `Sync.new` returns `nil,"options"` and the sync never starts; `test_score_sharing` fails; local saving is unaffected.
+
+**Proposed patch** (Codex's decision; not applied; these are Codex's files). It supersedes [the Graveyard's](#needs-codex-score-sync-learns-the-new-courses) and [Thunder Bluff's](#needs-codex-score-sync-learns-thunder-bluff):
+
+- codes `T` for `thunder_bluff_skyway`, `G` for `scarlet_graveyard` and `L` for `scarlet_library`;
+- `BOARDS = #courseIds` in place of the literal 7;
+- a HELLO with one board hash per course: twelve fields, still far under the 240-byte limit;
+- `test_score_sync`'s ids gain the three courses;
+- `test_score_sharing`'s module list gains `Dungeon` and `ScarletCrusade`.
+
+**Tested:** `git apply --check` passes on `fa75cf4`. With the patch, the whole Lua 5.1 suite passes on an archive of `fa75cf4` in the cloud: 42 modules, `test_score_sync` and `test_score_sharing` included.
+
+```diff
+diff --git a/addon/AzerothKart/ScoreSync.lua b/addon/AzerothKart/ScoreSync.lua
+index 14107ae..08d9c66 100644
+--- a/addon/AzerothKart/ScoreSync.lua
++++ b/addon/AzerothKart/ScoreSync.lua
+@@ -6,8 +6,10 @@ local Sync = {PREFIX="AZKSCR1", MAX_BYTES=240, MAX_PEERS=32, SEND_INTERVAL=1,
+     HELLO_INTERVAL=60, REQUEST_TIMEOUT=120, MAX_ROWS=50}
+ AK.ScoreSync = Sync
+ local courseIds={"test_oval","mirage_raceway","stormwind_city","ironforge_gp",
+-    "darnassus_canopy","orgrimmar_canyon","undercity_slime"}
+-local courseCodes={"O","M","S","I","D","R","U"}
++    "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway","scarlet_graveyard",
++    "scarlet_library"}
++local courseCodes={"O","M","S","I","D","R","U","T","G","L"}
++local BOARDS=#courseIds
+ local courseToCode,codeToCourse={},{}
+ for i,id in ipairs(courseIds) do courseToCode[id],codeToCourse[courseCodes[i]]=courseCodes[i],id end
+ local kartIds={"goblin_mortar_trike","steam_tank","dwarven_biker","dwarf_car",
+@@ -59,7 +61,7 @@ function Sync.encode(message)
+         and integer(message.hash,0,4294967295) and integer(message.count,0,Sync.MAX_ROWS) then
+         text=table.concat({"1 E",message.code,decimal(message.hash),decimal(message.count)}," ")
+     elseif message.kind=="HELLO" and integer(message.physicsVersion,1,2147483647)
+-        and integer(message.catalogHash,0,4294967295) and dense(message.hashes,7)==7 then
++        and integer(message.catalogHash,0,4294967295) and dense(message.hashes,BOARDS)==BOARDS then
+         local parts={"1 H",decimal(message.physicsVersion),decimal(message.catalogHash)}
+         for _,value in ipairs(message.hashes) do
+             if not integer(value,0,4294967295) then return nil,"hash" end
+@@ -106,10 +108,10 @@ function Sync.decode(payload)
+         if codeToCourse[code] and stamp and n then return {kind="END",code=code,hash=stamp,count=n} end
+     elseif tag=="H" then
+         local p={};for field in rest:gmatch("[^ ]+") do p[#p+1]=field end
+-        if #p~=9 or table.concat(p," ")~=rest then return nil,"hello" end
++        if #p~=BOARDS+2 or table.concat(p," ")~=rest then return nil,"hello" end
+         local physics,catalog=number(p[1],1,2147483647),number(p[2],0,4294967295)
+         local hashes={}
+-        for i=1,7 do hashes[i]=number(p[i+2],0,4294967295);if not hashes[i] then return nil,"hello" end end
++        for i=1,BOARDS do hashes[i]=number(p[i+2],0,4294967295);if not hashes[i] then return nil,"hello" end end
+         if physics and catalog then return {kind="HELLO",physicsVersion=physics,catalogHash=catalog,hashes=hashes} end
+     end
+     return nil,"message"
+@@ -129,7 +131,7 @@ local function clock(s,now)
+     s.now=now;return true
+ end
+ function Sync.new(options,now)
+-    if not plain(options) or not H.NormalizeName(options.name) or dense(options.contexts,7)~=7 then return nil,"options" end
++    if not plain(options) or not H.NormalizeName(options.name) or dense(options.contexts,BOARDS)~=BOARDS then return nil,"options" end
+     local store,writable=H.Load(options.store)
+     if not writable then return nil,"store" end
+     local s={name=H.NormalizeName(options.name),key=identity(options.name),contexts={},store=store,
+diff --git a/tests/test_score_sharing.lua b/tests/test_score_sharing.lua
+index c3baf88..ead3b9c 100644
+--- a/tests/test_score_sharing.lua
++++ b/tests/test_score_sharing.lua
+@@ -102,7 +102,7 @@ local function bus()
+             return frame
+         end
+         using(client,function()
+-            for _,module in ipairs({"Track","MirageRaceway","Circuit","CapitalCities","Courses",
++            for _,module in ipairs({"Track","MirageRaceway","Circuit","CapitalCities","Dungeon","ScarletCrusade","Courses",
+                 "Physics","Highscores","SoloRecords","ScoreSync","ScoreDiscovery","ScoreSharing"}) do
+                 assert(loadfile("addon/AzerothKart/"..module..".lua"))("AzerothKart",client.namespace)
+             end
+diff --git a/tests/test_score_sync.lua b/tests/test_score_sync.lua
+index da12222..6814493 100644
+--- a/tests/test_score_sync.lua
++++ b/tests/test_score_sync.lua
+@@ -3,7 +3,8 @@ local AK={}
+ local H=assert(loadfile("addon/AzerothKart/Highscores.lua"))("AzerothKart",AK)
+ local S=assert(loadfile("addon/AzerothKart/ScoreSync.lua"))("AzerothKart",AK)
+ local ids={"test_oval","mirage_raceway","stormwind_city","ironforge_gp",
+-    "darnassus_canopy","orgrimmar_canyon","undercity_slime"}
++    "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway","scarlet_graveyard",
++    "scarlet_library"}
+ local contexts={}
+ for i,id in ipairs(ids) do contexts[i]={trackId=id,trackVersion=1,physicsVersion=11,
+     lapCount=3,tickRate=60,rulesVersion=1} end
+```
+
+## Needs Codex: review of round rooms
+
+`Dungeon.lua` is still Claude's proposal from the Graveyard ([ADR 0020](../adr/0020-dungeon-sprints.md)); this adds round rooms to it:
+
+- `shape="disc"`: the disc in the room's square, which must be square;
+- the kart centre stays `wallInset` inside the round wall;
+- a step ending beyond it moves along the radius, a hair inside the reach, within the step's length, and counts as a hit;
+- the visual ground (`surfaceAt`, `isDrivable`) follows the full radius;
+- an unknown shape, or a round room that is not square, is refused.
+
+`tests/test_dungeon.lua` checks a rotunda on Lua 5.1 and 5.4: its floor and walls, a doorway into it, a slide round its wall, 2,000 random steps, and refused shapes. The proposed `UI.Start`/`step` status line from the Graveyard's handoff still applies on `fa75cf4`.
+
+```diff
+diff --git a/addon/AzerothKart/Dungeon.lua b/addon/AzerothKart/Dungeon.lua
+index 05cc03a..aec8945 100644
+--- a/addon/AzerothKart/Dungeon.lua
++++ b/addon/AzerothKart/Dungeon.lua
+@@ -3,7 +3,9 @@
+ --
+ -- A dungeon is its floor: axis-aligned rooms (halls, corridors, a chamber, a
+ -- cloister's lawns and paths), each "road" (stone) or "rough" (a lawn: the
+--- rough ground Physics slows on). There is no road to follow. The kart
++-- rough ground Physics slows on), and round rooms (`shape="disc"`: the disc
++-- inscribed in the room's square, such as a round library). There is no
++-- road to follow. The kart
+ -- centre stays wallInset inside the union of the rooms (the walls stand a
+ -- kart's half-diagonal clear of it) and outside every solid box (a grave, a
+ -- tomb, a pillar) grown by the same inset, as the test oval's crates are.
+@@ -13,9 +15,10 @@
+ -- Solids use Track's swept-box resolution: a kart slides along a face and
+ -- the contact counts as a hit. A step ending outside the floor moves back to
+ -- the nearest floor point no further from the start than the step was long,
+--- so a kart slides along a wall. Where rooms meet, their floors overlap by
+--- at least twice the inset (a doorway): the union of the inset rooms is then
+--- open from one to the other. Lookups use a 64-unit grid.
++-- so a kart slides along a wall (a round wall too: its nearest point is
++-- along the radius). Where rooms meet, their floors overlap by at least
++-- twice the inset (a doorway): the union of the inset rooms is then open
++-- from one to the other. Lookups use a 64-unit grid.
+ local _, namespace = ...
+ local Dungeon = {}
+
+@@ -72,7 +75,8 @@ end
+
+ -- definition: {id, version, name, width, height, wallInset,
+ -- checkpointMaxStep (optional), laps (optional, 1-9),
+--- rooms={{x,y,width,height,surface}...} (surface "road" or "rough"),
++-- rooms={{x,y,width,height,surface,shape}...} (surface "road" or "rough";
++-- shape nil, "rect" or "disc", a disc's square with width == height),
+ -- solids={{id,x,y,width,height}...}, gates={{name,ax,ay,bx,by,nx,ny}...},
+ -- spawn={x,y,heading}}. Bottom-left origin, as every track.
+ function Dungeon.new(definition, crossesGate)
+@@ -92,15 +96,24 @@ function Dungeon.new(definition, crossesGate)
+         crossesGate=crossesGate,
+         rooms=copyList(d.rooms), gates=copyList(d.gates), solids=copyList(d.solids),
+     }
+-    -- The kart centre's floor: each room inset on every side.
++    -- The kart centre's floor: each room inset on every side (a round
++    -- room's radius less the inset).
+     local rooms = {}
+     for index,room in ipairs(track.rooms) do
+         assert(finite(room.x) and finite(room.y) and finite(room.width) and finite(room.height)
+             and room.width > 2*inset and room.height > 2*inset, "a room wider than two insets required")
+         assert(SURFACES[room.surface], "a room is road or rough")
+-        rooms[index] = {x0=room.x, y0=room.y, x1=room.x+room.width, y1=room.y+room.height,
++        assert(room.shape == nil or room.shape == "rect" or (room.shape == "disc" and room.width == room.height),
++            "a room is a rectangle, or a disc in its square")
++        local r = {x0=room.x, y0=room.y, x1=room.x+room.width, y1=room.y+room.height,
+             minX=room.x+inset, minY=room.y+inset, maxX=room.x+room.width-inset, maxY=room.y+room.height-inset,
+-            road=room.surface == "road"}
++            road=room.surface == "road", disc=room.shape == "disc"}
++        if r.disc then
++            r.cx, r.cy, r.radius = room.x+room.width/2, room.y+room.height/2, room.width/2
++            r.reach = r.radius-inset
++            r.reachSquared, r.radiusSquared = r.reach*r.reach, r.radius*r.radius
++        end
++        rooms[index] = r
+     end
+     local solids = {}
+     for index,box in ipairs(track.solids) do
+@@ -135,12 +148,19 @@ function Dungeon.new(definition, crossesGate)
+         return cells[math.floor(y/CELL)*columns+math.floor(x/CELL)+1]
+     end
+
++    -- The kart centre's floor of one room.
++    local function inRoom(room, x, y)
++        if x < room.minX or x > room.maxX or y < room.minY or y > room.maxY then return false end
++        if not room.disc then return true end
++        local dx,dy = x-room.cx,y-room.cy
++        return dx*dx+dy*dy <= room.reachSquared
++    end
++
+     local function onFloor(x, y)
+         local list = cellOf(roomCells,x,y)
+         if not list then return false end
+         for i=1,#list do
+-            local room = rooms[list[i]]
+-            if x >= room.minX and x <= room.maxX and y >= room.minY and y <= room.maxY then return true end
++            if inRoom(rooms[list[i]],x,y) then return true end
+         end
+         return false
+     end
+@@ -169,8 +189,15 @@ function Dungeon.new(definition, crossesGate)
+         for i=1,#list do
+             local room = rooms[list[i]]
+             if x >= room.x0 and x <= room.x1 and y >= room.y0 and y <= room.y1 then
+-                if room.road then return "road" end
+-                rough = true
++                local inside = true
++                if room.disc then
++                    local dx,dy = x-room.cx,y-room.cy
++                    inside = dx*dx+dy*dy <= room.radiusSquared
++                end
++                if inside then
++                    if room.road then return "road" end
++                    rough = true
++                end
+             end
+         end
+         return rough and "grass" or nil
+@@ -190,6 +217,20 @@ function Dungeon.new(definition, crossesGate)
+         return bestX,bestY,best
+     end
+
++    -- The nearest point of one room's inset floor to (x, y): clamped into a
++    -- rectangle, or along the radius onto a round room's reach (a hair
++    -- inside it, so rounding never leaves the point off the floor).
++    local function roomPoint(room, x, y)
++        if not room.disc then
++            return math.max(room.minX,math.min(room.maxX,x)),math.max(room.minY,math.min(room.maxY,y))
++        end
++        local dx,dy = x-room.cx,y-room.cy
++        local squared = dx*dx+dy*dy
++        if squared <= room.reachSquared then return x,y end
++        local k = (room.reach-1e-6)/math.sqrt(squared)
++        return room.cx+dx*k,room.cy+dy*k
++    end
++
+     -- The nearest allowed floor point to (x, y): each room's nearest inset
+     -- point or, where that lies inside a grown solid, the solid's faces.
+     -- Searches the start cell's rooms, or every room when `anywhere`.
+@@ -199,8 +240,7 @@ function Dungeon.new(definition, crossesGate)
+         local bestX,bestY,best
+         for i=1,count do
+             local room = rooms[anywhere and i or list[i]]
+-            local px = math.max(room.minX,math.min(room.maxX,x))
+-            local py = math.max(room.minY,math.min(room.maxY,y))
++            local px,py = roomPoint(room,x,y)
+             if inSolid(px,py) then
+                 for k=1,#solids do
+                     local box = solids[k]
+```
+
+## Tests performed
+
+The cloud ran Python 3.13 and Lupa 2.8. The developer machine's Linux shell ran Python 3.10.12 and Lupa 2.8 with its own Warcraft III extraction and sprite cache.
+
+| Command / check | Result |
+|---|---|
+| `python scripts/build_dungeon_tracks.py --wc3 … --check` at `fa75cf4` | **CHECK PASS** for `ScarletCrusade.lua` and all four pictures, byte-identical on both machines. Library Background `1d9e9cee…aa73eab`, Preview `9b3d9a95…79893d9c`; the Graveyard's are unchanged (`162029c4…`, `b177650d…`). |
+| The same, from the sheets' own rebuild commands | **CHECK PASS** on the developer machine for both dungeons. The folder was freshly extracted with exactly the Graveyard's and the Library's `wc3casc.py` commands, read from their sheets, against the owner's install. The sprite cache was empty, so all 114 sprites were rendered there. |
+| A fresh build's memory | Peak 1.2 GB for both dungeons, cloud, empty sprite cache. Before `fa75cf4` the Library's build was killed for memory on the developer machine. |
+| `python scripts/test_lua.py --runtime lua51 --tests <the 41 other modules>` | **PASS** on both machines (`dungeon`, `circuit`, `menu`, `ui` included). |
+| `… --tests score_sharing` | **FAIL** on both machines, as expected: the score-sync blocker above. |
+| The whole Lua 5.1 suite with the score-sync patch | **PASS**, 42 modules, on an archive of `fa75cf4` (cloud). |
+| `… --runtime lua54 --tests dungeon circuit menu ui race solo_records highscores` | **PASS** on both machines. |
+| `python -m pytest tests/test_circuit_boundary.py tests/test_leaderboard_store.py` | **24 passed** in the cloud. The developer machine has no pytest, so this was NOT RUN there. |
+| `python scripts/export_score_catalog.py --check` | **CHECK PASS**, ten canonical boards, on both machines. |
+| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in `PROGRESS.md` fail, on both machines. |
+| `git diff --check` | Clean. |
+| Review | The whole floor with the way through, plus nine follow-camera views (533 × 320 world units): the portal, the long hall, the courtyard, the kennel, the east hall, the gallery, the halls, the Athenaeum and the round library ([image](../art/tracks/scarlet_library-review.png)). |
+
+**NOT RUN:**
+
+- the client: the drive, the kennel's hairpin, the walls, the round wall, the courtyard, the HUD, the look in the follow camera, loading the 2048 × 2048 picture, performance;
+- any install;
+- multiplayer;
+- score sync with real peers.
+
+## Client check (owner; NOT RUN; after Codex's review and a coordinated install)
+
+[The client checklist's new section](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-scarlet-library-check-proposed-claudescarlet-library) covers:
+
+- the cup's two ready sprints and the Track button's cycle;
+- loading the picture;
+- finding the way past the five gates;
+- the kennel's hairpin;
+- the columns, trees, pillars and the round wall;
+- the courtyard's lawn and open sky;
+- the sprint HUD, results and board;
+- the frame rate.
+
+**A full client restart is needed**, because the files are new.
+
+## PROGRESS ledger entry for the integrator (Scarlet Library)
+
+> ### 2026-10-25 ~23:25 CET — Claude / `claude/scarlet-library`, Scarlet Library
+>
+> - The Scarlet Crusade Cup's second dungeon sprint, Scarlet Library, is selectable, from the owner's route:
+>   - the portal, the long hall, round the Huntsman's Cloister;
+>   - in and back out of Houndmaster Loksey's kennel;
+>   - the Gallery of Treasures, two columned halls and the Athenaeum;
+>   - Arcanist Doan's round library.
+>
+>   Five gates, 41 rooms (two round), 47 solids, one run of about 6,200 units. Only the courtyard is open sky.
+> - Proposed for Codex's review: round rooms (`shape="disc"`) in `Dungeon.lua`, ADR 0020 addendum.
+> - `build_dungeon_tracks.py --check` PASS for both dungeons, byte-identical in the cloud and on the developer machine, including from fresh extractions by the sheets' commands. The Graveyard is unchanged.
+> - The Lua 5.1 suite PASS except `test_score_sharing`: `ScoreSync` expects seven courses. Codex's patch, now with the Library's code, is in the handoff, and the whole suite passes with it.
+> - Lua 5.4 sprint modules PASS; catalogue check PASS (ten boards); validator: only the 2 pre-existing `PROGRESS.md` links fail.
+> - **Blocker:** not installable until Codex's score-sync change lands. **NOT RUN:** the client; install.
+
+## Commits, push and workspace (Scarlet Library)
+
+| Item | Value |
+|---|---|
+| Worktree / branch | `AzerothKart-Claude` / `claude/scarlet-library`, from `claude/scarlet-graveyard` `1bc3ac8`. |
+| Commits | `b56d227` (the reservation), `362d415` (Scarlet Library: course, round rooms, pictures, painter, catalogue, menu, tests, docs), `fa75cf4` (one model's decoded textures at a time), then this handoff. |
+| Push | Owner only, because this session's git proxy refuses the repository. Push all three branches; each contains the one before: `git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/thunder-bluff claude/scarlet-graveyard claude/scarlet-library` |
+| Not done | No merge into `main` or any Codex branch; no tag, release, install or client input. Codex's files and worktrees were only read. |
+
+**Workspace notes:**
+
+- As before, commits are made in a cloud clone and moved as git bundles (`local-artifacts/bundles/`), so the hashes are identical on the developer machine.
+- The developer machine's worktree moved from `claude/scarlet-graveyard` to the new branch with a plain checkout; the fast-forwards ran normally. No lock or temporary files were left.
+- The Library's new Warcraft III files were extracted on the developer machine, into its check folder and the cloud's. Extracted files stay outside Git; one archive of them is kept, untracked, in `local-artifacts/`.
+- The worktree is clean apart from the untracked `Claude outputs/` folder, where the review images are.
+
+## Next
+
+1. **The owner:**
+   - look at the review image;
+   - say whether the way through, the kennel's hairpin and the courtyard feel right;
+   - push the three branches.
+2. **Codex:**
+   - review ADR 0020 with its addendum (`Race`, `SoloRecords`, `Dungeon` with round rooms);
+   - apply the score-sync change, or its own version of it, and decide on the status line;
+   - integrate Thunder Bluff, the Graveyard and the Library, then make a coordinated install with a full client restart.
+3. **The owner:** the client checks, above all the kennel's hairpin and the round library.
+4. **Claude:** Scarlet Armory next, then the Monastery. Each needs the owner's map of the wing with his route. They should need no new runtime code.
 
 # Previous: Scarlet Graveyard
 
@@ -146,6 +547,8 @@ Scarlet Graveyard, the first Scarlet Crusade Cup course and the first dungeon sp
 6. **Minimal sprint rules** ([ADR 0020](../adr/0020-dungeon-sprints.md)): one optional track field; Checkpoints and Laps are unchanged. `LiveRace` already refuses a bundle that is not three laps, so a sprint cannot go live.
 
 ## Needs Codex: score sync learns the new courses
+
+**Superseded:** apply the [Library's patch above](#needs-codex-score-sync-learns-the-library), which adds the Library's code as well. This section stays as the record of the Graveyard change.
 
 **Problem.** It is the Thunder Bluff problem, now with nine courses. `ScoreSync` knows seven courses by one-letter code, and `Sync.new` requires exactly seven contexts. `ScoreSharing` builds one context per selectable course: nine on this branch. `Sync.new` returns `nil,"options"`, and the status becomes "Score synchronization unavailable" for every course. `test_score_sharing` fails ("automatic native flow did not converge before the bounded deadline"). Local saving is unaffected, and so are `test_highscores` and `test_solo_records`.
 
