@@ -30,7 +30,8 @@ errors cannot prevent normal results/local persistence.
 **Proposed for Codex (Claude, 2026-10-25, `claude/thunder-bluff`):** `ScoreSync`
 knows seven courses by one-letter code and `Sync.new` requires exactly seven
 contexts. `ScoreSharing` builds one context per selectable course, so with Thunder
-Bluff Skyway selectable it offers eight and the sync cannot start. A tested patch is
+Bluff Skyway selectable it offers eight and the sync cannot start, for any course
+(local saving is unaffected). A tested patch is
 in Claude's handoff: an eighth code `T` for `thunder_bluff_skyway`, and a HELLO with
 one board hash per course (ten fields). Older builds would refuse the new HELLO, as
 they already refuse a different catalogue. Codex's decision; not applied.

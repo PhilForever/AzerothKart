@@ -1,193 +1,279 @@
-# Claude handoff — Thunder Bluff Skyway (in progress)
+# Claude handoff — Thunder Bluff Skyway
 
-## Active reservation — Thunder Bluff Skyway (2026-10-25)
+Prepared 2026-10-25 at about 19:45 CET (Europe/Oslo) by Claude (rendering/UI/sprites owner).
 
-The owner: "Alright. Let's get to work. Thunderbluff - the final map in the capital cities cup. As you can see - plank roped bridges, long way down, white stone paths, if you can - make the road edges like these poles with ropes." With it: his blue line on the in-game Thunder Bluff map and three screenshots (the mesas' rope bridges and drops, a mesa top's white stone path, a path edged with posts and rope).
+This supersedes the pod racer handoff (`claude/podracer-arrows-outline` `0afeedf`). Codex reviewed and integrated that work (`77a1891` on `codex/podracer-score-review`); the installed runtime is now Codex's `bb085ac` (Physics12).
 
-**Branch:** `claude/thunder-bluff` from Codex's `aac1bdd` (installed runtime `bb085ac` plus docs). Reserved, until this handoff says otherwise:
+**Base:** `aac1bdd`, Codex's docs commit on `bb085ac`. **Branch:** `claude/thunder-bluff`; its commits are listed under [Branch, commits and workspace](#branch-commits-and-workspace).
 
-- `scripts/city_layouts.py`: a new Thunder Bluff section, its start sign and its `CITIES` entry (append only; the other cities unchanged).
-- `scripts/city_paint.py`: new, opt-in painting for a city on mesas (the drop to the plain, cliff faces, the bridges' sides, rope-and-post street edges). A city without the new fields paints byte for byte as before.
-- `addon/AzerothKart/CapitalCities.lua` (generated: one new entry), `addon/AzerothKart/Assets/Tracks/ThunderBluff/` (new).
-- `addon/AzerothKart/Courses.lua`: the `thunder_bluff_skyway` entry only (from coming soon to selectable).
-- `addon/AzerothKart/Menu.lua`: Thunder Bluff's track copy and preview cell only.
-- Tests: the coming-soon assertions in `tests/test_circuit.lua` and `tests/test_menu.lua`, plus Thunder Bluff's own circuit checks.
-- `services/leaderboard/catalog.json` gains one board if the course becomes selectable (generated; Codex to review).
-- Docs: a Thunder Bluff track sheet and the shared lists that name Thunder Bluff as coming soon.
-
-No physics, input, timing, networking or `UI.lua` changes. The bridges may use the reviewed `narrows` contract (data only).
-
-# Previous: Goblin Pod Racer, start signs and the kart outline
-
-Prepared 2026-10-23 at about 19:45 CEST (Europe/Oslo) by Claude (rendering/UI/sprites owner).
-
-This supersedes the Undercity river handoff (`claude/undercity-river` `e83c889`). Codex approved that work, pushed it and integrated it (merge `d3fd99d`, docs `de4b291`).
-
-**Base:** `de4b291`, Codex's docs commit on `d3fd99d`, the installed runtime. The new branch is **`claude/podracer-arrows-outline`**; its commits are listed under [Branch, commits and workspace](#branch-commits-and-workspace).
+> **Do not install this branch on its own.** With Thunder Bluff selectable, `ScoreSync` does not start, because it expects exactly seven courses. Community score sharing would then stop for every course; local saving is unaffected. Codex's change is described [below](#needs-codex-score-sync-learns-thunder-bluff), with a tested patch.
 
 ## Owner instructions
 
-He wrote "Looks good. Codex has approved and is now working on enhancing the single player experience. Your Next tasks:", then:
+"Alright. Let's get to work. Thunderbluff - the final map in the capital cities cup. As you can see - plank roped bridges, long way down, white stone paths, if you can - make the road edges like these poles with ropes."
 
-1. "On tracks that start outside of the "loop" - add an arrow indicator for left or right outside the track (wc3 asset?) helping users take the correct turn at the start of a race."
-2. "Create/add the goblin pod racer (see image) - replace it with our first kart (the only one that's not a wc3 asset)". His picture shows two red, rope-bound rocket pods with shark faces, roped to a goblin on a two-wheeled cart.
-3. "Visually it can sometimes be difficult to see your cart, add an option in the settings to enable an outline of your own cart when driving (like a bright yellow line or something)".
+He sent four images:
+
+- his blue line on the in-game Thunder Bluff map, with an X where it starts;
+- the mesas' rope bridges over the drop;
+- a mesa top with tents and a white stone path;
+- a stone path edged with wooden posts and sagging rope.
 
 The standing instructions still hold:
 
 - no merge into `main`;
 - no claim of in-game verification without the actual client;
-- leave the simulation-control functions in `UI.lua` alone;
-- the owner pushes and runs the client checks; Codex prepares coordinated installs.
+- the simulation-control functions in `UI.lua` stay untouched;
+- the owner pushes and runs the client checks, and Codex prepares coordinated installs.
 
 ## Scope (reserved and changed)
 
-Codex's `codex/solo-highscores` reservation covers `UI.lua`'s successful Start context and solo `OnUpdate` finish accounting, `Menu.lua`'s home/Highscores/result notice, `Core.lua`, the TOCs, `tests/run.lua` and parts of `tests/test_menu.lua`/`test_ui.lua`. My regions stay clear of those:
+The reservation (`00d0d2a`) held. No physics, input, timing, networking, `UI.lua`, `Circuit.lua` or score-module change was made.
 
-- **`addon/AzerothKart/UI.lua`, visual regions only:**
-  - `sizeKart`;
-  - the new local `applyKartOutline`, called from `loadKartSprite` and `UI.SelectKart` after the selection;
-  - the new `UI.SetKartOutline`;
-  - the outline's placement in the visual body of `render`, next to the kart's;
-  - one texture created in `UI.Create` beside `UI.kart`.
-
-  No `step`, `Start`/`Stop`, `OnUpdate`, input, clock, lifecycle or selection-transaction change.
-- **`addon/AzerothKart/Menu.lua`:**
-  - the pod racer's blurb and credit (`Menu.KARTS`) and the How to Play credits;
-  - the Settings screen: a new check, with the checks below it moved down;
-  - `Menu.SetOutline`;
-  - one line each in `readPreferences`, `save` and `Menu.Create`.
-- **`addon/AzerothKart/Presentation.lua`:** the kart table (`goblin_drag_car` is now a sheet; each sheet names its `outline`; `KART_OUTLINE`). The drag car's effects override is removed.
-- **Assets:**
-  - new: `Assets/Karts/GoblinPodRacer.tga` and `Assets/Karts/Outlines/*.tga` (ten);
-  - removed: `Assets/Karts/GoblinDragCar.tga`;
-  - replaced: the Stormwind, Ironforge, Orgrimmar and Darnassus `Background.tga`/`Preview.tga`.
-- **Scripts:**
-  - new: `wowcasc.py`, `wowmodel.py`, `build_kart_outlines.py`;
-  - changed: `build_wc3_kart.py` (`--wow`, `WOW_VEHICLES`, the review helpers), `city_layouts.py` (start signs), `wc3render.py` (decodes only the textures a model's layers draw), `build_mirage_background.py` (review views only), `validate_project.py`;
-  - removed: `build_kart_sprites.py`.
-- **Tests:** `tests/test_presentation.lua`, `tests/test_ui.lua`, `tests/test_menu.lua`. Details are under [Tests performed](#tests-performed).
+- **`scripts/city_layouts.py`:** a new Thunder Bluff section (`TB_*`, `THUNDER_BLUFF`), its start sign and its `CITIES` entry. The other cities are unchanged.
+- **`scripts/city_paint.py`:** new painting that a city opts into. A city without `chasm` or `rope_fence` paints byte for byte as before:
+  - the drop off the mesas: `chasm_land`, `paint_chasm` and their helpers (`_byte_rows`, `_shift_rows`, `_smear_rows`, `SOFT_TAPS`, `_Noise`);
+  - the rope-plank deck: `OVER_DROP`, `rope_plank` and the deck branch of `paint_street`;
+  - the rope fence: the rope branch of `wall_columns`, and `_rope_column` in `paint_wall_row`;
+  - a `land` argument to `paint_sprite`/`paint_scenery` that keeps models' ground shadows off the drop;
+  - the chasm step in `build()`.
+- **`addon/AzerothKart/CapitalCities.lua`** (generated): one new entry, which uses only existing definition fields. The other entries are unchanged.
+- **`addon/AzerothKart/Assets/Tracks/ThunderBluff/`** (new): `Background.tga` and `Preview.tga`.
+- **`addon/AzerothKart/Courses.lua`:** the `thunder_bluff_skyway` entry, which was coming soon and is now selectable. No course is listed `soon` now; the mechanism stays for future courses.
+- **`addon/AzerothKart/Menu.lua`:** Thunder Bluff's track copy (`Menu.TRACKS`) and its preview cell (`PREVIEW_CELLS.thunderbluff`).
+- **Tests:**
+  - `tests/test_circuit.lua`: the catalogue now has no coming-soon course, and its coming-soon check marks Thunder Bluff soon for one assertion. Thunder Bluff gets its own checks.
+  - `tests/test_menu.lua`: the longer Track-button cycle, and a fixture for the coming-soon row.
+- **`services/leaderboard/catalog.json`** (generated by `export_score_catalog.py`): Thunder Bluff's board, eight in all. Codex should review it.
+- **`scripts/validate_project.py`:** requires Thunder Bluff's sheet, sources list and two pictures.
 - **Docs:**
-  - new: kart sheets `goblin-pod-racer.md` and `outlines.md`;
-  - updated: `goblin-drag-car.md` (retired), `roster.md`, `goblin-mortar-trike.md` (one line), the four city sheets, `ASSET_SOURCES.md`, `ASSETS.md`, `ARCHITECTURE.md`, `API_CONTRACTS.md`, the ADR 0009 addendum, `drift-boost.md`, `MIRAGE_RACEWAY.md`, `mirage-background.md`, `ui/front-end.md`, `README.md`, `README_ADDON.md`, `CHANGELOG.md` and `tests/MANUAL_CLIENT_CHECKLIST.md`;
-  - images: the review PNGs, the four overview PNGs and sources lists, and the Mirage views PNG (now drawing the default kart).
+  - new: [track sheet](../art/tracks/thunder-bluff.md), with its overview, review image and sources list;
+  - updated: `ASSET_SOURCES.md`, `TRACKS.md`, `README.md`, `ASSETS.md`, `INDEX.md`, `API_CONTRACTS.md`, `TEST_PLAN.md`, ADR 0015 (one line), `CHANGELOG.md` and `tests/MANUAL_CLIENT_CHECKLIST.md`.
 
-`RaceGrid.lua`, `CapitalCities.lua`, `Circuit.lua`, `Courses.lua`, the physics and the multiplayer modules are untouched.
+`docs/PROGRESS.md` was not edited; the entry is [below](#pending-progress-ledger-entry-integrator-to-append-progressmd-was-not-edited).
 
 ## Delivered
 
-### 1. Start signs
+![The loop, its direction and nine follow-camera views](../art/tracks/thunder_bluff_skyway-review.png)
 
-Stormwind, Ironforge, Orgrimmar and Darnassus start on a road off the loop. Where it joins the loop, Warcraft III's goblin racing arrow post stands beyond the far wall, its red arrow pointing the race's way ([review](../art/tracks/start-signs-review.png)). The posts are `war3.w3mod:_de.w3mod:doodads/lordaeronsummer/props/goblinracingarrowpost/goblinracingarrowpost{0,2}.mdx`.
+Thunder Bluff Skyway, the sixth and last Capital Cities Cup city. The [track sheet](../art/tracks/thunder-bluff.md) has the full record.
 
-- **The four signs:**
-  - Stormwind: in the corner of the bend, north-east.
-  - Ironforge: across the street from the gate hall's road, north-west.
-  - Orgrimmar: on the tip of the island where the canyon road merges, north-east (keep right).
-  - Darnassus: straight ahead of the Warrior's Terrace road, north-west.
-- **Why diagonal arrows:** a board facing the karts' north-looking camera can point east, west or diagonally north, but not straight north. Each sign takes the nearest of those to the loop's direction at the junction.
-- **Readability:**
-  - four times the scenery size;
-  - the arrow's dark red paint brightened (`recolor` on that saturated red only);
-  - a 50-unit clearing kept free of generated buildings, trees and trim (`reserved`).
-- **No data change:** pictures only; `CapitalCities.lua` is unchanged. Undercity starts on its loop and has no sign.
+- **The route** is traced from his line. The grid is on the road in from the lift, at his X. At the junction the course bears left (a start sign points north-west) and crosses the finish line. It then runs clockwise:
+  - out over the west bridge, round the Spirit Rise and back over the north bridge;
+  - east along the Lower Rise's north side;
+  - along the long bridge, round the Elder Rise past Cairne's lodge and back over the lower bridge;
+  - down the east side past the wind riders' roost;
+  - over the east bridge, across the Hunter Rise and back over the south-west bridge;
+  - west along the south side to the junction.
+- **Gates (six):** Spirit Rise, Lower Rise, Elder Rise, Wind Rider Roost, Hunter Rise, and The Lift (the finish).
+- **Size:** a 5,616-unit lap and a 285-unit approach.
+- **Bridges:** six, with 2,080 units of deck, 1,888 of them over the drop.
+- **Driving:** the shared street circuit, with full grip to the walls, `wallClearance` 14 (1,120 junctions), and no plazas, solids or heights. Collision comes from the analytic data, never from a pixel. A kart cannot fall: the drop is only painted.
+- **Plank rope bridges:**
+  - single boards laid square to each bridge, with the drop showing between them;
+  - the planks' ends and a beam under the deck's southern edge;
+  - a rope hanging under each deck, with the deck tied to it;
+  - a totem at the bridges' corners.
+- **A long way down:** everything off the mesas drops 400 units.
+  - From the camera that is 240 rows, so each mesa's southern edge hangs a pale sandstone face that tall.
+  - Below lies Mulgore's plain: hazy, with the mesas' soft shadows, small pines and a river.
+- **White stone paths:** the village cobbles, whitened, from wall to wall.
+- **Poles with ropes:** every street edge is a rope fence.
+  - On the rock: posts every 34 units with one sagging rope.
+  - On the bridges: posts every 30 units with a hand rope and a lower rope.
+- **The city:** tauren tents, totems, fire pits and pines, with tauren, spirit walkers and kodos. The landmarks are:
+  - the great totem and the pool on the Lower Rise;
+  - the lift tower;
+  - the wind riders' roost;
+  - the spirit lodge;
+  - Cairne before his lodge;
+  - the hunters' hall.
 
-### 2. Goblin Pod Racer
+## Decisions for review
 
-It is World of Warcraft's own goblin rocket car, Mirage Raceway's: `creature/goblinrocketcar/goblinrocketcar.m2`, from the owner's WoW Forever client. It takes the drag car's slot ([asset sheet](../art/karts/goblin-pod-racer.md)).
+1. **Clockwise.** The owner marked no direction. His stroke runs from the start road straight on up the west side, and it closes at the X, so the course runs clockwise. Reversing it is a small layout change and a rebuild:
+   - the loop's order;
+   - the gates' order;
+   - the finish line's place (it stands just past the junction);
+   - the start sign's arrow.
+2. **Wider turns.** The rises' turns are widened from the map (a 132-unit radius on the centerline) so that a kart can take them.
+3. **Narrow bridges.** Each deck is one reviewed `narrows` with a wall radius of 54 (the street's is 76). That makes the deck 136 units between its ropes, against the street's 180.
+   - The narrows cover the whole deck, which runs 16 units onto the rock at either end.
+   - The step where a deck begins catches only a kart well off the line.
+   - The width at speed is an open client question.
+4. **No heights.** The course is on the mesas' one level. The drop is an art layer (`chasm`), with no `elevation` table (ADR 0015 notes this).
 
-- **New tools:**
-  - `scripts/wowcasc.py` reads the client read-only, by FileDataID.
-  - With `--cdn` it fetches files the client has not downloaded, through the install's own CDN indices, as the client does. Four of the six files needed it, on both machines.
-  - `scripts/wowmodel.py` reads M2 and BLP2.
-  - `build_wc3_kart.py --wow` renders the car like every kart: 64 headings, quad 44, pivot (1.2, 0), 36 units long.
-- **Effects:** drift dust from the cart's wheels; boost flame and soot from the pods' tails.
-- **Slot:** the id `goblin_drag_car` is kept, so saved choices and RaceGrid's kart code 9 still work. It is shown as **Goblin Pod Racer**.
-- **The old drag car:** its 64×128 sprite and `build_kart_sprites.py` are removed (still in history at `de4b291`). Two of that script's review helpers moved into `build_wc3_kart.py`.
+## Needs Codex: score sync learns Thunder Bluff
 
-### 3. Outline my kart
+**Problem.** `ScoreSync` knows seven courses by one-letter code, and `Sync.new` requires exactly seven contexts. `ScoreSharing` builds one context per selectable course, so with Thunder Bluff it offers eight. `Sync.new` then returns `nil,"options"`, and `ScoreSharing`'s status becomes "Score synchronization unavailable", for every course. `test_score_sharing` fails ("automatic native flow did not converge before the bounded deadline"). Local saving is unaffected, and so are `test_highscores` and `test_solo_records`.
 
-A new Settings check, off by default and saved as `preferences.outline` ([sheet](../art/karts/outlines.md)).
+**Proposed patch (Codex's decision; not applied; these are Codex's files):**
 
-- **Outline sheets:** each kart sheet has a 512×512 white outline sheet, derived by `scripts/build_kart_outlines.py` from the sheet alone. The line is 5 kart texels wide plus a 1-texel fade round the opaque body, never over it.
-- **Drawing:** `UI.kartOutline` is drawn over the kart (OVERLAY sublevel 1, under the front flames) in bright yellow, with the kart's frame crop, quad and position.
-- **Loading:** the current kart's sheet loads once per kart while the setting is on. A refused load hides the line and is not retried.
-- **No outline:** single images and the primitive show none, and neither does any opponent.
+- an eighth code, `T`, for `thunder_bluff_skyway`;
+- `BOARDS = #courseIds` in place of the literal 7;
+- a HELLO with one board hash per course (ten fields).
 
-## Changes Codex must review
+Peers on an older build would refuse the longer HELLO, much as they already refuse a different catalogue hash, which Thunder Bluff's board changes anyway. Whether to also bump the prefix or version is Codex's call. The HELLO stays far under the 240-byte message limit.
 
-1. **Object counts:** +1 texture (the outline) and +1 frame +2 font strings (the Settings check). The explicit budget becomes 80/167/83 on this branch.
-   - **Expected textual conflict with `codex/solo-highscores`:** the budget assertion in `tests/test_menu.lua` (that branch says 85/166/133). Merged, it should read **86/167/135**.
-   - `tests/test_ui.lua` keeps the outline's counts in new lines (`UI_TEXTURES` 112, `OUTLINE_CHECK_FRAMES/FONTS`), away from that branch's `MENU_*` line.
-   - The draw-layer assertions now expect two explicit scene sublevels: the grass and the outline.
-2. **`UI.lua`:** see the reserved regions above. Please check the outline's placement next to the kart's in `render` and the call order in `SelectKart` (outline, then size, effects, render).
-3. **A single kart path without a shipped kart:** no kart is a single image any more. The UI tests register a test-only single image (`singleImageKart`) where they used the drag car, keeping the rotated path and the sheet/single-image rollback covered. The drag car's landmark assertions in `test_presentation.lua` are removed.
-4. **Kart id:** `goblin_drag_car` now names the pod racer. Renaming it would touch `RaceGrid.lua`'s codes and your tests; I left it.
-5. **Assets and rights:** a World of Warcraft model is a new source.
-   - The ADR 0009 addendum and the source ledger rows are proposed: same terms, Blizzard, redistribution unresolved.
-   - The start signs are Warcraft III's own, as for the cities.
-6. **Install:** these files change.
-   - New: `GoblinPodRacer.tga` and ten `Outlines/*.tga`.
-   - Removed: `GoblinDragCar.tga`.
-   - Replaced: eight city pictures, `Menu.lua`, `UI.lua` and `Presentation.lua`.
-   - New files need a full client restart. The removed file should be deleted from the installed folder.
+Tested on a scratch checkout of `ea2238c` with the patch applied: the whole Lua 5.1 suite passes (`python scripts/test_lua.py --runtime lua51`), `test_score_sync` and `test_score_sharing` included. `git apply --check` passes on `ea2238c`.
+
+```diff
+diff --git a/addon/AzerothKart/ScoreSync.lua b/addon/AzerothKart/ScoreSync.lua
+--- a/addon/AzerothKart/ScoreSync.lua
++++ b/addon/AzerothKart/ScoreSync.lua
+@@ -6,8 +6,9 @@ local Sync = {PREFIX="AZKSCR1", MAX_BYTES=240, MAX_PEERS=32, SEND_INTERVAL=1,
+     HELLO_INTERVAL=60, REQUEST_TIMEOUT=120, MAX_ROWS=50}
+ AK.ScoreSync = Sync
+ local courseIds={"test_oval","mirage_raceway","stormwind_city","ironforge_gp",
+-    "darnassus_canopy","orgrimmar_canyon","undercity_slime"}
+-local courseCodes={"O","M","S","I","D","R","U"}
++    "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway"}
++local courseCodes={"O","M","S","I","D","R","U","T"}
++local BOARDS=#courseIds
+ local courseToCode,codeToCourse={},{}
+ for i,id in ipairs(courseIds) do courseToCode[id],codeToCourse[courseCodes[i]]=courseCodes[i],id end
+ local kartIds={"goblin_mortar_trike","steam_tank","dwarven_biker","dwarf_car",
+@@ -59,7 +60,7 @@ function Sync.encode(message)
+         and integer(message.hash,0,4294967295) and integer(message.count,0,Sync.MAX_ROWS) then
+         text=table.concat({"1 E",message.code,decimal(message.hash),decimal(message.count)}," ")
+     elseif message.kind=="HELLO" and integer(message.physicsVersion,1,2147483647)
+-        and integer(message.catalogHash,0,4294967295) and dense(message.hashes,7)==7 then
++        and integer(message.catalogHash,0,4294967295) and dense(message.hashes,BOARDS)==BOARDS then
+         local parts={"1 H",decimal(message.physicsVersion),decimal(message.catalogHash)}
+         for _,value in ipairs(message.hashes) do
+             if not integer(value,0,4294967295) then return nil,"hash" end
+@@ -106,10 +107,10 @@ function Sync.decode(payload)
+         if codeToCourse[code] and stamp and n then return {kind="END",code=code,hash=stamp,count=n} end
+     elseif tag=="H" then
+         local p={};for field in rest:gmatch("[^ ]+") do p[#p+1]=field end
+-        if #p~=9 or table.concat(p," ")~=rest then return nil,"hello" end
++        if #p~=BOARDS+2 or table.concat(p," ")~=rest then return nil,"hello" end
+         local physics,catalog=number(p[1],1,2147483647),number(p[2],0,4294967295)
+         local hashes={}
+-        for i=1,7 do hashes[i]=number(p[i+2],0,4294967295);if not hashes[i] then return nil,"hello" end end
++        for i=1,BOARDS do hashes[i]=number(p[i+2],0,4294967295);if not hashes[i] then return nil,"hello" end end
+         if physics and catalog then return {kind="HELLO",physicsVersion=physics,catalogHash=catalog,hashes=hashes} end
+     end
+     return nil,"message"
+@@ -129,7 +130,7 @@ local function clock(s,now)
+     s.now=now;return true
+ end
+ function Sync.new(options,now)
+-    if not plain(options) or not H.NormalizeName(options.name) or dense(options.contexts,7)~=7 then return nil,"options" end
++    if not plain(options) or not H.NormalizeName(options.name) or dense(options.contexts,BOARDS)~=BOARDS then return nil,"options" end
+     local store,writable=H.Load(options.store)
+     if not writable then return nil,"store" end
+     local s={name=H.NormalizeName(options.name),key=identity(options.name),contexts={},store=store,
+diff --git a/tests/test_score_sync.lua b/tests/test_score_sync.lua
+--- a/tests/test_score_sync.lua
++++ b/tests/test_score_sync.lua
+@@ -3,7 +3,7 @@ local AK={}
+ local H=assert(loadfile("addon/AzerothKart/Highscores.lua"))("AzerothKart",AK)
+ local S=assert(loadfile("addon/AzerothKart/ScoreSync.lua"))("AzerothKart",AK)
+ local ids={"test_oval","mirage_raceway","stormwind_city","ironforge_gp",
+-    "darnassus_canopy","orgrimmar_canyon","undercity_slime"}
++    "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway"}
+ local contexts={}
+ for i,id in ipairs(ids) do contexts[i]={trackId=id,trackVersion=1,physicsVersion=11,
+     lapCount=3,tickRate=60,rulesVersion=1} end
+```
+
+`ScoreSync` is the only module outside `Courses`/`Menu` that lists course ids. Multiplayer is unchanged: as for the other cities, Thunder Bluff is not in `RaceProtocol`'s track codes, and city multiplayer stays unwired.
+
+## Other changes Codex must review
+
+1. **`Courses.lua` and `CapitalCities.lua`:** Thunder Bluff is selectable. Its definition (version 1) has six `narrows`, one per bridge, at wall radius 54. It uses only existing fields, with no `Circuit` change.
+2. **Tests:**
+   - `test_circuit.lua` expects no coming-soon course and marks Thunder Bluff soon for one assertion.
+   - It walks the six gates in order with a wall-free centerline, finds every bridge road up to its own wall (road at 52, wall at 56), and runs the gate-end and throttle loops. Thunder Bluff has no `elevation`, so the elevation check skips it.
+   - `test_menu.lua` adds a soon fixture through its prepare hook.
+3. **UI object counts are unchanged.** The eight pooled track buttons now show eight ready tracks, and the existing count assertions pass as they were.
+4. **Install:**
+   - New files, which need a full client restart: `Assets/Tracks/ThunderBluff/Background.tga` (16,777,234 bytes) and `Preview.tga` (1,048,594 bytes).
+   - Changed: `CapitalCities.lua`, `Courses.lua` and `Menu.lua`, plus `ScoreSync.lua` with Codex's change.
+   - One more 2048-square picture loads only when Thunder Bluff is selected; the staging/visible bound is unchanged.
 
 ## Tests performed
 
+The cloud ran Python 3.13 and Lupa 2.8. The developer machine's Linux shell ran Python 3.10.12, Lupa 2.8 and its own Warcraft III extraction and sprite cache.
+
 | Command / check | Result |
 |---|---|
-| `python scripts/test_lua.py --runtime both` | **PASS** in the cloud (Python 3.13, Lupa 2.8) and on the developer machine's Linux shell (Python 3.10.12, Lupa 2.8) at `37a0cdb`: 60 files parsed; the full suite on Lua 5.1 and 5.4. New checks: every outline sheet; the outline's UI behaviour (off and unloaded by default, one load per kart, follows frame/quad/pose through a drive, refusal hidden and not retried, single image none, switch-off); the setting, its save and its return after reload. The pod racer's sheet passes the sheet checks with its coverage floor (0.08) |
-| `python scripts/build_city_tracks.py --wc3 … --check` | **CHECK PASS** for `CapitalCities.lua` and all ten pictures, in the cloud (Python 3.13) and on the developer machine at `37a0cdb` (Python 3.10.12, its own Warcraft III extraction including the arrow posts, its own rendered sprites). Byte-identical on both: Stormwind `ec016e7e…`, Ironforge `5cf1e688…`, Orgrimmar `3abf44b2…`, Darnassus `80a6715e…`; Undercity unchanged `caedb2c9…` |
-| `python scripts/build_wc3_kart.py --wow WOW --vehicle goblin_drag_car --check` | **CHECK PASS** in the cloud and on the developer machine: sheet `88a0dfbd…af5c2ccb`, 1,548–1,807 opaque texels per frame. The four Warcraft III vehicles' sheets still check in the cloud after the `wc3render.py` change. The six source files' hashes match on both machines (the developer machine extracted them with this `wowcasc.py --cdn`) |
-| `python scripts/build_kart_outlines.py --check` | **CHECK PASS** for all ten, in the cloud and on the developer machine; every frame has a line, a clear border and no line over the kart |
-| `python scripts/build_mirage_background.py --check` | **CHECK PASS** (its review views now draw the trike's sheet) |
-| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in PROGRESS.md fail |
-| Review | Follow-camera views of the four junctions with the pod racer; the pod racer beside three other karts; every kart with and without its outline |
+| `python scripts/build_city_tracks.py --wc3 … --check --city <each>` at `ea2238c` | **CHECK PASS** for `CapitalCities.lua` and all twelve pictures, on both machines, byte-identical. Thunder Bluff Background is `9ff1c444…d71781` and Preview `9c1ba186…eb8d9c8`. The other five cities are unchanged: Stormwind `ec016e7e…`, Ironforge `5cf1e688…`, Orgrimmar `3abf44b2…`, Darnassus `80a6715e…`, Undercity `caedb2c9…`. The developer machine rendered Thunder Bluff's 165 new sprites itself (90 s). |
+| `python scripts/test_lua.py --runtime lua51` | **FAIL at `test_score_sharing` only** (the score-sync blocker above), on both machines. The suite stops there; the other 40 modules pass on both machines (before the stop or run with `--tests`), `circuit` and `menu` included. |
+| The same with the score-sync patch, on a scratch checkout | **PASS**: the whole Lua 5.1 suite, in the cloud. |
+| `python scripts/test_lua.py --runtime lua54 --tests <all but score_sharing>` | **PASS** on the developer machine (40 modules). `test_score_sharing` fails under Lua 5.4 at line 16 (`unpack` is nil). That failure already occurs at `aac1bdd` and is not from this branch. |
+| `python -m pytest tests/test_circuit_boundary.py tests/test_leaderboard_store.py` | **24 passed** in the cloud. The developer machine has no pytest, so this was NOT RUN there. |
+| `python scripts/export_score_catalog.py --check` | **CHECK PASS**, eight canonical boards, on both machines. |
+| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in `PROGRESS.md` fail, on both machines. |
+| `wc3casc.py list` with the sheet's rebuild patterns, against the owner's Warcraft III install | Every model and texture the picture uses matches (23 Thunder Bluff models, 6 textures). |
+| `git diff --check` | Clean. |
+| Review | The loop with its direction, plus follow-camera views of the junction, the lift, each bridge, the Elder and Hunter Rises, the faces and the rope fences ([image](../art/tracks/thunder_bluff_skyway-review.png)). |
 
-**Found and fixed on the developer machine:** a fresh `wc3casc.py models` extraction of the arrow posts also writes their Reforged normal, ORM and environment maps. The normal map is BC5, which `wc3render.read_dds` does not decode, so the city build stopped. `37a0cdb` makes `wc3render.load` decode only the textures a model's layers draw. Every picture, sheet and sources list is unchanged.
+**NOT RUN:** the client (the drive, the bridges' width, the look in the follow camera, loading, performance), any install, multiplayer, and the score sync with real peers.
 
-**NOT RUN:** the client (the pod racer, the signs, the outline, performance), any install, and multiplayer.
+## Client check (owner; NOT RUN; after Codex's review and a coordinated install)
 
-## Client check (owner; NOT RUN; after Codex's coordinated install)
+[The client checklist's new section](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-thunder-bluff-skyway-check-proposed-claudethunder-bluff) covers:
 
-See [the new section of the client checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-goblin-pod-racer-start-signs-and-kart-outline-check-proposed-claudepodracer-arrows-outline):
+- the track screen and the Track button's cycle;
+- loading the sixth city picture;
+- the drive in order past the six gates;
+- the bridges' width and the step onto each deck;
+- whether the drop, the white streets and the rope edges read as his screenshots;
+- the scores;
+- the frame rate.
 
-- the pod racer at every heading, with its effects;
-- whether each start sign's arrow reads in time to choose the turn;
-- the outline: on, off, kept after `/reload`, and following kart changes;
-- Print Probe's counts.
+**A full client restart is needed**, because the files are new.
 
 ## Pending PROGRESS ledger entry (integrator to append; PROGRESS.md was not edited)
 
-> ### 2026-10-23 ~19:45 CEST — Claude / `claude/podracer-arrows-outline`, pod racer, start signs, kart outline
+> ### 2026-10-25 ~19:45 CET — Claude / `claude/thunder-bluff`, Thunder Bluff Skyway
 >
-> - Goblin Pod Racer: World of Warcraft's goblin rocket car (Mirage Raceway's), from the owner's Forever client via the new read-only `wowcasc.py` (`--cdn` for files the client streams) and `wowmodel.py`. It takes the drag car's slot (id kept); the drag car sprite and its painter are removed.
-> - Start signs: Warcraft III goblin racing arrow posts beyond the far wall where Stormwind's, Ironforge's, Orgrimmar's and Darnassus's start roads join the loop, pointing the race's way. Pictures only.
-> - Outline my kart: a Settings check (off by default, saved). Each kart sheet has a 512×512 outline sheet; the player's own kart gets a bright yellow line. +1 texture, +1 frame, +2 font strings (80/167/83).
-> - `test_lua.py --runtime both` PASS; `build_city_tracks.py --check` (all five cities), `build_wc3_kart.py --wow … --check` and `build_kart_outlines.py --check` PASS, byte-identical in the cloud and on the developer machine (Python 3.10.12, its own extractions); validator: only the 2 pre-existing PROGRESS links.
-> - **NOT RUN:** the client; install.
+> - Thunder Bluff Skyway, the sixth and final Capital Cities Cup city, is selectable.
+>   - It follows the owner's blue line, clockwise, from the lift round the Lower Rise and out to the Spirit, Elder and Hunter Rises over six rope bridges.
+>   - Six gates, a 5,616-unit lap, full grip to the walls, and one `narrows` per bridge (wall radius 54).
+> - New opt-in painter layers (the other five cities are byte for byte unchanged):
+>   - `chasm`: the 400-unit drop off the mesas, with faces and Mulgore's plain;
+>   - rope-plank decks;
+>   - `rope_fence` posts and ropes along every street edge;
+>   - whitened cobbles.
+> - `build_city_tracks.py --check` PASS for all six cities, byte-identical in the cloud and on the developer machine.
+> - The Lua 5.1 suite PASS except `test_score_sharing`: `ScoreSync` expects seven courses. Codex's patch is in the handoff, and the whole suite passes with it.
+> - Catalogue check PASS; validator: only the 2 pre-existing `PROGRESS.md` links fail.
+> - **Blocker:** not installable until Codex's score-sync change lands. **NOT RUN:** the client; install.
 
 ## Branch, commits and workspace
 
 | Item | Value |
 |---|---|
-| Worktree / branch | `AzerothKart-Claude` / `claude/podracer-arrows-outline` (the worktree previously held `claude/undercity-river` `e83c889`, unchanged) |
-| Commits | `claude/podracer-arrows-outline` on `de4b291`: `52be01f` (the pod racer, the start signs, the outline, tests, docs and this handoff), `37a0cdb` (`wc3render.py`: decode only drawn textures), then this record of both machines' checks |
-| Push | Owner only, because this session's git proxy refuses the repository: `git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/podracer-arrows-outline` |
-| Not done | No merge into `main` or any Codex branch; no tag, release, install or client input. Codex's branches and worktrees were only read |
+| Worktree / branch | `AzerothKart-Claude` / `claude/thunder-bluff`. The worktree previously held `claude/podracer-arrows-outline` `0afeedf`, unchanged. |
+| Commits | On `aac1bdd`: `00d0d2a` (the reservation), `ea2238c` (Thunder Bluff Skyway: course, pictures, painter, catalogue, menu, tests, docs), then this handoff with three doc clarifications (not installing alone; reversing the direction). |
+| Push | Owner only, because this session's git proxy refuses the repository: `git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/thunder-bluff` |
+| Not done | No merge into `main` or any Codex branch; no tag, release, install or client input. Codex's files and worktrees were only read. |
 
 **Workspace notes:**
 
 - Commits are made in a cloud clone with this repository's local identity, then moved as git bundles (`local-artifacts/bundles/`), so the hashes are identical on the developer machine.
-- Git runs from a Linux shell on the developer machine with `--git-dir=.git/worktrees/AzerothKart-Claude`. It never prunes or garbage-collects.
-- **Warcraft III files:** the goblin racing arrow posts come from the same Reforged install; each city sheet's rebuild commands now name them.
-- **World of Warcraft files:** `wowcasc.py` read them from the owner's `World of Warcraft` folder without writing to it. They are not stored in Git.
+- Git runs from a Linux shell on the developer machine with `--git-dir=.git/worktrees/AzerothKart-Claude`, automatic maintenance off. It never prunes or garbage-collects.
+- **Stale lock.** A fetch this session started git's automatic maintenance once. It left an empty `AzerothKart\.git\objects\maintenance.lock` (17:28 UTC), which this session cannot delete.
+  - It blocks only automatic maintenance.
+  - The owner or Codex can delete it while no git command is running.
+- **Updating the worktree.** It was updated to `ea2238c` without deleting files: each file git could not replace was rewritten in place from `HEAD`. It is clean apart from the untracked `Claude outputs/` folder, where review images are left for the owner.
+- **Warcraft III files:** Thunder Bluff's models and textures come from the same Reforged install. The sheet's rebuild patterns were checked against it.
 
 ## Next
 
-1. The owner's reaction:
-   - the pod racer's size (it is the longest kart);
-   - whether the signs read in time;
-   - the outline's colour and width (one constant and one script setting).
-2. Codex: review, then install when the owner wants it; resolve the one expected counts conflict with `codex/solo-highscores`.
-3. Optionally rename the `goblin_drag_car` id (Codex's grid codes and tests).
+1. **The owner:**
+   - look at the review image;
+   - say whether clockwise is right and whether the bridges look wide enough;
+   - push the branch.
+2. **Codex:**
+   - review;
+   - apply the score-sync change, or its own version of it;
+   - integrate, then make a coordinated install with a full client restart.
+3. **The owner:** the client checks above, especially the bridges' width at speed and whether the drop reads.
+4. **Possible follow-ups:**
+   - reverse the direction;
+   - widen or narrow the decks (`TB_BRIDGE_RADIUS`, the test's road and wall points, a rebuild);
+   - tune the faces' or the plain's colour after the client look.

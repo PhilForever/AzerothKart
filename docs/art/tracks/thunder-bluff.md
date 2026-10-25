@@ -6,13 +6,13 @@ The owner sent his in-game Thunder Bluff map with a blue line and three screensh
 
 ![Thunder Bluff overview, 4x reduced](thunder_bluff_skyway-overview.png)
 
-**Status:** proposed on `claude/thunder-bluff` for Codex review and integration. It is selectable in this branch. Thunder Bluff's scores save locally, but sharing them needs Codex's score-sync change described in [the handoff](../../handoffs/claude-latest.md#needs-codex-score-sync-learns-thunder-bluff). **NOT RUN in the client:** the drive, the look in the follow camera, performance. See [the client checklist](../../../tests/MANUAL_CLIENT_CHECKLIST.md).
+**Status:** proposed on `claude/thunder-bluff` for Codex review and integration. It is selectable in this branch. Thunder Bluff's scores save locally. Community sharing needs Codex's score-sync change described in [the handoff](../../handoffs/claude-latest.md#needs-codex-score-sync-learns-thunder-bluff): without it the sync does not start for any course, so this branch is not to be installed alone. **NOT RUN in the client:** the drive, the look in the follow camera, performance. See [the client checklist](../../../tests/MANUAL_CLIENT_CHECKLIST.md).
 
 ![The loop, its direction and nine follow-camera views](thunder_bluff_skyway-review.png)
 
 ## The route
 
-The owner marked no direction. His stroke runs from the start road straight on up the Lower Rise's west side, and it closes the loop where it began, at his X. So the course runs **clockwise**. Reversing it is a one-line change in the layout.
+The owner marked no direction. His stroke runs from the start road straight on up the Lower Rise's west side, and it closes the loop where it began, at his X. So the course runs **clockwise**. Reversing it is a small layout change: the loop's order, the gates' order, the finish line's place (it stands just past the junction) and the start sign's arrow, then a rebuild.
 
 The route is traced from his line on his 1055×794 screenshot (world = map pixels × 3.0). The rises' turns are widened so a kart can turn on them.
 
