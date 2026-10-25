@@ -1,5 +1,27 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-25 16:55 +01:00 — Physics12 tuning installed and packaged
+
+Runtime commit `bb085acab4158b6a5f5e28e6b95b05bd076c25cf` is actually installed
+with the existing PowerShell7 backup/hash helper. Independent readback verifies
+all70source/installed/manifest hashes; all71prior files exactly match the backup.
+The one unreferenced GoblinDragCar.tga extra remains unchanged. Installed Physics
+is12 with48/78tick rewards,420acceleration and the no-recharge-during-boost guard.
+No deletion, WTF/player-data access, other-addon change or native automation.
+
+Ignored manifest: `local-artifacts/deploy-20261025-drift-tuning/backups/
+20261025-165422-164-d76442ca7bdc4e77bb3f06a83ef74680/install.json`;
+independent receipt `local-artifacts/deploy-20261025-drift-tuning/receipt.json`.
+Friend ZIP built from installed tested paths and every entry rehashed:
+`../AzerothKart-DriftTuning-bb085ac.zip`,70entries/50,964,398bytes,
+SHA256`4495DE2FBAE3B8349757719DD0F80CAAC3E04A99F0758215DBE9A2A57645FFB2`.
+
+**Next:** both players update and `/reload` from the automatic-scores build,
+then give ordinary handling/boost feedback. No new addon files require a full
+restart for this update. Old scoreboards remain saved under earlier handling;
+Physics12 uses fresh compatible boards. New native feel/competitive balance
+remains pending. No push, release, milestone completion or other-worktree change.
+
 ## 2026-10-25 16:51 +01:00 — wider kart tradeoffs and useful drift reward
 
 Owner reports the installed automatic-scores/profile build tested "all good",

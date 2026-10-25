@@ -1,5 +1,20 @@
 # Codex handoff — kart handling and automatic leaderboard work
 
+## Deployment checkpoint — stronger drift tuning installed
+
+2026-10-25 16:55 +01:00: tested runtime `bb085ac` is installed. Independent
+SHA256 audit confirms70current files and71complete backup files; the legacy
+drag-car extra is preserved. Receipt/manifests are under ignored
+`local-artifacts/deploy-20261025-drift-tuning/`. No player/WTF files touched.
+
+Friend ZIP from installed tested paths: `../AzerothKart-DriftTuning-bb085ac.zip`,
+70entries/50,964,398bytes,
+SHA256`4495DE2FBAE3B8349757719DD0F80CAAC3E04A99F0758215DBE9A2A57645FFB2`.
+Both players update and `/reload`; no new addon files from the previous build.
+Physics12 separates new compatible scores but retains older saved boards.
+Next is ordinary driving/boost feedback, not a probe series. Native feel for
+this tuning remains untested; no push/release/other-worktree changes.
+
 ## Latest checkpoint — Physics12 drift payoff and profile spread
 
 2026-10-25 16:51 +01:00, `codex/drift-reward-tuning` from `65cb646`. Owner
