@@ -248,7 +248,7 @@ The cloud ran Python 3.13 and Lupa 2.8. The developer machine's Linux shell ran 
 | Item | Value |
 |---|---|
 | Worktree / branch | `AzerothKart-Claude` / `claude/thunder-bluff`. The worktree previously held `claude/podracer-arrows-outline` `0afeedf`, unchanged. |
-| Commits | On `aac1bdd`: `00d0d2a` (the reservation), `ea2238c` (Thunder Bluff Skyway: course, pictures, painter, catalogue, menu, tests, docs), then this handoff with three doc clarifications (not installing alone; reversing the direction). |
+| Commits | On `aac1bdd`: `00d0d2a` (the reservation), `ea2238c` (Thunder Bluff Skyway: course, pictures, painter, catalogue, menu, tests, docs), `ed42c0b` (this handoff, with three doc clarifications: not installing alone; reversing the direction), then a workspace note. |
 | Push | Owner only, because this session's git proxy refuses the repository: `git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/thunder-bluff` |
 | Not done | No merge into `main` or any Codex branch; no tag, release, install or client input. Codex's files and worktrees were only read. |
 
@@ -256,10 +256,13 @@ The cloud ran Python 3.13 and Lupa 2.8. The developer machine's Linux shell ran 
 
 - Commits are made in a cloud clone with this repository's local identity, then moved as git bundles (`local-artifacts/bundles/`), so the hashes are identical on the developer machine.
 - Git runs from a Linux shell on the developer machine with `--git-dir=.git/worktrees/AzerothKart-Claude`, automatic maintenance off. It never prunes or garbage-collects.
-- **Stale lock.** A fetch this session started git's automatic maintenance once. It left an empty `AzerothKart\.git\objects\maintenance.lock` (17:28 UTC), which this session cannot delete.
-  - It blocks only automatic maintenance.
-  - The owner or Codex can delete it while no git command is running.
-- **Updating the worktree.** It was updated to `ea2238c` without deleting files: each file git could not replace was rewritten in place from `HEAD`. It is clean apart from the untracked `Claude outputs/` folder, where review images are left for the owner.
+- **Git's leftover files, removed.** Without delete access, this session's git commands could not clean up after themselves. They left:
+  - six `tmp_*` hard links to finished packs in `AzerothKart\.git\objects\pack`;
+  - an empty `objects\maintenance.lock`, from one automatic maintenance run;
+  - an `index.lock` in `worktrees\AzerothKart-Claude`, from an aborted fast-forward.
+
+  The owner approved deletes in the worktree and in `AzerothKart\.git`. Only those eight files were deleted, after checking that each `tmp_*` file shares its inode with a pack. The fast-forward then completed normally.
+- **Updating the worktree.** It was first updated to `ea2238c` without deleting files: each file git could not replace was rewritten in place from `HEAD`. It was then fast-forwarded to the handoff. It is clean apart from the untracked `Claude outputs/` folder, where review images are left for the owner.
 - **Warcraft III files:** Thunder Bluff's models and textures come from the same Reforged install. The sheet's rebuild patterns were checked against it.
 
 ## Next
