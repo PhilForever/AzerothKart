@@ -1,4 +1,27 @@
-# Claude handoff — Scarlet Library, the second Scarlet Crusade Cup sprint
+# Claude handoff — fixes from the owner's client run (in progress)
+
+## Active reservation — drive fixes (2026-10-26)
+
+The owner drove Codex's installed build (runtime `c9ebf03`, with Thunder Bluff and Scarlet Graveyard) and sent five screenshots from his client. He wrote: "Codex is working on it. fix invisible wall at infront of kart on image 1 and 2. remove object under kart on image 3 and 4. image 5 shows the startline of thunderbluff - arrow is not in the picture, so it's literally impossible and pretty unexpected having to take a left turn at the start."
+
+- **Images 1 and 2,** Scarlet Graveyard: the kart stops at the Chamber of Atonement's west side, where its floor meets the west hall's with no wall painted between them. The karts' floors stopped 36 units apart there, joined only through the west door.
+- **Images 3 and 4,** Scarlet Graveyard: the kart drives over an armour rack on the stairs and over a ghost on the cloister's path. Neither is solid.
+- **Image 5,** Thunder Bluff at GO: the start sign beyond the junction is above the camera's view, and the road runs straight on to the east, the wrong way.
+
+**Branch:** `claude/drive-fixes` from `claude/scarlet-library` `8b09309`. The Library is not integrated yet, so this branch carries it. Reserved, until this handoff says otherwise:
+
+- **Scripts:**
+  - `scripts/dungeon_layouts.py`: the Graveyard's chamber and props, the Library's props;
+  - `scripts/build_dungeon_tracks.py`: a check that no floor ends without a painted wall;
+  - `scripts/dungeon_paint.py`: a check that nothing the karts drive over is left non-solid;
+  - `scripts/city_layouts.py`: Thunder Bluff's grid and version only.
+- **Generated:** `ScarletCrusade.lua`, the two dungeons' pictures and review images, Thunder Bluff's entry in `CapitalCities.lua`, and `services/leaderboard/catalog.json`.
+- **Tests:** `tests/test_dungeon.lua`; `tests/test_circuit.lua` (Thunder Bluff's checks only).
+- **Docs:** the three track sheets, `TRACKS.md`, `CHANGELOG.md`, `TEST_PLAN.md`, `tests/MANUAL_CLIENT_CHECKLIST.md` and this handoff.
+
+No change to `Dungeon.lua`, `Circuit.lua`, `Race`, `SoloRecords`, physics, input, timing, networking, `UI.lua`, `Menu.lua`, `Courses.lua` or any Codex-owned file.
+
+# Previous: Scarlet Library
 
 Prepared 2026-10-25 at about 23:25 CET (Europe/Oslo) by Claude (rendering/UI/sprites owner).
 
