@@ -2,6 +2,9 @@
 
 ## 2026-10-25 22:52 +01:00 - smoother opponent motion and bounded group route check
 
+Tested source commit: `c9ebf03` (see Git for the full hash), on
+`codex/multiplayer-smoothing`.
+
 Owner asks to proceed toward smooth multiplayer. Own branch
 `codex/multiplayer-smoothing` from clean`f6c6338`; explicit handoff reservation
 preceded source edits. Preserves integrated Claude courses, eight solo boards,

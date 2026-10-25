@@ -2,6 +2,9 @@
 
 ## Latest multiplayer checkpoint - 2026-10-25 22:52 CET
 
+Tested source commit: `c9ebf03` (see Git for the full hash), on
+`codex/multiplayer-smoothing`.
+
 Branch`codex/multiplayer-smoothing` fromf6c6338. Two source fixes: UI covers
 transit+one2Hzinterval within an optional1250ms/76point ceiling; observed chord
 is advanced to current tangent. Cache includes receive/sample/sequence. No new
