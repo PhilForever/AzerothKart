@@ -4,6 +4,7 @@ Owner direction, 2026-10-25: retire Test Oval from the game, open all finished
 maps to multiplayer, and work toward eight racers. The owner subsequently
 reconsidered requiring a WoW raid group; that requirement is **undecided**.
 This page supersedes older playable-Oval and Mirage-only catalogue statements.
+Reviewed Claude1bc3ac8 adds Thunder Bluff and the solo Graveyard sprint.
 No eight-player implementation or capacity acceptance is claimed.
 
 ## Implemented map catalogue
@@ -16,16 +17,21 @@ No eight-player implementation or capacity acceptance is claimed.
 | Darnassus Canopy Run (`darnassus_canopy`) | 1 | 4 |
 | Orgrimmar Canyon Rush (`orgrimmar_canyon`) | 1 | 5 |
 | Undercity Slime Circuit (`undercity_slime`) | 2 | 6 |
+| Thunder Bluff Skyway (`thunder_bluff_skyway`) | 1 | 7 |
+| Scarlet Graveyard (`scarlet_graveyard`) | 1 | Solo sprint |
 
-These six courses are available in solo, Highscores and the existing two-peer
-lobby. Thunder Bluff remains coming soon. Mirage is the actual default geometry
+All eight courses are available in solo and Highscores. The seven three-lap
+circuits are available in the existing two-peer lobby. Graveyard is a one-run
+sprint, excluded from live admission until its multiplayer lifecycle is reviewed.
+The Library, Armory and Monastery remain coming soon. Mirage is the actual default geometry
 and scenery. A failed scenery load refuses Start until a valid map loads;
 there is no hidden Oval fallback. An obsolete saved Oval preference falls back
 in memory without rewriting the save on initial load.
 
 `Courses.get/available/build/next`, menu cards, lobby cycling and session offers
 exclude Oval. Control wire code0 is retired; Mirage1 remains stable. Both racers
-must update for city offers. Packet sizes, Physics12, race timing, handling,
+must update for city offers. `Courses.multiplayer(id)` separates current live
+eligibility from solo availability; `Courses.next(id,true)` filters the lobby. Packet sizes, Physics12, race timing, handling,
 geometry and the existing logged-whisper budgets are unchanged.
 
 `Track.lua` remains a developer-only analytical fixture and the shared gate
@@ -35,9 +41,10 @@ be selected, started or negotiated through the player APIs. Old saved scores
 are preserved but excluded from current boards/publication. No player data is
 deleted or migrated.
 
-ScoreSync admits six current contexts. Its seven-slot HELLO keeps the retired
-`O` slot as a zero digest; active `M/S/I/D/R/U` codes do not move. A `retired:O`
-catalogue marker separates old/new sync peers; old caches stay saved, while
+ScoreSync admits eight current contexts, derived from its supported-course
+array. Its nine-slot HELLO keeps the retired `O` slot as a zero digest; active
+`M/S/I/D/R/U` codes do not move, with `T` and `G` added for the two new courses. A `retired:O`
+catalogue marker separates old/new sync peers; exact HELLO length also rejects the former seven-slot layout; old caches stay saved, while
 updated players exchange only current production boards. The disconnected
 server-store example/catalogue also uses production maps only.
 

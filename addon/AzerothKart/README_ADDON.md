@@ -1,52 +1,45 @@
-# Experimental two-player candidate
+# Azeroth Kart — developer candidate
 
-## Automatic highscores update
+The combined course update adds files: fully exit and restart WoW after installation.
+Both multiplayer racers need the same candidate. Nothing is installed by checking
+out a Git branch; use Codex's reviewed combined build, not Claude's standalone
+course branch (which still has its documented score-sync dependency).
 
-Updating from the earlier build without automatic scores adds three Lua files
-and requires a full restart. From the automatic-scores build, this tuning update
-needs only `/reload`. Both racing clients must use the same handling version.
-Physics12 widens kart differences and awards0.8/1.3second charged boosts with
-stronger acceleration. New drift charging begins after the boost expires;
-holding Space will resume charging then. The leaderboard remains shared across
-karts; earlier handling-version records stay saved separately.
-Highscores automatically shares compatible saved solo bests with other addon
-users discovered in its dedicated channel. New finishes refresh connected
-players' boards, and top-3/top-10 entries produce a local chat/result notice.
-No manual result exchange is required. The board reports discovery/connection
-status; waiting for the native member list means sharing is not yet connected.
-Scores are best-known community cache entries, reported by players. Native
-delivery/roster/scale remain unverified; the test adapter stops above32peers.
-`/akart scores` prints its automatic status. The garage now displays actual
-balanced/heavy/agile handling instead of the older identical-handling sentence.
+Open `/akart` or `/azerothkart`. Single Player offers Mirage Raceway, Stormwind,
+Ironforge, Darnassus, Orgrimmar, Thunder Bluff, Undercity and Scarlet Graveyard.
+Choose a track and kart, then Race! Mirage is the default. Test Oval is retired.
+The seven circuits run three laps; Graveyard is one run through three gates.
+Library, Armory and Monastery remain coming soon.
 
-Both players must install this exact build and fully restart WoW. Open /akart → Multiplayer. Enter the other player's full Forever name (spaces and surname, no realm) and the same fresh six-uppercase-letter/digit code. Guest: Listen first. Host: select Mirage or Test Oval and Host / Send Invite. Guest: Join. Both: Ready. Host: Start. Keep the window open and close chat until GO.
+W/Up accelerates; S/Down brakes/reverses; A/D or Left/Right steers. Hold Space
+while turning on road at speed90+ to charge drift, then release for boost.
+Physics12 offers balanced, heavy and agile profiles, with0.8/1.3second boost
+rewards. Walls retain sliding movement, with10% initial loss and80% scrape cap.
+Incidental clicks/unassigned keys do not stop a run. Stop, Escape, Enter/chat
+or Close ends it and releases controls; Restart begins a new run. Combat closes
+the window. Results can be dismissed with Close results.
 
-After Start, both chosen karts appear on the grid, then GET READY → 3–2–1–GO. Throttle may be held before GO. Your friend uses their chosen sprite, with a square fallback if art fails to load. Bounded prediction and an off-screen direction label help visibility; unknown steering/braking and clock error can still cause corrections. Stop/Escape/Enter/Close releases controls and ends the session. New attempts require a fresh code. Karts do not collide; results have no agreed winner. The earlier candidate completed a local race on both clients; this revised countdown/sprite/display behavior has NOT RUN in-game yet. This is a private developer test candidate, not a verified multiplayer release.
+Highscores saves compatible solo best totals, names and UTC dates. All karts
+share a board. Community scores exchange automatically with discovered addon
+users through logged whispers; no manual result copying or extra software.
+The board displays connection status and best-known cached ranks. Records
+are client-reported; native discovery/delivery/scale are still pending detailed
+verification. Old score history and unrelated preferences are preserved.
 
-## Existing solo instructions and evidence
+Multiplayer currently supports two racers on the seven lap circuits. Graveyard
+is solo until its live sprint lifecycle is reviewed. Enter the other player's
+full Forever name, including surname/spaces, with no realm suffix. Both use the
+same fresh six-character uppercase/digit code. Guest: Listen first. Host: choose
+a lap map and Host/Invite. Guest: Join. Both: Ready. Host: Start. Keep chat closed
+and the window focused for GET READY,3–2–1–GO. Grouping/nearby world positions
+are not required for this two-peer whisper mode. Karts do not collide, and
+results have no agreed shared winner. Eight-player capacity remains in development.
 
-# Azeroth Kart — developer installation
+Current explicit production UI pool:89frames/69textures/136font strings,
+plus the two fixed Core/score receiver frames. No per-tick UI creation or sends.
+These are offline counts, not native FPS/memory measurements.
 
-Opening the window shows the main menu: **Single Player** (choose a track, then a kart, then **Race!**), **Multiplayer** (the opt-in two-player test lobby), **Garage** (choose a kart), **How to Play** and **Settings** (window size, effects, sound, developer info). The track, kart and settings are remembered between sessions. A finished or stopped run shows a results dialog with your lap times and **Restart**, **Close results**, **Change Kart**, **Change Track** and **Main Menu**. **Close results** hides it while retaining your lap times, track and stopped sample; the bar then offers **Start Race**, the **Track** and **Kart** buttons and **Main Menu**. The top-right **Close** still hides the whole addon. **Race!**, **Start Race** and **Restart** each begin a fresh run; no menu starts one by itself. The menus' client appearance is NOT RUN; the source checkout's [front-end notes](../../docs/art/ui/front-end.md) list what to check.
-
-Connection testing currently uses chat commands, not a menu button: type `/akart net help` for the short you-and-a-friend steps. `/akart probe` prints driving statistics; the **Print Probe** button shows when Settings → **Show developer info** is on. The source checkout has [a plain connection-test guide](../../docs/NETWORK_QUICK_START.md); no second client is required for solo racing.
-
-The separate opt-in logged-WHISPER measurement experiment remains available; normal friend racing uses the Multiplayer menu above. After both clients install its new Lua files, two consenting testers can use `/akart net listen "First Surname" ABC123` and `/akart net start "First Surname" ABC123`, matching fresh IDs/configuration; defaults are 0.5 DATA/s,16bytes,120seconds. Stop with `/akart net stop`; explicit `net report` and `net evidence` retain bounded diagnostics. Follow the source checkout's [precise network checklist](../../tests/MANUAL_NETWORK_CHECKLIST.md) before running it. Nothing registers/sends on addon load; Scoped traffic and addon reload/fresh-session checks are recorded in the source ledger (AKT722–725); playable racing, full socket recovery and production capacity remain unverified. No further standalone manual probe is requested at this checkpoint.
-
-Test Oval: Test Oval adds two red solid barriers at (270,400) and (490,60), each 32×24 world units. Swept movement allows sliding and keeps the kart center 18 units clear on each axis; impacts scrub speed and cancel drift/boost. Mirage gains no obstacles. Current explicit counts are 71 frames/165 textures/80 font strings with the front end and the Capital Cities Cup (65/160/79 before the cup's track list and gate strips; 11/151/13 for the window without the front end), including the hidden staging background, both Close results and Kart buttons and 38 pooled drift/boost effect textures; prior live 9/111/13 samples describe an earlier source. Physics compatibility is10: glancing contacts retain useful motion and steering, persistent scrapes slow gradually, blocked frontal hits stop, and parking turns are faster. Both multiplayer peers must update; high-speed drift tuning is retained. Obstacle client appearance/feel is NOT RUN.
-
-This folder is the WoW addon source for a local three-lap prototype with Test Oval and selectable Mirage Raceway, Stormwind City Circuit, Ironforge Grand Prix, Darnassus Canopy Run, Orgrimmar Canyon Rush and Undercity Slime Circuit tracks. Stormwind (the Capital Cities Cup) is a street circuit through the city: the city's walls are solid, the kerbside strip slows you, and the HUD names each district's gate. Ironforge Grand Prix runs through Ironforge's halls and the Great Forge the same way, Orgrimmar Canyon Rush round the Cleft of Shadow, Darnassus Canopy Run over its terraces and Undercity Slime Circuit round its quarters and down into the Trade Quarter (full speed to their walls, as in Stormwind; the terraces and ramps are painted, not driven). Their scenery, `Assets/Tracks/<City>/Background.tga` for Stormwind, Ironforge, Darnassus, Orgrimmar and Undercity, are 2048-square pictures drawn from Warcraft III art; fully restart the client after installing them. If it refuses to load, the track refuses to select and the others stay available. Install it as `Interface/AddOns/AzerothKart` for the verified Forever client. The `_Camelot.toc` is the documented flavor; the base `.toc` is the fallback. Confirm runtime TOC selection after client changes.
-
-After updating, run `/reload`, then `/akart`; if the update adds files (such as the kart sprite), fully restart the client instead, because new addon files may not be found by `/reload`. A replaced texture at an existing path (such as the scenery-v1 background) may also need a restart if `/reload` still shows the old image. While stopped, click **Track: Test Oval** to select **Track: Mirage Raceway**. Click the same button to return to Test Oval. A successful map change clears the previous run and timing sample; a failed background load leaves the existing track and result intact. Test Oval is the default until you choose a track; the choice is remembered and applied the first time the window opens out of combat. Mirage uses one original geometry-aligned `Assets/Tracks/SaltFlats/Background.tga` (scenery v1: salt flats, dirt lane and both engineering camps). On both maps the kart starts as the Goblin Mortar Trike (`Assets/Karts/GoblinMortarTrike.tga`, 64 pre-rendered headings); if it cannot load, the orange primitive kart is used automatically. While stopped, click **Kart: Goblin Mortar Trike** to cycle through the Steam Tank, Dwarven Biker, Dwarf Car, Orc Demolisher, Meat Wagon, Glaive Thrower, Gryphon Rider, Gyrocopter and Goblin Pod Racer, then back to the trike. Settings' **Outline my kart** draws a bright yellow line round your own kart (off by default; `Assets/Karts/Outlines/`, fully restart the client after installing them). Karts use balanced, heavy or agile handling, shown in the kart picker. Heavy trades launch and turning for slightly higher cruising speed and stronger brakes; agile trades cruising speed and braking for quicker launch and turns. All keep the same collision body, drift rewards and wall rules. If a kart refuses to load, the current one stays; the button is disabled during a run, and the choice is remembered. Kart art keeps its own colours while drifting and boosting: the effects show the phase. Drifting throws tyre dust and sparks in the meter's colours (blue while charging, gold at Tier 1, magenta at Tier 2); a boost lights both exhausts with flame and goblin soot (`Assets/Effects/`; fully restart the client after installing them). If an effect texture refuses to load, effects stay off and driving is unaffected. Its closer north-up camera follows the kart and looks ahead into its heading, filling the 800×480 canvas. Kart, road, gates and walls scale together at 1.5 canvas units per world unit; Test Oval retains its fixed overview. Props, further VFX and the remaining karts are still planned. The source checkout includes the whole-map authoring guide and art brief under `docs/art/`.
-
-Deliberately click **Race!** (or **Start Race** on the bar) outside combat. The kart stays at spawn through 3–2–1; held controls begin driving after GO. W/Up accelerates, S/Down brakes/reverses, and A/D or Left/Right steers. Hold Space while turning on the road at speed 90+ to charge a drift: Tier 1 takes 0.5 seconds of charging, Tier 2 takes 1 second. Drifting turns more gently than normal steering. Keep Space held through a brief correction or turn reversal to retain charge for up to 0.2 seconds; charge pauses until steering agrees with one turn direction. Release Space on the road at speed 90+ without braking to boost, even during that pause. Grass (rough salt on Mirage) slows the kart and cancels drift/boost; perimeter walls scrub speed while allowing sliding.
-
-Drive counterclockwise through North, West, South and Start. Race/lap time starts at GO and excludes the countdown and dropped/stopped time; physics/probe ticks include the 180 countdown ticks. A hitch can lengthen countdown wall time. The third ordered lap ends the run at its exact simulation tick, releases controls and shows total/last-lap times plus the best completed lap of this run. The lap HUD shows `Best: --` until a completed lap; a strictly faster completed time replaces it, while ties keep the earliest lap. Incomplete laps never become the best. Stop/Escape and Close end the run; Enter/numpad Enter releases controls for chat. Unassigned keys and incidental mouse clicks keep the run active. Text focus, hiding and observed application focus loss also release capture. Combat closes the window and retains an interrupted partial result. Reopening and rejected Starts retain the frozen summary and best lap; deliberately click **Restart** or Start for a fresh countdown and run. Stopping during countdown retains zero race elapsed time. Capture never resumes automatically.
-
-`/akart probe` or **Print Probe** (shown with developer info) reports timing, capabilities and explicit UI counts only on request. The best lap resets on a successful fresh Start/Restart or map change and is not a saved personal record. The new experimental lobby/live path above is separate from /akart net diagnostics. There is no saved race progress or persistence of results. M0/M1/M3 acceptance remains open. A stopped build-70450 check confirmed Mirage's closer crop, larger kart and Start/West strip alignment/clipping, with counts 9/111/13. Camera motion/edges and version-6 client handling/countdown/finish/restart checks are **NOT RUN**. See the canonical [progress handoff](../../docs/PROGRESS.md) for executed checks and [client checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md) for deferred manual steps. Those links resolve in the source checkout.
-
-**Credits.** The Goblin Mortar Trike is rendered from the Warcraft III model and texture by erwtenpeller and Chriz (Vast Graphics). The Steam Tank, Dwarven Biker, Gryphon Rider and Gyrocopter are rendered from Warcraft III models of the ITE project on wc3c, authors unknown, as archived on WC3Vault; the Gryphon Rider's texture may be Blizzard Entertainment's original. The Dwarf Car, Orc Demolisher, Meat Wagon and Glaive Thrower are Blizzard Entertainment's own Warcraft III models, and the Goblin Pod Racer is rendered from Blizzard Entertainment's World of Warcraft goblin rocket car. Redistribution rights for these models are unresolved. The Mirage scenery and the drift and boost effects are original; the city scenery is drawn from Warcraft III art. Azeroth Kart is a fan project, not affiliated with Blizzard Entertainment. The source checkout's [asset ledger](../../docs/art/ASSET_SOURCES.md) records each file's source and terms.
-
-Stormwind v2: full road speed/grip, drift and boost across the whole street to its existing walls. Painted kerbside strips do not slow you; actual wall collisions still scrub speed. Other tracks retain their surface rules.
-
-Wall tuning:10% first-contact loss and80% normal-speed ceiling while scraping (160forward/44reverse). Steering and recovery remain active. Both racers need Physics10.
+New course artwork, sprint feel, client performance and city multiplayer remain
+NOT RUN in-game. Source evidence, contracts and pending release/asset-rights
+checks live in the repository's docs/PROGRESS.md and docs/PRODUCTION_MAPS.md.
+No release, verified global rank or eight-player support is claimed.

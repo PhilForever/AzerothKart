@@ -176,7 +176,7 @@ do
     end
     local ready=0
     for _,course in ipairs(AK.Courses.LIST) do
-      if AK.Courses.available(course.id) then
+      if AK.Courses.multiplayer(course.id) then
         ready=ready+1
         local track=assert(AK.Courses.build(course.id,AK.Track.crossesGate))
         local original=track.spawn()
@@ -191,7 +191,7 @@ do
         assert(track.spawn().x==original.x and track.spawn().y==original.y)
       end
     end
-    assert(ready==6,"all six finished maps, with no development fixture, were checked")
+    assert(ready==7,"all seven finished circuits, with no development fixture, were checked")
     local bad={width=10,height=10,spawn=function() return {x=5,y=5,heading=0} end,
         isDrivable=function() return true end}
     assert(G.pose(bad,"host")==nil)
@@ -203,4 +203,4 @@ do
 end
 assert(G.view({})==nil and not G.update({},0,accept) and not G.receive({},0,"")
     and not G.stop({},0,"left"))
-print("RaceGrid: strict 12-byte profiles, bounded agreement/retries/reentry and six-course two-peer grids PASS")
+print("RaceGrid: strict 12-byte profiles, bounded agreement/retries/reentry and seven-circuit two-peer grids PASS")

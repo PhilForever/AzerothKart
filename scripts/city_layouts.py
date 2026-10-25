@@ -2218,6 +2218,404 @@ UNDERCITY = {
 }
 
 # ---------------------------------------------------------------------------
+# Thunder Bluff Skyway
+#
+# The owner's blue line on the in-game Thunder Bluff map (1055 x 794 pixels)
+# and his words: "Thunderbluff - the final map in the capital cities cup. As
+# you can see - plank roped bridges, long way down, white stone paths, if you
+# can - make the road edges like these poles with ropes." Thunder Bluff
+# stands on mesas high over Mulgore: the Lower Rise in the middle and the
+# Spirit, Elder and Hunter Rises round it, joined by rope bridges. His line
+# comes in from the west, where the lift arrives (his X across it: the
+# grid), and laps the Lower Rise, out over a bridge to each outer rise and
+# back over its second: up the west side, over to the Spirit Rise and round
+# its hairpin, back to the north side, along the long bridge to the Elder
+# Rise and round it, back over the lower bridge, down the east side, over to
+# the Hunter Rise and across it, and back to the south side. His stroke runs
+# from the start road straight on up the west side and closes the loop at
+# the X, so the course runs clockwise. The rises' turns are widened so a
+# kart can turn on them; everything off the mesas drops a long way to the
+# plain (the city's `chasm`), and the course crosses it on six bridges.
+
+TB_MAP = {"scale": 3.0, "left": 182.0, "bottom": 752.0}
+
+
+def TBW(mx, my):
+    return ((mx - TB_MAP["left"]) * TB_MAP["scale"], (TB_MAP["bottom"] - my) * TB_MAP["scale"])
+
+
+def tbpoly(*points):
+    return [uround(TBW(*q)) for q in points]
+
+
+def tbprop(model, mx, my, **kw):
+    x, y = TBW(mx, my)
+    return prop(model, round(x, 1), round(y, 1), **kw)
+
+
+def _unit(dx, dy):
+    length = sqrt(dx * dx + dy * dy)
+    return dx / length, dy / length
+
+
+def _run(p, q, step=12.0):
+    """Map points from p toward q, `step` pixels apart or less, without q."""
+    n = max(1, int(sqrt((q[0] - p[0]) ** 2 + (q[1] - p[1]) ** 2) / step + 0.5))
+    return [(p[0] + (q[0] - p[0]) * k / n, p[1] + (q[1] - p[1]) * k / n) for k in range(n)]
+
+
+TB_TURN = (0.9659258262890683, 0.25881904510252074)     # cos and sin of 15 degrees
+TB_HALF_STEP = 0.13052619222005157                     # sin of 7.5 degrees
+
+
+def _turn(centre, radius, d_in, d_out):
+    """A right-hand turn on the map (y down) round `centre`: from the point
+    where the circle's tangent runs along d_in to where it runs along d_out.
+    (entry, points from the entry every 15 degrees, exit); the radius is
+    turned by a fixed step, no trigonometry, so every machine agrees."""
+    # Traced clockwise on the map, the tangent at radius vector (u, v) is
+    # (-v, u): the radius vector where it runs along d is (d_y, -d_x).
+    ux, uy = d_in[1], -d_in[0]
+    ex, ey = d_out[1], -d_out[0]
+    entry = (centre[0] + radius * ux, centre[1] + radius * uy)
+    exit_ = (centre[0] + radius * ex, centre[1] + radius * ey)
+    points = [entry]
+    c, s = TB_TURN
+    while True:
+        ux, uy = ux * c - uy * s, ux * s + uy * c
+        # Stop within 7.5 degrees of the exit (every turn is under 180 degrees).
+        if ux * ey - uy * ex < TB_HALF_STEP and ux * ex + uy * ey > 0:
+            break
+        points.append((centre[0] + radius * ux, centre[1] + radius * uy))
+    return entry, points, exit_
+
+
+def _ahead(p, d, t):
+    return (p[0] + d[0] * t, p[1] + d[1] * t)
+
+
+def _mesa(points):
+    return smooth(points, passes=2, closed=False)
+
+
+# The rises' turns (map pixels) and the bridges' directions.
+TB_SPIRIT, TB_SPIRIT_R = (266.0, 202.0), 44.0
+TB_ELDER, TB_ELDER_R = (764.0, 250.0), 44.0
+TB_UP_WEST = _unit(-60, -106)          # out over the west bridge, north-north-west
+TB_DOWN_NORTH = _unit(0.64, 0.77)      # back over the north bridge, south-east
+TB_OUT_LONG = _unit(130, -40)          # out along the long bridge, east-north-east
+TB_BACK_LOWER = _unit(-0.89, 0.455)    # back over the lower bridge, west-south-west
+SP_IN, SP_TURN, SP_OUT = _turn(TB_SPIRIT, TB_SPIRIT_R, TB_UP_WEST, TB_DOWN_NORTH)
+EL_IN, EL_TURN, EL_OUT = _turn(TB_ELDER, TB_ELDER_R, TB_OUT_LONG, TB_BACK_LOWER)
+
+# The bridges, in driving order: (name, start, end) in map pixels, each
+# from one mesa's edge to the other's.
+TB_BRIDGES = [
+    ("Spirit Rise west bridge", _ahead(SP_IN, TB_UP_WEST, -128), _ahead(SP_IN, TB_UP_WEST, -6)),
+    ("Spirit Rise north bridge", _ahead(SP_OUT, TB_DOWN_NORTH, 22), _ahead(SP_OUT, TB_DOWN_NORTH, 92)),
+    ("Elder Rise long bridge", _ahead(EL_IN, TB_OUT_LONG, -150), _ahead(EL_IN, TB_OUT_LONG, -14)),
+    ("Elder Rise lower bridge", _ahead(EL_OUT, TB_BACK_LOWER, 14), _ahead(EL_OUT, TB_BACK_LOWER, 112)),
+    ("Hunter Rise east bridge", (666.0, 512.0), (673.0, 606.0)),
+    ("Hunter Rise south-west bridge", (578.0, 634.0), (500.0, 558.0)),
+]
+(_W0, _W1), (_N0, _N1), (_E0, _E1), (_R0, _R1), (_H0, _H1), (_G0, _G1) = [(a, b) for _n, a, b in TB_BRIDGES]
+
+TB_LOOP = (   # driving order (clockwise), from the junction where the start road joins
+    _mesa([(358, 488), (358, 476), (356, 463), (354, 450), (351, 437), (349, 424), (346, 411), (341, 399),
+           (334, 389), _W0])[:-1]                                           # up the Lower Rise's west side
+    + _run(_W0, _W1) + _run(_W1, SP_IN, 6)                                  # the west bridge
+    + SP_TURN + _run(SP_OUT, _N0, 8)                                        # round the Spirit Rise
+    + _run(_N0, _N1)                                                        # the north bridge
+    + _mesa([_N1, (380, 284), (393, 288), (406, 291), (419, 293), (432, 296), (445, 299), (458, 302), (471, 304),
+             (484, 305), (497, 303), (509, 299), (521, 294), (533, 288), (545, 282), (557, 277), (569, 273),
+             (581, 270), (593, 267), _E0])[:-1]                             # east along the north side
+    + _run(_E0, _E1) + _run(_E1, EL_IN, 7)                                  # the long bridge
+    + EL_TURN + _run(EL_OUT, _R0, 7)                                        # round the Elder Rise
+    + _run(_R0, _R1)                                                        # the lower bridge
+    + _mesa([_R1, (680, 343), (672, 351), (665, 361), (660, 372), (656, 384), (653, 397), (651, 410), (650, 423),
+             (649, 436), (649, 449), (651, 462), (654, 475), (658, 488), (662, 500), _H0])[:-1]   # down the east side
+    + _run(_H0, _H1)                                                        # the east bridge
+    + _mesa([_H1, (673, 618), (669, 630), (661, 639), (650, 644), (637, 646), (624, 646), (611, 645), (598, 643),
+             (587, 640), _G0])[:-1]                                         # across the Hunter Rise
+    + _run(_G0, _G1)                                                        # the south-west bridge
+    + _mesa([_G1, (491, 549), (482, 539), (473, 529), (463, 519), (452, 510), (440, 503), (428, 499), (416, 498),
+             (404, 499), (392, 500), (380, 500), (369, 498), (361, 494)])   # west along the south side
+)
+TB_LIFT_ROAD = [(262, 534), (282, 529), (302, 523), (320, 516), (336, 509), (350, 500)]   # start spur, from the lift
+THUNDER_BLUFF_LINE = catmull_rom([TBW(*p) for p in TB_LOOP], step=16.0)
+THUNDER_BLUFF_SPUR = catmull_rom([TBW(*p) for p in TB_LIFT_ROAD], closed=False, step=16.0)
+
+
+def tb_arc(mx, my):
+    return arc_at(THUNDER_BLUFF_LINE, mx, my, TBW)
+
+
+# The grid on his X, the start road's last straight before the junction.
+THUNDER_BLUFF_START, THUNDER_BLUFF_START_HEADING = along_spur(200.0, THUNDER_BLUFF_SPUR)
+
+# Each bridge's deck spans its chasm and runs ABUTMENT units onto the
+# rock at either end, narrower than the street: a rope bridge (the
+# reviewed `narrows`, the whole deck).
+TB_ABUTMENT = 16
+TB_BRIDGE_RADIUS = 54
+
+
+def _bridge_span(start, end):
+    """(loop arc of the bridge's middle, the deck's length) for a bridge
+    from map point `start` to `end`."""
+    a, b = TBW(*start), TBW(*end)
+    length = sqrt((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2)
+    return tb_arc((start[0] + end[0]) / 2, (start[1] + end[1]) / 2), round(length + 2 * TB_ABUTMENT, 1)
+
+
+TB_SPANS = [(name,) + _bridge_span(start, end) for name, start, end in TB_BRIDGES]
+
+
+def _bridge_axis(name):
+    """(x, y, dx, dy): a bridge's start in world units and its direction:
+    the deck's boards lie square to it."""
+    _n, a, b = next(bridge for bridge in TB_BRIDGES if bridge[0] == name)
+    (ax, ay), (bx, by) = TBW(*a), TBW(*b)
+    dx, dy = _unit(bx - ax, by - ay)
+    return (round(ax, 1), round(ay, 1), round(dx, 6), round(dy, 6))
+
+
+def _bridgehead(point, d, half):
+    """The two corners of a bridge's end on the map: `half` pixels either
+    side of `point` across direction d."""
+    return ((point[0] - d[1] * half, point[1] + d[0] * half), (point[0] + d[1] * half, point[1] - d[0] * half))
+
+
+def _heads(name):
+    _n, a, b = next(bridge for bridge in TB_BRIDGES if bridge[0] == name)
+    d = _unit(b[0] - a[0], b[1] - a[1])
+    return _bridgehead(a, d, 30.0), _bridgehead(b, d, 30.0)
+
+
+# The mesas, traced from the map round the course (map pixels): each edge
+# crosses a bridge at its end, square to it.
+_wB, _nB, _lB, _rB, _eB, _sB = (_heads(name) for name, _a, _b in TB_BRIDGES)
+TB_LOWER_RISE = tbpoly(*(
+    [(214, 536), (216, 516), (230, 499), (252, 488), (276, 480), (292, 466), (297, 448), (297, 428), (292, 410),
+     (282, 393), (271, 376), (262, 362)]
+    + [_wB[0][1], _wB[0][0], (322, 293), _nB[1][0], _nB[1][1]]
+    + [(396, 238), (426, 247), (456, 253), (486, 255), (514, 249), (541, 238), (568, 228), (594, 222)]
+    + [_lB[0][1], _lB[0][0], (651, 296), _rB[1][0], _rB[1][1]]
+    + [(712, 386), (716, 416), (716, 446), (713, 474), (706, 496)]
+    + [_eB[0][1], _eB[0][0], (622, 529), (596, 541), (560, 545), _sB[1][0], _sB[1][1]]
+    + [(458, 596), (430, 600), (400, 597), (372, 592), (345, 588), (318, 584), (292, 578), (262, 570), (236, 562),
+       (220, 552)]))
+TB_SPIRIT_RISE = tbpoly(*(
+    [_wB[1][1], _wB[1][0], (266, 222), _nB[0][0], _nB[0][1]]
+    + [(352, 168), (352, 142), (336, 118), (310, 101), (278, 94), (246, 96), (216, 106), (192, 124), (176, 150),
+       (168, 180), (170, 212), (180, 238), (194, 252)]))
+TB_ELDER_RISE = tbpoly(*(
+    [_lB[1][1], (742, 160), (772, 148), (806, 148), (836, 162), (860, 186), (874, 218), (876, 254), (866, 288),
+     (844, 316), (816, 334), _rB[0][1], _rB[0][0], _lB[1][0]]))
+TB_HUNTER_RISE = tbpoly(*(
+    [_eB[1][0], _sB[0][0], _sB[0][1], (546, 672), (552, 706), (574, 734), (608, 752), (650, 756), (690, 742),
+     (714, 712), (722, 676), (720, 640), _eB[1][1]]))
+
+TB_POOL = tbpoly((420, 428), (428, 420), (438, 419), (446, 425), (448, 435), (442, 444), (431, 447), (421, 442),
+                 (417, 435))
+
+TB_GATES = [
+    ("Spirit Rise", (266, 158)),
+    ("Lower Rise", (471, 304)),
+    ("Elder Rise", (808, 250)),
+    ("Wind Rider Roost", (649, 436)),
+    ("Hunter Rise", (624, 646)),
+    ("The Lift", (352, 440)),            # the finish line, just past the junction
+]
+
+TB_DOODADS = BARRENS_DOODADS
+TB_GRASS = (1.0, 0.98, 0.62, 0.8)              # Warcraft III's summer grass, warmed to Mulgore's gold-green
+THUNDER_BLUFF_TERRAIN = [   # draw order, lowest first
+    {"name": "grass", "tile": T + "lordaeronsummer/lords_grass.dds", "shade": TB_GRASS, "variety": 45},
+    {"name": "gold", "tile": BARRENS + "barrens_grass.dds", "shade": (1.0, 1.04, 0.80, 0.8), "variety": 40},
+    {"name": "dirt", "tile": T + "village/village_dirt.dds", "shade": (1.18, 1.06, 0.86), "variety": 30},
+]
+TB_TENTS = [kind(OTHER + "taurentent/taurentent.mdx", limit=10), kind(OTHER + "taurentent2/taurentent2.mdx", limit=10)]
+TB_TOTEMS = [kind(TB_DOODADS + "props/taurentotem/taurentotem%d.mdx" % n, limit=6) for n in (0, 1)]
+TB_PINES = [kind(TERRAIN + "lordaerontree/lordaerontree%d.mdx" % n, limit=5) for n in (0, 1, 2, 3, 4, 5)]
+TB_FIRE = kind(NORTH + "props/firepit/firepit.mdx", weight=0.7, limit=4)
+TB_TRIM = TB_TOTEMS + [TB_FIRE, kind(SUMMER + "props/hay/hay0.mdx", weight=0.5, limit=3),
+                       kind(SUMMER + "props/hitchingpost/hitchingpost.mdx", weight=0.5, limit=3),
+                       kind(TB_DOODADS + "props/barrens_bones/barrens_bones%d.mdx" % 2, weight=0.4, limit=2)]
+SPIRIT_WALKER = kind(ORC_UNITS + "spiritwalker/spiritwalker.mdx", weight=0.6)
+TB_PEOPLE = [TAUREN, kind(ORC_UNITS + "tauren/tauren.mdx", weight=0.8), SPIRIT_WALKER,
+             kind(ORC_UNITS + "kotobeastnorider/kotobeastnorider.mdx", weight=0.3, limit=4)]
+THUNDER_BLUFF_DISTRICTS = [
+    {"name": "Lower Rise", "ground": "grass",
+     "seeds": [TBW(*p) for p in ((420, 360), (500, 360), (580, 330), (560, 420), (470, 440), (600, 480),
+                                 (520, 500), (300, 440), (450, 590), (708, 430), (480, 250))],
+     "buildings": TB_TENTS + TB_PINES + [kind(ORC + "spiritlodge/spiritlodge.mdx", weight=0.5, limit=1)],
+     "density": {"buildings": 0.8, "trim": 0.8, "people": 0.8}, "trim": TB_TRIM, "people": TB_PEOPLE},
+    {"name": "The Lift", "ground": "grass", "seeds": [TBW(*p) for p in ((240, 525), (270, 560))],
+     "buildings": TB_TENTS[:1] + TB_PINES[:2], "trim": TB_TRIM, "people": TB_PEOPLE},
+    {"name": "Spirit Rise", "ground": "grass",
+     "seeds": [TBW(*p) for p in ((230, 140), (300, 130), (200, 200), (266, 202))],
+     "buildings": TB_TENTS + TB_PINES + [kind(ORC + "spiritlodge/spiritlodge.mdx", limit=1)],
+     "density": {"buildings": 0.7, "trim": 0.7, "people": 0.7}, "trim": TB_TOTEMS + [TB_FIRE],
+     "people": [SPIRIT_WALKER, TAUREN]},
+    {"name": "Elder Rise", "ground": "grass",
+     "seeds": [TBW(*p) for p in ((800, 180), (845, 230), (764, 250), (815, 305))],
+     "buildings": TB_TENTS + TB_PINES, "density": {"buildings": 0.7, "trim": 0.7, "people": 0.7},
+     "trim": TB_TOTEMS + [TB_FIRE], "people": [TAUREN, SPIRIT_WALKER]},
+    {"name": "Hunter Rise", "ground": "grass",
+     "seeds": [TBW(*p) for p in ((620, 705), (680, 690), (575, 690), (650, 640))],
+     "buildings": TB_TENTS + TB_PINES + [kind(ORC + "beastiary/beastiary.mdx", limit=1)],
+     "density": {"buildings": 0.7, "trim": 0.8, "people": 0.7}, "trim": TB_TRIM,
+     "people": [TAUREN, kind(ORC_UNITS + "kotobeastnorider/kotobeastnorider.mdx", limit=3)]},
+]
+
+TB_ROPE_POST = ((150, 112, 72), (204, 168, 118), (82, 58, 36))      # face, cap, foot
+TB_ROPE = ((216, 194, 150), (140, 118, 84))                         # lit, shaded
+
+
+def _corner_totems():
+    """A tall totem at each corner of every bridge, on the rock beside the
+    street's wall at the bridge's end (none inside a rise's turn, where the
+    street runs on round the corner)."""
+    out = []
+    line = THUNDER_BLUFF_LINE
+    for name, a, b in TB_BRIDGES:
+        d = _unit(b[0] - a[0], b[1] - a[1])
+        for end, inward in ((a, -1), (b, 1)):
+            for side in (-1, 1):
+                mx = end[0] + d[0] * 8 * inward - d[1] * 38 * side
+                my = end[1] + d[1] * 8 * inward + d[0] * 38 * side
+                x, y = TBW(mx, my)
+                if min(_segment_distance(x, y, line[i - 1], line[i]) for i in range(len(line))) < WALL_RADIUS + 34:
+                    continue
+                if any((mx - c[0]) ** 2 + (my - c[1]) ** 2 < r * r for c, r in ((TB_SPIRIT, TB_SPIRIT_R),
+                                                                              (TB_ELDER, TB_ELDER_R))):
+                    continue                                       # on the island inside a turn
+                out.append(dict(tbprop(TB_DOODADS + "props/taurentotem/taurentotem1.mdx", mx, my, scale=0.32),
+                                nudge=True))
+    return out
+
+
+THUNDER_BLUFF = {
+    "id": "thunder_bluff_skyway",
+    "version": 1,
+    "wall_clearance": KART,
+    "full_speed_to_walls": True,
+    "name": "Thunder Bluff Skyway",
+    "folder": "ThunderBluff",
+    "size": (2048, 2048),
+    "team": (0.62, 0.30, 0.12),                  # the tauren's rust and ochre
+    "lean": 0.6,
+    "kart_clearance": KART,
+    "street_reach": 100,
+    "centerline": THUNDER_BLUFF_LINE,
+    "branches": [THUNDER_BLUFF_SPUR],
+    "plazas": [],
+    "gates": [gate_on(name, THUNDER_BLUFF_LINE, *TBW(*point)) for name, point in TB_GATES],
+    "spawn": THUNDER_BLUFF_START + (THUNDER_BLUFF_START_HEADING,),
+    # The rope bridges: narrower than the street over the chasm.
+    "narrows": [{"name": name, "from": round(at - length / 2, 1), "to": round(at + length / 2, 1),
+                 "wall_radius": TB_BRIDGE_RADIUS} for name, at, length in TB_SPANS],
+    "replaceables": {11: T + "lordaeronsummer/lords_cliff0.dds",
+                     31: "war3.w3mod:replaceabletextures/lordaerontree/lordaeronsummertree.dds"},
+    "terrain": THUNDER_BLUFF_TERRAIN,
+    "districts": THUNDER_BLUFF_DISTRICTS,
+    "zones": [],
+    "water": [TB_POOL],
+    "land": [],
+    "canals": [],
+    # Timber planks on rope over the chasm: `force` off (no canal under them).
+    "bridges": [{"name": name, "at": at, "length": length, "left": 0, "right": 0, "force": False, "deck": "rope",
+                 "axis": _bridge_axis(name), "abutment": TB_ABUTMENT} for name, at, length in TB_SPANS],
+    "bridge_radius": TB_BRIDGE_RADIUS,
+    # The mesas over Mulgore: off them, a long way down to the plain.
+    "chasm": {
+        "mesas": [TB_LOWER_RISE, TB_SPIRIT_RISE, TB_ELDER_RISE, TB_HUNTER_RISE],
+        "depth": 400,
+        "plain": [(BARRENS + "barrens_grass.dds", (0.80, 0.96, 0.58, 0.8)),
+                  (T + "lordaeronsummer/lords_grass.dds", (0.86, 0.98, 0.66, 0.75))],
+        "plain_scale": 2,
+        "face": (T + "lordaeronsummer/lords_cliff0.dds", (0, 0, 192, 63), (1.34, 1.20, 1.0, 0.45)),
+        "rock": (214, 188, 150),                 # Thunder Bluff's pale sandstone
+        "haze": (176, 190, 206), "plain_haze": 0.42, "face_haze": (0.02, 0.36),
+        "shadow": 0.36,
+        "trees": {"prop": prop(TERRAIN + "lordaerontree/lordaerontree%d.mdx", 0, 0, scale=0.11), "variants": 6,
+                  "step": 26, "density": 0.42},
+        # A river winding across Mulgore's plain far below (the plain's own
+        # coordinates: a point there shows `depth` x `lean` rows further south).
+        "river": {"width": 38, "points": catmull_rom([
+            (-60, 2130), (180, 2090), (420, 2150), (660, 2110), (900, 2160), (1140, 2100), (1380, 2140),
+            (1620, 2090), (1860, 2120), (1990, 1980), (1985, 1700), (2000, 1420), (1975, 1150), (1995, 880),
+            (1980, 600), (2010, 330), (1990, 60), (2000, -80)], closed=False, step=12.0)},
+        # The ropes the bridges hang from: sagging this far below the deck at
+        # mid-span (plus `drop` at the ends), tied to it every `every` units.
+        "hang": {"sag": 14, "drop": 3, "every": 9},
+    },
+    "rope_fence": {
+        "land": {"every": 34, "post": 5, "post_height": 17, "ropes": [(11.0, 3.5)], "rope_rows": 3},
+        "bridge": {"every": 30, "post": 4, "post_height": 19, "ropes": [(14.5, 3.0), (7.0, 1.5)], "rope_rows": 2},
+        "post": TB_ROPE_POST, "rope": TB_ROPE,
+    },
+    "rings": [],
+    "reserved": [tbpoly((410, 410), (460, 410), (460, 455), (410, 455))],     # round the pool
+    "lights": [],
+    "sections": [],
+    "road_default": (T + "village/village_cobblepath.dds", (2.25, 2.2, 2.08, 0.15)),
+    "alleys": [],
+    "steps": [],
+    "squares": [],
+    "bridge_depth": 6,
+    "arch_every": 34,
+    "deck_planks": (156, 122, 84),
+    "plank_pitch": 7,
+    "plank_gap": 1.2,
+    "water_texture": "war3.w3mod:replaceabletextures/water/water00.dds",
+    "water_tint": (0.30, 0.52, 0.62),
+    "water_rim": (176, 168, 150),
+    "quay_face": (132, 120, 98),
+    "quay_depth": 6,
+    "road_tile": T + "village/village_cobblepath.dds",
+    "road_shade": 1.0,
+    "sidewalk_tile": T + "village/village_dirt.dds",
+    "sidewalk_shade": (1.18, 1.06, 0.86),
+    "plaza_tile": T + "village/village_cobblepath.dds",
+    "plaza_shade": 1.0,
+    "curb_color": (150, 126, 94),
+    "gutter_color": (104, 86, 62),
+    "hedged": [],
+    "bridge_posts": None,
+    "wall": {"thickness": 4, "height": 10, "pillar_height": 17, "pillar_every": 56,
+             "face": TB_ROPE_POST[0], "cap": TB_ROPE_POST[1], "shadow": TB_ROPE_POST[2]},
+    "fill": {"step": 20, "reach": 360, "gap": 10, "spacing": 6},
+    "trim": {"step": 26, "reach": 44, "gap": 3, "spacing": 10},
+    "people": {"step": 22, "reach": 34, "gap": 2, "spacing": 6},
+    "furniture": [
+        {"prop": prop(TB_DOODADS + "props/taurentotem/taurentotem0.mdx", 0, 0, scale=0.3), "every": 260,
+         "offset": 8, "start": 140, "where": "land"},
+    ],
+    "solids": [],
+    "props": [
+        # The Lower Rise: the great totem at its heart.
+        dict(tbprop(ORC + "taurentotem/taurentotem.mdx", 512, 400, scale=0.55), nudge=True),
+        # The lift's tower at the start road's end, over the drop.
+        dict(tbprop(ORC + "watchtower/watchtower.mdx", 226, 528, scale=0.36), nudge=True),
+        # The wind riders' roost on the Lower Rise's east side.
+        dict(tbprop(OTHER + "wyverncage/wyverncage.mdx", 700, 420), nudge=True),
+        dict(tbprop(ORC_UNITS + "riderlesswyvern/riderlesswyvern.mdx", 702, 446, yaw=180), nudge=True),
+        # The Spirit Rise: its lodge and a spirit walker.
+        dict(tbprop(ORC + "spiritlodge/spiritlodge.mdx", 224, 156, scale=0.4), nudge=True),
+        dict(tbprop(ORC_UNITS + "spiritwalker/spiritwalker.mdx", 242, 176, yaw=315), nudge=True),
+        # The Elder Rise: Cairne Bloodhoof before his lodge.
+        dict(tbprop(OTHER + "chieftainhut/chieftainhut.mdx", 836, 236, scale=0.42), nudge=True),
+        dict(tbprop(ORC_UNITS + "herotaurenchieftain/herotaurenchieftain.mdx", 822, 258, yaw=180, scale=0.3),
+             nudge=True),
+        # The Hunter Rise: the hunters' hall and a kodo.
+        dict(tbprop(ORC + "beastiary/beastiary.mdx", 640, 712, scale=0.4), nudge=True),
+        dict(tbprop(ORC_UNITS + "kotobeastnorider/kotobeastnorider.mdx", 600, 700, yaw=315), nudge=True),
+    ] + _corner_totems(),
+}
+
+# ---------------------------------------------------------------------------
 # Start-turn signs. The owner (2026-10-23): "On tracks that start outside of
 # the loop - add an arrow indicator for left or right outside the track (wc3
 # asset?) helping users take the correct turn at the start of a race."
@@ -2252,5 +2650,6 @@ start_sign(STORMWIND, 1239.0, 798.0, "north-east")   # in the bend's corner: rig
 start_sign(IRONFORGE, 420.0, 682.0, "north-west")    # across the street: left, up the hall
 start_sign(ORGRIMMAR, 1047.0, 377.0, "north-east")   # on the island's tip: keep right
 start_sign(DARNASSUS, 1083.0, 1095.0, "north-west")  # straight ahead: right, then north
+start_sign(THUNDER_BLUFF, 648.0, 870.0, "north-west")  # in the junction's corner: left, up the west side
 
-CITIES = [STORMWIND, IRONFORGE, ORGRIMMAR, DARNASSUS, UNDERCITY]
+CITIES = [STORMWIND, IRONFORGE, ORGRIMMAR, DARNASSUS, UNDERCITY, THUNDER_BLUFF]

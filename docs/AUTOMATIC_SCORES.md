@@ -49,7 +49,7 @@ roster discovery plus the separately verified WHISPER route.
 
 ## Implementation
 
-Current catalogue: six finished courses. HELLO retains seven stable digest slots; retired `O` is zero and has no record/request admission. The `retired:O` catalogue marker separates older sync peers. Historical Oval saves are preserved and ignored for current publication. Both participants should update. [Map scope](PRODUCTION_MAPS.md).
+Current catalogue: eight finished courses. HELLO has nine fixed digest slots; retired `O` is zero and has no record/request admission. The `retired:O` catalogue marker separates older sync peers. Historical Oval saves are preserved and ignored for current publication. Both participants should update. [Map scope](PRODUCTION_MAPS.md).
 
 - `ScoreDiscovery.Read` validates an entire bounded cached roster using display
   indices, not local send-channel IDs. Missing/secret/partial data stays pending.
@@ -69,7 +69,7 @@ Current catalogue: six finished courses. HELLO retains seven stable digest slots
   emit a local achievement. UI rows and result text are reused; no per-tick UI
   allocation or message stream is added.
 
-UI pool remains 86 frames/167 textures/135 fonts. Core and the score receiver
+The combined map/retirement UI pool is89frames/69textures/136fonts. Core and the score receiver
 add two fixed frames outside that pool. Normal WoW SavedVariables saving remains
 responsible for disk persistence; development/install scripts never read player
 WTF data. No external service or Python database is contacted.

@@ -9,6 +9,8 @@ Track.lua
 MirageRaceway.lua
 Circuit.lua
 CapitalCities.lua
+Dungeon.lua
+ScarletCrusade.lua
 Courses.lua
 Physics.lua
 Input.lua

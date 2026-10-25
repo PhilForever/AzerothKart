@@ -204,7 +204,7 @@ local function refreshCheckpoints()
         UI.gateStopped = stopped
         local caption = ("Checkpoints: %d/%d | "):format(progress.passed,#Track.gates)
         if UI.race and UI.race.status == "finished" then
-            caption = "Checkpoints: 3-lap run complete"
+            caption = UI.race.targetLaps == 1 and "Checkpoints: sprint complete" or "Checkpoints: 3-lap run complete"
         elseif progress.complete then caption = caption .. "Course complete"
         else caption = caption .. "Next: " .. Track.gates[progress.nextGate].name end
         if stopped then caption = "Last drive | " .. caption end
@@ -227,17 +227,28 @@ local function refreshSummary()
     end
     if UI.summaryRace ~= race then
         UI.summaryRace = race
+        local sprint = race.targetLaps == 1
         if race.status == "finished" then
             UI.summaryTitle:SetText(UI.multiplayer and "LOCAL FINISH — UNVERIFIED" or "RUN COMPLETE")
-            UI.summaryDetail:SetText(("3/3 laps | Total: %.2fs\nLast lap: %.2fs\n%s"):format(
-                race.totalTicks*Physics.FIXED_DT,race.laps.lastLapTicks*Physics.FIXED_DT,
-                bestLapText(race.laps)))
+            if sprint then
+                UI.summaryDetail:SetText(("Sprint | Total: %.2fs\nAll %d gates"):format(
+                    race.totalTicks*Physics.FIXED_DT,#Track.gates))
+            else
+                UI.summaryDetail:SetText(("3/3 laps | Total: %.2fs\nLast lap: %.2fs\n%s"):format(
+                    race.totalTicks*Physics.FIXED_DT,race.laps.lastLapTicks*Physics.FIXED_DT,
+                    bestLapText(race.laps)))
+            end
         else
             UI.summaryTitle:SetText(race.status == "interrupted" and
                 "GAME INTERRUPTED BY COMBAT" or "RUN STOPPED")
-            UI.summaryDetail:SetText(("Laps: %d/3 | Time: %.2fs\nCurrent lap: %.2fs\n%s"):format(
-                race.laps.completedLaps,race.totalTicks*Physics.FIXED_DT,
-                race.laps.currentLapTicks*Physics.FIXED_DT,bestLapText(race.laps)))
+            if sprint then
+                UI.summaryDetail:SetText(("Sprint | Time: %.2fs\nGates: %d/%d"):format(
+                    race.totalTicks*Physics.FIXED_DT,race.laps.checkpoints.passed,#Track.gates))
+            else
+                UI.summaryDetail:SetText(("Laps: %d/3 | Time: %.2fs\nCurrent lap: %.2fs\n%s"):format(
+                    race.laps.completedLaps,race.totalTicks*Physics.FIXED_DT,
+                    race.laps.currentLapTicks*Physics.FIXED_DT,bestLapText(race.laps)))
+            end
         end
         UI.summaryHint:SetText(UI.multiplayer and "Experimental race | No agreed winner or standings" or
             "Restart or close results to view the track")
@@ -288,6 +299,9 @@ local function refreshHud()
         local last = laps.lastLapTicks and ("%.2fs"):format(laps.lastLapTicks*Physics.FIXED_DT) or "--"
         local caption = ("Laps: %d | Current: %.2fs | Last: %s | %s"):format(
             laps.completedLaps,laps.currentLapTicks*Physics.FIXED_DT,last,bestLapText(laps))
+        if Track.laps == 1 then -- a sprint: one run, timed to the last gate
+            caption = ("Sprint | Time: %.2fs | Last run: %s"):format(laps.currentLapTicks*Physics.FIXED_DT,last)
+        end
         if not UI.active and UI.state.tick > 0 then caption = "Last drive | " .. caption end
         UI.lapHud:SetText(caption)
     end
@@ -1266,7 +1280,7 @@ function UI.MultiplayerAction(action,...)
             local view=transport.GetView()
             local id=view.offer and view.offer.trackId
             if not view.liveMode or not view.canSetReady then return false,"invalid_phase" end
-            if not Courses.available(id) then return false,"track" end
+            if not Courses.multiplayer(id) then return false,"track" end
             if not UI.SelectTrack(id) then return false,"track_unavailable" end
         end
         accepted,reason=transport.Ready(ready)
@@ -1450,7 +1464,8 @@ function UI.Start()
     UI.active = true
     render()
     refreshHud()
-    UI.status:SetText("3 laps | Hold W/Up for GO | A/D or arrows: steer | Stop / Esc: end run")
+    UI.status:SetText((UI.race.targetLaps == 1 and "Sprint" or "3 laps")
+        .. " | Hold W/Up for GO | A/D or arrows: steer | Stop / Esc: end run")
     UI.startButton:Disable()
     UI.stopButton:Enable()
     UI.trackButton:Disable()
@@ -1469,7 +1484,8 @@ local function step(dt)
     UI.checkpoints = UI.laps.checkpoints
     if countdown and UI.race.status == "running" then
         UI.stopReason = "Driving"
-        UI.status:SetText("3 laps | W/A/S/D or arrows | Space + turn: drift | Stop / Esc: end run")
+        UI.status:SetText((UI.race.targetLaps == 1 and "Sprint" or "3 laps")
+            .. " | W/A/S/D or arrows | Space + turn: drift | Stop / Esc: end run")
     end
     return UI.race.status ~= "finished"
 end

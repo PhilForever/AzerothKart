@@ -2,7 +2,7 @@
 
 ## Developer-only Test Oval solid fixtures
 
-As of2026-10-25, [the six production courses](PRODUCTION_MAPS.md) are the only player-facing maps, in solo and two-peer multiplayer. Mirage is the actual default. Test Oval is retired from Courses, menu/default/fallback/start/score/network admission. The analytical Track module and the following fixture documentation remain for deterministic developer tests; production no longer creates its road/obstacle textures.
+As of2026-10-25, [the eight production courses](PRODUCTION_MAPS.md) are the only player-facing maps: eight solo courses and seven live-eligible lap circuits. Mirage is the actual default. Test Oval is retired from Courses, menu/default/fallback/start/score/network admission. The analytical Track module and the following fixture documentation remain for deterministic developer tests; production no longer creates its road/obstacle textures.
 
 Test Oval is `id="test_oval"`, geometry version 2. Its ordered `obstacles` array contains bottom-left rectangles (270,400,32,24) and (490,60,32,24), painted as two pooled red primitives. The road/spawn/gates remain unchanged. Physical obstacle footprints classify as wall; movement sweeps against 18-unit expanded rectangles and the perimeter. Tangential movement is retained, and contact uses the existing wall response. Clearance is conservative and square; these fixtures do not establish arbitrary prop/polygon/vehicle collision support. Keep geometry read-only during a run. `constrainPosition` remains perimeter-only; Physics v7 prefers the optional `resolveMovement(previousX,previousY,targetX,targetY)` hook. See [physics details](PHYSICS.md#implemented-test-oval-solid-fixtures).
 
@@ -55,7 +55,7 @@ Run `python scripts/build_mirage_layout.py` to load the actual factory plus Pres
 
 ## Capital Cities Cup: city street circuits (proposed, `claude/capital-cup`)
 
-The owner's second cup races through Azeroth's capitals along their real streets, in Warcraft III art: Stormwind City Circuit, Ironforge Grand Prix, Darnassus Canopy Run, Orgrimmar Canyon Rush, Thunder Bluff Skyway and Undercity Slime Circuit. Stormwind, Ironforge, Orgrimmar, Darnassus and Undercity are built (Undercity's version 2 and the wall-to-wall paving are proposed on `claude/undercity-river`); Thunder Bluff is listed as coming soon. Each is a street circuit from `Circuit.new` (implemented contract in [API_CONTRACTS](API_CONTRACTS.md#proposed-capital-cities-cup-city-circuits-and-the-course-catalog)): a smooth centerline traced on the in-game city map, a 112-wide capsule road and 20 units more to the kart centre's reach, then wall (the city); every city has full speed to its walls and is paved from wall to wall (the owner, 2026-10-23: no shoulders on a city map; Ironforge's change of handling is proposed for Codex review), plazas where the course crosses an open square, and solid boxes only inside the street. Data and pictures come from one generator, `scripts/build_city_tracks.py`, which validates the layout first (gates span the street wall to wall and guard one stretch; stretches keep a wall between them; spawn on the road; solids inside the street; nothing drawn over the street). The scenery is one 2048×2048 picture at one texel per world unit, so the follow camera shows the same scale as on Mirage Raceway; whether the client loads a texture this large is a pending client check. See [the Stormwind sheet](art/tracks/stormwind.md).
+The owner's second cup races through Azeroth's capitals along their real streets, in Warcraft III art: Stormwind City Circuit, Ironforge Grand Prix, Darnassus Canopy Run, Orgrimmar Canyon Rush, Thunder Bluff Skyway and Undercity Slime Circuit. Stormwind, Ironforge, Orgrimmar, Darnassus and Undercity are built (Undercity's version 2 and the wall-to-wall paving are proposed on `claude/undercity-river`); Thunder Bluff is built too, proposed on `claude/thunder-bluff`. Each is a street circuit from `Circuit.new` (implemented contract in [API_CONTRACTS](API_CONTRACTS.md#proposed-capital-cities-cup-city-circuits-and-the-course-catalog)): a smooth centerline traced on the in-game city map, a 112-wide capsule road and 20 units more to the kart centre's reach, then wall (the city); every city has full speed to its walls and is paved from wall to wall (the owner, 2026-10-23: no shoulders on a city map; Ironforge's change of handling is proposed for Codex review), plazas where the course crosses an open square, and solid boxes only inside the street. Data and pictures come from one generator, `scripts/build_city_tracks.py`, which validates the layout first (gates span the street wall to wall and guard one stretch; stretches keep a wall between them; spawn on the road; solids inside the street; nothing drawn over the street). The scenery is one 2048×2048 picture at one texel per world unit, so the follow camera shows the same scale as on Mirage Raceway; whether the client loads a texture this large is a pending client check. See [the Stormwind sheet](art/tracks/stormwind.md).
 
 **Ironforge Grand Prix** (`ironforge_gp`, version 3): from the Gates up the Commons' ring, round the Mystic Ward, the Forlorn Cavern and the Hall of Explorers, through the Great Forge (round its southern forge), out past Tinker Town and through the Military Ward back to the Commons' finish. Clockwise; seven gates named for the districts; a 7,077-unit lap; no plazas or solids. Offline: the course walk passes the gates in order, completes the lap and never meets a wall (`tests/test_circuit.lua`). Reviewed version3 (Claude `9461f9c`, after the owner's version2 drive quoted in its handoff): tunnels with no shoulder in and out of the Forlorn Cavern (the wall at the paving's edge), dark iron walls round the lava without its ridges, and the Great Forge's floor between its forges cleared for the Great Anvil and pumps. The two tunnel segments limit the kart centre to 42 units either side, with no rough shoulder; outside them the existing 76-unit reach remains. V3 native handling/appearance/performance are NOT RUN. **Version 4** (proposed on `claude/undercity-river`, 2026-10-23, for Codex review): the owner asked for no shoulders on a city map, so the strip beyond the paving that version 3 kept rough has full grip (`fullSpeedToWalls=true`) and the paving runs from wall to wall; route, gates, spawn, narrows and walls are unchanged. See [the Ironforge sheet](art/tracks/ironforge.md).
 
@@ -65,11 +65,49 @@ The owner's second cup races through Azeroth's capitals along their real streets
 
 **Undercity Slime Circuit** (`undercity_slime`, version 2, `fullSpeedToWalls=true`, proposed on `claude/undercity-river`): the owner's revamp, "a river of slime with bridges at every section", the karts "crossing the bridges (sharp turns)". The slime is the canal ring round the Trade Quarter; from his arrow below the Apothecarium the course runs counter-clockwise along its outer and inner walkways and changes walkway on a bridge at every section (six: timber and stone by turns), each a sharp turn on, a straight across the slime and a sharp turn off: inside round the Rogues' Quarter's corner, outside up the Magic Quarter's side, inside under the Ruins of Lordaeron, outside down the War Quarter's side, inside round the Apothecarium's corner and out onto the start straight. Six gates named for the quarters (the finish is *The Canals*); a 5,797-unit lap; no approach road (the spawn is on the loop, 136 units past the finish line); no plazas, solids or narrows. The Trade Quarter is still painted 30 below the ring, and the stone bridges rise in painted humps (the karts drive flat). Version 1's loop down into the Trade Quarter is replaced. Offline: the walk from the loop passes the gates in order and never meets a wall. See [the Undercity sheet](art/tracks/undercity.md).
 
+**Thunder Bluff Skyway** (`thunder_bluff_skyway`, version 1, `fullSpeedToWalls=true`, proposed on `claude/thunder-bluff`): the owner's blue line, clockwise, as his stroke runs. Start on the road in from the lift at his X, bear left up the Lower Rise's west side, out over the west bridge and round the Spirit Rise, back over the north bridge, east along the north side, along the long bridge and round the Elder Rise, back over the lower bridge, down the east side, over the east bridge and across the Hunter Rise, back over the south-west bridge. Six gates named for the rises (the finish is *The Lift*); a 5,616-unit lap and a 285-unit approach; no plazas or solids. The six bridges are `narrows` (wall radius 54) over a painted drop to Mulgore's plain (the city's `chasm`); the course is on one level and the karts drive it flat. Offline: the walk passes the gates in order and never meets a wall; each bridge is road to its own wall. See [the Thunder Bluff sheet](art/tracks/thunder-bluff.md).
+
 **Elevation** ([ADR 0015](adr/0015-track-elevation.md), proposed): the owner asked for elevation on the maps that need it and chose looks first, then slopes you can feel, then bridges over the track. Only the looks are built; the new cities' street heights are generated into `CapitalCities.lua` for the proposed physics.
 
 Owner handling correction2026-10-22: Stormwind has full road grip and normal speed through both painted kerbside strips to the existing street walls. Drift/boost remain eligible there. The112-unit paving,76-unit wall radius, artwork/gates/spawn and wall impacts are unchanged. Other circuits default to rough shoulders; Mirage/Oval slowdown is unchanged. 2026-10-23: the owner wants no shoulders on any city map, so all five cities have full grip to their walls (Ironforge's is the one change of handling, proposed for Codex review) and are paved from wall to wall; `Circuit.new`'s default for other definitions is unchanged.
 
 **Stormwind City Circuit** (`stormwind_city`, version 3, `fullSpeedToWalls=true`): start on the Valley of Heroes approach, through the gate into the Trade District, over the canal along Old Town, round the canal's head in the Dwarven District, along the foot of the Cathedral of Light's steps in Cathedral Square (the square and its fountain across the street), over the canal onto the Park bank, past the Mage Quarter and back over the canal to the Trade District's finish. Six gates named for the districts; three bridges between districts; no plazas or solids. Offline: the course walk passes the gates in order, completes the lap's checkpoints and never meets a wall; walls behave as specified (`tests/test_circuit.lua`). The owner confirms the reported Stormwind corner works (2026-10-22); wider camera, appearance and performance acceptance remains open.
+
+## Scarlet Crusade Cup: dungeon sprints (proposed, `claude/scarlet-graveyard`)
+
+The owner's third cup runs through the Scarlet Monastery's four wings, from the start of each dungeon to its end: Scarlet Graveyard, Scarlet Library, Scarlet Armory and Scarlet Monastery. He wrote that there is no need for "a traditional track here, just recreate the dungeon and let players find their way to the end."
+
+Each is a **sprint**: one run from the entrance through its gates to the last, which is the finish ([ADR 0020](adr/0020-dungeon-sprints.md), proposed). The owner approved Claude adding the minimal rules for Codex's review:
+
+- a course's `track.laps` sets the race's target, and every other course keeps three laps;
+- a sprint keeps its own one-run boards.
+
+The geometry is `Dungeon.new` ([contract](API_CONTRACTS.md#proposed-dungeon-sprints-the-scarlet-crusade-cup)):
+
+- the floor is the dungeon's rooms, axis-aligned rectangles, with no road to follow;
+- stone has full grip, and lawns are rough ground;
+- walls slide the kart along them, as on the city streets;
+- graves, tombs and furniture are solid boxes, as on the test oval.
+
+One generator, `scripts/build_dungeon_tracks.py`, writes the data (`ScarletCrusade.lua`) and the picture. It validates the layout first:
+
+- the spawn stands on stone;
+- every solid stands on the floor;
+- the reviewed route crosses the gates in order without touching a wall or a solid;
+- each gate spans its doorway from wall to wall, and a flood fill of the floor with that gate as a barrier proves it cannot be driven round.
+
+**Scarlet Graveyard** (`scarlet_graveyard`, version 1, sprint; proposed): the owner's green route on his map of the wing, at karting scale.
+
+1. From the instance portal in the entrance hall, the run turns north up the long hall.
+2. It turns west through the east door of the Chamber of Atonement and passes its torture table.
+3. It leaves by the west door, then goes down the stairs into the Forlorn Cloister.
+4. It crosses the graveyard on the path round the ruined fountain, to Honor's Tomb.
+
+- 2048 × 1024; 18 rooms (the cloister's lawn is rough); 52 solids.
+- Three gates: *Chamber of Atonement*, *Forlorn Cloister* and *Honor's Tomb* (the finish).
+- About 2,200 units from the portal to the finish line along the reviewed route.
+
+Offline: the route walk crosses the gates in order and never meets a wall or a solid, and full throttle from the grid launches cleanly (`tests/test_dungeon.lua`). The Library, Armory and Monastery are listed as coming soon. See [the Scarlet Graveyard sheet](art/tracks/scarlet-graveyard.md).
 
 ## Test Oval checkpoint sequence
 
@@ -108,6 +146,6 @@ UI releases capture, draws the exact finish pose and shows a pooled `RUN COMPLET
 - Document copyright/ownership of every texture, icon, music/sound asset. Start from plain colored tiles where feasible.
 
 ## Initial track sequence
-M0 `Test Oval` → M3 `Mirage Raceway` (dry, pre-flood Shimmering Flats) → M7 `Murloc Marsh` → M9 `Frost Gearway` and more based on performance metrics. Mirage replaces the planned Tinker Speedway name; no production-map acceptance is claimed. The owner's Capital Cities Cup (2026-10-21) comes first among the new maps: Stormwind, then Ironforge, Darnassus, Orgrimmar, Thunder Bluff and Undercity on the same pipeline.
+M0 `Test Oval` → M3 `Mirage Raceway` (dry, pre-flood Shimmering Flats) → M7 `Murloc Marsh` → M9 `Frost Gearway` and more based on performance metrics. Mirage replaces the planned Tinker Speedway name; no production-map acceptance is claimed. The owner's Capital Cities Cup (2026-10-21) comes first among the new maps: Stormwind, then Ironforge, Darnassus, Orgrimmar, Thunder Bluff and Undercity on the same pipeline. The Scarlet Crusade Cup's dungeon sprints follow (2026-10-25): the Graveyard first, then the Library, Armory and Monastery.
 
 Stormwind v3 wall alignment (2026-10-22): the white parapet is the exposed union of radius90 visual capsules. Collision now keeps14-unit centre clearance from that union, rather than separately shrinking every capsule to76 (which created invisible wedges at concave joins). Radius56 paving and normal straight-wall clearance are unchanged; generated exposed junctions/analytic projections provide the corner shape. Movement candidates obey the original step bound before nearest ranking. Artwork/gates/spawn and full-speed shoulders are unchanged.

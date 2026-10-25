@@ -39,7 +39,7 @@ end
 
 -- Every production map can be offered without admitting the retired fixture.
 for _,id in ipairs({"mirage_raceway","stormwind_city","ironforge_gp",
-    "darnassus_canopy","orgrimmar_canyon","undercity_slime"}) do
+    "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway"}) do
     local versions={[id]=3}
     local host=fresh("host",{trackVersions=versions})
     local guest=fresh("guest",{trackVersions=versions})

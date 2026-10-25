@@ -250,13 +250,13 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu)
         ("every created object is counted: %d/%d/%d against %d/%d/%d"):format(UI.objects.frames,
             UI.objects.textures, UI.objects.fontStrings, env.counts.frames, env.counts.textures,
             env.counts.fontStrings))
-    -- Eight track buttons under two cup headings; eight pooled gate strips.
+    -- Twelve track buttons under three cup headings; eight pooled gate strips.
     -- Ten kart buttons; the lobby adds two EditBoxes and Listen/track buttons.
     -- The observational remote kart adds one texture and one font string.
     -- Saved highscores add six frames and 52 labels, including the results notice.
     -- The player's kart outline adds a texture, its Settings check a button and two labels.
-    assert(UI.objects.frames == 85 and UI.objects.textures == 69 and UI.objects.fontStrings == 135,
-        ("explicit budget 85/69/135, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
+    assert(UI.objects.frames == 89 and UI.objects.textures == 69 and UI.objects.fontStrings == 136,
+        ("explicit budget 89/69/136, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
             UI.objects.fontStrings))
     assert(AzerothKartDB.preferences == nil, "creation saves nothing")
     local before = counts(env)
@@ -645,8 +645,14 @@ withMock({schemaVersion=1, preferences={version=1, kart="gyrocopter", track="mir
     assert(UI.trackId == "orgrimmar_canyon" and AzerothKartDB.preferences.track == "orgrimmar_canyon",
         "and on to Orgrimmar")
     click(UI.trackButton)
+    assert(UI.trackId == "thunder_bluff_skyway" and AzerothKartDB.preferences.track == "thunder_bluff_skyway",
+        "and on to Thunder Bluff")
+    click(UI.trackButton)
     assert(UI.trackId == "undercity_slime" and AzerothKartDB.preferences.track == "undercity_slime",
         "and on to Undercity")
+    click(UI.trackButton)
+    assert(UI.trackId == "scarlet_graveyard" and AzerothKartDB.preferences.track == "scarlet_graveyard",
+        "and on to the Scarlet Graveyard sprint")
     click(UI.trackButton)
     assert(UI.trackId == "mirage_raceway" and AzerothKartDB.preferences.track == "mirage_raceway",
         "switching back is remembered too")
@@ -684,12 +690,17 @@ withMock({schemaVersion=1, preferences={version=1, track="mirage_raceway"}}, fun
         "the saved track returns on the next open out of combat")
 end)
 
--- The coming-soon cities are listed, disabled and inert.
+-- Every city is ready: Thunder Bluff is an ordinary choice now. A course
+-- still marked coming soon (a fixture) is listed, disabled and inert.
 withMock(nil, function(env, UI, Menu)
     UI.Toggle(); click(Menu.view.homeButtons[1])
-    local soon = Menu.view.soonButtons.thunder_bluff_skyway
+    assert(Menu.view.trackButtons.thunder_bluff_skyway and Menu.view.soonButtons.thunder_bluff_skyway == nil,
+        "Thunder Bluff is listed as a ready track")
+    local soon = Menu.view.soonButtons.soon_fixture
     assert(soon and not soon:IsEnabled() and not soon.scripts.OnClick and soon.text:find("(soon)", 1, true),
         "a coming-soon city is listed, disabled and inert")
+end, function(env, AK)
+    table.insert(AK.Courses.LIST, {id="soon_fixture", name="Coming Course", cup="capital", soon=true})
 end)
 
 -- A deliberate choice is remembered even when it was already current, and it
@@ -955,7 +966,7 @@ withMock(nil, function(env, UI, Menu)
     session = {phase="idle", canHost=true, canListen=true}
     Menu.Show("multiplayer")
     for _,id in ipairs({"stormwind_city","ironforge_gp","darnassus_canopy",
-        "orgrimmar_canyon","undercity_slime","mirage_raceway"}) do
+        "orgrimmar_canyon","thunder_bluff_skyway","undercity_slime","mirage_raceway"}) do
         click(view.lobbyTrackChoice)
         assert(Menu.lobbyTrackId == id and UI.trackId == track,
             "host chooser cycles every finished course without changing local geometry: " .. id)
@@ -1163,6 +1174,44 @@ withMock(nil, function(env, UI, Menu, AK)
     assert(Menu.screen=="home" and reads==oldReads,
         "background synchronization does not open or refresh a hidden board")
     sameCounts(env,before,"automatic board refresh reuses pooled rows")
+end)
+
+-- The Scarlet Crusade Cup: its heading, Scarlet Graveyard and three dungeons
+-- coming soon; a sprint's race lines count its gates instead of laps, and
+-- its saved board says it holds one-run times.
+withMock(nil, function(env, UI, Menu, AK)
+    UI.Toggle(); click(Menu.view.homeButtons[1])
+    local buttons, soon = Menu.view.trackButtons, Menu.view.soonButtons
+    assert(buttons.scarlet_graveyard and soon.scarlet_library and soon.scarlet_armory and soon.scarlet_monastery
+        and not soon.scarlet_library:IsEnabled(), "the cup lists the Graveyard and three coming-soon dungeons")
+    local rows = Menu.trackRows()
+    assert(rows[#rows - 4].heading == "Scarlet Crusade Cup" and rows[#rows - 3].track.id == "scarlet_graveyard",
+        "the third cup's heading, then its ready sprint")
+    click(buttons.scarlet_graveyard)
+    assert(UI.trackId == "scarlet_graveyard" and Menu.previewReady
+        and Menu.view.trackPreview.width == 320 and Menu.view.trackPreview.height == 160,
+        "choosing it shows its twice-as-wide preview")
+    local lap, time, gates = Menu.raceLines(nil, nil)
+    assert(lap == "SPRINT" and time == "0:00.0" and gates == "GATES 0/3", "before the sprint: its gates, no laps")
+    local running = {status="running", targetLaps=1, totalTicks=754, laps={completedLaps=0, checkpoints={passed=2}}}
+    lap, time, gates = Menu.raceLines(running, running.laps)
+    assert(lap == "SPRINT" and time == "0:12.6" and gates == "GATES 2/3", "a running sprint counts its gates")
+    local finished = {status="finished", targetLaps=1, totalTicks=1830, laps={completedLaps=1, checkpoints={passed=0}}}
+    lap, time, gates = Menu.raceLines(finished, finished.laps)
+    assert(lap == "FINISHED" and time == "0:30.50" and gates == "GATES 3/3", "a finished sprint")
+    local before = counts(env)
+    AK.SoloRecords = {GetView=function(id)
+        return {scope="local", writable=true, rows={}, trackId=id,
+            context={trackId=id, lapCount=id == "scarlet_graveyard" and 1 or 3}}
+    end}
+    Menu.Show("home"); click(Menu.view.homeButtons[6])
+    assert(Menu.screen == "highscores" and Menu.view.highscoreTrack.text == "Track: Scarlet Graveyard"
+        and Menu.view.highscoreRule.text == "Fastest completed sprints, one run each, for the current rules",
+        "the Graveyard's saved board holds one-run sprint times")
+    click(Menu.view.highscoreTrack)
+    assert(Menu.view.highscoreRule.text == "Fastest completed three-lap totals for the current rules",
+        "the next board holds three-lap totals again")
+    sameCounts(env, before, "the board's rule line reuses its label")
 end)
 
 print("mock menus: 8 screens, single-player flow, saved highscore pages, results paths, garage, settings, saved choices, " ..

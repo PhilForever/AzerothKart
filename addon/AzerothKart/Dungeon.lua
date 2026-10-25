@@ -1,0 +1,318 @@
+-- Open dungeon courses (the Scarlet Crusade Cup's sprints), independent of
+-- clocks and WoW APIs.
+--
+-- A dungeon is its floor: axis-aligned rooms (halls, corridors, a chamber, a
+-- cloister's lawns and paths), each "road" (stone) or "rough" (a lawn: the
+-- rough ground Physics slows on). There is no road to follow. The kart
+-- centre stays wallInset inside the union of the rooms (the walls stand a
+-- kart's half-diagonal clear of it) and outside every solid box (a grave, a
+-- tomb, a pillar) grown by the same inset, as the test oval's crates are.
+-- The gates, crossed in order, guard the doorways; the last is the finish.
+-- `laps` sets the run's length (a sprint: one run to the last gate).
+--
+-- Solids use Track's swept-box resolution: a kart slides along a face and
+-- the contact counts as a hit. A step ending outside the floor moves back to
+-- the nearest floor point no further from the start than the step was long,
+-- so a kart slides along a wall. Where rooms meet, their floors overlap by
+-- at least twice the inset (a doorway): the union of the inset rooms is then
+-- open from one to the other. Lookups use a 64-unit grid.
+local _, namespace = ...
+local Dungeon = {}
+
+local CELL = 64
+local MARGIN = 32        -- grid reach beyond a room or a solid; more than any one step
+local SURFACES = {road="road", rough="grass"}
+
+local function finite(value)
+    return type(value) == "number" and value == value
+        and value > -math.huge and value < math.huge
+end
+
+local function copyList(list)
+    local out = {}
+    for index,item in ipairs(list or {}) do
+        local entry = {}
+        for key,value in pairs(item) do entry[key] = value end
+        out[index] = entry
+    end
+    return out
+end
+
+-- Entry time and blocking plane(s) of a swept centre through one expanded
+-- box, or nil (Track.lua's sweep).
+local function sweepBox(x, y, dx, dy, minX, minY, maxX, maxY)
+    local nearX,farX,planeX = -math.huge,math.huge,nil
+    local nearY,farY,planeY = -math.huge,math.huge,nil
+    if dx == 0 then
+        if x <= minX or x >= maxX then return nil end
+    elseif dx > 0 then
+        nearX,farX,planeX = (minX-x)/dx,(maxX-x)/dx,minX
+    else
+        nearX,farX,planeX = (maxX-x)/dx,(minX-x)/dx,maxX
+    end
+    if dy == 0 then
+        if y <= minY or y >= maxY then return nil end
+    elseif dy > 0 then
+        nearY,farY,planeY = (minY-y)/dy,(maxY-y)/dy,minY
+    else
+        nearY,farY,planeY = (maxY-y)/dy,(minY-y)/dy,maxY
+    end
+    local entry,exit = math.max(nearX,nearY),math.min(farX,farY)
+    if entry < 0 or entry >= 1 or exit <= entry then return nil end
+    if nearX < entry then planeX = nil end
+    if nearY < entry then planeY = nil end
+    return entry,planeX,planeY
+end
+
+local function earlier(best, blockX, blockY, time, planeX, planeY)
+    if time < best then return time,planeX,planeY end
+    if time == best then return best,blockX or planeX,blockY or planeY end
+    return best,blockX,blockY
+end
+
+-- definition: {id, version, name, width, height, wallInset,
+-- checkpointMaxStep (optional), laps (optional, 1-9),
+-- rooms={{x,y,width,height,surface}...} (surface "road" or "rough"),
+-- solids={{id,x,y,width,height}...}, gates={{name,ax,ay,bx,by,nx,ny}...},
+-- spawn={x,y,heading}}. Bottom-left origin, as every track.
+function Dungeon.new(definition, crossesGate)
+    assert(type(definition) == "table", "dungeon definition required")
+    assert(type(crossesGate) == "function", "directional gate predicate required")
+    local d = definition
+    assert(type(d.id) == "string" and finite(d.width) and d.width > 0 and finite(d.height) and d.height > 0
+        and finite(d.wallInset) and d.wallInset >= 0 and type(d.rooms) == "table" and #d.rooms > 0
+        and type(d.gates) == "table" and #d.gates > 0 and type(d.spawn) == "table",
+        "complete dungeon geometry required")
+    assert(d.laps == nil or (finite(d.laps) and d.laps >= 1 and d.laps <= 9 and d.laps % 1 == 0),
+        "a dungeon's lap count must be an integer from 1 to 9")
+    local inset = d.wallInset
+    local track = {
+        id=d.id, version=d.version or 1, name=d.name, width=d.width, height=d.height,
+        wallInset=inset, checkpointMaxStep=d.checkpointMaxStep or 5, laps=d.laps,
+        crossesGate=crossesGate,
+        rooms=copyList(d.rooms), gates=copyList(d.gates), solids=copyList(d.solids),
+    }
+    -- The kart centre's floor: each room inset on every side.
+    local rooms = {}
+    for index,room in ipairs(track.rooms) do
+        assert(finite(room.x) and finite(room.y) and finite(room.width) and finite(room.height)
+            and room.width > 2*inset and room.height > 2*inset, "a room wider than two insets required")
+        assert(SURFACES[room.surface], "a room is road or rough")
+        rooms[index] = {x0=room.x, y0=room.y, x1=room.x+room.width, y1=room.y+room.height,
+            minX=room.x+inset, minY=room.y+inset, maxX=room.x+room.width-inset, maxY=room.y+room.height-inset,
+            road=room.surface == "road"}
+    end
+    local solids = {}
+    for index,box in ipairs(track.solids) do
+        assert(finite(box.x) and finite(box.y) and finite(box.width) and finite(box.height)
+            and box.width >= 0 and box.height >= 0, "finite solid box required")
+        solids[index] = {x0=box.x, y0=box.y, x1=box.x+box.width, y1=box.y+box.height,
+            minX=box.x-inset, minY=box.y-inset, maxX=box.x+box.width+inset, maxY=box.y+box.height+inset}
+    end
+
+    -- The grid: each cell lists the rooms and solids whose kart-centre
+    -- bounds plus MARGIN reach it.
+    local columns,rows = math.floor(track.width/CELL)+1,math.floor(track.height/CELL)+1
+    local function register(cells, index, minX, minY, maxX, maxY)
+        local x0 = math.max(0,math.floor((minX-MARGIN)/CELL))
+        local x1 = math.min(columns-1,math.floor((maxX+MARGIN)/CELL))
+        local y0 = math.max(0,math.floor((minY-MARGIN)/CELL))
+        local y1 = math.min(rows-1,math.floor((maxY+MARGIN)/CELL))
+        for row=y0,y1 do
+            for column=x0,x1 do
+                local key = row*columns+column+1
+                local list = cells[key]
+                if not list then list = {}; cells[key] = list end
+                list[#list+1] = index
+            end
+        end
+    end
+    local roomCells,solidCells = {},{}
+    for index,room in ipairs(rooms) do register(roomCells,index,room.x0,room.y0,room.x1,room.y1) end
+    for index,box in ipairs(solids) do register(solidCells,index,box.minX,box.minY,box.maxX,box.maxY) end
+    local function cellOf(cells, x, y)
+        if x < 0 or y < 0 or x >= columns*CELL or y >= rows*CELL then return nil end
+        return cells[math.floor(y/CELL)*columns+math.floor(x/CELL)+1]
+    end
+
+    local function onFloor(x, y)
+        local list = cellOf(roomCells,x,y)
+        if not list then return false end
+        for i=1,#list do
+            local room = rooms[list[i]]
+            if x >= room.minX and x <= room.maxX and y >= room.minY and y <= room.maxY then return true end
+        end
+        return false
+    end
+
+    local function inSolid(x, y)
+        local list = cellOf(solidCells,x,y)
+        if not list then return false end
+        for i=1,#list do
+            local box = solids[list[i]]
+            if x > box.minX and x < box.maxX and y > box.minY and y < box.maxY then return true end
+        end
+        return false
+    end
+
+    local function allowed(x, y)
+        return x >= inset and x <= track.width-inset and y >= inset and y <= track.height-inset
+            and onFloor(x,y) and not inSolid(x,y)
+    end
+
+    -- "road", "grass" (a lawn) or nil (off the floor): the painted floor
+    -- under the kart's centre, stone wherever any stone room covers it.
+    local function ground(x, y)
+        local list = cellOf(roomCells,x,y)
+        if not list then return nil end
+        local rough = false
+        for i=1,#list do
+            local room = rooms[list[i]]
+            if x >= room.x0 and x <= room.x1 and y >= room.y0 and y <= room.y1 then
+                if room.road then return "road" end
+                rough = true
+            end
+        end
+        return rough and "grass" or nil
+    end
+
+    -- One candidate for the nearest allowed point to (x, y); with a step
+    -- bound, only points within it of the start count.
+    local function candidate(px, py, x, y, startX, startY, maxStepSquared, bestX, bestY, best)
+        if not allowed(px,py) then return bestX,bestY,best end
+        if maxStepSquared then
+            local sx,sy = px-startX,py-startY
+            if sx*sx+sy*sy > maxStepSquared then return bestX,bestY,best end
+        end
+        local dx,dy = px-x,py-y
+        local distance = dx*dx+dy*dy
+        if not best or distance < best then return px,py,distance end
+        return bestX,bestY,best
+    end
+
+    -- The nearest allowed floor point to (x, y): each room's nearest inset
+    -- point or, where that lies inside a grown solid, the solid's faces.
+    -- Searches the start cell's rooms, or every room when `anywhere`.
+    local function nearestFloor(x, y, anywhere, startX, startY, maxStepSquared)
+        local list = cellOf(roomCells,startX or x,startY or y)
+        local count = anywhere and #rooms or (list and #list or 0)
+        local bestX,bestY,best
+        for i=1,count do
+            local room = rooms[anywhere and i or list[i]]
+            local px = math.max(room.minX,math.min(room.maxX,x))
+            local py = math.max(room.minY,math.min(room.maxY,y))
+            if inSolid(px,py) then
+                for k=1,#solids do
+                    local box = solids[k]
+                    if px > box.minX and px < box.maxX and py > box.minY and py < box.maxY then
+                        bestX,bestY,best = candidate(box.minX,py,x,y,startX,startY,maxStepSquared,bestX,bestY,best)
+                        bestX,bestY,best = candidate(box.maxX,py,x,y,startX,startY,maxStepSquared,bestX,bestY,best)
+                        bestX,bestY,best = candidate(px,box.minY,x,y,startX,startY,maxStepSquared,bestX,bestY,best)
+                        bestX,bestY,best = candidate(px,box.maxY,x,y,startX,startY,maxStepSquared,bestX,bestY,best)
+                    end
+                end
+            else
+                bestX,bestY,best = candidate(px,py,x,y,startX,startY,maxStepSquared,bestX,bestY,best)
+            end
+        end
+        return bestX,bestY
+    end
+
+    function track.isDrivable(x, y)
+        if not finite(x) or not finite(y) then return false end
+        return allowed(x,y) and ground(x,y) == "road"
+    end
+
+    function track.surfaceAt(x, y)
+        if not finite(x) or not finite(y) then return "wall" end
+        if x < inset or x > track.width-inset or y < inset or y > track.height-inset then return "wall" end
+        local list = cellOf(solidCells,x,y)
+        for i=1,(list and #list or 0) do
+            local box = solids[list[i]]
+            if x >= box.x0 and x <= box.x1 and y >= box.y0 and y <= box.y1 then return "wall" end
+        end
+        if not onFloor(x,y) then return "wall" end
+        return ground(x,y) or "wall"
+    end
+
+    function track.constrainPosition(x, y)
+        assert(finite(x) and finite(y), "finite track coordinates required")
+        local cx = math.max(inset,math.min(track.width-inset,x))
+        local cy = math.max(inset,math.min(track.height-inset,y))
+        return cx,cy,cx ~= x or cy ~= y
+    end
+
+    local spawnX,spawnY,spawnHeading = d.spawn.x,d.spawn.y,d.spawn.heading
+    assert(finite(spawnX) and finite(spawnY) and finite(spawnHeading) and allowed(spawnX,spawnY),
+        "the spawn stands on the floor, clear of every solid")
+
+    -- A centre off the floor or inside a grown solid (never by driving)
+    -- moves to the nearest allowed floor point, or back to the spawn.
+    local function recover(x, y)
+        if allowed(x,y) then return x,y,false end
+        local px,py = nearestFloor(x,y,true)
+        if px then return px,py,true end
+        return spawnX,spawnY,true
+    end
+
+    -- Swept centre movement with the perimeter and every nearby solid;
+    -- contacts remove only the remaining normal displacement (Physics
+    -- scrubs speed). Then the walls: an end point off the floor moves to the
+    -- nearest floor point within the step's length of its start.
+    function track.resolveMovement(x, y, targetX, targetY)
+        assert(finite(x) and finite(y) and finite(targetX) and finite(targetY),
+            "finite track coordinates required")
+        local dx,dy = targetX-x,targetY-y
+        assert(finite(dx) and finite(dy), "finite track displacement required")
+        local hit, recovered
+        x,y,hit = track.constrainPosition(x,y)
+        x,y,recovered = recover(x,y)
+        hit = hit or recovered
+        local startX,startY = x,y
+        -- A step within half the margin meets only the start cell's solids.
+        local near = math.abs(dx) <= MARGIN/2 and math.abs(dy) <= MARGIN/2
+        local list = near and cellOf(solidCells,x,y) or nil
+        local count = near and (list and #list or 0) or #solids
+        for _=1,3 do
+            if dx == 0 and dy == 0 then break end
+            local best,blockX,blockY = 1,nil,nil
+            if dx < 0 and x+dx < inset then
+                best,blockX,blockY = earlier(best,blockX,blockY,(inset-x)/dx,inset,nil)
+            elseif dx > 0 and x+dx > track.width-inset then
+                best,blockX,blockY = earlier(best,blockX,blockY,(track.width-inset-x)/dx,track.width-inset,nil)
+            end
+            if dy < 0 and y+dy < inset then
+                best,blockX,blockY = earlier(best,blockX,blockY,(inset-y)/dy,nil,inset)
+            elseif dy > 0 and y+dy > track.height-inset then
+                best,blockX,blockY = earlier(best,blockX,blockY,(track.height-inset-y)/dy,nil,track.height-inset)
+            end
+            for i=1,count do
+                local box = solids[near and list[i] or i]
+                local time,planeX,planeY = sweepBox(x,y,dx,dy,box.minX,box.minY,box.maxX,box.maxY)
+                if time then best,blockX,blockY = earlier(best,blockX,blockY,time,planeX,planeY) end
+            end
+            x,y = x+dx*best,y+dy*best
+            if not blockX and not blockY then break end
+            hit = true
+            dx,dy = dx*(1-best),dy*(1-best)
+            if blockX then x,dx = blockX,0 end
+            if blockY then y,dy = blockY,0 end
+        end
+        if not onFloor(x,y) then
+            hit = true
+            local stepX,stepY = targetX-startX,targetY-startY
+            local stepSquared = stepX*stepX+stepY*stepY
+            local px,py = nearestFloor(x,y,not near,startX,startY,stepSquared)
+            if px then x,y = px,py else x,y = startX,startY end
+        end
+        return x,y,hit
+    end
+
+    function track.spawn()
+        return {x=spawnX,y=spawnY,heading=spawnHeading}
+    end
+    return track
+end
+
+if type(namespace) == "table" then namespace.Dungeon = Dungeon end
+return Dungeon

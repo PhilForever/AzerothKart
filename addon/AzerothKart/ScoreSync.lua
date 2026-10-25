@@ -6,10 +6,11 @@ local Sync = {PREFIX="AZKSCR1", MAX_BYTES=240, MAX_PEERS=32, SEND_INTERVAL=1,
     HELLO_INTERVAL=60, REQUEST_TIMEOUT=120, MAX_ROWS=50}
 AK.ScoreSync = Sync
 local courseIds={"mirage_raceway","stormwind_city","ironforge_gp",
-    "darnassus_canopy","orgrimmar_canyon","undercity_slime"}
--- O remains a zero-digest placeholder in the seven-slot HELLO layout, never
--- an admitted course. Existing production map codes and packets stay stable.
-local courseCodes={"O","M","S","I","D","R","U"}
+    "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway","scarlet_graveyard"}
+-- O remains a zero-digest placeholder, never an admitted course. Active
+-- production codes stay stable; new courses append their own digest slots.
+local courseCodes={"O","M","S","I","D","R","U","T","G"}
+local ACTIVE_BOARDS,HELLO_SLOTS=#courseIds,#courseCodes
 local courseToCode,codeToCourse={},{}
 for i,id in ipairs(courseIds) do courseToCode[id],codeToCourse[courseCodes[i+1]]=courseCodes[i+1],id end
 local kartIds={"goblin_mortar_trike","steam_tank","dwarven_biker","dwarf_car",
@@ -61,7 +62,7 @@ function Sync.encode(message)
         and integer(message.hash,0,4294967295) and integer(message.count,0,Sync.MAX_ROWS) then
         text=table.concat({"1 E",message.code,decimal(message.hash),decimal(message.count)}," ")
     elseif message.kind=="HELLO" and integer(message.physicsVersion,1,2147483647)
-        and integer(message.catalogHash,0,4294967295) and dense(message.hashes,7)==7 then
+        and integer(message.catalogHash,0,4294967295) and dense(message.hashes,HELLO_SLOTS)==HELLO_SLOTS then
         local parts={"1 H",decimal(message.physicsVersion),decimal(message.catalogHash)}
         for _,value in ipairs(message.hashes) do
             if not integer(value,0,4294967295) then return nil,"hash" end
@@ -108,10 +109,10 @@ function Sync.decode(payload)
         if codeToCourse[code] and stamp and n then return {kind="END",code=code,hash=stamp,count=n} end
     elseif tag=="H" then
         local p={};for field in rest:gmatch("[^ ]+") do p[#p+1]=field end
-        if #p~=9 or table.concat(p," ")~=rest then return nil,"hello" end
+        if #p~=HELLO_SLOTS+2 or table.concat(p," ")~=rest then return nil,"hello" end
         local physics,catalog=number(p[1],1,2147483647),number(p[2],0,4294967295)
         local hashes={}
-        for i=1,7 do hashes[i]=number(p[i+2],0,4294967295);if not hashes[i] then return nil,"hello" end end
+        for i=1,HELLO_SLOTS do hashes[i]=number(p[i+2],0,4294967295);if not hashes[i] then return nil,"hello" end end
         if physics and catalog then return {kind="HELLO",physicsVersion=physics,catalogHash=catalog,hashes=hashes} end
     end
     return nil,"message"
@@ -132,7 +133,8 @@ local function clock(s,now)
     s.now=now;return true
 end
 function Sync.new(options,now)
-    if not plain(options) or not H.NormalizeName(options.name) or dense(options.contexts,6)~=6 then return nil,"options" end
+    if not plain(options) or not H.NormalizeName(options.name)
+        or dense(options.contexts,ACTIVE_BOARDS)~=ACTIVE_BOARDS then return nil,"options" end
     local store,writable=H.Load(options.store)
     if not writable then return nil,"store" end
     local s={name=H.NormalizeName(options.name),key=identity(options.name),contexts={},store=store,

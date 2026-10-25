@@ -1,6 +1,6 @@
 # Roadmap — executable milestones and gates
 
-**2026-10-25 scope update:** [six production maps and multiplayer capacity](PRODUCTION_MAPS.md). Test Oval is retired from the game; its analytical fixture stays in offline tests. All six finished maps are enabled for the existing two-peer flow. Eight racers remain a target, with fan-out route/grouping and actual capacity unresolved. No milestone acceptance is added by catalogue/source coverage.
+**2026-10-25 scope update:** [eight production maps and multiplayer capacity](PRODUCTION_MAPS.md). Test Oval is retired from the game; its analytical fixture stays in offline tests. The seven lap circuits are enabled for the existing two-peer flow; Graveyard is solo until its live lifecycle is reviewed. Eight racers remain a target, with fan-out route/grouping and actual capacity unresolved. No milestone acceptance is added by catalogue/source coverage.
 
 **Not a schedule promise.** Milestones are completed only after measurable acceptance criteria. Codex should complete one small vertical slice per run and update `PROGRESS.md`.
 

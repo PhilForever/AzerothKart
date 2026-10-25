@@ -1257,6 +1257,371 @@ def paint_pits(pic, city, pit, tiles):
 
 
 # ---------------------------------------------------------------------------
+# Mesas over a chasm (city_layouts: `chasm`): Thunder Bluff.
+#
+# The city stands on mesas (`chasm.mesas`, world polygons) and everything off
+# them drops `depth` units to the plain below; the street crosses the drop on
+# bridges. The mesas' tops are the picture's reference, drawn where they lie.
+# From the karts' camera a point `depth` below shows `lean` x `depth` rows
+# further south, so an off-mesa texel shows either the face of a mesa to its
+# north (when one stands within that many rows: the face hangs below its
+# southern edge, its brink at the top) or the plain, seen past the mesas.
+# Bridges are thin: the faces and the plain show round them. The sun (north-
+# west) leaves the faces in shade and throws the mesas' shadows across the
+# plain; haze grows with depth.
+
+
+def chasm_land(city, street):
+    """The mesas' tops: 1 on the rock the city stands on, 0 over the drop.
+    Where a street narrows onto a bridge, the wider street's rounded end
+    reaches past the deck's sides: the rock runs out under it."""
+    w, h = street.w, street.h
+    thick = city["wall"]["thickness"]
+    land = bytearray(w * h)
+    for poly in city["chasm"]["mesas"]:
+        fill_polygon(land, w, h, poly)
+    for (bi, bj) in street.buckets:
+        for y in range(bj * BUCKET, min(h, (bj + 1) * BUCKET)):
+            base = (h - 1 - y) * w
+            for x in range(bi * BUCKET, min(w, (bi + 1) * BUCKET)):
+                i = base + x
+                k = street.seg[i]
+                if not land[i] and k >= 0 and street.gap[i] <= thick + 0.5 and \
+                        street.lane[i] > street.caps[k][4] + thick + 0.5:
+                    land[i] = 1
+    return land
+
+
+def _byte_rows(mask, w, h):
+    return [int.from_bytes(mask[r * w:(r + 1) * w], "big") for r in range(h)]
+
+
+def _shift_rows(rows, columns, down, w):
+    """A mask of row integers (a byte per texel) moved `columns` east and
+    `down` rows south; what leaves the picture is dropped."""
+    h = len(rows)
+    full = (1 << (8 * w)) - 1
+    out = [0] * h
+    for r in range(max(0, down), min(h, h + down)):
+        out[r] = (rows[r - down] >> (8 * columns)) & full
+    return out
+
+
+def _smear_rows(rows, count, columns, down, w):
+    """The union of a mask moved t x (columns, down) for t = 0 .. count - 1."""
+    h = len(rows)
+    result, offset, acc, size = [0] * h, 0, rows, 1
+    while count:
+        if count & 1:
+            moved = _shift_rows(acc, offset * columns, offset * down, w)
+            result = [a | b for a, b in zip(result, moved)]
+            offset += size
+        count >>= 1
+        if count:
+            acc = [a | b for a, b in zip(acc, _shift_rows(acc, size * columns, size * down, w))]
+            size *= 2
+    return result
+
+
+SOFT_TAPS = ((0, 0), (-9, 0), (9, 0), (0, -9), (0, 9), (-18, 0), (18, 0), (0, -18), (0, 18))
+
+
+class _Noise:
+    """Smooth value noise in [0, 1]: hashed values on a `grid`, eased and
+    interpolated between them. Integer hashing: every machine agrees."""
+
+    def __init__(self, grid, seed):
+        self.grid, self.seed, self.corners = grid, seed, {}
+
+    def _corner(self, gx, gy):
+        key = (gx, gy)
+        value = self.corners.get(key)
+        if value is None:
+            value = self.corners[key] = hash32(gx, gy, self.seed) & 1023
+        return value
+
+    def at(self, x, y):
+        grid = self.grid
+        gx, gy = x // grid, y // grid
+        fx, fy = (x % grid) / grid, (y % grid) / grid
+        fx, fy = fx * fx * (3 - 2 * fx), fy * fy * (3 - 2 * fy)
+        a, b = self._corner(gx, gy), self._corner(gx + 1, gy)
+        c, d = self._corner(gx, gy + 1), self._corner(gx + 1, gy + 1)
+        top = a + (b - a) * fx
+        return (top + (c + (d - c) * fx - top) * fy) / 1023.0
+
+
+def paint_chasm(pic, wc3, city, street, land, tiles):
+    """Paint every texel off the mesas (see above): the plain far below with
+    its trees and the mesas' shadows, the mesas' faces and the sides of the
+    bridges' decks; then the mesas' rims and brinks. Returns (the texels no
+    model may stand on: the drop and a margin along every edge, the bridges'
+    texels: the street and its walls over the drop)."""
+    spec = city["chasm"]
+    w, h = pic.w, pic.h
+    n = w * h
+    depth = spec["depth"]
+    rise = int(depth * city["lean"] + 0.5)
+    thick = city["wall"]["thickness"]
+    hr, hg, hb = spec["haze"]
+    plain_haze = spec.get("plain_haze", 0.4)
+    keep = 1.0 - plain_haze
+    face_top, face_foot = spec.get("face_haze", (0.05, 0.4))
+    strength = spec.get("shadow", 0.45)
+    scale = spec.get("plain_scale", 2)
+    (tile_a, shade_a), (tile_b, shade_b) = spec["plain"]
+    strata = Strata(tiles, spec["face"])
+    srows, sheight, swidth = strata.rows, strata.height, strata.width
+    # The street and its walls over the drop: the bridges.
+    deck = bytearray(n)
+    for (bi, bj) in street.buckets:
+        for y in range(bj * BUCKET, min(h, (bj + 1) * BUCKET)):
+            base = (h - 1 - y) * w
+            for x in range(bi * BUCKET, min(w, (bi + 1) * BUCKET)):
+                i = base + x
+                if not land[i] and street.gap[i] <= thick + 0.5:
+                    deck[i] = 1
+    # Rows of drop straight north of each texel to the nearest mesa (65535:
+    # none before the picture's edge).
+    up = array("H", [0]) * n
+    for x in range(w):
+        up[x] = 0 if land[x] else 65535
+    for i in range(w, n):
+        if land[i]:
+            continue
+        if land[i - w]:
+            up[i] = 0
+        else:
+            k = up[i - w]
+            up[i] = k + 1 if k < 65534 else 65535
+    # The plain's shadows, in the plain's own coordinates: a mesa (rock all
+    # the way down) throws its shadow the whole way along the sun's shadow
+    # vector; a bridge, a thin deck, throws its shape the whole drop away.
+    sx, sy = R.kart.SHADOW_VECTOR
+    steps = int(depth * -sy / 4 + 0.5)                   # in steps of 3 columns east, 4 rows south
+    land_rows = _smear_rows(_byte_rows(land, w, h), steps + 1, 3, 4, w)
+    deck_rows = _shift_rows(_byte_rows(deck, w, h), int(depth * sx + 0.5), int(depth * -sy + 0.5), w)
+    shaded = bytearray(b"".join((a | b).to_bytes(w, "big") for a, b in zip(land_rows, deck_rows)))
+    # The faces: pale rock in rounded columns worn by the rain, their edges
+    # wandering a little down the face; the cliff texture's strata as detail.
+    sand = spec.get("rock", (212, 186, 148))
+    columns_ = _Noise(13, 71)
+    finer = _Noise(5, 79)
+    meander = _Noise(36, 75)
+    bands = _Noise(42, 77)
+    feet = _Noise(23, 91)
+    mean = sum(0.30 * t[0] + 0.59 * t[1] + 0.11 * t[2] for line in srows for t in line) / (sheight * swidth)
+    mix_noise = _Noise(180, 73)
+    # A river across the plain (`river`: points in the plain's coordinates,
+    # its width): Warcraft III's water, darker along its banks.
+    river = spec.get("river")
+    plain_h = h + rise
+    wet = near_bank = None
+    if river:
+        wet = bytearray(w * plain_h)
+        half = river["width"] / 2.0
+        points = river["points"]
+        for (ax, ay), (bx, by) in zip(points, points[1:]):
+            count = int(sqrt((bx - ax) ** 2 + (by - ay) ** 2) / 4.0) + 1
+            for k in range(count + 1):
+                fill_disc(wet, w, plain_h, ax + (bx - ax) * k / count, ay + (by - ay) * k / count, half)
+        near_bank = bank_distance(wet, w, plain_h, 8)
+        tex_w, tex_h, tex = R.read_dds(R.archive_file(tiles.wc3, city["water_texture"]).read_bytes())
+        wr, wg, wb = city["water_tint"]
+
+    def shade_at(x, py):
+        """How much of the plain round (x, py) lies in a shadow (soft edges)."""
+        total = 0
+        for dx, dy in SOFT_TAPS:
+            yy, xx = py + dy, x + dx
+            if 0 <= yy < h and 0 <= xx < w and shaded[(h - 1 - yy) * w + xx]:
+                total += 1
+        return total / len(SOFT_TAPS)
+
+    def _plain(x, py):
+        """The plain far below at (x, py) in its own coordinates: two grasses
+        mixed in broad patches, in the mesas' shadows, hazy."""
+        dim = keep * (1.0 - strength * shade_at(x, py))
+        if wet is not None and 0 <= py < plain_h:
+            j = (plain_h - 1 - py) * w + x
+            if wet[j]:
+                t = tex[((py * 2) % tex_h) * tex_w + (x * 2) % tex_w]
+                light = (t[0] + t[1] + t[2]) / 3.0
+                s_ = (0.62 + 0.38 * near_bank[j] / 8.0) * 255.0 * dim
+                return ((wr * 0.75 + light * 0.25) * s_ + hr * plain_haze,
+                        (wg * 0.75 + light * 0.25) * s_ + hg * plain_haze,
+                        (wb * 0.75 + light * 0.30) * s_ + hb * plain_haze)
+        px, qy = x * scale, py * scale
+        m = mix_noise.at(x, py)
+        ar, ag, ab, _ = tiles.whole(tile_a, px, qy, seed=59, shade=shade_a)
+        br, bg, bb, _ = tiles.whole(tile_b, px, qy, seed=61, shade=shade_b)
+        return ((ar + (br - ar) * m) * dim + hr * plain_haze, (ag + (bg - ag) * m) * dim + hg * plain_haze,
+                (ab + (bb - ab) * m) * dim + hb * plain_haze)
+
+    for row in range(h):
+        y = h - 1 - row
+        base = row * w
+        py = y + rise                                    # the plain's row seen here
+        for x in range(w):
+            i = base + x
+            if land[i]:
+                continue
+            k = up[i]
+            if k < rise:
+                # A face, k rows below its brink: sandstone columns, shaded
+                # (the sun is behind the mesa), hazier further down.
+                top = row - k - 1
+                left = i - 3 if x >= 3 and not land[i - 3] and up[i - 3] < rise else i
+                right = i + 3 if x + 3 < w and not land[i + 3] and up[i + 3] < rise else i
+                slope = (up[left] - up[right]) / max(1, right - left)
+                facing = (0.6 * slope - 0.8) / sqrt(1.0 + slope * slope)
+                light = 0.84 + 0.16 * facing
+                if k < 4:
+                    j = top * w + x                      # the turf over the brink, then its shadow
+                    tr, tg, tb = (pic.r[j], pic.g[j], pic.b[j]) if k < 2 else sand
+                    light = (0.86, 0.62, 0.50, 0.62)[k]
+                else:
+                    u = x + int(7 * meander.at(k, top // 32))
+                    v = columns_.at(u, 0)
+                    ridge = columns_.at(u - 2, 0) - columns_.at(u + 2, 0)   # its west side catches the light
+                    crack = 1.0 if v > 0.2 else 0.70 + 1.5 * v                # the cleft between two columns
+                    t = srows[(k * sheight) // rise][(x * 2 + (top // 64) * 37) % swidth]
+                    detail = 0.84 + 0.16 * (0.30 * t[0] + 0.59 * t[1] + 0.11 * t[2]) / mean
+                    light *= ((0.64 + 0.40 * v + 0.10 * finer.at(u, k // 24) + 0.9 * ridge) * crack * detail *
+                              (0.94 + 0.10 * bands.at(k, top // 16)))
+                    tr, tg, tb = sand
+                f = k / rise
+                light *= 1.0 - 0.18 * f
+                a = face_top + (face_foot - face_top) * f
+                r = tr * light * (1.0 - a) + hr * a
+                g = tg * light * (1.0 - a) + hg * a
+                b = tb * light * (1.0 - a) + hb * a
+                foot = 0.70 + 0.14 * feet.at(x, 0)
+                if f > foot:
+                    # Toward its foot the face fades into the haze over the plain.
+                    m = (f - foot) / (1.0 - foot)
+                    m *= m
+                    pr, pg, pb = _plain(x, py)
+                    r, g, b = r + (pr - r) * m, g + (pg - g) * m, b + (pb - b) * m
+            else:
+                r, g, b = _plain(x, py)
+                if k < rise + 12:
+                    s_ = 0.70 + 0.30 * (k - rise) / 12.0          # the foot of the cliff
+                    r, g, b = r * s_, g * s_, b * s_
+            pic.r[i] = min(255, int(r + 0.5))
+            pic.g[i] = min(255, int(g + 0.5))
+            pic.b[i] = min(255, int(b + 0.5))
+    # Trees on the plain, small and hazy, where the plain shows.
+    trees = spec.get("trees")
+    if trees:
+        cache = {}
+        step = trees["step"]
+        sprites = [sprite_for(wc3, city, dict(trees["prop"], model=trees["prop"]["model"] % v), cache)
+                   for v in range(trees.get("variants", 1))]
+        woods = _Noise(220, 83)
+        for gy in range(step // 2, h + rise, step):
+            for gx in range(step // 2, w, step):
+                if hash32(gx, gy, 81) % 1000 >= trees["density"] * 1000 or woods.at(gx, gy) < 0.35:
+                    continue
+                X = gx + hash32(gx, gy, 85) % step - step // 2
+                Y = gy + hash32(gx, gy, 87) % step - step // 2 - rise
+                if not (0 <= X < w and 0 <= Y < h):
+                    continue
+                i = (h - 1 - Y) * w + X
+                if land[i] or up[i] < rise:
+                    continue                                       # hidden behind a mesa
+                if wet is not None and wet[(plain_h - 1 - (Y + rise)) * w + X]:
+                    continue                                       # in the river
+                sprite = sprites[hash32(gx, gy, 89) % len(sprites)]
+                dim = keep * (1.0 - strength * shade_at(X, Y + rise))
+                col0, row0 = X - sprite["ox"], h - Y - sprite["oy"]
+                for jj, line in enumerate(sprite["pixels"]):
+                    r_ = row0 + jj
+                    if r_ < 0 or r_ >= h:
+                        continue
+                    for ii, (pr, pg, pb, pa) in enumerate(line):
+                        c = col0 + ii
+                        if not pa or c < 0 or c >= w:
+                            continue
+                        j = r_ * w + c
+                        if land[j]:
+                            continue
+                        pic.over(j, min(255, int(pr * dim + hr * plain_haze + 0.5)),
+                                 min(255, int(pg * dim + hg * plain_haze + 0.5)),
+                                 min(255, int(pb * dim + hb * plain_haze + 0.5)), pa)
+    # The bridges' sides: below each deck's southern edge the planks' ends
+    # and the beam under them.
+    pr_, pg_, pb_ = city.get("deck_planks", (104, 72, 44))
+    rope_lit, rope_dark = city.get("rope_fence", {}).get("rope", ((200, 180, 140), (130, 110, 80)))
+    for i in range(n - w):
+        if not deck[i] or deck[i + w]:
+            continue
+        x = i % w
+        for d in range(1, 4):
+            j = i + d * w
+            if j >= n or land[j] or deck[j]:
+                break
+            if d <= 2:
+                s = (0.74 if d == 1 else 0.62) * (0.7 if (x + 3) % 9 == 0 else 1.0)
+                pic.r[j], pic.g[j], pic.b[j] = int(pr_ * s), int(pg_ * s), int(pb_ * s)
+            else:
+                pic.r[j], pic.g[j], pic.b[j] = int(pr_ * 0.42), int(pg_ * 0.42), int(pb_ * 0.42)
+    # Each bridge hangs from a rope along either side, sagging below its deck
+    # toward the middle, the deck tied to it every few strides: from the
+    # camera the rope on the southern side shows under the deck.
+    hang = spec.get("hang")
+    if hang:
+        lean = city["lean"]
+        edge = city.get("bridge_radius", street.wall) + street.kart + thick
+        for b in city.get("bridges", []):
+            if not b.get("axis"):
+                continue
+            ax, ay, dx, dy = b["axis"]
+            # The deck runs from the bridge's start (the axis's point, less
+            # the abutment) for its length.
+            start = -b.get("abutment", 0.0)
+            length = b["length"]
+            count = int(length * 2)
+            for side in (-1, 1):
+                ox, oy = -dy * edge * side, dx * edge * side
+                for k in range(count + 1):
+                    t = k / count
+                    along = start + length * t
+                    sag = hang["sag"] * 4.0 * t * (1.0 - t) + hang.get("drop", 2.0)
+                    px = ax + dx * along + ox
+                    py = ay + dy * along + oy
+                    tie = int(along) % hang["every"] == 0
+                    top = int(py + 0.5)
+                    low = int(py - sag * lean + 0.5)
+                    X = int(px + 0.5)
+                    if not (0 <= X < w):
+                        continue
+                    for Y in range(low, top + 1) if tie else (low, low - 1):
+                        if 0 <= Y < h:
+                            j = (h - 1 - Y) * w + X
+                            if not land[j] and not deck[j]:
+                                c = rope_lit if Y == low else rope_dark
+                                pic.r[j], pic.g[j], pic.b[j] = c
+    # The rims: the rock darker toward every edge; a lit lip where a mesa's
+    # top meets a drop to its north (that face looks away from the camera).
+    near = bank_distance(land, w, h, 6)
+    for i in range(n):
+        d = near[i]
+        if land[i] and d <= 5:
+            pic.scale(i, 226 + 6 * d)
+    for i in range(w, n - w):
+        if land[i] and not land[i - w]:
+            pic.scale(i, 330)
+            if land[i + w]:
+                pic.scale(i + w, 290)
+    margin = dilate(bytearray(bytes(land).translate(FLIP)), w, h, spec.get("margin", 8))
+    for i in range(n):
+        if margin[i] and street.gap[i] <= 0.5:
+            margin[i] = 0
+    return margin, deck
+
+
+# ---------------------------------------------------------------------------
 # Elevation: terraces, ramps and raised streets (city_layouts: `elevation`).
 #
 # Every texel has a height: its level's (the last level polygon holding it,
@@ -1578,10 +1943,32 @@ def deck_color(arc, offset, seed, style=None, palette=None):
     return r, g, b
 
 
-def paint_street(pic, city, geometry, street, tiles, course):
+OVER_DROP = {"deck": "rope"}         # the street over a chasm outside a named bridge's span
+
+
+def rope_plank(arc, offset, seed, palette, pitch):
+    """A rope bridge's deck: single boards across it, `pitch` apart, each its
+    own shade of weathered wood, rounded at its edges, an odd one darker."""
+    board = int(arc // pitch)
+    along = arc % pitch
+    grain = hash32(board, 0, seed) % 31 - 15
+    wr, wg, wb = palette
+    r, g, b = wr + grain, wg + grain * 3 // 4, wb + grain // 2
+    if hash32(board, 1, seed) % 9 == 0:
+        r, g, b = r * 4 // 5, g * 4 // 5, b * 4 // 5            # an older board
+    if along < 2.2 or along > pitch - 0.8:
+        r, g, b = r * 7 // 8, g * 7 // 8, b * 7 // 8            # its rounded edges
+    if hash32(board, int((offset + 400.0) // 23), seed) % 7 == 0:
+        r, g, b = r * 9 // 10, g * 9 // 10, b * 9 // 10          # a knot, a stain
+    return r, g, b
+
+
+def paint_street(pic, city, geometry, street, tiles, course, land=None):
     """Pave every texel inside the street: each district's road paving with a
     stone kerb and pavement to the walls, bridge decks over the canals,
-    plazas, the walls' shadows and the finish line."""
+    plazas, the walls' shadows and the finish line. Over a chasm (`land`:
+    the mesas) the street is a plank deck, and the drop shows between the
+    planks."""
     w, h = pic.w, pic.h
     road = street.road
     curb, joint = city["curb_color"], city["gutter_color"]
@@ -1597,11 +1984,26 @@ def paint_street(pic, city, geometry, street, tiles, course):
                 lane = street.lane[i]
                 arc, branch = course.arc(i)
                 deck = course.bridge(arc) if not street.plaza[i] else None
+                if deck is None and land is not None and not land[i]:
+                    deck = OVER_DROP
+                elif deck is not None and land is not None and land[i] and lane > street.caps[street.seg[i]][4]:
+                    deck = None                  # on the rock beside a narrow deck's end: the street's paving
                 if deck is not None:
                     offset = lane if course.side(i, x, y) == "left" else -lane
                     style = deck.get("deck")
-                    r, g, b = deck_color(arc, offset, 31, style,
-                                         city.get("deck_planks" if style == "planks" else "deck_stone"))
+                    along = arc if arc is not None else street.along(i)
+                    if deck.get("axis"):
+                        ax, ay, dx, dy = deck["axis"]                 # boards square to a straight bridge
+                        along = 400.0 + (x + 0.5 - ax) * dx + (y + 0.5 - ay) * dy
+                    if style == "rope":
+                        pitch = city.get("plank_pitch", 7)
+                        if land is not None and not land[i] and along % pitch < city.get("plank_gap", 1.2):
+                            r, g, b = pic.r[i] * 3 // 4, pic.g[i] * 3 // 4, pic.b[i] * 3 // 4   # the drop below
+                        else:
+                            r, g, b = rope_plank(along, offset, 31, city["deck_planks"], pitch)
+                    else:
+                        r, g, b = deck_color(along, offset, 31, style,
+                                             city.get("deck_planks" if style == "planks" else "deck_stone"))
                 elif street.plaza[i] and lane <= road - 1.0:
                     tile, shade = course.road(arc, branch)
                     r, g, b, _ = tiles.whole(tile, x, y, shade=shade)
@@ -1775,16 +2177,18 @@ def paint_line(pic, street, gate, cells, colors, thickness):
 # Scenery with height: walls and models, painted north to south.
 
 
-def wall_columns(city, street, course, water, steps=None, squares=None, rock=None, lava=None):
+def wall_columns(city, street, course, water, steps=None, squares=None, rock=None, lava=None, land=None):
     """The street's edge walls, by what lies beyond them: a stone parapet
     over a canal or along an open square, a forge's dark iron wall over lava,
     crenellated parapets on a bridge, a hedge along the Park, a timber
     barrier across a closed alley, low house foundations elsewhere, nothing
-    at the foot of a grand stair. Per world row, the texels of each wall's
-    footprint just outside the karts' reach, with each column's height and
-    style."""
+    at the foot of a grand stair; or (`rope_fence`) posts and rope along every
+    edge, on the mesas and over the drop. Per world row, the texels of each
+    wall's footprint just outside the karts' reach, with each column's height
+    and style (and, for rope, where it lies between the posts)."""
     w, h = street.w, street.h
     thick = city["wall"]["thickness"]
+    rope = city.get("rope_fence")
     rows = {}
     for (bi, bj) in street.buckets:
         for y in range(bj * BUCKET, min(h, (bj + 1) * BUCKET)):
@@ -1800,6 +2204,12 @@ def wall_columns(city, street, course, water, steps=None, squares=None, rock=Non
                     continue                                 # the rock's face is the wall
                 arc, branch = course.arc(i)
                 along = street.along(i) if street.seg[i] >= 0 else 0.0
+                if rope is not None:
+                    over = course.bridge(arc) is not None or (land is not None and not land[i])
+                    spec = rope["bridge"] if over else rope["land"]
+                    rows.setdefault(y, []).append((x, spec["post_height"], "rope",
+                                                   (along % spec["every"], spec, 1.5 < gap <= 3.8)))
+                    continue
                 px = int(x + street.nx[i] * 5)
                 py = int(y + street.ny[i] * 5)
                 wet = 0 <= px < w and 0 <= py < h and water[(h - 1 - py) * w + px]
@@ -1858,7 +2268,11 @@ def paint_wall_row(pic, city, y, columns):
     w, h = pic.w, pic.h
     lean = city["lean"]
     styles = city.get("wall_styles", {})
-    for x, height, style in columns:
+    for column in columns:
+        x, height, style = column[0], column[1], column[2]
+        if style == "rope":
+            _rope_column(pic, city, y, x, height, column[3])
+            continue
         face, cap, dark = styles.get(style) or WALL_STYLES[style]
         rise = int(lean * height + 0.5)
         base = h - 1 - y
@@ -1891,6 +2305,52 @@ def paint_wall_row(pic, city, y, columns):
                 elif k == rise // 2 and (x // 6) % 2 == 0:
                     r, g, b = r * 7 // 8, g * 7 // 8, b * 7 // 8
             pic.r[i], pic.g[i], pic.b[i] = r, g, b
+
+
+def _rope_column(pic, city, y, x, height, place):
+    """One footprint texel of a rope fence: part of a post (`height` tall,
+    bound with rope where the ropes meet it), or, on the fence's line, its
+    ropes sagging between the posts. `place` = (distance past the last post,
+    the fence's spec, on the line)."""
+    phase, spec, line = place
+    fence = city["rope_fence"]
+    lean = city["lean"]
+    w, h = pic.w, pic.h
+    base = h - 1 - y
+    lit, dark = fence["rope"]
+    mid = ((lit[0] + dark[0]) // 2, (lit[1] + dark[1]) // 2, (lit[2] + dark[2]) // 2)
+    post = spec["post"]
+    if phase < post:
+        face, cap, foot = fence["post"]
+        if phase >= post - 1.5:
+            face = (face[0] * 4 // 5, face[1] * 4 // 5, face[2] * 4 // 5)    # its shaded side
+        rise = int(lean * height + 0.5)
+        binds = [int(lean * r + 0.5) for r, _sag in spec["ropes"]]
+        for k in range(rise + 1):
+            row = base - k
+            if row < 0:
+                break
+            if k >= rise - 1:
+                c = cap
+            elif k == 0:
+                c = foot
+            elif k in binds or k + 1 in binds:
+                c = lit if k in binds else dark                 # the rope bound round it
+            else:
+                c = face
+            i = row * w + x
+            pic.r[i], pic.g[i], pic.b[i] = c
+        return
+    if not line:
+        return
+    t = (phase - post) / (spec["every"] - post)
+    thick = spec.get("rope_rows", 2)
+    for r, sag in spec["ropes"]:
+        row = base - int(lean * (r - sag * 4.0 * t * (1.0 - t)) + 0.5)
+        for d, c in enumerate((lit, mid, dark)[3 - thick:] if thick < 3 else (lit, mid, dark)):
+            if 0 <= row + d < h:
+                i = (row + d) * w + x
+                pic.r[i], pic.g[i], pic.b[i] = c
 
 
 def sprite_for(wc3, city, item, cache):
@@ -1994,9 +2454,12 @@ def take(street, taken, sprite, X, Y, spacing):
                     taken[(h - 1 - y) * w + x] = 1
 
 
-def paint_sprite(pic, sprite, X, Y):
+def paint_sprite(pic, sprite, X, Y, land=None):
+    """A model's sprite at world (X, Y). Over a chasm (`land`: the mesas) its
+    ground shadow is left off the drop; its body is drawn."""
     col0 = X - sprite["ox"]
     row0 = pic.h - Y - sprite["oy"]
+    body = sprite["body"]
     for j, line in enumerate(sprite["pixels"]):
         row = row0 + j
         if row < 0 or row >= pic.h:
@@ -2006,6 +2469,8 @@ def paint_sprite(pic, sprite, X, Y):
             if a:
                 c = col0 + i
                 if 0 <= c < pic.w:
+                    if land is not None and not land[base + c] and body[j][i] <= 40:
+                        continue
                     pic.over(base + c, r, g, b, a)
 
 
@@ -2219,7 +2684,7 @@ def _segment_at(street, s):
     return lo
 
 
-def paint_scenery(pic, city, walls, models):
+def paint_scenery(pic, city, walls, models, land=None):
     """Walls and models in one north-to-south pass."""
     by_row = {}
     for item, sprite, X, Y in models:
@@ -2228,7 +2693,7 @@ def paint_scenery(pic, city, walls, models):
         if y in walls:
             paint_wall_row(pic, city, y, walls[y])
         for X, sprite in sorted(by_row.get(y, []), key=lambda e: e[0]):
-            paint_sprite(pic, sprite, X, y)
+            paint_sprite(pic, sprite, X, y, land)
 
 
 # ---------------------------------------------------------------------------
@@ -2268,8 +2733,13 @@ def build(wc3, city, geometry, check=False, preview=False, log=print):
                 rimmed[i] = 0
         water = bytearray((int.from_bytes(water, "big") | int.from_bytes(rimmed, "big")).to_bytes(w * h, "big"))
     log(f"  ground and water {time.time() - started:.0f}s")
+    land = abyss = None
+    if city.get("chasm"):
+        land = chasm_land(city, street)
+        abyss, _deck = paint_chasm(pic, wc3, city, street, land, tiles)
+        log(f"  chasm {time.time() - started:.0f}s")
     course = Course(city, geometry, street)
-    paint_street(pic, city, geometry, street, tiles, course)
+    paint_street(pic, city, geometry, street, tiles, course, land)
     squares = paint_squares(pic, city, street, tiles)
     taken = bytearray(w * h)
     if pit_keep is not None:
@@ -2290,6 +2760,9 @@ def build(wc3, city, geometry, check=False, preview=False, log=print):
     if city.get("water_glow"):
         paint_water_glow(pic, city, water)
     log(f"  street {time.time() - started:.0f}s")
+    if abyss is not None:
+        # Models keep off the drop and the rock's edges as off water.
+        water = bytearray((int.from_bytes(water, "big") | int.from_bytes(abyss, "big")).to_bytes(w * h, "big"))
     cache = {}
     models = place_landmarks(wc3, city, street, water, taken, cache)
     models += bridge_furniture(wc3, city, street, water, taken, cache)
@@ -2327,11 +2800,11 @@ def build(wc3, city, geometry, check=False, preview=False, log=print):
               if item.get("light")]
     if lights:
         paint_lights(pic, lights)
-    walls = wall_columns(city, street, course, water, steps, squares, rock, lava)
+    walls = wall_columns(city, street, course, water, steps, squares, rock, lava, land)
     if lava is not None:
         for y, columns in lava_rims(city, lava, street, rock).items():
             walls.setdefault(y, []).extend(columns)
-    paint_scenery(pic, city, walls, models)
+    paint_scenery(pic, city, walls, models, land)
     if city.get("grade"):
         paint_grade(pic, city, street, water, lights)
         log(f"  grade {time.time() - started:.0f}s")

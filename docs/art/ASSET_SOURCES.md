@@ -129,3 +129,27 @@ Mirage scenery v1 imports no Warcraft III file; it was painted procedurally so e
 - **Files (version 2):** 46 models, 318 placements, 76 textures; [the generated sources list](tracks/undercity_slime-sources.txt) names them. Extracted files stay outside Git.
 - **Modifications:** as for the earlier cities, in a Forsaken violet team colour; the Scourge buildings' red fires and the braziers' flames recoloured green; the slime well's team-coloured pool green; the Dungeon set's lava texture tinted into the canals' slime; walls, quays, railings, the bridges' timber and stone decks, piles and arches, the sunken hall's floor and wall, shadows and the bridges' humps painted by the generator; the whole picture graded darker, colder and greyer away from its lights (the slime, braziers and lanterns).
 - **Terms and credits:** as for Stormwind: [ADR 0009](../adr/0009-warcraft-iii-asset-reuse.md); redistribution **unresolved** for release review; Blizzard Entertainment. Version 2's ring and bridges follow the owner's red line round the outer ring of his in-game Undercity map and his screenshots of the canals, none of which is stored. See [the Undercity sheet](tracks/undercity.md).
+
+**Capital Cities Cup, Thunder Bluff Skyway (2026-10-25, `claude/thunder-bluff`, proposed).** `addon/AzerothKart/Assets/Tracks/ThunderBluff/Background.tga` (2048×2048) and `Preview.tga` (512×512) are composited the same way from the same install, adding Warcraft III's village cobbles (whitened), its summer and Barrens grass and the Lordaeron cliff's strata (as detail in the painted sandstone faces); the tauren tents and totem, the chieftain's hut, the orc spirit lodge, beastiary and watch tower and the wind riders' cage; the Barrens' tauren totems, a Northrend fire pit, Lordaeron hitching posts and pines and Warcraft III's water on the plain; and the tauren, spirit walkers, a kodo, a wind rider and Cairne Bloodhoof (the tauren chieftain hero).
+
+- **Files:** 24 models, 158 placements, 26 textures; [the generated sources list](tracks/thunder_bluff_skyway-sources.txt) names them. Extracted files stay outside Git.
+- **Modifications:** as for the earlier cities, with these painted by the generator: the drop to the plain, the sandstone faces, the plain's shadows, trees and river, the bridges' plank decks, beams and hanging ropes, the rope fences, rims and brinks. Models' ground shadows are left off the drop.
+- **Terms and credits:** as for Stormwind: [ADR 0009](../adr/0009-warcraft-iii-asset-reuse.md); redistribution **unresolved** for release review; Blizzard Entertainment. The route follows the owner's blue line on his screenshot of the in-game Thunder Bluff map; his three screenshots of the mesas guided the look. None of them is stored. See [the Thunder Bluff sheet](tracks/thunder-bluff.md).
+
+**Scarlet Crusade Cup, Scarlet Graveyard (2026-10-25, `claude/scarlet-graveyard`, proposed).** `addon/AzerothKart/Assets/Tracks/ScarletGraveyard/Background.tga` (2048×1024) and `Preview.tga` (512×256) are composited by `scripts/build_dungeon_tracks.py` from the same Warcraft III Reforged install (build 3.0.1.24371). The sources are:
+
+- **Terrain:** the city's square, round and black-marble tiles, bricks and wall cliff; the Dungeon's tiles; the Dalaran ruins' grass; the village's stone path.
+- **Lordaeron:** graves, torches, braziers, the cage, skull piles, the sitting corpse, weapons and the armor rack; its trees, in the Dalaran ruins' dead-tree texture.
+- **Northrend:** tombstones, graves, a broken column and crypts.
+- **The Dungeon:** the torture table, iron maiden, chain post and bench.
+- **The city:** graves, obelisks, stone benches, the ruined fountain and lantern posts.
+- **Units:** the banshee, zombie and skeleton, and the Blood Mage hero as Bloodmage Thalnos.
+- **Reforged's own `_de.w3mod` set:** the Scarlet Crusade's standing banners, footman, cleric and invoker, and the Undercity's crypt tomb and coffins.
+
+- **Files:** 46 models, 88 placements, 38 textures; [the generated sources list](tracks/scarlet_graveyard-sources.txt) names them. Extracted files stay outside Git.
+- **Modifications:**
+  - models posed and rendered as sprites with the project's light, shadows and lean, in a crimson team colour;
+  - terrain atlases halved and shaded;
+  - the wall cliff's stones laid along the north walls' faces.
+  - These are painted by the generator: the masonry, the walls' faces and coping, the red carpets, the stairs, the kerbs, the portal's swirl, the chequered finish, the light pools, the moonlight and the mist.
+- **Terms and credits:** as for Stormwind: [ADR 0009](../adr/0009-warcraft-iii-asset-reuse.md); redistribution **unresolved** for release review; Blizzard Entertainment. The rooms follow the owner's map of the Scarlet Monastery Graveyard (MapsForTanks) and his green route on it, and his screenshot of the Grand Vestibule guided the look. Neither is stored. See [the Scarlet Graveyard sheet](tracks/scarlet-graveyard.md).

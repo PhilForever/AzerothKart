@@ -3,10 +3,10 @@ local AK={}
 local H=assert(loadfile("addon/AzerothKart/Highscores.lua"))("AzerothKart",AK)
 local S=assert(loadfile("addon/AzerothKart/ScoreSync.lua"))("AzerothKart",AK)
 local ids={"mirage_raceway","stormwind_city","ironforge_gp",
-    "darnassus_canopy","orgrimmar_canyon","undercity_slime"}
+    "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway","scarlet_graveyard"}
 local contexts={}
 for i,id in ipairs(ids) do contexts[i]={trackId=id,trackVersion=1,physicsVersion=11,
-    lapCount=3,tickRate=60,rulesVersion=1} end
+    lapCount=id=="scarlet_graveyard" and 1 or 3,tickRate=60,rulesVersion=1} end
 local function copy(t)
     if type(t)~="table" then return t end
     local out={};for k,v in pairs(t) do out[k]=copy(v) end;return out
@@ -65,7 +65,9 @@ for _,name in ipairs({"Lene Conradi","  AMBER   STONE  ",utfName,string.rep("A",
 end
 for _,bad in ipairs({"","1 R O","2 Q O","1 Q X","1 Q O extra","1\tQ O",string.rep("X",241),
     "1 N O 1 11 3 60 1 0 1792750000 0 Amber Stone","1 E O 1 51","1 E O 01 0",
-    "1 N O 1 11 3 60 1 1000 1792750000 0 |Hbad|h","1 H 11 1 1 1 1 1 1 1"}) do
+    "1 N O 1 11 3 60 1 1000 1792750000 0 |Hbad|h","1 H 11 1 1 1 1 1 1 1",
+    "1 N M 1 11 3 60 1 0 1792750000 0 Amber Stone","1 E M 1 51","1 E M 01 0",
+    "1 N M 1 11 3 60 1 1000 1792750000 0 |Hbad|h"}) do
     assert(S.decode(bad)==nil,"malformed packets refuse before data merge")
 end
 assert(S.new({name="Amber Stone",contexts=contexts,store={version=999,boards={},keep=true}},0)==nil)
@@ -75,7 +77,7 @@ assert(S.new({name="Amber Stone",contexts=contexts,store=unknownStore},0)==nil,
     "unencodable current saved rows refuse initialization instead of crashing the first digest")
 assert(H.View(unknownStore,contexts[1])[1].kartId=="future_kart","existing unsupported data stays intact")
 assert(S.new({name="|Hbad",contexts=contexts},0)==nil)
-local broken=copy(contexts);broken[6]=copy(broken[1])
+local broken=copy(contexts);broken[#contexts]=copy(broken[1])
 assert(S.new({name="Amber Stone",contexts=broken},0)==nil,"each fixed context is unique")
 do
     local retired=record("Amber Stone",1000)
@@ -83,7 +85,7 @@ do
     local historical=store({retired})
     local token=assert(S.new({name="Amber Stone",contexts=contexts,store=historical},0))
     assert(H.View(S.snapshot(token),retired)[1].kartId=="future_fixture_kart",
-        "retired saved rows remain intact and do not block the active six-map catalogue")
+        "retired saved rows remain intact and do not block the active production catalogue")
     assert(S.encode({kind="NEW",record=retired})==nil and S.encode({kind="ROW",record=retired})==nil)
     assert(S.encode({kind="REQUEST",code="O"})==nil
         and S.encode({kind="END",code="O",hash=0,count=0})==nil,
@@ -94,15 +96,45 @@ do
     end
     local _,published,reason=S.publish(token,retired,0)
     assert(not published and reason=="record","historical scores are never automatically published")
-    local seven=copy(contexts);seven[7]=copy(contexts[1]);seven[7].trackId="test_oval"
-    assert(S.new({name="Amber Stone",contexts=seven},0)==nil)
+    local retiredContext=copy(contexts);retiredContext[#contexts]=copy(contexts[1])
+    retiredContext[#contexts].trackId="test_oval"
+    assert(S.new({name="Amber Stone",contexts=retiredContext},0)==nil)
+    local missing=copy(contexts);missing[#contexts]=nil
+    assert(S.new({name="Amber Stone",contexts=missing},0)==nil,"all active contexts are required")
     assert(S.discover(token,{"Birch Vale"},0))
     assert(S.update(token,0,function(_,payload)
         local hello=assert(S.decode(payload))
-        assert(hello.kind=="HELLO" and #hello.hashes==7 and hello.hashes[1]==0,
+        assert(hello.kind=="HELLO" and #hello.hashes==#contexts+1 and hello.hashes[1]==0,
             "the retired O digest slot stays zero without shifting any live course code")
         return true
     end))
+end
+do
+    -- Every active board has its own stable wire code, including the one-run
+    -- sprint. Expanded HELLOs still fit the native send budget at full bounds.
+    local codes={"M","S","I","D","R","U","T","G"}
+    local rows={}
+    for index,context in ipairs(contexts) do
+        local row=record("Amber Stone",1000+index,index)
+        local payload=assert(S.encode({kind="NEW",record=row}))
+        local decoded=assert(S.decode(payload))
+        assert(decoded.code==codes[index] and decoded.record.trackId==context.trackId
+            and decoded.record.lapCount==context.lapCount,"stable course code and lap count")
+        rows[#rows+1]=row
+    end
+    assert(rows[#rows].lapCount==1,"the Graveyard shares a one-run score")
+    local a,b=pair(rows,{})
+    drive(a,b,0,55)
+    assert(signature(a)==signature(b),"all active boards converge through automatic catch-up")
+    for _,context in ipairs(contexts) do assert(#H.View(S.snapshot(b),context)==1) end
+    local maximum={}
+    for index=1,#contexts+1 do maximum[index]=4294967295 end
+    local payload=assert(S.encode({kind="HELLO",physicsVersion=2147483647,
+        catalogHash=4294967295,hashes=maximum}))
+    assert(#payload+#S.PREFIX<=158 and #assert(S.decode(payload)).hashes==#contexts+1,
+        "expanded maximum HELLO fits the existing native byte ceiling")
+    assert(S.decode("1 H 11 1 0 0 0 0 0 0 0")==nil,
+        "older seven-slot catalogues cannot silently handshake with new boards")
 end
 local early=new("Amber Stone");assert(S.discover(early,{"Birch Vale"},0))
 assert(S.receive(early,"Birch Vale",assert(S.encode({kind="NEW",record=record("Birch Vale",900)})),0),

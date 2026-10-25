@@ -55,11 +55,11 @@ function Records.Init()
 end
 
 function Records.Context(track)
-    -- Historical boards remain saved, but developer/retired courses must not
-    -- create a current board or enter automatic sharing through this boundary.
+    -- Historical/developer boards stay saved, but cannot become current contexts.
     if type(track) ~= "table" or not Courses.available(track.id) then return nil end
+    -- A sprint course keeps its own one-run board.
     local context = {trackId=track.id, trackVersion=track.version,
-        physicsVersion=Physics.VERSION, lapCount=3, tickRate=60, rulesVersion=Scores.RULES_VERSION}
+        physicsVersion=Physics.VERSION, lapCount=track.laps or 3, tickRate=60, rulesVersion=Scores.RULES_VERSION}
     if Scores.BoardKey(context) then return context end
 end
 

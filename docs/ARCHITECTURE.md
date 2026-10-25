@@ -1,6 +1,6 @@
 # Technical architecture
 
-Current map boundary (2026-10-25): [production catalogue and capacity](PRODUCTION_MAPS.md). Courses exposes six finished maps, with Mirage geometry/scenery as the guarded default. Test Oval is a developer fixture only; production does not allocate its road/obstacle textures. All six maps enter the existing two-peer transport. Eight-player transport/grouping and shared-room design remain open.
+Current map boundary (2026-10-25): [production catalogue and capacity](PRODUCTION_MAPS.md). Courses exposes eight finished maps, with Mirage geometry/scenery as the guarded default. Test Oval is a developer fixture only; production does not allocate its road/obstacle textures. The seven lap circuits enter the existing two-peer transport; Graveyard remains solo. Eight-player transport/grouping and shared-room design remain open.
 
 Automatic community scores are now wired in source through ScoreDiscovery,
 pure ScoreSync and native ScoreSharing. Personal saves remain independent;

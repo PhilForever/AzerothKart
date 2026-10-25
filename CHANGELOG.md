@@ -1,5 +1,53 @@
 # Changelog
 
+## Unreleased — Scarlet Crusade Cup: Scarlet Graveyard (2026-10-25, `claude/scarlet-graveyard`)
+- **The Scarlet Crusade Cup**, the third cup, of dungeon sprints. The owner: "This will be A-B sprint type maps ... Start of dungeon to end of dungeon. Let's start with Scarlet Graveyard. It starts in a closed space and enters into an open graveyard. You don't need to put a traditional track here, just recreate the dungeon and let players find their way to the end." Scarlet Graveyard is selectable. Scarlet Library, Scarlet Armory and Scarlet Monastery are listed as coming soon.
+- **Scarlet Graveyard** follows his green route on his map of the wing:
+  - the portal in the entrance hall, then north up the long hall;
+  - through the Chamber of Atonement, past its torture table;
+  - the west hall, then down the stairs into the Forlorn Cloister;
+  - across the graveyard round the ruined fountain to Honor's Tomb.
+
+  Three gates: Chamber of Atonement, Forlorn Cloister, Honor's Tomb (the finish). The floor is open from wall to wall, with no road. As he chose, the cloister's grass slows the karts and its graves, crypts and trees block them. See `docs/art/tracks/scarlet-graveyard.md`.
+- **Sprint rules** (owner-approved for Codex's review, ADR 0020):
+  - a course's `track.laps` sets the race's length; the Graveyard's is one run, and every other course keeps three laps;
+  - `Race` finishes a sprint at its last gate with "Sprint complete";
+  - `SoloRecords` keeps a sprint's scores on their own one-run board.
+- **`Dungeon.lua`**, a new pure geometry for open floors:
+  - axis-aligned rooms of stone or lawn, joined through their doorways;
+  - solid boxes with the test oval's sliding;
+  - walls that slide the kart along them.
+
+  `scripts/build_dungeon_tracks.py` generates `ScarletCrusade.lua` and the 2048×1024 picture from `scripts/dungeon_layouts.py`. It proves each gate unavoidable by a flood fill and walks the route through the gates in order. `scripts/dungeon_paint.py` paints the picture on the city painter's tiles and sprites:
+  - the monastery's masonry;
+  - north walls built from the city wall cliff;
+  - red carpets with gold edges;
+  - torches, braziers and lantern pools;
+  - green fire in the tomb;
+  - the portal's blue swirl;
+  - moonlight and mist over the open cloister;
+  - Scarlet Crusade banners and soldiers from Reforged's own art.
+- **HUD, results and menus** say "Sprint" and show the run's time and gates, and the Highscores screen says a sprint's board holds one-run times. The track screen's third cup adds a heading and four buttons, bringing the pool to 90/167/136.
+- **Tests:**
+  - new `tests/test_dungeon.lua`: rooms, lawns, solids, sliding walls, 4,000 random steps, refused definitions, a sprint race, one-run score contexts, and the Graveyard's route and launch;
+  - `test_ui` drives a whole sprint to a saved one-run score;
+  - `test_menu` and `test_circuit` cover the third cup;
+  - the score catalogue gains the Graveyard's board.
+- **Needs Codex:**
+  - `ScoreSync` must learn the new courses, as for Thunder Bluff; the handoff's tested patch now covers both. Until then community sync does not start, and this branch must not be installed alone.
+  - The status line in `UI.Start` and `step` still says "3 laps"; a one-line change is proposed.
+
+  The drive and the picture in the client are NOT RUN.
+
+## Unreleased — Thunder Bluff Skyway (2026-10-25, `claude/thunder-bluff`)
+- **Thunder Bluff Skyway**, the sixth and final Capital Cities Cup city, is selectable. The owner: "plank roped bridges, long way down, white stone paths, if you can - make the road edges like these poles with ropes". The course follows his blue line on his in-game map, clockwise (his stroke runs from the start road up the west side). The grid is on the road in from the lift, at his X; the course laps the Lower Rise and goes out to the Spirit, Elder and Hunter Rises and back over six rope bridges. Six gates; a 5,616-unit lap; full speed to the walls. See `docs/art/tracks/thunder-bluff.md`.
+- **The bridges** are narrower than the street, each deck one reviewed `narrows` (wall radius 54). They are plank decks on rope: the drop shows between the boards, a rope hangs under each deck's southern side and a totem stands at their corners.
+- **A long way down:** a new opt-in painter layer, `chasm`. Off the mesas everything drops 400 units, so each mesa's southern edge hangs a 240-row sandstone face. Mulgore's plain far below is hazy, with the mesas' soft shadows, small pines and a river.
+- **White stone paths and rope edges:** the village cobbles whitened from wall to wall, and a new `rope_fence` wall style of posts with sagging rope along every street edge (two ropes on the bridges).
+- Models' ground shadows are left off the drop. The other cities' pictures are byte for byte unchanged.
+- `tests/test_circuit.lua` checks that the catalogue has no coming-soon course left (Thunder Bluff is marked soon for one check), walks Thunder Bluff's six gates in order with a wall-free centerline and checks each bridge is road to its own wall. `tests/test_menu.lua` follows the longer Track-button cycle and uses a fixture for the coming-soon row. The score catalogue gains Thunder Bluff's board.
+- **Needs Codex:** `ScoreSync` knows seven courses, so with an eighth selectable the community score sync cannot start, for any course (`test_score_sharing` fails); local saving is unaffected. Do not install this branch without that change. The handoff carries a tested patch. The drive and the picture in the client are NOT RUN.
+
 ## Unreleased — Goblin Pod Racer, start signs and the kart outline (2026-10-23, `claude/podracer-arrows-outline`)
 - **Goblin Pod Racer** (the owner: "Create/add the goblin pod racer (see image) - replace it with our first kart"): World of Warcraft's own goblin rocket car, Mirage Raceway's, rendered into a 64-heading sheet like the other karts from the owner's WoW Forever client. It takes the original Goblin Drag Car's slot; the id `goblin_drag_car` (saved choices, multiplayer kart code) is kept. New `scripts/wowcasc.py` (read-only WoW CASC reader by FileDataID; `--cdn` fetches files the client has not downloaded, through the install's own indices) and `scripts/wowmodel.py` (M2 and BLP2 for the kart renderer); `build_wc3_kart.py --wow`. Effects from the cart's wheels and the pods' tails. The drag car's sprite and `build_kart_sprites.py` are removed (their review helpers moved into `build_wc3_kart.py`; the Mirage review views now draw the default kart's sheet). ADR 0009 addendum proposed. See `docs/art/karts/goblin-pod-racer.md`.
 - **Start signs** (the owner: "add an arrow indicator for left or right outside the track (wc3 asset?)"): in Stormwind, Ironforge, Orgrimmar and Darnassus, whose grids start off the loop, Warcraft III's goblin racing arrow post stands beyond the far wall where the start road joins, its brightened red arrow pointing the race's way (north-east or north-west, the nearest a board facing the camera can show). Four times scenery size, with a clearing round it. Pictures only: `CapitalCities.lua` and the collision are unchanged; Undercity's picture is unchanged.

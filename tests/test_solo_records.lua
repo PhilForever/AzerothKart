@@ -18,7 +18,7 @@ local function fixture(db, test)
     end
     local ok, why = pcall(function()
         local ns = {}
-        for _, name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Courses", "Physics", "Highscores", "SoloRecords"}) do
+        for _, name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Dungeon", "ScarletCrusade", "Courses", "Physics", "Highscores", "SoloRecords"}) do
             assert(loadfile("addon/AzerothKart/"..name..".lua"))("AzerothKart", ns)
         end
         ns.SoloRecords.Init()
@@ -70,7 +70,7 @@ fixture({schemaVersion=1}, function(R, ns, run, reads)
     local old=ns.Highscores.Submit(ns.Highscores.Load(nil),historical)
     AzerothKartDB.highscores=old
     R.Init()
-    assert(R.Context(ns.Track)==nil and R.Context({id="thunder_bluff_skyway",version=1})==nil,
+    assert(R.Context(ns.Track)==nil and R.Context({id="scarlet_library",version=1})==nil,
         "retired and unfinished courses cannot create current score contexts")
     local _,race=run()
     assert(R.Finish(R.Begin(ns.Track,"goblin_mortar_trike"),race,false)==nil)

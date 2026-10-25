@@ -263,7 +263,7 @@ local function arm(role, peer, code, trackId, wantClock, wantLive, kartId)
         local versions={}
         tracks=wantClock and {} or nil
         for _,course in ipairs(AK.Courses.LIST) do
-            if AK.Courses.available(course.id) then
+            if AK.Courses.multiplayer(course.id) then
                 local track=assert(AK.Courses.build(course.id,AK.Track.crossesGate))
                 versions[course.id]=track.version
                 if tracks then tracks[course.id]=copy(track) end

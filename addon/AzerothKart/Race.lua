@@ -14,11 +14,26 @@ local function requireLaps(laps)
         and type(laps.step) == "function", "lap module required")
 end
 
+-- A course may set its run's length (`track.laps`, 1-9): a sprint is one run
+-- from the spawn to its last gate. Every other course runs three laps.
+local function courseLaps(track)
+    local count = type(track) == "table" and track.laps or nil
+    if count == nil then return 3 end
+    assert(validTick(count) and count >= 1 and count <= 9, "course lap count must be an integer from 1 to 9")
+    return count
+end
+
+local function finishReason(targetLaps)
+    if targetLaps == 1 then return "Sprint complete" end
+    if targetLaps == 3 then return "Three-lap run complete" end
+    return ("%d-lap run complete"):format(targetLaps)
+end
+
 function Race.new(track, checkpoints, laps, tick)
     requireLaps(laps)
     if tick == nil then tick = 0 end
     return {
-        status="countdown", laps=laps.new(track,checkpoints,tick), targetLaps=3,
+        status="countdown", laps=laps.new(track,checkpoints,tick), targetLaps=courseLaps(track),
         countdownTicks=Race.COUNTDOWN_TICKS, startTick=nil,
         lastTick=tick, totalTicks=0, finishTick=nil, reason=nil,
     }
@@ -61,7 +76,7 @@ function Race.step(race, previous, current, track, checkpoints, laps)
         targetLaps=race.targetLaps, countdownTicks=race.countdownTicks, startTick=race.startTick,
         lastTick=current.tick, totalTicks=current.tick-race.startTick,
         finishTick=finished and current.tick or nil,
-        reason=finished and "Three-lap run complete" or nil,
+        reason=finished and finishReason(race.targetLaps) or nil,
     }
 end
 

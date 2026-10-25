@@ -5,7 +5,7 @@ local Session = {SEND_INTERVAL=0.5, RETRY_INTERVAL=2, MAX_ATTEMPTS=3,
 local reasons = {left=true, timeout=true, incompatible=true, combat=true,
     world_leave=true, error=true}
 local tracks = {mirage_raceway=true, stormwind_city=true, ironforge_gp=true,
-    darnassus_canopy=true, orgrimmar_canyon=true, undercity_slime=true}
+    darnassus_canopy=true, orgrimmar_canyon=true, undercity_slime=true, thunder_bluff_skyway=true}
 
 local function finite(value)
     return type(value)=="number" and value==value and value~=math.huge and value~=-math.huge

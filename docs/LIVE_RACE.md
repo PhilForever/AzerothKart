@@ -157,7 +157,7 @@ Local finish releases capture but allows final observations/drain; results are
 labelled unverified. Restart waits for native closure; no auto-resume exists.
 Changing solo track after closure hides old observations. [Simple friend-test
 steps](MULTIPLAYER_PLAYTEST.md) are the next actual-client check, not another
-standalone transport probe. All six finished maps now negotiate through the same two-peer controller; native city multiplayer remains pending.
+standalone transport probe. All seven finished lap maps now negotiate through the same two-peer controller; native city multiplayer remains pending.
 
 Actual Lua5.1 mocked integration loads both complete TOCs/Core/menu/UI/native
 adapters, drives Listen/Host/Join/Ready/Start through700ms synthetic RTT and5s

@@ -102,7 +102,7 @@ local function bus()
             return frame
         end
         using(client,function()
-            for _,module in ipairs({"Track","MirageRaceway","Circuit","CapitalCities","Courses",
+            for _,module in ipairs({"Track","MirageRaceway","Circuit","CapitalCities","Dungeon","ScarletCrusade","Courses",
                 "Physics","Highscores","SoloRecords","ScoreSync","ScoreDiscovery","ScoreSharing"}) do
                 assert(loadfile("addon/AzerothKart/"..module..".lua"))("AzerothKart",client.namespace)
             end
@@ -116,14 +116,16 @@ local function bus()
             local args=pack(...)
             using(self,function() self.frame.scripts.OnEvent(self.frame,event,unpack(args,1,args.n)) end)
         end
-        function client:view()
-            return using(self,function() return self.namespace.SoloRecords.GetView("mirage_raceway") end)
+        function client:view(trackId)
+            return using(self,function() return self.namespace.SoloRecords.GetView(trackId or "mirage_raceway") end)
         end
-        function client:finish(ticks)
+        function client:finish(ticks,trackId)
             return using(self,function()
                 local records=self.namespace.SoloRecords
-                local token=records.Begin(self.namespace.Courses.build("mirage_raceway",self.namespace.Track.crossesGate),"goblin_mortar_trike")
-                local race={status="finished",targetLaps=3,laps={completedLaps=3},
+                local track=self.namespace.Courses.build(trackId or "mirage_raceway",self.namespace.Track.crossesGate)
+                local token=records.Begin(track,"goblin_mortar_trike")
+                local laps=track.laps or 3
+                local race={status="finished",targetLaps=laps,laps={completedLaps=laps},
                     startTick=180,finishTick=180+ticks,totalTicks=ticks}
                 return records.Finish(token,race,false),token,race
             end)
@@ -171,6 +173,36 @@ local function congratulations(client)
         end
     end
     return count
+end
+
+-- The actual expanded Courses catalogue must initialize native sharing. Every
+-- board catches up automatically; a new one-run sprint then publishes promptly.
+do
+    local allMaps=bus()
+    local owner,learner=allMaps:client("Course Keeper"),allMaps:client("Course Learner")
+    local ids={}
+    for _,course in ipairs(owner.namespace.Courses.LIST) do
+        if owner.namespace.Courses.available(course.id) then ids[#ids+1]=course.id end
+    end
+    assert(#ids==8,"eight finished production courses including both new maps")
+    for index,id in ipairs(ids) do assert(owner:finish(2000+index,id).saved,"eligible current board saves: "..id) end
+    owner:fire("PLAYER_ENTERING_WORLD");learner:fire("PLAYER_ENTERING_WORLD");allMaps:flush()
+    allMaps:untilTrue(function()
+        for _,id in ipairs(ids) do if #learner:view(id).rows~=1 then return false end end
+        return true
+    end,90)
+    for index,id in ipairs(ids) do
+        local row=learner:view(id).rows[1]
+        assert(row.playerName==owner.name and row.totalTicks==2000+index,
+            "automatic login catch-up retains the correct production board: "..id)
+    end
+    assert(learner:view("scarlet_graveyard").rows[1].lapCount==1)
+    assert(learner:view("thunder_bluff_skyway").rows[1].lapCount==3)
+    assert(#learner:view("test_oval").rows==0 and congratulations(learner)==0,
+        "retired boards remain hidden and login catch-up never celebrates")
+    local result=owner:finish(1800,"scarlet_graveyard")
+    assert(result.saved and owner:view("scarlet_graveyard").rows[1].lapCount==1)
+    allMaps:untilTrue(function() return learner:view("scarlet_graveyard").rows[1].totalTicks==1800 end,5)
 end
 
 -- Only native world/roster events start discovery and handshake; finishing a

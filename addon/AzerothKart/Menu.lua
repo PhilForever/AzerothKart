@@ -49,11 +49,21 @@ Menu.TRACKS = {
             .. "Strength, the Drag, the Valley of Wisdom and down the Cleft's rim.",
         facts={"3 laps, 4 gates named for the districts", "Counterclockwise round the Cleft of Shadow",
             "Full speed to the street walls"}},
+    {id="thunder_bluff_skyway", name="Thunder Bluff Skyway", cell="thunderbluff",
+        blurb="Start where the lift arrives and lap the Lower Rise high over Mulgore, out over rope bridges "
+            .. "to the Spirit Rise, the Elder Rise and the Hunter Rise and back.",
+        facts={"3 laps, 6 gates named for the rises", "Six narrow rope bridges, a long way down",
+            "Full speed to the street walls"}},
     {id="undercity_slime", name="Undercity Slime Circuit", cell="undercity",
         blurb="Start by the slime below the Apothecarium and race round the canal ring: past the Rogues' and "
             .. "Magic Quarters, under the Ruins of Lordaeron and back by the War Quarter, over a bridge at every section.",
         facts={"3 laps, 6 gates named for the quarters", "Six bridges over the slime: sharp turns on and off",
             "Full speed to the street walls"}},
+    {id="scarlet_graveyard", name="Scarlet Graveyard", cell="scarletgraveyard",
+        blurb="Through the monastery's portal and up the hall to the Chamber of Atonement, down the stairs into "
+            .. "the Forlorn Cloister and across its graveyard to Honor's Tomb. No road here: find your way.",
+        facts={"Sprint: one run through 3 gates", "Grass slows you; graves and tombs block",
+            "The finish is Honor's Tomb"}},
 }
 
 local WC3C = "Model: ITE project (wc3c), author unknown"
@@ -88,7 +98,8 @@ Menu.CONTROLS = {
 }
 
 Menu.RULES = {
-    "Pass the gates in order (the HUD names the next one); each full circuit is a lap. Three laps finish the race.",
+    "Pass the gates in order (the HUD names the next one); each full circuit is a lap. Three laps finish the race; "
+        .. "a Scarlet Crusade sprint is one run to its last gate.",
     "Hold a drift to charge it: blue, then gold at Tier 1 (0.5 s), then pink at Tier 2 (1 s). Release Space for a boost.",
     "Grass and rough salt slow you and cancel drift and boost. Stormwind has full grip to the walls; wall contact scrubs speed.",
     "Your best lap is kept for the current run. Entering combat closes the game.",
@@ -113,6 +124,11 @@ Menu.PREVIEW_CELLS = {
         left=0, right=1, top=0, bottom=1, width=320, height=320},
     undercity={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\Undercity\\Preview.tga",
         left=0, right=1, top=0, bottom=1, width=320, height=320},
+    thunderbluff={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\ThunderBluff\\Preview.tga",
+        left=0, right=1, top=0, bottom=1, width=320, height=320},
+    -- A dungeon's picture is twice as wide as tall (2048 x 1024 world units).
+    scarletgraveyard={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\ScarletGraveyard\\Preview.tga",
+        left=0, right=1, top=0, bottom=1, width=320, height=160},
 }
 
 -- Fixed fonts; each falls back to GameFontNormal when the client lacks it.
@@ -184,17 +200,29 @@ function Menu.readPreferences(db)
     return prefs, writable
 end
 
--- The race HUD's big lines for a race (or none yet): lap, time and best.
+-- The race HUD's big lines for a race (or none yet): lap, time and best. A
+-- sprint (one run to the last gate) shows SPRINT and its gates instead.
 function Menu.raceLines(race, laps)
-    local target = race and race.targetLaps or 3
+    local track = UI and UI.track
+    local target = race and race.targetLaps or (track and track.laps) or 3
+    local gates = track and track.gates and #track.gates or 0
+    local function gateLine(progress)
+        return ("GATES %d/%d"):format(progress and progress.passed or 0, gates)
+    end
     if not race or race.status == "countdown" then
+        if target == 1 then return "SPRINT", Menu.formatTime(0, 1), gateLine(nil) end
         return ("LAP 1/%d"):format(target), Menu.formatTime(0, 1),
             "BEST " .. Menu.formatTime(laps and laps.bestLapTicks and laps.bestLapTicks * Physics.FIXED_DT)
     end
     local completed = race.laps.completedLaps
+    local seconds = race.totalTicks * Physics.FIXED_DT
+    if target == 1 then
+        local passed = race.status == "finished" and {passed=gates} or race.laps.checkpoints
+        return race.status == "finished" and "FINISHED" or "SPRINT",
+            Menu.formatTime(seconds, race.status == "running" and 1 or 2), gateLine(passed)
+    end
     local lap = race.status == "finished" and "FINISHED" or
         ("LAP %d/%d"):format(math.min(completed + 1, target), target)
-    local seconds = race.totalTicks * Physics.FIXED_DT
     local best = race.laps.bestLapTicks
     return lap, Menu.formatTime(seconds, race.status == "running" and 1 or 2),
         "BEST " .. Menu.formatTime(best and best * Physics.FIXED_DT)
@@ -502,6 +530,8 @@ end
 -- A bounded saved-record view. Browsing never selects a driving track, writes
 -- saved data, or publishes anything. The backend is queried only by deliberate
 -- open/track/page actions; Sync/OnUpdate do not refresh or sort this board.
+local THREE_LAP_RULE = "Fastest completed three-lap totals for the current rules"
+local SPRINT_RULE = "Fastest completed sprints, one run each, for the current rules"
 local function buildHighscores()
     local box = screenBox("highscores", "Saved Highscores", 780, 570)
     local view = Menu.view
@@ -511,7 +541,7 @@ local function buildHighscores()
         Menu.highscorePage = 1
         refresh.highscores()
     end)
-    newText(box, FONT.graySmall, "TOPLEFT", 38, -140, "Fastest completed three-lap totals for the current rules")
+    view.highscoreRule = newText(box, FONT.graySmall, "TOPLEFT", 38, -140, THREE_LAP_RULE)
     newText(box, FONT.normal, "TOPLEFT", 38, -170, "Rank")
     newText(box, FONT.normal, "TOPLEFT", 96, -170, "Name")
     newText(box, FONT.normal, "TOPLEFT", 422, -170, "Total")
@@ -555,6 +585,9 @@ local function buildHighscores()
         local page = math.max(1, math.min(Menu.highscorePage or 1, pages))
         Menu.highscorePage = page
         view.highscoreTrack:SetText("Track: " .. track.name)
+        -- A sprint's board (lap count 1) holds one-run times, not three-lap totals.
+        local context = snapshot and type(snapshot.context) == "table" and snapshot.context
+        view.highscoreRule:SetText(context and context.lapCount == 1 and SPRINT_RULE or THREE_LAP_RULE)
         view.highscoreScope:SetText(snapshot and snapshot.scope=="community"
             and "Shared community scores | "..tostring(snapshot.publication or "Connecting")
             or "Local cache | Global publishing pending")
@@ -915,7 +948,7 @@ local function buildMultiplayer()
     view.lobbyTrackChoice = newButton(box, "Track: Mirage Raceway", 300, 28, "TOPLEFT", 40, -296, function()
         local session = sessionView()
         if not sessionCommands() or not session or not session.canHost then return end
-        Menu.lobbyTrackId = Courses.next(Menu.lobbyTrackId)
+        Menu.lobbyTrackId = Courses.next(Menu.lobbyTrackId,true)
         refresh.multiplayer()
     end)
     view.host = newButton(box, "Host / Invite", 146, 34, "TOPLEFT", 40, -338,
@@ -1253,8 +1286,9 @@ function Menu.OnResults()
     for _,ticks in ipairs(view.lapTimes) do
         if not best or ticks < best then best = ticks end
     end
+    local sprint = UI.race and UI.race.targetLaps == 1
     for index,ticks in ipairs(view.lapTimes) do
-        local line = ("Lap %d  %s"):format(index, Menu.formatTime(ticks * Physics.FIXED_DT))
+        local line = (sprint and "Run  %s" or ("Lap " .. index .. "  %s")):format(Menu.formatTime(ticks * Physics.FIXED_DT))
         times[index] = ticks == best and #view.lapTimes > 1 and "|cff66ff66" .. line .. "|r" or line
     end
     view.resultLaps:SetText(#times > 0 and table.concat(times, "     ") or "")
@@ -1279,6 +1313,7 @@ function Menu.RefreshRaceHud()
     local completed = laps and laps.completedLaps or 0
     if status == view.hudStatus and unit == view.hudUnit and best == view.hudBest
         and nextGate == view.hudGate and completed == view.hudLaps and UI.track == view.hudTrack then return end
+    -- (a sprint's gate count rides on nextGate: it changes with every gate)
     view.hudStatus, view.hudUnit, view.hudBest = status, unit, best
     view.hudGate, view.hudLaps, view.hudTrack = nextGate, completed, UI.track
     local lap, time, bestText

@@ -189,7 +189,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     end
     local ok, err=pcall(function()
         local namespace={}
-        for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Courses", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "Highscores", "SoloRecords", "UI", "Menu", "RaceProtocol", "PeerSession", "ClockProtocol", "StartClock", "RaceStart", "LiveProtocol", "LiveRace", "RaceGrid", "NetworkProbe", "TransportProbe", "SessionTransport", "ScoreChannelProbe", "Core"}) do
+        for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Dungeon", "ScarletCrusade", "Courses", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "Highscores", "SoloRecords", "UI", "Menu", "RaceProtocol", "PeerSession", "ClockProtocol", "StartClock", "RaceStart", "LiveProtocol", "LiveRace", "RaceGrid", "NetworkProbe", "TransportProbe", "SessionTransport", "ScoreChannelProbe", "Core"}) do
             assert(loadfile("addon/AzerothKart/"..name..".lua"))("AzerothKart",namespace)
             if name=="Courses" and not productionCatalogue then
                 -- Existing mechanical/UI regressions deliberately exercise
@@ -204,15 +204,16 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
                 for _,course in ipairs(real.LIST) do fixture.LIST[#fixture.LIST+1]=course end
                 fixture.get=function(id) return id==oval.id and oval or real.get(id) end
                 fixture.available=function(id) return id==oval.id or real.available(id) end
+                fixture.multiplayer=function(id) return id==oval.id or real.multiplayer(id) end
                 fixture.build=function(id,crossesGate)
                     return id==oval.id and namespace.Track or real.build(id,crossesGate)
                 end
-                fixture.next=function(id)
+                fixture.next=function(id,multiplayerOnly)
                     local start=0
                     for index,course in ipairs(fixture.LIST) do if course.id==id then start=index; break end end
                     for step=1,#fixture.LIST do
                         local course=fixture.LIST[(start+step-1)%#fixture.LIST+1]
-                        if not course.soon then return course.id end
+                        if not course.soon and (not multiplayerOnly or fixture.multiplayer(course.id)) then return course.id end
                     end
                 end
                 namespace.Courses=fixture
@@ -341,8 +342,11 @@ local UI_TEXTURES=112+GATE_STRIPS+EFFECT_TEXTURES+MENU_TEXTURES
 -- The Close results and Kart buttons add two Frames to the earlier nine; the
 -- Settings check "Outline my kart" adds a button and its two lines of text.
 local OUTLINE_CHECK_FRAMES,OUTLINE_CHECK_FONTS=1,2
-local UI_FRAMES=11+MENU_FRAMES+OUTLINE_CHECK_FRAMES
-local UI_FONTS=13+MENU_FONTS+OUTLINE_CHECK_FONTS
+-- The Scarlet Crusade Cup adds its heading and four track buttons (Scarlet
+-- Graveyard and three coming-soon dungeons) to the track list.
+local SCARLET_CUP_FRAMES,SCARLET_CUP_FONTS=4,1
+local UI_FRAMES=11+MENU_FRAMES+OUTLINE_CHECK_FRAMES+SCARLET_CUP_FRAMES
+local UI_FONTS=13+MENU_FONTS+OUTLINE_CHECK_FONTS+SCARLET_CUP_FONTS
 local PARTICLES_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Effects\\Particles.tga"
 local FLAME_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Effects\\Flame.tga"
 local function effectPieces(UI)
@@ -1446,6 +1450,49 @@ withMock(nil,false,function(env,UI)
     for key,value in pairs(counts) do
         assert(env.counts[key]==value,"finish/restart/partial flow allocated UI objects: "..key)
     end
+end)
+
+-- A sprint (Scarlet Graveyard) finishes at its last gate after one run: the
+-- HUD, the checkpoint line and the summary say so, and the one-run score is
+-- saved on its own board.
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    UI.Toggle()
+    assert(UI.SelectTrack("scarlet_graveyard") and UI.track.laps==1,"the Graveyard is selectable: a sprint")
+    UI.Start()
+    local Physics=env.namespace.Physics
+    local dt=Physics.FIXED_DT
+    assert(UI.race.status=="countdown" and UI.race.targetLaps==1,"a sprint's race is one run")
+    assert(UI.status.text:find("Sprint | Hold W/Up",1,true) and not UI.status.text:find("3 laps",1,true),
+        "sprint countdown status does not promise three laps")
+    local function cross(index)
+        local gate=UI.track.gates[index]
+        UI.state.x=(gate.ax+gate.bx)/2-gate.nx*2
+        UI.state.y=(gate.ay+gate.by)/2-gate.ny*2
+        UI.state.heading=gate.nx==1 and 0 or gate.nx==-1 and math.pi or
+            gate.ny==1 and math.pi/2 or -math.pi/2
+        UI.state.speed=200; UI.state.steering=0
+        UI.OnUpdate(dt)
+    end
+    finishCountdown(UI)
+    env.key(UI,"OnKeyDown","W")
+    UI.OnUpdate(dt)
+    assert(UI.lapHud.text:find("Sprint | Time:",1,true),"the lap line times the sprint")
+    assert(UI.status.text:find("Sprint | W/A/S/D",1,true) and not UI.status.text:find("3 laps",1,true),
+        "the running sprint status preserves one-run wording after GO")
+    cross(1); cross(2)
+    assert(UI.active and UI.race.status=="running" and UI.checkpoints.passed==2,"two gates down, one to go")
+    assert(UI.checkpointHud.text:find("Next: Honor's Tomb",1,true),"the HUD names the next gate")
+    cross(3)
+    assert(not UI.active and UI.race.status=="finished" and UI.race.reason=="Sprint complete"
+        and UI.race.laps.completedLaps==1,"the last gate finishes the sprint")
+    assert(UI.checkpointHud.text:find("Checkpoints: sprint complete",1,true),"the checkpoint line says the sprint is done")
+    assert(UI.summary:IsShown() and UI.summaryTitle.text=="RUN COMPLETE"
+        and UI.summaryDetail.text:find("Sprint | Total:",1,true) and UI.summaryDetail.text:find("All 3 gates",1,true),
+        "the summary shows the sprint's total")
+    local score=env.namespace.SoloRecords.GetView("scarlet_graveyard").rows[1]
+    assert(UI.scoreResult.saved and score and score.lapCount==1 and score.totalTicks==UI.race.totalTicks,
+        "the one-run total is saved on the Graveyard's own board")
 end)
 
 -- Render interpolation uses the retained fixed-step pair, including updates
@@ -3385,7 +3432,7 @@ withMock({schemaVersion=1,preferences={version=1,track="test_oval",futureField="
         "retired Oval has no catalogue, selection or menu path")
     for _,track in ipairs(AK.Menu.TRACKS) do assert(track.id~="test_oval") end
     local ids={"mirage_raceway","stormwind_city","ironforge_gp","darnassus_canopy",
-        "orgrimmar_canyon","undercity_slime"}
+        "orgrimmar_canyon","thunder_bluff_skyway","undercity_slime","scarlet_graveyard"}
     local offered,readyCalls="test_oval",0
     AK.SessionTransport={GetView=function()
         return {liveMode=true,canSetReady=true,transportBusy=false,offer={trackId=offered},session="MAP001"}
@@ -3394,13 +3441,17 @@ withMock({schemaVersion=1,preferences={version=1,track="test_oval",futureField="
     assert(not accepted and why=="track" and readyCalls==0 and not UI.liveArmed,
         "a retired incoming offer cannot capture controls or reach transport readiness")
     for _,id in ipairs(ids) do
+      if AK.Courses.multiplayer(id) then
         offered=id
         assert(UI.MultiplayerAction("ready",true) and UI.liveArmed and UI.trackId==id and
             UI.track==AK.Courses.build(id,AK.Track.crossesGate) and
             UI.backgroundPath==AK.Courses.get(id).background,
             "every finished course prepares its actual geometry and scenery before Ready: "..id)
         assert(UI.MultiplayerAction("ready",false) and not UI.liveArmed)
+      end
     end
+    offered="scarlet_graveyard"
+    assert(not UI.MultiplayerAction("ready",true) and not UI.liveArmed, "a solo sprint offer cannot capture live controls")
     assert(UI.SelectTrack("mirage_raceway"))
     AK.Menu.Show(nil)
     for index=2,#ids+1 do
@@ -3412,7 +3463,7 @@ withMock({schemaVersion=1,preferences={version=1,track="test_oval",futureField="
         UI.state.x==UI.track.spawn().x and UI.state.y==UI.track.spawn().y,
         "default Start uses the displayed Mirage spawn and no developer geometry")
     UI.Stop("production catalogue regression")
-    assert(UI.objects.frames==85 and UI.objects.textures==69 and UI.objects.fontStrings==135,
+    assert(UI.objects.frames==89 and UI.objects.textures==69 and UI.objects.fontStrings==136,
         "production pool excludes the 96 Oval bands and two fixture crates")
 end,nil,nil,true)
 
@@ -3441,4 +3492,4 @@ for _,failure in ipairs({"false","nil","throws","camera"}) do
     end,nil,nil,true)
 end
 
-originalPrint("test_ui production catalogue: six finished courses, real Mirage default/scenery, retired-save preservation, all-map Ready and asset-failure Start guard PASS (85/69/135 pool)")
+originalPrint("test_ui production catalogue: eight finished courses, real Mirage default/scenery, retired-save preservation, all-map Ready and asset-failure Start guard PASS (89/69/136 pool)")

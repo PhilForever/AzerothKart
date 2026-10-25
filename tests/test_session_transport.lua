@@ -207,7 +207,7 @@ do
     assert(#e.sends==0 and e.registerCalls==0 and e.raceCalls==0)
     assert(e:call("TakeStartProposal")==nil)
     for _,args in ipairs({{"","ABC123","mirage_raceway"},{GUEST,"bad","mirage_raceway"},
-        {GUEST,CODE,"unknown"},{GUEST,CODE,"test_oval"},
+        {GUEST,CODE,"unknown"},{GUEST,CODE,"test_oval"},{GUEST,CODE,"scarlet_graveyard"},
         {"Bad|Name",CODE,"mirage_raceway"}}) do refusal(e,"Host",unpack(args)) end
     assert(e.registerCalls==0,"invalid commands do not touch native APIs")
     assert(e:call("Host",GUEST,CODE,"mirage_raceway"))
@@ -702,7 +702,7 @@ end
 -- The real course catalogue, geometry snapshots and native lease are shared
 -- by every available map; a city offer must not fall back to Mirage or Oval.
 for _,id in ipairs({"mirage_raceway","stormwind_city","ironforge_gp",
-    "darnassus_canopy","orgrimmar_canyon","undercity_slime"}) do
+    "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway"}) do
     local p=livePair(id)
     for _,role in ipairs({"host","guest"}) do
         local e=p[role]
