@@ -43,3 +43,9 @@ New course artwork, sprint feel, client performance and city multiplayer remain
 NOT RUN in-game. Source evidence, contracts and pending release/asset-rights
 checks live in the repository's docs/PROGRESS.md and docs/PRODUCTION_MAPS.md.
 No release, verified global rank or eight-player support is claimed.
+
+Multiplayer display now uses a bounded transit-aware forecast and current turn
+direction, without increasing network traffic. Native smoothness remains pending.
+`/akart net group help` describes the separate finite group-delivery check; it
+does not start a race or require grouping for existing two-player racing. The
+new GroupProbe file requires a full client restart after installing this build.

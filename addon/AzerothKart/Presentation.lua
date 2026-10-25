@@ -144,21 +144,28 @@ end
 -- allocations at render cadence. It is an estimate, never authoritative state:
 -- unknown braking/steering and clock uncertainty can cause later corrections.
 Presentation.MAX_REMOTE_PREDICTION_MS = 500
+Presentation.MAX_REMOTE_HORIZON_MS = 1250
 local remoteStepMS, remoteMaxSpeed, remoteMaxYaw = 1000 / 60, 260, 3.0
+
+local function remoteHorizon(value)
+    if not finite(value) then return Presentation.MAX_REMOTE_PREDICTION_MS end
+    return math.max(Presentation.MAX_REMOTE_PREDICTION_MS,
+        math.min(Presentation.MAX_REMOTE_HORIZON_MS,value))
+end
 
 local function remoteObservation(value)
     return type(value) == "table" and finite(value.x) and finite(value.y)
         and finite(value.heading)
 end
 
-function Presentation.buildRemotePath(previous, current, track)
+function Presentation.buildRemotePath(previous, current, track, horizonMS)
     local validCurrent = remoteObservation(current)
     local source = validCurrent and current or (remoteObservation(previous) and previous)
     if not source then return nil end -- Invalid data must not create a kart at an invented location.
     local x,y,heading = source.x,source.y,source.heading
     local points = {{x=x, y=y, heading=heading}}
     local path = {points=points, stepMS=remoteStepMS,
-        maxAgeMS=Presentation.MAX_REMOTE_PREDICTION_MS, predicted=false}
+        maxAgeMS=remoteHorizon(horizonMS), predicted=false}
     if not validCurrent or current.status ~= "running" or not finite(current.speed)
         or current.speed == 0 or type(track) ~= "table" then return path end
     if type(track.resolveMovement) ~= "function" and type(track.isDrivable) ~= "function" then
@@ -178,19 +185,27 @@ function Presentation.buildRemotePath(previous, current, track)
             local dx,dy = current.x-previous.x,current.y-previous.y
             local distanceSquared = dx*dx+dy*dy
             local reach = remoteMaxSpeed*interval
+            local delta = (facing-(previous.heading % tau)+pi) % tau-pi
             if finite(distanceSquared) and distanceSquared > 0
                 and distanceSquared <= reach*reach then
                 local distance = math.sqrt(distanceSquared)
                 vx,vy = dx/distance,dy/distance
+                -- The displacement chord describes the middle of the old
+                -- interval. Advance its direction to the current tangent;
+                -- retaining its offset from facing also preserves drift slip.
+                local c,s = math.cos(delta/2),math.sin(delta/2)
+                vx,vy = vx*c-vy*s,vx*s+vy*c
             end
-            local delta = (facing-(previous.heading % tau)+pi) % tau-pi
             yaw = math.max(-remoteMaxYaw,math.min(remoteMaxYaw,delta/interval))
         end
     end
 
     local turn = yaw/60
     local cosTurn,sinTurn = math.cos(turn),math.sin(turn)
-    for index=1,30 do
+    -- At most 75 fixed movement segments, allocated only once per observation.
+    -- The optional horizon covers transit plus the next packet interval; the
+    -- original three-argument call retains its 500ms/thirty-segment behavior.
+    for index=1,math.ceil(path.maxAgeMS/remoteStepMS) do
         local nextVX,nextVY = vx*cosTurn-vy*sinTurn,vx*sinTurn+vy*cosTurn
         local targetX,targetY = x+nextVX*speed/60,y+nextVY*speed/60
         if not finite(targetX) or not finite(targetY) then break end
@@ -220,7 +235,7 @@ function Presentation.remotePose(path, ageMS)
         return nil,nil,nil,false
     end
     if not finite(ageMS) then ageMS = 0 end
-    local age = math.max(0,math.min(Presentation.MAX_REMOTE_PREDICTION_MS,ageMS))
+    local age = math.max(0,math.min(remoteHorizon(path.maxAgeMS),ageMS))
     local at = age/remoteStepMS
     local first = math.min(#path.points,math.floor(at)+1)
     local a,b = path.points[first],path.points[math.min(#path.points,first+1)]

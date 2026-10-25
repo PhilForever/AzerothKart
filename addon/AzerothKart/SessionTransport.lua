@@ -16,6 +16,7 @@ local liveMode, liveRun, lastLive
 local liveKartId,liveGrid,gridInfo
 local registered, sendAPI, sendSuccess, failedCodes, throttleCodes = {}
 local used, usedCount, attempts, lastAttempt = {}, 0, {}, nil
+local lastDiagnosticAttempt
 local traffic = {attempts=0, accepted=0, failed=0, unknown=0, throttled=0,
     payloadBytes=0, prefixBytes=0, windowCalls=0, windowBytes=0}
 local sendNames = {"Success", "InvalidPrefix", "InvalidMessage", "AddonMessageThrottle",
@@ -132,6 +133,39 @@ end
 local function readyToSend(now, bytes)
     return (not lastAttempt or now-lastAttempt>=0.5)
         and #attempts<2 and traffic.windowBytes+bytes<=158
+end
+
+-- The finite group diagnostic shares this persistent native-call window.
+-- A lease prevents concurrent owners; it does not by itself preserve pacing
+-- when one owner stops and another starts within the same rolling second.
+function Transport.ReserveDiagnosticSend(owner, now, bytes)
+    local ok,valid=pcall(function()
+        return owner~=nil and owner==AK.GroupProbe and frame~=nil
+            and frame.akNetworkOwner==owner and not frame.akNetworkSending
+            and not busy and not control
+            and type(now)=="number" and now==now and now>=0 and now<math.huge
+            and (not lastNow or now>=lastNow)
+            and type(bytes)=="number" and bytes%1==0 and bytes>=1 and bytes<=158
+    end)
+    if not ok or not valid then return false,"unavailable" end
+    prune(now)
+    if not readyToSend(now,bytes) then return false,"budget" end
+    lastNow,lastAttempt=now,now
+    lastDiagnosticAttempt=now
+    attempts[#attempts+1]={at=now,bytes=bytes}
+    prune(now)
+    return true
+end
+
+-- Legacy standalone experiments retain their own historical rates. They must
+-- wait out the group diagnostic's last rolling second before taking its lease.
+function Transport.DiagnosticTrafficQuiet(now)
+    if lastDiagnosticAttempt==nil then return true end
+    local ok,quiet=pcall(function()
+        return type(now)=="number" and now==now and now<math.huge
+            and now-lastDiagnosticAttempt>=1
+    end)
+    return ok and quiet or false
 end
 
 local function capabilities(wantClock,wantLive)

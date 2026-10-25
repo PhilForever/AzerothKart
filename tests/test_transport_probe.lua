@@ -197,6 +197,7 @@ end
 
 withMock(function(env,t,p)
     assert(t.Command("help") and #env.output==6,"explicit help prints the short connection-test steps")
+    assert(env.output[1]:find("net group help",1,true),"the group check has a discoverable help command")
     assert(not t.state and t.usedCount==0 and env.registerCalls==0 and #env.sends==0 and
            env.eventCalls==0 and env.scriptCalls==0,"help never arms, registers or sends")
     local guide=table.concat(env.output,"\n")
@@ -427,6 +428,19 @@ withMock(function(env,t)
     assert(t.usedCount == 64 and env.registerCalls == 1 and #env.sends == 0)
     assert(not t.Command("listen Tester-Realm NEW123"), "session-ID history must remain bounded")
     assert(t.usedCount == 64 and not env.frame.events.CHAT_MSG_ADDON_LOGGED and not env.frame.scripts.OnUpdate)
+end)
+
+withMock(function(env,t,_,ns)
+    local calls=0
+    ns.GroupProbe={Command=function(argument) calls=calls+1; return argument=="help" end}
+    assert(t.Command("group help") and calls==1 and #env.sends==0 and env.registerCalls==0,
+        "group commands dispatch explicitly without arming the old whisper experiment")
+    ns.SessionTransport={DiagnosticTrafficQuiet=function(now) return now>=1 end}
+    assert(not t.Command("start Tester-Realm QUT001") and t.usedCount==0 and env.registerCalls==0,
+        "the quiet handoff refuses before registration or consuming the fresh code")
+    env.now=1
+    assert(t.Command("start Tester-Realm QUT001"))
+    t.Stop()
 end)
 
 originalPrint("Opt-in transport adapter: guarded capabilities/enums, bounded traffic/evidence and terminal cleanup verified with mocks")

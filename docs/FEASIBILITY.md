@@ -1,5 +1,20 @@
 # M0–M2 feasibility — evidence gates
 
+
+**2026-10-25 group route gate:** [short finite PARTY/RAID check](GROUP_DELIVERY.md)
+is implemented with actual native recipients/whisper receipts, fixed roster and
+shared race-window pacing. The pinned70450generated API source documents the
+chatType argument; no current native group delivery or capacity is inferred.
+This is one20second single-sender check, not a production race or eight-racer
+load proof. Native check NOT RUN; no new grouping requirement is selected.
+
+**2026-10-25 remote display source result:** at2Hz/350ms transit/60Hz render,
+the old500ms horizon froze160of249frame intervals and jumped up to70units at
+200speed. The bounded transit-aware path has0held intervals and3.333unit max
+step in that synthetic straight. Steady-turn prediction error is1.465units
+versus41.788with the old chord direction. These are actual Lua5.1/offline
+measurements, not native ping/feel or universal prediction guarantees.
+
 Automatic score integration, 2026-10-25: cached channel-roster discovery plus
 logged WHISPER, community saves, catch-up and notices are wired/offline-tested.
 [Current behavior and pending native check](AUTOMATIC_SCORES.md). No native

@@ -1,5 +1,7 @@
 # Documentation index / reading order
 
+**Multiplayer follow-up:** bounded transit-aware opponent forecasts and [the finite group-delivery check](GROUP_DELIVERY.md). Existing ungrouped two-player mode stays available. Eight-racer multicast capacity remains unverified.
+
 **Current courses and multiplayer scope (2026-10-25):** [eight production maps, retired Oval and eight-player transport decision](PRODUCTION_MAPS.md). Seven lap maps are enabled for the existing two-player flow; the new Graveyard sprint is solo. A raid requirement is undecided; native eight-player capacity remains unverified.
 
 **Kart handling:** [three modest profiles and shared leaderboard, ADR 0019](adr/0019-balanced-kart-handling.md),

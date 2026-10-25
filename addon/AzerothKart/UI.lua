@@ -393,6 +393,7 @@ function UI.Stop(reason)
     end
     UI.active = false
     UI.gridStaged,UI.gridView,UI.remotePath,UI.remotePathAt=false,nil,nil,nil
+    UI.remotePathSample,UI.remotePathSequence=nil,nil
     -- Closing an already interrupted drive cannot replace its terminal reason.
     if UI.result and (UI.result.status == "interrupted" or UI.result.status == "finished") then
         reason = UI.result.reason
@@ -920,6 +921,7 @@ function UI.SelectTrack(id)
     UI.race,UI.result,UI.clock,UI.performance,UI.summaryRace = nil,nil,nil,nil,nil
     UI.multiplayer,UI.liveView,UI.liveSession=false,nil,nil
     UI.gridStaged,UI.gridView,UI.remotePath,UI.remotePathAt=false,nil,nil,nil
+    UI.remotePathSample,UI.remotePathSequence=nil,nil
     UI.dismissedSummaryRace = nil
     UI.hudElapsed = 0
     UI.stopReason = "Track selected"
@@ -968,9 +970,16 @@ local function renderOpponent()
     else
         -- Cache bounded collision-aware display prediction once per packet.
         -- Its age includes transit time; no extra received-interval delay.
-        if UI.remotePathAt~=remote.receivedAtMS or not UI.remotePath then
+        if UI.remotePathAt~=remote.receivedAtMS or UI.remotePathSample~=remote.sampleMS
+            or UI.remotePathSequence~=view.remoteSequence or not UI.remotePath then
             UI.remotePathAt=remote.receivedAtMS
-            UI.remotePath=Presentation.buildRemotePath(view.remotePrevious,remote,Track)
+            UI.remotePathSample,UI.remotePathSequence=remote.sampleMS,view.remoteSequence
+            -- Transit time has already consumed part of the forecast. Cover
+            -- one normal 500ms update interval plus 100ms jitter, bounded by
+            -- the presentation cap. No extra packet or receive-time delay.
+            local age=remote.sampleAgeMS or view.remoteAgeMS or 0
+            if type(age)~="number" or age~=age or age<0 or age==math.huge then age=0 end
+            UI.remotePath=Presentation.buildRemotePath(view.remotePrevious,remote,Track,age+600)
         end
         wx,wy,heading,predicted=Presentation.remotePose(UI.remotePath,remote.sampleAgeMS or view.remoteAgeMS or 0)
     end
@@ -1296,6 +1305,7 @@ function UI.MultiplayerAction(action,...)
         UI.liveArmed,UI.liveActive,UI.liveSession=false,false,nil
         UI.multiplayer,UI.liveView=false,nil
         UI.gridStaged,UI.gridView,UI.remotePath,UI.remotePathAt=false,nil,nil,nil
+        UI.remotePathSample,UI.remotePathSequence=nil,nil
         UI.opponentAssetId=nil
     end
     return accepted,reason
@@ -1443,6 +1453,7 @@ function UI.Start()
     UI.ReleaseInput()
     UI.liveArmed,UI.liveActive,UI.liveSession,UI.multiplayer,UI.liveView=false,false,nil,false,nil
     UI.gridStaged,UI.gridView,UI.remotePath,UI.remotePathAt=false,nil,nil,nil
+    UI.remotePathSample,UI.remotePathSequence=nil,nil
     soloKartId = chosenKartId
     UI.state = Physics.new(Track)
     UI.race = Race.new(Track,Checkpoints,Laps,UI.state.tick)

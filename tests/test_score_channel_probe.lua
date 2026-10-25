@@ -347,4 +347,13 @@ fixture(function(e,p)
     p.Stop("done")
 end)
 
+fixture(function(e,p,ns)
+    ns.SessionTransport={DiagnosticTrafficQuiet=function(now) return now>=1 end}
+    assert(not p.Start() and e.registrations==0 and #e.sends==0 and not e.frame.akNetworkOwner,
+        "group-probe quiet handoff does not register, join or acquire a second diagnostic")
+    e.now=1
+    assert(p.Start())
+    p.Stop("done")
+end)
+
 originalPrint("Score channel probe: finite opt-in traffic, native refusal, peer evidence and lifecycle cleanup verified with mocks")

@@ -1031,4 +1031,38 @@ do
     p.guest:call("Stop","stopped"); detached(p.guest)
 end
 
+-- Diagnostics and normal racing share the same rolling window across a
+-- lease handoff, even after an interrupted diagnostic has released its frame.
+do
+    local e=client()
+    local probe={}
+    e.namespace.GroupProbe=probe
+    assert(not e:call("ReserveDiagnosticSend",probe,0,20),"a diagnostic must own the frame")
+    e.frame.akNetworkOwner=probe
+    assert(not e:call("ReserveDiagnosticSend",{},0,20),"another caller cannot spend a diagnostic lease")
+    for _,bad in ipairs({-1,0/0,math.huge}) do
+        assert(not e:call("ReserveDiagnosticSend",probe,bad,20))
+    end
+    for _,bad in ipairs({0,1.5,159,math.huge}) do
+        assert(not e:call("ReserveDiagnosticSend",probe,0,bad))
+    end
+    assert(e:call("ReserveDiagnosticSend",probe,0,120))
+    assert(not e:call("ReserveDiagnosticSend",probe,0.49,1),"half-second pacing is shared")
+    assert(not e:call("ReserveDiagnosticSend",probe,0.5,39),"158 counted bytes is a shared ceiling")
+    assert(e:call("ReserveDiagnosticSend",probe,0.5,38))
+    assert(not e:call("DiagnosticTrafficQuiet",1.49) and e:call("DiagnosticTrafficQuiet",1.5),
+        "standalone experiments wait one full second after the last group reservation")
+    assert(not e:call("DiagnosticTrafficQuiet",0/0))
+    assert(not e:call("ReserveDiagnosticSend",probe,0.75,1))
+    assert(not e:call("ReserveDiagnosticSend",probe,0.4,1),"diagnostics cannot move the clock backwards")
+    assert(#e.sends==0 and e.registerCalls==0,"budget reservation itself never touches native messaging")
+    e.frame.akNetworkOwner=nil
+    e.now=0.75
+    assert(e:call("Host",GUEST,CODE,"mirage_raceway"))
+    e:update(0.75); assert(#e.sends==0,"arming a race does not clear the diagnostic's native window")
+    e:update(1); assert(#e.sends==1,"a normal send resumes only after cadence and bytes permit it")
+    assert(not e:call("ReserveDiagnosticSend",probe,1.5,20),"a live controller cannot grant a probe budget")
+    e:call("Stop","stopped"); detached(e)
+end
+
 originalPrint("Session logged-whisper adapter: explicit actions, scoped identities, negotiated live GO, persistent pacing and cleanup verified with mocks")

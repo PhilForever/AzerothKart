@@ -1,5 +1,7 @@
 # Azeroth Kart — top-down arcade racing inside WoW Forever
 
+Multiplayer source follow-up: bounded transit-aware opponent prediction removes a measured freeze between healthy updates and improves steady-turn direction. Existing two-player whispers keep the same traffic budget. [A finite group-delivery check](docs/GROUP_DELIVERY.md) prepares the eight-racer transport gate; native delivery/feel and eight-player support remain unverified.
+
 Current handling (2026-10-25): [balanced, heavy and agile kart profiles](docs/adr/0019-balanced-kart-handling.md).
 Physics12 widens cruising-speed differences to±4% and launch/turning to±8%.
 Charged boosts last0.8/1.3seconds with stronger acceleration; a repeatable clean

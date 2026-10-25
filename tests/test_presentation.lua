@@ -230,6 +230,25 @@ do
     end
     remote(path,nil,60,30,0,false,"missing age does not guess latency")
     assert(select("#",P.remotePose(path,350))==4,"remote rendering returns four scalars")
+    local extended = P.buildRemotePath(older,latest,straight,1000)
+    assert(#extended.points==61 and extended.maxAgeMS==1000,
+        "a one-second horizon remains a bounded cached path")
+    remote(extended,1000,160,30,0,true,"extended horizon advances through transit and the next packet interval")
+    remote(extended,4000,160,30,0,true,"a stale extended path freezes at its own cap")
+    local longest = P.buildRemotePath(older,latest,straight,1e300)
+    assert(P.MAX_REMOTE_HORIZON_MS==1250 and longest.maxAgeMS==1250 and #longest.points==76,
+        "caller-selected horizons cannot exceed 75 fixed movement segments")
+    remote(longest,1250,185,30,0,true,"maximum supported horizon")
+    remote(longest,5000,185,30,0,true,"maximum horizon also freezes stale observations")
+    for _,horizon in ipairs({0,-1,100,0/0,math.huge,-math.huge,false,"1000",{}}) do
+        local bounded=P.buildRemotePath(older,latest,straight,horizon)
+        assert(bounded.maxAgeMS==500 and #bounded.points==31,
+            "invalid or undersized horizon keeps the original finite forecast bound")
+    end
+    local savedHorizon=extended.maxAgeMS
+    extended.maxAgeMS=0/0
+    remote(extended,4000,110,30,0,true,"malformed path horizon cannot bypass the default bound")
+    extended.maxAgeMS=savedHorizon
     -- Skipped, repeated and out-of-order rendered frames read the same path.
     local px,py,ph = P.remotePose(path,350)
     for _,age in ipairs({16,400,10,500,350,1000,0}) do P.remotePose(path,age) end
@@ -276,12 +295,70 @@ do
     near(agileHeading,seamNow.heading+agileYaw/2,
         "observed agile turning stays within the forecast bound without underprediction")
 
+    -- At constant angular velocity the previous interval's displacement is a
+    -- chord, not the velocity at the latest sample. Correcting it must preserve
+    -- both the current tangent and a steady drift offset from kart facing.
+    local function turnObservation(seconds,slip)
+        local angle=seconds*2.6
+        return {x=200/2.6*math.sin(angle),y=200/2.6*(1-math.cos(angle)),
+            heading=angle+(slip or 0),speed=200,sampleMS=seconds*1000,status="running"}
+    end
+    local turnError
+    for _,slip in ipairs({0,0.4}) do
+        local a,b=turnObservation(0,slip),turnObservation(0.5,slip)
+        local target=turnObservation(0.85,slip)
+        local x,y=P.remotePose(P.buildRemotePath(a,b,straight,1000),350)
+        local error=math.sqrt((x-target.x)^2+(y-target.y)^2)
+        assert(error<2,"a steady turn forecast follows the current tangent rather than the old chord")
+        assert(a.x==0 and a.y==0 and b.sampleMS==500 and b.heading==1.3+slip,
+            "turn correction does not write the source observations")
+        turnError=error
+    end
+
+    -- Replay actual display paths, not a substitute implementation: 2Hz source
+    -- packets arrive 350ms later and the canvas renders at60Hz. The old 500ms
+    -- horizon expires only150ms after receipt, causing hold/jump cycles even
+    -- with perfect constant motion. Covering the next interval removes them.
+    local function straightMetric(horizon)
+        local function observation(ms)
+            return {x=ms*0.2,y=0,heading=0,speed=200,sampleMS=ms,status="running"}
+        end
+        local sample,path,lastX,held,maxStep,maxError=nil,nil,nil,0,0,0
+        for frame=51,300 do
+            local now=frame*1000/60
+            local latest=math.floor((now-350)/500)*500
+            if latest~=sample then
+                sample=latest
+                path=P.buildRemotePath(observation(sample-500),observation(sample),straight,horizon)
+            end
+            local x=P.remotePose(path,now-sample)
+            if lastX then
+                local distance=math.abs(x-lastX)
+                if distance<1e-8 then held=held+1 end
+                maxStep=math.max(maxStep,distance)
+            end
+            maxError=math.max(maxError,math.abs(x-now*0.2))
+            lastX=x
+        end
+        return held,maxStep,maxError
+    end
+    local oldHeld,oldStep,oldError=straightMetric(nil)
+    local held,step,error=straightMetric(950)
+    assert(oldHeld>150 and oldStep>69 and oldError>66,
+        "the retained legacy horizon reproduces the source freeze/jump defect")
+    assert(held==0 and step<=200/60+1e-8 and error<1e-7,
+        "bounded extended paths remove healthy-stream freezes without adding receive delay")
+    print(("offline remote replay (synthetic 2Hz/350ms/60Hz): held=%d->%d maxStep=%.3f->%.3f peakError=%.3f->%.3f; steady-turn error=%.3f"):format(
+        oldHeld,held,oldStep,step,oldError,error,turnError))
+
     local wall = {resolveMovement=function(x,y,tx,ty)
         assert(math.sqrt((tx-x)^2+(ty-y)^2)<=260/60+1e-9,"small projection sweep")
         return math.min(tx,100),ty,tx>100
     end}
     remote(P.buildRemotePath(older,latest,wall),500,100,30,0,true,
         "a forecast freezes at the first resolved wall contact")
+    remote(P.buildRemotePath(older,latest,wall,1250),1250,100,30,0,true,
+        "a longer horizon still freezes at the first wall instead of sliding onward")
     local road = {isDrivable=function(x,y) return x<=95 end}
     local roadPath = P.buildRemotePath(older,latest,road)
     local roadX = P.remotePose(roadPath,500)
@@ -306,6 +383,8 @@ do
         local terminal = copy(latest); terminal.status=status
         remote(P.buildRemotePath(older,terminal,straight),500,60,30,0,false,
             "non-running observations stay frozen")
+        remote(P.buildRemotePath(older,terminal,straight,1250),5000,60,30,0,false,
+            "extended horizons never predict beyond a terminal observation")
     end
     local stopped = copy(latest); stopped.speed=0
     remote(P.buildRemotePath(older,stopped,straight),500,60,30,0,false,"zero speed stays frozen")
@@ -326,7 +405,7 @@ do
         "no valid observation draws no invented pose")
     assert(P.remotePose(nil,500)==nil and P.remotePose({points={{x=0/0,y=0,heading=0}}},500)==nil,
         "invalid paths never return NaN to the renderer")
-    print("offline remote presentation: bounded 500ms/31-point forecast, wall/solid stops, read-only observations and cadence-independent sampling")
+    print("offline remote presentation: default 500ms/31 points, optional 1250ms/76 points, wall/solid stops, read-only observations and cadence-independent sampling")
 end
 
 local config = dofile("addon/AzerothKart/Physics.lua")

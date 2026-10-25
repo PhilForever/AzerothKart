@@ -229,6 +229,9 @@ local function arm()
     if not number(now,0,100000000000) or not number(epoch,1,4102444800) or not identity or not id then
         report("Readable identity, clock or channel lookup unavailable"); return false
     end
+    if AK.SessionTransport and not AK.SessionTransport.DiagnosticTrafficQuiet(now) then
+        report("Wait one second after the group check before starting another probe"); return false
+    end
     serial=serial+1
     state={phase="joining",reason="checking",lastNow=now,deadline=now+30,joinDeadline=now+8,
         nextSend=now,joinedAt=now,channelId=id,localName=identity,sendSuccess=success,

@@ -35,7 +35,7 @@ whether nearby driving felt less delayed, and any exact on-screen failure text. 
 `/akart net` experiment is needed for this first candidate.
 
 The display estimates the opponent’s current position from timestamped observations,
-with at most half a second of forecast constrained by track walls/obstacles.
+with a transit-aware forecast capped at1.25seconds and constrained by track walls/obstacles. This avoids the old freeze while waiting for the next healthy2Hz update; native feel remains pending.
 Unknown braking/steering and clock uncertainty can still cause corrections.
 An off-screen label gives direction/distance, not race position; stale data fades.
 This is the behavior to judge in the real client, not a verified responsiveness

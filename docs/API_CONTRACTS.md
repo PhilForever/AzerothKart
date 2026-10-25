@@ -1,5 +1,37 @@
 # Implemented simulation and rendering contracts
 
+
+## Multiplayer display and group diagnostic - 2026-10-25
+
+`Presentation.buildRemotePath(previous,current,track,horizonMS?)` keeps its
+three-argument500ms default. The optional finite horizon is clamped500..1250ms;
+invalid values use500. At most76precomputed points are built per observation.
+`remotePose` samples the path's bounded horizon without per-render collision
+calls. The valid displacement chord rotates by half the observed signed heading
+change to estimate the current tangent. First wall contact and terminal samples
+still freeze; no local simulation/race/input state is changed.
+
+UI chooses mapped sample age plus600ms (one500ms update interval plus100ms
+jitter), capped by Presentation. Its cache includes receive time, sample time
+and sequence, so batched native packets sharing a millisecond cannot retain an
+old forecast. No send cadence, packet format or UI-object budget changes.
+This reduces two measured source artifacts; unknown inputs, clock uncertainty,
+loss and changing turn rates still cause observational corrections.
+
+`GroupProbe` is a separate finite opt-in native diagnostic, not a race route.
+[Commands, exact evidence and pending gate](GROUP_DELIVERY.md). It dynamically
+leases Core's existing frame/events and stays idle on load/Init. The TOCs load
+36modules with GroupProbe after SessionTransport. No extra frame or default
+traffic is introduced. Native PARTY/RAID delivery remains NOT RUN.
+
+`SessionTransport.ReserveDiagnosticSend(owner,nowSeconds,bytes)` reserves the
+same persistent2call/158byte rolling window and0.5second cadence used by races.
+It admits only the actual GroupProbe owner with no control/native send in
+progress. False/budget means defer; false/unavailable means fail closed.
+Reservations are charged before native calls. `DiagnosticTrafficQuiet(now)`
+guards legacy experiments for one second after group traffic; GroupProbe waits
+one second on entry. This does not redefine those historical experiments' rates.
+
 ## Current production catalogue — 2026-10-25
 
 [Production courses and capacity](PRODUCTION_MAPS.md) supersedes older Oval/limited-map examples below. `Courses.DEFAULT_ID="mirage_raceway"`; `get/available/build/next` exclude Oval. Eight finished maps are admitted by UI and SoloRecords. Seven lap maps enter the two-peer controller; Graveyard is solo-only. Three further Scarlet dungeons are unavailable. UI initializes real Mirage geometry, loads guarded scenery on first open and refuses Start if that initial load failed. Invalid saved Oval selection falls back in memory without deleting saved history. Existing stopped-selection failure rollback and explicit preference-choice precedence remain required.
@@ -10,7 +42,7 @@ RaceProtocol preserves Mirage1 and city codes2–6, retires0 and assigns Thunder
 
 ## Automatic score sharing — source integration
 
-The two TOCs now load 35 modules. Highscores/SoloRecords precede ScoreSync,
+The two TOCs now load 36 modules. Highscores/SoloRecords precede ScoreSync,
 ScoreDiscovery and ScoreSharing; UI/Menu and the existing network modules follow.
 [Full behavior, evidence and limits](AUTOMATIC_SCORES.md).
 
@@ -474,9 +506,9 @@ kartFrameCoords(sprite, frame) -> left, right, top, bottom
 
 `pose` linearly interpolates position and uses the shortest heading arc; an exact half-turn chooses the negative arc. Missing/NaN alpha uses current pose, alpha ≤0 previous, alpha ≥1 current. During active rendering alpha is `clock.accumulator/clock.dt`; this is up to one fixed step behind simulation. Start/Stop/inactive drawing uses the exact current pose. Presentation values must never affect Physics, gates or lap time.
 
-`buildRemotePath` is a separate display-only helper for copied LiveRace observations. UI caches it when `remote.receivedAtMS` changes, then calls allocation-free `remotePose` with `remote.sampleAgeMS` at render cadence. It starts at the newest observation, with no extra 500 ms receive-time interpolation buffer. At most 31 points cover 30 fixed 1/60 s forecast steps: `MAX_REMOTE_PREDICTION_MS=500`, absolute speed cap 260 units/s and heading-rate cap 3.0 radians/s. Current signed speed/facing supply the fallback; a valid positive sample interval of at most 2 s supplies measured travel direction and shortest-arc yaw. It does not predict unknown acceleration, braking or new steering. `resolveMovement` is used where present; contact, clamp or invalid/far recovery stops further projection. A road-mask-only track refuses outside endpoints. This preserves the current geometry hooks' limits; it is not a new continuous collision guarantee.
+`buildRemotePath` is a separate display-only helper for copied LiveRace observations. UI caches it when receipt time, sample time or sequence changes, then calls allocation-free `remotePose` with `remote.sampleAgeMS` at render cadence. It starts at the newest observation, with no extra 500 ms receive-time interpolation buffer. The three-argument default keeps31points/500ms; the optional horizon extends to1250ms/76points for transit plus the next update. Both use fixed1/60s steps, absolute speed cap 260 units/s and heading-rate cap 3.0 radians/s. Current signed speed/facing supply the fallback; a valid positive sample interval of at most 2 s supplies measured travel direction advanced by half the signed heading change to estimate the current tangent, plus shortest-arc yaw. It does not predict unknown acceleration, braking or new steering. `resolveMovement` is used where present; contact, clamp or invalid/far recovery stops further projection. A road-mask-only track refuses outside endpoints. This preserves the current geometry hooks' limits; it is not a new continuous collision guarantee.
 
-`remotePose` clamps finite age to 0..500 ms, samples between cached points and freezes at the forecast's end. Invalid/missing age draws the observation without guessed latency. Non-running or invalid-speed observations stay frozen; invalid current pose falls back to a valid previous pose without forecasting, and no valid pose yields nil. Inputs are never written. The boolean labels an estimated pose; it does not verify where the peer really is. Later observations can correct it abruptly, and clock offset, abrupt turns/braking and loss remain visible limitations. Neither helper feeds local Physics/Race, awards progress, compares standings or sends packets. Native smoothness and visual edge behavior for this revision remain **NOT RUN**.
+`remotePose` clamps finite age to the cached path's bounded horizon (500ms by default; at most1250ms), samples between cached points and freezes at the forecast's end. Invalid/missing age draws the observation without guessed latency. Non-running or invalid-speed observations stay frozen; invalid current pose falls back to a valid previous pose without forecasting, and no valid pose yields nil. Inputs are never written. The boolean labels an estimated pose; it does not verify where the peer really is. Later observations can correct it abruptly, and clock offset, abrupt turns/braking and loss remain visible limitations. Neither helper feeds local Physics/Race, awards progress, compares standings or sends packets. Native smoothness and visual edge behavior for this revision remain **NOT RUN**.
 
 `meter` clamps a visual fraction to capacity and returns `"idle"`, `"charging"`, `"holding"`, `"tier1"`, `"tier2"` or `"boost"`. Rough ground/walls override stale charge. Boost uses the shared 48-tick capacity, so a shorter reward starts less full. Phase does not change simulation.
 

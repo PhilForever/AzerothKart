@@ -7,6 +7,7 @@ AK.events = {}
 local eventFrame = CreateFrame("Frame")
 AK.TransportProbe.Init(eventFrame) -- Reuse bootstrap; no network registration/traffic on load.
 AK.SessionTransport.Init(eventFrame) -- Exclusive lease; menu actions opt in later.
+if AK.GroupProbe then AK.GroupProbe.Init(eventFrame) end -- Explicit finite diagnostic only.
 AK.ScoreChannelProbe.Init(eventFrame) -- Explicit channel check; no score publishing.
 local failures = {}
 for _,event in ipairs({"ADDON_LOADED","PLAYER_REGEN_DISABLED","PLAYER_REGEN_ENABLED",
@@ -38,10 +39,12 @@ eventFrame:SetScript("OnEvent",function(_,event,...)
     elseif event == "CHAT_MSG_ADDON_LOGGED" then
         AK.TransportProbe.Message(...)
         AK.SessionTransport.Message(...)
+        if AK.GroupProbe then AK.GroupProbe.Message(...) end
         AK.ScoreChannelProbe.Message(...)
     else
         AK.TransportProbe.HandleEvent(event)
         AK.SessionTransport.HandleEvent(event)
+        if AK.GroupProbe then AK.GroupProbe.HandleEvent(event) end
         AK.ScoreChannelProbe.HandleEvent(event)
         AK.UI.HandleEvent(event,arg1)
     end

@@ -180,6 +180,9 @@ local function arm(options)
     if reason then report("Refused: "..reason); return false end
     local now = clock()
     if not now then report("Refused: clock unavailable"); return false end
+    if AK.SessionTransport and not AK.SessionTransport.DiagnosticTrafficQuiet(now) then
+        report("Refused: wait one second after the group check before starting another probe"); return false
+    end
     local state,errorMessage = Probe.new(options,now)
     if not state then report("Refused: "..tostring(errorMessage)); return false end
     if Transport.used[state.options.session] then report("Refused: use a fresh session ID"); return false end
@@ -261,7 +264,7 @@ function Transport.Evidence()
 end
 
 function Transport.Help()
-    report("Connection test: you + a friend with the same addon build. Chat commands only; not a multiplayer race.")
+    report("Connection test: you + a friend with the same addon build. Chat commands only; not a multiplayer race. Group delivery: /akart net group help")
     report("Stop driving, stay out of combat. Use full Forever first + surname, no realm. Agree on a NEW 6-character uppercase letter/digit code (example AKT722). Route: WHISPER_LOGGED.")
     report('1. Friend first: /akart net listen "Your Firstname Surname" AKT722')
     report('2. You within 20 seconds: /akart net start "Friend Firstname Surname" AKT722')
@@ -272,6 +275,12 @@ end
 function Transport.Command(argument)
     if type(argument) ~= "string" or #argument > 256 or argument:find("[%c|]") then
         report("Invalid net command"); return false
+    end
+    local groupArgument=argument:match("^%s*group%s+(.-)%s*$")
+    if argument:match("^%s*group%s*$") then groupArgument="" end
+    if groupArgument~=nil then
+        if AK.GroupProbe then return AK.GroupProbe.Command(groupArgument) end
+        report("Group delivery check unavailable in this build"); return false
     end
     local words = {}
     for word in argument:gmatch("%S+") do

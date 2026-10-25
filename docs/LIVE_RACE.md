@@ -1,5 +1,15 @@
 # Experimental live-race backend
 
+
+Current source follow-up,2026-10-25: the opponent display covers mapped packet
+age plus the next update interval, bounded to1250ms, and corrects the previous
+chord to the current tangent. Same-millisecond packets are distinguished by
+sample/sequence. Existing500ms callers remain compatible. Physics, wire budget,
+first-wall freeze and unverified remote authority stay unchanged. Synthetic
+straight/turn metrics are in FEASIBILITY; native feel remains NOT RUN. The
+[eight-player fan-out check](GROUP_DELIVERY.md) is opt-in and does not activate
+another race route or require grouping for the current two-player game.
+
 Implemented on `codex/live-race-controller`, from4544108, within the accepted
 [two-peer experiment](adr/0013-two-player-experiment-scope.md). This is a pure
 backend lifecycle and observational pose path. The subsequent native/menu/canvas
@@ -54,7 +64,7 @@ calculated, and a remote progress claim never awards a local checkpoint/lap.
 
 Peer silence, or frozen running ticks despite fresh sequence numbers, closes
 at five seconds; stale/duplicate/wrong-session/invalid packets do not renew
-liveness. Age over1500ms marks remoteStale. Presentation may forecast at most500ms through the read-only geometry helper; authoritative local simulation is never extrapolated from received poses. At most the
+liveness. Age over1500ms marks remoteStale. Presentation may forecast through the read-only geometry helper with a500ms default or optional1250ms maximum horizon; authoritative local simulation is never extrapolated from received poses. At most the
 latest two observations are kept; there is no packet history allocation. The
 common update/advance deadline check enforces frozen-progress timeout even if
 no further packet arrives. Duration is capped at30minutes/108000 driving ticks.
@@ -147,7 +157,7 @@ Ready/Start/Leave and5Hz visible status refresh. UI.MultiplayerAction validates
 commands; deliberate Ready aligns the offered map and arms input eligibility.
 Only a matching explicitly readied live session can stage/capture a shown, focused, out-of-combat canvas without text focus. GET READY and the full3–2–1 countdown show both role-specific karts; only GO activates real backend ticks. Host/guest start36units apart on the same line; these copied poses do not modify solo track data. No menu navigation consumes a ticket or starts Physics.
 
-UI reuses its one pooled opponent texture and label for the peer’s chosen atlas (neutral tint; primitive fallback on load failure). A cached path uses sample timestamps, signed speed, measured direction and bounded heading change; rendering samples without allocation or another snapshot interval of delay. Forecast caps at500ms/31points/speed260/yaw3.0rad/s, stopping at track walls/solids. sampleAgeMS is an estimate using the existing mapped epochs, not measured one-way latency. Unknown steering/braking, hitches and clock uncertainty can still cause corrections. Stale data fades; off-screen direction/distance is not a placement claim. Actual usefulness remains a playtest question. Explicit object
+UI reuses its one pooled opponent texture and label for the peer’s chosen atlas (neutral tint; primitive fallback on load failure). A cached path uses sample timestamps, signed speed, measured direction and bounded heading change; rendering samples without allocation or another snapshot interval of delay. UI covers sample age plus600ms, capped1250ms/76points/speed260/yaw3.0rad/s, stopping at track walls/solids. sampleAgeMS is an estimate using the existing mapped epochs, not measured one-way latency. Unknown steering/braking, hitches and clock uncertainty can still cause corrections. Stale data fades; off-screen direction/distance is not a placement claim. Actual usefulness remains a playtest question. Explicit object
 pool now79frames/166textures/81fonts, including four additional menu controls.
 No widgets are created during driving.
 

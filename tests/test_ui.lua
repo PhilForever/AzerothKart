@@ -3299,6 +3299,12 @@ withMock(nil,false,function(env,UI)
     assert(builds==1 and UI.remotePath==path,"the bounded future path is rebuilt once per received snapshot")
     view.remote.receivedAtMS=1500; UI.OnUpdate(0)
     assert(builds==2,"a new snapshot refreshes the cached future path")
+    view.remote.sampleMS=500; UI.OnUpdate(0)
+    assert(builds==3,"a newer sample received in the same millisecond refreshes prediction")
+    view.remoteSequence=(view.remoteSequence or 0)+1; UI.OnUpdate(0)
+    assert(builds==4,"a fresh sequence is not hidden by equal receipt/sample stamps")
+    assert(path.maxAgeMS>=950 and path.maxAgeMS<=1250,
+        "350ms transit keeps a full 500ms update interval and jitter allowance in the bounded forecast")
     assert(view.remote.x==400 and view.remote.y==100,"remote display prediction cannot modify observed state")
     P.buildRemotePath=builder
     UI.Stop("prediction fixture")

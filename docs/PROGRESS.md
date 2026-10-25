@@ -1,5 +1,76 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-25 22:52 +01:00 - smoother opponent motion and bounded group route check
+
+Owner asks to proceed toward smooth multiplayer. Own branch
+`codex/multiplayer-smoothing` from clean`f6c6338`; explicit handoff reservation
+preceded source edits. Preserves integrated Claude courses, eight solo boards,
+seven two-peer lap maps, retired Oval, Physics12 and actual whisper limits.
+
+Fixed two reproducible display artifacts: the old500ms forecast exhausted
+itself during transit before the next2Hz snapshot, and the displacement chord
+lagged the current direction on a turn. Presentation retains500ms defaults but
+accepts an optional500..1250ms horizon/at most76points. UI uses sample age+600ms
+and caches by receipt/sample/sequence, including equal-millisecond packets.
+Valid chord direction advances by half the measured turn angle. First contact,
+terminal/stale freezing and observational-only state remain. No physics, input,
+clock negotiation, wire cadence or extra UI object changes. Unknown braking,
+steering changes, packet loss and clock uncertainty can still cause corrections.
+
+Actual Lua5.1 synthetic straight,2Hz/350mstransit/60Hz at200speed: old160held
+frames out of249/70unitmaxjump/66.667unitpeaklag; current0held/3.333unitmaxstep/
+~0peaklag. Steady200speed/2.6rad/s turn error falls from41.788unit old reference
+to1.465units including steady0.4radslip. These are reproducible source metrics,
+not measured native smoothness, ping or universal prediction accuracy.
+
+New GroupProbe is a finite explicit PARTY/RAID delivery check, never an enabled
+race route. Fixed2..8fullnative roster, ten single-sender groupDATA slots over
+20s, paced whisperreceipts and4sdrain; perpeer masks/RTT/duplicate/reorder/error/
+throttle and missed local slots. No registration or sends on load/Init. The
+shared Core lease gains only diagnostic-time events; no frame is created.
+Actual native acceptance is separate from receipt. Native opaque fields,
+roster/lifecycle/time/lease changes and callback reentry fail closed. A preflight
+lease-overwrite review finding was corrected before final acceptance.
+
+Group/race attempts share persistent2calls/158prefix+payloadB per rolling second
+and0.5second cadence via ReserveDiagnosticSend. Standalone historical probes
+retain their rates, separated by a1second quiet handoff; scores already yield
+and wait2sidle. Root coverage checks immediate group-to-race budget persistence.
+[Simple command procedure, source/API evidence and limits](GROUP_DELIVERY.md).
+A low-rate single-sender route check is not an eight-racer capacity proof.
+
+Executed pinned actual Lua5.1:
+- Agent`--tests presentation` PASS, including straight/turn metrics, horizon caps,
+  invalid values, wall/terminal/stale paths and no input mutation.
+- Root`--tests ui session_transport transport_probe` PASS for the first integration.
+- Final root`--tests transport_probe score_channel_probe group_probe ui menu
+  multiplayer_integration` PASS,80Lua files parsed. Another focused run passed
+  group_probe/presentation/session_transport before a new fixture-name typo was
+  caught; the typo was fixed and the affected final six modules passed.
+- GroupProbe final focused check PASS, including2memberPARTY and mocked8member
+  RAID:10multicasts/70distinctreceipts,300msRTT, budgets/identity/roster/callback
+  guards. These are API doubles, not native delivery.
+- Whitespace PASS; actual source diff confirms Physics/Input/Race/Courses,
+  scores and all assets unchanged fromf6c6338. Structural validator still reports
+  only2historical expired skill links; not a full validator PASS.
+
+Independent final source review found no remaining practical blocker. Broad
+Lua5.4/stress/profiling, native group receipt and native new motion/8racer
+aggregate capacity NOT RUN. No install, push, client input, native packets,
+release or milestone completion. Installed source remainsbb085ac. New candidate
+has36modules; it needs a full restart after future install for GroupProbe.
+
+Concurrent Claude work was observed, not changed: `claude/scarlet-library`
+`b56d227` adds its reservation only, with existing untracked outputs preserved.
+Its Dungeon/Menu/Courses/art scope does not overlap this network/display slice.
+Canonical checkout remains5570968 and its untracked work is intact.
+
+**Next exact task:** deploy this tested combined candidate for ordinary two-player
+feel feedback and one short consenting group-delivery check. Resolve native
+fan-out evidence/grouping policy before enabling an eight-member room. Existing
+ungrouped two-player racing remains available; Graveyard live support is pending.
+
+
 ## 2026-10-25 22:24 +01:00 — Claude courses integrated and feature branches published
 
 Tested source merge `b98296c232ae014bf0531cbd9cbbaff10077a801` on

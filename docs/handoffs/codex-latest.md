@@ -1,5 +1,69 @@
 # Codex handoff — production maps and Claude course review
 
+## Latest multiplayer checkpoint - 2026-10-25 22:52 CET
+
+Branch`codex/multiplayer-smoothing` fromf6c6338. Two source fixes: UI covers
+transit+one2Hzinterval within an optional1250ms/76point ceiling; observed chord
+is advanced to current tangent. Cache includes receive/sample/sequence. No new
+receive-time buffer, packets, authority or Physics12 changes. Defaults500ms and
+first-wall/terminal/stale behavior remain. ActualLua51 straight metric160held
+frames->0, maxframejump70->3.333units; steadyturnerror1.465units. Native feel
+remains NOT RUN; unknown inputs/clock uncertainty still cause corrections.
+
+Finite opt-inGroupProbe is wired through Core's existing lease, with ten group
+DATA attempts, perpeer pacedwhisperreceipts and strict2..8identity/route/session/
+roster/lifecycle/error guards. Group/race share the persistent send window;
+legacyexperiments have1squiet handoff, score-sharing keeps2sidle. No auto group
+requirement or race-route activation. [Exact procedure/evidence](../GROUP_DELIVERY.md).
+Mock8memberRAID10DATA/70receipts PASS does not establish native8capacity.
+
+Focused actualLua51 presentation/group/session/legacy/UI/Menu/complete2client
+mocked flow PASS;80files parsed. UI objects unchanged,36TOCmodules. Validator
+retains only2knownhistorical links. Finalreadonly review found no blocker.
+Physics/Input/Race/Courses/scores/assets unchanged. BroadLua54/profiling/native
+motion/group delivery/8raceraggregate NOT RUN. No push/install/native packets or
+client input. Installedruntime stillbb085ac; future candidate install needs a
+full restart for GroupProbe. Do not install another agent's older source.
+
+Claude is now on`claude/scarlet-library`b56d227 (reservationonly observed), not
+1bc3ac8; preserve its independent Dungeon/Menu/course/art work and outputs.
+The root canonical checkout remains5570968. This slice has no competing edits.
+
+Next: tested candidate deployment, ordinary2player feel and one short native
+PARTY/RAID delivery window with consenting grouped clients. Grouping policy and
+aggregate capacity remain open before the shared8member/commonGO controller.
+
+
+
+## Active reservation - smoother multiplayer and multicast capability
+
+Owner asks to proceed and prioritizes smooth multiplayer. Own branch
+`codex/multiplayer-smoothing` from `f6c6338` (clean source). Preserve all reviewed
+Claude maps, score sync, retired Oval, Physics12, current whisper budgets and
+other worktrees. No automatic push, install, race grouping requirement or
+unverified eight-player activation.
+
+Plan: fix the finite-forecast freeze during ordinary2Hz/high-latency play,
+correct the stale chord direction on turns, and reduce repeated display-only corrections through current-tangent prediction
+with collision-safe sampling. Further reconciliation blending remains pending
+native feedback; do not add an extra receive-time delay to this fix. Reserve only Presentation's remote
+forecast/correction functions, their focused tests, UI.renderOpponent's cache/
+observation sampling and relevant mock tests. Local physics/camera/art are out
+of scope. Extend the implemented observation contract without breaking callers.
+
+In parallel add a finite opt-in logged PARTY/RAID delivery check using Core's
+exclusive lease and existing working send limits. Reserve new pure/native group
+probe modules/tests, Core dispatch/init, TOCs/test runner/validator registrations
+and network help routing only. No native send, client interaction or default
+public traffic during development. Current local70450generated API docs show
+the chatType argument but do not prove current Forever multicast delivery.
+Document exact pending native check; do not equate accepted sends with receipt.
+Root owns shared docs/PROGRESS/handoff/integration and all commits.
+Also reserve the legacy WHISPER/score-channel arm preflight and focused tests
+for a one-second quiet handoff after GroupProbe. Group itself waits one second
+before native traffic; historical experiment rates are unchanged. This avoids
+claiming their independent budgets are globally unified.
+
 ## Latest combined checkpoint - 2026-10-25 22:24 CET
 
 Tested source `b98296c232ae014bf0531cbd9cbbaff10077a801` on
