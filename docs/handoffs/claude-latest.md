@@ -1,25 +1,164 @@
-# Claude handoff — fixes from the owner's client run (in progress)
+# Claude handoff — fixes from the owner's client run
 
-## Active reservation — drive fixes (2026-10-26)
+Prepared 2026-10-26 at about 00:40 CET (Europe/Oslo) by Claude (rendering/UI/sprites owner).
 
-The owner drove Codex's installed build (runtime `c9ebf03`, with Thunder Bluff and Scarlet Graveyard) and sent five screenshots from his client. He wrote: "Codex is working on it. fix invisible wall at infront of kart on image 1 and 2. remove object under kart on image 3 and 4. image 5 shows the startline of thunderbluff - arrow is not in the picture, so it's literally impossible and pretty unexpected having to take a left turn at the start."
+**Base:** `claude/scarlet-library` `8b09309`. Thunder Bluff and the Graveyard are integrated on Codex's `codex/claude-courses-integration` (`b98296c`) and installed (runtime `c9ebf03`). The Library is not integrated yet, so this branch carries it.
 
-- **Images 1 and 2,** Scarlet Graveyard: the kart stops at the Chamber of Atonement's west side, where its floor meets the west hall's with no wall painted between them. The karts' floors stopped 36 units apart there, joined only through the west door.
-- **Images 3 and 4,** Scarlet Graveyard: the kart drives over an armour rack on the stairs and over a ghost on the cloister's path. Neither is solid.
-- **Image 5,** Thunder Bluff at GO: the start sign beyond the junction is above the camera's view, and the road runs straight on to the east, the wrong way.
+**Branch:** `claude/drive-fixes`, with these commits:
 
-**Branch:** `claude/drive-fixes` from `claude/scarlet-library` `8b09309`. The Library is not integrated yet, so this branch carries it. Reserved, until this handoff says otherwise:
+- `acb78fa`: the reservation;
+- `ad868c2`: the fixes;
+- this handoff.
+
+> **Do not install this branch on its own.** It descends from Claude's branches, not from Codex's integration, so its `ScoreSync` still expects seven courses and does not start with ten selectable. Codex's integration already derives the counts and has the codes `T` and `G`; the Library needs `L`, as in [the Library's patch](#needs-codex-score-sync-learns-the-library).
+
+## Owner instructions
+
+He drove the installed build and sent five screenshots from his client. He wrote: "Codex is working on it. fix invisible wall at infront of kart on image 1 and 2. remove object under kart on image 3 and 4. image 5 shows the startline of thunderbluff - arrow is not in the picture, so it's literally impossible and pretty unexpected having to take a left turn at the start."
+
+- **Images 1 and 2:** Scarlet Graveyard, gates 1/3, the kart stopped at the Chamber of Atonement's west side, beside the skull piles.
+- **Images 3 and 4:** Scarlet Graveyard, gates 2/3: the kart over an object at the head of the stairs, and over a ghost on the cloister's path.
+- **Image 5:** Thunder Bluff Skyway at GO, on the road in from the lift.
+
+The standing instructions hold:
+
+- no merge into `main`;
+- no claim of in-game verification without the actual client;
+- the simulation-control functions in `UI.lua` stay untouched;
+- the owner pushes and runs the client checks, and Codex prepares coordinated installs.
+
+## What was wrong
+
+- **The invisible wall** (images 1 and 2). The chamber's west wing (x 1340 to 1680) ran right up to the west hall (x 1180 to 1340). The picture painted one floor across the join. Each room's kart floor is its rectangle less 18 units, so the karts' floors stopped 36 units apart there, joined only through the west door (y 440 to 560). North and south of the door a kart stopped in what looked like open floor. The chamber's east side has 40 units of wall between the wing and the hall; the west side had none.
+- **Objects under the kart** (images 3 and 4). The armour rack at (1190, 650) stood on the stairs' floor and the ghost at (840, 600) on the path, and neither was solid. The generator had no rule against it: 17 of the Graveyard's props drew their bodies more than 3 units onto the karts' floor, and 71 of the Library's.
+- **Thunder Bluff's start** (image 5). The follow camera (800 × 480 at 1.5 pixels a unit, 60 units' look-ahead) showed world y 577 to 897 at GO. The start sign's base stood at y 870 and its board above it, up to y 948, so only the post's foot was in view. The road from the lift and the loop's south side make one straight road east, which is the wrong way; the course turned left about 100 units ahead. The board came into view only after the kart had gained 50 units northward, which at its heading meant passing the junction. The other cities' junctions lie further from their grids; none of their starts has been reported.
+
+## Scope (reserved and changed)
+
+The reservation (`acb78fa`) held:
 
 - **Scripts:**
-  - `scripts/dungeon_layouts.py`: the Graveyard's chamber and props, the Library's props;
-  - `scripts/build_dungeon_tracks.py`: a check that no floor ends without a painted wall;
-  - `scripts/dungeon_paint.py`: a check that nothing the karts drive over is left non-solid;
-  - `scripts/city_layouts.py`: Thunder Bluff's grid and version only.
-- **Generated:** `ScarletCrusade.lua`, the two dungeons' pictures and review images, Thunder Bluff's entry in `CapitalCities.lua`, and `services/leaderboard/catalog.json`.
-- **Tests:** `tests/test_dungeon.lua`; `tests/test_circuit.lua` (Thunder Bluff's checks only).
-- **Docs:** the three track sheets, `TRACKS.md`, `CHANGELOG.md`, `TEST_PLAN.md`, `tests/MANUAL_CLIENT_CHECKLIST.md` and this handoff.
+  - `scripts/dungeon_layouts.py`: the Graveyard's chamber wing and props, version 2; the Library's props;
+  - `scripts/build_dungeon_tracks.py`: `painted_floor`, `hidden_walls` and their check in `validate_geometry`;
+  - `scripts/dungeon_paint.py`: `check_props`, run before the models are painted;
+  - `scripts/city_layouts.py`: Thunder Bluff's grid (`along_loop`) and version 2, and comments.
+- **Generated:**
+  - `ScarletCrusade.lua`, the two dungeons' pictures, overviews and sources lists;
+  - Thunder Bluff's entry in `CapitalCities.lua` (version and spawn only);
+  - `services/leaderboard/catalog.json`;
+  - the three review images.
+- **Tests:** `tests/test_dungeon.lua` (the chamber's door, the Library's lawn point); `tests/test_circuit.lua` (Thunder Bluff's version and grid).
+- **Docs:** the three track sheets, ADR 0020 (a second addendum), `API_CONTRACTS.md`, `TRACKS.md`, `TEST_PLAN.md`, `CHANGELOG.md`, `README.md`, `ASSET_SOURCES.md`, `tests/MANUAL_CLIENT_CHECKLIST.md` and this handoff.
 
-No change to `Dungeon.lua`, `Circuit.lua`, `Race`, `SoloRecords`, physics, input, timing, networking, `UI.lua`, `Menu.lua`, `Courses.lua` or any Codex-owned file.
+There is no change to `Dungeon.lua`, `Circuit.lua`, `Race`, `SoloRecords`, physics, input, timing, networking, `UI.lua`, `Menu.lua`, `Courses.lua` or any Codex-owned file. `docs/PROGRESS.md` was not edited; the entry is [below](#progress-ledger-entry-for-the-integrator-drive-fixes).
+
+## Delivered
+
+- **Scarlet Graveyard version 2:**
+  - The chamber's west wing starts at x 1360, so 20 units of wall stand either side of the west door, painted with a face north of the door. The door is the way west, as on the chamber's east side. The karts' collision there is as before; the picture now shows it.
+  - The armour rack stands in the corner at the head of the stairs, off the steps. The ghost on the path is gone.
+  - The two ghosts on the lawns, the sitting corpse and the four stone benches are solid: 59 solids, from 52.
+  - Moved back against the walls: the skull piles (two to the wing's new corners), the banners by the stairs, the iron maiden, the weapons, the tomb's skull piles and a brazier.
+  - A torch now hangs on the west hall's new east wall.
+  - The route, the gates and the spawn are unchanged.
+- **Scarlet Library** (still version 1, never installed):
+  - solid: the courtyard's eight bushes, the kennel's two cages, its rib cage by the east wall, a heap of hay and two bales, and four candle stands round Doan (65 solids, from 47);
+  - gone: the courtyard's six flowers, the hay and rib cage by Loksey, the south walk's two torches (they leaned out over the floor), and the round library's three southern shelves and two southern banners;
+  - moved back against the walls: the kennel's skull pile, hay, weapons and trough; the gallery's chests, rack and braziers; the Athenaeum's shelves and candles; the round library's eastern and western shelves; the long hall's banners. The last hall's second banner moves from the doorway to the wall beside it.
+- **Thunder Bluff Skyway version 2:**
+  - The grid stands on the loop at the foot of the Lower Rise's west side, 70 units past the junction, heading 97°, facing up the west side. The finish line is 75 units ahead along the line, and the start sign is in view on the right.
+  - The race starts straight on. The first crossing of the finish line counts nothing, as before, and lap 1 is a full loop plus the 75 units.
+  - The road from the lift still joins behind the grid; it is drivable but unused.
+  - The picture is byte for byte the same; only `spawn` and `version` change in `CapitalCities.lua`.
+- **The generator's rules:**
+  - `hidden_walls`: along every edge of the kart centre's floor where no other room's floor runs on, the picture's masonry must lie within the inset plus 3 units, measured square (the kart's clearance is square). Doorways' corners pass; abutting rooms fail.
+  - `check_props`: a model that is not solid may not draw its body (not its shadow) more than 3 units onto the kart centre's floor, where a solid's grown box counts as off the floor.
+- **Scores:** both changed courses are version 2, so their boards start afresh and version 1 times stay saved under version 1. The catalogue is regenerated: ten boards.
+
+The before-and-after sheet sent to the owner is in the developer machine's `Claude outputs/` folder: the chamber's west side, the stairs, the path and Thunder Bluff's GO, each before and after, at the follow camera's scale.
+
+## Decisions for review
+
+- **A wall, not an open floor, at the chamber.** Opening the floor from the chamber into the west hall would also remove the invisible wall. A wall either side of the door keeps the chamber a room, as on its east side. Reversing it is one room edge.
+- **Thunder Bluff's grid on the loop.** The other remedies were a board in view at GO (no spot beyond the walls shows the 82-unit-tall sign there) or arrows painted on the road. Both keep a hard left at the start, which the owner called "pretty unexpected". The alternative that keeps his X: reshape the lift road to curve into the west side, so straight on is the way. That is a bigger layout change, so Claude did not make it.
+- **Solid, not removed:** scenery on the floor blocks, as the zombie and skeleton already did. The path's ghost alone is removed, because a solid ghost would block the path.
+- **Not checked:** solids' leaned tops. A column or tree drawn north of its base can still pass under the kart, which cannot drive into its foot.
+
+## Needs Codex
+
+1. **Review and integrate** `claude/drive-fixes` with the Library. Expect the same conflicts as the Library alone: Claude's branches still carry Test Oval in `Courses.lua` and in the menu and circuit tests, which Codex retired.
+2. **Score sync:** add the Library's `L` to Codex's derived `ScoreSync` (the patch is [below](#needs-codex-score-sync-learns-the-library)).
+3. **The catalogue:** regenerate it on the integrated tree: Thunder Bluff 2, Graveyard 2, Library 1.
+4. **Multiplayer:** Thunder Bluff version 2 moves only the spawn. `RaceGrid.pose` stands its two karts 18 units either side of it, both on the road. Peers need the same version.
+5. **Rebuilding the dungeons:** Codex's review ran `build_dungeon_tracks.py --wc3 .`, which stops on `herobloodelf.mdx`, because the repository root is not an extraction. Run the sheets' `wc3casc.py` commands into a folder and pass that folder as `--wc3`.
+
+## Tests performed
+
+The cloud ran Python 3.13.16 (SQLite 3.45.1) and Lupa 2.8. The developer machine's Linux shell ran Python 3.10.12 (SQLite 3.37.2) and Lupa 2.8, with its own Warcraft III extraction and sprite cache.
+
+| Command / check | Result |
+|---|---|
+| The new rules on the old layouts | `hidden_walls` flagged the Graveyard's version 1 at x 1322 to 1358, y 441 to 598: the floors in images 1 and 2, and nowhere else. The prop rule flagged 17 Graveyard props (the armour rack and the path's ghost among them) and 71 Library props. |
+| `python scripts/build_dungeon_tracks.py --wc3 … --check` at `ad868c2` | **CHECK PASS** for `ScarletCrusade.lua` and all four pictures, byte-identical on both machines. Graveyard Background `753cc171…40a9`, Preview `61e8843e…9b08`; Library Background `028c17cb…fd84`, Preview `3a17d94a…fa01`. |
+| `python scripts/build_city_tracks.py --wc3 … --check` | **CHECK PASS** for all six cities in the cloud, and for Thunder Bluff on the developer machine. Every city's picture is byte-identical; only Thunder Bluff's version and spawn changed in `CapitalCities.lua`. |
+| `python scripts/test_lua.py --runtime lua51 --tests <the 41 other modules>` | **PASS** on both machines. |
+| `… --tests score_sharing` | **FAIL** as expected (the score-sync blocker). The whole Lua 5.1 suite with the score-sync patch: **PASS**, 42 modules, on a worktree of `ad868c2` (cloud). |
+| `… --runtime lua54 --tests dungeon circuit menu ui …` | **PASS** on both machines. |
+| `python -m unittest discover -s tests -p "test_*.py"` | **24 OK** in the cloud. On the developer machine 23 pass. `test_failed_write_rolls_back_and_connection_remains_usable` errors there with SQLite 3.37.2 ("not authorized" after its simulated failed write). That store and its test are untouched by this branch and use a fixed Test Oval context. |
+| `python scripts/export_score_catalog.py --check` | **CHECK PASS**, ten boards, on both machines. |
+| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in `PROGRESS.md` fail, on both machines. |
+| `git diff --check`; the docs' link anchors | Clean. |
+| Review | The three review images regenerated; Thunder Bluff's first view is now the grid's. Follow-camera crops before and after each fix, as described above. |
+
+**NOT RUN:**
+
+- the client: the chamber's wall, the stairs and the path, Thunder Bluff's start and each lap's turn at the junction, the new solids' feel;
+- any install;
+- multiplayer;
+- score sync with real peers.
+
+## Client check (owner; NOT RUN; after Codex's review and a coordinated install)
+
+[The client checklist's new section](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-drive-fixes-check-proposed-claudedrive-fixes) covers:
+
+- the chamber's west wall and door;
+- nothing under the kart on the stairs and the path, and the new solids;
+- Thunder Bluff's GO and each lap's turn at the junction;
+- the version 2 boards;
+- the Library's solids, once it is installed.
+
+## PROGRESS ledger entry for the integrator (drive fixes)
+
+> ### 2026-10-26 ~00:40 CET — Claude / `claude/drive-fixes`, fixes from the owner's client run
+>
+> - Scarlet Graveyard version 2: a wall either side of the Chamber of Atonement's west door, where the floors met unpainted (the owner's invisible wall). Nothing non-solid stands on the karts' floor: the armour rack moves off the stairs, the path's ghost goes, and the lawn ghosts, the corpse and the benches block (59 solids).
+> - Scarlet Library (not installed, still version 1): the same rule; 65 solids.
+> - The generator refuses both faults: `hidden_walls` (painted masonry within the inset plus 3 wherever the karts' floor ends) and `check_props` (no non-solid body more than 3 units onto the floor).
+> - Thunder Bluff version 2: the grid stands on the loop at the foot of the west side, facing up it, the finish ahead and the start sign in view; the picture is unchanged.
+> - Dungeon and city `--check` PASS, byte-identical on both machines; Lua 5.1 41 modules PASS (score sharing needs the known score-sync change; with it, 42 PASS); Lua 5.4 subset PASS; catalogue PASS (ten boards).
+> - **NOT RUN:** the client; install.
+
+## Commits, push and workspace (drive fixes)
+
+| Item | Value |
+|---|---|
+| Worktree / branch | `AzerothKart-Claude` / `claude/drive-fixes`, from `claude/scarlet-library` `8b09309`. |
+| Commits | `acb78fa` (the reservation), `ad868c2` (the fixes: layouts, generator rules, data, pictures, catalogue, tests, docs), then this handoff. |
+| Push | Owner only. Codex's review says `claude/thunder-bluff` and `claude/scarlet-graveyard` are published; push the other two, the second containing the first: `git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/scarlet-library claude/drive-fixes` |
+| Not done | No merge into `main` or any Codex branch; no tag, release, install or client input. Codex's files and worktrees were only read. |
+
+**Workspace notes:**
+
+- As before, commits are made in a cloud clone and moved as git bundles (`local-artifacts/bundles/`), so the hashes are identical on the developer machine.
+- The developer machine's worktree moved from `claude/scarlet-library` to `claude/drive-fixes` with a plain checkout; no lock or temporary files were left.
+- The worktree is clean apart from the untracked `Claude outputs/` folder, where the review images are.
+
+## Next
+
+1. **The owner:** look at the before-and-after sheet, then push the two branches.
+2. **Codex:** review and integrate `claude/drive-fixes` with the Library and its score code, then make a coordinated install. The Library's files are new, so the client needs a full restart.
+3. **The owner:** the client checks, above all the chamber's west side and Thunder Bluff's start.
+4. **Claude:** Scarlet Armory next, then the Monastery. Each needs the owner's map of the wing with his route.
 
 # Previous: Scarlet Library
 
