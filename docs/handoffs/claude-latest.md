@@ -1,4 +1,40 @@
-# Claude handoff — Thunder Bluff Skyway
+# Claude handoff — Scarlet Graveyard (in progress)
+
+## Active reservation — Scarlet Crusade Cup: Scarlet Graveyard (2026-10-25)
+
+The owner: "Great. Codex is busy right now, so we'll push and test later. Your next task - more maps. This will be A-B sprint type maps. Scarlet Crusade Cup Scarlet Graveyard, Scarlet Library, Scarlet Armory, Scarlet Monestary. Start of dungeon to end of dungeon. Let's start with Scarlet Graveyard. It starts in a closed space and enters into an open graveyard. You don't need to put a traditional track here, just recreate the dungeon and let players find their way to the end." With it: the Scarlet Monastery Graveyard map with his route from the entrance to Honor's Tomb ("END!"), and a screenshot of the monastery's Grand Vestibule.
+
+Asked on 2026-10-25, he chose:
+
+- **Sprint rules:** "I add it, Codex reviews". Minimal changes in `Race` and `SoloRecords` on this branch; every existing track keeps 3 laps; documented as a proposal; nothing reaches `main` or an install without Codex's review.
+- **The cloister lawn:** "Grass slows, graves block".
+
+**Branch:** `claude/scarlet-graveyard` from `claude/thunder-bluff` `a7aeb66`. Thunder Bluff is not integrated yet, so this branch carries it. Reserved, until this handoff says otherwise:
+
+- **New:**
+  - `addon/AzerothKart/Dungeon.lua`: pure geometry for open dungeon courses;
+  - `addon/AzerothKart/ScarletCrusade.lua`: generated data;
+  - `addon/AzerothKart/Assets/Tracks/ScarletGraveyard/`;
+  - `scripts/dungeon_layouts.py`, `scripts/dungeon_paint.py`, `scripts/build_dungeon_tracks.py`;
+  - `tests/test_dungeon.lua`;
+  - a proposed ADR and a track sheet.
+- **Owner-approved, for Codex review:**
+  - `Race.lua`: the target lap count comes from the course (default 3);
+  - `SoloRecords.lua`: `Context`'s lap count likewise.
+- **Shared:**
+  - `Courses.lua`: a third cup and the `dungeon` geometry;
+  - both TOCs (two new files) and `tests/run.lua` (one new test file);
+  - `scripts/export_score_catalog.py` (loads the new modules) and `services/leaderboard/catalog.json` (generated);
+  - `scripts/validate_project.py`.
+- **`Menu.lua`:** the cup's track copy and preview cell; sprint wording in the race lines, the results and How to Play. The track screen grows by one heading and four buttons.
+- **`UI.lua`, visual regions only:** the checkpoint, lap and summary captions for a sprint.
+- **Tests:** `tests/test_menu.lua`, `tests/test_ui.lua` (sprint captions, the longer track list) and `tests/test_circuit.lua` (the catalogue's cups).
+- **Proposal only:** `ScoreSync.lua`, with the Thunder Bluff patch extended by the Graveyard's code.
+- **Docs:** the shared lists that name the cups and tracks.
+
+No physics, input, timing, networking or `Circuit` change.
+
+# Previous: Thunder Bluff Skyway
 
 Prepared 2026-10-25 at about 19:45 CET (Europe/Oslo) by Claude (rendering/UI/sprites owner).
 
