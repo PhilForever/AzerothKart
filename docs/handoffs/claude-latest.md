@@ -1,4 +1,38 @@
-# Claude handoff — Scarlet Graveyard, the first Scarlet Crusade Cup sprint
+# Claude handoff — Scarlet Library (in progress)
+
+## Active reservation — Scarlet Crusade Cup: Scarlet Library (2026-10-25)
+
+The owner sent his map of the Scarlet Monastery Library (MapsForTanks) with his route, a screenshot of the Huntsman's Cloister's courtyard and one of Arcanist Doan's round library. He wrote: "Scarlet Library. Everything is inside except the first courtyard with the fountain/statue in the middle, everything else is inside - ending in the iconic round library."
+
+His route:
+
+1. From the portal ("!") into the long hall south.
+2. Round the Huntsman's Cloister.
+3. In and back out of Houndmaster Loksey's room (1), across the red line he drew there.
+4. North up the east hall into the Gallery of Treasures.
+5. East through two columned halls, then south down the Athenaeum.
+6. Through the last hall to the round library (2): "END!", at the red line across its door.
+
+**Branch:** `claude/scarlet-library` from `claude/scarlet-graveyard` `1bc3ac8`. Thunder Bluff and Scarlet Graveyard are not integrated yet, so this branch carries both. Reserved, until this handoff says otherwise:
+
+- **`addon/AzerothKart/Dungeon.lua`** (Claude's proposed module, not yet reviewed): round rooms (`shape="disc"`) for the round library. Rectangle rooms behave as before.
+- **Generated:** `addon/AzerothKart/ScarletCrusade.lua` gains the Library's entry; the Graveyard's stays byte for byte. New `addon/AzerothKart/Assets/Tracks/ScarletLibrary/`.
+- **Scripts:**
+  - `scripts/dungeon_layouts.py`: a new Library section;
+  - `scripts/dungeon_paint.py`: round rooms and the Library's new layers; the Graveyard's picture stays byte for byte;
+  - `scripts/build_dungeon_tracks.py`: round rooms in the validator and the data.
+- **Shared:**
+  - `Courses.lua`: Scarlet Library becomes selectable;
+  - `services/leaderboard/catalog.json` (generated);
+  - `scripts/validate_project.py`.
+- **`Menu.lua`:** the Library's track copy and preview cell.
+- **Tests:** `tests/test_dungeon.lua`, `tests/test_circuit.lua` and `tests/test_menu.lua` (`test_ui.lua` only if a count moves).
+- **Proposal only:** `ScoreSync.lua`, the patch extended by the Library's code.
+- **Docs:** a track sheet, ADR 0020 (round rooms), and the shared lists that name the tracks.
+
+No change to `Race`, `SoloRecords`, physics, input, timing, networking, `Circuit` or `UI.lua`.
+
+# Previous: Scarlet Graveyard
 
 Prepared 2026-10-25 at about 21:50 CET (Europe/Oslo) by Claude (rendering/UI/sprites owner).
 
