@@ -244,8 +244,8 @@ end)
 -- Creation, the main menu and the object budget -------------------------------
 withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu)
     assert(not Menu.disabled and Menu.root and UI.window, "the front end builds with the window")
-    -- Core's bootstrap event frame is the only uncounted object.
-    assert(UI.objects.frames + 1 == env.counts.frames and UI.objects.textures == env.counts.textures and
+    -- Bootstrap and the single background score receiver are outside UI's pool.
+    assert(UI.objects.frames + 2 == env.counts.frames and UI.objects.textures == env.counts.textures and
            UI.objects.fontStrings == env.counts.fontStrings,
         ("every created object is counted: %d/%d/%d against %d/%d/%d"):format(UI.objects.frames,
             UI.objects.textures, UI.objects.fontStrings, env.counts.frames, env.counts.textures,
@@ -1131,6 +1131,32 @@ withMock(nil, function(env, UI, Menu)
         assert(not UI.active, "browsing profiles never starts a race")
     end
     sameCounts(env,before,"handling descriptions reuse existing text")
+end)
+
+withMock(nil, function(env, UI, Menu, AK)
+    local rows={{playerName="First Racer",totalTicks=2400,finishedAt=1792756800}}
+    local reads=0
+    AK.SoloRecords={GetView=function()
+        reads=reads+1
+        return {scope="community",publication="Automatic sharing connected",writable=true,
+            rows=rows,connected=2,queued=1}
+    end,FormatTime=function(ticks) return tostring(ticks) end,
+        FormatDate=function(epoch) return tostring(epoch) end}
+    UI.Toggle();Menu.Show("highscores")
+    local before=counts(env)
+    assert(Menu.view.highscoreRows[1].name.text=="First Racer")
+    rows[1]={playerName="New Leader",totalTicks=2300,finishedAt=1792756801}
+    Menu.OnScoresChanged()
+    assert(Menu.view.highscoreRows[1].name.text=="New Leader"
+        and Menu.view.highscoreScope.text:find("Shared community scores",1,true)
+        and Menu.view.highscoreStatus.text:find("2 connected",1,true),
+        "a received score refreshes the visible board without another click")
+    Menu.Show("home")
+    local oldReads=reads
+    Menu.OnScoresChanged()
+    assert(Menu.screen=="home" and reads==oldReads,
+        "background synchronization does not open or refresh a hidden board")
+    sameCounts(env,before,"automatic board refresh reuses pooled rows")
 end)
 
 print("mock menus: 8 screens, single-player flow, saved highscore pages, results paths, garage, settings, saved choices, " ..

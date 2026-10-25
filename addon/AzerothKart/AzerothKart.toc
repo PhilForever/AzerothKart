@@ -20,6 +20,9 @@ Laps.lua
 Race.lua
 Highscores.lua
 SoloRecords.lua
+ScoreSync.lua
+ScoreDiscovery.lua
+ScoreSharing.lua
 UI.lua
 Menu.lua
 RaceProtocol.lua

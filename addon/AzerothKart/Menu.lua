@@ -558,7 +558,9 @@ local function buildHighscores()
         local page = math.max(1, math.min(Menu.highscorePage or 1, pages))
         Menu.highscorePage = page
         view.highscoreTrack:SetText("Track: " .. track.name)
-        view.highscoreScope:SetText("Local cache | Global publishing pending")
+        view.highscoreScope:SetText(snapshot and snapshot.scope=="community"
+            and "Shared community scores | "..tostring(snapshot.publication or "Connecting")
+            or "Local cache | Global publishing pending")
         view.highscorePage:SetText(("Page %d / %d"):format(page, pages))
         setEnabled(view.highscorePrevious, page > 1)
         setEnabled(view.highscoreNext, page < pages)
@@ -567,6 +569,10 @@ local function buildHighscores()
             (#rows == 0 and "No completed solo records for this track yet." or "")))
         local status = snapshot and snapshot.lastResult
         local note = type(status) == "table" and type(status.message) == "string" and status.message or ""
+        if snapshot and snapshot.scope=="community" then
+            note=("%d connected | %d queued updates | Scores reported by players")
+                :format(snapshot.connected or 0,snapshot.queued or 0)
+        end
         if snapshot and snapshot.writable == false then note = "Saved records are read-only in this build." end
         view.highscoreStatus:SetText(note)
         for slot,line in ipairs(view.highscoreRows) do
@@ -592,6 +598,10 @@ local function buildHighscores()
             end
         end
     end
+end
+
+function Menu.OnScoresChanged()
+    if Menu.screen=="highscores" and refresh.highscores then refresh.highscores() end
 end
 
 -- The list: each cup's heading, its tracks (Menu.TRACKS order), then its

@@ -8,9 +8,10 @@ and competitive lap balance remain pending. No collision mass is implemented.
 
 Leaderboard development (2026-10-25): [automatic addon-only community sharing](docs/adr/0018-automatic-community-scores.md),
 with prompt result updates, automatic catch-up and top-3/top-10 notices.
-Pure merge/rank rules are implemented; shared delivery, persistence and visible
-notifications still need integration. The existing Highscores screen remains
-local. The disconnected Python store is retained but deferred.
+[Automatic discovery, whisper delivery, saved catch-up and visible notices](docs/AUTOMATIC_SCORES.md)
+are integrated in source. Native roster/delivery verification is pending; the
+board shows its connection status and best-known cached ranks. The disconnected
+Python store is retained but deferred. Full restart is required after updating.
 
 
 **Latest build:** reviewed Claude `ee144b5` supplies Undercity’s six canal bridges and wall-to-wall city paving, with Ironforgev4 full grip. Physics8 then improves angled wall sliding and low-speed turning without changing wall geometry. The Claude branch is published; the combined handling build is local. Native new handling remains pending. See PROGRESS for exact install/package.

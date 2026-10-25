@@ -6,8 +6,8 @@
 Native balance/feel remains pending; no collision mass is claimed.
 
 **Current leaderboard work:** [automatic addon-only community scores, ADR 0018](adr/0018-automatic-community-scores.md),
-with prompt result updates, automatic catch-up and top-3/top-10 notices.
-Native sharing is still pending. The [server-side store](../services/leaderboard/README.md)
+with [implemented discovery, delivery and notifications](AUTOMATIC_SCORES.md).
+Actual native roster/delivery verification is still pending. The [server-side store](../services/leaderboard/README.md)
 from [ADR 0017](adr/0017-central-score-store.md) is retained but deferred.
 
 **Current single-player work:** [saved solo totals and Highscores](HIGHSCORES.md),

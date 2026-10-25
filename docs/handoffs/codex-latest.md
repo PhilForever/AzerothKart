@@ -1,5 +1,58 @@
 # Codex handoff — kart handling and automatic leaderboard work
 
+## Latest checkpoint — automatic score delivery integrated
+
+2026-10-25 16:03 +01:00, `codex/automatic-score-sync` from `1c029f8`.
+Owner requested automatic delivery/notices and correction of the installed old
+garage sentence. Source now wires cached native roster → logged WHISPER,
+compatible digest catch-up, priority PB delivery, protected community persistence,
+visible board refresh and once-only known-score congratulations. Both TOCs33
+modules; new ScoreSync/ScoreDiscovery/ScoreSharing precede UI/Menu.
+[Player flow and exact limits](../AUTOMATIC_SCORES.md).
+
+Personal saving is independent and survives sharing failures. No native channel
+selection, unlogged fallback, external service, physics/art/geometry change or
+kart-specific board. UI pool86/167/135 plus2fixed external frames. Traffic yields
+to Core lease/combat/chatlock;1attempt/s,158prefix+payload bytes and bounded
+retries.32peer test limit is explicit and clears stale connections on excess.
+
+Actual focused Lua5.1 six integration modules PASS;74files parsed. Final native-
+adapter mocked rerun PASS after registration backoff/channel lookup changes.
+Earlier UI check PASS. Mocked automatic new-PB delivery within2seconds, live
+menu refresh, quiet catch-up/reload, rank threshold notices, replay, lease/rate
+and save guards covered. Review findings were fixed with regressions. Full
+native roster/delivery/scale/persistence checks NOT RUN; no release claim.
+Whitespace PASS; validator retains only2historical expired skill-link failures.
+Installer WhatIf PASS. Actual backup/install/hash result is the next checkpoint.
+
+Installed readback was old Menu/Physics10, explaining identical-handling copy;
+deploy the combined tested source, preserving the legacy unreferenced drag-car
+extra. Full restart is needed for3newLua files. Next native observation should
+be ordinary two-client play/Highscores, with no manual result exchange/probe.
+
+## Active reservation — automatic score delivery and installed menu correction
+
+2026-10-25: owner explicitly requests automatic discovery/whisper score delivery,
+visible notifications and correction of installed garage/selector copy. Own
+`codex/automatic-score-sync` from `1c029f8`. Installed Menu/Physics are still the
+older identical-handling/Physics10 build; current source already fixes that copy.
+Plan: bounded pure score codec/controller; separate protected community cache;
+native cached/event-fed channel roster and logged-WHISPER adapter; once-only
+local-finish congratulations and live board refresh; focused integration tests;
+review, then back up/install/hash-verify the combined build in the existing
+AddOns directory. New modules require a full client restart.
+
+Reserve new ScoreSync.lua, ScoreSharing.lua and their focused tests; SoloRecords
+finish/GetView hook; Core bootstrap; existing Menu highscores refresh/result
+notice regions only; both TOCs, loader/test/validator lists; API/HIGHSCORES/
+ARCHITECTURE/FEASIBILITY/ADR0018/current handoff/PROGRESS/README and deployment
+notes. No asset, geometry, physics tuning, other-worktree or server edits.
+Use one creation-time background frame; score sends yield to the existing
+core lease and budget, with no race/probe teardown or independent unrestricted
+sender. No native selection changes, unlogged fallback, manual result exchange,
+external uploader or scorekeeper character. Native roster/scale results stay
+pending unless actually observed; unknown discovery remains visibly pending.
+
 ## Latest checkpoint — three modest kart profiles
 
 2026-10-25 12:56 +01:00, `codex/kart-handling` from `81ef556`. Owner authorized

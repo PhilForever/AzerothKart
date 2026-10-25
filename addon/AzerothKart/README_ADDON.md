@@ -1,5 +1,18 @@
 # Experimental two-player candidate
 
+## Automatic highscores update
+
+This build adds three Lua files: fully exit and restart WoW after installation.
+Highscores automatically shares compatible saved solo bests with other addon
+users discovered in its dedicated channel. New finishes refresh connected
+players' boards, and top-3/top-10 entries produce a local chat/result notice.
+No manual result exchange is required. The board reports discovery/connection
+status; waiting for the native member list means sharing is not yet connected.
+Scores are best-known community cache entries, reported by players. Native
+delivery/roster/scale remain unverified; the test adapter stops above32peers.
+`/akart scores` prints its automatic status. The garage now displays actual
+balanced/heavy/agile handling instead of the older identical-handling sentence.
+
 Both players must install this exact build and fully restart WoW. Open /akart → Multiplayer. Enter the other player's full Forever name (spaces and surname, no realm) and the same fresh six-uppercase-letter/digit code. Guest: Listen first. Host: select Mirage or Test Oval and Host / Send Invite. Guest: Join. Both: Ready. Host: Start. Keep the window open and close chat until GO.
 
 After Start, both chosen karts appear on the grid, then GET READY → 3–2–1–GO. Throttle may be held before GO. Your friend uses their chosen sprite, with a square fallback if art fails to load. Bounded prediction and an off-screen direction label help visibility; unknown steering/braking and clock error can still cause corrections. Stop/Escape/Enter/Close releases controls and ends the session. New attempts require a fresh code. Karts do not collide; results have no agreed winner. The earlier candidate completed a local race on both clients; this revised countdown/sprite/display behavior has NOT RUN in-game yet. This is a private developer test candidate, not a verified multiplayer release.

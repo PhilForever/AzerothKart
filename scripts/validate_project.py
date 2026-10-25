@@ -15,6 +15,10 @@ REQUIRED=[
  'docs/adr/0017-central-score-store.md','docs/adr/0018-automatic-community-scores.md',
  'tests/test_community_scores.lua',
  'tests/test_kart_handling.lua','docs/adr/0019-balanced-kart-handling.md',
+ 'addon/AzerothKart/ScoreSync.lua','addon/AzerothKart/ScoreDiscovery.lua',
+ 'addon/AzerothKart/ScoreSharing.lua','tests/test_score_sync.lua',
+ 'tests/test_score_discovery.lua','tests/test_score_sharing.lua',
+ 'docs/AUTOMATIC_SCORES.md',
  'README.md','AGENTS.md','PROMPT_01_MASTER.md','PROMPT_02_SCHEDULED_CONTINUE.md',
  'docs/INDEX.md','docs/FEASIBILITY.md','docs/ARCHITECTURE.md',
  'docs/ROADMAP.md','docs/PROGRESS.md','docs/TEST_PLAN.md','docs/CLIENT_API.md','docs/SESSION_MENU_API.md',
@@ -88,7 +92,7 @@ for tocname in ('AzerothKart.toc','AzerothKart_Camelot.toc'):
  if '## Interface: 16001' not in lines: errors.append(f'{tocname}: unexpected interface')
  if '## SavedVariables: AzerothKartDB' not in lines: errors.append(f'{tocname}: missing SavedVariables')
  loads=[x.strip() for x in lines if x.strip() and not x.startswith('##')]
- if loads!=['Track.lua','MirageRaceway.lua','Circuit.lua','CapitalCities.lua','Courses.lua','Physics.lua','Input.lua','Loop.lua','Performance.lua','Presentation.lua','Checkpoints.lua','Laps.lua','Race.lua','Highscores.lua','SoloRecords.lua','UI.lua','Menu.lua','RaceProtocol.lua','PeerSession.lua','ClockProtocol.lua','StartClock.lua','RaceStart.lua','LiveProtocol.lua','LiveRace.lua','RaceGrid.lua','NetworkProbe.lua','TransportProbe.lua','SessionTransport.lua','ScoreChannelProbe.lua','Core.lua']:
+ if loads!=['Track.lua','MirageRaceway.lua','Circuit.lua','CapitalCities.lua','Courses.lua','Physics.lua','Input.lua','Loop.lua','Performance.lua','Presentation.lua','Checkpoints.lua','Laps.lua','Race.lua','Highscores.lua','SoloRecords.lua','ScoreSync.lua','ScoreDiscovery.lua','ScoreSharing.lua','UI.lua','Menu.lua','RaceProtocol.lua','PeerSession.lua','ClockProtocol.lua','StartClock.lua','RaceStart.lua','LiveProtocol.lua','LiveRace.lua','RaceGrid.lua','NetworkProbe.lua','TransportProbe.lua','SessionTransport.lua','ScoreChannelProbe.lua','Core.lua']:
   errors.append(f'{tocname}: unexpected source load order: {loads}')
  for f in loads:
   if not (ADDON/f).is_file():errors.append(f'{tocname}: missing {f}')

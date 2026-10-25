@@ -1,26 +1,25 @@
 # Solo finish records and highscores
 
-Current direction, 2026-10-25: [automatic addon-only community sharing](adr/0018-automatic-community-scores.md).
-Players do not manually exchange results. Planned behavior is prompt publication
-of qualifying finishes, automatic catch-up and top-3/top-10 congratulations.
-Shared discovery/delivery and native integration remain open; the screen below
-still shows local results. The disconnected [central store](../services/leaderboard/README.md)
-is retained but deferred. No desktop uploader or online scorekeeper is required
-by the chosen product direction.
+Current source integrates [automatic community sharing](AUTOMATIC_SCORES.md):
+channel-member discovery, logged whispers, catch-up, saved caches and visible
+local-finish congratulations. Players do not manually exchange results or run
+extra software. Native roster population and actual delivery remain unverified.
+The disconnected Python store is retained but deferred.
 
-Implemented on `codex/solo-highscores`, based on `de4b291` / Physics10.
-This is a saved **local leaderboard**, not an all-player global service.
-Global publication remains blocked on a supported dissemination/persistence
-route. No score messages, public-channel joins or external uploads are sent.
+Personal bests remain in `AzerothKartDB.highscores`; the independent protected
+`communityScores` child uses the same versioned bounded schema. Shared caches
+seed current compatible personal bests silently. Unknown/future/malformed or
+replaced saves refuse writes and are preserved. Sharing failures do not stop
+ordinary local saving or race results.
 
 ## Player flow
 
 Complete a normal Single Player three-lap race. Results display the full race
-total and a personal-best saving notice. Open **Main Menu → Highscores** to see
+total and a personal-best notice, including any new top-3/top-10 placement in known shared scores. Open **Main Menu → Highscores** to see
 name, total time and finish date (UTC). The track arrows browse scores without
 changing the selected driving track. Previous/Next page through ten rows at a
 time. The board retains the fastest total per full player name, up to 50 players
-per compatible course. Slower/equal finishes keep the original best's date.
+per compatible course. Local slower/equal finishes keep the original best's date; community ties converge to the earliest recorded date.
 Karts share one board under the owner's explicit2026-10-25 direction, despite
 the new balanced/heavy/agile handling profiles. No kart column or filter is
 added. Physics11 starts a fresh compatible board; old Physics10 data is retained.
@@ -64,48 +63,36 @@ normal SavedVariables persistence.
 
 ## Global publication — open dependency
 
-2026-10-24 update: [dedicated logged channel investigation](SCORE_CHANNEL.md)
-selected the community-cache candidate and executed a one-packet private-server
-check on client70532. Join and native send succeeded; no receive event was
-observed. Cross-client/public-server delivery and global publishing remain open.
-The bounded two-client check is implemented/offline-tested, not installed.
+The implemented adapter automatically joins its dedicated channel and consumes
+cached/event-fed member lists, then uses logged WHISPER. It does not rely on the
+previously failed CHANNEL addon-message broadcast. [Exact flow, limits and
+pending evidence](AUTOMATIC_SCORES.md). When connected, new local personal bests
+have priority over catch-up, and visible rows refresh on receipt.
 
-The owner delegated the architecture choice to the most efficient reliable
-approach. A genuinely complete, offline-available board needs a persistent
-shared destination. There is no implemented/verified Forever leaderboard
-endpoint, HTTP uploader or addon broadcast channel in this repository.
-Only explicit full-name peers over logged `WHISPER` have client evidence
-([ADR 0012](adr/0012-forever-logged-transport.md),
-[ADR 0013](adr/0013-two-player-experiment-scope.md)). Generic source declarations
-of `SendAddonMessageLogged` and normal custom chat joins do not establish global
-addon delivery, discovery, cross-faction reach or delivery to offline players.
+The board reports actual status and contains the best compatible records it
+has learned. Offline/disconnected groups may differ until automatic catch-up.
+No complete world-wide or authenticated rank is promised. Notices explicitly
+refer to known shared scores. Direct announcements match their native sender;
+relayed records and race times are client-reported. The initial test limit is
+32 peers; larger rosters show a capacity status and stop traffic.
 
-A peer-synchronized community cache could be useful but cannot promise global
-completeness. A central service would need Forever-supported ingestion and
-querying; an external executable/hidden uploader is outside the current addon
-architecture. Neither route has been implemented or approved as proven here.
-Keep the visible **Global publishing pending** label until the route is chosen
-and verified. The next task is to establish that supported route, not to rerun
-live-race playtests or market this local board as global.
-
-All times are client-reported. Input/checkpoint tests do not establish anti-cheat
-or server-verified scores. Future publishing should contain only the requested
-player name/time/date and compatibility metadata, with bounded validation,
-rate limits and an explicit privacy/sharing contract.
+A fully persistent central server remains a different, deferred option. There
+is no hidden HTTP uploader or outside executable, and the addon does not contact
+the Python component. Actual native discovery/delivery/cross-faction/scale are
+still required before release claims.
 
 ## Verification and deferred native check
 
-Focused Lua5.1: `python scripts/test_lua.py --runtime lua51 --tests highscores
-solo_records ui menu race loop multiplayer_integration`. These are offline
-tests with native/UI doubles, not evidence of native storage or layout.
-The explicit pool is now **85 frames / 166 textures / 133 font strings**;
-six frames and 52 font strings were added, with no added textures. Board rows
-are allocated once; no store sorting/identity/date reads/network sends occur
-per simulation tick. Results height is 336 to separate its saving notice.
+Focused real Lua5.1 checks cover score_sync, score_discovery, score_sharing,
+menu, solo_records and multiplayer_integration, plus existing UI checks. Mocked
+clients cover automatic new-best delivery within two simulated seconds, visible
+refresh, threshold notices, quiet replay/catch-up/reload, protected saves and
+bounded lease-aware traffic. This is not native Forever evidence.
 
-When a test build is explicitly installed (two new Lua files require a full
-client restart), complete one ordinary solo race, check its total/name/UTC
-date in Highscores, reopen results to check no duplicate, then reload and
-confirm the same entry remains. A slower run should keep the earlier date;
-a faster run should replace it. A stopped run must not add a score. These
-client checks are **NOT RUN**. No new friend test or download is required now.
+UI pool remains86frames/167textures/135fonts; Core and the new score receiver
+are two additional fixed frames. No UI objects or messages are created per
+simulation tick. Full restart is required for the three new Lua files.
+
+After installation, two updated clients can simply enter the world, finish a
+normal race and leave Highscores open to observe delivery. No repeated network
+probe or manual result exchange is required. Native checks remain NOT RUN.

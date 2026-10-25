@@ -61,7 +61,9 @@ membership delivery and a request path that does not steal native UI selection
 must be established before this becomes the adapter. No new native result is
 claimed by that source review.
 
-The first slice implements only pure merge/ranking/placement rules and focused
-regressions. Automatic discovery, message protocol, persistent community cache,
-publication queue and visible congratulations still require integration.
-The current screen remains a local board until those pieces are connected.
+The pure first slice is now connected in source to cached roster discovery,
+logged-WHISPER publication/catch-up, a protected community save child, live board
+refresh and local-finish congratulations. [Implementation and current limits](../AUTOMATIC_SCORES.md).
+Native roster population/delivery and community scale remain unverified; the
+initial test adapter explicitly stops above 32 peers. No native acceptance or
+world-wide rank guarantee follows from offline integration tests.

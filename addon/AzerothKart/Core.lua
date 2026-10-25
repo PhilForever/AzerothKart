@@ -25,6 +25,7 @@ eventFrame:SetScript("OnEvent",function(_,event,...)
             AzerothKartDB.schemaVersion = 1
         end
         AK.SoloRecords.Init()
+        if AK.ScoreSharing then AK.ScoreSharing.Init(eventFrame) end
         AK.UI.Create()
         if AK.Menu and type(AK.Menu.SetSessionBridge)=="function" then
             AK.Menu.SetSessionBridge({view=AK.SessionTransport.GetView,
@@ -58,6 +59,7 @@ SlashCmdList.AZEROTHKART = function(message)
     elseif command == "net" then
         AK.TransportProbe.Command(argument)
     elseif command == "scores" then
-        AK.ScoreChannelProbe.Command(argument)
+        if AK.ScoreSharing and (argument=="" or argument=="status") then AK.ScoreSharing.Report()
+        else AK.ScoreChannelProbe.Command(argument) end
     else AK.UI.Toggle() end
 end

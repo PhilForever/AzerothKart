@@ -1,5 +1,11 @@
 # M0–M2 feasibility — evidence gates
 
+Automatic score integration, 2026-10-25: cached channel-roster discovery plus
+logged WHISPER, community saves, catch-up and notices are wired/offline-tested.
+[Current behavior and pending native check](AUTOMATIC_SCORES.md). No native
+roster population, delivery latency, cross-faction or scale pass is claimed.
+The previous failed CHANNEL broadcast experiment remains unchanged.
+
 **Score-prefix control, 2026-10-24 20:18+02:00:** owner supplied an actual
 AZKSCP1 logged WHISPER event at the score receiver: WHISPER/localID0/
 nameunavailable/rejected=event_fields. Expected route guard; no score accepted.

@@ -1,5 +1,69 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-25 16:03 +01:00 — automatic score delivery/notifications integrated
+
+Owner requested the automatic discovery/whisper synchronization, visible
+notifications and correction of installed garage copy. Own
+`codex/automatic-score-sync` from `1c029f8`, reservation before edits. Installed
+readback confirmed the old Menu sentence and Physics10; the newer profile
+descriptions/Physics11 were committed but had not been installed.
+
+Implemented ScoreDiscovery, ScoreSync and ScoreSharing, loaded in both33module
+TOCs before UI/Menu. Cached/event-fed roster discovery uses display indices and
+retains full names without native selection changes. The automatic adapter joins
+its dedicated channel, performs compatible HELLO/digest catch-up and sends
+priority new personal bests through logged WHISPER. Lost rows reconcile later;
+local accepted sends are not delivery ACKs. Personal and community save children
+remain independent. Root/child replacement, future/malformed schemas and valid
+in-place changes are preserved and stop community writes/traffic.
+
+Successful once-latched solo Finish saves first, then queues sharing under pcall.
+Top10/top3 entry and a move to first place produce one known-shared-score chat/
+result notice. Receive, replay, catch-up and reload do not congratulate again.
+Menu refreshes only an already-visible board, reusing all rows/result labels.
+The board reports actual discovery/connection/capacity status. One background
+frame is added; UI pool stays86/167/135, with Core and receiver2fixed extra frames.
+All karts still share a board with no kart column/filter.
+
+Scores yield to combat/chat restrictions/another Core lease, wait2idle seconds,
+and attempt at most1send/s and158prefix+payload bytes. Registration failures
+back off30seconds, send failures back off after bounded attempts. Peer admission
+is capped32; excess roster clears stale connections and reports the test limit.
+Unrelated messages are rejected before cache parsing, idle polls use cheap
+save guards, and rate rejection precedes expensive dirty-write validation.
+
+**Executed:** actual Lua5.1 via pinned local Lupa. Final combined
+`scripts/test_lua.py --runtime lua51 --tests score_sync score_discovery
+score_sharing menu solo_records multiplayer_integration` PASS,74Lua files
+parsed/all6modules. Final score_sharing-only rerun PASS after registration retry
+and native channel-lookup coverage. Earlier UI-only check PASS. The first
+Menu run caught the deliberately added receiver outside UI's pool; accounting
+now explicitly includes both fixed bootstrap/receiver frames, with no allocation
+assertion removed. Individual focused agent checks passed too.
+
+Mocked clients automatically join/discover/connect; a valid saved finish reaches
+the other board within2simulated seconds. Coverage includes UTF8 names, priority
+publication during handshake/catch-up, lost-row recovery, quiet fresh-namespace
+reload, third-client catch-up, actual rank12→10→3→1 notices, visible menu refresh,
+lease/reentry/pacing guards, native API failures and protected saves. Independent
+source review found capacity handling, a handshake race and cache parsing work;
+all were fixed with regressions before this checkpoint. This is offline evidence.
+
+`git diff --check` PASS. Structural validator still FAILS only on the same2
+historical expired skill links. Installer WhatIf under cached PowerShell7 PASS.
+Quota interrupted the prior attempt before its pending patch executed; work
+resumed from disk and that patch was applied normally once execution returned.
+No native tests/client input/server change or push performed. Native roster
+population, real delivery latency, cross-faction/scale and persistence remain
+NOT RUN. No milestone acceptance is changed.
+
+[Current player flow and limits](AUTOMATIC_SCORES.md). Source is ready for the
+requested combined backup/install/hash verification; deployment result follows.
+Other worktrees remain at Claude`0afeedf`/canonical`5570968` with their existing
+untracked files preserved. **Next single task:** verify the installed update
+after a full client restart during ordinary play, rather than manual score
+exchange or repeated transport probes. Pending native discovery is shown honestly.
+
 ## 2026-10-25 12:56 +01:00 — balanced/heavy/agile kart handling
 
 Owner approved modest kart attributes and explicitly keeps one shared

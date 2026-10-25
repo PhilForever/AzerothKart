@@ -1,5 +1,12 @@
 # Technical architecture
 
+Automatic community scores are now wired in source through ScoreDiscovery,
+pure ScoreSync and native ScoreSharing. Personal saves remain independent;
+copied community views and once-latched local notices feed the existing menu.
+The score receiver is one fixed frame, with sends yielding to the existing
+Core lease/budget. Native discovery/latency/scale remain pending;
+[implementation and limits](AUTOMATIC_SCORES.md) supersede earlier unwired notes.
+
 Current handling, 2026-10-25: Physics11 owns three private balanced/heavy/agile
 profiles. A selected kart-ID string is latched at successful solo Start or
 captured in the RaceStart bundle from RaceGrid, then held privately by LiveRace.

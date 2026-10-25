@@ -35,6 +35,8 @@ local function localName()
     return Scores.NormalizeName(first)
 end
 
+function Records.PlayerName() return localName() end
+
 local function integer(value, minimum, maximum)
     return plain(value) and type(value) == "number" and value == value
         and value >= minimum and value <= maximum and value % 1 == 0
@@ -129,7 +131,12 @@ function Records.Finish(run, race, multiplayer)
         -- Only this independently versioned child is written. Preferences and
         -- unknown top-level fields remain intact; no SavedVariables file I/O.
         db.highscores, source, store = updated, updated, updated
-        return result("Personal best saved: " .. Records.FormatTime(ticks), ticks, true)
+        local message="Personal best saved: " .. Records.FormatTime(ticks)
+        if AK.ScoreSharing and type(AK.ScoreSharing.Publish)=="function" then
+            local ok,notice=pcall(AK.ScoreSharing.Publish,record)
+            if ok and type(notice)=="string" then message=notice.." | "..message end
+        end
+        return result(message, ticks, true)
     end
     if reason == "not_better" then
         return result("Total " .. Records.FormatTime(ticks) .. " | Personal best unchanged", ticks)
@@ -138,6 +145,10 @@ function Records.Finish(run, race, multiplayer)
 end
 
 function Records.GetView(trackId)
+    if AK.ScoreSharing and type(AK.ScoreSharing.GetView)=="function" then
+        local ok,shared=pcall(AK.ScoreSharing.GetView,trackId)
+        if ok and type(shared)=="table" then return shared end
+    end
     local course = Courses.get(trackId)
     local track = Courses.build(trackId, AK.Track.crossesGate)
     local context = Records.Context(track)

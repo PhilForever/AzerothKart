@@ -4,6 +4,7 @@ local tests = {
     "tests/test_score_channel_probe.lua",
     "tests/test_highscores.lua", "tests/test_community_scores.lua", "tests/test_solo_records.lua",
     "tests/test_kart_handling.lua",
+    "tests/test_score_sync.lua", "tests/test_score_discovery.lua", "tests/test_score_sharing.lua",
     "tests/test_clock_protocol.lua", "tests/test_start_clock.lua", "tests/test_race_start.lua",
     "tests/test_live_protocol.lua", "tests/test_race_grid.lua", "tests/test_live_race.lua",
     "tests/test_track.lua", "tests/test_obstacles.lua", "tests/test_wall_slide.lua", "tests/test_mirage.lua", "tests/test_circuit.lua", "tests/test_physics.lua", "tests/test_handling.lua", "tests/test_steering.lua", "tests/test_drift.lua", "tests/test_surface.lua", "tests/test_input.lua",

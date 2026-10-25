@@ -1,5 +1,39 @@
 # Implemented simulation and rendering contracts
 
+## Automatic score sharing — source integration
+
+The two TOCs now load 33 modules. Highscores/SoloRecords precede ScoreSync,
+ScoreDiscovery and ScoreSharing; UI/Menu and the existing network modules follow.
+[Full behavior, evidence and limits](AUTOMATIC_SCORES.md).
+
+`ScoreSync.new({name,contexts,store},now)` returns an opaque token. Its pure API
+is `discover(token,names,now)`, `publish(token,record,now)`,
+`receive(token,peer,payload,now)`, `update(token,now,sendFn)`,
+`snapshot(token)` and `view(token)`. Publish returns placement/change/reason;
+receive/catch-up never emit a local achievement. HELLO digests detect changes,
+not authenticity. Direct new records must match native sender identity; relayed
+rows remain client-reported. There is no per-result delivery ACK.
+
+`ScoreDiscovery.Read(api,channelName,selfName)` returns a detached complete
+cached roster snapshot or nil/reason. It caps display entries at128 and members
+at256, uses display indices, and never changes native channel selection.
+
+`ScoreSharing.Init(coreFrame)` creates one fixed background receiver. It owns
+the protected `communityScores` child and exposes `Publish(record)`,
+`GetView(trackId)`, `Report()`, `Update()` and `Message(...)`. It yields sends to
+Core's lease and marks transient native sends against reentrant arming.
+Known compatible contexts only; 32-peer test limit is explicit, not a proven
+capacity. `SoloRecords.PlayerName()` exposes its guarded native full-name read.
+Successful eligible solo Finish queues sharing after local saving under pcall;
+errors cannot prevent normal results/local persistence.
+
+`SoloRecords.GetView` supplies the copied community view when initialized,
+including rows/scope/publication/connected/queued and save problems; otherwise
+the existing local view remains available. `Menu.OnScoresChanged()` refreshes
+only an already visible Highscores screen. Existing result text consumes the
+once-only notice, with no new widgets. UI pool remains86/167/135, plus Core and
+the score receiver's two fixed frames. Native behavior is pending verification.
+
 ## Implemented kart handling — Physics11
 
 `Physics.GetHandling(kartId?) -> detachedProfile, error` returns
