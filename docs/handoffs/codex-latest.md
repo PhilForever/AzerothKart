@@ -1,5 +1,50 @@
 # Codex handoff — approved Claude visuals and combined score-channel package
 
+## Latest checkpoint — automatic community scores
+
+2026-10-25 10:56 +01:00, `codex/community-scores` from `7595d0b`.
+Owner chose addon-only automatic exchange, prompt updates and top-3/top-10
+congratulations. [ADR 0018](../adr/0018-automatic-community-scores.md) replaces
+central hosting as the active path; the Python store is retained but deferred.
+
+Implemented pure `Highscores.Merge`, `Rank`, `FinishPlacement`; exact API and
+caller-owned notification latch in [API_CONTRACTS](../API_CONTRACTS.md#pure-community-merge-and-placement--2026-10-25).
+Fixed-context top-50 canonical unions converge after retry/reorder/catch-up.
+Shared equal times use earliest date/stable byte ties; local Submit retains
+equal-time date preservation. No new TOC module, native sender, community save
+child, UI refresh or visible celebration is wired by this slice.
+
+Actual focused Lua 5.1 highscores/community_scores/solo_records PASS, 67 files
+parsed. Whitespace PASS; independent source review found no blocking issue.
+Structural validator still FAILS only on two historical expired skill links.
+Native/end-to-end sharing and UI notices NOT RUN; no WoW process currently
+available. Both other worktrees/HEADs and their existing untracked work retained.
+
+Next: bounded channel-roster discovery/readout at the existing diagnostic
+boundary. Use display indices, not send-channel IDs; roster delivery is async.
+Verify full Forever names and cached/non-invasive refresh before choosing
+roster-based logged-WHISPER sharing. Channel broadcast remains unverified;
+the previous plain-text whisper control did not isolate the channel payload's
+`1|H|...` syntax. No speculative delimiter/filter/route change or repeated friend
+test. Actual AnoCore source/logs unavailable. Preserve existing network lease
+and budget. The installed board remains local; no install/push/release occurred.
+
+## Active reservation — automatic community scores
+
+2026-10-25: owner wants addon-only automatic score sharing, near-immediate
+online board updates and top-3/top-10 congratulations, without manual exchange.
+Own clean `codex/community-scores` from `7595d0b`. Reserve additive pure
+`Highscores.lua` merge/rank/finish-placement functions, a focused
+`tests/test_community_scores.lua`, its test-runner entry, and this handoff,
+PROGRESS, HIGHSCORES, API_CONTRACTS, ARCHITECTURE, INDEX, ADR0017/0018 and the
+validator's required paths, plus README's current-direction paragraph. Existing
+solo Submit/save behavior is preserved.
+Plan: deterministic bounded merge and rank-change logic with replay/convergence
+regressions; describe the automatic publication/catch-up flow; investigate the
+actual shared discovery/delivery route independently. No native traffic or
+new UI flow until that route is supported. Python hosting is deferred; no
+desktop uploader or permanently logged-in character has been accepted.
+
 Latest checkpoint, 2026-10-24 20:54+02:00: `codex/central-score-store` fromed52ce4.
 Implemented **server-side component only**: transactional SQLite submit/query,
 all-player PB retention, trusted-adapter identity match, compatibility catalogue,

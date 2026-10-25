@@ -120,12 +120,22 @@ local function row(source, key)
     return copy
 end
 
+-- Lua 5.1 string ordering can use the process locale. Compare numeric bytes so
+-- UTF-8 names rank identically on clients with different locale settings.
+local function bytesBefore(a, b)
+    for index = 1, math.min(#a, #b) do
+        local first, second = a:byte(index), b:byte(index)
+        if first ~= second then return first < second end
+    end
+    return #a < #b
+end
+
 local function before(a, b)
     if a.totalTicks ~= b.totalTicks then return a.totalTicks < b.totalTicks end
     if a.finishedAt ~= b.finishedAt then return a.finishedAt < b.finishedAt end
     local aKey, bKey = nameKey(a.playerName), nameKey(b.playerName)
-    if aKey ~= bKey then return aKey < bKey end
-    return a.playerName < b.playerName
+    if aKey ~= bKey then return bytesBefore(aKey, bKey) end
+    return bytesBefore(a.playerName, b.playerName)
 end
 
 local function rows(source, key)
@@ -220,6 +230,135 @@ function Highscores.View(store, context)
     if not key then return {}, "invalid_context" end
     local board = parsed.boards[key]
     return board and board.rows or {}
+end
+
+-- Community merging is separate from Submit: a local equal-time finish keeps
+-- its original date, while replicas need an arrival-order-independent winner.
+-- These tie-breaks apply only to rows for the same normalized player identity.
+local function canonicalBefore(a, b)
+    if a.totalTicks ~= b.totalTicks then return a.totalTicks < b.totalTicks end
+    if a.finishedAt ~= b.finishedAt then return a.finishedAt < b.finishedAt end
+    if a.playerName ~= b.playerName then return bytesBefore(a.playerName, b.playerName) end
+    return bytesBefore(a.kartId, b.kartId)
+end
+
+local function sameRow(a, b)
+    for _, field in ipairs(ROW) do
+        if a[field] ~= b[field] then return false end
+    end
+    return true
+end
+
+local function sameRows(a, b)
+    if #a ~= #b then return false end
+    for index, value in ipairs(a) do
+        if not sameRow(value, b[index]) then return false end
+    end
+    return true
+end
+
+-- Merge(store, context, records) -> store, changed, reason.
+-- Atomically validate one dense batch of at most MAX_ROWS same-board records;
+-- duplicates are permitted and canonicalized. No native sender is authenticated
+-- here: the transport must supply policy-accepted records and board contexts.
+-- For a fixed admitted board, top-N canonical union is associative, commutative
+-- and idempotent. The independent MAX_BOARDS admission limit is not a discovery
+-- or convergence policy; callers must use an agreed compatibility catalogue.
+-- Inputs are never mutated. A rejection/no-op returns the original store.
+function Highscores.Merge(store, context, records)
+    local nextStore, reason = parseStore(store)
+    if not nextStore then return store, false, reason end
+    local key = contextKey(context)
+    if not key then return store, false, "invalid_context" end
+    if not plainTable(records) then return store, false, "invalid_records" end
+    local count = 0
+    for index in next, records do
+        if not integer(index, 1, Highscores.MAX_ROWS) then
+            return store, false, "invalid_records"
+        end
+        count = count + 1
+        if count > Highscores.MAX_ROWS then return store, false, "invalid_records" end
+    end
+    local incoming = {}
+    for index = 1, count do
+        incoming[index] = row(records[index], key)
+        if not incoming[index] then return store, false, "invalid_records" end
+    end
+    if count == 0 then return store, false, "unchanged" end
+    local board = nextStore.boards[key]
+    if not board then
+        local boardCount = 0
+        for _ in next, nextStore.boards do boardCount = boardCount + 1 end
+        if boardCount >= Highscores.MAX_BOARDS then return store, false, "board_capacity" end
+        board = copyFields(context, CONTEXT)
+        board.rows = {}
+    end
+    local players = {}
+    for _, value in ipairs(board.rows) do players[nameKey(value.playerName)] = value end
+    for _, value in ipairs(incoming) do
+        local identity = nameKey(value.playerName)
+        local previous = players[identity]
+        if not previous or canonicalBefore(value, previous) then players[identity] = value end
+    end
+    local merged = {}
+    for _, value in pairs(players) do merged[#merged + 1] = value end
+    table.sort(merged, before)
+    for index = #merged, Highscores.MAX_ROWS + 1, -1 do merged[index] = nil end
+    if sameRows(board.rows, merged) then return store, false, "unchanged" end
+    board.rows = merged
+    nextStore.boards[key] = board
+    return nextStore, true, "merged"
+end
+
+local function rankIn(store, key, identity)
+    local board = store.boards[key]
+    if board then
+        for index, value in ipairs(board.rows) do
+            if nameKey(value.playerName) == identity then return index, value end
+        end
+    end
+end
+
+-- Rank(store, context, name) -> ordinal rank, detached row, error.
+-- Ranks describe this stored board only, never completeness or a global quorum.
+function Highscores.Rank(store, context, playerName)
+    local parsed, reason = parseStore(store)
+    if not parsed then return nil, nil, reason end
+    local key, name = contextKey(context), Highscores.NormalizeName(playerName)
+    if not key then return nil, nil, "invalid_context" end
+    if not name then return nil, nil, "invalid_name" end
+    local rank, value = rankIn(parsed, key, nameKey(name))
+    if not rank then return nil, nil, "not_ranked" end
+    return rank, value
+end
+
+-- FinishPlacement(beforeStore, afterStore, record) -> placement, error.
+-- Call only for a once-latched eligible LOCAL finish, never from network receive
+-- or catch-up. This pure, non-consuming assessment emits nothing and keeps no
+-- notification history: repeated identical inputs give the identical placement.
+-- The caller owns the once-only latch. The exact finish must be retained and
+-- improve the known prior time.
+-- tier reports current top 3/10; enteredTier is only the highest newly crossed
+-- threshold, so a move from outside top 10 to rank 2 yields one top-3 event.
+function Highscores.FinishPlacement(beforeStore, afterStore, record)
+    local previous, problem = parseStore(beforeStore)
+    if not previous then return nil, problem end
+    local current, reason = parseStore(afterStore)
+    if not current then return nil, reason end
+    local key = contextKey(record)
+    local parsed = key and row(record, key)
+    if not parsed then return nil, "invalid_record" end
+    local identity = nameKey(parsed.playerName)
+    local previousRank, previousRow = rankIn(previous, key, identity)
+    local rank, currentRow = rankIn(current, key, identity)
+    if not currentRow or not sameRow(currentRow, parsed) then return nil, "not_retained" end
+    if previousRow and parsed.totalTicks >= previousRow.totalTicks then return nil, "not_improved" end
+    local tier = rank <= 3 and 3 or (rank <= 10 and 10 or nil)
+    local enteredTier
+    if rank <= 3 and (not previousRank or previousRank > 3) then enteredTier = 3
+    elseif rank <= 10 and (not previousRank or previousRank > 10) then enteredTier = 10 end
+    return {rank=rank, previousRank=previousRank, tier=tier, enteredTier=enteredTier,
+        knownPlayers=#current.boards[key].rows, scope="known_board"}
 end
 
 if type(namespace) == "table" then namespace.Highscores = Highscores end

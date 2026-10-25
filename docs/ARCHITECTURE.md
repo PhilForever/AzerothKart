@@ -1,5 +1,13 @@
 # Technical architecture
 
+Current leaderboard direction, 2026-10-25: automatic addon-only community
+sharing under [ADR 0018](adr/0018-automatic-community-scores.md). Separate pure
+merge/rank rules from local capture, the future community cache/notification
+controller and native transport. Native discovery/delivery is still open;
+the Python store below is retained but deferred. UI integrations must receive
+copied views and explicit one-shot local-finish notices, not trigger celebration
+from a replayed network record or a board redraw.
+
 Central leaderboard direction (2026-10-24): a separate transactional SQLite
 submit/query store under `services/leaderboard/` consumes the existing record
 contract and a generated compatible-board catalogue. It is server-side only;

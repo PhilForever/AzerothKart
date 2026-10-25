@@ -1,5 +1,10 @@
 # ADR 0017 — Central score store; explicit client bridge required
 
+Superseded as the active implementation path on 2026-10-25 by
+[ADR 0018](0018-automatic-community-scores.md): the owner wants automatic
+addon-only community sharing. The server-side component is retained but
+deferred; no uploader or always-online scorekeeper was accepted.
+
 Status: Accepted central persistent leaderboard direction from the owner's
 2026-10-24 "get to work" response. Server-side core implemented in this slice;
 live transport/deployment remain OPEN. No global-delivery acceptance implied.

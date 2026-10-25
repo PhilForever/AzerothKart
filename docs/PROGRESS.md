@@ -1,5 +1,64 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-25 10:56 +01:00 — automatic community ranking foundation
+
+Owner clarified addon-only automatic sharing, prompt updates and top-3/top-10
+congratulations; manual result exchange is not acceptable. Selected that
+direction in [ADR 0018](adr/0018-automatic-community-scores.md), superseding the
+disconnected central store as the active path. Python storage is preserved but
+deferred; no uploader or permanently logged-in character is required or enabled.
+Own `codex/community-scores` from `7595d0b`, with prior scope reservation in the
+Codex handoff. Claude's checkout remains at `0afeedf` with its existing untracked
+outputs; the canonical checkout remains at `5570968` with its existing handoffs.
+
+Implemented additive pure `Highscores.Merge`, `Rank` and `FinishPlacement`.
+Whole batches validate before mutation. Canonical per-player minima and bounded
+top-50 unions converge for a fixed admitted context despite duplicates, reorder
+or differently grouped catch-up. Equal-time shared records use earliest date
+and stable byte tie-breaks; local Submit still preserves its original equal-time
+record. Explicit byte ordering also removes locale dependence from tied names.
+Placement assessment identifies top-10/top-3 entry for an exact retained
+improved local finish. It is pure: the future integration must use the existing
+once-only finish latch and never notify from receive, catch-up or redraw.
+
+**Executed:** `C:/Python314/python.exe scripts/test_lua.py --runtime lua51 --tests
+highscores community_scores solo_records`, using the pinned local Lupa path:
+**PASS**, 67 Lua files parsed and all three focused modules executed. Coverage
+includes bounded union convergence/truncation, canonical Unicode/name/kart ties,
+retries, atomic invalid batches, detached values, future-save preservation,
+context/capacity isolation, unchanged local equal-time semantics and placement
+thresholds. Independent read-only review found no blocker within this scope.
+`git diff --check` PASS. `scripts/validate_project.py` still FAILS only on the two
+historical expired computer-use skill links in this log; no new structural
+failure was reported. Full Lua 5.4/broad suite, native sharing, persistence and
+visible congratulations are **NOT RUN**. No WoW process was found on this run.
+
+Source investigation does not establish a channel fix. Upstream TrinityCore
+[chat routing](https://raw.githubusercontent.com/TrinityCore/TrinityCore/master/src/server/game/Handlers/ChatHandler.cpp)
+and [channel delivery](https://raw.githubusercontent.com/TrinityCore/TrinityCore/master/src/server/game/Chat/Channels/Channel.cpp)
+preserve logged CHANNEL messages; actual AnoCore handler code/logs are unavailable.
+The previous channel payload used `1|H|...`, unlike the plain-text whisper
+control. This is an unisolated variable, not evidence of a markup bug; do not
+change transport/filter semantics speculatively. The failed receipt gate remains.
+
+An alternative discovery candidate is the dedicated channel's native roster,
+followed by the verified logged-WHISPER route. The retained Blizzard source uses
+`GetNumDisplayChannels`, `GetChannelDisplayInfo(displayIndex)` and
+`C_ChatInfo.GetChannelRosterInfo(displayIndex, rosterIndex)`, with asynchronous
+`CHANNEL_ROSTER_UPDATE`. Display indices are not local send-channel IDs.
+Cached roster availability, full Forever names and non-invasive refresh still
+need native evidence. No channel join, client input, messages, install, push,
+server change or new friend test was performed/requested.
+
+**Still incomplete:** automatic discovery/delivery, publication/catch-up
+controller, separate community persistence, UI refresh and actual congratulations.
+The installed board remains local. No global completeness, near-instant measured
+delivery, multiplayer capacity or milestone completion is claimed.
+**Next single task:** implement bounded channel-roster discovery/readout using
+the existing diagnostic boundary, preserving native chat selection and full
+names; inspect its result when a client is available before enabling shared
+delivery. Automatic peer exchange must share Core's existing network budget.
+
 ## 2026-10-24 20:54 +02:00 — central persistence built; live bridge remains open
 
 Owner approved the central persistent leaderboard direction. Own clean

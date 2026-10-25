@@ -1,9 +1,10 @@
 # Azeroth Kart — top-down arcade racing inside WoW Forever
 
-Central leaderboard development (2026-10-24): [the server-side persistence component](services/leaderboard/README.md)
-provides durable personal-best submission/query and compatible board pages.
-It is not connected to the addon or deployed. A supported bridge is still
-required; the existing in-game Highscores screen remains local.
+Leaderboard development (2026-10-25): [automatic addon-only community sharing](docs/adr/0018-automatic-community-scores.md),
+with prompt result updates, automatic catch-up and top-3/top-10 notices.
+Pure merge/rank rules are implemented; shared delivery, persistence and visible
+notifications still need integration. The existing Highscores screen remains
+local. The disconnected Python store is retained but deferred.
 
 
 **Latest build:** reviewed Claude `ee144b5` supplies Undercity’s six canal bridges and wall-to-wall city paving, with Ironforgev4 full grip. Physics8 then improves angled wall sliding and low-speed turning without changing wall geometry. The Claude branch is published; the combined handling build is local. Native new handling remains pending. See PROGRESS for exact install/package.

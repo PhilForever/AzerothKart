@@ -1,10 +1,12 @@
 # Solo finish records and highscores
 
-Central-store work, 2026-10-24: [ADR0017](adr/0017-central-score-store.md) accepts
-the owner's central leaderboard direction. [The durable server-side component](../services/leaderboard/README.md)
-stores/query-pages compatible personal bests; it is not connected to the addon.
-The supported bridge and addon-only/external-uploader constraint remain open.
-Local capture/menu behavior below is unchanged; no global traffic is enabled.
+Current direction, 2026-10-25: [automatic addon-only community sharing](adr/0018-automatic-community-scores.md).
+Players do not manually exchange results. Planned behavior is prompt publication
+of qualifying finishes, automatic catch-up and top-3/top-10 congratulations.
+Shared discovery/delivery and native integration remain open; the screen below
+still shows local results. The disconnected [central store](../services/leaderboard/README.md)
+is retained but deferred. No desktop uploader or online scorekeeper is required
+by the chosen product direction.
 
 Implemented on `codex/solo-highscores`, based on `de4b291` / Physics10.
 This is a saved **local leaderboard**, not an all-player global service.

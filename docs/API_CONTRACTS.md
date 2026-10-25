@@ -1,5 +1,36 @@
 # Implemented simulation and rendering contracts
 
+## Pure community merge and placement — 2026-10-25
+
+Additive `Highscores` functions; no native traffic, community SavedVariables
+child or popup is connected by these APIs. Keep existing local `Submit` and
+`SoloRecords` ownership. [Direction and integration boundary](adr/0018-automatic-community-scores.md).
+
+- `Merge(store, context, records) -> store, changed, reason`: atomically validates
+  a dense batch of at most 50 records for exactly one six-field context. Choose
+  each player's canonical best by ticks, earliest finish date, display-name
+  bytes and kart bytes; sort and keep the best 50. A rejection or no-op returns
+  the original store. Valid changed output is detached. Fixed-board union is
+  associative, commutative and idempotent. The 32-board capacity is a separate
+  admission limit: a native controller must use the agreed course catalogue,
+  not arbitrary remote contexts. This function does not authenticate records.
+- `Rank(store, context, playerName) -> rank, detachedRecord, error`: one-based
+  ordinal on the stored board; `not_ranked` when absent. Name handling retains
+  full Forever names and uses the existing ASCII-space/case identity rules.
+- `FinishPlacement(beforeStore, afterStore, record) -> placement, error`:
+  accepts only the exact retained record with a strictly improved prior known
+  time. Output is `{rank, previousRank, tier, enteredTier, knownPlayers,
+  scope="known_board"}`. Tier is 3, 10 or nil. Crossing both thresholds returns
+  only `enteredTier=3`; improving within a tier leaves enteredTier nil.
+
+Placement assessment is pure, not a consuming event queue. A caller must invoke
+it only from the existing once-latched eligible local-finish transaction and
+consume its notification once. Reusing the same before/after snapshots returns
+the same assessment. Network receive, catch-up and UI redraw must never trigger
+it. A replay against the already-updated store yields no new placement.
+Known-board ranks are not proof of a complete global ranking; native delivery,
+cache persistence and visible congratulations remain pending.
+
 ## Central persistence component — 2026-10-24
 
 Python `services.leaderboard.store.LeaderboardStore(path, *, deployment_id,
