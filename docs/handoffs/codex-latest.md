@@ -1,5 +1,33 @@
 # Codex handoff — production maps and Claude course review
 
+## Latest combined checkpoint - 2026-10-25 22:24 CET
+
+Tested source `b98296c232ae014bf0531cbd9cbbaff10077a801` on
+`codex/claude-courses-integration`; base parents `d30b582` and Claude`1bc3ac8`.
+Both original Claude branches are published with exact remote tips verified.
+[Review/evidence](../reviews/2026-10-25-claude-new-courses.md). Main, Claude's
+worktree/untracked outputs and the canonical checkout are preserved.
+
+Eight solo/score maps; seven lap maps in the current two-peer controller.
+Graveyard has one-run records/HUD/status but is excluded from lobby/Ready/
+protocol/snapshots until its live lifecycle is reviewed. Oval remains retired.
+Sync derives8contexts/9HELLOslots withT/G and retiredOzero; no history reset.
+Explicit pool89/69/136;35modules. Physics12 and working traffic limits preserved.
+
+Actual full Lua51 suite PASS/78files, Python24tests/citygeometry/catalogue8boards
+PASS. Structural validator only2historical expired links. Dungeon model-based
+rebuild unavailable from the supplied directory; independent checked-geometry/
+layout/route/gap/flood-fill validation PASS. Native new maps/delivery/performance,
+Lua5.4 and8capacity NOT RUN. No install or combined-source push. Installed
+runtime remains`bb085ac`; new files require a full restart after future install.
+Do not install the original Claude branches alone: their documented score-sync
+dependency is fixed only on this combined source.
+
+Next: establish bounded eight-racer fan-out/grouping before the shared room/
+common-start controller. A raid requirement remains undecided. Preserve
+ungrouped two-player mode; live Graveyard support also remains outstanding.
+
+
 ## Latest source checkpoint — production maps, 2026-10-25 22:09 +01:00
 
 Branch `codex/production-map-catalogue`, base `aac1bdd`. Six finished maps now

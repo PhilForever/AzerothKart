@@ -1,5 +1,49 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-25 22:24 +01:00 — Claude courses integrated and feature branches published
+
+Tested source merge `b98296c232ae014bf0531cbd9cbbaff10077a801` on
+`codex/claude-courses-integration` combines map checkpoint `d30b582` with
+Claude `1bc3ac8` (including Thunder Bluff `a7aeb66`). Reviewed the canonical
+Claude handoff, geometry/Race/record changes, assets and shared contracts.
+Four merge conflicts were resolved preserving both agents' work.
+[Exact review and evidence](reviews/2026-10-25-claude-new-courses.md).
+
+Eight production solo/score courses now include Thunder Bluff and Graveyard.
+Test Oval stays retired. Seven lap circuits have two-peer lobby/grid/GO support;
+Graveyard stays solo until live sprint support is reviewed. Solo sprint target
+and score lapCount are1; countdown/running status now says Sprint. ScoreSync's
+catalogue-count blocker is fixed: eight active contexts, nine HELLO slots,
+newT/G, stable old codes, retiredOzero. History remains saved. Production pool
+89frames/69textures/136fonts,35TOCmodules; Physics12 remains unchanged.
+
+Executed `scripts/test_lua.py --runtime lua51`: full suite PASS,78files parsed.
+New sprint finish/status/save, eight-board catch-up/new-best sharing, seven-map
+grid/GO and complete mocked two-client flow pass. City geometry-only check PASS;
+export/check PASS8boards; Python boundary11tests/store13tests PASS; whitespace
+PASS. Initial integration fixture/count/unknown-code failures were fixed before
+this final full pass. Structural validator retains only2historical expired
+links. Dungeon model-based check could not run against`--wc3 .` because extracted
+models are absent. Independent checked-in footprints plus source layout serialize
+exactly to runtime, with route/gap/three-unavoidable-gate flood-fill validation
+PASS. Full art rebuild, Lua5.4, native new maps/delivery/city multiplayer and
+8participant capacity NOT RUN here.
+
+Owner-authorized ordinary push published `claude/thunder-bluff` at
+`a7aeb6648d0adc51249729702a1b3e6ed38df71f` and `claude/scarlet-graveyard` at
+`1bc3ac8db34e40599377d458971e3b70ad7c3ae6`; exact remote readback verified.
+No main update, forced push, release, install, client input or player-data access.
+Original Claude branches retain their documented sync dependency; use the fixed
+combined source for a future install. Installed runtime remains`bb085ac`.
+Clean combined checkout; other worktrees still`1bc3ac8`/`5570968`, with their
+existing untracked work preserved. No milestone completion or8player claim.
+
+**Next exact task:** establish an eight-racer fan-out/grouping route before the
+bounded room controller with one common GO epoch. Raid grouping remains
+undecided; preserve the working ungrouped two-peer mode. Live sprint support
+is also outstanding.
+
+
 ## 2026-10-25 22:09 +01:00 — production maps checkpoint before Claude integration
 
 Owner reports Physics12 feels good, requests Oval retirement/all-map multiplayer
