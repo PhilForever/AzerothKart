@@ -14,7 +14,7 @@ The original branches are approved as feature history with the known score-sync
 dependency. They were published without rewriting commits. `git ls-remote`
 confirmed both exact hashes. Main and Claude's worktree were not changed.
 **Do not install either original branch alone.** The corrected combined source
-is on `codex/claude-courses-integration`; the installed runtime remains `bb085ac`.
+is merge`b98296c` on `codex/claude-courses-integration`; the installed runtime remains `bb085ac`.
 
 ## Reviewed source and corrections
 
