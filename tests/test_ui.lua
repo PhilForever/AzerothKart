@@ -9,7 +9,7 @@ local globalNames = {
     "AzerothKart", "AzerothKartDB", "print", "NameUtil", "UnitNameUnmodified", "Constants", "GetServerTime", "date", "issecretvalue",
 }
 
-local function withMock(savedDB, initialCombat, test, unsupportedEvent, snappingMode)
+local function withMock(savedDB, initialCombat, test, unsupportedEvent, snappingMode, productionCatalogue)
     local previous = {}
     for _,name in ipairs(globalNames) do
         previous[#previous+1] = {name=name, value=_G[name]}
@@ -191,6 +191,32 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
         local namespace={}
         for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Courses", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "Highscores", "SoloRecords", "UI", "Menu", "RaceProtocol", "PeerSession", "ClockProtocol", "StartClock", "RaceStart", "LiveProtocol", "LiveRace", "RaceGrid", "NetworkProbe", "TransportProbe", "SessionTransport", "ScoreChannelProbe", "Core"}) do
             assert(loadfile("addon/AzerothKart/"..name..".lua"))("AzerothKart",namespace)
+            if name=="Courses" and not productionCatalogue then
+                -- Existing mechanical/UI regressions deliberately exercise
+                -- AK.Track's ellipse, crates and known gate coordinates.
+                -- Inject that pure developer fixture here, never in shipped
+                -- Courses or behind a production test switch.
+                local real, fixture = namespace.Courses, {}
+                for key,value in pairs(real) do fixture[key]=value end
+                local oval={id="test_oval",name="Test Oval",cup="proving",geometry="oval",
+                    status="Test Oval | Start for 3 laps"}
+                fixture.DEFAULT_ID,fixture.LIST="test_oval",{oval}
+                for _,course in ipairs(real.LIST) do fixture.LIST[#fixture.LIST+1]=course end
+                fixture.get=function(id) return id==oval.id and oval or real.get(id) end
+                fixture.available=function(id) return id==oval.id or real.available(id) end
+                fixture.build=function(id,crossesGate)
+                    return id==oval.id and namespace.Track or real.build(id,crossesGate)
+                end
+                fixture.next=function(id)
+                    local start=0
+                    for index,course in ipairs(fixture.LIST) do if course.id==id then start=index; break end end
+                    for step=1,#fixture.LIST do
+                        local course=fixture.LIST[(start+step-1)%#fixture.LIST+1]
+                        if not course.soon then return course.id end
+                    end
+                end
+                namespace.Courses=fixture
+            end
         end
         env.namespace=namespace
         test(env,namespace.UI)
@@ -302,9 +328,9 @@ end
 local EFFECT_TEXTURES=20+14+2*2
 -- The front end (Menu.lua) creates its header, menu screens, race overlay and
 -- results buttons once with the window; it replaced the old title line. The
--- track list holds eight buttons (five tracks, three coming-soon cities) under
--- two cup headings.
-local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=74,9,120 -- ten pooled score rows and bounded navigation/result notice
+-- track list holds six finished courses and one coming-soon city under two
+-- cup headings; the injected geometry fixture has no player menu button.
+local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=73,9,120 -- ten pooled score rows and bounded navigation/result notice
 -- City circuits have up to eight gates: the gate pool holds eight strips
 -- (the oval's four plus four kept hidden on the oval and Mirage Raceway).
 local GATE_STRIPS=8
@@ -3332,3 +3358,87 @@ withMock(nil,false,function(env,UI)
 end)
 
 originalPrint("test_ui live integration: shared static grid/cues, held GO, peer sprites, copied observations and exits PASS")
+
+-- Production catalogue: none of the developer-fixture injection above is in
+-- use here. Fresh load, saved retired ids, every public chooser and readiness
+-- must all use a real course with its matching loaded scenery.
+withMock({schemaVersion=1,preferences={version=1,track="test_oval",futureField="keep"},
+    legacyOval={keep=true}},false,function(env,UI)
+    local AK=env.namespace
+    env.fire("ADDON_LOADED","AzerothKart")
+    local preferences,legacy=AzerothKartDB.preferences,AzerothKartDB.legacyOval
+    local course=AK.Courses.get("mirage_raceway")
+    assert(UI.trackId=="mirage_raceway" and UI.track~=AK.Track and
+        UI.track==AK.Courses.build("mirage_raceway",AK.Track.crossesGate) and not UI.backgroundPath,
+        "fresh production state uses real Mirage geometry before its deferred image load")
+    local state=UI.state
+    UI.Toggle()
+    assert(UI.trackId=="mirage_raceway" and UI.backgroundPath==course.background and
+        UI.mirageBackground.texturePath==course.background and UI.mirageBackground:IsShown() and
+        UI.cameraApiReady and UI.state==state and #UI.ovalTextures==0 and #UI.obstacleTextures==0,
+        "first open loads matching Mirage scenery without allocating or driving an invisible Oval")
+    assert(AzerothKartDB.preferences==preferences and preferences.track=="test_oval" and
+        preferences.futureField=="keep" and AzerothKartDB.legacyOval==legacy and legacy.keep,
+        "loading a retired saved choice leaves persisted preferences and old data untouched")
+    assert(not AK.Courses.get("test_oval") and not AK.Courses.available("test_oval") and
+        not UI.SelectTrack("test_oval") and not AK.Menu.view.trackButtons.test_oval,
+        "retired Oval has no catalogue, selection or menu path")
+    for _,track in ipairs(AK.Menu.TRACKS) do assert(track.id~="test_oval") end
+    local ids={"mirage_raceway","stormwind_city","ironforge_gp","darnassus_canopy",
+        "orgrimmar_canyon","undercity_slime"}
+    local offered,readyCalls="test_oval",0
+    AK.SessionTransport={GetView=function()
+        return {liveMode=true,canSetReady=true,transportBusy=false,offer={trackId=offered},session="MAP001"}
+    end,Ready=function() readyCalls=readyCalls+1; return true end,Stop=function() return true end}
+    local accepted,why=UI.MultiplayerAction("ready",true)
+    assert(not accepted and why=="track" and readyCalls==0 and not UI.liveArmed,
+        "a retired incoming offer cannot capture controls or reach transport readiness")
+    for _,id in ipairs(ids) do
+        offered=id
+        assert(UI.MultiplayerAction("ready",true) and UI.liveArmed and UI.trackId==id and
+            UI.track==AK.Courses.build(id,AK.Track.crossesGate) and
+            UI.backgroundPath==AK.Courses.get(id).background,
+            "every finished course prepares its actual geometry and scenery before Ready: "..id)
+        assert(UI.MultiplayerAction("ready",false) and not UI.liveArmed)
+    end
+    assert(UI.SelectTrack("mirage_raceway"))
+    AK.Menu.Show(nil)
+    for index=2,#ids+1 do
+        UI.trackButton.scripts.OnClick(UI.trackButton)
+        assert(UI.trackId==ids[(index-1)%#ids+1],"quick chooser visits only finished maps")
+    end
+    UI.Start()
+    assert(UI.active and UI.race and UI.trackId=="mirage_raceway" and
+        UI.state.x==UI.track.spawn().x and UI.state.y==UI.track.spawn().y,
+        "default Start uses the displayed Mirage spawn and no developer geometry")
+    UI.Stop("production catalogue regression")
+    assert(UI.objects.frames==85 and UI.objects.textures==69 and UI.objects.fontStrings==135,
+        "production pool excludes the 96 Oval bands and two fixture crates")
+end,nil,nil,true)
+
+for _,failure in ipairs({"false","nil","throws","camera"}) do
+    withMock(nil,false,function(env,UI)
+        env.fire("ADDON_LOADED","AzerothKart")
+        local AK=env.namespace
+        local background=AK.Courses.get("mirage_raceway").background
+        if failure=="camera" then
+            UI.backgroundStaging.SetTexCoord=function() error("mock refused camera") end
+        else env.textureModes={[background]=failure} end
+        local state,keys,input=UI.state,UI.keys,UI.input
+        UI.Toggle()
+        assert(UI.trackId=="mirage_raceway" and UI.track~=AK.Track and not UI.backgroundPath and
+            not UI.status.text:find("Oval",1,true),"failed default image has no hidden Oval fallback")
+        UI.Start()
+        assert(not UI.active and UI.race==nil and UI.clock==nil and UI.state==state and
+            UI.keys==keys and UI.input==input and not UI.window.keyboard and
+            UI.status.text:find("scenery unavailable",1,true),
+            "an unavailable default image/camera refuses Start without changing simulation or input")
+        env.textureModes={}
+        UI.backgroundStaging.SetTexCoord=nil
+        -- The widget double's metatable restores the ordinary camera method.
+        assert(UI.SelectTrack("stormwind_city") and UI.backgroundPath==AK.Courses.get("stormwind_city").background,
+            "choosing a different finished course recovers from a default asset refusal")
+    end,nil,nil,true)
+end
+
+originalPrint("test_ui production catalogue: six finished courses, real Mirage default/scenery, retired-save preservation, all-map Ready and asset-failure Start guard PASS (85/69/135 pool)")

@@ -1,5 +1,7 @@
 # Documentation index / reading order
 
+**Current courses and multiplayer scope (2026-10-25):** [six production maps, retired Oval and eight-player transport decision](PRODUCTION_MAPS.md). All six maps are enabled for the existing two-player flow. A raid requirement is undecided; native eight-player capacity remains unverified.
+
 **Kart handling:** [three modest profiles and shared leaderboard, ADR 0019](adr/0019-balanced-kart-handling.md),
 [current stronger drift payoff, Physics12](PHYSICS.md#current-drift-payoff--physics12),
 [actual parameters and offline metrics](PHYSICS.md#implemented-kart-profiles--physics11),

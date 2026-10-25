@@ -111,8 +111,7 @@ send failures. These are offline tests, not measured network results.
 
 That original backend-only checkpoint did not test native delivery or appearance.
 Later native integration and owner feedback are recorded below; revised grid/sprite/forecast
-behavior, start skew/drift and corrected game feel remain **NOT RUN** in the client. Test Oval and Mirage remain the existing session
-codec's only negotiated tracks; five solo maps do not imply five network maps.
+behavior, start skew/drift and corrected game feel remain **NOT RUN** in the client. The session codec now negotiates all six finished production maps in the existing two-peer controller; Test Oval is retired. Native city multiplayer remains unverified.
 Production authority/correction/finish reconciliation and socket recovery stay
 open. No new manual probe or friend download is needed for this source slice.
 
@@ -158,7 +157,7 @@ Local finish releases capture but allows final observations/drain; results are
 labelled unverified. Restart waits for native closure; no auto-resume exists.
 Changing solo track after closure hides old observations. [Simple friend-test
 steps](MULTIPLAYER_PLAYTEST.md) are the next actual-client check, not another
-standalone transport probe. Only Mirage/Test Oval are negotiated.
+standalone transport probe. All six finished maps now negotiate through the same two-peer controller; native city multiplayer remains pending.
 
 Actual Lua5.1 mocked integration loads both complete TOCs/Core/menu/UI/native
 adapters, drives Listen/Host/Join/Ready/Start through700ms synthetic RTT and5s

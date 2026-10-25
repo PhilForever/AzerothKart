@@ -2,14 +2,6 @@
   "version": 1,
   "boards": [
     {
-      "trackId": "test_oval",
-      "trackVersion": 2,
-      "physicsVersion": 12,
-      "lapCount": 3,
-      "tickRate": 60,
-      "rulesVersion": 1
-    },
-    {
       "trackId": "mirage_raceway",
       "trackVersion": 1,
       "physicsVersion": 12,

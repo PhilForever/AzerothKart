@@ -260,10 +260,17 @@ local function arm(role, peer, code, trackId, wantClock, wantLive, kartId)
     if wantLive and not Grid.encode({kind="PROFILE",session=code,kartId=kartId}) then return fail("invalid_options") end
     local tracks
     local ok, candidate = pcall(function()
-        local mirage = AK.MirageRaceway.new(AK.Track.crossesGate)
-        tracks=wantClock and {test_oval=copy(AK.Track),mirage_raceway=copy(mirage)} or nil
+        local versions={}
+        tracks=wantClock and {} or nil
+        for _,course in ipairs(AK.Courses.LIST) do
+            if AK.Courses.available(course.id) then
+                local track=assert(AK.Courses.build(course.id,AK.Track.crossesGate))
+                versions[course.id]=track.version
+                if tracks then tracks[course.id]=copy(track) end
+            end
+        end
         return {role=role,peer=peer,session=code,physicsVersion=AK.Physics.VERSION,
-            trackVersions={test_oval=AK.Track.version,mirage_raceway=mirage.version},laps=3}
+            trackVersions=versions,laps=3}
     end)
     if not ok then return fail("invalid_options") end
     -- A dummy explicit clock validates options before reserving native hooks.

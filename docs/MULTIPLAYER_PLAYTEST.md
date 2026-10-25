@@ -15,7 +15,7 @@ required by the recorded logged-whisper connection tests.
    Both enter the same fresh six-character uppercase/digit code, e.g. `CUP101`.
    Use a new code after every ended attempt. It is a public label, not a password.
 3. Decide who hosts. **Guest first:** click **Listen for Host**.
-4. **Host:** choose Mirage Raceway or Test Oval, then **Host / Send Invite**.
+4. **Host:** choose any of the six finished maps, then **Host / Send Invite**.
    **Guest:** once the invitation appears, click **Join Received Invite**.
 5. Wait for **Ready** to enable while kart choices are exchanged, then both
    click **Ready**. This loads the agreed track and authorizes grid input capture.
@@ -44,8 +44,7 @@ are shown, but there is **no agreed winner or trusted shared finishing order**.
 The session closes after both finished observations, or an exit/timeout.
 Combat/world changes end it; there is no automatic reconnect or resume.
 
-Only the two listed tracks are negotiated in this candidate. Stormwind,
-Ironforge and Orgrimmar remain available for solo driving. New art and rights
+All six finished maps now negotiate in the existing two-player flow: Mirage, Stormwind, Ironforge, Darnassus, Orgrimmar and Undercity. Test Oval is retired. Native city multiplayer checks remain pending; eight-player mode is not enabled. New art and rights
 status are unchanged; this is a private developer test package, not a release.
 
 **Handling update:** this candidate uses Physics8 for wall sliding and faster
@@ -54,4 +53,4 @@ incompatible before countdown. City art updates also need a full restart.
 
 The latest light wall-penalty tuning is Physics9; both racers must update. A `/reload` is enough for this Lua-only follow-up.
 
-Latest build: Physics10 uses10% initial wall loss and80% contact top speed; both friends must update. The new Undercity lighting also requires a full restart.
+Current Physics12 retains10% initial wall loss and80% contact top speed, with the wider handling profiles and stronger drift boost. Both friends must update. The map-catalogue follow-up adds no runtime files/assets; `/reload` is sufficient from the previous installed Physics12 build. Grouping is not required for this two-player mode. [Eight-player scope](PRODUCTION_MAPS.md).

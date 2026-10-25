@@ -1,21 +1,23 @@
 -- Solo driving presentation/input adapter. Mocked tests do not establish client API safety.
 local _, AK = ...
 assert(type(AK) == "table", "addon namespace required")
-local Track, Physics, Input, Loop = AK.Track, AK.Physics, AK.Input, AK.Loop
-local Oval = Track
+local Physics, Input, Loop = AK.Physics, AK.Input, AK.Loop
+local GateGeometry = AK.Track
 local Performance = AK.Performance
 local Presentation = AK.Presentation
 local Checkpoints = AK.Checkpoints
 local Laps = AK.Laps
 local Race = AK.Race
 local Courses = AK.Courses
+local defaultId = Courses.DEFAULT_ID
+local Track = assert(Courses.build(defaultId,GateGeometry.crossesGate),"default course unavailable")
 -- Gate strips are pooled for the course with the most gates; unused ones hide.
 local GATE_POOL = 8
 local UI = {
     active=false, keys=Input.new(), input={}, pendingPropagationRelease=false,
     objects={frames=0, textures=0, fontStrings=0}, stopReason="Not started",
     performanceEnabled=false,
-    track=Track, trackId="test_oval",
+    track=Track, trackId=defaultId,
 }
 AK.UI = UI
 local render, pollLive, finishLive, applyLiveView
@@ -466,9 +468,12 @@ end
 
 local function drawTrack(canvas)
     UI.ovalTextures = {}
-    -- Keep the 96-road-texture budget; mask the inner island above the road.
-    drawEllipse(canvas,Track.outerX,Track.outerY,64,"BACKGROUND",0.26,0.25,0.23)
-    drawEllipse(canvas,Track.innerX,Track.innerY,32,"BORDER",0.08,0.24,0.12)
+    -- Pure geometry fixtures may supply an untextured course in offline
+    -- tests. Shipped courses use scenery and allocate none of these bands.
+    if Track == GateGeometry then
+        drawEllipse(canvas,Track.outerX,Track.outerY,64,"BACKGROUND",0.26,0.25,0.23)
+        drawEllipse(canvas,Track.innerX,Track.innerY,32,"BORDER",0.08,0.24,0.12)
+    end
     UI.gateTextures = {}
     for index=1,GATE_POOL do
         local line = texture(canvas,"ARTWORK")
@@ -481,13 +486,13 @@ local function drawTrack(canvas)
         else line:Hide() end
         UI.gateTextures[index] = line
     end
-    -- Two Test Oval collision fixtures, pooled once and driven by the same
-    -- physical rectangles as the solver. Mirage has no solid props.
     UI.obstacleTextures = {}
-    for index in ipairs(Oval.obstacles) do
-        local piece = texture(canvas,"ARTWORK")
-        piece:SetColorTexture(0.88,0.25,0.12,1)
-        UI.obstacleTextures[index] = piece
+    if Track == GateGeometry then
+        for index in ipairs(GateGeometry.obstacles) do
+            local piece = texture(canvas,"ARTWORK")
+            piece:SetColorTexture(0.88,0.25,0.12,1)
+            UI.obstacleTextures[index] = piece
+        end
     end
 end
 
@@ -687,8 +692,7 @@ local function sizeKart()
 end
 
 local function layoutTrack()
-    -- A course with a scenery picture uses the follow camera over it; the
-    -- Test Oval is drawn whole with its pooled shapes.
+    -- Shipped courses use the follow camera over their scenery picture.
     local course = Courses and Courses.get(UI.trackId)
     local follow = course ~= nil and course.background ~= nil
     UI.view = follow and Presentation.cameraViewport(Track.width,Track.height,800,480,1.5) or
@@ -705,9 +709,9 @@ local function layoutTrack()
     UI.mirageBackground:SetSize(800,480)
     placeTrackMarkers()
     for index,piece in ipairs(UI.obstacleTextures) do
-        if Track ~= Oval then piece:Hide()
+        if Track ~= GateGeometry then piece:Hide()
         else
-            local obstacle = Oval.obstacles[index]
+            local obstacle = GateGeometry.obstacles[index]
             placeWorldRect(piece,obstacle.x,obstacle.y,obstacle.width,obstacle.height)
         end
     end
@@ -845,15 +849,15 @@ function UI.SelectTrack(id)
     if not UI.window or not UI.window:IsShown() or UI.active or UI.liveArmed or livePending() or inCombat() then return false end
     local course = Courses and Courses.get(id)
     if not course or course.soon then return false end
-    if id == UI.trackId then return true end
     local background = course.background
+    if id == UI.trackId and (not background or UI.backgroundPath == background) then return true end
     local staging = UI.backgroundStaging
     local backgroundTarget = UI.backgroundPath == background and UI.mirageBackground or staging
     if background and type(backgroundTarget.SetTexCoord) ~= "function" then
-        refuseStart(course.name .. " camera unavailable | Test Oval remains available")
+        refuseStart(course.name .. " camera unavailable | Choose another track; previous selection retained")
         return false
     end
-    local selected = Courses.build(id,Oval.crossesGate)
+    local selected = Courses.build(id,GateGeometry.crossesGate)
     if not selected then return false end
     if background and UI.backgroundPath ~= background then
         -- Validate and load only the hidden staging texture. A failed load
@@ -865,7 +869,7 @@ function UI.SelectTrack(id)
         local ok = pcall(staging.SetTexCoord,staging,
             Presentation.texCoords(probe))
         if not ok then
-            refuseStart(course.name .. " camera unavailable | Test Oval remains available")
+            refuseStart(course.name .. " camera unavailable | Choose another track; previous selection retained")
             return false
         end
         local loader = staging.SetTexture
@@ -874,7 +878,7 @@ function UI.SelectTrack(id)
             ok,loaded = pcall(loader,staging,background)
         end
         if not ok or loaded ~= true then
-            refuseStart(course.name .. " background unavailable | Test Oval remains available")
+            refuseStart(course.name .. " background unavailable | Choose another track; previous selection retained")
             return false
         end
         UI.mirageBackground:Hide()
@@ -882,6 +886,15 @@ function UI.SelectTrack(id)
         UI.backgroundPath = background
         UI.cameraApiReady = true
         UI.mirageTextureReady = id == "mirage_raceway"
+    end
+    if id == UI.trackId then
+        -- Loading the default's picture changes presentation only. Keep the
+        -- already constructed pose and timing references on first open.
+        layoutTrack()
+        render()
+        refreshHud()
+        UI.status:SetText(course.status)
+        return true
     end
     if id == "mirage_raceway" then UI.mirageTrack = selected end
     Track = selected
@@ -1074,7 +1087,12 @@ function UI.Create()
             UI.Stop("Window hidden") else UI.ReleaseInput() end
     end)
     -- Presentation only: the front end shows its main menu or the results.
-    window:SetScript("OnShow",function() if AK.Menu then AK.Menu.OnWindowShown() end end)
+    window:SetScript("OnShow",function()
+        -- Background loading needs a shown window. Until this succeeds the
+        -- real course remains selected, but Start cannot drive a blank map.
+        if not UI.active and not UI.liveArmed then UI.SelectTrack(UI.trackId) end
+        if AK.Menu then AK.Menu.OnWindowShown() end
+    end)
 
     local close = frame("Button",nil,window,"UIPanelButtonTemplate")
     close:SetSize(72,24)
@@ -1148,7 +1166,8 @@ function UI.Create()
     UI.trackButton = frame("Button",nil,window,"UIPanelButtonTemplate")
     UI.trackButton:SetSize(208,24)
     UI.trackButton:SetPoint("BOTTOMLEFT",280,12)
-    UI.trackButton:SetText("Track: Test Oval")
+    local initialCourse = Courses.get(UI.trackId)
+    UI.trackButton:SetText("Track: " .. (initialCourse.short or initialCourse.name))
     UI.trackButton:SetScript("OnClick",function()
         -- The next course that loads; a refused one is skipped this click.
         local id = UI.trackId
@@ -1247,7 +1266,7 @@ function UI.MultiplayerAction(action,...)
             local view=transport.GetView()
             local id=view.offer and view.offer.trackId
             if not view.liveMode or not view.canSetReady then return false,"invalid_phase" end
-            if id~="test_oval" and id~="mirage_raceway" then return false,"track" end
+            if not Courses.available(id) then return false,"track" end
             if not UI.SelectTrack(id) then return false,"track_unavailable" end
         end
         accepted,reason=transport.Ready(ready)
@@ -1391,6 +1410,11 @@ function UI.Start()
     end
     if not UI.window or not UI.window:IsShown() then return end
     if inCombat() then refuseStart("Cannot start while in combat"); return end
+    local course = Courses.get(UI.trackId)
+    if not course or course.soon or (course.background and
+        (UI.backgroundPath ~= course.background or not UI.cameraApiReady)) then
+        refuseStart("Track scenery unavailable; choose another track or reopen to retry"); return
+    end
     if type(GetCurrentKeyBoardFocus) ~= "function"
         or type(UI.window.EnableKeyboard) ~= "function"
         or type(UI.window.SetPropagateKeyboardInput) ~= "function" then

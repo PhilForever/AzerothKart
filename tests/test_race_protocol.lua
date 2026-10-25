@@ -30,16 +30,24 @@ local function roundtrip(input,expected)
     return wire
 end
 
-local invite = message("INVITE",{physicsVersion=7,trackId="test_oval",trackVersion=2,laps=3})
-local inviteWire = roundtrip(invite,"2IABC123001070023")
+local invite = message("INVITE",{physicsVersion=7,trackId="stormwind_city",trackVersion=2,laps=3})
+local inviteWire = roundtrip(invite,"2IABC123001072023")
 assert(#inviteWire==17)
+for code,id in ipairs({"mirage_raceway","stormwind_city","ironforge_gp",
+    "darnassus_canopy","orgrimmar_canyon","undercity_slime"}) do
+    roundtrip(message("INVITE",{physicsVersion=7,trackId=id,trackVersion=1,laps=3}),
+        "2IABC12300107"..code.."013")
+end
+assert(P.encode(message("INVITE",{physicsVersion=7,trackId="test_oval",trackVersion=2,laps=3}))==nil,
+    "the retired development fixture has no network encoding")
+assert(P.decode("2IABC123001070023")==nil,"the retired wire code is never reused")
 roundtrip(message("INVITE",{physicsVersion=1,trackId="mirage_raceway",trackVersion=1,laps=1}),
     "2IABC123001011011")
 local maximum = message("INVITE",{physicsVersion=1295,trackId="mirage_raceway",trackVersion=1295,laps=9})
 maximum.session,maximum.sequence="ZZZZZZ",46655
 roundtrip(maximum,"2IZZZZZZZZZZZ1ZZ9")
 -- Compatibility is controller policy: unknown numeric versions remain valid data.
-local future = message("INVITE",{physicsVersion=1294,trackId="test_oval",trackVersion=1294,laps=9})
+local future = message("INVITE",{physicsVersion=1294,trackId="stormwind_city",trackVersion=1294,laps=9})
 same(assert(P.decode(assert(P.encode(future)))),future)
 
 local joinWire = roundtrip(message("JOIN"),"2JABC123001")
@@ -121,7 +129,7 @@ refusedDecode(nil); refusedDecode(true); refusedDecode(2); refusedDecode({})
 for _,payload in ipairs({"",string.rep("Z",129),"1JABC123001","3JABC123001","2BABC123001",
     "2Jabc123001","2JABC123000","2JABC12300a","2JABC12300|","2JABC12300 ",
     "2JABC12300\000","2JABC12300\127","2JABC12300\n","2JABC12300\195\184",
-    "2IABC123001000023","2IABC123001072023","2IABC123001070003",
+    "2IABC123001000023","2IABC123001077023","2IABC123001070003",
     "2IABC123001070020","2IABC12300107002A","2RABC1230012",
     "2SABC123001000000ZIK0ZK","2XABC1230016","2XABC123001Z",
     "2AABC123001A001","2AABC123001B001","2AABC123001J000"}) do

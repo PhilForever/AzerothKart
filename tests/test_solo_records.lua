@@ -23,7 +23,7 @@ local function fixture(db, test)
         end
         ns.SoloRecords.Init()
         local function run(ticks)
-            return ns.SoloRecords.Begin(ns.Track, "goblin_mortar_trike"),
+            return ns.SoloRecords.Begin(ns.Courses.build("mirage_raceway", ns.Track.crossesGate), "goblin_mortar_trike"),
                 {status="finished", targetLaps=3, laps={completedLaps=3},
                  startTick=180, finishTick=180+(ticks or 2345), totalTicks=ticks or 2345}
         end
@@ -43,24 +43,44 @@ fixture({schemaVersion=1, custom={keep=true}, preferences={sound=false}}, functi
     local raw = root.highscores
     assert(R.Finish(token,race,false)==nil and root.highscores==raw and reads.name==1 and reads.time==1,
         "same run captured once even across repeated callbacks")
-    local view = R.GetView("test_oval")
+    local view = R.GetView("mirage_raceway")
     assert(view.writable and view.scope=="local" and view.publication=="Global publishing pending")
     local row = view.rows[1]
     assert(#view.rows==1 and row.playerName=="Lene Conradi" and row.totalTicks==2345 and row.finishedAt==1792756800)
-    assert(row.trackId=="test_oval" and row.trackVersion==ns.Track.version and row.physicsVersion==12
+    assert(row.trackId=="mirage_raceway" and row.trackVersion==ns.Courses.build("mirage_raceway",ns.Track.crossesGate).version and row.physicsVersion==12
         and row.tickRate==60 and row.lapCount==3 and row.rulesVersion==1)
-    row.playerName="Mutated"; assert(R.GetView("test_oval").rows[1].playerName=="Lene Conradi", "detached view")
-    assert(#R.GetView("mirage_raceway").rows==0, "boards separated by track")
+    row.playerName="Mutated"; assert(R.GetView("mirage_raceway").rows[1].playerName=="Lene Conradi", "detached view")
+    assert(#R.GetView("stormwind_city").rows==0, "boards separated by track")
     local slower, slowRace=run(2400)
     assert(not R.Finish(slower,slowRace,false).saved and root.highscores==raw, "slower run preserves best and date")
     local faster, fastRace=run(2300)
-    assert(R.Finish(faster,fastRace,false).saved and R.GetView("test_oval").rows[1].totalTicks==2300)
-    R.Init(); assert(R.GetView("test_oval").rows[1].totalTicks==2300, "save reload round trip")
+    assert(R.Finish(faster,fastRace,false).saved and R.GetView("mirage_raceway").rows[1].totalTicks==2300)
+    R.Init(); assert(R.GetView("mirage_raceway").rows[1].totalTicks==2300, "save reload round trip")
     assert(R.FormatTime(60)=="0:01.00" and R.FormatTime(3599)=="0:59.98" and R.FormatTime(3600)=="1:00.00")
     assert(R.FormatTime(0/0)=="--" and R.FormatTime(-1)=="--")
     assert(R.FormatDate(1792756800)=="2026-10-23" and reads.date==1)
     _G.date=function() error("date unavailable") end
     assert(R.FormatDate(1792756800)=="Date unavailable" and R.FormatDate(0)=="--")
+end)
+
+fixture({schemaVersion=1}, function(R, ns, run, reads)
+    local historical={trackId="test_oval",trackVersion=ns.Track.version,physicsVersion=12,
+        lapCount=3,tickRate=60,rulesVersion=1,playerName="Lene Conradi",totalTicks=2500,
+        finishedAt=1792756800,kartId="goblin_mortar_trike"}
+    local old=ns.Highscores.Submit(ns.Highscores.Load(nil),historical)
+    AzerothKartDB.highscores=old
+    R.Init()
+    assert(R.Context(ns.Track)==nil and R.Context({id="thunder_bluff_skyway",version=1})==nil,
+        "retired and unfinished courses cannot create current score contexts")
+    local _,race=run()
+    assert(R.Finish(R.Begin(ns.Track,"goblin_mortar_trike"),race,false)==nil)
+    assert(reads.name==0 and reads.time==0 and AzerothKartDB.highscores==old,
+        "retired course does not save, publish or read identity/date")
+    assert(R.GetView("test_oval").context==nil and #R.GetView("test_oval").rows==0)
+    local token,current=run()
+    assert(R.Finish(token,current,false).saved and #R.GetView("mirage_raceway").rows==1)
+    assert(ns.Highscores.View(AzerothKartDB.highscores,historical)[1].totalTicks==2500,
+        "current production finish preserves historical retired-course records")
 end)
 
 for _, kind in ipairs({"stopped", "countdown", "interrupted", "partial", "inconsistent", "multiplayer", "hitch"}) do
@@ -85,7 +105,7 @@ for _, bad in ipairs({false, "broken", 45, {schemaVersion=77, highscores={versio
         local child=type(before)=="table" and before.highscores
         local token,race=run()
         local result=R.Finish(token,race,false)
-        assert(not result.saved and not R.GetView("test_oval").writable)
+        assert(not result.saved and not R.GetView("mirage_raceway").writable)
         assert(AzerothKartDB==before and (type(before)~="table" or before.highscores==child), "malformed/future save unchanged")
         assert(reads.name==0 and reads.time==0)
     end)
@@ -96,7 +116,7 @@ fixture({schemaVersion=1}, function(R, _, run)
     _G.UnitNameUnmodified=function() return "Flaturlative", "Breeze" end
     _G.Constants={CharacterNameSeparatorConsts={CHARACTERNAME_SURNAME_SEPARATOR=" "}}
     local token,race=run()
-    assert(R.Finish(token,race,false).saved and R.GetView("test_oval").rows[1].playerName=="Flaturlative Breeze",
+    assert(R.Finish(token,race,false).saved and R.GetView("mirage_raceway").rows[1].playerName=="Flaturlative Breeze",
         "Forever first name + surname, no inferred realm")
 end)
 

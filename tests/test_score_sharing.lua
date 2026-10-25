@@ -117,12 +117,12 @@ local function bus()
             using(self,function() self.frame.scripts.OnEvent(self.frame,event,unpack(args,1,args.n)) end)
         end
         function client:view()
-            return using(self,function() return self.namespace.SoloRecords.GetView("test_oval") end)
+            return using(self,function() return self.namespace.SoloRecords.GetView("mirage_raceway") end)
         end
         function client:finish(ticks)
             return using(self,function()
                 local records=self.namespace.SoloRecords
-                local token=records.Begin(self.namespace.Track,"goblin_mortar_trike")
+                local token=records.Begin(self.namespace.Courses.build("mirage_raceway",self.namespace.Track.crossesGate),"goblin_mortar_trike")
                 local race={status="finished",targetLaps=3,laps={completedLaps=3},
                     startTick=180,finishTick=180+ticks,totalTicks=ticks}
                 return records.Finish(token,race,false),token,race
@@ -254,7 +254,7 @@ for _,client in ipairs(network.ordered) do assert(#client.frames==1,"ticks alloc
 
 -- Visible notices use actual prior community placement, not merely a new PB.
 local H=a.namespace.Highscores
-local context=a.namespace.SoloRecords.Context(a.namespace.Track)
+local context=a.namespace.SoloRecords.Context(a.namespace.Courses.build("mirage_raceway",a.namespace.Track.crossesGate))
 local ranking=H.Load(nil)
 for index=1,12 do
     local row={}
@@ -302,7 +302,7 @@ edited:fire("PLAYER_ENTERING_WORLD");other:fire("PLAYER_ENTERING_WORLD");editedN
 editedNetwork:untilTrue(function() return edited:view().connected==1 and other:view().connected==1 end,15)
 assert(edited:finish(1900).saved)
 local editedChild=edited.db.communityScores
-local editedKey=edited.namespace.Highscores.BoardKey(edited.namespace.SoloRecords.Context(edited.namespace.Track))
+local editedKey=edited.namespace.Highscores.BoardKey(edited.namespace.SoloRecords.Context(edited.namespace.Courses.build("mirage_raceway",edited.namespace.Track.crossesGate)))
 local editedRow=editedChild.boards[editedKey].rows[1]
 local editedStamp=editedRow.finishedAt+10
 editedRow.finishedAt=editedStamp

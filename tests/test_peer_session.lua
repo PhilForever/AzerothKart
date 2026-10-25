@@ -8,7 +8,7 @@ assert(Session.SEND_INTERVAL==0.5 and Session.RETRY_INTERVAL==2 and Session.MAX_
 local HOST, GUEST, CODE = "Amber Stone", "Birch Vale", "ABC123"
 local function options(role,extra)
     local value = {role=role,peer=role=="host" and GUEST or HOST,session=CODE,
-        physicsVersion=7,trackVersions={test_oval=2,mirage_raceway=1},laps=3}
+        physicsVersion=7,trackVersions={stormwind_city=2,mirage_raceway=1},laps=3}
     for key,item in pairs(extra or {}) do value[key]=item end
     return value
 end
@@ -35,6 +35,29 @@ local function closed(state,reason)
     phase(state,"closed")
     if reason then assert(view(state).reason==reason,"unexpected close reason: "..tostring(view(state).reason)) end
     assert(not view(state).canInvite and not view(state).canJoin and not view(state).canStart)
+end
+
+-- Every production map can be offered without admitting the retired fixture.
+for _,id in ipairs({"mirage_raceway","stormwind_city","ironforge_gp",
+    "darnassus_canopy","orgrimmar_canyon","undercity_slime"}) do
+    local versions={[id]=3}
+    local host=fresh("host",{trackVersions=versions})
+    local guest=fresh("guest",{trackVersions=versions})
+    assert(Session.invite(host,0,id))
+    assert(Session.update(host,0,function(payload)
+        assert(deliver(guest,0,payload))
+        return "accepted"
+    end))
+    assert(view(guest).offer.trackId==id and view(guest).canJoin)
+end
+assert(Session.new(options("host",{trackVersions={test_oval=2}}),0,Protocol)==nil,
+    "retired course metadata cannot arm a controller")
+do
+    local host,guest=fresh("host"),fresh("guest")
+    refused(Session.invite,host,0,"test_oval")
+    refused(deliver,guest,0,"2IABC123001070023")
+    assert(view(host).phase=="idle" and view(guest).phase=="listening"
+        and not view(guest).hasPendingOutput,"retired offers never acknowledge or change phase")
 end
 
 -- The callback represents native local acceptance, never delivery. Delivery is
@@ -73,7 +96,7 @@ local function pair(configuration)
     end
     function p:pump(count) for _=1,count or 16 do self:step() end end
     function p:lobby(track)
-        assert(Session.invite(self.host,self.now,track or "test_oval"))
+        assert(Session.invite(self.host,self.now,track or "stormwind_city"))
         for _=1,20 do if view(self.guest).canJoin then break end; self:step() end
         phase(self.guest,"invited")
         assert(Session.join(self.guest,self.now))
@@ -107,7 +130,7 @@ do
     local calls=0
     assert(not Session.update(host,0,function() calls=calls+1 end))
     assert(calls==0,"constructing/idle controller creates no traffic")
-    assert(Session.invite(host,0,"test_oval"))
+    assert(Session.invite(host,0,"stormwind_city"))
     refused(Session.invite,host,0,"mirage_raceway")
     refused(Session.join,host,0)
     refused(Session.setReady,host,0,true)
@@ -167,8 +190,8 @@ end
 do
     local input=options("host")
     local host=assert(Session.new(input,0,Protocol))
-    input.peer="Wrong Person"; input.trackVersions.test_oval=99; input.physicsVersion=1
-    assert(Session.invite(host,0,"test_oval"))
+    input.peer="Wrong Person"; input.trackVersions.stormwind_city=99; input.physicsVersion=1
+    assert(Session.invite(host,0,"stormwind_city"))
     local before=view(host)
     before.phase="lobby"; before.peer="Changed Person"; before.offer.trackVersion=99
     before.offer.laps=9; before.stats.sendAttempts=999
@@ -182,7 +205,7 @@ end
 
 do
     local guest=fresh("guest",{peer="\195\133se Vale"})
-    local invite=wire("INVITE",1,{physicsVersion=7,trackId="test_oval",trackVersion=2,laps=3})
+    local invite=wire("INVITE",1,{physicsVersion=7,trackId="stormwind_city",trackVersion=2,laps=3})
     deliver(guest,0,invite,"\195\165se Vale")
     phase(guest,"listening")
     assert(deliver(guest,0,invite,"\195\133SE VALE"),"only ASCII letters are case folded")
@@ -191,7 +214,7 @@ end
 
 do
     local guest=fresh("guest")
-    local invite=wire("INVITE",1,{physicsVersion=7,trackId="test_oval",trackVersion=2,laps=3})
+    local invite=wire("INVITE",1,{physicsVersion=7,trackId="stormwind_city",trackVersion=2,laps=3})
     for _,bad in ipairs({
         {payload=invite,sender="Amber"},{payload=invite,sender="Amber Wrong"},
         {payload=invite,sender="Amber Stone-Realm"},{payload=invite,channel="PARTY"},
@@ -212,9 +235,9 @@ do
 end
 
 do
-    for _,extra in ipairs({{physicsVersion=8},{trackVersions={test_oval=1}},{trackVersions={mirage_raceway=1}}}) do
+    for _,extra in ipairs({{physicsVersion=8},{trackVersions={stormwind_city=1}},{trackVersions={mirage_raceway=1}}}) do
         local guest=fresh("guest",extra)
-        local invite=wire("INVITE",1,{physicsVersion=7,trackId="test_oval",trackVersion=2,laps=3})
+        local invite=wire("INVITE",1,{physicsVersion=7,trackId="stormwind_city",trackVersion=2,laps=3})
         refused(deliver,guest,0,invite)
         closed(guest,"incompatible")
         assert(not view(guest).hasPendingOutput)
@@ -242,7 +265,7 @@ do
     -- ACKs and commands share a wire sequence space, but reordered ACK numbers
     -- must not make a causal command look older than the last command.
     local host=fresh("host")
-    assert(Session.invite(host,0,"test_oval"))
+    assert(Session.invite(host,0,"stormwind_city"))
     assert(Session.update(host,0,function() return "accepted" end))
     assert(deliver(host,0,wire("ACK",100,{ackKind="INVITE",ackSequence=1}),GUEST))
     assert(deliver(host,0,wire("JOIN",2),GUEST))
@@ -284,36 +307,36 @@ end
 
 do
     local host=fresh("host")
-    assert(Session.invite(host,0,"test_oval"))
+    assert(Session.invite(host,0,"stormwind_city"))
     local attempts=0
     for _,now in ipairs({0,0.1,0.5,1,2,2.5,4,4.5,6,10,30}) do
         Session.update(host,now,function() attempts=attempts+1; return "accepted" end)
     end
     assert(attempts==Session.MAX_ATTEMPTS,"retries are bounded")
     closed(host,"ack_timeout")
-    refused(Session.invite,host,30,"test_oval")
+    refused(Session.invite,host,30,"stormwind_city")
     assert(not view(host).hasPendingOutput,"timeout leaves no hidden retry/restart")
 end
 
 do
     for _,outcome in ipairs({"failed","unknown","throttled",false}) do
-        local host=fresh("host"); assert(Session.invite(host,0,"test_oval"))
+        local host=fresh("host"); assert(Session.invite(host,0,"stormwind_city"))
         assert(Session.update(host,0,function() return outcome end))
         closed(host)
         assert(not view(host).hasPendingOutput)
     end
-    local host=fresh("host"); assert(Session.invite(host,0,"test_oval"))
+    local host=fresh("host"); assert(Session.invite(host,0,"stormwind_city"))
     assert(Session.update(host,0,function() error("fake native error") end))
     closed(host)
 end
 
 do
     -- An ACK for a queued command is not proof a native send ever happened.
-    local host=fresh("host"); assert(Session.invite(host,0,"test_oval"))
+    local host=fresh("host"); assert(Session.invite(host,0,"stormwind_city"))
     deliver(host,0,wire("ACK",10,{ackKind="INVITE",ackSequence=1}),GUEST)
     assert(view(host).pendingKind=="INVITE" and view(host).pendingAttempts==0)
     for _,outcome in ipairs({"accepted","failed"}) do
-        local current=fresh("host"); assert(Session.invite(current,0,"test_oval"))
+        local current=fresh("host"); assert(Session.invite(current,0,"stormwind_city"))
         assert(Session.update(current,0,function(payload)
             local command=assert(Protocol.decode(payload))
             deliver(current,0,wire("ACK",10,{ackKind="INVITE",ackSequence=command.sequence}),GUEST)
@@ -327,7 +350,7 @@ do
 end
 
 do
-    local host=fresh("host"); assert(Session.invite(host,0,"test_oval"))
+    local host=fresh("host"); assert(Session.invite(host,0,"stormwind_city"))
     local calls=0
     local function accepted() calls=calls+1; return "accepted" end
     assert(Session.update(host,0,accepted))
@@ -345,14 +368,14 @@ do
     closed(current,"clock_error")
     for _,entry in ipairs({{value=false},{value="bad"},{value=0/0},{value=-1},{}}) do
         local sent=fresh("host")
-        assert(Session.invite(sent,0,"test_oval"))
+        assert(Session.invite(sent,0,"stormwind_city"))
         assert(Session.update(sent,0,accepted))
         local ok=pcall(Session.update,sent,entry.value,function() error("invalid clock sent a packet") end)
         assert(ok,"invalid times after an actual send must close without arithmetic errors")
         closed(sent,"clock_error")
     end
     local reentrant=fresh("host")
-    assert(Session.invite(reentrant,0,"test_oval"))
+    assert(Session.invite(reentrant,0,"stormwind_city"))
     local sends=0
     assert(Session.update(reentrant,0,function()
         sends=sends+1
@@ -370,7 +393,7 @@ end
 
 do
     local guest=fresh("guest")
-    local invite=wire("INVITE",1,{physicsVersion=7,trackId="test_oval",trackVersion=2,laps=3})
+    local invite=wire("INVITE",1,{physicsVersion=7,trackId="stormwind_city",trackVersion=2,laps=3})
     assert(deliver(guest,1,invite))
     local deadline=view(guest).deadline
     assert(deliver(guest,2,invite))
@@ -399,7 +422,7 @@ end
 
 do
     local host=fresh("host")
-    assert(Session.invite(host,0,"test_oval"))
+    assert(Session.invite(host,0,"stormwind_city"))
     local calls=0
     local function send() calls=calls+1; return "accepted" end
     assert(not Session.update(host,0,send,false) and not Session.update(host,1,send,false))

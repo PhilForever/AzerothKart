@@ -4,7 +4,8 @@ local Session = {SEND_INTERVAL=0.5, RETRY_INTERVAL=2, MAX_ATTEMPTS=3,
     MAX_ACK_QUEUE=8, MAX_SEEN=64, MAX_EVENTS=256}
 local reasons = {left=true, timeout=true, incompatible=true, combat=true,
     world_leave=true, error=true}
-local tracks = {test_oval=true, mirage_raceway=true}
+local tracks = {mirage_raceway=true, stormwind_city=true, ironforge_gp=true,
+    darnassus_canopy=true, orgrimmar_canyon=true, undercity_slime=true}
 
 local function finite(value)
     return type(value)=="number" and value==value and value~=math.huge and value~=-math.huge

@@ -55,7 +55,9 @@ function Records.Init()
 end
 
 function Records.Context(track)
-    if type(track) ~= "table" then return nil end
+    -- Historical boards remain saved, but developer/retired courses must not
+    -- create a current board or enter automatic sharing through this boundary.
+    if type(track) ~= "table" or not Courses.available(track.id) then return nil end
     local context = {trackId=track.id, trackVersion=track.version,
         physicsVersion=Physics.VERSION, lapCount=3, tickRate=60, rulesVersion=Scores.RULES_VERSION}
     if Scores.BoardKey(context) then return context end

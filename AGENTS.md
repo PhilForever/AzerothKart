@@ -10,6 +10,8 @@ You are a development agent for **Azeroth Kart**, a top-down 2D WoW Forever arca
 
 ## Current owner priority
 
+Latest owner direction, 2026-10-25: the owner reports Physics12 feels good. Retire Test Oval from player-facing selection/defaults/scores/network admission; preserve developer fixtures and saved history. All six finished maps may use the existing two-peer flow. Work toward eight racers, but do not assume a raid-group requirement: the owner reconsidered it. No eight-player claim, silent traffic-budget increase or unverified multicast fallback. [Current catalogue and capacity boundary](docs/PRODUCTION_MAPS.md) supersedes older playable-Oval/Mirage-only statements below.
+
 Latest direction, 2026-10-23: **finish single player before further multiplayer
 playtests**, starting with saved full-race total/name/date and highscores.
 [ADR 0016](docs/adr/0016-solo-records-and-global-score-gate.md) and

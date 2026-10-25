@@ -90,7 +90,7 @@ local function client(identity,clockTest)
         local ns={UI={active=false},Race=setmetatable({}, {__index=function()
             return function() e.raceCalls=e.raceCalls+1; error("session control must not start Race") end
         end})}
-        for _,module in ipairs({"Physics","Track","MirageRaceway","RaceProtocol","PeerSession",
+        for _,module in ipairs({"Physics","Track","MirageRaceway","Circuit","CapitalCities","Courses","RaceProtocol","PeerSession",
             "ClockProtocol","StartClock","RaceStart","NetworkProbe","TransportProbe"}) do
             assert(loadfile("addon/AzerothKart/"..module..".lua"))("AzerothKart",ns)
         end
@@ -177,7 +177,7 @@ local function pair(clockTest,liveTest)
         assert(self.guest:call(liveTest and "ListenLive" or (clockTest and "ListenCoordinated" or "Listen"),
             HOST,CODE,liveTest and self.karts.guest or nil))
         assert(self.host:call(liveTest and "HostLive" or (clockTest and "HostCoordinated" or "Host"),
-            GUEST,CODE,track or "test_oval",liveTest and self.karts.host or nil))
+            GUEST,CODE,track or "mirage_raceway",liveTest and self.karts.host or nil))
         self:untilTrue(function() return self.guest:view().canJoin end)
         assert(self.guest:call("Join"))
         self:untilTrue(function()
@@ -206,14 +206,15 @@ do
     e:update(5); e:call("HandleEvent","PLAYER_REGEN_ENABLED")
     assert(#e.sends==0 and e.registerCalls==0 and e.raceCalls==0)
     assert(e:call("TakeStartProposal")==nil)
-    for _,args in ipairs({{"","ABC123","test_oval"},{GUEST,"bad","test_oval"},
-        {GUEST,CODE,"unknown"},{"Bad|Name",CODE,"test_oval"}}) do refusal(e,"Host",unpack(args)) end
+    for _,args in ipairs({{"","ABC123","mirage_raceway"},{GUEST,"bad","mirage_raceway"},
+        {GUEST,CODE,"unknown"},{GUEST,CODE,"test_oval"},
+        {"Bad|Name",CODE,"mirage_raceway"}}) do refusal(e,"Host",unpack(args)) end
     assert(e.registerCalls==0,"invalid commands do not touch native APIs")
-    assert(e:call("Host",GUEST,CODE,"test_oval"))
+    assert(e:call("Host",GUEST,CODE,"mirage_raceway"))
     refusal(e,"Listen",HOST,"DEF456")
     assert(e:view().phase=="inviting" and #e.sends==0,"actions queue output, never send directly")
     e:call("Stop","left"); detached(e)
-    refusal(e,"Host",GUEST,CODE,"test_oval")
+    refusal(e,"Host",GUEST,CODE,"mirage_raceway")
     assert(e:call("Host",GUEST,"DEF456","mirage_raceway"))
     assert(e.registerCalls==1,"registered prefix is reused only after explicit new session")
     e:call("Stop","left"); detached(e)
@@ -250,12 +251,12 @@ do
     local e=client(GUEST)
     assert(e:call("Listen","  Åmber   Stone  ",CODE))
     local offer=wire(e,"INVITE",1,{physicsVersion=e.namespace.Physics.VERSION,
-        trackId="test_oval",trackVersion=2,laps=3})
+        trackId="mirage_raceway",trackVersion=1,laps=3})
     receive(e,offer,"Åmber Stone","OTHER")
     receive(e,offer,"Åmber Stone",nil,"PARTY")
     receive(e,offer,"Åmber Wrong")
     receive(e,wire(e,"INVITE",1,{session="OLD123",physicsVersion=e.namespace.Physics.VERSION,
-        trackId="test_oval",trackVersion=2,laps=3}),"Åmber Stone")
+        trackId="mirage_raceway",trackVersion=1,laps=3}),"Åmber Stone")
     receive(e,"malformed","Åmber Stone")
     assert(e:view().phase=="listening" and #e.sends==0)
     receive(e,offer,"Åmber sToNe")
@@ -282,7 +283,7 @@ local setupFailures={
 }
 for _,configure in ipairs(setupFailures) do
     local e=client(); configure(e)
-    refusal(e,"Host",GUEST,CODE,"test_oval"); detached(e)
+    refusal(e,"Host",GUEST,CODE,"mirage_raceway"); detached(e)
     assert(#e.sends==0)
 end
 do
@@ -304,14 +305,14 @@ end
 do
     local e=client(GUEST); assert(e:call("Listen",HOST,CODE))
     receive(e,wire(e,"INVITE",1,{physicsVersion=e.namespace.Physics.VERSION+1,
-        trackId="test_oval",trackVersion=2,laps=3}))
+        trackId="mirage_raceway",trackVersion=1,laps=3}))
     assert(e:view().phase=="closed" and e:view().reason=="incompatible" and #e.sends==0)
     detached(e)
 end
 for _,oldVersion in ipairs({7,8,9}) do
     -- Previous handling revisions must be refused before the live start.
     local e=client(GUEST,true); assert(e:call("ListenLive",HOST,CODE,"steam_tank"))
-    receive(e,wire(e,"INVITE",1,{physicsVersion=oldVersion,trackId="test_oval",trackVersion=2,laps=3}))
+    receive(e,wire(e,"INVITE",1,{physicsVersion=oldVersion,trackId="mirage_raceway",trackVersion=1,laps=3}))
     local rejected=e:view()
     assert(rejected.phase=="closed" and rejected.reason=="incompatible"
         and rejected.clock==nil and rejected.live==nil and not e.namespace.UI.active and #e.sends==0,
@@ -330,7 +331,7 @@ for _,mode in ipairs({"nil","true","unknown","failed","throttled","throws"}) do
     elseif mode=="failed" then e.sendResult=12
     elseif mode=="throttled" then e.sendResult=3
     else e.sendThrows=true end
-    assert(e:call("Host",GUEST,CODE,"test_oval")); e:update(1); detached(e)
+    assert(e:call("Host",GUEST,CODE,"mirage_raceway")); e:update(1); detached(e)
     assert(#e.sends==1 and e:call("TakeStartProposal")==nil)
     local failed=e:view()
     assert(type(failed.reason or failed.lastError)=="string")
@@ -340,7 +341,7 @@ end
 
 -- Success=0 records local acceptance only: absent a peer ACK, retry is bounded.
 do
-    local e=client(); assert(e:call("Host",GUEST,CODE,"test_oval"))
+    local e=client(); assert(e:call("Host",GUEST,CODE,"mirage_raceway"))
     receive(e,wire(e,"ACK",1,{ackKind="INVITE",ackSequence=1}),GUEST)
     assert(e:view().pendingKind=="INVITE" and #e.sends==0,"an ACK before any actual send cannot confirm")
     for _,time in ipairs({0,0.1,2,4,6}) do e:update(time) end
@@ -381,7 +382,7 @@ local interrupts={
     function(e) e:call("HandleEvent","PLAYER_LOGOUT") end,
 }
 for _,interrupt in ipairs(interrupts) do
-    local e=client(); assert(e:call("Host",GUEST,CODE,"test_oval")); e:update(0.5)
+    local e=client(); assert(e:call("Host",GUEST,CODE,"mirage_raceway")); e:update(0.5)
     local oldUpdate=e.frame.scripts.OnUpdate
     interrupt(e); detached(e)
     e.now=2; e.combat=false; e.chatLocked=false; e.clockThrows=false; e.namespace.UI.active=false
@@ -412,12 +413,12 @@ end
 
 -- Leaving uses a single paced terminal notice, then relinquishes the lease.
 do
-    local e=client(); assert(e:call("Host",GUEST,CODE,"test_oval")); e:update(0)
+    local e=client(); assert(e:call("Host",GUEST,CODE,"mirage_raceway")); e:update(0)
     assert(e:call("Leave")); e:update(0.1); assert(#e.sends==1)
     e:update(0.5)
     assert(#e.sends==2 and e.namespace.RaceProtocol.decode(e.sends[2].payload).kind=="CANCEL")
     e:update(0.5); assert(#e.sends==2); detached(e); assertPacing(e)
-    assert(e:call("Host",GUEST,"DEF456","test_oval")); e:update(0.6)
+    assert(e:call("Host",GUEST,"DEF456","mirage_raceway")); e:update(0.6)
     assert(#e.sends==2,"a fresh session cannot reset the previous send budget")
     e:update(1); assert(#e.sends==3); e:call("Stop","left"); detached(e)
 end
@@ -432,7 +433,7 @@ end
 
 -- Nested native callbacks must not advance clocks or revive a stopped session.
 for _,outcome in ipairs({0,12}) do
-    local e=client(); assert(e:call("Host",GUEST,CODE,"test_oval"))
+    local e=client(); assert(e:call("Host",GUEST,CODE,"mirage_raceway"))
     e.onSend=function(packet)
         local message=assert(e.namespace.RaceProtocol.decode(packet.payload))
         receive(e,wire(e,"ACK",1,{ackKind=message.kind,ackSequence=message.sequence}),GUEST)
@@ -446,7 +447,7 @@ for _,outcome in ipairs({0,12}) do
     else detached(e) end
 end
 do
-    local e=client(); assert(e:call("Host",GUEST,CODE,"test_oval"))
+    local e=client(); assert(e:call("Host",GUEST,CODE,"mirage_raceway"))
     e.onSend=function() e:call("Stop","left") end
     e:update(0.5); detached(e); e:update(1)
     assert(#e.sends==1 and e:call("TakeStartProposal")==nil)
@@ -455,7 +456,7 @@ end
 -- Ending a lease from inside a native callback must not let the other adapter
 -- acquire the frame until that native call has unwound, in either direction.
 do
-    local e=client(); assert(e:call("Host",GUEST,CODE,"test_oval"))
+    local e=client(); assert(e:call("Host",GUEST,CODE,"mirage_raceway"))
     e.onSend=function()
         e:call("Stop","error")
         assert(e.frame.akNetworkSending==e.transport and e:view().transportBusy)
@@ -479,7 +480,7 @@ do
     assert(e:call("Listen",GUEST,CODE)); e:call("Stop","error"); detached(e)
 end
 do
-    local e=client(); assert(e:call("Host",GUEST,CODE,"test_oval"))
+    local e=client(); assert(e:call("Host",GUEST,CODE,"mirage_raceway"))
     local reads=0
     e.globals.InCombatLockdown=function()
         reads=reads+1
@@ -606,7 +607,7 @@ do
         e.registerCalls=e.registerCalls+1
         return prefix=="AZKCLK1" and 99 or 0
     end
-    refusal(e,"HostCoordinated",GUEST,CODE,"test_oval"); detached(e)
+    refusal(e,"HostCoordinated",GUEST,CODE,"mirage_raceway"); detached(e)
     assert(#e.sends==0,"failed clock registration never starts control traffic")
 end
 do
@@ -698,6 +699,25 @@ local function drivePair(p,seconds)
     end
 end
 
+-- The real course catalogue, geometry snapshots and native lease are shared
+-- by every available map; a city offer must not fall back to Mirage or Oval.
+for _,id in ipairs({"mirage_raceway","stormwind_city","ironforge_gp",
+    "darnassus_canopy","orgrimmar_canyon","undercity_slime"}) do
+    local p=livePair(id)
+    for _,role in ipairs({"host","guest"}) do
+        local e=p[role]
+        local track=e.namespace.Courses.build(id,e.namespace.Track.crossesGate)
+        local view=e:view()
+        assert(view.offer.trackId==id and view.offer.trackVersion==track.version
+            and view.live.trackId==id and view.live.trackVersion==track.version,
+            "GO preserves the negotiated production map and version: "..id)
+        assert(view.live.vehicle.x==view.grid.localPose.x
+            and track.isDrivable(view.live.vehicle.x,view.live.vehicle.y))
+        assertPacing(e)
+        e:call("Stop","left"); detached(e)
+    end
+end
+
 do
     local p=livePair()
     local captured={}
@@ -716,7 +736,7 @@ do
         local expected=initial.vehicle
         for _=initial.vehicle.tick+1,view.vehicle.tick do
             expected=e.namespace.Physics.step(expected,{accelerate=true,left=true},
-                e.namespace.Physics.FIXED_DT,e.namespace.Track,initial.id)
+                e.namespace.Physics.FIXED_DT,e.namespace.Courses.build("mirage_raceway",e.namespace.Track.crossesGate),initial.id)
         end
         for field,value in pairs(expected) do
             assert(view.vehicle[field]==value,"transport GO keeps agreed handling: "..field)
@@ -729,7 +749,7 @@ end
 do
     local e=client(HOST,true)
     assert(not e.registeredPrefixes.AZKRUN2)
-    assert(e:call("HostCoordinated",GUEST,CODE,"test_oval"))
+    assert(e:call("HostCoordinated",GUEST,CODE,"mirage_raceway"))
     assert(not e.registeredPrefixes.AZKRUN2,"legacy coordination does not register live telemetry")
     assert(not e.registeredPrefixes.AZKGRD1,"legacy coordination does not exchange live kart profiles")
     e:call("Stop","error"); detached(e)
@@ -740,7 +760,7 @@ do
         e.registerCalls=e.registerCalls+1
         return prefix=="AZKRUN2" and 99 or 0
     end
-    refusal(e,"HostLive",GUEST,CODE,"test_oval"); detached(e)
+    refusal(e,"HostLive",GUEST,CODE,"mirage_raceway"); detached(e)
     assert(#e.sends==0,"failed live registration must not start lobby traffic")
 end
 

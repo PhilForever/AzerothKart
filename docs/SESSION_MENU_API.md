@@ -1,5 +1,7 @@
 # Session actions for Claude's menu
 
+Current course admission (2026-10-25): all six finished Courses IDs are supported in the existing two-peer flow. Test Oval is retired; no eight-player room is enabled. A grouping requirement remains undecided. See [catalogue and capacity](PRODUCTION_MAPS.md).
+
 **Latest integration:** the owner-assigned native/player flow is now wired on `codex/live-multiplayer-integration`: Core registers `{view=GetView, action=UI.MultiplayerAction}` after menu creation. New live host/listen actions, matching-session GO and copied race views are described in [LIVE_RACE](LIVE_RACE.md#implemented-native-and-player-flow-integration); [friend-test steps](MULTIPLAYER_PLAYTEST.md) are available. Actual Forever racing is NOT RUN. Older unwired notes below retain the previous API checkpoint scope.
 
 Codex owns the behavior and native transport; Claude owns screen layout, navigation, copy and polish. This is the experimental two-peer control layer on the combined83c611c baseline. No multiplayer menu or live race is implemented by loading it. Use dot calls on `AzerothKart.SessionTransport`; never read/write a private controller or drive Physics/Race from screen transitions.

@@ -2,7 +2,7 @@
 -- scenery picture, off-road wording, dust colour) plus which pure geometry
 -- builds each one. Independent of WoW APIs; UI and the menus read it.
 local _, namespace = ...
-local Courses = {}
+local Courses = {DEFAULT_ID="mirage_raceway"}
 
 local TRACKS = "Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\"
 
@@ -13,11 +13,9 @@ Courses.CUPS = {
 
 -- Display order. A course marked `soon` is listed but cannot be selected.
 -- background: the scenery picture for the follow camera (one texel per world
--- unit); without it the course is drawn whole with pooled shapes (Test Oval).
+-- unit). Development geometry fixtures are deliberately absent from this list.
 -- short: the name on the window's Track button, where space is tight.
 Courses.LIST = {
-    {id="test_oval", name="Test Oval", cup="proving", geometry="oval",
-        status="Test Oval | Start for 3 laps"},
     {id="mirage_raceway", name="Mirage Raceway", cup="proving", geometry="mirage",
         background=TRACKS .. "SaltFlats\\Background.tga",
         rough={label="Rough salt", feedback="Slowing on rough salt"},
@@ -80,9 +78,7 @@ function Courses.build(id, crossesGate)
     if not course or course.soon then return nil end
     if built[id] then return built[id] end
     local track
-    if course.geometry == "oval" then
-        track = namespace.Track
-    elseif course.geometry == "mirage" then
+    if course.geometry == "mirage" then
         track = namespace.MirageRaceway.new(crossesGate)
     elseif course.geometry == "city" then
         local definition = namespace.CapitalCities and namespace.CapitalCities[id]

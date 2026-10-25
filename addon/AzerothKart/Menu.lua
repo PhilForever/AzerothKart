@@ -29,9 +29,6 @@ Menu.TRACKS = {
     {id="mirage_raceway", name="Mirage Raceway", cell=0,
         blurb="A sun-baked salt circuit on the dry Shimmering Flats, run between the rival goblin and gnome camps.",
         facts={"3 laps, 4 gates", "Counterclockwise: North, West, South, Start", "Off the road, rough salt slows you down"}},
-    {id="test_oval", name="Test Oval", cell=1,
-        blurb="The proving loop: one wide oval to learn the drift, with two solid crates to dodge.",
-        facts={"3 laps, 4 gates", "Counterclockwise: North, West, South, Start", "Grass slows you down; crates stop you"}},
     {id="stormwind_city", name="Stormwind City Circuit", cell="stormwind",
         blurb="Start in the Valley of Heroes, through the gate into the Trade District, then the canals: "
             .. "Old Town, the Dwarven District, Cathedral Square, the Park and the Mage Quarter.",
@@ -846,7 +843,7 @@ local ACTION_ERRORS = {
     incompatible="Both players need the same Azeroth Kart build and supported track.",
     track_load="The offered track could not load. Leave and try a supported track.",
     track_unavailable="The offered track could not load. Leave and try a supported track.",
-    track="This experiment supports only Mirage Raceway and Test Oval. Leave and choose one of those tracks.",
+    track="That track is unavailable. Leave and choose a finished track.",
     input_unavailable="Race controls are unavailable. Leave and try again.",
     input_api="Race controls are unavailable in this client. Leave and try again.",
     send_failed="Forever refused the send. Leave and try again with a fresh code.",
@@ -918,7 +915,7 @@ local function buildMultiplayer()
     view.lobbyTrackChoice = newButton(box, "Track: Mirage Raceway", 300, 28, "TOPLEFT", 40, -296, function()
         local session = sessionView()
         if not sessionCommands() or not session or not session.canHost then return end
-        Menu.lobbyTrackId = Menu.lobbyTrackId == "mirage_raceway" and "test_oval" or "mirage_raceway"
+        Menu.lobbyTrackId = Courses.next(Menu.lobbyTrackId)
         refresh.multiplayer()
     end)
     view.host = newButton(box, "Host / Invite", 146, 34, "TOPLEFT", 40, -338,

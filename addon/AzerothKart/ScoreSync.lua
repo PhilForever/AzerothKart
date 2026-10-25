@@ -5,11 +5,13 @@ local H = assert(AK and AK.Highscores, "Highscores required")
 local Sync = {PREFIX="AZKSCR1", MAX_BYTES=240, MAX_PEERS=32, SEND_INTERVAL=1,
     HELLO_INTERVAL=60, REQUEST_TIMEOUT=120, MAX_ROWS=50}
 AK.ScoreSync = Sync
-local courseIds={"test_oval","mirage_raceway","stormwind_city","ironforge_gp",
+local courseIds={"mirage_raceway","stormwind_city","ironforge_gp",
     "darnassus_canopy","orgrimmar_canyon","undercity_slime"}
+-- O remains a zero-digest placeholder in the seven-slot HELLO layout, never
+-- an admitted course. Existing production map codes and packets stay stable.
 local courseCodes={"O","M","S","I","D","R","U"}
 local courseToCode,codeToCourse={},{}
-for i,id in ipairs(courseIds) do courseToCode[id],codeToCourse[courseCodes[i]]=courseCodes[i],id end
+for i,id in ipairs(courseIds) do courseToCode[id],codeToCourse[courseCodes[i+1]]=courseCodes[i+1],id end
 local kartIds={"goblin_mortar_trike","steam_tank","dwarven_biker","dwarf_car",
     "orc_demolisher","meat_wagon","glaive_thrower","gryphon_rider","gyrocopter","goblin_drag_car"}
 local kartToCode,codeToKart={basic="Z"},{Z="basic"}
@@ -115,6 +117,7 @@ function Sync.decode(payload)
     return nil,"message"
 end
 local function boardHash(s,code,rows)
+    if not s.contexts[code] then return 0 end
     local parts={H.BoardKey(s.contexts[code])}
     for _,record in ipairs(rows or H.View(s.store,s.contexts[code])) do parts[#parts+1]=assert(recordText(record,"R")) end
     return hash(table.concat(parts,"\n"))
@@ -129,7 +132,7 @@ local function clock(s,now)
     s.now=now;return true
 end
 function Sync.new(options,now)
-    if not plain(options) or not H.NormalizeName(options.name) or dense(options.contexts,7)~=7 then return nil,"options" end
+    if not plain(options) or not H.NormalizeName(options.name) or dense(options.contexts,6)~=6 then return nil,"options" end
     local store,writable=H.Load(options.store)
     if not writable then return nil,"store" end
     local s={name=H.NormalizeName(options.name),key=identity(options.name),contexts={},store=store,
@@ -145,9 +148,12 @@ function Sync.new(options,now)
         if copied.physicsVersion~=s.physicsVersion then return nil,"contexts" end
     end
     for _,code in ipairs(courseCodes) do
-        catalogue[#catalogue+1]=H.BoardKey(s.contexts[code])
-        for _,record in ipairs(H.View(s.store,s.contexts[code])) do
-            if not validRecord(record) then return nil,"store" end
+        local context=s.contexts[code]
+        catalogue[#catalogue+1]=context and H.BoardKey(context) or "retired:O"
+        if context then
+            for _,record in ipairs(H.View(s.store,context)) do
+                if not validRecord(record) then return nil,"store" end
+            end
         end
     end
     s.catalogHash=hash(table.concat(catalogue,"\n"))
@@ -212,7 +218,7 @@ function Sync.receive(token,name,payload,now)
         end
         peer.compatible=true
         for i,code in ipairs(courseCodes) do
-            if m.hashes[i]~=boardHash(s,code) then peer.want[code]=true end
+            if s.contexts[code] and m.hashes[i]~=boardHash(s,code) then peer.want[code]=true end
         end
     else
         -- A direct current-context update may beat our HELLO on the wire.

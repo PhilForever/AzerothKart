@@ -1,5 +1,7 @@
 # Roadmap — executable milestones and gates
 
+**2026-10-25 scope update:** [six production maps and multiplayer capacity](PRODUCTION_MAPS.md). Test Oval is retired from the game; its analytical fixture stays in offline tests. All six finished maps are enabled for the existing two-peer flow. Eight racers remain a target, with fan-out route/grouping and actual capacity unresolved. No milestone acceptance is added by catalogue/source coverage.
+
 **Not a schedule promise.** Milestones are completed only after measurable acceptance criteria. Codex should complete one small vertical slice per run and update `PROGRESS.md`.
 
 **Latest owner priority, 2026-10-23:** finish single player before further
@@ -32,7 +34,7 @@ changed by this priority update.
 - [ ] Wire input loss and combat-interrupted final results/release (ADR 0006); gamepad only if client-proven.
 **Exit:** 10k-tick replay equivalence, manual game-feel trials, no unintended inputs.
 
-Current slice: deterministic solid-obstacle collision with visible fixtures on Test Oval only. Mirage geometry remains obstacle-free. Implementation progress does not mark the manual game-feel or remaining M0 criteria passed.
+Completed source slices include wall sliding, kart profiles and drift reward. The owner reports Physics12 feels good. Test Oval obstacle geometry is now developer-only; no obstacles were added to Mirage. The current production catalogue accepts all six finished maps in two-peer multiplayer. This does not complete the remaining native or eight-participant gates.
 
 ### M2. Network feasibility and social handshake (CURRENT EXPERIMENT)
 

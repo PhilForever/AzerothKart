@@ -168,11 +168,17 @@ do
     assert(not G.receive(capped,8000,wire("PROFILE","basic"))); closed(capped,"event_limit")
 end
 
--- The two supported experiment tracks use the same immutable 36-unit grid.
+-- Every production course provides the same immutable 36-unit two-peer grid.
 do
-    local T=dofile("addon/AzerothKart/Track.lua")
-    local M=dofile("addon/AzerothKart/MirageRaceway.lua").new(T.crossesGate)
-    for _,track in ipairs({T,M}) do
+    local AK={}
+    for _,module in ipairs({"Track","MirageRaceway","Circuit","CapitalCities","Courses"}) do
+        assert(loadfile("addon/AzerothKart/"..module..".lua"))("AzerothKart",AK)
+    end
+    local ready=0
+    for _,course in ipairs(AK.Courses.LIST) do
+      if AK.Courses.available(course.id) then
+        ready=ready+1
+        local track=assert(AK.Courses.build(course.id,AK.Track.crossesGate))
         local original=track.spawn()
         local host,guest=G.pose(track,"host")
         local guestLocal,hostRemote=G.pose(track,"guest")
@@ -183,7 +189,9 @@ do
         assert(track.isDrivable(host.x,host.y) and track.isDrivable(guest.x,guest.y))
         assert(host.heading==original.heading and guest.heading==original.heading)
         assert(track.spawn().x==original.x and track.spawn().y==original.y)
+      end
     end
+    assert(ready==6,"all six finished maps, with no development fixture, were checked")
     local bad={width=10,height=10,spawn=function() return {x=5,y=5,heading=0} end,
         isDrivable=function() return true end}
     assert(G.pose(bad,"host")==nil)
@@ -195,4 +203,4 @@ do
 end
 assert(G.view({})==nil and not G.update({},0,accept) and not G.receive({},0,"")
     and not G.stop({},0,"left"))
-print("RaceGrid: strict 12-byte profiles, bounded agreement/retries/reentry and two-track grid PASS")
+print("RaceGrid: strict 12-byte profiles, bounded agreement/retries/reentry and six-course two-peer grids PASS")

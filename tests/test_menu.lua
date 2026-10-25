@@ -205,14 +205,14 @@ withMock(nil, function(_, _, Menu, AK)
     local Session, Protocol = AK.PeerSession, AK.RaceProtocol
     local function options(role)
         return {role=role, peer=role == "host" and "Birch Vale" or "Amber Stone", session="ABC123",
-            physicsVersion=7, trackVersions={test_oval=2, mirage_raceway=1}, laps=3}
+            physicsVersion=7, trackVersions={mirage_raceway=1}, laps=3}
     end
     local host = assert(Session.new(options("host"), 0, Protocol))
     local copy = Menu.lobbyPresentation(Session.view(host))
     assert(copy.available and copy.host and not copy.join and not copy.ready and not copy.start and copy.leave
         and copy.title == "Hosting" and copy.status == "Pick a track, then invite your friend.",
         "an idle host may invite and leave")
-    assert(Session.invite(host, 0, "test_oval"))
+    assert(Session.invite(host, 0, "mirage_raceway"))
     local payload
     Session.update(host, 0.5, function(message) payload = message; return "accepted" end)
     copy = Menu.lobbyPresentation(Session.view(host))
@@ -255,8 +255,8 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu)
     -- The observational remote kart adds one texture and one font string.
     -- Saved highscores add six frames and 52 labels, including the results notice.
     -- The player's kart outline adds a texture, its Settings check a button and two labels.
-    assert(UI.objects.frames == 86 and UI.objects.textures == 167 and UI.objects.fontStrings == 135,
-        ("explicit budget 86/167/135, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
+    assert(UI.objects.frames == 85 and UI.objects.textures == 69 and UI.objects.fontStrings == 135,
+        ("explicit budget 85/69/135, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
             UI.objects.fontStrings))
     assert(AzerothKartDB.preferences == nil, "creation saves nothing")
     local before = counts(env)
@@ -293,6 +293,7 @@ end)
 
 -- Saved highscores are a pooled, read-only view; browsing cannot select a track.
 withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu, AK)
+    UI.Toggle() -- initialize the default scenery before isolating board browsing
     local before, selected, state = counts(env), UI.trackId, UI.state
     local db, rows, reads, requested = AzerothKartDB, {}, 0, {}
     for index=1,25 do
@@ -311,7 +312,6 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu, AK)
     }
     local select = UI.SelectTrack
     UI.SelectTrack = function() error("highscore browsing must not select a driving track") end
-    UI.Toggle()
     assert(reads == 0, "opening the home menu does not read or sort scores")
     click(Menu.view.homeButtons[6])
     assert(Menu.screen == "highscores" and reads == 1 and requested[1] == selected,
@@ -426,7 +426,7 @@ end)
 -- Results paths, the track view and remembered lap times -----------------------
 withMock(nil, function(env, UI, Menu, AK)
     UI.Toggle()
-    local Track = AK.Track
+    local Track = UI.track
     click(Menu.view.homeButtons[1]); click(Menu.view.trackNext); click(Menu.view.race)
     for _ = 1, 180 do UI.OnUpdate(1 / 60) end
     local function cross(index, wait)
@@ -520,7 +520,8 @@ withMock({schemaVersion=1, preferences={version=1, track="mirage_raceway", kart=
     effects=false, devInfo=true, scale=1.1}}, function(env, UI, Menu)
     assert(UI.kartId == "gyrocopter" and UI.effectsOff and UI.window.scale == 1.1,
         "the kart, effects and window size return at load")
-    assert(UI.trackId == "test_oval", "the track waits for the window, which Mirage's loader needs")
+    assert(UI.trackId == "mirage_raceway" and UI.backgroundPath == nil,
+        "Mirage geometry is the default; its scenery waits for the shown window")
     UI.Toggle()
     assert(UI.trackId == "mirage_raceway" and Menu.screen == "home", "the saved track returns on first open")
     Menu.Show(nil)
@@ -538,7 +539,7 @@ end)
 -- A saved city follows the same deferred restore and explicit-selection path
 -- as Mirage. Neither the first open nor choosing it starts a race.
 withMock({schemaVersion=1, preferences={version=1, track="ironforge_gp"}}, function(env, UI, Menu, AK)
-    assert(UI.trackId == "test_oval" and not UI.active and UI.race == nil,
+    assert(UI.trackId == "mirage_raceway" and not UI.active and UI.race == nil,
         "saved Ironforge waits for a shown window without starting a run")
     local before = counts(env)
     UI.Toggle()
@@ -568,7 +569,7 @@ for _,city in ipairs({{id="darnassus_canopy",cell="darnassus",refusal="false"},
                      {id="undercity_slime",cell="undercity",refusal="throws"}}) do
     withMock({schemaVersion=1,preferences={version=1,track=city.id}},function(env,UI,Menu,AK)
         local before=counts(env)
-        assert(UI.trackId=="test_oval" and not UI.active and UI.race==nil,
+        assert(UI.trackId=="mirage_raceway" and not UI.active and UI.race==nil,
             city.id..": saved city waits for the shown window")
         UI.Toggle()
         assert(UI.trackId==city.id and UI.backgroundPath==AK.Courses.get(city.id).background
@@ -622,16 +623,15 @@ withMock({schemaVersion=1, preferences={version=1, kart="gyrocopter", track="mir
     assert(UI.kartId == "goblin_mortar_trike" and AzerothKartDB.preferences.kart == "gyrocopter",
         "a saved kart that cannot load keeps the default without forgetting the choice")
     UI.Toggle()
-    assert(UI.trackId == "test_oval" and AzerothKartDB.preferences.track == "mirage_raceway",
+    assert(UI.trackId == "mirage_raceway" and not UI.backgroundPath and
+           AzerothKartDB.preferences.track == "mirage_raceway",
         "a saved track that cannot load keeps the default without forgetting the choice")
     env.textureModes = {}
+    assert(UI.SelectTrack("mirage_raceway"), "retry the selected default's scenery")
     Menu.Show(nil)
     click(UI.kartButton)
     assert(UI.kartId == "steam_tank" and AzerothKartDB.preferences.kart == "steam_tank",
         "the bar's kart button is remembered")
-    click(UI.trackButton)
-    assert(UI.trackId == "mirage_raceway" and AzerothKartDB.preferences.track == "mirage_raceway",
-        "the bar's track button selects and is remembered")
     click(UI.trackButton)
     assert(UI.trackId == "stormwind_city" and AzerothKartDB.preferences.track == "stormwind_city",
         "the bar's track button steps on to the city circuit")
@@ -648,7 +648,7 @@ withMock({schemaVersion=1, preferences={version=1, kart="gyrocopter", track="mir
     assert(UI.trackId == "undercity_slime" and AzerothKartDB.preferences.track == "undercity_slime",
         "and on to Undercity")
     click(UI.trackButton)
-    assert(UI.trackId == "test_oval" and AzerothKartDB.preferences.track == "test_oval",
+    assert(UI.trackId == "mirage_raceway" and AzerothKartDB.preferences.track == "mirage_raceway",
         "switching back is remembered too")
 end, function(env, AK)
     env.textureModes[AK.Presentation.KART_SPRITES.gyrocopter.path] = "false"
@@ -673,9 +673,10 @@ end)
 withMock({schemaVersion=1, preferences={version=1, track="mirage_raceway"}}, function(env, UI, Menu)
     env.combat = true
     UI.Toggle()
-    assert(UI.trackId == "test_oval" and Menu.screen == "home", "no track change during combat")
+    assert(UI.trackId == "mirage_raceway" and not UI.backgroundPath and Menu.screen == "home",
+        "no scenery restore during combat")
     click(Menu.view.homeButtons[1]); click(Menu.view.trackButtons.mirage_raceway)
-    assert(UI.trackId == "test_oval" and Menu.messages.tracks.text == "Leave combat to change tracks.",
+    assert(UI.trackId == "mirage_raceway" and Menu.messages.tracks.text == "Leave combat to change tracks.",
         "a combat refusal says so plainly")
     env.combat = false
     UI.Toggle(); UI.Toggle()
@@ -697,23 +698,26 @@ withMock({schemaVersion=1, preferences={version=1, track="mirage_raceway"}}, fun
     env.combat = true
     UI.Toggle()
     env.combat = false
-    assert(UI.trackId == "test_oval" and not Menu.trackRestored, "the restore waits for an open out of combat")
-    click(Menu.view.homeButtons[1]); click(Menu.view.trackButtons.test_oval)
-    assert(UI.trackId == "test_oval" and AzerothKartDB.preferences.track == "test_oval",
+    assert(UI.trackId == "mirage_raceway" and not Menu.trackRestored, "the restore waits for an open out of combat")
+    click(Menu.view.homeButtons[1]); click(Menu.view.trackButtons.mirage_raceway)
+    assert(UI.trackId == "mirage_raceway" and AzerothKartDB.preferences.track == "mirage_raceway",
         "choosing the current track is remembered")
     UI.Toggle(); UI.Toggle()
-    assert(UI.trackId == "test_oval" and AzerothKartDB.preferences.track == "test_oval",
+    assert(UI.trackId == "mirage_raceway" and AzerothKartDB.preferences.track == "mirage_raceway",
         "the player's choice is not overridden by the old saved track")
 end)
 withMock({schemaVersion=1, preferences={version=1, track="mirage_raceway", kart="gyrocopter"}},
     function(env, UI, Menu, AK)
     UI.Toggle()
-    assert(UI.trackId == "test_oval" and UI.kartId == "goblin_mortar_trike", "both saved choices failed to load")
+    assert(UI.trackId == "mirage_raceway" and not UI.backgroundPath and UI.kartId == "goblin_mortar_trike",
+        "failed saved choices keep the default ids without allowing an invisible track")
     UI.Toggle(); UI.Toggle()
     assert(AzerothKartDB.preferences.track == "mirage_raceway" and AzerothKartDB.preferences.kart == "gyrocopter",
         "an untouched failed restore keeps the saved choices")
-    click(Menu.view.homeButtons[1]); click(Menu.view.trackButtons.test_oval)
-    assert(AzerothKartDB.preferences.track == "test_oval", "choosing the fallback track replaces the failed one")
+    env.textureModes[BACKGROUND] = nil
+    click(Menu.view.homeButtons[1]); click(Menu.view.trackButtons.mirage_raceway)
+    assert(AzerothKartDB.preferences.track == "mirage_raceway" and UI.backgroundPath == BACKGROUND,
+        "explicitly retrying the default loads its scenery")
     click(Menu.view.trackNext); click(Menu.view.kartButtons.goblin_mortar_trike)
     assert(UI.kartId == "goblin_mortar_trike" and AzerothKartDB.preferences.kart == "goblin_mortar_trike",
         "choosing the fallback kart replaces the failed one")
@@ -726,8 +730,6 @@ withMock({schemaVersion=1, preferences={version=1, track="mirage_raceway"}}, fun
     UI.Toggle()
     env.combat = false
     Menu.Show(nil)
-    click(UI.trackButton)
-    assert(UI.trackId == "mirage_raceway" and AzerothKartDB.preferences.track == "mirage_raceway", "the bar's choice")
     click(UI.trackButton)
     assert(UI.trackId == "stormwind_city" and AzerothKartDB.preferences.track == "stormwind_city",
         "the bar's Track button is remembered before any restore")
@@ -791,8 +793,10 @@ withMock({schemaVersion=1, preferences={version=2, track="mirage_raceway", kart=
     local record = AzerothKartDB.preferences
     local unknown = record.newShape
     UI.Toggle()
-    assert(UI.trackId == "test_oval" and UI.kartId == "goblin_mortar_trike",
+    assert(UI.trackId == "mirage_raceway" and not UI.backgroundPath and UI.kartId == "goblin_mortar_trike",
         "failed choices in a newer record leave the current fallback ids")
+    env.textureModes[BACKGROUND] = nil
+    assert(UI.SelectTrack("mirage_raceway"), "load the real default before the stopped-run regression")
     click(Menu.view.homeButtons[1]); click(Menu.view.trackNext); click(Menu.view.race)
     UI.OnUpdate(1 / 60)
     UI.Stop("preference regression")
@@ -816,8 +820,8 @@ withMock({schemaVersion=1, preferences={version=2, track="mirage_raceway", kart=
                record.newShape == unknown and unknown.owner == "future" and unknown.keep == true,
             "explicit fallback choices never replace or change a newer preference record")
     end
-    click(Menu.view.trackButtons.test_oval)
-    assert(Menu.prefs.track == "test_oval" and Menu.trackRestored,
+    click(Menu.view.trackButtons.mirage_raceway)
+    assert(Menu.prefs.track == "mirage_raceway" and Menu.trackRestored,
         "the current track choice still supersedes restoration in memory")
     unchanged()
     click(Menu.view.trackNext); click(Menu.view.kartButtons.goblin_mortar_trike)
@@ -924,14 +928,14 @@ withMock(nil, function(env, UI, Menu)
     click(view.listen)
     assert(commands[1][1] == "listen" and commands[1][2] == "Lene Conradi" and commands[1][3] == "AKT901" and
            #commands[1] == 3 and not view.join:IsEnabled(), "Listen preserves the complete name and never joins automatically")
-    session.phase, session.canJoin, session.offer = "invited", true, {trackId="test_oval"}
+    session.phase, session.canJoin, session.offer = "invited", true, {trackId="ironforge_gp"}
     local readBefore = polls
     Menu.screens.multiplayer.scripts.OnUpdate(Menu.screens.multiplayer, 0.1)
     assert(polls == readBefore, "lobby does not poll every simulation frame")
     Menu.screens.multiplayer.scripts.OnUpdate(Menu.screens.multiplayer, 0.1)
     assert(polls == readBefore + 1 and view.join:IsEnabled() and not view.ready:IsEnabled(),
         "a received offer becomes actionable through the bounded 5Hz display refresh")
-    assert(view.lobbyTrack.text == "Track: Test Oval    Laps: 3" and UI.trackId == track,
+    assert(view.lobbyTrack.text == "Track: Ironforge Grand Prix    Laps: 3" and UI.trackId == track,
         "offered track is shown without selecting geometry from a display update")
     click(view.join)
     assert(commands[2][1] == "join" and #commands[2] == 1 and view.ready:IsEnabled() and
@@ -950,10 +954,12 @@ withMock(nil, function(env, UI, Menu)
     assert(polls == hiddenPolls, "hidden lobby stops polling")
     session = {phase="idle", canHost=true, canListen=true}
     Menu.Show("multiplayer")
-    click(view.lobbyTrackChoice)
-    assert(Menu.lobbyTrackId == "test_oval" and UI.trackId == track, "host track choice cycles only supported metadata")
-    click(view.lobbyTrackChoice)
-    assert(Menu.lobbyTrackId == "mirage_raceway", "supported track cycle wraps without adding cities")
+    for _,id in ipairs({"stormwind_city","ironforge_gp","darnassus_canopy",
+        "orgrimmar_canyon","undercity_slime","mirage_raceway"}) do
+        click(view.lobbyTrackChoice)
+        assert(Menu.lobbyTrackId == id and UI.trackId == track,
+            "host chooser cycles every finished course without changing local geometry: " .. id)
+    end
     view.peerName:SetText("  Flaturlative Breeze  "); view.sessionCode:SetText("AKT902")
     refusal = "reused_session"
     click(view.host)
@@ -1050,7 +1056,7 @@ withMock(nil, function(env, UI, Menu, AK)
     for _ = 1, 200 do UI.OnUpdate(1 / 60) end
     assert(table.concat(env.sounds, ",") == "852,25477,25477,25477,25478",
         "Race! clicks, then the countdown ticks three times and sounds GO: " .. table.concat(env.sounds, ","))
-    local Track = AK.Track
+    local Track = UI.track
     for _ = 1, 3 do
         for index = 1, 4 do
             local gate = Track.gates[index]

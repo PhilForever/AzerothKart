@@ -202,8 +202,10 @@ assert(soon == 1 and Courses.available("stormwind_city") and Courses.available("
 assert(Courses.next("test_oval") == "mirage_raceway" and Courses.next("mirage_raceway") == "stormwind_city"
     and Courses.next("stormwind_city") == "ironforge_gp" and Courses.next("ironforge_gp") == "darnassus_canopy"
     and Courses.next("darnassus_canopy") == "orgrimmar_canyon" and Courses.next("orgrimmar_canyon") == "undercity_slime"
-    and Courses.next("undercity_slime") == "test_oval", "the Track button cycles the ready tracks")
-assert(Courses.build("test_oval", Track.crossesGate) == Track, "the oval is the original track")
+    and Courses.next("undercity_slime") == "mirage_raceway", "the Track button cycles the ready tracks")
+assert(Courses.DEFAULT_ID == "mirage_raceway" and Courses.get("test_oval") == nil
+    and not Courses.available("test_oval") and Courses.build("test_oval", Track.crossesGate) == nil,
+    "the retired geometry fixture has no production catalogue or build access")
 local stormwind = Courses.build("stormwind_city", Track.crossesGate)
 assert(stormwind and Courses.build("stormwind_city", Track.crossesGate) == stormwind, "built once, kept")
 

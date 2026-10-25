@@ -49,6 +49,8 @@ roster discovery plus the separately verified WHISPER route.
 
 ## Implementation
 
+Current catalogue: six finished courses. HELLO retains seven stable digest slots; retired `O` is zero and has no record/request admission. The `retired:O` catalogue marker separates older sync peers. Historical Oval saves are preserved and ignored for current publication. Both participants should update. [Map scope](PRODUCTION_MAPS.md).
+
 - `ScoreDiscovery.Read` validates an entire bounded cached roster using display
   indices, not local send-channel IDs. Missing/secret/partial data stays pending.
   It neither joins channels nor changes native selection.

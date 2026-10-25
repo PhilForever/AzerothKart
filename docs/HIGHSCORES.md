@@ -34,6 +34,8 @@ The normal race result remains usable even if saving fails.
 
 ## Data and compatibility
 
+Only the six finished production courses have current contexts. Test Oval records remain saved, but cannot be newly captured, displayed as a current board or published. No score history is deleted. See [catalogue boundary](PRODUCTION_MAPS.md).
+
 `AzerothKartDB.highscores` is independently versioned (`version=1`) under the
 existing root schema1. Boards are keyed by track ID, track version, physics
 version, lap count, tick rate and scoring rules version, in that order. A physics

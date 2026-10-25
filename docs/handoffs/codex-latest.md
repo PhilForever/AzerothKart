@@ -1,4 +1,46 @@
-# Codex handoff — kart handling and automatic leaderboard work
+# Codex handoff — production maps and Claude course review
+
+## Latest source checkpoint — production maps, 2026-10-25 22:09 +01:00
+
+Branch `codex/production-map-catalogue`, base `aac1bdd`. Six finished maps now
+enter the existing two-peer flow. Oval is absent from all production entry
+points; Mirage is actual default/guarded scenery, and missing art refuses Start.
+Historical saves and developer geometry regressions remain. Explicit production
+pool85/69/135; no Physics12/art/geometry/transport-rate change. ScoreSync has6
+active contexts and a retained zeroO digest slot. [Contract/scope](../PRODUCTION_MAPS.md).
+Actual Lua5.1 PASS11focused modules across the two commands in PROGRESS; all75
+Lua files parsed. Catalogue6boards/whitespace PASS; structural validator retains
+only2historical expired links. Native/all-map multiplayer/Lua5.4 NOT RUN.
+
+No install/publication yet. Owner now requests review and push of Claude's
+`claude/thunder-bluff` and `claude/scarlet-graveyard`; preserve their worktree/
+untracked outputs. Checkpoint this slice before reviewed integration, adapt
+score sync/course counts and the sprint status line, and retain the grouping
+question as undecided. No eight-player runtime or claim. Do not add the sprint
+to live multiplayer unless its rules/start/finish lifecycle is supported.
+
+## Active reservation — production map catalogue and multiplayer eligibility
+
+Owner requests complete in-game retirement of Test Oval, all finished maps in
+multiplayer and up to8racers. Eight-racer transport remains a separate open
+decision: owner initially accepted raid grouping, then explicitly reconsidered
+it and asked about performance. Do not assume that requirement is accepted.
+Measured two-peer whisper budgets cannot support seven2Hzcopies per racer;
+native multicast and8participant behavior remain unverified. No8player claim.
+
+Own `codex/production-map-catalogue` from `aac1bdd`. Implement the independent
+authorized map slice: remove Oval from player catalogues/defaults/selection/
+highscores/network acceptance, make Mirage the actual production default, open
+all6finished maps through the existing two-peer flow, and validate city grids.
+Preserve old saves and developer-only analytical fixtures/regressions.
+
+Reserve Courses/RaceProtocol/PeerSession/SessionTransport track admission and
+tests; ScoreSync's retired-course catalogue handling/tests and generated score
+catalogue/example; UI/Menu defaults/selection/error copy/lobby map list only,
+their focused tests and fixture helpers; shared docs/current handoff/PROGRESS/
+validator lists. No physics/art/transport-rate or other-worktree changes.
+Do not install a purported8player build or fake extra opponents. Grouping/
+broadcast choice and actual4/8capacity acceptance remain pending owner review.
 
 ## Deployment checkpoint — stronger drift tuning installed
 

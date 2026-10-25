@@ -1,5 +1,44 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-25 22:09 +01:00 — production maps checkpoint before Claude integration
+
+Owner reports Physics12 feels good, requests Oval retirement/all-map multiplayer
+and eight racers, then reconsiders raid grouping. Grouping is undecided; the
+current ungrouped two-peer route remains available. Eight-player transport,
+room/clock/roster behavior and native capacity are not enabled or accepted.
+[Catalogue and capacity rationale](PRODUCTION_MAPS.md) records the exact scope.
+
+On `codex/production-map-catalogue` from `aac1bdd`, removed Oval from selectable
+Courses, menus, defaults, score contexts/publication and protocol admission.
+Mirage is actual initial geometry/scenery, with guarded first-open loading and
+Start refusal on missing art. Obsolete saved selection/history remain intact.
+Production omits96road+2obstacle textures; the explicit mock pool is85frames/
+69textures/135fonts. Offline fixture injection preserves old ellipse/collision/
+input/lifecycle regression assertions without a shipped test switch.
+
+All six finished courses negotiate through the existing two-peer flow, with
+real map-version snapshots and legal role-stable grids. Mirage wire1 remains;
+Oval0 is retired; cities2–6. ScoreSync keeps a zero retiredO HELLO slot and a
+catalogue marker, with six active contexts. Physics12, geometry, art, packet
+sizes/cadence and player data are unchanged. Exported store catalogue has6boards.
+
+Executed pinned actual Lua5.1: `scripts/test_lua.py --runtime lua51 --tests ui
+menu solo_records multiplayer_integration` PASS4modules/75parsedfiles; followed
+by `--tests race_protocol peer_session session_transport score_sync score_sharing
+race_grid circuit` PASS7modules. Covers actual production default, missing-art
+refusal, retired-save preservation, all-map Ready/GO and two-slot geometry.
+`scripts/export_score_catalog.py --check` PASS6boards; `git diff --check` PASS.
+Structural validator still fails only the2historical expired skill links.
+Lua5.4, actual client/map multiplayer and eight-player capacity NOT RUN.
+
+No install, push, release, main/other-worktree change or milestone completion.
+Claude has since supplied Thunder Bluff and Scarlet Graveyard on separate
+branches. Next: review those exact commits and sprint/geometry proposal, adapt
+score sync/catalogue without restoring Oval, then publish the reviewed branches
+under the owner's new explicit request. The eight-player route decision stays
+open during this independent integration.
+
+
 ## 2026-10-25 16:55 +01:00 — Physics12 tuning installed and packaged
 
 Runtime commit `bb085acab4158b6a5f5e28e6b95b05bd076c25cf` is actually installed

@@ -1,6 +1,6 @@
 {
-  "trackId": "test_oval",
-  "trackVersion": 2,
+  "trackId": "mirage_raceway",
+  "trackVersion": 1,
   "physicsVersion": 12,
   "lapCount": 3,
   "tickRate": 60,
