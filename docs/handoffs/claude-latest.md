@@ -1,4 +1,23 @@
-# Claude handoff — Goblin Pod Racer, start signs and the kart outline
+# Claude handoff — Thunder Bluff Skyway (in progress)
+
+## Active reservation — Thunder Bluff Skyway (2026-10-25)
+
+The owner: "Alright. Let's get to work. Thunderbluff - the final map in the capital cities cup. As you can see - plank roped bridges, long way down, white stone paths, if you can - make the road edges like these poles with ropes." With it: his blue line on the in-game Thunder Bluff map and three screenshots (the mesas' rope bridges and drops, a mesa top's white stone path, a path edged with posts and rope).
+
+**Branch:** `claude/thunder-bluff` from Codex's `aac1bdd` (installed runtime `bb085ac` plus docs). Reserved, until this handoff says otherwise:
+
+- `scripts/city_layouts.py`: a new Thunder Bluff section, its start sign and its `CITIES` entry (append only; the other cities unchanged).
+- `scripts/city_paint.py`: new, opt-in painting for a city on mesas (the drop to the plain, cliff faces, the bridges' sides, rope-and-post street edges). A city without the new fields paints byte for byte as before.
+- `addon/AzerothKart/CapitalCities.lua` (generated: one new entry), `addon/AzerothKart/Assets/Tracks/ThunderBluff/` (new).
+- `addon/AzerothKart/Courses.lua`: the `thunder_bluff_skyway` entry only (from coming soon to selectable).
+- `addon/AzerothKart/Menu.lua`: Thunder Bluff's track copy and preview cell only.
+- Tests: the coming-soon assertions in `tests/test_circuit.lua` and `tests/test_menu.lua`, plus Thunder Bluff's own circuit checks.
+- `services/leaderboard/catalog.json` gains one board if the course becomes selectable (generated; Codex to review).
+- Docs: a Thunder Bluff track sheet and the shared lists that name Thunder Bluff as coming soon.
+
+No physics, input, timing, networking or `UI.lua` changes. The bridges may use the reviewed `narrows` contract (data only).
+
+# Previous: Goblin Pod Racer, start signs and the kart outline
 
 Prepared 2026-10-23 at about 19:45 CEST (Europe/Oslo) by Claude (rendering/UI/sprites owner).
 
