@@ -1,5 +1,24 @@
 # Manual client acceptance — F0/F1/F2/F5
 
+## Deferred Thunder Bluff Skyway check (proposed, `claude/thunder-bluff`)
+
+**NOT RUN.** After Codex's review (including the score-sync change in Claude's handoff) and a coordinated install, **fully restart the client**: `Assets/Tracks/ThunderBluff/` is new. The owner runs these; Claude does not control the client.
+
+1. **Track screen.** *Capital Cities Cup* lists all six cities, Thunder Bluff Skyway between Orgrimmar Canyon Rush and Undercity Slime Circuit, with no "(soon)" entry left. Choose it: its preview and three facts appear. The bar's Track button steps Stormwind, Ironforge, Darnassus, Orgrimmar, Thunder Bluff, Undercity, then Test Oval.
+2. **Load.** The sixth 2048×2048 TGA. Record a refusal ("... background unavailable | Test Oval remains available") and any hitch when switching to it.
+3. **The drive.** The kart starts on the road in from the lift facing east-north-east. A start sign ahead points north-west: bear left, up the west side, over the finish line. Then clockwise:
+   - over the west bridge and round the Spirit Rise, back over the north bridge;
+   - east along the north side, along the long bridge and round the Elder Rise, past Cairne's lodge, back over the lower bridge;
+   - down the east side past the wind riders' roost, over the east bridge, across the Hunter Rise, back over the south-west bridge.
+   The HUD names each next gate (six).
+4. **The bridges.** Each deck is narrower than the street: the rope rails stop the kart as the other walls do, and the step where a deck begins catches only a kart well off the line. Record whether that step feels fair, and whether the bridges are too narrow at speed.
+5. **The look.** Record whether:
+   - the drop reads as a long way down (the cliff faces, the hazy plain, the trees and river far below);
+   - the white stone streets and the posts-and-rope edges read as the owner's screenshots;
+   - the drop between the planks and the rope under each bridge are visible at speed.
+6. **Scores.** A finished race saves to Thunder Bluff's own board. Community sharing needs Codex's score-sync change; without it, record what the Highscores screen says.
+7. **Camera and performance.** Frame rate while driving. The city art adds no frames.
+
 ## Deferred Goblin Pod Racer, start signs and kart outline check (proposed, `claude/podracer-arrows-outline`)
 
 **NOT RUN.** After a coordinated install, **fully restart the client**: `Assets/Karts/GoblinPodRacer.tga` and the ten `Assets/Karts/Outlines/` sheets are new files, and four city pictures are replaced. The owner runs these; Claude does not control the client.

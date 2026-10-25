@@ -645,6 +645,9 @@ withMock({schemaVersion=1, preferences={version=1, kart="gyrocopter", track="mir
     assert(UI.trackId == "orgrimmar_canyon" and AzerothKartDB.preferences.track == "orgrimmar_canyon",
         "and on to Orgrimmar")
     click(UI.trackButton)
+    assert(UI.trackId == "thunder_bluff_skyway" and AzerothKartDB.preferences.track == "thunder_bluff_skyway",
+        "and on to Thunder Bluff")
+    click(UI.trackButton)
     assert(UI.trackId == "undercity_slime" and AzerothKartDB.preferences.track == "undercity_slime",
         "and on to Undercity")
     click(UI.trackButton)
@@ -683,12 +686,17 @@ withMock({schemaVersion=1, preferences={version=1, track="mirage_raceway"}}, fun
         "the saved track returns on the next open out of combat")
 end)
 
--- The coming-soon cities are listed, disabled and inert.
+-- Every city is ready: Thunder Bluff is an ordinary choice now. A course
+-- still marked coming soon (a fixture) is listed, disabled and inert.
 withMock(nil, function(env, UI, Menu)
     UI.Toggle(); click(Menu.view.homeButtons[1])
-    local soon = Menu.view.soonButtons.thunder_bluff_skyway
+    assert(Menu.view.trackButtons.thunder_bluff_skyway and Menu.view.soonButtons.thunder_bluff_skyway == nil,
+        "Thunder Bluff is listed as a ready track")
+    local soon = Menu.view.soonButtons.soon_fixture
     assert(soon and not soon:IsEnabled() and not soon.scripts.OnClick and soon.text:find("(soon)", 1, true),
         "a coming-soon city is listed, disabled and inert")
+end, function(env, AK)
+    table.insert(AK.Courses.LIST, {id="soon_fixture", name="Coming Course", cup="capital", soon=true})
 end)
 
 -- A deliberate choice is remembered even when it was already current, and it

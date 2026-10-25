@@ -195,14 +195,23 @@ for _,course in ipairs(Courses.LIST) do
             Courses.build(course.id, Track.crossesGate) == nil, "a coming-soon city cannot be built")
     end
 end
-assert(soon == 1 and Courses.available("stormwind_city") and Courses.available("ironforge_gp")
+assert(soon == 0 and Courses.available("stormwind_city") and Courses.available("ironforge_gp")
     and Courses.available("darnassus_canopy") and Courses.available("orgrimmar_canyon")
-    and Courses.available("undercity_slime") and not Courses.available("thunder_bluff_skyway"),
-    "five cities are ready; Thunder Bluff is coming")
+    and Courses.available("thunder_bluff_skyway") and Courses.available("undercity_slime"),
+    "all six cities are ready")
 assert(Courses.next("test_oval") == "mirage_raceway" and Courses.next("mirage_raceway") == "stormwind_city"
     and Courses.next("stormwind_city") == "ironforge_gp" and Courses.next("ironforge_gp") == "darnassus_canopy"
-    and Courses.next("darnassus_canopy") == "orgrimmar_canyon" and Courses.next("orgrimmar_canyon") == "undercity_slime"
+    and Courses.next("darnassus_canopy") == "orgrimmar_canyon"
+    and Courses.next("orgrimmar_canyon") == "thunder_bluff_skyway"
+    and Courses.next("thunder_bluff_skyway") == "undercity_slime"
     and Courses.next("undercity_slime") == "test_oval", "the Track button cycles the ready tracks")
+-- A course marked coming soon (Thunder Bluff was until it was built) is
+-- listed but neither available, built nor stepped to.
+local thunderCourse = Courses.get("thunder_bluff_skyway")
+thunderCourse.soon = true
+assert(not Courses.available("thunder_bluff_skyway") and Courses.build("thunder_bluff_skyway", Track.crossesGate) == nil
+    and Courses.next("orgrimmar_canyon") == "undercity_slime", "a coming-soon course is skipped")
+thunderCourse.soon = nil
 assert(Courses.build("test_oval", Track.crossesGate) == Track, "the oval is the original track")
 local stormwind = Courses.build("stormwind_city", Track.crossesGate)
 assert(stormwind and Courses.build("stormwind_city", Track.crossesGate) == stormwind, "built once, kept")
@@ -516,7 +525,40 @@ assert(ucNames == "Rogues' Quarter,Magic Quarter,Ruins of Lordaeron,War Quarter,
     "Undercity's gates in order: " .. ucNames)
 assert(ucWalls == 0, "Undercity's centerline never meets a wall")
 
-for _,city in ipairs({{darnassus, elfData}, {undercity, ucData}}) do
+-- Thunder Bluff: the spawn sits on the road in from the lift; the walk turns
+-- up the Lower Rise's west side and passes the six gates clockwise, out to
+-- each outer rise and back over its two rope bridges, never meeting a wall.
+-- The bridges are narrows: road to their own nearer walls.
+local thunderBluff = Courses.build("thunder_bluff_skyway", Track.crossesGate)
+local tbData = namespace.CapitalCities.thunder_bluff_skyway
+assert(thunderBluff and thunderBluff.wallRadius == 76 and #thunderBluff.gates == 6 and #thunderBluff.solids == 0
+    and #tbData.plazas == 0 and #tbData.branches == 1, "Thunder Bluff's street: one approach road, six gates")
+assert(thunderBluff.version == 1 and thunderBluff.wallClearance == 14 and #tbData.wallVertices > 0
+    and thunderBluff.fullSpeedToWalls, "Thunder Bluff uses the exposed-wall clearance and full grip to the walls")
+local tbNames, tbWalls = walk(thunderBluff, tbData)
+assert(tbNames == "Spirit Rise,Lower Rise,Elder Rise,Wind Rider Roost,Hunter Rise,The Lift",
+    "Thunder Bluff's gates in order: " .. tbNames)
+assert(tbWalls == 0, "Thunder Bluff's centerline never meets a wall, bridges included")
+assert(#tbData.narrows == 6, "six rope bridges")
+local function tbAcross(index, offset)
+    local line = tbData.centerline
+    local a,b = line[index],line[index%#line+1]
+    local dx,dy = b.x-a.x,b.y-a.y
+    local length = math.sqrt(dx*dx+dy*dy)
+    return (a.x+b.x)/2-dy/length*offset,(a.y+b.y)/2+dx/length*offset
+end
+for _,narrow in ipairs(tbData.narrows) do
+    assert(narrow.wallRadius == 54 and narrow.name:find("bridge", 1, true), "a rope bridge: " .. narrow.name)
+    local middle = math.floor((narrow.first+narrow.last)/2)
+    for _,side in ipairs({-1,1}) do
+        assert(thunderBluff.surfaceAt(tbAcross(middle,side*52)) == "road" and
+               thunderBluff.isDrivable(tbAcross(middle,side*52)) and
+               thunderBluff.surfaceAt(tbAcross(middle,side*56)) == "wall",
+            "road to the rope on " .. narrow.name)
+    end
+end
+
+for _,city in ipairs({{darnassus, elfData}, {undercity, ucData}, {thunderBluff, tbData}}) do
     local track, cityData = city[1], city[2]
     for _,gate in ipairs(track.gates) do
         assert(track.surfaceAt(gate.ax,gate.ay) == "wall" and track.surfaceAt(gate.bx,gate.by) == "wall",
@@ -528,25 +570,30 @@ for _,city in ipairs({{darnassus, elfData}, {undercity, ucData}}) do
     end
     assert(kart.surface == "road" and kart.impacts == 0, "throttle from the grid stays on the road: " .. cityData.id)
     -- The proposed elevation data: one finite height per centerline and
-    -- branch point. Nothing in the game reads it yet.
+    -- branch point. Nothing in the game reads it yet. (Thunder Bluff's
+    -- course runs all on the mesas' level: its drop is painted.)
     local heights = cityData.elevation
-    assert(heights and #heights.centerline == #cityData.centerline and #heights.branches == #cityData.branches,
-        "heights follow the course's points: " .. cityData.id)
-    for _,value in ipairs(heights.centerline) do
-        assert(type(value) == "number" and value == value and math.abs(value) < 200, "a finite height")
-    end
-    for index,branch in ipairs(heights.branches) do
-        assert(#branch == #cityData.branches[index], "a height per branch point: " .. cityData.id)
+    if cityData.id ~= "thunder_bluff_skyway" then
+        assert(heights and #heights.centerline == #cityData.centerline and #heights.branches == #cityData.branches,
+            "heights follow the course's points: " .. cityData.id)
+        for _,value in ipairs(heights.centerline) do
+            assert(type(value) == "number" and value == value and math.abs(value) < 200, "a finite height")
+        end
+        for index,branch in ipairs(heights.branches) do
+            assert(#branch == #cityData.branches[index], "a height per branch point: " .. cityData.id)
+        end
     end
 end
 assert(namespace.CapitalCities.stormwind_city.elevation == nil and orcData.elevation == nil
-    and ironData.elevation == nil, "cities on one level carry no heights")
+    and ironData.elevation == nil and tbData.elevation == nil, "cities on one level carry no heights")
 
 print(("circuit: street walls, plazas and solids; Stormwind %d-unit loop, %d gates in order; "
     .. "Ironforge %d-unit loop, %d gates in order; Darnassus %d-unit loop, %d gates in order; "
-    .. "Orgrimmar %d-unit loop, %d gates in order; Undercity %d-unit loop, %d gates in order; %d solids")
+    .. "Orgrimmar %d-unit loop, %d gates in order; Undercity %d-unit loop, %d gates in order; "
+    .. "Thunder Bluff %d-unit loop, %d gates in order, %d bridges; %d solids")
     :format(math.floor(stormwind.length + 0.5), #stormwind.gates, math.floor(ironforge.length + 0.5),
         #ironforge.gates, math.floor(darnassus.length + 0.5), #darnassus.gates,
         math.floor(orgrimmar.length + 0.5), #orgrimmar.gates, math.floor(undercity.length + 0.5),
-        #undercity.gates, #stormwind.solids + #ironforge.solids + #darnassus.solids + #orgrimmar.solids
-        + #undercity.solids))
+        #undercity.gates, math.floor(thunderBluff.length + 0.5), #thunderBluff.gates, #tbData.narrows,
+        #stormwind.solids + #ironforge.solids + #darnassus.solids + #orgrimmar.solids + #undercity.solids
+        + #thunderBluff.solids))

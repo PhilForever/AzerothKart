@@ -50,6 +50,14 @@
       "rulesVersion": 1
     },
     {
+      "trackId": "thunder_bluff_skyway",
+      "trackVersion": 1,
+      "physicsVersion": 12,
+      "lapCount": 3,
+      "tickRate": 60,
+      "rulesVersion": 1
+    },
+    {
       "trackId": "undercity_slime",
       "trackVersion": 2,
       "physicsVersion": 12,

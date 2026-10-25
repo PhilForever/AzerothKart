@@ -52,6 +52,11 @@ Menu.TRACKS = {
             .. "Strength, the Drag, the Valley of Wisdom and down the Cleft's rim.",
         facts={"3 laps, 4 gates named for the districts", "Counterclockwise round the Cleft of Shadow",
             "Full speed to the street walls"}},
+    {id="thunder_bluff_skyway", name="Thunder Bluff Skyway", cell="thunderbluff",
+        blurb="Start where the lift arrives and lap the Lower Rise high over Mulgore, out over rope bridges "
+            .. "to the Spirit Rise, the Elder Rise and the Hunter Rise and back.",
+        facts={"3 laps, 6 gates named for the rises", "Six narrow rope bridges, a long way down",
+            "Full speed to the street walls"}},
     {id="undercity_slime", name="Undercity Slime Circuit", cell="undercity",
         blurb="Start by the slime below the Apothecarium and race round the canal ring: past the Rogues' and "
             .. "Magic Quarters, under the Ruins of Lordaeron and back by the War Quarter, over a bridge at every section.",
@@ -115,6 +120,8 @@ Menu.PREVIEW_CELLS = {
     darnassus={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\Darnassus\\Preview.tga",
         left=0, right=1, top=0, bottom=1, width=320, height=320},
     undercity={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\Undercity\\Preview.tga",
+        left=0, right=1, top=0, bottom=1, width=320, height=320},
+    thunderbluff={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\ThunderBluff\\Preview.tga",
         left=0, right=1, top=0, bottom=1, width=320, height=320},
 }
 
