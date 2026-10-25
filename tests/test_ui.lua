@@ -205,10 +205,10 @@ local KART_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Karts\\GoblinMortarTrik
 -- covered; the mock loads any path.
 local SINGLE_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Karts\\SingleImageFixture.tga"
 local function singleImageKart(env)
-    env.namespace.Presentation.KART_SPRITES.single_image={name="Single Image Fixture",path=SINGLE_PATH,
+    env.namespace.Presentation.KART_SPRITES.basic={name="Single Image Fixture",path=SINGLE_PATH,
         textureWidth=64,textureHeight=128,quadWidth=20,quadHeight=40,
         effects={wheels={{-14,6.6},{-14,-6.6}},exhausts={{-15.3,0,0}},view={1,0}}}
-    return "single_image"
+    return "basic" -- registered balanced handling with synthetic single-image art
 end
 -- Where the active kart visual is anchored for a projected kart position, and
 -- whether it faces a heading: a directional sheet shows the nearest frame,
@@ -2428,7 +2428,7 @@ withMock(nil,false,function(env,UI)
     local P=env.namespace.Presentation
     P.DEFAULT_KART=singleImageKart(env)
     env.fire("ADDON_LOADED","AzerothKart")
-    assert(UI.kartSprite==P.KART_SPRITES.single_image and UI.kart.texturePath==SINGLE_PATH and
+    assert(UI.kartSprite==P.KART_SPRITES.basic and UI.kart.texturePath==SINGLE_PATH and
            loads(env,SINGLE_PATH)==1 and loads(env,KART_PATH)==0 and UI.kartFrame==nil,
         "a single-image default loads only its own file")
     assert(UI.kart.width==20 and UI.kart.height==40 and UI.kart.point[4]==UI.state.x and
@@ -2646,10 +2646,10 @@ end)
 -- Restore all of them along with the previous frame/metadata, in both sheet and
 -- single-image directions. A failed rollback must leave a consistent primitive.
 for _,fixture in ipairs({
-    {"single_image","steam_tank","SetVertexColor"},
-    {"single_image","steam_tank","SetRotation"},
-    {"steam_tank","single_image","SetTexCoord"},
-    {"steam_tank","single_image","SetVertexColor"},
+    {"basic","steam_tank","SetVertexColor"},
+    {"basic","steam_tank","SetRotation"},
+    {"steam_tank","basic","SetTexCoord"},
+    {"steam_tank","basic","SetVertexColor"},
 }) do
     withMock(nil,false,function(env,UI)
         env.fire("ADDON_LOADED","AzerothKart")
@@ -3303,5 +3303,30 @@ for _,scenario in ipairs({"hitch", "save_error", "reentrant_save"}) do
         else assert(not UI.scoreResult.saved and AzerothKartDB.highscores==nil) end
     end)
 end
+
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    UI.Toggle()
+    local P = env.namespace.Physics
+    assert(UI.SelectKart("steam_tank"))
+    UI.Start(); finishCountdown(UI)
+    assert(not UI.SelectKart("dwarven_biker"), "active choice cannot replace the latched handling")
+    env.key(UI,"OnKeyDown","W")
+    UI.kartId = "dwarven_biker" -- even an unrelated presentation write cannot retune the run
+    UI.OnUpdate(P.FIXED_DT)
+    assert(math.abs(UI.state.speed - P.GetHandling("steam_tank").accel * P.FIXED_DT) < 1e-10,
+        "solo physics uses the kart captured at Start, not the current display ID")
+    UI.Stop("handling fixture")
+    UI.Start(); finishCountdown(UI)
+    env.key(UI,"OnKeyDown","W"); UI.OnUpdate(P.FIXED_DT)
+    assert(math.abs(UI.state.speed - P.GetHandling("dwarven_biker").accel * P.FIXED_DT) < 1e-10,
+        "a fresh run captures the new choice")
+    UI.Stop("handling fixture")
+    UI.kartId = "unknown_future_kart"
+    local state = UI.state
+    UI.Start()
+    assert(not UI.active and UI.state == state and UI.status.text:find("handling unavailable",1,true),
+        "an unregistered kart refuses capture instead of failing inside the game loop")
+end)
 
 originalPrint("test_ui live integration: shared static grid/cues, held GO, peer sprites, copied observations and exits PASS")

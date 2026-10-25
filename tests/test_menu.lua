@@ -1119,5 +1119,19 @@ withMock(nil, function(env, UI, Menu)
         "the Game Menu button template is optional")
 end, function(env) env.refuseTemplate = "MainMenuFrameButtonTemplate" end)
 
+withMock(nil, function(env, UI, Menu)
+    UI.Toggle(); Menu.Show("garage")
+    local before = counts(env)
+    for _,choice in ipairs({{"steam_tank","Heavy"}, {"dwarven_biker","Agile"},
+            {"goblin_mortar_trike","Balanced"}, {"goblin_drag_car","Balanced"}}) do
+        Menu.ChooseKart(choice[1])
+        assert(UI.kartId == choice[1])
+        assert(Menu.view.kartHandling.text:find(choice[2],1,true),
+            "the picker names the actual selected handling profile")
+        assert(not UI.active, "browsing profiles never starts a race")
+    end
+    sameCounts(env,before,"handling descriptions reuse existing text")
+end)
+
 print("mock menus: 8 screens, single-player flow, saved highscore pages, results paths, garage, settings, saved choices, " ..
     "explicit experimental lobby actions and fallbacks (client appearance still pending)")

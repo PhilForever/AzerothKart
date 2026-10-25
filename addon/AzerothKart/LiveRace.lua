@@ -66,6 +66,8 @@ function Live.new(bundle, peer, nowMS, modules)
         or not integer(b.localEpochMS,0,36^7-1) or not integer(b.hostEpochMS,0,36^7-1)
         or not integer(nowMS,b.localEpochMS,b.localEpochMS+250)
         or b.fixedDt~=1/60 or b.physicsVersion~=modules.Physics.VERSION
+        or (b.kartId~=nil and (type(b.kartId)~="string" or #b.kartId<1 or #b.kartId>64
+            or not b.kartId:match("^[a-z0-9_]+$")))
         or not plain(b.track) or b.track.id~=b.trackId or b.track.version~=b.trackVersion
         or not finite(b.track.width) or not finite(b.track.height)
         or b.track.width<=0 or b.track.width>11663.75 or b.track.height<=0 or b.track.height>11663.75
@@ -93,6 +95,11 @@ function Live.new(bundle, peer, nowMS, modules)
     -- Reserve before invoking injected code; an initializer failure consumes
     -- this bundle too, rather than permitting a reentrant or partial retry.
     claimed[bundle]=true
+    if captured.kartId~=nil then
+        if type(m.Physics.GetHandling)~="function" then return nil,"dependencies" end
+        local valid,handling=pcall(m.Physics.GetHandling,captured.kartId)
+        if not valid or not plain(handling) then return nil,"bundle" end
+    end
     local clockOK,clock=pcall(m.Loop.new,b.fixedDt,5)
     if not clockOK or not plain(clock) or clock.dt~=b.fixedDt or clock.maxSteps~=5 then
         return nil,"dependencies"
@@ -101,7 +108,7 @@ function Live.new(bundle, peer, nowMS, modules)
         "hitchFrames","maxElapsed","lastSteps"}) do
         if clock[key]~=0 then return nil,"dependencies" end
     end
-    runs[token]={modules=m, bundle=captured, track=captured.track, vehicle=captured.vehicle,
+    runs[token]={modules=m, bundle=captured, kartId=captured.kartId, track=captured.track, vehicle=captured.vehicle,
         previous=captured.vehicle, race=captured.race, clock=clock, peer=peer, peerKey=identity(peer),
         phase="running", startedAt=nowMS, lastNow=nowMS, advancedAt=nowMS,
         peerAt=nowMS, peerProgressAt=nowMS, sequence=0, remoteSequence=0,
@@ -125,7 +132,7 @@ function Live.advance(token, nowMS, input)
     s.busy=true
     local ok,count=pcall(s.modules.Loop.advance,s.clock,elapsed,function(dt)
         local previous=s.vehicle
-        local current=s.modules.Physics.step(previous,sampled,dt,s.track)
+        local current=s.modules.Physics.step(previous,sampled,dt,s.track,s.kartId)
         local race=s.modules.Race.step(s.race,previous,current,s.track,s.modules.Checkpoints,s.modules.Laps)
         if s.phase=="closed" then return false end -- Stop from an injected callback wins.
         s.previous,s.vehicle,s.race=previous,current,race

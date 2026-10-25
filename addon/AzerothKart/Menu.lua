@@ -21,7 +21,7 @@ AK.Menu = Menu
 local UI
 
 -- ---------------------------------------------------------------------------
--- Copy and data. Karts are cosmetic: every one drives the same 17x31 body.
+-- Copy and data. Karts share a 17x31 body; Physics owns their handling profiles.
 
 -- The track list's copy, in display order within each cup (Courses.CUPS).
 -- Courses marked `soon` in Courses.LIST are listed after these, disabled.
@@ -736,9 +736,14 @@ local function buildKarts()
     local name = newText(box, FONT.huge, "TOPLEFT", 420, -84)
     local blurb = wrap(newText(box, FONT.white, "TOPLEFT", 420, -120), 330)
     local credit = wrap(newText(box, FONT.graySmall, "TOPLEFT", 420, -190), 330)
-    local same = wrap(newText(box, FONT.small, "TOPLEFT", 420, -214,
-        "Every kart handles the same: pick the look you like."), 330)
-    color(same, GREEN)
+    local handling = wrap(newText(box, FONT.small, "TOPLEFT", 420, -214, ""), 330)
+    Menu.view.kartHandling = handling
+    color(handling, GREEN)
+    local handlingCopy = {
+        balanced="Balanced | Even launch, braking and cornering.",
+        heavy="Heavy | Faster cruise and stronger brakes; slower launch and wider turns.",
+        agile="Agile | Quicker launch and turns; lower cruising speed and gentler brakes.",
+    }
     local glow = newTexture(box, "ARTWORK")
     glow:SetColorTexture(1, 0.82, 0, 0.30)
     local buttons = {}
@@ -767,6 +772,8 @@ local function buildKarts()
         local copy = Menu.KARTS[UI.kartId]
         blurb:SetText(copy and copy.blurb or "The kart art could not load, so a plain kart stands in.")
         credit:SetText(copy and copy.credit or "")
+        local profile = Physics.GetHandling(UI.kartId)
+        handling:SetText(profile and handlingCopy[profile.id] or "Handling unavailable")
         local index = 0
         for i,id in ipairs(order) do if id == UI.kartId then index = i end end
         counter:SetText(("%d / %d"):format(index, #order))

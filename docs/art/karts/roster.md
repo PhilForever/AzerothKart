@@ -6,7 +6,7 @@
 
 **2026-10-23, `claude/podracer-arrows-outline`:** the [Goblin Pod Racer](goblin-pod-racer.md), World of Warcraft's own Mirage Raceway rocket car, replaces the original [Goblin Drag Car](goblin-drag-car.md) in its slot (id `goblin_drag_car` kept), at the owner's request. Every kart now has an [outline sheet](outlines.md) for the new **Outline my kart** setting.
 
-While stopped, the **Kart** button cycles the karts in `Presentation.KART_ORDER`: the [Goblin Mortar Trike](goblin-mortar-trike.md) (default), Steam Tank, Dwarven Biker, Dwarf Car, Orc Demolisher, Meat Wagon, Glaive Thrower, Gryphon Rider, Gyrocopter and the [Goblin Pod Racer](goblin-pod-racer.md). Karts are cosmetic: every one drives the same 17×31 physics body with the same handling.
+While stopped, the **Kart** button cycles the karts in `Presentation.KART_ORDER`: the [Goblin Mortar Trike](goblin-mortar-trike.md) (default), Steam Tank, Dwarven Biker, Dwarf Car, Orc Demolisher, Meat Wagon, Glaive Thrower, Gryphon Rider, Gyrocopter and the [Goblin Pod Racer](goblin-pod-racer.md). All karts share a 17×31 physics body. Physics11 assigns balanced, heavy or agile handling under [ADR 0019](../../adr/0019-balanced-kart-handling.md); sprite metadata does not control mechanics.
 
 ## Warcraft III's own vehicles (2026-10-22)
 

@@ -1,4 +1,61 @@
-# Codex handoff — approved Claude visuals and combined score-channel package
+# Codex handoff — kart handling and automatic leaderboard work
+
+## Latest checkpoint — three modest kart profiles
+
+2026-10-25 12:56 +01:00, `codex/kart-handling` from `81ef556`. Owner authorized
+balanced/heavy/agile handling and keeps one shared player-based leaderboard,
+without kart columns/filters. [ADR 0019](../adr/0019-balanced-kart-handling.md).
+Physics11 owns private parameters; `GetHandling` returns copies; step accepts
+an optional captured kart-ID string. State15fields, body, wall rules, drift
+rewards and live -55..260 speed envelope stay compatible with the existing
+wire. Global Physics version prevents races with older handling. New score
+contexts use11; historical records are retained.
+
+Solo Start captures the successful choice before driving. Live starts use
+RaceGrid's already-agreed local ID, captured through RaceStart/LiveRace. No
+per-tick lookup of current UI sprite/selection and no mutable parameter input.
+Default nil/basic remains balanced; unknown IDs refuse start/initialization.
+Menu only replaces its previous identical-handling sentence with the selected
+profile/tradeoffs, reusing the same text/widget budget. Claude's visual/asset
+implementation and other worktree are preserved. Shared API additions are in
+[API_CONTRACTS](../API_CONTRACTS.md#implemented-kart-handling--physics11).
+
+Actual focused Lua5.1 mechanics6 and UI/menu/backend7 modules PASS after adapting
+the synthetic single-image visual fixture to registered `basic` handling;
+68files parsed, pool86/167/135. The initial UI fixture failure is recorded in
+PROGRESS. Each profile's10k seeded replay matches at30/60/144FPS; measured
+straight/launch/braking/turn tradeoffs are in PHYSICS. Catalogue/check PASS7;
+synthetic CLI example submit/query PASS. Whitespace PASS; independent source
+review found no blocker. Structural validator still fails only on2historical
+expired skill links. Native feel/competitive lap balance/picker layout NOT RUN;
+no install/push/traffic/migration or roadmap acceptance claimed.
+
+Next exact implementation task: bounded native channel-roster discovery/readout
+for automatic community sharing. Owner's new handling request is complete in
+source; native testing follows a reviewed deployment. Existing global sharing
+and congratulations remain unwired. No uploader/always-online host is planned.
+
+## Active reservation — balanced kart handling
+
+2026-10-25: owner authorized balanced/heavy/agile kart attributes and explicitly
+keeps one shared leaderboard without kart columns or filters. Own
+`codex/kart-handling` from `81ef556`. Plan: small deterministic three-profile
+tradeoffs, latch the kart choice for each solo/live run, preserve existing
+wall/drift/reverse/boost rules, measure handling and replay equivalence, and
+version the new handling so old peers/scores remain separate.
+
+Reserved: `Physics.lua`; UI's solo Start/step run-choice latch; RaceStart's
+optional kart initializer context/bundle; LiveRace's private local kart choice;
+SessionTransport's initializer argument; relevant focused physics/UI/start/live/
+transport tests and a new `test_kart_handling.lua`; Menu's existing kart detail
+copy only (no layout/navigation change); README_ADDON/README, PHYSICS, API,
+ARCHITECTURE, HIGHSCORES, INDEX, an ADR, PROGRESS, this handoff and the existing
+test/validation lists. Refresh the server catalogue/example for Physics11 but
+retain historical test records. No sprite/asset/track/geometry/other-worktree
+edits. No kart collision mass, tankyness effect, install or push is assumed.
+Also reserve stale cosmetic-only wording in Presentation's KART_ORDER comment,
+the roster/front-end documentation and the server README's example board key;
+these edits align the mechanical contract, with no visual implementation change.
 
 ## Latest checkpoint — automatic community scores
 

@@ -68,16 +68,18 @@ local function validTrack(track)
     return true
 end
 
-function RaceStart.new(ticket,track,physicsVersion)
+function RaceStart.new(ticket,track,physicsVersion,kartId)
     if not validTicket(ticket) then return nil,"ticket" end
     if not integer(physicsVersion,1,1295) then return nil,"physics_version" end
+    if kartId~=nil and (type(kartId)~="string" or #kartId<1 or #kartId>64
+        or not kartId:match("^[a-z0-9_]+$")) then return nil,"kart" end
     if not validTrack(track) then return nil,"track" end
     local ok,captured=pcall(copy,track,{})
     if not ok then return nil,"track" end
     -- Data is copied; function closures remain the supplied geometry functions.
     -- Existing track modules/factories must stay read-only after construction.
     local token={}
-    gates[token]={ticket=copy(ticket,{}),track=captured,physicsVersion=physicsVersion}
+    gates[token]={ticket=copy(ticket,{}),track=captured,physicsVersion=physicsVersion,kartId=kartId}
     return token
 end
 
@@ -114,6 +116,13 @@ function RaceStart.take(gate,nowMS,physics,race,checkpoints,laps)
         or type(laps.new)~="function" or type(laps.step)~="function" then
         return nil,"dependencies"
     end
+    -- Validate the captured identity, never retain a caller-supplied parameter
+    -- table. A missing optional ID preserves legacy balanced initialization.
+    if context.kartId~=nil then
+        if type(physics.GetHandling)~="function" then return nil,"dependencies" end
+        local valid,handling=pcall(physics.GetHandling,context.kartId)
+        if not valid or not plain(handling) then return nil,"kart" end
+    end
     local ok,vehicle,progress=pcall(function()
         return physics.new(context.track),race.newRunning(context.track,checkpoints,laps,0)
     end)
@@ -126,7 +135,7 @@ function RaceStart.take(gate,nowMS,physics,race,checkpoints,laps)
         physicsVersion=context.physicsVersion, localEpochMS=ticket.localEpochMS,
         hostEpochMS=ticket.hostEpochMS, uncertaintyMS=ticket.uncertaintyMS,
         peerAcknowledged=ticket.peerAcknowledged, track=context.track,
-        vehicle=vehicle, race=progress, fixedDt=physics.FIXED_DT,
+        vehicle=vehicle, race=progress, fixedDt=physics.FIXED_DT, kartId=context.kartId,
     }
 end
 

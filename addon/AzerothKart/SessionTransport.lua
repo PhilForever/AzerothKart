@@ -423,7 +423,8 @@ local function initializeRace(now,expected,view)
         local pose=copy(gridInfo.localPose)
         track.spawn=function() return copy(pose) end
     end
-    raceGate,why=RaceStart.new(ticket,track,view.offer.physicsVersion)
+    raceGate,why=RaceStart.new(ticket,track,view.offer.physicsVersion,
+        liveMode and gridInfo.localKartId or nil)
     if not raceGate then return nil,why end
     return RaceStart.take(raceGate,ms,AK.Physics,AK.Race,AK.Checkpoints,AK.Laps)
 end

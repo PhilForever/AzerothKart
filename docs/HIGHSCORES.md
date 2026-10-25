@@ -21,7 +21,9 @@ name, total time and finish date (UTC). The track arrows browse scores without
 changing the selected driving track. Previous/Next page through ten rows at a
 time. The board retains the fastest total per full player name, up to 50 players
 per compatible course. Slower/equal finishes keep the original best's date.
-Karts currently have identical handling and share a board.
+Karts share one board under the owner's explicit2026-10-25 direction, despite
+the new balanced/heavy/agile handling profiles. No kart column or filter is
+added. Physics11 starts a fresh compatible board; old Physics10 data is retained.
 
 Race time is exact integer `Race.totalTicks` at 60 Hz, excluding the countdown;
 hundredths are rounded for display only. Best lap and last lap are not used to
@@ -42,7 +44,7 @@ course/handling boards are shown; older stored boards are retained. Maximum
 deleting history. No ghost tape or unbounded run history is saved.
 
 Each row stores the full Forever character name, total ticks, finish Unix
-timestamp, cosmetic kart ID and those compatibility fields. Full-name identity
+timestamp, internal kart ID metadata and those compatibility fields. Full-name identity
 comes from guarded Camelot `NameUtil.GetUnmodifiedUnitFullName("player")`, or
 `UnitNameUnmodified` plus the actual
 `Constants.CharacterNameSeparatorConsts.CHARACTERNAME_SURNAME_SEPARATOR`.

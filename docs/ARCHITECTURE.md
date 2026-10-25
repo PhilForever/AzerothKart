@@ -1,5 +1,12 @@
 # Technical architecture
 
+Current handling, 2026-10-25: Physics11 owns three private balanced/heavy/agile
+profiles. A selected kart-ID string is latched at successful solo Start or
+captured in the RaceStart bundle from RaceGrid, then held privately by LiveRace.
+Each step receives that ID; presentation gets copied handling descriptions.
+The15-field vehicle state and live wire format are unchanged. All karts retain
+one shared player-based leaderboard; see [ADR 0019](adr/0019-balanced-kart-handling.md).
+
 Current leaderboard direction, 2026-10-25: automatic addon-only community
 sharing under [ADR 0018](adr/0018-automatic-community-scores.md). Separate pure
 merge/rank rules from local capture, the future community cache/notification

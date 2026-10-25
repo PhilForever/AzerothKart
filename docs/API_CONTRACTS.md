@@ -1,5 +1,34 @@
 # Implemented simulation and rendering contracts
 
+## Implemented kart handling — Physics11
+
+`Physics.GetHandling(kartId?) -> detachedProfile, error` returns
+`{id,name,maxSpeed,accel,brake,steerRate,steeringRiseRate,maxSlipAngle,slipRecoverRate}`.
+Nil/basic select balanced; an unknown ID returns nil/invalid_kart. Private
+parameters are never writable through this view. Mapping/values belong to
+Physics compatibility11; [ADR 0019](adr/0019-balanced-kart-handling.md) and
+[tuning/metrics](PHYSICS.md#implemented-kart-profiles--physics11).
+
+`Physics.step(state,input,dt,track,kartId?)` uses a captured kart-ID string;
+it allocates no handling tables and retains the15-field state. Calls with no
+ID remain balanced. UI.Start validates/captures the selected ID once and uses
+it throughout that solo run, including neutral countdown steps. A stopped
+selection changes only the next run. Menu reuses its existing kart-detail text
+to show the actual profile; no new UI objects or art behavior are introduced.
+
+`RaceStart.new(ticket,track,physicsVersion,kartId?)` captures an optional ID and
+adds it to the once-only launch bundle. Take validates known handling before
+initialization; LiveRace captures the ID privately and passes it into step.
+SessionTransport supplies RaceGrid's acknowledged localKartId. Copied views,
+bundle edits and later UI choices cannot retune that run. Legacy nil starts
+remain balanced. Existing wire formats stay unchanged; negotiated Physics11
+rejects peers running older mapping/parameters, and speeds remain within the
+existing -55..260 live codec range.
+
+Leaderboards remain one best per player per map/rules context, with no kart
+column or filter. Existing kartId metadata remains internal. Old Physics10
+boards are retained; current Physics11 contexts begin a new compatible board.
+
 ## Pure community merge and placement — 2026-10-25
 
 Additive `Highscores` functions; no native traffic, community SavedVariables
@@ -87,7 +116,7 @@ or new transport hooks exist. This local board must not be described as global,
 complete, server-verified or cheat-proof. Immediate priority follows
 [ADR0016](adr/0016-solo-records-and-global-score-gate.md).
 
-**Checkpoint:** 2026-10-22, `codex/ui-backend-integration`: merge `6cd611a` combines reviewed Claude UI `1b2d3d5` with Codex backend `192c6de`; `9b22f12` applies Claude's isolated preference fix `4ffe184` without its city-track dependencies. Subsequent city merge f9f2af0 now preserves Claude capital-cup78d97a1 and those modules; the reviewed loader repair stages new backgrounds before changing the visible picture. The combined source retains the reviewed six-kart rendering, Forever transport correction, session adapter and start-clock foundation. Physics compatibility is **10** after requested wall-penalty tuning (high-speed drift retained). This describes the local solo prototype, measured transport experiment and offline control foundation; it does not claim a released engine or playable multiplayer. See [PROGRESS](PROGRESS.md) and [the latest handoff](handoffs/codex-latest.md).
+**Checkpoint:** 2026-10-22, `codex/ui-backend-integration`: merge `6cd611a` combines reviewed Claude UI `1b2d3d5` with Codex backend `192c6de`; `9b22f12` applies Claude's isolated preference fix `4ffe184` without its city-track dependencies. Subsequent city merge f9f2af0 now preserves Claude capital-cup78d97a1 and those modules; the reviewed loader repair stages new backgrounds before changing the visible picture. The combined source retains the reviewed six-kart rendering, Forever transport correction, session adapter and start-clock foundation. That wall-penalty checkpoint used Physics10; current kart handling uses Physics11, documented above. This describes the local solo prototype, measured transport experiment and offline control foundation; it does not claim a released engine or playable multiplayer. See [PROGRESS](PROGRESS.md) and [the latest handoff](handoffs/codex-latest.md).
 
 **Current multiplayer checkpoint, 2026-10-23:** the owner reports a completed two-client drive on `c581a52`, with GO-only startup, square peer markers and lag/clipping. The current `codex/multiplayer-grid` source adds profile agreement, a visible shared grid/countdown, selected peer art and time-aware bounded display prediction. These new changes are **NOT RUN in Forever**. Earlier unwired/Coming soon descriptions below are historical where superseded by the implemented contracts here; no production capacity, kart contact or agreed results are established.
 
@@ -274,7 +303,7 @@ Implemented in [`Physics.lua`](../addon/AzerothKart/Physics.lua):
 Physics.VERSION = 10
 Physics.FIXED_DT = 1/60
 Physics.new(track) -> state
-Physics.step(state, input, dt, track) -> nextState
+Physics.step(state, input, dt, track, kartId?) -> nextState
 ```
 
 `new` reads `track.spawn()`. `step` defaults omitted `dt` to `FIXED_DT`, asserts `0 < dt <= 0.05`, returns a new table and does not modify the supplied state/input/track. The UI always uses `FIXED_DT`; supporting another positive timestep in this function does not change the race's 60 Hz timing contract.

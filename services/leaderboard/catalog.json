@@ -4,7 +4,7 @@
     {
       "trackId": "test_oval",
       "trackVersion": 2,
-      "physicsVersion": 10,
+      "physicsVersion": 11,
       "lapCount": 3,
       "tickRate": 60,
       "rulesVersion": 1
@@ -12,7 +12,7 @@
     {
       "trackId": "mirage_raceway",
       "trackVersion": 1,
-      "physicsVersion": 10,
+      "physicsVersion": 11,
       "lapCount": 3,
       "tickRate": 60,
       "rulesVersion": 1
@@ -20,7 +20,7 @@
     {
       "trackId": "stormwind_city",
       "trackVersion": 3,
-      "physicsVersion": 10,
+      "physicsVersion": 11,
       "lapCount": 3,
       "tickRate": 60,
       "rulesVersion": 1
@@ -28,7 +28,7 @@
     {
       "trackId": "ironforge_gp",
       "trackVersion": 4,
-      "physicsVersion": 10,
+      "physicsVersion": 11,
       "lapCount": 3,
       "tickRate": 60,
       "rulesVersion": 1
@@ -36,7 +36,7 @@
     {
       "trackId": "darnassus_canopy",
       "trackVersion": 1,
-      "physicsVersion": 10,
+      "physicsVersion": 11,
       "lapCount": 3,
       "tickRate": 60,
       "rulesVersion": 1
@@ -44,7 +44,7 @@
     {
       "trackId": "orgrimmar_canyon",
       "trackVersion": 1,
-      "physicsVersion": 10,
+      "physicsVersion": 11,
       "lapCount": 3,
       "tickRate": 60,
       "rulesVersion": 1
@@ -52,7 +52,7 @@
     {
       "trackId": "undercity_slime",
       "trackVersion": 2,
-      "physicsVersion": 10,
+      "physicsVersion": 11,
       "lapCount": 3,
       "tickRate": 60,
       "rulesVersion": 1

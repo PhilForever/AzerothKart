@@ -10,12 +10,12 @@ local Live=dofile("addon/AzerothKart/LiveRace.lua")
 local Track=dofile("addon/AzerothKart/Track.lua")
 local modules={Physics=Physics,Race=Race,Checkpoints=Checkpoints,Laps=Laps,Loop=Loop,LiveProtocol=Protocol}
 local function shallow(value) local out={}; for k,v in pairs(value) do out[k]=v end; return out end
-local function bundle(role,track,offset)
+local function bundle(role,track,offset,kartId)
     role,track,offset=role or "host",track or Track,offset or 0
     local ticket={session="RACE01",role=role,seed=47,localEpochMS=10000+offset,
         hostEpochMS=10000,offsetLowMS=offset,offsetHighMS=offset,uncertaintyMS=0,
         peerAcknowledged=role=="host"}
-    return assert(Start.take(assert(Start.new(ticket,track,Physics.VERSION)),10000+offset,Physics,Race,Checkpoints,Laps))
+    return assert(Start.take(assert(Start.new(ticket,track,Physics.VERSION,kartId)),10000+offset,Physics,Race,Checkpoints,Laps))
 end
 local function new(track,m)
     return assert(Live.new(bundle("host",track),"Birch Vale",10000,m or modules))
@@ -34,6 +34,39 @@ local function same(a,b)
     for k,v in pairs(a) do same(v,b[k]) end
     for k in pairs(b) do assert(a[k]~=nil) end
 end
+
+-- The backend owns its captured handling identity; presentation/bundle writes
+-- cannot substitute another kart after GO. Compare actual profile-specific
+-- motion with the same deterministic Physics steps, not just copied metadata.
+local handlingResults={}
+for _,id in ipairs({"steam_tank","dwarven_biker"}) do
+    local launch=bundle("host",nil,nil,id)
+    local expected=launch.vehicle
+    local run=assert(Live.new(launch,"Birch Vale",10000,modules))
+    launch.kartId=id=="steam_tank" and "dwarven_biker" or "steam_tank"
+    local copied=Live.view(run); copied.kartId=launch.kartId
+    local input={accelerate=true,left=true}
+    for frame=1,20 do
+        local count=assert(Live.advance(run,10000+frame*20,input))
+        for _=1,count do expected=Physics.step(expected,input,Physics.FIXED_DT,Track,id) end
+        same(Live.view(run).vehicle,expected)
+    end
+    handlingResults[id]=Live.view(run).vehicle
+end
+assert(handlingResults.steam_tank.speed<handlingResults.dwarven_biker.speed
+    and handlingResults.steam_tank.heading<handlingResults.dwarven_biker.heading,
+    "live heavy and agile karts use their actual distinct acceleration and turning")
+for _,bad in ipairs({false,{},"","unknown_kart","Steam Tank"}) do
+    local invalid=bundle(); invalid.kartId=bad
+    assert(not Live.new(invalid,"Birch Vale",10000,modules),"invalid bundle kart cannot start a run")
+end
+local profileReentry=bundle("host",nil,nil,"steam_tank")
+local profileModules=shallow(modules); profileModules.Physics=shallow(Physics)
+profileModules.Physics.GetHandling=function(id)
+    assert(not Live.new(profileReentry,"Birch Vale",10000,modules),"profile validation cannot claim the same bundle twice")
+    return Physics.GetHandling(id)
+end
+assert(Live.new(profileReentry,"Birch Vale",10000,profileModules))
 
 local source=bundle()
 local owner=assert(Live.new(source,"Birch Vale",10000,modules))

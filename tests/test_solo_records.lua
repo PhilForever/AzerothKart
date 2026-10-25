@@ -47,7 +47,7 @@ fixture({schemaVersion=1, custom={keep=true}, preferences={sound=false}}, functi
     assert(view.writable and view.scope=="local" and view.publication=="Global publishing pending")
     local row = view.rows[1]
     assert(#view.rows==1 and row.playerName=="Lene Conradi" and row.totalTicks==2345 and row.finishedAt==1792756800)
-    assert(row.trackId=="test_oval" and row.trackVersion==ns.Track.version and row.physicsVersion==10
+    assert(row.trackId=="test_oval" and row.trackVersion==ns.Track.version and row.physicsVersion==11
         and row.tickRate==60 and row.lapCount==3 and row.rulesVersion==1)
     row.playerName="Mutated"; assert(R.GetView("test_oval").rows[1].playerName=="Lene Conradi", "detached view")
     assert(#R.GetView("mirage_raceway").rows==0, "boards separated by track")

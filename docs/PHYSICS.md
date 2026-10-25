@@ -1,10 +1,50 @@
 # Racing physics, deterministic time and game feel
 
-The current `Physics.lua` is a pure version-10 local-handling prototype (angle-aware wall response and parking-turn assistance; racing-speed drift tuning retained). The formulas and production state below remain targets beyond this implemented prototype.
+The current `Physics.lua` is a pure version-11 local-handling prototype with
+three kart profiles. Angle-aware wall response, parking assistance and drift
+rewards are retained. The production formulas/state below remain future targets.
+
+## Implemented kart profiles — Physics11
+
+Owner approved modest handling differences and one shared leaderboard.
+[ADR 0019](adr/0019-balanced-kart-handling.md) records the decision.
+
+| Parameter | Balanced | Heavy | Agile |
+|---|---:|---:|---:|
+| Cruising speed | 200 | 204 | 196 |
+| Acceleration | 155 | 148.8 | 161.2 |
+| Braking | 260 | 273 | 247 |
+| Turn rate | 2.6 | 2.496 | 2.704 |
+| Steering build rate | 8 | 7.2 | 8.8 |
+| Maximum drift slip | 0.40 | 0.38 | 0.42 |
+| Slip recovery | 3 | 3.15 | 2.85 |
+
+Balanced: Mortar Trike, Dwarf Car, Glaive Thrower, Pod Racer. Heavy: Steam Tank,
+Orc Demolisher, Meat Wagon. Agile: Dwarven Biker, Gryphon Rider, Gyrocopter.
+All use the same body and surface rules. Reverse55, boost260, drift charging
+30/60ticks, boost rewards30/48ticks and 90% initial wall retention are shared.
+Scraping caps speed at 80% of that profile's cruising cap. No collision mass or
+damage is implemented. Default calls without a kart ID retain balanced handling.
+
+`Physics.GetHandling(kartId)` returns detached values. `Physics.step` takes an
+optional fifth kart-ID argument, captured once at Start/GO. No per-step profile
+table allocation is added; the authoritative state remains 15 fields.
+
+Executed open-plane metrics, balanced/heavy/agile: 0–100 in39/41/38ticks,
+2,000units in639/629/649ticks, brake-to-zero in47/45/48ticks, turning radius
+76.923/81.731/72.485units at full cruise. All three reach tier2 on the60tick
+Test Oval opening drift without impacts. Each profile reproduces every state
+field over10,000seeded fixed ticks at30/60/144FPS. These are offline metrics,
+not evidence of native game feel or equal lap times across maps.
 
 ## Implemented progressive keyboard steering
 
-Physics stores signed `steering` in [-1,1]. At each fixed step, one held turn approaches full steering at 8 units/s: from center, full lock takes eight 60 Hz ticks (about 133 ms). Releasing both directions centers at 16 units/s, taking four ticks (about 67 ms) from full lock. A reversal first centers the old sign at that faster rate, then builds the new sign on following ticks; full lock to opposite full lock takes twelve ticks (200 ms). Holding both directions cancels steering immediately. These are simulation timings, not measured input-to-display latency or proven improvements in handling.
+Physics stores signed `steering` in [-1,1]. For the balanced profile, one held
+turn approaches full steering at8units/s: full lock takes8ticks at60Hz.
+Heavy/agile build at7.2/8.8units/s. All profiles center at16units/s; reversal
+centers first, then builds the new sign on following ticks. Both directions
+held cancel steering immediately. These simulation timings are not native
+input-to-display latency measurements.
 
 Yaw uses this progressive value with the existing speed/drift response; reverse motion still flips yaw. Version8 adds up to1.2rad/s of parking-turn assistance, fading linearly to zero at80units/s. Racing/drift speeds90+ keep their prior yaw formula. Wall and grass contact both retain steering for recovery; Start still resets it. A new drift requires the raw and progressive turn signs to agree. An existing held drift can pause its charge through a short correction while steering centers or changes sign; the grace rules below apply. Input capture and W/A/S/D, arrows and Space bindings are unchanged; no steering preset or setting is exposed.
 

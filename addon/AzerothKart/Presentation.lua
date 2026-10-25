@@ -357,8 +357,8 @@ Presentation.KART_SPRITES = {
         view = {0.8, 0.6},
     }),
 }
--- The Kart button's cycle while stopped. Karts are cosmetic: every one drives
--- the same 17x31 physics body.
+-- The Kart button's cycle while stopped. All share a 17x31 physics body;
+-- Physics owns handling profiles independently of sprite metadata.
 Presentation.KART_ORDER = {
     "goblin_mortar_trike", "steam_tank", "dwarven_biker", "dwarf_car", "orc_demolisher", "meat_wagon",
     "glaive_thrower", "gryphon_rider", "gyrocopter", "goblin_drag_car",

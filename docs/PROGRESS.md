@@ -1,5 +1,72 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-25 12:56 +01:00 — balanced/heavy/agile kart handling
+
+Owner approved modest kart attributes and explicitly keeps one shared
+leaderboard without kart columns or filters. Own `codex/kart-handling` from
+`81ef556`; reservation preceded edits. [ADR 0019](adr/0019-balanced-kart-handling.md),
+[parameters/metrics](PHYSICS.md#implemented-kart-profiles--physics11),
+[run-latching contract](API_CONTRACTS.md#implemented-kart-handling--physics11).
+
+Physics11 adds private balanced/heavy/agile profiles. Balanced retains the
+previous baseline. Heavy trades launch/turning response for2%cruising speed
+and stronger brakes; agile trades2%cruising speed/braking for quicker launch
+and tighter turns. Mapping covers all10karts; Pod Racer stays balanced in this
+first pass. Reverse55, boost260, drift charging/rewards, shared17×31body and
+90%wall retention/80%profile-speed scraping rules remain. No collision mass,
+damage or functional tankyness was added.
+
+`Physics.GetHandling` returns copied data; step takes an optional kart-ID string.
+Solo Start captures it once; a future stopped choice affects only the next run.
+SessionTransport passes RaceGrid's agreed local ID through RaceStart's optional
+context/bundle into LiveRace's private state. Unknown IDs refuse/fail initialization;
+nil/basic preserve balanced internal callers. Authoritative state remains15fields
+and the live speed envelope/wire format is unchanged. Physics11 negotiation
+rejects old peers and uses new compatible score keys; historical saved scores
+remain intact. No leaderboard column/filter/store-key change per kart.
+
+Menu reuses its existing green description text for the actual selected
+profile. No new widget, asset, track or camera change. UI still refuses active
+kart changes. The once-latched ID survives an unrelated display-ID mutation
+and sprite fallback. Stale cosmetic-only copy and public API docs are aligned.
+The deferred server catalogue/example now use7actual Physics11contexts.
+
+**Executed:** actual Lua5.1 via pinned local Lupa:
+
+- `scripts/test_lua.py --runtime lua51 --tests kart_handling physics drift
+  wall_slide surface steering ui menu race_start live_race session_transport
+  multiplayer_integration solo_records`:68Lua files parsed; first6modules PASS,
+  then UI stopped on its synthetic unregistered `single_image` fixture. That
+  fixture now uses the registered balanced `basic` identity with the exact same
+  synthetic art, retaining all rotation/fallback assertions and strict unknown-ID
+  refusal. No production guard was relaxed.
+- `scripts/test_lua.py --runtime lua51 --tests ui menu race_start live_race
+  session_transport multiplayer_integration solo_records`: all7remaining modules
+  PASS after that fixture correction. Explicit UI pool remains86/167/135.
+  Agents' earlier focused handling/backend runs also passed; these are not
+  native-client observations.
+- Handling metrics balanced/heavy/agile:0–100 in39/41/38ticks;2,000units in
+  639/629/649ticks; braking47/45/48ticks; full-cruise turning radius
+  76.923/81.731/72.485units. All reach tier2 on the60tick Test Oval opening
+  drift with0impacts. Each profile replays all15fields exactly for10,000seeded
+  ticks at30/60/144FPS. These bound tradeoffs, not human/per-track balance.
+- `scripts/export_score_catalog.py` and `--check`: PASS7canonical contexts.
+  Actual synthetic operator CLI submit/query in separate processes: PASS on
+  new Physics11board. SQLite artifacts remain ignored; no real player data used.
+- `scripts/validate_project.py`: FAIL only on the same2historical expired skill
+  links. `git diff --check`: PASS. Independent source review found no blocker.
+
+Native handling, picker layout and competitive lap balance are **NOT RUN**;
+full Lua5.4/broad suite deferred under the focused build-first policy. Existing
+automatic community transport/discovery remains open. No install, push, native
+traffic, SavedVariables migration or other-worktree change. Claude remains at
+`0afeedf` with existing untracked outputs; canonical checkout remains`5570968`
+with its existing untracked handoffs. No roadmap acceptance box changed.
+
+**Next single executable task:** resume bounded channel-roster discovery/readout
+for automatic community score exchange. The handling build is committed for
+review/deployment; actual feel can be tuned after an installed client drive.
+
 ## 2026-10-25 10:56 +01:00 — automatic community ranking foundation
 
 Owner clarified addon-only automatic sharing, prompt updates and top-3/top-10

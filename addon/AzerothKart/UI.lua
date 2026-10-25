@@ -19,6 +19,8 @@ local UI = {
 }
 AK.UI = UI
 local render, pollLive, finishLive, applyLiveView
+-- Captured at a successful solo Start, never derived from the current artwork.
+local soloKartId
 
 local function pendingNativeLive()
     local transport=AK.SessionTransport
@@ -796,11 +798,11 @@ local function tintKart(tint)
     UI.kart:SetColorTexture(color[1],color[2],color[3],1)
 end
 
--- Cosmetic kart choice while stopped: the art loads with the same guarded
+-- Kart choice while stopped: the art loads with the same guarded
 -- checks as at creation. A refusal restores the entire current visual, or
 -- falls back to the primitive if that restoration also fails. It never
 -- touches the run, its result, the track or the simulation state; every kart
--- drives the same 17x31 body. The choice is not saved.
+-- shares the same 17x31 body. Handling is captured only on the next Start.
 function UI.SelectKart(id)
     local sprite = Presentation.KART_SPRITES[id]
     if not UI.kart or UI.active or UI.liveArmed or livePending() or pendingNativeLive() or not sprite then return false end
@@ -1155,7 +1157,7 @@ function UI.Create()
             if UI.active or inCombat() then break end
         end
     end)
-    -- Cosmetic kart cycle; refused while a run is active (refreshHud keeps
+    -- Kart cycle; refused while a run is active (refreshHud keeps
     -- the button disabled then).
     UI.kartButton = frame("Button",nil,window,"UIPanelButtonTemplate")
     UI.kartButton:SetSize(212,24)
@@ -1394,13 +1396,18 @@ function UI.Start()
         refuseStart("Input safety APIs unavailable; run /akart probe"); return
     end
     if GetCurrentKeyBoardFocus() then refuseStart("Close text input before starting"); return end
+    local chosenKartId = UI.kartId or "basic"
+    if not Physics.GetHandling(chosenKartId) then
+        refuseStart("Kart handling unavailable; choose another kart"); return
+    end
     if AK.SessionTransport then AK.SessionTransport.Stop("local_drive") end
     UI.ReleaseInput()
     UI.liveArmed,UI.liveActive,UI.liveSession,UI.multiplayer,UI.liveView=false,false,nil,false,nil
     UI.gridStaged,UI.gridView,UI.remotePath,UI.remotePathAt=false,nil,nil,nil
+    soloKartId = chosenKartId
     UI.state = Physics.new(Track)
     UI.race = Race.new(Track,Checkpoints,Laps,UI.state.tick)
-    UI.soloRun = AK.SoloRecords.Begin(Track, UI.kartId)
+    UI.soloRun = AK.SoloRecords.Begin(Track, chosenKartId)
     UI.scoreResult = nil
     UI.laps = UI.race.laps
     UI.checkpoints = UI.laps.checkpoints
@@ -1431,7 +1438,7 @@ local function step(dt)
     Input.sample(UI.keys,UI.input)
     UI.previousState = UI.state
     local countdown = UI.race.status == "countdown"
-    UI.state = Physics.step(UI.state,countdown and countdownInput or UI.input,dt,Track)
+    UI.state = Physics.step(UI.state,countdown and countdownInput or UI.input,dt,Track,soloKartId)
     UI.race = Race.step(UI.race,UI.previousState,UI.state,Track,Checkpoints,Laps)
     UI.laps = UI.race.laps
     UI.checkpoints = UI.laps.checkpoints

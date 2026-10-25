@@ -45,6 +45,33 @@ assert(guestWait==nil and guestReason=="waiting","guest waits for its mapped loc
 local guestBundle=assert(take(guest,10001))
 assert(guestBundle.role=="guest" and guestBundle.localEpochMS==10001
     and guestBundle.peerAcknowledged==false,"guest does not claim host received the final ACK")
+assert(bundle.kartId==nil and guestBundle.kartId==nil,"legacy starts retain balanced handling")
+for _,id in ipairs({"basic","steam_tank","dwarven_biker"}) do
+    local gate=assert(Start.new(ticket(),T,P.VERSION,id))
+    gate.kartId="gyrocopter"
+    local selected=assert(take(gate,10000))
+    assert(selected.kartId==id,"GO captures the requested identity, not public token fields")
+    local fields=0; for _ in pairs(selected.vehicle) do fields=fields+1 end
+    assert(fields==15,"handling identity stays outside authoritative vehicle fields")
+end
+for _,bad in ipairs({false,{},12,"","Steam Tank","steam-tank",string.rep("a",65),"steam_tank\n"}) do
+    local refused,kartReason=Start.new(ticket(),T,P.VERSION,bad)
+    assert(refused==nil and kartReason=="kart","malformed kart identity refused before GO")
+end
+local unknownKart=assert(Start.new(ticket(),T,P.VERSION,"unknown_kart"))
+local noKart,kartReason=take(unknownKart,10000)
+assert(noKart==nil and kartReason=="kart" and take(unknownKart,10000)==nil,
+    "unknown handling identity fails once against the actual Physics catalogue")
+local missingHandling=shallow(P); missingHandling.GetHandling=nil
+local noHandling,handlingReason=Start.take(assert(Start.new(ticket(),T,P.VERSION,"steam_tank")),
+    10000,missingHandling,Race,C,Laps)
+assert(noHandling==nil and handlingReason=="dependencies","selected kart requires its validation API")
+assert(Start.take(assert(Start.new(ticket(),T,P.VERSION)),10000,missingHandling,Race,C,Laps),
+    "legacy balanced callers do not need the new optional validation API")
+local throwingHandling=shallow(P); throwingHandling.GetHandling=function() error("private handling failure") end
+local badHandling=assert(Start.new(ticket(),T,P.VERSION,"steam_tank"))
+assert(Start.take(badHandling,10000,throwingHandling,Race,C,Laps)==nil and take(badHandling,10000)==nil,
+    "failed profile validation consumes the one-shot GO")
 local late=assert(Start.new(ticket(),T,P.VERSION))
 local noLate,lateReason=take(late,10251)
 assert(noLate==nil and lateReason=="late" and take(late,10000)==nil,

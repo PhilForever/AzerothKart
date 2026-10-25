@@ -14,6 +14,7 @@ REQUIRED=[
  'scripts/export_score_catalog.py','tests/test_leaderboard_store.py',
  'docs/adr/0017-central-score-store.md','docs/adr/0018-automatic-community-scores.md',
  'tests/test_community_scores.lua',
+ 'tests/test_kart_handling.lua','docs/adr/0019-balanced-kart-handling.md',
  'README.md','AGENTS.md','PROMPT_01_MASTER.md','PROMPT_02_SCHEDULED_CONTINUE.md',
  'docs/INDEX.md','docs/FEASIBILITY.md','docs/ARCHITECTURE.md',
  'docs/ROADMAP.md','docs/PROGRESS.md','docs/TEST_PLAN.md','docs/CLIENT_API.md','docs/SESSION_MENU_API.md',

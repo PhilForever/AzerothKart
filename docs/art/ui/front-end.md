@@ -33,7 +33,7 @@ open window ─► Main menu ─► Single Player ─► Choose a Track ─► C
 |---|---|
 | Main menu | The "Azeroth Kart" title, then **Single Player**, **Multiplayer (soon)**, **Garage**, **How to Play** and **Settings**, with the current track and kart named underneath |
 | Choose a Track | Mirage Raceway and Test Oval, each with a preview picture, a short description and its facts (3 laps, 4 gates, direction, off-road). Choosing one applies it at once; **Next: Choose Kart** continues |
-| Choose Your Kart | A turntable that spins the chosen kart's own 64-heading sheet, arrows and a grid of all ten karts (five rows of two), the kart's description and model credit, and a note that every kart handles the same. **Race!** starts the countdown |
+| Choose Your Kart | A turntable that spins the chosen kart's own 64-heading sheet, arrows and a grid of all ten karts (five rows of two), the kart's description and model credit, and the selected balanced/heavy/agile profile and its handling tradeoffs. **Race!** starts the countdown |
 | Garage | The same kart choice from the main menu, with **Done** instead of Race! |
 | Multiplayer | **COMING SOON**. Disabled **Host a Race** and **Join a Race**, a disabled lobby preview (you, an open slot, track, Ready/Start/Leave), and how to help with today's connection test (`/akart net help`) |
 | How to Play | The controls and the racing rules, plus the model credits |

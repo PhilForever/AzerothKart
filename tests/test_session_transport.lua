@@ -240,7 +240,7 @@ do
     assert(p.guest:view().offer.trackVersion==1 and p.guest:view().start.seed==42
         and p.guest:view().stats.sendAttempts~=999 and p.guest:view().traffic.attempts~=999)
     assert(p.host.raceCalls==0 and p.guest.raceCalls==0 and not p.host.namespace.UI.active
-        and p.host.namespace.Physics.VERSION==10 and p.host.namespace.Track.version==2,
+        and p.host.namespace.Physics.VERSION==11 and p.host.namespace.Track.version==2,
         "control proposals never activate or mutate local simulation")
     assertPacing(p.host); assertPacing(p.guest)
     p.host:call("Stop","left"); p.guest:call("Stop","left")
@@ -695,6 +695,34 @@ local function drivePair(p,seconds)
                 assert(view and why==nil,"deliberate input advances the adopted live controller")
             end
         end
+    end
+end
+
+do
+    local p=livePair()
+    local captured={}
+    for _,role in ipairs({"host","guest"}) do
+        local e=p[role]
+        captured[role]={id=p.karts[role],vehicle=e:view().live.vehicle}
+        local presentation=e:view()
+        presentation.grid.localKartId="dwarven_biker"
+        presentation.live.localKartId="dwarven_biker"
+        e.namespace.UI.kartId="dwarven_biker"
+    end
+    p:step(1/60)
+    for _,role in ipairs({"host","guest"}) do
+        local e,initial=p[role],captured[role]
+        local view=assert(e:call("AdvanceLive",{accelerate=true,left=true}))
+        local expected=initial.vehicle
+        for _=initial.vehicle.tick+1,view.vehicle.tick do
+            expected=e.namespace.Physics.step(expected,{accelerate=true,left=true},
+                e.namespace.Physics.FIXED_DT,e.namespace.Track,initial.id)
+        end
+        for field,value in pairs(expected) do
+            assert(view.vehicle[field]==value,"transport GO keeps agreed handling: "..field)
+        end
+        assert(view.localKartId==initial.id,"mutable copied/UI identity cannot replace the agreed live kart")
+        e:call("Stop","left")
     end
 end
 

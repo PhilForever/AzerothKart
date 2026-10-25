@@ -1,5 +1,10 @@
 # Documentation index / reading order
 
+**Kart handling:** [three modest profiles and shared leaderboard, ADR 0019](adr/0019-balanced-kart-handling.md),
+[actual parameters and offline metrics](PHYSICS.md#implemented-kart-profiles--physics11),
+[run-latching API](API_CONTRACTS.md#implemented-kart-handling--physics11).
+Native balance/feel remains pending; no collision mass is claimed.
+
 **Current leaderboard work:** [automatic addon-only community scores, ADR 0018](adr/0018-automatic-community-scores.md),
 with prompt result updates, automatic catch-up and top-3/top-10 notices.
 Native sharing is still pending. The [server-side store](../services/leaderboard/README.md)
