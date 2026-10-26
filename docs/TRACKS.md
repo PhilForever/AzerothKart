@@ -73,7 +73,7 @@ Owner handling correction2026-10-22: Stormwind has full road grip and normal spe
 
 ## Scarlet Crusade Cup: dungeon sprints (proposed, `claude/scarlet-graveyard`)
 
-The owner's third cup runs through the Scarlet Monastery's four wings, from the start of each dungeon to its end: Scarlet Graveyard, Scarlet Library, Scarlet Armory and Scarlet Monastery. He wrote that there is no need for "a traditional track here, just recreate the dungeon and let players find their way to the end."
+The owner's third cup runs through the Scarlet Monastery's four wings, from the start of each dungeon to its end: Scarlet Graveyard, Scarlet Library, Scarlet Armory and Scarlet Cathedral (listed as "Scarlet Monastery" until it was built). He wrote that there is no need for "a traditional track here, just recreate the dungeon and let players find their way to the end."
 
 Each is a **sprint**: one run from the entrance through its gates to the last, which is the finish ([ADR 0020](adr/0020-dungeon-sprints.md), proposed). The owner approved Claude adding the minimal rules for Codex's review:
 
@@ -137,7 +137,21 @@ Offline: the route walk crosses the five gates in order, crosses back over Lokse
 - Five gates: *Training Grounds*, *Footman's Armory*, *Crusader's Armory*, *Hall of Champions* and *Herod* (the finish).
 - About 4,200 units from the portal to the finish line along the reviewed route.
 
-Offline: the route walk crosses the five gates in order and never meets a wall or a solid; full throttle from the grid launches cleanly; Herod blocks on the finish line. Only the Monastery is listed as coming soon. See [the Scarlet Armory sheet](art/tracks/scarlet-armory.md).
+Offline: the route walk crosses the five gates in order and never meets a wall or a solid; full throttle from the grid launches cleanly; Herod blocks on the finish line. See [the Scarlet Armory sheet](art/tracks/scarlet-armory.md). On `claude/scarlet-cathedral` Herod takes a model of his own (Dagren the Orcslayer in crimson), since Renault Mograine stands at the Cathedral's altar.
+
+**Scarlet Cathedral** (`scarlet_cathedral`, version 1, sprint; proposed on `claude/scarlet-cathedral`): the wing's in-game map and battle map, at karting scale. "Scarlet Cathedral next." The owner chose the finish at the altar and the gardens' pools as water the karts drive round.
+
+1. From the portal west along the entrance hall, north through the garden gate into the Chapel Gardens, the open sky.
+2. Round the lower garden's long pool, on the lawn or the walks.
+3. Up the stairs either side of the falls, or across the platforms with the champions' statues, into the upper garden.
+4. Round the round pool and its fountain, up the terrace's steps to the cathedral's door.
+5. Up the nave between its pillars, across the transept, up the chancel's steps to the finish before the altar, where Mograine and Whitemane stand. Fairbanks' round chamber lies behind.
+
+- 1024 × 2048; 24 rooms (the two lawns are rough; Fairbanks' chamber is round); 46 solids, the three pools among them. The round pool is the first round solid (`shape="disc"`, ADR 0020's fourth addendum).
+- Four gates: *Chapel Gardens*, *Upper Gardens*, *Crusader's Chapel* and *High Altar* (the finish).
+- About 2,500 units from the portal to the finish line along the reviewed route.
+
+Offline: the route walk crosses the four gates in order and never meets a wall or a solid; full throttle from the grid launches cleanly; the pools block and a kart slides round the round pool's rim. With the Cathedral every course is ready; none is listed as coming soon. See [the Scarlet Cathedral sheet](art/tracks/scarlet-cathedral.md).
 
 ## Test Oval checkpoint sequence
 
@@ -176,6 +190,6 @@ UI releases capture, draws the exact finish pose and shows a pooled `RUN COMPLET
 - Document copyright/ownership of every texture, icon, music/sound asset. Start from plain colored tiles where feasible.
 
 ## Initial track sequence
-M0 `Test Oval` → M3 `Mirage Raceway` (dry, pre-flood Shimmering Flats) → M7 `Murloc Marsh` → M9 `Frost Gearway` and more based on performance metrics. Mirage replaces the planned Tinker Speedway name; no production-map acceptance is claimed. The owner's Capital Cities Cup (2026-10-21) comes first among the new maps: Stormwind, then Ironforge, Darnassus, Orgrimmar, Thunder Bluff and Undercity on the same pipeline. The Scarlet Crusade Cup's dungeon sprints follow (2026-10-25): the Graveyard, the Library and the Armory, then the Monastery.
+M0 `Test Oval` → M3 `Mirage Raceway` (dry, pre-flood Shimmering Flats) → M7 `Murloc Marsh` → M9 `Frost Gearway` and more based on performance metrics. Mirage replaces the planned Tinker Speedway name; no production-map acceptance is claimed. The owner's Capital Cities Cup (2026-10-21) comes first among the new maps: Stormwind, then Ironforge, Darnassus, Orgrimmar, Thunder Bluff and Undercity on the same pipeline. The Scarlet Crusade Cup's dungeon sprints follow (2026-10-25): the Graveyard, the Library, the Armory and the Cathedral.
 
 Stormwind v3 wall alignment (2026-10-22): the white parapet is the exposed union of radius90 visual capsules. Collision now keeps14-unit centre clearance from that union, rather than separately shrinking every capsule to76 (which created invisible wedges at concave joins). Radius56 paving and normal straight-wall clearance are unchanged; generated exposed junctions/analytic projections provide the corner shape. Movement candidates obey the original step bound before nearest ranking. Artwork/gates/spawn and full-speed shoulders are unchanged.

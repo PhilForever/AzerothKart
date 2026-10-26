@@ -1,5 +1,23 @@
 # Manual client acceptance — F0/F1/F2/F5
 
+## Deferred Scarlet Cathedral check (proposed, `claude/scarlet-cathedral`)
+
+**NOT RUN.** Run it after Codex's review (round solids in ADR 0020's addendum, and the score-sync change with the Cathedral's code `C`) and a coordinated install. **Fully restart the client:** `Assets/Tracks/ScarletCathedral/` is new. The owner runs these checks; Claude does not control the client.
+
+1. **Track screen.** The *Scarlet Crusade Cup* lists Scarlet Graveyard, Scarlet Library, Scarlet Armory and Scarlet Cathedral, and nothing is marked "(soon)". Choose the Cathedral: its tall preview and three facts appear. The bar's Track button steps from the Armory to the Cathedral, then Test Oval.
+2. **Load.** The 1024×2048 TGA. Record any refusal and any hitch when switching to it.
+3. **The drive.** The kart starts at the portal facing west between two guards. The HUD reads "Sprint" with the gates passed (n/4). Find the way:
+   - west along the entrance hall, north through the garden gate (the first gate);
+   - round the lower pool, then up the stairs beside the falls or across a platform (the second gate spans them all);
+   - round the round pool to the terrace and the cathedral's door (the third gate);
+   - up the nave, across the transept and up the chancel's steps to the chequered line before the altar, the finish.
+4. **The pools.** Record whether the karts stop where the water's rim is drawn, and whether sliding round the round pool feels smooth, not sticky.
+5. **Solids and walls.** Record whether the pillars, trees, bushes, statues, the Crusade, Mograine, Whitemane, the altar and the candles block where they are drawn, and whether anything else stands where the kart drives.
+6. **The gardens and the chancel.** Record whether the gardens read as the open sky, the falls and stairs as the way up, and the finish as before the altar. Fairbanks' chamber behind it should be drivable after the finish.
+7. **Results and scores.** "RUN COMPLETE" with "Sprint | Total: …" and "All 4 gates". Highscores shows the Cathedral's own board as sprints. Community sharing needs Codex's score-sync change.
+8. **Camera and performance.** Record the frame rate while driving. Print Probe still shows 90 frames, 167 textures and 136 font strings.
+9. **Scarlet Armory's Herod** now has a model of his own (a hulking champion in crimson with a great blade). Record whether he reads as Herod.
+
 ## Deferred Scarlet Armory check (proposed, `claude/scarlet-armory`)
 
 **NOT RUN.** Run it after Codex's review (the score-sync change with the Armory's code `A`) and a coordinated install. **Fully restart the client:** `Assets/Tracks/ScarletArmory/` is new. The owner runs these checks; Claude does not control the client.

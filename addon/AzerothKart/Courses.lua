@@ -63,7 +63,10 @@ Courses.LIST = {
         background=TRACKS .. "ScarletArmory\\Background.tga",
         dust={0.80,0.72,0.62}, ground={0.05,0.05,0.05},
         status="Scarlet Armory | Sprint to Herod | Down the Hall of Champions' stairs to finish"},
-    {id="scarlet_monastery", name="Scarlet Monastery", cup="scarlet", soon=true},
+    {id="scarlet_cathedral", name="Scarlet Cathedral", short="Cathedral", cup="scarlet", geometry="dungeon",
+        background=TRACKS .. "ScarletCathedral\\Background.tga",
+        dust={0.78,0.74,0.68}, ground={0.05,0.05,0.05},
+        status="Scarlet Cathedral | Sprint to the altar | Round the gardens' pools"},
 }
 
 local byId = {}

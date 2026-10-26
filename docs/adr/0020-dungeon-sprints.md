@@ -107,3 +107,24 @@ Evidence, offline only:
 - `build_dungeon_tracks.py --check` passes for all three dungeons, byte for byte.
 
 **NOT RUN in the client:** the Armory's drive, the finish beside Herod, the 2048 × 2048 picture's load and performance.
+
+## Addendum: round solids and Scarlet Cathedral (proposed, `claude/scarlet-cathedral`, 2026-10-26)
+
+The Cathedral's Chapel Gardens have pools, and the owner chose "Water you drive round": the pools and the falls block, so the karts pick a side. Two are rectangles, which solid boxes already give. The round pool is a circle, and boxes cannot give that without the karts stopping short of the painted water or running onto it. So `Dungeon.new` gains one solid shape, as it gained round rooms for the Library.
+
+- **`shape="disc"` on a solid:** the disc inscribed in the solid's square; width and height must match.
+  - The kart centre keeps the inset outside the disc's rim, as it keeps the inset off a box's faces.
+  - A step ending inside that reach moves to the nearest allowed point within the step's length, and counts as a hit. The candidates are the point along the radius and, so that a kart grazing the rim never sticks, the two points where the reach meets the circle of the step's length round the start. A kart slides round the rim.
+  - `surfaceAt` is `"wall"` on the disc itself.
+  - The swept box resolution skips round solids; the walls' pass handles them. Box solids, rooms and the other dungeons are unchanged.
+  - An unknown solid shape, or a round solid that is not square, is refused.
+- **Pools in the generator:** a layout's `pools` become solids of their own shape, and the painter fills exactly their footprints with water and a stone rim. The invisible-wall rule counts a pool's water as a visible edge, as it counts a wall.
+- **The catalogue is complete:** the Cathedral takes the place of the coming-soon "Scarlet Monastery" (`scarlet_cathedral`, as the wing is named), and nothing is coming soon. No score was ever saved under the old id.
+
+Evidence, offline only:
+
+- `tests/test_dungeon.lua` adds a pond: the pool is wall to its rim; a kart driving at it head on stops at its reach; one passing clear never meets it; one pushing past it slides round it and on; a centre inside it leaves along the radius; 2,000 random steps never end within its reach. Invalid solid shapes are refused.
+- It walks the Cathedral's route through its four gates in order, never meeting a wall or a solid, and checks a clean launch, the pools, the finish and a slide round the round pool.
+- `build_dungeon_tracks.py --check` passes for all four dungeons; the Graveyard's and the Library's outputs are byte for byte unchanged.
+
+**NOT RUN in the client:** the Cathedral's drive, the pools' feel, the 1024 × 2048 picture's load and performance.

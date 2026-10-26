@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased — Scarlet Crusade Cup: Scarlet Cathedral (2026-10-26, `claude/scarlet-cathedral`)
+- **Scarlet Cathedral**, the cup's fourth and last dungeon sprint, takes the place of the coming-soon "Scarlet Monastery" and is selectable. The owner: "Scarlet Cathedral next." He chose the finish at the altar and the gardens' pools as water the karts drive round. From the wing's maps:
+  - from the portal west along the entrance hall, north into the Chapel Gardens;
+  - round the lower garden's long pool and up beside the falls, by the stairs or the platforms with the champions' statues;
+  - round the round pool and its fountain, up the terrace's steps to the cathedral's door;
+  - up the nave between its pillars, across the transept and up the chancel's steps to the finish before the altar, where Mograine and Whitemane stand.
+
+  Four gates, about 2,500 units, one run, in a 1024 × 2048 world. Every room is open, the side chapels and Fairbanks' round chamber behind the altar included. See `docs/art/tracks/scarlet-cathedral.md`.
+- **Round solids** in `Dungeon.lua` (`shape="disc"` on a solid; ADR 0020 addendum, for Codex's review): the round pool blocks as a circle, and a kart slides round its rim. Box solids, rooms and the other dungeons are unchanged.
+- **The look:** the gardens under the green-tinged night sky, their pools of tinted water with stone rims, the falls spilling white, jets, trees, lanterns, giant champions' statues and lions; the nave's red carpet between great pillars, candles, Scarlet clerics and footmen; the chancel's wooden parquet; Renault Mograine and Sally Whitemane at the altar.
+- **The painter and the generator:** pools (water, rims, falls, jets) over solids of the same shapes, a wooden parquet floor, and the invisible-wall rule counting water as a visible edge. The Graveyard's and the Library's data and pictures are byte for byte unchanged.
+- **Scarlet Armory:** Herod takes a model of his own, Dagren the Orcslayer in crimson, since Renault Mograine now stands at the Cathedral's altar. Its data is unchanged; its picture and review image are redrawn.
+- **Tests:**
+  - `test_dungeon` adds a pond (round solids) and walks the Cathedral's four gates in order, round its pools;
+  - `test_menu` and `test_circuit` follow the full Track cycle; no course is coming soon; the Cathedral's preview is twice as tall as wide;
+  - the score catalogue gains the Cathedral's board (twelve).
+- **Needs Codex:** the score-sync patch in the handoff now adds the Cathedral's code `C` too, and round solids need Codex's review. The drive and the picture in the client are NOT RUN.
+
 ## Unreleased — Scarlet Crusade Cup: Scarlet Armory (2026-10-26, `claude/scarlet-armory`)
 - **Scarlet Armory**, the cup's third dungeon sprint, is selectable. The owner: "Image 3 is the training grounds area. Final room is the iconic round room with stairs leading down to herod (image 4). Same style. Free driving through the whole map. The Training grounds is the only outside you see on this map." He chose the finish down at Herod. From the wing's maps:
   - from the portal east along the entrance hall, north into the Training Grounds;
@@ -12,7 +30,7 @@
 - **The look:**
   - the Training Grounds under the green-tinged night sky: grass with stepping stones, the arcade's columns, archery targets, training dummies and hay, inside kerbed stone walks;
   - two armories round their great pillars: armour stands, weapon racks, a forge and an anvil, a table, a cart, crates, red mats and Scarlet footmen;
-  - the Hall of Champions: an upper floor with four champions' statues and a Scarlet banner, a ring of stairs down to a red arena with a gold ring and a gold lozenge, candles, and Herod (Reforged's Renault Mograine stands in for him).
+  - the Hall of Champions: an upper floor with four champions' statues and a Scarlet banner, a ring of stairs down to a red arena with a gold ring and a gold lozenge, candles, and Herod (Reforged's Dagren the Orcslayer, in crimson, stands in for him; Renault Mograine did on `claude/scarlet-armory`).
 - **The painter** (`scripts/dungeon_paint.py`): stairs in the round hall's rings, the arena's lozenge, stairs that climb north, and stepping stones. **The generator** checks the floor just past a gate all along it, so a solid may stand on a gate, as Herod does on the finish. The Graveyard's and the Library's data and pictures are byte for byte unchanged.
 - **Tests:**
   - `test_dungeon` walks the Armory's five gates in order and checks its yard, its round hall and Herod on the finish;

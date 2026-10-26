@@ -88,6 +88,14 @@
       "lapCount": 1,
       "tickRate": 60,
       "rulesVersion": 1
+    },
+    {
+      "trackId": "scarlet_cathedral",
+      "trackVersion": 1,
+      "physicsVersion": 12,
+      "lapCount": 1,
+      "tickRate": 60,
+      "rulesVersion": 1
     }
   ]
 }

@@ -8,15 +8,16 @@
 -- road to follow. The kart
 -- centre stays wallInset inside the union of the rooms (the walls stand a
 -- kart's half-diagonal clear of it) and outside every solid box (a grave, a
--- tomb, a pillar) grown by the same inset, as the test oval's crates are.
+-- tomb, a pillar) grown by the same inset, as the test oval's crates are,
+-- and outside every round solid (`shape="disc"`: a round pool) grown so.
 -- The gates, crossed in order, guard the doorways; the last is the finish.
 -- `laps` sets the run's length (a sprint: one run to the last gate).
 --
 -- Solids use Track's swept-box resolution: a kart slides along a face and
--- the contact counts as a hit. A step ending outside the floor moves back to
--- the nearest floor point no further from the start than the step was long,
--- so a kart slides along a wall (a round wall too: its nearest point is
--- along the radius). Where rooms meet, their floors overlap by at least
+-- the contact counts as a hit. A step ending outside the floor, or inside a
+-- round solid, moves back to the nearest allowed point no further from the
+-- start than the step was long, so a kart slides along a wall (a round wall
+-- too: its nearest point is along the radius) and round a round solid. Where rooms meet, their floors overlap by at least
 -- twice the inset (a doorway): the union of the inset rooms is then open
 -- from one to the other. Lookups use a 64-unit grid.
 local _, namespace = ...
@@ -77,7 +78,8 @@ end
 -- checkpointMaxStep (optional), laps (optional, 1-9),
 -- rooms={{x,y,width,height,surface,shape}...} (surface "road" or "rough";
 -- shape nil, "rect" or "disc", a disc's square with width == height),
--- solids={{id,x,y,width,height}...}, gates={{name,ax,ay,bx,by,nx,ny}...},
+-- solids={{id,x,y,width,height,shape}...} (shape as a room's: a round
+-- solid is the disc in its square), gates={{name,ax,ay,bx,by,nx,ny}...},
 -- spawn={x,y,heading}}. Bottom-left origin, as every track.
 function Dungeon.new(definition, crossesGate)
     assert(type(definition) == "table", "dungeon definition required")
@@ -116,11 +118,23 @@ function Dungeon.new(definition, crossesGate)
         rooms[index] = r
     end
     local solids = {}
+    local anyDisc = false
     for index,box in ipairs(track.solids) do
         assert(finite(box.x) and finite(box.y) and finite(box.width) and finite(box.height)
             and box.width >= 0 and box.height >= 0, "finite solid box required")
-        solids[index] = {x0=box.x, y0=box.y, x1=box.x+box.width, y1=box.y+box.height,
-            minX=box.x-inset, minY=box.y-inset, maxX=box.x+box.width+inset, maxY=box.y+box.height+inset}
+        assert(box.shape == nil or box.shape == "rect" or (box.shape == "disc" and box.width == box.height),
+            "a solid is a box, or a disc in its square")
+        local s = {x0=box.x, y0=box.y, x1=box.x+box.width, y1=box.y+box.height,
+            minX=box.x-inset, minY=box.y-inset, maxX=box.x+box.width+inset, maxY=box.y+box.height+inset,
+            disc=box.shape == "disc"}
+        if s.disc then
+            -- The kart centre keeps the inset outside the disc's rim.
+            s.cx, s.cy, s.radius = box.x+box.width/2, box.y+box.height/2, box.width/2
+            s.reach = s.radius+inset
+            s.reachSquared, s.radiusSquared = s.reach*s.reach, s.radius*s.radius
+            anyDisc = true
+        end
+        solids[index] = s
     end
 
     -- The grid: each cell lists the rooms and solids whose kart-centre
@@ -165,12 +179,33 @@ function Dungeon.new(definition, crossesGate)
         return false
     end
 
+    -- Inside one solid as the kart centre meets it: a box grown by the inset
+    -- (its faces allowed), or a round solid's disc grown so (its rim allowed).
+    local function insideSolid(box, x, y)
+        if box.disc then
+            local dx,dy = x-box.cx,y-box.cy
+            return dx*dx+dy*dy < box.reachSquared
+        end
+        return x > box.minX and x < box.maxX and y > box.minY and y < box.maxY
+    end
+
     local function inSolid(x, y)
         local list = cellOf(solidCells,x,y)
         if not list then return false end
         for i=1,#list do
+            if insideSolid(solids[list[i]],x,y) then return true end
+        end
+        return false
+    end
+
+    -- Inside a round solid's reach (the swept boxes never end inside a box).
+    local function inDisc(x, y)
+        if not anyDisc then return false end
+        local list = cellOf(solidCells,x,y)
+        if not list then return false end
+        for i=1,#list do
             local box = solids[list[i]]
-            if x > box.minX and x < box.maxX and y > box.minY and y < box.maxY then return true end
+            if box.disc and insideSolid(box,x,y) then return true end
         end
         return false
     end
@@ -231,9 +266,44 @@ function Dungeon.new(definition, crossesGate)
         return room.cx+dx*k,room.cy+dy*k
     end
 
+    -- Points just outside a round solid's reach nearest (x, y): along the
+    -- radius through it and, with a step bound, where the reach meets the
+    -- circle of the step's length round the start (a radial point can lie
+    -- a little beyond that bound when a kart only grazes the solid).
+    local OUTSIDE = 1e-6
+    local function discCandidates(box, px, py, x, y, startX, startY, maxStepSquared, bestX, bestY, best)
+        local reach = box.reach+OUTSIDE
+        local dx,dy = px-box.cx,py-box.cy
+        local length = math.sqrt(dx*dx+dy*dy)
+        if length > 0 then
+            bestX,bestY,best = candidate(box.cx+dx*reach/length,box.cy+dy*reach/length,
+                x,y,startX,startY,maxStepSquared,bestX,bestY,best)
+        end
+        if maxStepSquared and startX then
+            local ex,ey = startX-box.cx,startY-box.cy
+            local apart = math.sqrt(ex*ex+ey*ey)
+            local step = math.sqrt(maxStepSquared)*(1-1e-9)
+            if apart > 0 and apart <= reach+step and apart >= math.abs(reach-step) then
+                local along = (reach*reach-step*step+apart*apart)/(2*apart)
+                local across = reach*reach-along*along
+                if across >= 0 then
+                    across = math.sqrt(across)
+                    local ux,uy = ex/apart,ey/apart
+                    local mx,my = box.cx+ux*along,box.cy+uy*along
+                    bestX,bestY,best = candidate(mx-uy*across,my+ux*across,x,y,startX,startY,maxStepSquared,
+                        bestX,bestY,best)
+                    bestX,bestY,best = candidate(mx+uy*across,my-ux*across,x,y,startX,startY,maxStepSquared,
+                        bestX,bestY,best)
+                end
+            end
+        end
+        return bestX,bestY,best
+    end
+
     -- The nearest allowed floor point to (x, y): each room's nearest inset
-    -- point or, where that lies inside a grown solid, the solid's faces.
-    -- Searches the start cell's rooms, or every room when `anywhere`.
+    -- point or, where that lies inside a grown solid, the solid's faces (a
+    -- round solid's reach). Searches the start cell's rooms, or every room
+    -- when `anywhere`.
     local function nearestFloor(x, y, anywhere, startX, startY, maxStepSquared)
         local list = cellOf(roomCells,startX or x,startY or y)
         local count = anywhere and #rooms or (list and #list or 0)
@@ -244,11 +314,16 @@ function Dungeon.new(definition, crossesGate)
             if inSolid(px,py) then
                 for k=1,#solids do
                     local box = solids[k]
-                    if px > box.minX and px < box.maxX and py > box.minY and py < box.maxY then
-                        bestX,bestY,best = candidate(box.minX,py,x,y,startX,startY,maxStepSquared,bestX,bestY,best)
-                        bestX,bestY,best = candidate(box.maxX,py,x,y,startX,startY,maxStepSquared,bestX,bestY,best)
-                        bestX,bestY,best = candidate(px,box.minY,x,y,startX,startY,maxStepSquared,bestX,bestY,best)
-                        bestX,bestY,best = candidate(px,box.maxY,x,y,startX,startY,maxStepSquared,bestX,bestY,best)
+                    if insideSolid(box,px,py) then
+                        if box.disc then
+                            bestX,bestY,best = discCandidates(box,px,py,x,y,startX,startY,maxStepSquared,
+                                bestX,bestY,best)
+                        else
+                            bestX,bestY,best = candidate(box.minX,py,x,y,startX,startY,maxStepSquared,bestX,bestY,best)
+                            bestX,bestY,best = candidate(box.maxX,py,x,y,startX,startY,maxStepSquared,bestX,bestY,best)
+                            bestX,bestY,best = candidate(px,box.minY,x,y,startX,startY,maxStepSquared,bestX,bestY,best)
+                            bestX,bestY,best = candidate(px,box.maxY,x,y,startX,startY,maxStepSquared,bestX,bestY,best)
+                        end
                     end
                 end
             else
@@ -269,7 +344,12 @@ function Dungeon.new(definition, crossesGate)
         local list = cellOf(solidCells,x,y)
         for i=1,(list and #list or 0) do
             local box = solids[list[i]]
-            if x >= box.x0 and x <= box.x1 and y >= box.y0 and y <= box.y1 then return "wall" end
+            if box.disc then
+                local dx,dy = x-box.cx,y-box.cy
+                if dx*dx+dy*dy <= box.radiusSquared then return "wall" end
+            elseif x >= box.x0 and x <= box.x1 and y >= box.y0 and y <= box.y1 then
+                return "wall"
+            end
         end
         if not onFloor(x,y) then return "wall" end
         return ground(x,y) or "wall"
@@ -295,10 +375,11 @@ function Dungeon.new(definition, crossesGate)
         return spawnX,spawnY,true
     end
 
-    -- Swept centre movement with the perimeter and every nearby solid;
+    -- Swept centre movement with the perimeter and every nearby solid box;
     -- contacts remove only the remaining normal displacement (Physics
-    -- scrubs speed). Then the walls: an end point off the floor moves to the
-    -- nearest floor point within the step's length of its start.
+    -- scrubs speed). Then the walls and the round solids: an end point off
+    -- the floor, or inside a round solid's reach, moves to the nearest
+    -- allowed point within the step's length of its start.
     function track.resolveMovement(x, y, targetX, targetY)
         assert(finite(x) and finite(y) and finite(targetX) and finite(targetY),
             "finite track coordinates required")
@@ -328,8 +409,10 @@ function Dungeon.new(definition, crossesGate)
             end
             for i=1,count do
                 local box = solids[near and list[i] or i]
-                local time,planeX,planeY = sweepBox(x,y,dx,dy,box.minX,box.minY,box.maxX,box.maxY)
-                if time then best,blockX,blockY = earlier(best,blockX,blockY,time,planeX,planeY) end
+                if not box.disc then
+                    local time,planeX,planeY = sweepBox(x,y,dx,dy,box.minX,box.minY,box.maxX,box.maxY)
+                    if time then best,blockX,blockY = earlier(best,blockX,blockY,time,planeX,planeY) end
+                end
             end
             x,y = x+dx*best,y+dy*best
             if not blockX and not blockY then break end
@@ -338,7 +421,7 @@ function Dungeon.new(definition, crossesGate)
             if blockX then x,dx = blockX,0 end
             if blockY then y,dy = blockY,0 end
         end
-        if not onFloor(x,y) then
+        if not onFloor(x,y) or inDisc(x,y) then
             hit = true
             local stepX,stepY = targetX-startX,targetY-startY
             local stepSquared = stepX*stepX+stepY*stepY

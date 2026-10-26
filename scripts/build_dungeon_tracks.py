@@ -13,7 +13,8 @@ Outputs, per dungeon in dungeon_layouts.DUNGEONS:
 - addon/AzerothKart/ScarletCrusade.lua: the dungeon geometry (rooms, gates,
   spawn, solid boxes, lap count, the reviewed route), generated from
   dungeon_layouts.py. Solid boxes of scenery models come from the models'
-  own footprints, or from the layout.
+  own footprints, or from the layout; a pool (`pools`) is a solid of its
+  own shape, a box or a disc, which the painter fills with water.
 - addon/AzerothKart/Assets/Tracks/<Folder>/Background.tga (one texel per
   world unit) and Preview.tga (4x reduced), painted by dungeon_paint.py from
   the same rooms Dungeon.lua collides with.
@@ -59,6 +60,14 @@ def geometry(wc3, d):
             x0, y0, x1, y1 = solid
             found = box(item["name"], int(round(x0)), int(round(y0)), int(round(x1)), int(round(y1)))
         solids.append(found)
+    for pool in d.get("pools", ()):
+        # Water the karts drive round: a round pool is a round solid.
+        if pool["shape"] == "disc":
+            cx, cy, r = pool["cx"], pool["cy"], pool["radius"]
+            solids.append({"id": pool["name"], "x": cx - r, "y": cy - r, "width": 2 * r, "height": 2 * r,
+                           "shape": "disc"})
+        else:
+            solids.append(box(pool["name"], pool["x0"], pool["y0"], pool["x1"], pool["y1"]))
     seen = {}
     for s in solids:         # unique ids: a repeated model gets a numbered suffix
         seen[s["id"]] = seen.get(s["id"], 0) + 1
@@ -68,13 +77,15 @@ def geometry(wc3, d):
     return {"id": d["id"], "name": d["name"], "version": d.get("version", 1), "width": width, "height": height,
             "wallInset": WALL_INSET, "laps": d["laps"],
             "rooms": [dict(r) for r in d["rooms"]], "gates": [dict(g) for g in d["gates"]],
-            "solids": solids, "spawn": (sx, sy, heading), "route": list(d["route"])}
+            "solids": solids, "spawn": (sx, sy, heading), "route": list(d["route"]),
+            "pools": [dict(p) for p in d.get("pools", ())]}
 
 
 class Floor:
     """The kart centre's floor of a definition, as Dungeon.lua tests it: each
     room inset on every side, a round room (`shape` "disc") to its radius
-    less the inset."""
+    less the inset; outside every solid box grown by the inset, and every
+    round solid's disc grown so."""
 
     def __init__(self, g):
         self.g = g
@@ -88,7 +99,9 @@ class Floor:
             else:
                 self.rooms.append(box + (None,))
         self.solids = [(s["x"] - inset, s["y"] - inset, s["x"] + s["width"] + inset, s["y"] + s["height"] + inset)
-                       for s in g["solids"]]
+                       for s in g["solids"] if s.get("shape") != "disc"]
+        self.discs = [(s["x"] + s["width"] / 2, s["y"] + s["height"] / 2, s["width"] / 2 + inset)
+                      for s in g["solids"] if s.get("shape") == "disc"]
 
     @staticmethod
     def _in(room, x, y):
@@ -107,6 +120,8 @@ class Floor:
     def allowed(self, x, y):
         inset = self.g["wallInset"]
         if not (inset <= x <= self.g["width"] - inset and inset <= y <= self.g["height"] - inset):
+            return False
+        if any((x - cx) ** 2 + (y - cy) ** 2 < reach * reach for cx, cy, reach in self.discs):
             return False
         return self.on_floor(x, y) and not any(x0 < x < x1 and y0 < y < y1 for x0, y0, x1, y1 in self.solids)
 
@@ -143,7 +158,9 @@ def floor_gap(a, b):
 def painted_floor(g):
     """The floor the picture paints, one byte per world unit (row y at
     y * width): each room's texels (a round room's whose centres lie in its
-    disc), as dungeon_paint.py lays them. Everywhere else is masonry."""
+    disc), as dungeon_paint.py lays them, less the pools' water and rims.
+    Everywhere else is masonry, or water: both stop the eye as they stop
+    the karts."""
     w, h = g["width"], g["height"]
     mask = bytearray(w * h)
     for r in g["rooms"]:
@@ -157,6 +174,16 @@ def painted_floor(g):
             continue
         for y in range(int(r["y0"]), int(r["y1"])):
             mask[y * w + x0:y * w + x1] = b"\x01" * (x1 - x0)
+    for p in g.get("pools", ()):
+        if p["shape"] == "disc":
+            cx, cy, radius = p["cx"], p["cy"], p["radius"]
+            for y in range(cy - radius, cy + radius):
+                for x in range(cx - radius, cx + radius):
+                    if (x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2 <= radius * radius:
+                        mask[y * w + x] = 0
+        else:
+            for y in range(p["y0"], p["y1"]):
+                mask[y * w + p["x0"]:y * w + p["x1"]] = bytes(p["x1"] - p["x0"])
     return mask
 
 
@@ -265,6 +292,8 @@ def validate_geometry(g):
     assert floor.allowed(sx, sy) and floor.road(sx, sy), "spawn stands on stone floor, clear of solids"
     for s in g["solids"]:
         assert s["width"] > 0 and s["height"] > 0, f"solid {s['id']} is empty"
+        assert s.get("shape", "rect") in ("rect", "disc"), s["id"]
+        assert s.get("shape") != "disc" or s["width"] == s["height"], f"round solid {s['id']} is square"
         cx, cy = s["x"] + s["width"] / 2, s["y"] + s["height"] / 2
         assert floor.on_floor(cx, cy), f"solid {s['id']} stands off the floor"
     # The route: clear of walls and solids, from the spawn through every gate.
@@ -344,8 +373,9 @@ def lua_data(dungeons):
         lines.append("    },")
         lines.append("    solids={")
         for s in g["solids"]:
-            lines.append("        {id=%s, x=%d, y=%d, width=%d, height=%d}," % (
-                q(s["id"]), s["x"], s["y"], s["width"], s["height"]))
+            shape = ", shape=%s" % q(s["shape"]) if s.get("shape", "rect") != "rect" else ""
+            lines.append("        {id=%s, x=%d, y=%d, width=%d, height=%d%s}," % (
+                q(s["id"]), s["x"], s["y"], s["width"], s["height"], shape))
         lines.append("    },")
         # The reviewed way through the gates (kart centre); tests walk it.
         lines.append("    route={")

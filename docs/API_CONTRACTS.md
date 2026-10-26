@@ -28,16 +28,17 @@ Successful eligible solo Finish queues sharing after local saving under pcall;
 errors cannot prevent normal results/local persistence.
 
 **Proposed for Codex (Claude, 2026-10-25, `claude/thunder-bluff`; extended on
-`claude/scarlet-graveyard`, `claude/scarlet-library` and `claude/scarlet-armory`):**
-`ScoreSync` knows seven courses by one-letter code, and `Sync.new` requires exactly
-seven contexts. `ScoreSharing` builds one context per selectable course. With
-Thunder Bluff Skyway selectable it offers eight, nine with Scarlet Graveyard, ten
-with Scarlet Library and eleven with Scarlet Armory. The sync then cannot start,
-for any course; local saving is unaffected. A tested patch is in Claude's handoff:
+`claude/scarlet-graveyard`, `claude/scarlet-library`, `claude/scarlet-armory` and
+`claude/scarlet-cathedral`):** `ScoreSync` knows seven courses by one-letter code,
+and `Sync.new` requires exactly seven contexts. `ScoreSharing` builds one context
+per selectable course. With Thunder Bluff Skyway selectable it offers eight, nine
+with Scarlet Graveyard, ten with Scarlet Library, eleven with Scarlet Armory and
+twelve with Scarlet Cathedral. The sync then cannot start, for any course; local
+saving is unaffected. A tested patch is in Claude's handoff:
 
 - codes `T` for `thunder_bluff_skyway`, `G` for `scarlet_graveyard`, `L` for
-  `scarlet_library` and `A` for `scarlet_armory`;
-- a HELLO with one board hash per course, thirteen fields with all four.
+  `scarlet_library`, `A` for `scarlet_armory` and `C` for `scarlet_cathedral`;
+- a HELLO with one board hash per course, fourteen fields with all five.
 
 Older builds would refuse the new HELLO, as they already refuse a different
 catalogue. Codex's decision; not applied.
@@ -639,18 +640,19 @@ Proposed by Claude on `claude/scarlet-graveyard`, 2026-10-25, for Codex's review
   - A sprint's board holds one-run totals under its own key: lap count 1.
   - `Finish` already requires `race.targetLaps == context.lapCount`.
 - **`Dungeon.new(definition, crossesGate)`** (new pure module, written by Claude; geometry for Codex's review). It returns the [track interface above](#track-geometry-and-assets), plus copies of `rooms`, `solids`, `gates` and the optional `laps`.
-  - **Definition:** `id, version?, name, width, height, wallInset, checkpointMaxStep?, laps?, rooms, solids?, gates, spawn`. Each room is `{x,y,width,height,surface,shape?}`, with surface `"road"` (stone) or `"rough"` (a lawn); each solid is `{id,x,y,width,height}`. Bottom-left origin, as every track.
+  - **Definition:** `id, version?, name, width, height, wallInset, checkpointMaxStep?, laps?, rooms, solids?, gates, spawn`. Each room is `{x,y,width,height,surface,shape?}`, with surface `"road"` (stone) or `"rough"` (a lawn); each solid is `{id,x,y,width,height,shape?}`. Bottom-left origin, as every track.
   - **Round rooms** (proposed on `claude/scarlet-library`): `shape="disc"` makes a room the disc inscribed in its square, which must be square; `"rect"` or no shape is a rectangle. The kart centre stays `wallInset` inside the round wall.
+  - **Round solids** (proposed on `claude/scarlet-cathedral`): `shape="disc"` makes a solid the disc inscribed in its square, which must be square (a round pool); `"rect"` or no shape is a box. The kart centre stays `wallInset` outside its rim.
   - **The floor** is every room shrunk by `wallInset` on each side (a round room to its radius less the inset). Rooms that meet overlap by at least two insets, so the floor runs on through the doorway.
   - **`surfaceAt`:**
-    - `"wall"` outside the inset perimeter, on a solid's footprint (edges included), or off the floor;
+    - `"wall"` outside the inset perimeter, on a solid's footprint (edges included; a round solid's disc), or off the floor;
     - otherwise `"road"` wherever a stone room covers the point;
     - otherwise `"grass"` on a lawn: Physics' existing rough response, at most 70 units a second.
   - **`isDrivable`:** on the floor, clear of every grown solid, and on stone.
   - **`constrainPosition`:** the perimeter clamp only, as on Track.
   - **`resolveMovement`:**
-    1. the perimeter and the solids, grown by the inset, as Track.lua's swept crate boxes (up to three slides);
-    2. then the walls: an end point off the floor moves to the nearest floor point no further from the step's start than the step was long, or stays at the start if none is found, and reports a hit. A round room's nearest point lies along its radius, so a kart slides round a round wall.
+    1. the perimeter and the solid boxes, grown by the inset, as Track.lua's swept crate boxes (up to three slides);
+    2. then the walls and the round solids: an end point off the floor, or within a round solid's reach, moves to the nearest allowed point no further from the step's start than the step was long, or stays at the start if none is found, and reports a hit. A round room's nearest point lies along its radius, so a kart slides round a round wall. Round a round solid the candidates are the point along its radius and the two points where its reach meets the circle of the step's length round the start, so a grazing kart slides round it rather than sticking.
 
     A resolved step never moves further than requested, so `checkpointMaxStep=5` still holds. A centre that starts off the floor or inside a grown solid (never by driving) moves to the nearest allowed point, or back to the spawn.
   - **Refused at construction:**
@@ -658,6 +660,7 @@ Proposed by Claude on `claude/scarlet-graveyard`, 2026-10-25, for Codex's review
     - a room not wider and taller than two insets;
     - an unknown surface;
     - an unknown shape, or a round room that is not square;
+    - an unknown solid shape, or a round solid that is not square;
     - a non-finite solid;
     - `laps` out of range;
     - a spawn off the floor or inside a solid.
@@ -683,11 +686,18 @@ Proposed by Claude on `claude/scarlet-graveyard`, 2026-10-25, for Codex's review
   - five gates: Training Grounds, Footman's Armory, Crusader's Armory, Hall of Champions, and Herod (the finish, across the round hall's middle; Herod is solid and stands on it, so the karts cross it either side of him);
   - spawn (500, 105), facing east; and `route`.
 
-  The generator refuses a layout unless every gate is unavoidable (a flood fill of the floor with the gate as a barrier) and the route crosses the gates in order without touching a wall or a solid. It counts a crossing only across the gate's own segment, as `Track.crossesGate` does. On `claude/scarlet-armory` it checks the floor just past a gate all along its length, not only at its middle, so a solid may stand on a gate. On `claude/drive-fixes` it also refuses an invisible wall (the karts' floor ending with no wall painted within the inset and 3 units, measured square, as where two rooms abut without a doorway) and, when painting, a model that is not solid with its drawn body more than 3 units onto the kart centre's floor. Neither rule changes the runtime contract.
+  `ScarletCrusade.scarlet_cathedral` (proposed on `claude/scarlet-cathedral`):
+  - version 1, 1024 × 2048, `wallInset` 18, `laps` 1;
+  - 24 rooms: 21 rectangles of stone or wood, the two gardens' lawns, and one round room (Fairbanks' chamber);
+  - 46 solids, the gardens' three pools among them: the lower pool and the falls are boxes, the round pool a round solid;
+  - four gates: Chapel Gardens, Upper Gardens (through the falls), Crusader's Chapel, and High Altar (the finish, across the chancel before the altar);
+  - spawn (790, 110), facing west; and `route`.
+
+  The generator refuses a layout unless every gate is unavoidable (a flood fill of the floor with the gate as a barrier) and the route crosses the gates in order without touching a wall or a solid. It counts a crossing only across the gate's own segment, as `Track.crossesGate` does. On `claude/scarlet-armory` it checks the floor just past a gate all along its length, not only at its middle, so a solid may stand on a gate. On `claude/drive-fixes` it also refuses an invisible wall (the karts' floor ending with no wall painted within the inset and 3 units, measured square, as where two rooms abut without a doorway) and, when painting, a model that is not solid with its drawn body more than 3 units onto the kart centre's floor. Neither rule changes the runtime contract. On `claude/scarlet-cathedral` a layout's `pools` become solids of their own shape, painted as water over exactly their footprints, and the invisible-wall rule counts the water as a visible edge.
 - **`Courses`:**
   - `CUPS` gains `{id="scarlet", name="Scarlet Crusade Cup"}`;
   - geometry `"dungeon"` builds `Dungeon.new(ScarletCrusade[id], crossesGate)`;
-  - Scarlet Graveyard is available; Scarlet Library, Scarlet Armory and Scarlet Monastery are listed `soon`. On `claude/scarlet-library` the Library is available too, and only the Armory and the Monastery are `soon`. On `claude/scarlet-armory` the Armory is available as well, and only the Monastery is `soon`.
+  - Scarlet Graveyard is available; Scarlet Library, Scarlet Armory and Scarlet Monastery are listed `soon`. On `claude/scarlet-library` the Library is available too, and only the Armory and the Monastery are `soon`. On `claude/scarlet-armory` the Armory is available as well, and only the Monastery is `soon`. On `claude/scarlet-cathedral` the Monastery's place goes to Scarlet Cathedral (`scarlet_cathedral`), available, and no course is `soon`.
 - **Load order (both TOCs):** `CapitalCities.lua`, `Dungeon.lua`, `ScarletCrusade.lua`, then `Courses.lua`.
 - **Presentation (Claude's regions).** When `targetLaps` is 1:
   - UI `refreshCheckpoints` shows "Checkpoints: sprint complete";

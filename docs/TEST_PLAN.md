@@ -79,6 +79,25 @@ On `claude/scarlet-armory`, `tests/test_dungeon.lua` walks the Scarlet Armory's 
 
 Only the Monastery is coming soon. The menu tests follow the Armory into the Track cycle, the cup's rows, its square preview and its sprint board. The generator now checks the floor just past each gate all along it (Herod stands on the finish). `build_dungeon_tracks.py --check` keeps the Graveyard's and the Library's data and pictures byte for byte after the painter's new layers. The rebuild commands are in [the Scarlet Armory sheet](art/tracks/scarlet-armory.md#rebuilding).
 
+On `claude/scarlet-cathedral`, `tests/test_dungeon.lua` also covers round solids (`shape="disc"` on a solid), with a pond:
+
+- the pool is wall to its rim, its square's corners floor;
+- a kart driving at it head on stops at its reach, and one passing clear never meets it;
+- one pushing past it slides round it and on;
+- a centre inside it leaves along the radius;
+- 2,000 random steps never end within its reach;
+- invalid solid shapes are refused.
+
+It walks the Scarlet Cathedral's reviewed route through its four gates in order (Chapel Gardens, Upper Gardens, Crusader's Chapel, High Altar), never meeting a wall or a solid. It also checks:
+
+- a clean launch west from the grid, and every solid, the round pool's centre included;
+- the lawns as grass and the walks as stone;
+- the three pools blocking to their rims;
+- the finish across the chancel;
+- a kart stopped at the round pool's reach and sliding round its rim.
+
+No course is coming soon now. The menu tests follow the Cathedral into the Track cycle, the cup's four rows, its twice-as-tall preview and its sprint board. `build_dungeon_tracks.py --check` keeps the Graveyard's and the Library's data and pictures byte for byte after the painter's pools and parquet; the Armory's picture changes only with Herod's new model. The rebuild commands are in [the Scarlet Cathedral sheet](art/tracks/scarlet-cathedral.md#rebuilding).
+
 `test_score_sharing` needs Codex's score-sync change (the patch is in Claude's handoff). The drive, the lawn, the picture and the camera in the client are NOT RUN; see [the client checklist](../tests/MANUAL_CLIENT_CHECKLIST.md).
 
 ## Current front-end slice (proposed, `claude/ui-flow`)

@@ -186,8 +186,9 @@ for _,bad in ipairs({{first=0,last=1,wallRadius=15}, {first=2,last=1,wallRadius=
     assert(not pcall(Circuit.new, definition, Track.crossesGate), "an invalid narrows is refused")
 end
 
--- The catalog: cups in order, coming-soon courses listed but not selectable
--- (the Scarlet Crusade Cup's last dungeon, tests/test_dungeon.lua).
+-- The catalog: cups in order, every course ready (the Scarlet Crusade
+-- Cup's four dungeons too, tests/test_dungeon.lua); a coming-soon course
+-- would be listed but not selectable (below).
 assert(#Courses.CUPS == 3 and Courses.CUPS[2].name == "Capital Cities Cup", "three cups")
 local soon = 0
 for _,course in ipairs(Courses.LIST) do
@@ -197,7 +198,7 @@ for _,course in ipairs(Courses.LIST) do
             Courses.build(course.id, Track.crossesGate) == nil, "a coming-soon course cannot be built")
     end
 end
-assert(soon == 1 and Courses.available("stormwind_city") and Courses.available("ironforge_gp")
+assert(soon == 0 and Courses.available("stormwind_city") and Courses.available("ironforge_gp")
     and Courses.available("darnassus_canopy") and Courses.available("orgrimmar_canyon")
     and Courses.available("thunder_bluff_skyway") and Courses.available("undercity_slime"),
     "all six cities are ready")
@@ -209,7 +210,8 @@ assert(Courses.next("test_oval") == "mirage_raceway" and Courses.next("mirage_ra
     and Courses.next("undercity_slime") == "scarlet_graveyard"
     and Courses.next("scarlet_graveyard") == "scarlet_library"
     and Courses.next("scarlet_library") == "scarlet_armory"
-    and Courses.next("scarlet_armory") == "test_oval", "the Track button cycles the ready tracks")
+    and Courses.next("scarlet_armory") == "scarlet_cathedral"
+    and Courses.next("scarlet_cathedral") == "test_oval", "the Track button cycles the ready tracks")
 -- A course marked coming soon (Thunder Bluff was until it was built) is
 -- listed but neither available, built nor stepped to.
 local thunderCourse = Courses.get("thunder_bluff_skyway")

@@ -697,7 +697,10 @@ STATUES = [DE + "doodads/lordaeroncapital/props/statues/lordaeron_statue_sword.m
            DE + "doodads/lordaeroncapital/props/statues/lordaeron_statue_shield.mdx"]
 STATUE_TINT = (0.78, 0.86, 0.84)        # the hall's pale green-grey stone
 FOOTMAN = DE + "units/human/scarletfootman/scarletfootman.mdx"
-HEROD = DE + "units/human/herorenaultmograine/herorenaultmograineboss.mdx"
+# Reforged has no Herod: Dagren the Orcslayer's bulk, his armour turned the
+# Crusade's crimson (Renault Mograine himself stands in the Cathedral).
+HEROD = DE + "units/human/herodagren/herodagren.mdx"
+HEROD_RECOLOR = ((10, 75, 356, 0.18, 1.5, 0.95),)
 
 
 def _unit(model, x, y, yaw, scale, name, half=6):
@@ -760,7 +763,8 @@ SA_PROPS = (
     # stairs, statues of champions round the north of its wall facing him
     # (on the south wall they would lean out over the floor), a Scarlet
     # banner between them.
-    + [prop(HEROD, 1570, 1828, yaw=270, scale=0.42, solid=solid_at(1570, 1828, 9, 9), name="Herod")]
+    + [prop(HEROD, 1570, 1828, yaw=270, scale=0.46, recolor=HEROD_RECOLOR, solid=solid_at(1570, 1828, 9, 9),
+            name="Herod")]
     + [prop(BRAZIER, 1570 + dx, 1828 + dy, scale=0.22, light=CANDLELIGHT, solid=solid_at(1570 + dx, 1828 + dy, 5, 5),
             name="candles") for dx, dy in ((-78, 78), (78, 78), (-78, -78), (78, -78))]
     + [prop(STATUES[k], 1570 + round(172 * math.cos(math.radians(a))), 1828 + round(172 * math.sin(math.radians(a))),
@@ -807,4 +811,212 @@ SCARLET_ARMORY = {
     "moonlight": (204, 232, 214), "mist": (146, 164, 156),
 }
 
-DUNGEONS = [SCARLET_GRAVEYARD, SCARLET_LIBRARY, SCARLET_ARMORY]
+# ---------------------------------------------------------------------------
+# Scarlet Cathedral.
+#
+# The owner (2026-10-26): "Scarlet Cathedral next." He sent the wing's
+# in-game map, a battle map of it (Sanctum of Maps), a screenshot of the
+# Chapel Gardens and one of the cathedral's nave, and chose (asked) the
+# finish at the altar and the gardens' pools as water the karts drive round.
+# The way, from the maps: from the portal west along the entrance hall,
+# north into the Chapel Gardens (the open sky): round the lower pool, up the
+# platforms or the stairs beside the falls, round the round pool, up the
+# terrace to the cathedral's door; up the nave, across the transept and the
+# chancel's steps to the altar, where Mograine and Whitemane stand. The
+# chancel's hall runs on north to the round chamber behind it.
+#
+# At karting scale in a 1024 x 2048 world (the wing is twice as tall as it
+# is wide): halls and doors 120 wide, walks 100, the nave 484 x 380 with two
+# rows of three pillars, the transept 904 x 190, the round pool 140 in
+# radius.
+
+SC_ROOMS = [
+    # The entrance hall, west from the portal, and the gate north.
+    room("entrance hall", 440, 50, 900, 170),
+    room("garden gate", 452, 130, 572, 266, floor="door"),
+    # The Chapel Gardens' lower garden: its lawn, the walks round it painted
+    # over its edges.
+    room("lower garden", 205, 230, 819, 600, surface="rough", floor="lawn"),
+    room("south walk", 205, 230, 819, 320, floor="walk"),
+    room("lower west walk", 205, 230, 305, 600, floor="walk"),
+    room("lower east walk", 719, 230, 819, 600, floor="walk"),
+    # The upper garden round the round pool and its walks; up to it, the
+    # platforms either side and the stairs beside the falls (the falls
+    # between them are water), painted over the lawns' edges.
+    room("upper garden", 105, 600, 919, 1040, surface="rough", floor="lawn"),
+    room("upper west walk", 105, 600, 205, 1040, floor="walk"),
+    room("upper east walk", 819, 600, 919, 1040, floor="walk"),
+    room("west platform", 205, 560, 372, 660, floor="cobbles"),
+    room("west stairs", 336, 560, 452, 700, floor="stairs"),
+    room("east stairs", 572, 560, 688, 700, floor="stairs"),
+    room("east platform", 652, 560, 819, 660, floor="cobbles"),
+    # The terrace and the steps up to the cathedral's door.
+    room("cathedral terrace", 265, 1000, 759, 1096, floor="terrace"),
+    room("door steps", 412, 1040, 612, 1096, floor="stairs"),
+    # The Crusader's Chapel: the nave, the transept, its two side chapels,
+    # the chancel up its steps, the hall north to the round chamber.
+    room("cathedral door", 452, 1060, 572, 1176, floor="nave"),
+    room("nave", 270, 1140, 754, 1520, floor="nave"),
+    room("transept", 60, 1480, 964, 1670, floor="nave"),
+    room("west chapel", 90, 1634, 250, 1770, floor="wood"),
+    room("east chapel", 774, 1634, 934, 1770, floor="wood"),
+    room("chancel", 295, 1634, 729, 1800, floor="wood"),
+    room("chancel steps", 432, 1626, 592, 1672, floor="stairs"),
+    room("chancel hall", 452, 1764, 572, 1920, floor="wood"),
+    disc_room("Fairbanks' chamber", 512, 1930, 70, floor="wood"),
+]
+
+# Water the karts drive round, each pool a solid of its shape: the lower
+# pool, the falls down into it, the round pool above.
+SC_POOLS = [
+    {"name": "lower pool", "shape": "rect", "x0": 432, "y0": 380, "x1": 592, "y1": 566},
+    {"name": "falls", "shape": "rect", "x0": 452, "y0": 560, "x1": 572, "y1": 706},
+    {"name": "round pool", "shape": "disc", "cx": 512, "cy": 830, "radius": 140},
+]
+
+# The gates, in driving order. The last is the finish, across the chancel
+# in front of the altar.
+SC_GATES = [
+    gate("Chapel Gardens", 452, 200, 572, 200, 0, 1),
+    gate("Upper Gardens", 205, 590, 819, 590, 0, 1),
+    gate("Crusader's Chapel", 452, 1118, 572, 1118, 0, 1),
+    gate("High Altar", 295, 1700, 729, 1700, 0, 1),
+]
+
+SC_ROUTE = [
+    (790, 110), (512, 110), (512, 280), (255, 280), (255, 625), (155, 640), (155, 1000), (512, 1050),
+    (512, 1200), (512, 1640), (512, 1712),
+]
+
+FOUNTAIN = DE + "doodads/cityscape/props/city_fountain/city_fountain.mdx"
+LION = DE + "doodads/lordaeronfall/props/lionstatue/lionstatue.mdx"
+BENCH = DE + "doodads/cityscape/props/citywoodbench/citywoodbench.mdx"
+BOOKSHELF = DE + "doodads/lordaeroncapital/props/lordaeronbookshelf/lordaeronbookshelf%d.mdx"
+CLERIC = DE + "units/human/scarletcleric/scarletcleric.mdx"
+MOGRAINE = DE + "units/human/herorenaultmograine/herorenaultmograine.mdx"
+WHITEMANE = DE + "units/human/herosallywhitemane/herosallywhitemane.mdx"
+SUMMER_TREE = TREES + "lordaerontree%d.mdx"
+
+
+def _tree_green(n, x, y, scale=0.28):
+    """A summer tree in the gardens: its trunk solid."""
+    return prop(SUMMER_TREE % n, x, y, scale=scale, solid=solid_at(x, y, 7, 7), name="tree")
+
+
+def _bush(x, y):
+    return prop(CITY + "plants/citybush/citybush.mdx", x, y, scale=0.22, solid=True, margin=3, name="bush")
+
+
+def _nave_pillar(x, y):
+    """One of the cathedral's great square pillars: solid."""
+    return prop(PILLAR, x, y, scale=0.42, solid=solid_at(x, y, 16, 16), name="pillar")
+
+
+SC_PROPS = (
+    # The entrance hall: guards by the portal, banners and torches.
+    [_unit(FOOTMAN, 850, 150, 270, 0.3, "Scarlet guard", 5), _unit(FOOTMAN, 850, 70, 90, 0.3, "Scarlet guard", 5),
+     prop(BANNER % 0, 620, 162, scale=0.3), prop(BANNER % 1, 760, 162, scale=0.3)]
+    + wall_props(SC_ROOMS, "entrance hall", "north", TORCH, 140, light=TORCHLIGHT, scale=0.3, start=550)
+    # The lower garden: four trees on its lawn, bushes, lanterns and benches
+    # along its walks' outer walls.
+    + [_tree_green(n, x, y) for n, (x, y) in enumerate(((360, 372), (664, 372), (360, 520), (664, 520)))]
+    + [_bush(x, y) for x, y in ((330, 450), (694, 450))]
+    + wall_props(SC_ROOMS, "lower west walk", "west", LANTERN, 140, light=LANTERNLIGHT, scale=0.2, start=300)
+    + wall_props(SC_ROOMS, "lower east walk", "east", LANTERN, 140, light=LANTERNLIGHT, scale=0.2, start=300)
+    + [prop(BENCH, 213, y, yaw=0, scale=0.3) for y in (370, 510)]
+    + [prop(BENCH, 811, y, yaw=180, scale=0.3) for y in (370, 510)]
+    # Up to the upper garden: the giant champions' statues on the platforms,
+    # lions over the falls.
+    + [prop(STATUES[0], x, 618, yaw=yaw, scale=0.12, tint=STATUE_TINT, solid=solid_at(x, 618, 14, 12),
+            name="champion's statue") for x, yaw in ((300, 0), (724, 180))]
+    + [prop(LION, x, 706, yaw=270, scale=0.12) for x in (464, 560)]
+    # The upper garden: the fountain in the round pool, trees and bushes on
+    # its lawn, lanterns along its walks.
+    + [prop(FOUNTAIN, 512, 830, scale=0.32)]
+    + [_tree_green(n, x, y) for n, (x, y) in enumerate(((262, 730), (762, 730), (262, 985), (762, 985)), 1)]
+    + [_bush(x, y) for x, y in ((310, 860), (714, 860))]
+    + wall_props(SC_ROOMS, "upper west walk", "west", LANTERN, 140, light=LANTERNLIGHT, scale=0.2, start=680)
+    + wall_props(SC_ROOMS, "upper east walk", "east", LANTERN, 140, light=LANTERNLIGHT, scale=0.2, start=680)
+    # The terrace before the cathedral: trees at its ends, lanterns and
+    # banners on the facade either side of the door.
+    + [_tree_green(n, x, 1060) for n, x in ((2, 300), (4, 724))]
+    + [prop(LANTERN, x, 1089, scale=0.2, light=LANTERNLIGHT) for x in (392, 632)]
+    + [prop(BANNER % 0, 340, 1089, scale=0.3), prop(BANNER % 1, 684, 1089, scale=0.3)]
+    # The nave: its two rows of pillars, candles before them, the Crusade's
+    # clerics and footmen lining the carpet, torches and banners on its walls.
+    + [_nave_pillar(x, y) for x in (412, 612) for y in (1220, 1345, 1488)]
+    + [prop(BRAZIER, x, y - 26, scale=0.22, light=CANDLELIGHT) for x in (412, 612) for y in (1220, 1345)]
+    + [_unit(CLERIC if k % 2 else FOOTMAN, x, y, yaw, 0.3, "Scarlet " + ("cleric" if k % 2 else "footman"))
+       for k, (x, y, yaw) in enumerate(((440, 1250, 0), (584, 1250, 180), (440, 1375, 0), (584, 1375, 180)))]
+    + wall_props(SC_ROOMS, "nave", "west", TORCH, 125, light=TORCHLIGHT, scale=0.3, start=1200)
+    + wall_props(SC_ROOMS, "nave", "east", TORCH, 125, light=TORCHLIGHT, scale=0.3, start=1200)
+    # The transept: its two great pillars, braziers and banners at its ends.
+    + [_nave_pillar(x, 1575) for x in (180, 844)]
+    + [prop(BRAZIER, x, 1490, scale=0.26, light=FIRELIGHT) for x in (68, 956)]
+    + [prop(BANNER % 2, 272, 1664, scale=0.3), prop(BANNER % 2, 752, 1664, scale=0.3)]
+    # The chancel: pillars at its front, the altar with Mograine and
+    # Whitemane before it, candles, banners on its north wall.
+    + [_pillar(x, 1660) for x in (410, 614)]
+    + [prop(FURNITURE % 0, 512, 1752, scale=0.34, solid=True, margin=3, name="altar")]
+    + [_unit(MOGRAINE, 466, 1728, 270, 0.36, "Scarlet Commander Mograine", 7),
+       _unit(WHITEMANE, 558, 1728, 270, 0.36, "High Inquisitor Whitemane", 7)]
+    + [prop(BRAZIER, x, 1772, scale=0.22, light=CANDLELIGHT, solid=solid_at(x, 1772, 5, 5), name="candles")
+       for x in (436, 588)]
+    + [prop(BANNER % 0, 350, 1792, scale=0.3), prop(BANNER % 1, 674, 1792, scale=0.3)]
+    + wall_props(SC_ROOMS, "chancel", "north", TORCH, 110, light=TORCHLIGHT, scale=0.3, start=400)
+    # The side chapels: a reading table and shelves; crates and a guard.
+    + [prop(BOOKSHELF % 0, x, 1765, scale=0.27) for x in (130, 210)]
+    + [prop(FURNITURE % 1, 170, 1700, scale=0.3, solid=True, margin=3, name="table"),
+       _unit(CLERIC, 140, 1690, 0, 0.3, "Scarlet cleric")]
+    + [prop(CRATES % 0, 900, 1745, scale=0.3, solid=True, margin=3, name="crates"),
+       prop(CRATES % 1, 808, 1745, scale=0.3, solid=True, margin=3, name="crates"),
+       _unit(FOOTMAN, 854, 1700, 270, 0.3, "Scarlet footman")]
+    # Fairbanks' chamber, behind the chancel: his shelves round the wall.
+    + [prop(BOOKSHELF % 1, x, y, yaw=yaw, scale=0.26) for x, y, yaw in ((474, 1988, 315), (550, 1988, 225))]
+    + [_unit(CLERIC, 512, 1945, 270, 0.32, "High Inquisitor Fairbanks", 6)]
+)
+
+SCARLET_CATHEDRAL = {
+    "id": "scarlet_cathedral", "name": "Scarlet Cathedral", "version": 1, "folder": "ScarletCathedral",
+    "size": (1024, 2048), "laps": 1,
+    "rooms": SC_ROOMS, "gates": SC_GATES, "route": SC_ROUTE, "spawn": (790, 110, "west"),
+    "props": SC_PROPS, "pools": SC_POOLS,
+    "lean": 0.6, "team": (0.72, 0.04, 0.04), "supersample": 3,
+    "replaceables": {31: "war3.w3mod:replaceabletextures/lordaerontree/lordaeronsummertree.dds"},
+    "floors": {
+        "hall": {"tile": T + "cityscape/city_squaretiles.dds", "shade": (0.92, 0.88, 0.82, 0.8)},
+        "door": {"tile": T + "cityscape/city_squaretiles.dds", "shade": (0.92, 0.88, 0.82, 0.8)},
+        "lawn": {"tile": T + "cityscape/city_grass.dds", "shade": (0.92, 1.0, 0.9)},
+        "walk": {"tile": T + "cityscape/city_roundtiles.dds", "shade": (0.96, 0.95, 0.92)},
+        "cobbles": {"tile": T + "village/village_cobblepath.dds", "shade": (1.1, 1.06, 1.0)},
+        "stairs": {"tile": T + "cityscape/city_bricktiles.dds", "shade": (0.92, 0.9, 0.86)},
+        "terrace": {"tile": T + "cityscape/city_squaretiles.dds", "shade": (0.86, 0.85, 0.84, 0.25)},
+        "nave": {"tile": T + "cityscape/city_squaretiles.dds", "shade": (0.80, 0.76, 0.72, 0.45)},
+        "wood": {"parquet": {"block": 32, "plank": 8}},
+    },
+    "wall": {"face": (T + "cityscape/city_cliff1.dds", (0, 0, 192, 64), (0.86, 0.84, 0.8)),
+             "height": 70, "top": (34, 30, 30), "coping": (150, 140, 124)},
+    "open_sky": ["lower garden", "south walk", "lower west walk", "lower east walk", "west platform",
+                 "west stairs", "east stairs", "east platform", "upper garden", "upper west walk",
+                 "upper east walk", "cathedral terrace", "door steps"],
+    "portal": (850, 110, 38),
+    "carpets": [([(860, 110), (512, 110), (512, 250)], 40),
+                # The gardens' walks' runners.
+                ([(255, 300), (255, 580)], 26), ([(769, 300), (769, 580)], 26),
+                ([(155, 640), (155, 1010)], 26), ([(869, 640), (869, 1010)], 26),
+                ([(512, 1150), (512, 1640)], 60),
+                ([(350, 1250), (350, 1430)], 36), ([(674, 1250), (674, 1430)], 36),
+                ([(512, 1676), (512, 1745)], 50),
+                ([(512, 1790), (512, 1925)], 40)],
+    "kerbed": ["walk", "cobbles", "terrace"], "lawn": "lawn",
+    "stairs": [{"room": "west stairs", "tread": 10, "axis": "y", "from": 40, "to": 10},
+               {"room": "east stairs", "tread": 10, "axis": "y", "from": 40, "to": 10},
+               {"room": "door steps", "tread": 8, "axis": "y"},
+               {"room": "chancel steps", "tread": 8, "axis": "y", "from": 8, "to": 8}],
+    "water": {"rim": 5, "tint": (0.20, 0.40, 0.46)},
+    "waterfalls": [{"x0": 452, "x1": 572, "y": 574, "drop": 28}],
+    "jets": [(472, 420, 10), (552, 420, 10), (472, 470, 10), (552, 470, 10), (472, 520, 10), (552, 520, 10)],
+    "moonlight": (204, 232, 214), "mist": (146, 164, 156),
+}
+
+DUNGEONS = [SCARLET_GRAVEYARD, SCARLET_LIBRARY, SCARLET_ARMORY, SCARLET_CATHEDRAL]

@@ -317,5 +317,95 @@ ScarletCrusade["scarlet_armory"] = {
     },
 }
 
+ScarletCrusade["scarlet_cathedral"] = {
+    id="scarlet_cathedral", version=1, name="Scarlet Cathedral", laps=1,
+    width=1024, height=2048, wallInset=18, checkpointMaxStep=5,
+    spawn={x=790, y=110, heading=math.pi},
+    rooms={
+        {x=440, y=50, width=460, height=120, surface="road"}, -- entrance hall
+        {x=452, y=130, width=120, height=136, surface="road"}, -- garden gate
+        {x=205, y=230, width=614, height=370, surface="rough"}, -- lower garden
+        {x=205, y=230, width=614, height=90, surface="road"}, -- south walk
+        {x=205, y=230, width=100, height=370, surface="road"}, -- lower west walk
+        {x=719, y=230, width=100, height=370, surface="road"}, -- lower east walk
+        {x=105, y=600, width=814, height=440, surface="rough"}, -- upper garden
+        {x=105, y=600, width=100, height=440, surface="road"}, -- upper west walk
+        {x=819, y=600, width=100, height=440, surface="road"}, -- upper east walk
+        {x=205, y=560, width=167, height=100, surface="road"}, -- west platform
+        {x=336, y=560, width=116, height=140, surface="road"}, -- west stairs
+        {x=572, y=560, width=116, height=140, surface="road"}, -- east stairs
+        {x=652, y=560, width=167, height=100, surface="road"}, -- east platform
+        {x=265, y=1000, width=494, height=96, surface="road"}, -- cathedral terrace
+        {x=412, y=1040, width=200, height=56, surface="road"}, -- door steps
+        {x=452, y=1060, width=120, height=116, surface="road"}, -- cathedral door
+        {x=270, y=1140, width=484, height=380, surface="road"}, -- nave
+        {x=60, y=1480, width=904, height=190, surface="road"}, -- transept
+        {x=90, y=1634, width=160, height=136, surface="road"}, -- west chapel
+        {x=774, y=1634, width=160, height=136, surface="road"}, -- east chapel
+        {x=295, y=1634, width=434, height=166, surface="road"}, -- chancel
+        {x=432, y=1626, width=160, height=46, surface="road"}, -- chancel steps
+        {x=452, y=1764, width=120, height=156, surface="road"}, -- chancel hall
+        {x=442, y=1860, width=140, height=140, surface="road", shape="disc"}, -- Fairbanks' chamber
+    },
+    gates={
+        {name="Chapel Gardens", ax=452, ay=200, bx=572, by=200, nx=0, ny=1},
+        {name="Upper Gardens", ax=205, ay=590, bx=819, by=590, nx=0, ny=1},
+        {name="Crusader's Chapel", ax=452, ay=1118, bx=572, by=1118, nx=0, ny=1},
+        {name="High Altar", ax=295, ay=1700, bx=729, by=1700, nx=0, ny=1},
+    },
+    solids={
+        {id="Scarlet guard", x=845, y=145, width=10, height=10},
+        {id="Scarlet guard_2", x=845, y=65, width=10, height=10},
+        {id="tree", x=353, y=365, width=14, height=14},
+        {id="tree_2", x=657, y=365, width=14, height=14},
+        {id="tree_3", x=353, y=513, width=14, height=14},
+        {id="tree_4", x=657, y=513, width=14, height=14},
+        {id="bush", x=318, y=438, width=25, height=24},
+        {id="bush_2", x=682, y=438, width=25, height=24},
+        {id="champion's statue", x=286, y=606, width=28, height=24},
+        {id="champion's statue_2", x=710, y=606, width=28, height=24},
+        {id="tree_5", x=255, y=723, width=14, height=14},
+        {id="tree_6", x=755, y=723, width=14, height=14},
+        {id="tree_7", x=255, y=978, width=14, height=14},
+        {id="tree_8", x=755, y=978, width=14, height=14},
+        {id="bush_3", x=298, y=848, width=25, height=24},
+        {id="bush_4", x=702, y=848, width=25, height=24},
+        {id="tree_9", x=293, y=1053, width=14, height=14},
+        {id="tree_10", x=717, y=1053, width=14, height=14},
+        {id="pillar", x=396, y=1204, width=32, height=32},
+        {id="pillar_2", x=396, y=1329, width=32, height=32},
+        {id="pillar_3", x=396, y=1472, width=32, height=32},
+        {id="pillar_4", x=596, y=1204, width=32, height=32},
+        {id="pillar_5", x=596, y=1329, width=32, height=32},
+        {id="pillar_6", x=596, y=1472, width=32, height=32},
+        {id="Scarlet footman", x=434, y=1244, width=12, height=12},
+        {id="Scarlet cleric", x=578, y=1244, width=12, height=12},
+        {id="Scarlet footman_2", x=434, y=1369, width=12, height=12},
+        {id="Scarlet cleric_2", x=578, y=1369, width=12, height=12},
+        {id="pillar_7", x=164, y=1559, width=32, height=32},
+        {id="pillar_8", x=828, y=1559, width=32, height=32},
+        {id="pillar_9", x=398, y=1648, width=24, height=24},
+        {id="pillar_10", x=602, y=1648, width=24, height=24},
+        {id="altar", x=483, y=1738, width=58, height=28},
+        {id="Scarlet Commander Mograine", x=459, y=1721, width=14, height=14},
+        {id="High Inquisitor Whitemane", x=551, y=1721, width=14, height=14},
+        {id="candles", x=431, y=1767, width=10, height=10},
+        {id="candles_2", x=583, y=1767, width=10, height=10},
+        {id="table", x=163, y=1694, width=14, height=12},
+        {id="Scarlet cleric_3", x=134, y=1684, width=12, height=12},
+        {id="crates", x=882, y=1733, width=36, height=21},
+        {id="crates_2", x=788, y=1731, width=38, height=26},
+        {id="Scarlet footman_3", x=848, y=1694, width=12, height=12},
+        {id="High Inquisitor Fairbanks", x=506, y=1939, width=12, height=12},
+        {id="lower pool", x=432, y=380, width=160, height=186},
+        {id="falls", x=452, y=560, width=120, height=146},
+        {id="round pool", x=372, y=690, width=280, height=280, shape="disc"},
+    },
+    route={
+        {x=790,y=110}, {x=512,y=110}, {x=512,y=280}, {x=255,y=280}, {x=255,y=625}, {x=155,y=640},
+        {x=155,y=1000}, {x=512,y=1050}, {x=512,y=1200}, {x=512,y=1640}, {x=512,y=1712},
+    },
+}
+
 if type(namespace) == "table" then namespace.ScarletCrusade = ScarletCrusade end
 return ScarletCrusade

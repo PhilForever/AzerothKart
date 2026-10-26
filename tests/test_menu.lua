@@ -660,6 +660,9 @@ withMock({schemaVersion=1, preferences={version=1, kart="gyrocopter", track="mir
     assert(UI.trackId == "scarlet_armory" and AzerothKartDB.preferences.track == "scarlet_armory",
         "and on to the Scarlet Armory sprint")
     click(UI.trackButton)
+    assert(UI.trackId == "scarlet_cathedral" and AzerothKartDB.preferences.track == "scarlet_cathedral",
+        "and on to the Scarlet Cathedral sprint")
+    click(UI.trackButton)
     assert(UI.trackId == "test_oval" and AzerothKartDB.preferences.track == "test_oval",
         "switching back is remembered too")
 end, function(env, AK)
@@ -1176,20 +1179,23 @@ withMock(nil, function(env, UI, Menu, AK)
     sameCounts(env,before,"automatic board refresh reuses pooled rows")
 end)
 
--- The Scarlet Crusade Cup: its heading, Scarlet Graveyard, Scarlet Library
--- and Scarlet Armory, then the Monastery coming soon; a sprint's race lines
--- count its gates instead of laps, and its saved board says it holds one-run
--- times.
+-- The Scarlet Crusade Cup: its heading and its four sprints, Scarlet
+-- Graveyard, Library, Armory and Cathedral, none coming soon; a sprint's
+-- race lines count its gates instead of laps, and its saved board says it
+-- holds one-run times.
 withMock(nil, function(env, UI, Menu, AK)
     UI.Toggle(); click(Menu.view.homeButtons[1])
     local buttons, soon = Menu.view.trackButtons, Menu.view.soonButtons
-    assert(buttons.scarlet_graveyard and buttons.scarlet_library and buttons.scarlet_armory and not soon.scarlet_library
-        and not soon.scarlet_armory and soon.scarlet_monastery and not soon.scarlet_monastery:IsEnabled(),
-        "the cup lists the Graveyard, the Library and the Armory, then the coming-soon Monastery")
+    assert(buttons.scarlet_graveyard and buttons.scarlet_library and buttons.scarlet_armory and buttons.scarlet_cathedral
+        and next(soon) == nil, "the cup lists its four sprints, and nothing is coming soon")
     local rows = Menu.trackRows()
     assert(rows[#rows - 4].heading == "Scarlet Crusade Cup" and rows[#rows - 3].track.id == "scarlet_graveyard"
         and rows[#rows - 2].track.id == "scarlet_library" and rows[#rows - 1].track.id == "scarlet_armory"
-        and rows[#rows].soon.id == "scarlet_monastery", "the third cup's heading, its ready sprints, the Monastery")
+        and rows[#rows].track.id == "scarlet_cathedral", "the third cup's heading, then its four sprints")
+    click(buttons.scarlet_cathedral)
+    assert(UI.trackId == "scarlet_cathedral" and Menu.previewReady
+        and Menu.view.trackPreview.width == 160 and Menu.view.trackPreview.height == 320,
+        "the Cathedral shows its twice-as-tall preview")
     click(buttons.scarlet_armory)
     assert(UI.trackId == "scarlet_armory" and Menu.previewReady
         and Menu.view.trackPreview.width == 320 and Menu.view.trackPreview.height == 320,
@@ -1227,6 +1233,10 @@ withMock(nil, function(env, UI, Menu, AK)
     assert(Menu.view.highscoreTrack.text == "Track: Scarlet Armory"
         and Menu.view.highscoreRule.text == "Fastest completed sprints, one run each, for the current rules",
         "and the Armory's")
+    click(Menu.view.highscoreTrack)
+    assert(Menu.view.highscoreTrack.text == "Track: Scarlet Cathedral"
+        and Menu.view.highscoreRule.text == "Fastest completed sprints, one run each, for the current rules",
+        "and the Cathedral's")
     click(Menu.view.highscoreTrack)
     assert(Menu.view.highscoreRule.text == "Fastest completed three-lap totals for the current rules",
         "the next board holds three-lap totals again")

@@ -15,7 +15,7 @@ Asked where the finish line goes, he chose **"Down at Herod"**: the karts come i
 
 ![Scarlet Armory overview, 4x reduced](scarlet_armory-overview.png)
 
-**Status:** proposed on `claude/scarlet-armory` for Codex review and integration. The branch carries the Library and the drive fixes too, since neither is integrated yet. The Armory is selectable in this branch.
+**Status:** proposed on `claude/scarlet-armory` for Codex review and integration. The branch carries the Library and the drive fixes too, since neither is integrated yet. The Armory is selectable in this branch. On `claude/scarlet-cathedral` Herod takes a model of his own, since Renault Mograine now stands at the Cathedral's altar (below); the course and its data are unchanged.
 
 - **Scores:** Armory runs save locally, on their own one-run board. Community sharing needs Codex's score-sync change with the Armory's code `A`, described in [the handoff](../../handoffs/claude-latest.md#needs-codex-score-sync-learns-the-armory). Without that change the sync does not start for any course, so this branch must not be installed on its own.
 - **NOT RUN in the client:** the drive, the look in the follow camera, loading the picture, performance. See [the client checklist](../../../tests/MANUAL_CLIENT_CHECKLIST.md).
@@ -83,7 +83,8 @@ The Scarlet Monastery at night, in Warcraft III's city, Dalaran and Lordaeron ar
   - a gold ring, then the red carpet arena with a quartered gold lozenge;
   - the runner in through its door to the head of the stairs.
 - **Light:** torches along the halls and walks, braziers on the landings, candles round Herod.
-- **The Scarlet Crusade** (Reforged): standing banners, the guards at the portal, footmen in the armories, and Renault Mograine's boss model as Herod: Reforged has no Herod, so the crimson-armoured Scarlet hero stands in for him.
+- **The Scarlet Crusade** (Reforged): standing banners, the guards at the portal and footmen in the armories.
+- **Herod:** Reforged has no Herod. Dagren the Orcslayer stands in for him, a hulking armoured champion with a great blade, his gilt armour turned the Crusade's crimson (`recolor`). On `claude/scarlet-armory` Renault Mograine's crimson boss model stood there; the [Cathedral](scarlet-cathedral.md) puts Mograine himself at its altar, so Herod changed on `claude/scarlet-cathedral`.
 - **The rest:** scarecrows from Lordaeron's capital as the training dummies, the classic archery targets, Lordaeron's statues with a sword and with a shield (tinted the hall's pale green-grey), smithy tools as the forge, the anvil and the cart, Lordaeron furniture as the table, crates, junk, armour stands and weapon racks.
 
 ## Files
@@ -99,10 +100,10 @@ The Scarlet Monastery at night, in Warcraft III's city, Dalaran and Lordaeron ar
 
 ## Rebuilding
 
-Extract the files the Armory draws on, then build. The build also computes the Graveyard's and the Library's geometry, so extract their files too ([the Graveyard's sheet](scarlet-graveyard.md#rebuilding), [the Library's](scarlet-library.md#rebuilding)):
+Extract the files the Armory draws on, then build. The build also computes the other dungeons' geometry, so extract their files too ([the Graveyard's sheet](scarlet-graveyard.md#rebuilding), [the Library's](scarlet-library.md#rebuilding), [the Cathedral's](scarlet-cathedral.md#rebuilding)):
 
 ```
-python scripts/wc3casc.py %W3% models "^war3\.w3mod:(doodads/(cityscape/(plants/citybush|props/emptycrates|structures/city_columnsingle)|dungeon/props/junkpile|lordaeronsummer/props/(archeryrange|armorrack|brazier|hayclump|torchhuman|weapons))/[^/]+\.mdx|_de\.w3mod:(doodads/(cityscape/props/scarletcrusadestandingbanners|lordaeroncapital/props/(lordaeronfurniture|scarecrow|smithytools|statues))|units/human/(herorenaultmograine|scarletfootman))/[^/]+\.mdx)$" WC3
+python scripts/wc3casc.py %W3% models "^war3\.w3mod:(doodads/(cityscape/(plants/citybush|props/emptycrates|structures/city_columnsingle)|dungeon/props/junkpile|lordaeronsummer/props/(archeryrange|armorrack|brazier|hayclump|torchhuman|weapons))/[^/]+\.mdx|_de\.w3mod:(doodads/(cityscape/props/scarletcrusadestandingbanners|lordaeroncapital/props/(lordaeronfurniture|scarecrow|smithytools|statues))|units/human/(herodagren|scarletfootman))/[^/]+\.mdx)$" WC3
 python scripts/wc3casc.py %W3% extract "^war3\.w3mod:terrainart/(cityscape|dalaran|dalaranruins)/" WC3
 python scripts/build_dungeon_tracks.py --wc3 WC3 --preview
 python scripts/build_dungeon_tracks.py --wc3 WC3 --check
@@ -116,11 +117,11 @@ The layout is `SCARLET_ARMORY` in `scripts/dungeon_layouts.py`: its rooms, gates
 
 ## Provenance and rights
 
-**Source:** Blizzard Entertainment's Warcraft III: Reforged, build 3.0.1.24371, from the owner's own install, read without modification by `scripts/wc3casc.py`. The files are used under [ADR 0009](../../adr/0009-warcraft-iii-asset-reuse.md). The Scarlet Crusade's banners and footman, Renault Mograine, the Lordaeron statues, scarecrows, smithy tools and furniture come from Reforged's `_de.w3mod` set; the rest are the classic models.
+**Source:** Blizzard Entertainment's Warcraft III: Reforged, build 3.0.1.24371, from the owner's own install, read without modification by `scripts/wc3casc.py`. The files are used under [ADR 0009](../../adr/0009-warcraft-iii-asset-reuse.md). The Scarlet Crusade's banners and footman, Dagren the Orcslayer, the Lordaeron statues, scarecrows, smithy tools and furniture come from Reforged's `_de.w3mod` set; the rest are the classic models.
 
 **Modifications:**
 
-- models posed and rendered as sprites with the project's light, shadows and lean, in a crimson team colour; the statues tinted pale green-grey;
+- models posed and rendered as sprites with the project's light, shadows and lean, in a crimson team colour; the statues tinted pale green-grey; Dagren's gilt armour moved to crimson;
 - terrain atlases halved and shaded;
 - the city wall cliff's stones laid along the faces;
 - painted by the generator: the masonry, the faces' shading, carpets and mats, the stairs' treads, the Hall of Champions' rings and lozenge, the yard's stepping stones, kerbs, the portal's swirl, the chequered finish, the light pools, the moonlight and the mist;

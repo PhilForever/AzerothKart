@@ -176,10 +176,23 @@ Mirage scenery v1 imports no Warcraft III file; it was painted procedurally so e
 - **The city:** the arcade's columns, crates and a bush.
 - **The Dungeon:** a junk pile.
 - **Lordaeron:** archery targets, armour stands, weapon racks, braziers, torches and hay.
-- **Reforged's own `_de.w3mod` set:** the Scarlet Crusade's standing banners and footman; Renault Mograine's boss model (as Herod); Lordaeron's scarecrows, smithy tools, furniture, and statues with a sword and with a shield.
+- **Reforged's own `_de.w3mod` set:** the Scarlet Crusade's standing banners and footman; Dagren the Orcslayer (as Herod, his gilt armour recoloured crimson, from `claude/scarlet-cathedral`; Renault Mograine's boss model before); Lordaeron's scarecrows, smithy tools, furniture, and statues with a sword and with a shield.
 
 - **Files:** 25 models, 89 placements, 26 textures; [the generated sources list](tracks/scarlet_armory-sources.txt) names them. Extracted files stay outside Git.
 - **Modifications:**
   - as for the Graveyard, in a crimson team colour, with the statues tinted pale green-grey;
   - painted by the generator: the Hall of Champions' ring of stairs, gold ring, red arena and gold lozenge, the stairs' treads, the Training Grounds' stepping stones and kerbs, the armories' mats, and the yard's green-tinged moonlight and mist.
 - **Terms and credits:** as for Stormwind: [ADR 0009](../adr/0009-warcraft-iii-asset-reuse.md); redistribution **unresolved** for release review; Blizzard Entertainment. The rooms follow the wing's in-game map and the Sanctum of Maps battle map, which the owner sent; his screenshots of the Training Grounds and of the Hall of Champions guided the look. None of them is stored. See [the Scarlet Armory sheet](tracks/scarlet-armory.md).
+
+**Scarlet Crusade Cup, Scarlet Cathedral (2026-10-26, `claude/scarlet-cathedral`, proposed).** `addon/AzerothKart/Assets/Tracks/ScarletCathedral/Background.tga` (1024×2048) and `Preview.tga` (256×512) are composited the same way from the same install. The sources are:
+
+- **Terrain:** the city's square and round tiles, bricks, grass and wall cliff; the village's cobbles; Lordaeron's summer tree texture; Warcraft III's water.
+- **The city:** bushes, lantern posts and crates.
+- **Lordaeron:** braziers, torches and its summer trees.
+- **Reforged's own `_de.w3mod` set:** the Scarlet Crusade's standing banners, footman and cleric; Renault Mograine and Sally Whitemane; the city fountain and a wooden bench; Lordaeron's sword statue, lions, interior pillars, bookshelves and furniture.
+
+- **Files:** 27 models, 88 placements, 30 textures; [the generated sources list](tracks/scarlet_cathedral-sources.txt) names them. Extracted files stay outside Git.
+- **Modifications:**
+  - as for the Graveyard, in a crimson team colour, with the champions' statues tinted pale green-grey;
+  - painted by the generator: the pools' tinted water and stone rims, the falls and the jets, the wooden parquet, the runners, kerbs and steps, and the gardens' green-tinged moonlight and mist.
+- **Terms and credits:** as for Stormwind: [ADR 0009](../adr/0009-warcraft-iii-asset-reuse.md); redistribution **unresolved** for release review; Blizzard Entertainment. The rooms follow the wing's in-game map and the Sanctum of Maps battle map, which the owner sent; his screenshots of the Chapel Gardens and of the nave guided the look. None of them is stored. See [the Scarlet Cathedral sheet](tracks/scarlet-cathedral.md).
