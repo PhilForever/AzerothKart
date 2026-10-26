@@ -1,5 +1,36 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-26 08:03 +01:00 - score discovery correction installed and packaged
+
+Runtime`1c62f3a` is installed in the existing AzerothKart AddOns directory as the
+follow-up correction for the reported separate boards. WhatIf passed; actual
+PowerShell7 backup/copy/hash helper reported Verified. A separate Python readback
+confirms all77source/installed/manifest hashes, all78complete prior backup files,
+and the unchanged legacy extra. Installed tree has78files; no deletion, player
+WTF/SavedVariables access, other-addon changes, client input, pushes or release.
+
+Ignored manifest: `local-artifacts/deploy-20261026-score-discovery/backups/
+20261026-080056-125-1263d25437c74691b1a857e7fe40fa23/install.json`.
+Independent audit/script/receipt are in that deployment root. FriendZIP built
+from installed tested source paths: `../AzerothKart-ScoreDiscovery-1c62f3a.zip`,
+77entries/61,239,970bytes, SHA256
+`9CD2E9C877E1E1D8FB0A93B0F481D1AF8CCB76BB8AC2B1B291F54EC3DF83488A`.
+AllZIPentries were read back and rehashed. No new runtime path compared with the
+previous installedc9build: `/reload` is sufficient from that build. Older clients
+missing earlier modules/assets still need a full restart after updating.
+
+Focused source passes/review remain the preceding checkpoint; deployment adds
+no code change. Native delivery remains NOT RUN because WoW is closed. The
+correction covers current groups/validated race peers; broader public-channel
+roster discovery remains pending, and no complete global-board guarantee is made.
+Current ClaudeArmory559cc4f and canonical5570968/untracked work remain separate.
+
+**Next exact task:** both updated clients reload, join the same ordinary party,
+open matching Graveyard Highscores while stopped/out of combat, and wait roughly
+30seconds. Existing saved times should catch up without another race or copying
+results. Record reciprocal native board updates before marking delivery passed.
+
+
 ## 2026-10-26 07:58 +01:00 - scores discover native groups and validated racing partners
 
 Owner screenshots show separate own-only Graveyard records with channel member

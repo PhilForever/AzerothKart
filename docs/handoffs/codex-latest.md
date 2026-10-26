@@ -1,5 +1,26 @@
 # Codex handoff — production maps and Claude course review
 
+## Installed score-discovery checkpoint - 2026-10-26 08:03 CET
+
+Runtime`1c62f3a` now installed, with77source/installed hashes and78complete
+previousfiles independently verified. One harmless legacy extra preserved;
+no playerdata/otheraddon/clientinput. Manifest/receipt/script are under ignored
+`local-artifacts/deploy-20261026-score-discovery/`. Source code unchanged after
+the recorded focused Lua51 passes/review. No public/globaldelivery claim.
+
+FriendZIP `../AzerothKart-ScoreDiscovery-1c62f3a.zip`:77entries/61,239,970bytes,
+SHA256`9CD2E9C877E1E1D8FB0A93B0F481D1AF8CCB76BB8AC2B1B291F54EC3DF83488A`.
+Built from installed tested paths, all entries read-back verified. `/reload`
+suffices fromc9combinedbuild (no new files). WoW is closed; native receipt NOT RUN.
+
+Next: both clients update/reload, use the same normalparty, open the matching
+Graveyard board while stopped and wait~30s for existing times to sync. A native
+confirmed racingpartner is another source, without requiring grouping for the
+existing two-player race. Public stranger discovery remains pending. Do not
+count local sendacceptance as delivery or clear scores to force a refresh.
+ClaudeArmory559cc4f and canonical5570968 stay untouched; no auto merge/push.
+
+
 ## Latest score-discovery correction - 2026-10-26 07:58 CET
 
 Own `codex/score-peer-discovery` fromd480373/c9installed. Screenshot symptom is
