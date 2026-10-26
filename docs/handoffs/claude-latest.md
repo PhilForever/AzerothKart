@@ -1,27 +1,91 @@
-# Claude handoff — the Gryphon Rider's wingbeat (reservation, in progress)
+# Claude handoff — the Gryphon Rider's wingbeat
 
-Reserved 2026-10-26 at about 17:00 CET by Claude (rendering/UI/sprites owner).
+Prepared 2026-10-26 at about 17:20 CET by Claude (rendering/UI/sprites owner).
 
-**Base:** `claude/race-screens` `8511d8c` (on `claude/scarlet-v3` and Codex's installed `caab661`). **Branch:** `claude/gryphon-wings`. Nothing is installed.
+**Base:** `claude/race-screens` `8511d8c` (on `claude/scarlet-v3` and Codex's installed `caab661`). **Branch:** `claude/gryphon-wings`, with these commits:
 
-**Owner instructions:** after my note on moving parts he chose to start with the gryphon: "Sure let's start with the griphon. I want flapping during normal speed and gliding during boost."
+- `cb9b657`: the reservation;
+- `f7ca53f`: the wingbeat;
+- this handoff.
 
-**Task:** presentation only. The Gryphon Rider's sheet gains wingbeat and glide frames rendered from its own model's flying loops (`Walk` beats its wings, `Walk - 2` soars); the race shows the beat while the kart is not boosting and the glide while it is, for the player's kart, the friend's (from their reported boost) and the garage turntable. No change to the physics body, handling, effects timing or any other kart.
+It descends from `claude/race-screens`, so integrating it brings the race screens and Scarlet v3 too. Nothing is installed.
 
-**Reserved files and regions:**
+## Owner instructions
 
-- `scripts/build_wc3_kart.py`: posing at a time inside a loop; the gryphon's entry (its wing phases, frame window and coverage floor); multi-phase sheet layout in `build`, `validate`, `run` and the review picture; other vehicles' bytes unchanged;
-- `scripts/build_kart_outlines.py`: outline sheets for multi-phase sheets (half the kart sheet's size);
-- `addon/AzerothKart/Assets/Karts/GryphonRider.tga` and `Assets/Karts/Outlines/GryphonRider.tga` (same paths, larger);
-- `addon/AzerothKart/Presentation.lua`: the gryphon's `KART_SPRITES` entry (sheet size, quad, pivot, phases, wing timing, its boost-trail anchors), an optional phase argument to `kartFrameCoords`, a new pure `wingPhase`;
-- `addon/AzerothKart/UI.lua`: the visual body of `render` (the kart's and the outline's crop) and `renderOpponent`/`opponentSprite` (the friend's crop). `UI.SelectKart`, `step`, `UI.Start/Stop/OnUpdate/HandleEvent`, `pollLive`, `applyLiveView`, `finishLive`, `keyEvent`, `UI.MultiplayerAction` and `refreshSummary` stay untouched;
-- `addon/AzerothKart/Menu.lua`: the turntable (`spin`, `showStage`) only, nothing in the results or lobby sections Codex reserved for `codex/multiplayer-rematch`;
-- tests: `tests/test_presentation.lua` (sheet and outline validation with phases, `wingPhase`, crops), `tests/test_menu.lua` (a new block: the turntable, the race's beat and glide, the friend's kart); `tests/test_ui.lua` is left to Codex's rematch task;
-- docs: `docs/art/karts/roster.md` and a review picture, `docs/API_CONTRACTS.md` (a proposed note), `docs/ASSETS.md`, `docs/art/ASSET_SOURCES.md`, `docs/art/ui/front-end.md` (texture memory), `CHANGELOG.md`, `docs/TEST_PLAN.md`, `tests/MANUAL_CLIENT_CHECKLIST.md`, `scripts/validate_project.py` (new files), this handoff.
+After my note on moving parts (the flyers first, the gryphon's wings the most visible), he chose: "Sure let's start with the griphon. I want flapping during normal speed and gliding during boost."
 
-No change to SessionTransport, LiveRace, LiveProtocol, PeerSession, Physics, Race or any other Codex-owned file: they are read through their copied views (`state.boostTicks`, the friend's reported `boosting`). `docs/PROGRESS.md` stays with the integrator.
+The standing instructions hold: no merge into `main`; no claim of in-game verification without the actual client; the owner pushes and runs the client checks; Codex prepares coordinated installs.
 
-**Coordination:** Codex's `codex/multiplayer-rematch` `94d4d1e` (seen on the owner's machine) reserves the results/lobby sections of `Menu.lua`, `refreshSummary` and the live callbacks of `UI.lua`, and `tests/test_ui.lua`; this task touches none of them.
+## Scope (reserved and changed)
+
+The reservation (`cb9b657`) held.
+
+- **`scripts/build_wc3_kart.py`:** `posed_triangles` takes a frame time; new `bone_height`, `phases`, `layout`, `render_phase`, `phase_count`, `check_phases`, `ground_tile` and `wings_review`; `build`, `window_bounds`, `validate` and `run` handle phases; the CLI's `--phase N` checks one phase. The gryphon's entry gains its `wings` and a 58-unit window round (4.5, 0), its coverage floor 0.025. Every other sheet is byte for byte unchanged (the trike's and the Meat Wagon's checks pass).
+- **`scripts/build_kart_outlines.py`:** `grid`; `build`, `validate` and `review` read the sheet's size.
+- **Assets:** `Assets/Karts/GryphonRider.tga` (2048×2048, 16,777,234 bytes, sha256 `d8a1389f…454e`) and `Assets/Karts/Outlines/GryphonRider.tga` (1024×1024, sha256 `33860c4c…`), same paths.
+- **`Presentation.lua`:** the gryphon's entry (`winged`: size, columns, `phases`, `wings`; quad, pivot, its boost `trails`), `kartFrameCoords(sprite, frame, phase)` (optional), new `wingPhase`.
+- **`UI.lua`:** the visual body of `render` (the kart's and outline's crop with the pose) and `renderOpponent`/`opponentSprite` (the friend's). Nothing else.
+- **`Menu.lua`:** `spin`, `showStage` and `Menu.STAGE_GLIDE` (the turntable) only.
+- **Tests:** `tests/test_presentation.lua` (sheet and outline validation per pose, the gryphon's floor, `wingPhase`, crops); `tests/test_menu.lua` (one new block). `tests/test_ui.lua` is untouched, as reserved for Codex's rematch task.
+- **Docs:** `docs/art/karts/roster.md` (a wingbeat section and its review picture `gryphon-rider-wings-review.png`; the regenerated `gryphon-rider-review.png` and `kart-outlines-review.png`), `docs/API_CONTRACTS.md` (a proposed section and the signature list), `docs/ASSETS.md`, `docs/art/ASSET_SOURCES.md`, `docs/art/ui/front-end.md`, `CHANGELOG.md`, `docs/TEST_PLAN.md`, `tests/MANUAL_CLIENT_CHECKLIST.md`, `scripts/validate_project.py` (the new review picture), this handoff.
+
+No change to SessionTransport, LiveRace, LiveProtocol, PeerSession, Physics, Race or any other Codex-owned file, nor to the results and lobby sections of `Menu.lua` or the live callbacks of `UI.lua` that Codex reserved for `codex/multiplayer-rematch`. `docs/PROGRESS.md` was not edited; the entry is [below](#progress-ledger-entry-for-the-integrator-gryphon-wings).
+
+## Delivered
+
+![The four poses at eight headings over Mirage Raceway at about 1440p, then the beat as played and the glide at the garage's size](../art/karts/gryphon-rider-wings-review.png)
+
+- **The wings beat while it flies:** rest (level), top (raised in a V), rest, bottom (swept down), one beat every 0.667 s, the model's own `Walk` timing, ten frames a step at 60 Hz. The beat runs on the run's own clock: from the countdown until the run ends.
+- **It glides while boosting:** the model's soaring loop (`Walk - 2`), wings spread wide and legs trailing, its body at the rest pose's height so it does not jump. The boost's wind trails leave the glide's wingtips, (4, ±20.2, 13.5).
+- **Every pose casts its own shadow**, rendered from the model like the rest of the sheet; all four keep Stand's scale, centre and hover.
+- **Where it shows:** the player's kart and its outline; a friend's gryphon in a two-player race (beating on the copied race clock half a beat apart, gliding on their reported `boosting`; the rest pose on the grid); the garage turntable (four seconds of beats, two of glide, once round). With no run (stopped, results, track view) it shows the rest pose, as before.
+- **Nothing else changes:** the 17×31 body, handling, effects timing, the other nine karts and the object counts (90/91/150).
+
+## Decisions for review
+
+1. **Three flying poses, played as a four-step beat** (rest, top, rest, bottom). The model's own loop passes through level on both strokes; four poses of 64 headings fill a 2048×2048 sheet, the largest size the addon already uses (the city backgrounds). More beat poses would need 4096×2048 (32 MiB) or fewer headings.
+2. **"Normal speed" is any time it is not boosting,** standstill included: a hovering gryphon has to beat its wings. The beat keeps the model's timing whatever the speed.
+3. **A larger frame window.** The raised wings and their shadow need 58 units round (4.5, 0), from 41 round (2.6, 0); the frames keep 128 texels, so the gryphon is drawn from about 2.2 texels a world unit instead of 3.1 (still above a screen pixel at the race camera), and the garage, which fits the quad, shows it about a fifth smaller.
+4. **Memory:** the gryphon's sheet is 16 MiB raw instead of 4, and its outline 4 MiB instead of 1, loaded only when the gryphon is chosen or a friend races it.
+5. **Clocks:** the player's beat follows the simulation tick (with the render's interpolation), so it is repeatable and stops with the run; the friend's follows the live view's `elapsedMS`; the garage its own. All read copied state only; `boostTicks` and `remote.boosting` decide the glide.
+
+## Needs Codex
+
+- **Review and integration** after the race screens, which this branch carries. `Presentation` gains an optional argument and a pure function; `UI.lua` changes only the crop in `render`, `renderOpponent` and `opponentSprite`.
+- **Install:** `GryphonRider.tga` and its outline keep their paths but change size: both clients need a full restart. The package grows by about 15 MiB.
+- **The budget** is unchanged (90/91/150): only crops change.
+
+## Tests
+
+| Command | Cloud | The owner's machine |
+|---|---|---|
+| `python scripts/build_wc3_kart.py --source …/gryphon-rider --vehicle gryphon_rider --preview` | Wrote the sheet (`d8a1389f…454e`, 2 min 41 s) and both review pictures | not run |
+| `… --vehicle gryphon_rider --check --phase N` | not run | PASS for all four phases (0; 1 and 2; 3), 42 s a phase, the same sha256 |
+| `python scripts/build_wc3_kart.py --source …/goblin-mortar-trike --vehicle goblin_mortar_trike --check` | PASS (unchanged bytes after the builder change) | PASS |
+| `python scripts/build_wc3_kart.py --wc3 … --vehicle meat_wagon --check` | PASS | not run |
+| `python scripts/build_kart_outlines.py --check` | Wrote; only the gryphon's changed | PASS, all ten |
+| `python scripts/test_lua.py --runtime lua51` | PASS, full suite | PASS, full suite (48 s) |
+| `python scripts/test_lua.py --runtime lua54 --tests presentation menu ui multiplayer_integration` | PASS | not run |
+| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in `PROGRESS.md` fail | the same |
+| `git diff --check` | clean | |
+
+An animated preview of the beat and the glide at about twice race size (made from the sheet, not a screenshot) went to the owner with this report; it is not committed.
+
+**NOT RUN in the client:** the beat's look and speed at race size, the glide, the outline, a friend's gryphon, and any hitch from the 16 MiB sheet. The owner runs [the checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-gryphon-rider-wingbeat-check-proposed-claudegryphon-wings).
+
+## PROGRESS ledger entry for the integrator (gryphon wings)
+
+> **2026-10-26 — Gryphon Rider wingbeat (Claude, `claude/gryphon-wings` `f7ca53f` on `claude/race-screens` `8511d8c`).** The owner: "flapping during normal speed and gliding during boost". `GryphonRider.tga` holds four poses of 64 headings from the model's own `Walk` (rest, beat top, beat bottom) and `Walk - 2` (glide) loops, 2048×2048 with a 58-unit window; outline 1024×1024. The run beats rest/top/rest/bottom every 0.667 s on its own clock and glides while `boostTicks > 0`; rest pose with no run; the outline follows; a friend's gryphon beats on the copied clock and glides on `remote.boosting`; the garage beats four seconds and glides two. `kartFrameCoords(sprite, frame, phase?)`, new pure `wingPhase`; counts unchanged 90/91/150. Gryphon phases check PASS on the owner's machine (same sha256), other sheets unchanged (trike PASS on both), outlines PASS on both, Lua 5.1 full suite PASS on both, Lua 5.4 presentation/menu/ui/multiplayer_integration PASS (cloud); validator: only the 2 pre-existing `PROGRESS.md` links fail. NOT RUN: client.
+
+## Push (the owner's)
+
+```
+git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/scarlet-v3 claude/race-screens claude/gryphon-wings
+```
+
+## Next
+
+The owner's verdict on the beat in the client (its speed, whether the swept-down pose reads as flapping or flicker, the glide). Then more moving parts as he chooses: the Gyrocopter's spinning rotor is the cheapest (one small overlay for every heading), the big-wheeled karts' rolling wheels next.
 
 # Previous: race screens and score celebrations
 
