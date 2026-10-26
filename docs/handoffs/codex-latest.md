@@ -1,5 +1,24 @@
 # Codex handoff — production maps and Claude course review
 
+## Active integration — Scarlet collision and scores, 2026-10-26 09:53 CET
+
+Owner now authorizes fixing both review findings and the ensuing GitHub push.
+Own `codex/scarlet-integration` from clean `2f04f3a`; combine reviewed Claude
+`ea4425d` without moving its worktree or rewriting either history. Installed
+runtime remains `01bd880` until a separately recorded deployment.
+
+Plan: resolve the four reviewed merge conflicts while preserving retired Oval,
+current networking/turning and all prior assertions. Reserve Dungeon.lua and
+test_dungeon for swept-disc geometry; ScoreSync.lua/test_score_sync for L/A/C,
+retired-zero validation and the existing158-byte ceiling; root owns shared
+test_circuit/test_menu/test_ui/test_score_sharing catalogue expectations, the
+generated service catalogue, API/architecture/ADR20/production-map docs,
+integration review/PROGRESS and this handoff. No new live dungeon eligibility.
+Run the combined offline integration suite, catalogue/asset/load checks and an
+independent fix review; publish the exact verified integration and four Claude
+branch tips with regular fast-forward/create-only pushes. No main merge,
+force push, release or other checkout edits. Claude's latest handoff is retained.
+
 ## Latest review result — Scarlet queue, 2026-10-26
 
 Reviewed13commits through Claudeea4425d on own`codex/scarlet-review` from0edaf2c.
