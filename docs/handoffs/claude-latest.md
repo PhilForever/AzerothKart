@@ -1,22 +1,93 @@
-# Claude handoff — Scarlet v3 (reservation, in progress)
+# Claude handoff — Scarlet v3: an open courtyard, the grass at full speed, the Cathedral's landings
 
-Reserved 2026-10-26 at about 15:30 CET by Claude (rendering/UI/sprites owner).
+Prepared 2026-10-26 at about 16:00 CET by Claude (rendering/UI/sprites owner).
 
-**Base:** Codex's `codex/scarlet-stats-review` `caab661`, the installed and published combined build (runtime `da292f6`: Scarlet v2 and the kart stat bars). **Branch:** `claude/scarlet-v3`. Nothing is installed.
+**Base:** Codex's `codex/scarlet-stats-review` `caab661`, the installed and published combined build (runtime `da292f6`: Scarlet v2 and the kart stat bars). **Branch:** `claude/scarlet-v3`, with these commits:
 
-**Owner instructions** (after driving the installed Scarlet v2; his screenshot shows the kart stopped in the Library's courtyard between the fountain and the south-east tree): "cant even fit through here dawg. and yeah - the same terrain should have the same effects across maps - at least maps in the same "cup". We are inside a monastery, so the grass is short you could say - meaning driving over it should be perfectly fine. Everything else looks fine, except maybe the cathedral stairs turning at a landing, im assuming I understand what you mean, but yeah if it makes the map a bit more difficult - go for it. After fixing these - feel free to start on screen side of multiplayer such as race positions, name tags, and results. I also want a bigger celebration when you get a top 10 and top 3 score, take a look at that whole window and flow."
+- `100fa0a`: the reservation;
+- `86efbca`: Scarlet v3;
+- this handoff.
 
-**Task (this branch):** open the Library's courtyard (a clear ring round the fountain, clear ways in), all Scarlet Cup grass at full speed (the Library's courtyard and the Graveyard's cloister become `road`), and the Cathedral's stairs turning at a landing. The multiplayer screens and the bigger score celebration follow on a separate branch, reserved there.
+It descends from Codex's integration branch, so it fast-forwards it. Nothing is installed.
 
-**Reserved files and regions:**
+## Owner instructions
 
-- `scripts/dungeon_layouts.py` (the Graveyard's, Library's and Cathedral's sections), `scripts/build_dungeon_tracks.py` (`validate_geometry`: water between rooms);
-- generated: `addon/AzerothKart/ScarletCrusade.lua`, the Library's and Cathedral's `Background.tga`/`Preview.tga`, their overviews, sources lists and review images, `services/leaderboard/catalog.json`;
-- `addon/AzerothKart/Courses.lua` (three Scarlet status lines), `addon/AzerothKart/Menu.lua` (the Scarlet courses' `Menu.TRACKS` copy);
-- `tests/test_dungeon.lua` (the three Scarlet sections; the production pool-grazing regression follows the Cathedral's moved pool, for Codex's review);
-- docs: the three track sheets, ADR 0020 (an addendum), `TRACKS.md`, `TEST_PLAN.md`, `CHANGELOG.md`, `tests/MANUAL_CLIENT_CHECKLIST.md`, this handoff.
+After driving the installed Scarlet v2 he sent a screenshot of his kart stopped in the Library's courtyard, between the fountain and the south-east tree, and wrote:
 
-No change to `Dungeon.lua`, `UI.lua`, Physics, scores, networking or any other Codex-owned file. `docs/PROGRESS.md` stays with the integrator.
+> "cant even fit through here dawg. and yeah - the same terrain should have the same effects across maps - at least maps in the same "cup". We are inside a monastery, so the grass is short you could say - meaning driving over it should be perfectly fine. Everything else looks fine, except maybe the cathedral stairs turning at a landing, im assuming I understand what you mean, but yeah if it makes the map a bit more difficult - go for it. After fixing these - feel free to start on screen side of multiplayer such as race positions, name tags, and results. I also want a bigger celebration when you get a top 10 and top 3 score, take a look at that whole window and flow."
+
+This branch covers the first three; the multiplayer screens and the celebration follow on their own branch. The standing instructions hold: no merge into `main`; no claim of in-game verification without the actual client; the owner pushes and runs the client checks; Codex prepares coordinated installs.
+
+## Scope (reserved and changed)
+
+The reservation (`100fa0a`) held.
+
+- **Scripts:** `scripts/dungeon_layouts.py` (the Graveyard's, Library's and Cathedral's sections; the Armory's is unchanged), `scripts/build_dungeon_tracks.py` (`validate_geometry`: water may lie between rooms if it borders one).
+- **Generated:** `addon/AzerothKart/ScarletCrusade.lua`, the Library's and the Cathedral's `Background.tga`/`Preview.tga`, overviews and review images, the Library's sources list, `services/leaderboard/catalog.json` (the Library and the Cathedral at `trackVersion` 3; eleven boards). The Graveyard's and the Armory's pictures are byte for byte unchanged.
+- **Shared data:** `Courses.lua` (three status lines), `Menu.lua` (the three courses' `Menu.TRACKS` copy).
+- **Tests:** the three Scarlet sections of `tests/test_dungeon.lua`.
+- **Docs:** the three track sheets, ADR 0020 (a sixth addendum), `TRACKS.md`, `TEST_PLAN.md`, `CHANGELOG.md`, `tests/MANUAL_CLIENT_CHECKLIST.md`, this handoff.
+
+No change to `Dungeon.lua`, `UI.lua`, `Presentation.lua`, Physics, scores, networking or any other Codex-owned file. `docs/PROGRESS.md` was not edited; the entry is [below](#progress-ledger-entry-for-the-integrator-scarlet-v3).
+
+## Delivered
+
+![The Library: the way through and nine follow-camera views](../art/tracks/scarlet_library-review.png)
+
+- **All Scarlet grass at full speed.** The Library's courtyard and the Graveyard's cloister are `road`, like the Armory's yard and the Cathedral's gardens: no Scarlet room slows the karts. ADR 0020's sixth addendum supersedes the fifth's "grass slows where a clear edge marks it".
+- **Scarlet Library, version 3** ([sheet](../art/tracks/scarlet-library.md#version-3-an-open-courtyard-at-full-speed)): the courtyard was closed. The four trees' round crowns reached within a kart's width of the fountain and of the bushes and columns, so a kart could drive in from any side but never past the fountain. Now:
+  - the trees are a little smaller and stand in the courtyard's corners, among the arcade's columns;
+  - a clear ring runs round the fountain, at least 48 units wide for the kart's centre at its narrowest, and the four ways in from the arcade are 84 units and wider (measured on the generated collision data);
+  - one bush and three hounds stay at the trees' feet, out of the way; the huntsman who stood on the lawn is gone;
+  - the reviewed route now crosses the courtyard, round the fountain's north side.
+- **Scarlet Cathedral, version 3** ([sheet](../art/tracks/scarlet-cathedral.md#version-3-the-stairs-turn-at-a-landing), [review image](../art/tracks/scarlet_cathedral-review.png)): the stairs turn at a landing, as on the battle map.
+  - Each long flight climbs north beside the falls to a landing of grey flags, walled on the north by a low parapet of dressed stone over the round pool; a short flight turns outward (west on the west stairs, east on the east) onto the upper lawn. The lanes are 80 units wide for the kart's centre (60 at a long flight's foot, beside the lower pool): two turns to take briskly, not flat out.
+  - The upper garden now starts behind the parapets, its lawns running down either side to the short flights; the champions' plinths stand south of the short flights.
+  - The round pool moves north and shrinks (115 in radius about (512, 865), from 140 about (512, 830)); the falls run on up to it; the lions sit on its rim. The two trees where the short flights land moved behind the parapets; the bushes stand by the walks.
+- **Scarlet Graveyard:** the lawn no longer slows; nothing else changes, its picture included, and it stays **version 2** (decision 1).
+- **Copy:** "Full speed on the grass; graves block" (Graveyard), "Full speed across the cloister's lawn" (Library), "Up the stairs and turn at the landing" (Cathedral) in the status lines; the track-screen facts likewise.
+
+## Decisions for review
+
+1. **The Graveyard keeps version 2.** Only its lawn's surface changes. Its stone path runs straight across the cloister, round the court's fountain on stone, and the graves fill the lawns, so the lawn was never the faster way and the times on its board stay comparable. Codex's `test_score_sharing.lua` also pins that board at version 2 ("catch-up uses the reviewed drive-fix geometry versions"), and the test is Codex's. If Codex prefers a bump anyway, it is the `"version"` in `SCARLET_GRAVEYARD`, a regeneration, the catalogue and that test's expectation.
+2. **Codex's production grazing regression follows the moved pool.** In `tests/test_dungeon.lua` the Cathedral's "normal-step grazing" check now grazes the top of the version-3 pool's reach (y 997.99 instead of 987.99; centre (512, 865), clearance 133 instead of (512, 830), 158). Same intent and tolerances; please confirm.
+3. **The parapets are plinths** (no new painter code): narrow raised blocks whose dressed rim covers their tops, their faces 24 units tall. A kart on a landing stops at the parapet by its inset, as at any wall.
+4. **The Library's courtyard is now the short way** round the cloister (about 5,280 units along the route instead of 5,600). No gate changes; the walks stay open. The owner drove into it; a race through it seemed the point.
+
+## Needs Codex
+
+- **Review and integration** on top of the installed `codex/scarlet-stats-review`. Data, pictures, copy and tests only; the runtime code is untouched.
+- **Install:** the Library's and the Cathedral's pictures change at the same paths: a full client restart.
+- **PRODUCTION_MAPS / INTEGRATION_STATUS** list the courses' versions; they are Codex's and are left as they are.
+
+## Tests
+
+| Command | Cloud | The owner's machine |
+|---|---|---|
+| `python scripts/build_dungeon_tracks.py --wc3 WC3 --check` | PASS, all four dungeons (3 min, fresh sprites) | PASS, each dungeon in turn (the device's own sprite cache, 5 new sprites); the same sha256 for all eight pictures |
+| `python scripts/test_lua.py --runtime lua51` | PASS, full suite | PASS, full suite |
+| `python scripts/test_lua.py --runtime lua54 --tests dungeon menu circuit` | PASS | not run |
+| `python scripts/export_score_catalog.py --check` | PASS, 11 boards | PASS |
+| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in `PROGRESS.md` fail | not run |
+| `git diff --check` | clean | |
+
+The pictures' sha256: Library `02ad8b5d…` (preview `34a784df…`), Cathedral `dfcf9f89…` (preview `c5655012…`); the Graveyard `753cc171…` and the Armory `ec27ff52…` unchanged. The clearance figures (the ring's 48, the ways in 84 and wider, the stairs' 60 and 80) come from a distance transform of the generated collision data, a review aid not committed.
+
+**NOT RUN in the client:** the drive, the open courtyard, the landings and the pictures. The owner runs [the checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-scarlet-v3-check-proposed-claudescarlet-v3).
+
+## PROGRESS ledger entry for the integrator (Scarlet v3)
+
+> **2026-10-26 — Scarlet v3 (Claude, `claude/scarlet-v3` `86efbca` on Codex `caab661`).** After the owner's second drive ("cant even fit through here"; "the same terrain should have the same effects across maps"): no Scarlet room is rough any more (the Library's courtyard and the Graveyard's cloister become `road`; ADR 0020 sixth addendum). Library v3: the courtyard opened (smaller trees in the corners; a clear ring round the fountain, 48+ units for the kart's centre; four clear ways in), route across it. Cathedral v3: each long flight climbs to a landing walled by a low parapet (a plinth) and a short flight turns outward onto the upper lawn; the round pool moves north and shrinks. Graveyard surface only, still version 2. Catalogue: Library and Cathedral at version 3. Dungeon checks PASS on both machines (same sha256), Lua 5.1 full suite PASS on both, Lua 5.4 dungeon/menu/circuit PASS (cloud), catalogue PASS on both; validator: only the 2 pre-existing `PROGRESS.md` links fail. NOT RUN: client.
+
+## Push (the owner's)
+
+```
+git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/scarlet-v3
+```
+
+## Next
+
+The multiplayer screens (race positions, name tags, results) and the bigger top-10/top-3 celebration, on `claude/race-screens` from this branch.
 
 # Previous: kart stat bars
 
