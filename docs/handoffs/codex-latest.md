@@ -1,5 +1,44 @@
 # Codex handoff — production maps and Claude course review
 
+## Reviewed remote-turn follow-up — 2026-10-26 09:17 CET
+
+Implemented on`codex/remote-turn-smoothing` from890c351, within the reservation
+below. Owner confirms preceding straight-line improvement in native friend
+play; remote turning ticked. Running yaw now continues independently through
+zero speed/wall translation stops. UI bounds packet heading corrections to
+6rad/s using copied elapsedMS; directional sprites stay unrotated and local
+physics/x/y/network/score behavior is unchanged. All remote-cache reset paths
+clear the two heading scalars. No new runtime path or UI object.
+
+Actual focused Lua51 Presentation and UI/multiplayer_integration PASS/80files
+parsed. Synthetic2Hz/350ms/60Hz turn corrections113.961°→5.730° maximum step;
+retained straight/steady-turn metrics unchanged. Independent read-only review
+found no blocker; WhatIf/diffcheck PASS. Native turning/Lua54 NOT RUN.
+64-direction art still has5.625° frame resolution. This improves packet-sized
+corrections without replacing art or claiming perfect remote knowledge.
+
+Next: commit this source, complete verified backup/install/friendZIP, then both
+clients reload and compare a few corners. Do not clear scores or run another
+packet-probe series. No source/new-course merge, push or release; Claude's
+ongoing Cathedral worktree and canonical untracked handoffs remain untouched.
+
+## Active reservation — remote turning display, 2026-10-26 09:10 CET
+
+Owner confirms smoother straight-line multiplayer with a friend, but remote
+turns still advance in roughly4–8 visible ticks. Own `codex/remote-turn-smoothing`
+from clean `890c351`. Preserve installed score discovery, Physics12, packet
+cadence, local simulation and Claude's ongoing Cathedral983f4e2 worktree.
+
+Plan: keep collision-bounded x/y forecasts; separate running heading forecasts
+from stopped translation, then reconcile packet heading corrections at render
+cadence using shortest-arc bounded angular motion. Directional art stays
+unrotated. Reserve Presentation.lua remote path/pose and additive remoteHeading
+helper; UI.lua renderOpponent and existing remote-cache reset lines only;
+focused presentation/UI tests; API_CONTRACTS/LIVE_RACE/PROGRESS and this handoff.
+No menu/art/catalogue edits, new roadmap milestone or native-input automation.
+Focused Lua51 regressions and independent review precede any backed-up install.
+Native turning acceptance remains pending. No claim of Claude acknowledgment.
+
 ## Installed score-discovery checkpoint - 2026-10-26 08:03 CET
 
 Runtime`1c62f3a` now installed, with77source/installed hashes and78complete

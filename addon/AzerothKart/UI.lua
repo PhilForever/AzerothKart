@@ -394,6 +394,7 @@ function UI.Stop(reason)
     UI.active = false
     UI.gridStaged,UI.gridView,UI.remotePath,UI.remotePathAt=false,nil,nil,nil
     UI.remotePathSample,UI.remotePathSequence=nil,nil
+    UI.remoteHeading,UI.remoteHeadingAt=nil,nil
     -- Closing an already interrupted drive cannot replace its terminal reason.
     if UI.result and (UI.result.status == "interrupted" or UI.result.status == "finished") then
         reason = UI.result.reason
@@ -922,6 +923,7 @@ function UI.SelectTrack(id)
     UI.multiplayer,UI.liveView,UI.liveSession=false,nil,nil
     UI.gridStaged,UI.gridView,UI.remotePath,UI.remotePathAt=false,nil,nil,nil
     UI.remotePathSample,UI.remotePathSequence=nil,nil
+    UI.remoteHeading,UI.remoteHeadingAt=nil,nil
     UI.dismissedSummaryRace = nil
     UI.hudElapsed = 0
     UI.stopReason = "Track selected"
@@ -961,12 +963,15 @@ local function renderOpponent()
     local grid = UI.gridStaged and UI.gridView
     local remote = grid and grid.peerPose or (view and view.remote)
     if not UI.multiplayer or not remote then
+        UI.remoteHeading,UI.remoteHeadingAt=nil,nil
         UI.opponent:Hide()
         UI.opponentLabel:Hide()
         return
     end
     local wx,wy,heading,predicted
-    if grid then wx,wy,heading=remote.x,remote.y,remote.heading
+    if grid then
+        wx,wy,heading=remote.x,remote.y,remote.heading
+        UI.remoteHeading,UI.remoteHeadingAt=nil,nil
     else
         -- Cache bounded collision-aware display prediction once per packet.
         -- Its age includes transit time; no extra received-interval delay.
@@ -982,6 +987,19 @@ local function renderOpponent()
             UI.remotePath=Presentation.buildRemotePath(view.remotePrevious,remote,Track,age+600)
         end
         wx,wy,heading,predicted=Presentation.remotePose(UI.remotePath,remote.sampleAgeMS or view.remoteAgeMS or 0)
+        -- A new packet can revise the inferred yaw sharply. Reconcile only
+        -- its displayed heading, leaving the transit-aware x/y path untouched.
+        -- Use the copied controller clock, never the number of render calls.
+        local now=view.elapsedMS
+        local elapsed=0
+        if type(now)=="number" and now==now and now>=0 and now<math.huge then
+            if UI.remoteHeadingAt and now>=UI.remoteHeadingAt then
+                elapsed=now-UI.remoteHeadingAt
+            end
+            UI.remoteHeadingAt=math.max(UI.remoteHeadingAt or now,now)
+        end
+        heading=Presentation.remoteHeading(UI.remoteHeading,heading,elapsed)
+        UI.remoteHeading=heading
     end
     if not wx then UI.opponent:Hide(); UI.opponentLabel:Hide(); return end
     local x,y = Presentation.project(UI.view,wx,wy)
@@ -1306,6 +1324,7 @@ function UI.MultiplayerAction(action,...)
         UI.multiplayer,UI.liveView=false,nil
         UI.gridStaged,UI.gridView,UI.remotePath,UI.remotePathAt=false,nil,nil,nil
         UI.remotePathSample,UI.remotePathSequence=nil,nil
+        UI.remoteHeading,UI.remoteHeadingAt=nil,nil
         UI.opponentAssetId=nil
     end
     return accepted,reason
@@ -1454,6 +1473,7 @@ function UI.Start()
     UI.liveArmed,UI.liveActive,UI.liveSession,UI.multiplayer,UI.liveView=false,false,nil,false,nil
     UI.gridStaged,UI.gridView,UI.remotePath,UI.remotePathAt=false,nil,nil,nil
     UI.remotePathSample,UI.remotePathSequence=nil,nil
+    UI.remoteHeading,UI.remoteHeadingAt=nil,nil
     soloKartId = chosenKartId
     UI.state = Physics.new(Track)
     UI.race = Race.new(Track,Checkpoints,Laps,UI.state.tick)

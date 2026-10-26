@@ -1,5 +1,48 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-26 09:17 +01:00 — remote turn corrections at render cadence
+
+Owner's actual friend playtest confirms smoother straight-line opponent motion,
+with no observed straight-line stutter, but turns still appeared as4–8 distinct
+ticks. This is qualitative native evidence for the preceding movement patch;
+it does not establish scale, packet-loss, shared results or complete acceptance.
+Own `codex/remote-turn-smoothing` from clean`890c351`; read current handoffs and
+preserved Claude's separate Cathedral983f4e2 reservation/worktree and all scores.
+
+Diagnosis/source change: wire heading precision is adequate. New snapshots can
+replace the inferred yaw abruptly, and zero-speed/wall forecasts previously
+froze rotation as well as position. Presentation now retains bounded running
+yaw independently while x/y still stop at the first collision. The UI reconciles
+heading changes on the short arc at up to6rad/s, using copied controller time
+and two resettable scalars. It keeps the64-direction sprites unrotated. Local
+physics/input, translation paths, packet format/cadence/budget, art and UI-object
+counts are unchanged. No per-frame allocations, loads, geometry calls or sends
+are added. Terminal/invalid samples stay exact; stale yaw stops at the existing
+500..1250ms horizon and the displayed heading settles to that frozen target.
+
+Executed actual Lua5.1 commands (Python314 with existing pinned Lupa path):
+`scripts/test_lua.py --runtime lua51 --tests presentation` PASS;
+`scripts/test_lua.py --runtime lua51 --tests ui multiplayer_integration` PASS.
+Both parse all80Lua source/test files. The synthetic2Hz/350ms-transit/60Hz
+onset/release replay reduces maximum angular step113.961°→5.730°; the retained
+straight replay still has0held frames/3.333unit maximum step and1.465unit
+steady-turn error. New UI coverage verifies between-packet stationary turning,
+clock-based progress, state isolation, no repeated art loads and unchanged pool.
+Production pool remains89frames/69textures/136fontStrings (legacy Oval fixture
+reports167textures). `git diff --check` and PowerShell7 install WhatIf PASS.
+Independent focused review found no blocker. Lua54 and new native turning
+checks NOT RUN; no milestone checkbox, eight-racer or score-delivery claim.
+
+API_CONTRACTS and LIVE_RACE now describe the additive angular behavior and
+helper. No Claude source merge/push/release or client input. Deployment of this
+follow-up is next, with complete prior-addon backup and installed-file/ZIP hash
+verification. Scores and the legacy extra file must remain intact.
+
+**Next exact task:** both updated clients reload and drive a few normal corners;
+compare the friend's turn motion with the previous ticking. No standalone
+transport probe is needed. Native score sharing/public discovery and eight-peer
+transport acceptance remain separately pending.
+
 ## 2026-10-26 08:03 +01:00 - score discovery correction installed and packaged
 
 Runtime`1c62f3a` is installed in the existing AzerothKart AddOns directory as the

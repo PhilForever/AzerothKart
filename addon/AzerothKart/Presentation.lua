@@ -167,7 +167,7 @@ function Presentation.buildRemotePath(previous, current, track, horizonMS)
     local path = {points=points, stepMS=remoteStepMS,
         maxAgeMS=remoteHorizon(horizonMS), predicted=false}
     if not validCurrent or current.status ~= "running" or not finite(current.speed)
-        or current.speed == 0 or type(track) ~= "table" then return path end
+        or type(track) ~= "table" then return path end
     if type(track.resolveMovement) ~= "function" and type(track.isDrivable) ~= "function" then
         return path
     end
@@ -200,6 +200,14 @@ function Presentation.buildRemotePath(previous, current, track, horizonMS)
         end
     end
 
+    -- Turning is independent of translation: a kart can steer while stopped
+    -- or at a wall. Keep its bounded observed yaw separate from movement so a
+    -- collision cannot reduce rotation to the network's two updates/second.
+    -- These copied scalar values never feed back into simulation.
+    path.heading,path.yaw = heading,yaw
+    path.predicted = yaw ~= 0
+    if current.speed == 0 then return path end
+
     local turn = yaw/60
     local cosTurn,sinTurn = math.cos(turn),math.sin(turn)
     -- At most 75 fixed movement segments, allocated only once per observation.
@@ -225,7 +233,7 @@ function Presentation.buildRemotePath(previous, current, track, horizonMS)
         points[#points+1] = {x=nx, y=ny, heading=heading}
         path.predicted = path.predicted or nx ~= x or ny ~= y or turn ~= 0
         x,y,vx,vy = nx,ny,nextVX,nextVY
-        if hit then break end -- Freeze at the first wall/solid; never slide a forecast onward.
+        if hit then break end -- Freeze translation at the first wall/solid; never slide onward.
     end
     return path
 end
@@ -242,7 +250,23 @@ function Presentation.remotePose(path, ageMS)
     if not remoteObservation(a) or not remoteObservation(b) then return nil,nil,nil,false end
     local alpha = first < #path.points and at-math.floor(at) or 0
     local x,y,heading = Presentation.pose(a,b,alpha)
+    if finite(path.heading) and finite(path.yaw) and math.abs(path.yaw) <= remoteMaxYaw then
+        heading = path.heading+path.yaw*age/1000
+    end
     return x,y,heading,path.predicted and age > 0
+end
+
+-- Scalar-only angular reconciliation for a remote display. Network steering
+-- changes can replace a forecast abruptly; approach the replacement on the
+-- shortest arc without changing its position, physics or packet cadence.
+-- The caller retains the returned heading/time; this function has no state.
+function Presentation.remoteHeading(previous, target, elapsedMS)
+    if not finite(target) then return nil end
+    if not finite(previous) then return target end
+    if not finite(elapsedMS) then elapsedMS = 0 end
+    local step = 6*math.max(0,math.min(100,elapsedMS))/1000
+    local delta = (target%tau-previous%tau+pi)%tau-pi
+    return previous+math.max(-step,math.min(step,delta))
 end
 
 function Presentation.meter(state, config)

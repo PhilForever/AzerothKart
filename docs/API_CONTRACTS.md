@@ -26,6 +26,26 @@ Public channel discovery remains pending; grouped/confirmed native delivery is
 NOT RUN in the current client. [Behavior and short check](AUTOMATIC_SCORES.md).
 
 
+## Remote heading reconciliation — 2026-10-26
+
+Owner-reported native evidence: straight-line opponent motion is smoother;
+turns still appeared to advance in4–8 ticks. This follow-up changes only the
+observational display. Translation still stops at the first wall/clamp; valid
+running heading/yaw can continue while translation is stopped or speed is zero,
+within the same bounded500..1250ms horizon. Terminal/invalid observations do
+not extrapolate. No movement through walls or authoritative state is added.
+
+Additive pure `Presentation.remoteHeading(previous,target,elapsedMS)` returns
+a displayed heading along the shortest arc, capped at6rad/s. Elapsed time is
+clamped0..100ms per render; invalid/negative time makes no progress. A missing
+prior heading initializes to a finite target; an invalid target returns nil.
+The UI owns only two scalar fields (heading and copied controller time), resets
+them with the remote-path cache, and never advances from render-call count.
+This bounds packet heading corrections without delaying local controls or
+changing x/y prediction. Baked64-heading sprites keep their nearest-frame
+selection and remain unrotated. No extra textures, frames, art or packets.
+Native turning feel for this patch remains NOT RUN.
+
 ## Multiplayer display and group diagnostic - 2026-10-25
 
 `Presentation.buildRemotePath(previous,current,track,horizonMS?)` keeps its
@@ -33,8 +53,10 @@ three-argument500ms default. The optional finite horizon is clamped500..1250ms;
 invalid values use500. At most76precomputed points are built per observation.
 `remotePose` samples the path's bounded horizon without per-render collision
 calls. The valid displacement chord rotates by half the observed signed heading
-change to estimate the current tangent. First wall contact and terminal samples
-still freeze; no local simulation/race/input state is changed.
+change to estimate the current tangent. First wall contact freezes translation;
+terminal samples freeze the pose. The26October addition above allows bounded
+running yaw through stopped translation. No local simulation/race/input state
+is changed.
 
 UI chooses mapped sample age plus600ms (one500ms update interval plus100ms
 jitter), capped by Presentation. Its cache includes receive time, sample time
@@ -517,6 +539,7 @@ UI Start/Restart always creates a fresh countdown; there is no resume. Stop reta
 pose(previous, current, alpha) -> x, y, heading
 buildRemotePath(previousObservation, currentObservation, track) -> path | nil
 remotePose(path, sampleAgeMS) -> x, y, heading, predicted -- nil pose if invalid
+remoteHeading(previousHeading, targetHeading, elapsedMS) -> displayedHeading | nil
 meter(state, Physics) -> fraction, phase
 fitViewport(worldWidth, worldHeight, canvasWidth, canvasHeight) -> view
 cameraViewport(worldWidth, worldHeight, canvasWidth, canvasHeight, scale?) -> view
@@ -533,7 +556,7 @@ kartFrameCoords(sprite, frame) -> left, right, top, bottom
 
 `buildRemotePath` is a separate display-only helper for copied LiveRace observations. UI caches it when receipt time, sample time or sequence changes, then calls allocation-free `remotePose` with `remote.sampleAgeMS` at render cadence. It starts at the newest observation, with no extra 500 ms receive-time interpolation buffer. The three-argument default keeps31points/500ms; the optional horizon extends to1250ms/76points for transit plus the next update. Both use fixed1/60s steps, absolute speed cap 260 units/s and heading-rate cap 3.0 radians/s. Current signed speed/facing supply the fallback; a valid positive sample interval of at most 2 s supplies measured travel direction advanced by half the signed heading change to estimate the current tangent, plus shortest-arc yaw. It does not predict unknown acceleration, braking or new steering. `resolveMovement` is used where present; contact, clamp or invalid/far recovery stops further projection. A road-mask-only track refuses outside endpoints. This preserves the current geometry hooks' limits; it is not a new continuous collision guarantee.
 
-`remotePose` clamps finite age to the cached path's bounded horizon (500ms by default; at most1250ms), samples between cached points and freezes at the forecast's end. Invalid/missing age draws the observation without guessed latency. Non-running or invalid-speed observations stay frozen; invalid current pose falls back to a valid previous pose without forecasting, and no valid pose yields nil. Inputs are never written. The boolean labels an estimated pose; it does not verify where the peer really is. Later observations can correct it abruptly, and clock offset, abrupt turns/braking and loss remain visible limitations. Neither helper feeds local Physics/Race, awards progress, compares standings or sends packets. Native smoothness and visual edge behavior for this revision remain **NOT RUN**.
+`remotePose` clamps finite age to the cached path's bounded horizon (500ms by default; at most1250ms), samples cached positions and freezes translation at the first contact or forecast end. Valid running yaw is sampled independently, so a stopped or wall-contact kart can keep turning within that horizon. Invalid/missing age draws the observation without guessed latency. Non-running or invalid-speed observations stay frozen; invalid current pose falls back to a valid previous pose without forecasting, and no valid pose yields nil. Inputs are never written. The boolean labels an estimated pose; it does not verify where the peer really is. The UI bounds subsequent heading corrections through `remoteHeading`; position, clock offset, unknown steering/braking and loss remain observational limitations. These helpers never feed local Physics/Race, award progress, compare standings or send packets. Native turning and visual edge behavior for this revision remain **NOT RUN**.
 
 `meter` clamps a visual fraction to capacity and returns `"idle"`, `"charging"`, `"holding"`, `"tier1"`, `"tier2"` or `"boost"`. Rough ground/walls override stale charge. Boost uses the shared 48-tick capacity, so a shorter reward starts less full. Phase does not change simulation.
 

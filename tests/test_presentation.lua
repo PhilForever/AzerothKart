@@ -351,6 +351,64 @@ do
     print(("offline remote replay (synthetic 2Hz/350ms/60Hz): held=%d->%d maxStep=%.3f->%.3f peakError=%.3f->%.3f; steady-turn error=%.3f"):format(
         oldHeld,held,oldStep,step,oldError,error,turnError))
 
+    -- Steering begins/ends between packets. Replacing the old forecast can
+    -- otherwise jump by most of a turn even though its ordinary frames move
+    -- smoothly. Angular reconciliation limits that discontinuity; translation
+    -- remains the exact forecast above, without an interpolation delay.
+    local function steeringObservation(ms)
+        local seconds,yaw = ms/1000,2.6
+        local turning = math.max(0,math.min(seconds-0.55,0.9))
+        local angle = yaw*turning
+        local x,y
+        if seconds<=0.55 then x,y=200*seconds,0
+        else
+            x,y=110+200/yaw*math.sin(angle),200/yaw*(1-math.cos(angle))
+            local after=math.max(0,seconds-1.45)
+            x,y=x+200*after*math.cos(angle),y+200*after*math.sin(angle)
+        end
+        return {x=x,y=y,heading=angle,speed=200,sampleMS=ms,status="running"}
+    end
+    local sample,headingPath,lastRaw,shown,maxRaw,maxShown=nil,nil,nil,nil,0,0
+    for frame=21,180 do
+        local now=frame*1000/60
+        local newest=math.floor((now-350+1e-8)/500)*500
+        if newest~=sample then
+            sample=newest
+            headingPath=P.buildRemotePath(steeringObservation(sample-500),steeringObservation(sample),straight,950)
+        end
+        local x,y,target=P.remotePose(headingPath,now-sample)
+        local nextShown=P.remoteHeading(shown,target,1000/60)
+        if lastRaw then maxRaw=math.max(maxRaw,math.abs((target-lastRaw+pi)%tau-pi)) end
+        if shown then maxShown=math.max(maxShown,math.abs((nextShown-shown+pi)%tau-pi)) end
+        local checkX,checkY=P.remotePose(headingPath,now-sample)
+        assert(checkX==x and checkY==y,"angular reconciliation cannot alter forecast position")
+        lastRaw,shown=target,nextShown
+    end
+    assert(maxRaw>1.8,"steering onset/release reproduces the packet-sized angular correction")
+    assert(maxShown<=6/60+1e-10 and maxShown<maxRaw/10,
+        "angular reconciliation bounds each rendered correction at six radians/second")
+    print(("offline remote steering (synthetic 2Hz/350ms/60Hz): maxHeadingStepDegrees=%.3f->%.3f"):format(
+        maxRaw*180/pi,maxShown*180/pi))
+
+    near(P.remoteHeading(nil,1,16),1,"missing previous heading initializes at the target")
+    near(P.remoteHeading(tau-0.05,0.05,20),tau+0.05,"reconciliation crosses zero on the short arc")
+    near(P.remoteHeading(0,pi,10),-0.06,"an exact half-turn uses the negative arc")
+    near(P.remoteHeading(0,2,1e9),0.6,"one slow render cannot apply more than 100ms correction")
+    near(P.remoteHeading(2,0,-100),2,"negative elapsed time cannot turn backwards in time")
+    near(P.remoteHeading(0,0.01,100),0.01,"small errors reach their target without overshoot")
+    local extremeHeading=P.remoteHeading(-1e308,1e308,100)
+    assert(extremeHeading==extremeHeading and extremeHeading>-math.huge and extremeHeading<math.huge,
+        "finite accumulated headings cannot overflow their shortest-arc subtraction")
+    near(P.remoteHeading(2,0,0),2,"zero elapsed time preserves the shown heading")
+    near(P.remoteHeading(2,0,nil),2,"missing elapsed time preserves the shown heading")
+    for _,invalid in ipairs({0/0,math.huge,-math.huge,false,"16",{}}) do
+        assert(P.remoteHeading(0,invalid,16)==nil,"invalid targets return no display heading")
+        near(P.remoteHeading(invalid,1,16),1,"invalid previous headings safely initialize at target")
+        near(P.remoteHeading(2,0,invalid),2,"invalid elapsed time cannot snap a valid heading")
+    end
+    assert(P.remoteHeading(0,nil,16)==nil,"missing target returns no display heading")
+    assert(select("#",P.remoteHeading(0,1,16))==1,"angular reconciliation returns one scalar")
+
     local wall = {resolveMovement=function(x,y,tx,ty)
         assert(math.sqrt((tx-x)^2+(ty-y)^2)<=260/60+1e-9,"small projection sweep")
         return math.min(tx,100),ty,tx>100
@@ -359,6 +417,12 @@ do
         "a forecast freezes at the first resolved wall contact")
     remote(P.buildRemotePath(older,latest,wall,1250),1250,100,30,0,true,
         "a longer horizon still freezes at the first wall instead of sliding onward")
+    local turningAtWall = copy(latest); turningAtWall.heading=0.5
+    local solid = {resolveMovement=function(x,y) return x,y,true end}
+    local wallTurn = P.buildRemotePath(older,turningAtWall,solid,1250)
+    assert(#wallTurn.points==2,"turning does not add movement sweeps after a wall stops translation")
+    remote(wallTurn,500,60,30,1,true,"wall contact retains bounded observed turning")
+    remote(wallTurn,5000,60,30,1.75,true,"wall turning freezes at the same stale horizon")
     local road = {isDrivable=function(x,y) return x<=95 end}
     local roadPath = P.buildRemotePath(older,latest,road)
     local roadX = P.remotePose(roadPath,500)
@@ -387,10 +451,25 @@ do
             "extended horizons never predict beyond a terminal observation")
     end
     local stopped = copy(latest); stopped.speed=0
-    remote(P.buildRemotePath(older,stopped,straight),500,60,30,0,false,"zero speed stays frozen")
+    remote(P.buildRemotePath(older,stopped,straight),500,60,30,0,false,"zero speed without observed yaw stays frozen")
+    stopped.heading=0.5
+    local stoppedBefore = copy(stopped)
+    local stoppedTurn = P.buildRemotePath(older,stopped,straight,1250)
+    assert(#stoppedTurn.points==1,"stationary turning allocates no movement forecast")
+    remote(stoppedTurn,0,60,30,0.5,false,"stationary zero age is exactly the observation")
+    remote(stoppedTurn,350,60,30,0.85,true,"stationary steering predicts heading without translation")
+    remote(stoppedTurn,5000,60,30,1.75,true,"stationary yaw freezes at the bounded stale horizon")
+    remote(P.buildRemotePath(older,stopped,straight),5000,60,30,1,true,
+        "stationary yaw retains the original default horizon")
+    for key,value in pairs(stoppedBefore) do assert(stopped[key]==value,"stationary source stays read-only") end
+    for _,status in ipairs({"finished","stopped","stale"}) do
+        local terminal=copy(stopped); terminal.status=status
+        remote(P.buildRemotePath(older,terminal,straight,1250),5000,60,30,0.5,false,
+            "terminal heading never continues a previous turn")
+    end
     for _,invalid in ipairs({0/0,math.huge,-math.huge,false,"100"}) do
-        local badSpeed = copy(latest); badSpeed.speed=invalid
-        remote(P.buildRemotePath(older,badSpeed,straight),500,60,30,0,false,
+        local badSpeed = copy(latest); badSpeed.speed,badSpeed.heading=invalid,0.5
+        remote(P.buildRemotePath(older,badSpeed,straight),500,60,30,0.5,false,
             "invalid speed stays finite and frozen")
         for _,field in ipairs({"x","y","heading"}) do
             local malformed = copy(latest); malformed[field]=invalid
@@ -405,7 +484,7 @@ do
         "no valid observation draws no invented pose")
     assert(P.remotePose(nil,500)==nil and P.remotePose({points={{x=0/0,y=0,heading=0}}},500)==nil,
         "invalid paths never return NaN to the renderer")
-    print("offline remote presentation: default 500ms/31 points, optional 1250ms/76 points, wall/solid stops, read-only observations and cadence-independent sampling")
+    print("offline remote presentation: default 500ms/31 points, optional 1250ms/76 points, wall/solid translation stops, bounded independent yaw, read-only observations and scalar angular reconciliation")
 end
 
 local config = dofile("addon/AzerothKart/Physics.lua")

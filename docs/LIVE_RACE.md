@@ -64,7 +64,7 @@ calculated, and a remote progress claim never awards a local checkpoint/lap.
 
 Peer silence, or frozen running ticks despite fresh sequence numbers, closes
 at five seconds; stale/duplicate/wrong-session/invalid packets do not renew
-liveness. Age over1500ms marks remoteStale. Presentation may forecast through the read-only geometry helper with a500ms default or optional1250ms maximum horizon; authoritative local simulation is never extrapolated from received poses. At most the
+liveness. Age over1500ms marks remoteStale. Presentation may forecast through the read-only geometry helper with a500ms default or optional1250ms maximum horizon; authoritative local simulation is never extrapolated from received poses. Translation stops at first contact; bounded running yaw continues independently even at zero speed. A display-only shortest-arc6rad/s limit reconciles packet heading changes using the copied controller clock, with no extra packet or UI object. Directional sprites remain unrotated. The owner reports smoother native straight-line movement; this turning follow-up is offline-tested only. At most the
 latest two observations are kept; there is no packet history allocation. The
 common update/advance deadline check enforces frozen-progress timeout even if
 no further packet arrives. Duration is capped at30minutes/108000 driving ticks.

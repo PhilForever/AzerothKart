@@ -3310,6 +3310,52 @@ withMock(nil,false,function(env,UI)
     UI.Stop("prediction fixture")
 end)
 
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart"); UI.Toggle()
+    local calls,transport,launch=liveFixture(env,UI)
+    assert(UI.MultiplayerAction("ready",true)); local token=launch(); UI.OnUpdate(0)
+    local P=env.namespace.Presentation
+    local view=env.namespace.LiveRace.view(token)
+    view.remote={x=400,y=100,heading=0,speed=0,status="running",sampleMS=0,
+        receivedAtMS=0,sampleAgeMS=350}
+    view.peerKartId="steam_tank"
+    transport.AdvanceLive=function() return view end
+    UI.OnUpdate(0)
+    local objects={}; for key,value in pairs(env.counts) do objects[key]=value end
+    local sprite=P.KART_SPRITES.steam_tank
+    local kartLoads=loads(env,sprite.path)
+    local localHeading,localTick=view.vehicle.heading,view.vehicle.tick
+    view.remotePrevious=view.remote
+    view.remote={x=400,y=100,heading=1.3,speed=0,status="running",sampleMS=500,
+        receivedAtMS=500,sampleAgeMS=350}
+    view.remoteSequence=1
+    local lastHeading,changes,lastFrame=UI.remoteHeading,0,UI.opponentFrame
+    for frame=1,90 do
+        view.elapsedMS=frame*1000/60
+        view.remote.sampleAgeMS=350+view.elapsedMS
+        UI.OnUpdate(1/60)
+        local delta=(UI.remoteHeading-lastHeading+math.pi)%(2*math.pi)-math.pi
+        assert(math.abs(delta)<=6/60+1e-8,"a packet correction cannot snap the displayed kart heading")
+        if UI.opponentFrame~=lastFrame then changes=changes+1 end
+        lastHeading,lastFrame=UI.remoteHeading,UI.opponentFrame
+    end
+    assert(changes>20 and UI.remoteHeading>3,
+        "a stationary turning opponent advances directional frames between low-rate packets")
+    local heading=UI.remoteHeading
+    UI.OnUpdate(0.5); UI.OnUpdate(0.5)
+    assert(UI.remoteHeading==heading,"repeated renders cannot advance heading without controller time")
+    assert(UI.opponent.rotation==0 and loads(env,sprite.path)==kartLoads,
+        "baked directional art stays unrotated and loads once")
+    assert(view.remote.heading==1.3 and view.remote.x==400 and view.remotePrevious.heading==0
+        and view.vehicle.heading==localHeading and view.vehicle.tick==localTick,
+        "angular reconciliation never writes observed or authoritative state")
+    for key,value in pairs(objects) do assert(env.counts[key]==value,"remote turns allocated UI objects: "..key) end
+    UI.Stop("turn fixture")
+    assert(UI.remoteHeading==nil and UI.remoteHeadingAt==nil and UI.remotePath==nil,
+        "Stop clears presentation heading history before another run")
+    print(("offline UI remote turn: %d directional frame changes/90 frames, <=6rad/s correction, unchanged UI pool"):format(changes))
+end)
+
 for _,exit in ipairs({"escape","stop","combat","focus","chat","close","world","native"}) do
     withMock(nil,false,function(env,UI)
         env.fire("ADDON_LOADED","AzerothKart"); UI.Toggle()
