@@ -77,6 +77,7 @@ local function withMock(savedDB, test, prepare)
     function methods:SetRotation(value) self.rotation = value end
     function methods:SetVertexColor(...) self.vertexColor = {...} end
     function methods:SetColorTexture(...) self.color = {...} end
+    function methods:SetTextColor(...) self.textColor = {...} end
     function methods:SetScale(value) self.scale = value end
     function methods:SetChecked(value) self.checked = value end
     function methods:LockHighlight() self.locked = true end
@@ -117,7 +118,8 @@ local function withMock(savedDB, test, prepare)
     env.sounds = {}
     _G.SOUNDKIT = {IG_MAINMENU_OPTION=852, IG_MAINMENU_OPEN=850, IG_MAINMENU_OPTION_CHECKBOX_ON=856,
         IG_MAINMENU_OPTION_CHECKBOX_OFF=857, UI_BATTLEGROUND_COUNTDOWN_TIMER=25477,
-        UI_BATTLEGROUND_COUNTDOWN_FINISHED=25478, LFG_REWARDS=17316}
+        UI_BATTLEGROUND_COUNTDOWN_FINISHED=25478, LFG_REWARDS=17316, IG_QUEST_LIST_COMPLETE=878,
+        UI_EPICLOOT_TOAST=31578}
     _G.PlaySound = function(kit) env.sounds[#env.sounds + 1] = kit end
     _G.UISpecialFrames = {}
     local ok, err = pcall(function()
@@ -256,8 +258,12 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu)
     -- Saved highscores add six frames and 52 labels, including the results notice.
     -- The player's kart outline adds a texture, its Settings check a button and two labels.
     -- The kart screen's four handling bars add two textures (empty, full) and a label each.
-    assert(UI.objects.frames == 89 and UI.objects.textures == 77 and UI.objects.fontStrings == 140,
-        ("explicit budget 89/77/140, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
+    -- The race screens add the HUD's place (two labels), the friend's name tag
+    -- (one label), and to the results a Highscores button, a sunburst, a medal
+    -- and twelve confetti pieces (14 textures), a banner, its line, the wreath's
+    -- rank and the two racers' rows (two labels each).
+    assert(UI.objects.frames == 90 and UI.objects.textures == 91 and UI.objects.fontStrings == 150,
+        ("explicit budget 90/91/150, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
             UI.objects.fontStrings))
     assert(AzerothKartDB.preferences == nil, "creation saves nothing")
     local before = counts(env)
@@ -1301,6 +1307,214 @@ withMock(nil, function(env, UI, Menu, AK)
     assert(Menu.view.highscoreRule.text == "Fastest completed three-lap totals for the current rules",
         "the next board holds three-lap totals again")
     sameCounts(env, before, "the board's rule line reuses its label")
+end)
+
+-- Results celebrations: a new personal best high on the shared board -------
+withMock({schemaVersion=1}, function(env, UI, Menu, AK)
+    UI.Toggle()
+    local view = Menu.view
+    local saved = {saved=true, totalTicks=1830, message="Top 3 in known shared scores! #2 | Personal best saved: 0:30.50"}
+    -- A board of `count` racers, the player's new row at `rank` (the newest
+    -- row with the run's total; older rows elsewhere may tie it).
+    local function board(rank, count, scope)
+        local rows = {}
+        for index=1,count do
+            rows[index] = {playerName="Racer " .. index, totalTicks=1700 + index * 20, finishedAt=1000 + index}
+        end
+        if count > rank then rows[rank + 1].totalTicks = 1830 end    -- an older equal total, below
+        rows[rank] = {playerName="Lene Conradi", totalTicks=1830, finishedAt=5000}
+        return {scope=scope or "community", rows=rows, context={lapCount=3}}
+    end
+    local shown
+    AK.SoloRecords = {GetView=function() return shown end, PlayerName=function() return "Lene Conradi" end,
+        FormatTime=function(ticks) return Menu.formatTime(ticks / 60) end, FormatDate=function() return "2026-10-26" end}
+    local race = {status="finished", targetLaps=3, totalTicks=1830, laps={completedLaps=3, lastLapTicks=600,
+        bestLapTicks=600, checkpoints={passed=0}}}
+    -- (Showing the results calls Menu.OnResults, as UI does at a finish.)
+    local function finish(rank, count, scope)
+        shown = board(rank, count, scope)
+        UI.race, UI.scoreResult, UI.multiplayer = {status=race.status, targetLaps=3, totalTicks=1830, laps=race.laps},
+            saved, false
+        if UI.summary.shown then Menu.OnResults() else UI.summary:Show() end
+    end
+    assert(Menu.scorePlacement(saved, "mirage_raceway") == nil, "no board, no place")
+    shown = board(2, 14)
+    local placement = Menu.scorePlacement(saved, "mirage_raceway")
+    assert(placement.rank == 2 and placement.count == 14 and placement.shared and placement.kind == "top3",
+        "the newest row with the run's total is the player's: #2 of 14, top three")
+    assert(Menu.scorePlacement({saved=false, totalTicks=1830}, "mirage_raceway") == nil
+        and Menu.scorePlacement({saved=true}, "mirage_raceway") == nil, "only a saved new best has a place")
+    local kinds = {}
+    for _,case in ipairs({{1, 9}, {1, 1}, {3, 9}, {7, 20}, {11, 20}}) do
+        shown = board(case[1], case[2])
+        kinds[#kinds + 1] = Menu.scorePlacement(saved, "x").kind
+    end
+    shown = board(1, 3, "local")
+    kinds[#kinds + 1] = Menu.scorePlacement(saved, "x").kind
+    assert(table.concat(kinds, ",") == "record,first,top3,top10,best,best",
+        "#1, alone at #1, top three, top ten, below; a local board only says best: " .. table.concat(kinds, ","))
+
+    local before = counts(env)
+    local sounds = #env.sounds
+    finish(2, 14)
+    assert(view.banner.text == "TOP 3!" and visible(view.banner) and view.bannerSub.text == "#2 of 14 on the shared board",
+        "a top-three best gets the banner and its place")
+    assert(visible(view.medal) and view.medal.texturePath == Menu.CELEBRATION_PATH
+        and table.concat(view.medal.texCoords, ",") == table.concat(Menu.CELEBRATION_COORDS.silver, ",")
+        and visible(view.rays) and not visible(view.medalRank), "#2 wears the silver medal on the sunburst")
+    assert(UI.summary.height == 420 and UI.summaryTitle.point[5] == -104 and view.resultScore.text == saved.message,
+        "the dialog grows for the banner, UI's title moves under it, the save notice stays")
+    assert(#env.sounds == sounds + 1 and env.sounds[#env.sounds] == 31578,
+        "the top-three sound plays in place of the finish fanfare")
+    assert(view.highscoresButton.locked and view.highscoresButton.enabled, "the board's button invites a look")
+    -- The motion: the medal pops, confetti falls and is gone within three seconds.
+    Menu.AnimateResults(0.1)
+    assert(view.medal.width > 84 * 0.4 and view.medal.width < 84 * 1.15, "the medal grows in")
+    local falling = 0
+    for _,piece in ipairs(view.confetti) do if piece.shown then falling = falling + 1 end end
+    Menu.AnimateResults(0.5)
+    for _,piece in ipairs(view.confetti) do if piece.shown then falling = falling + 1 end end
+    assert(falling > 0 and view.rays.rotation and view.rays.rotation > 0, "confetti falls and the sunburst turns")
+    for _=1,40 do Menu.AnimateResults(0.1) end
+    for _,piece in ipairs(view.confetti) do assert(not piece.shown, "the confetti has gone") end
+    assert(view.medal.width == 84 and visible(view.medal), "the medal stays, at its size")
+    -- Reopened: the same celebration, still, with no second sound.
+    sounds = #env.sounds
+    Menu.OnResults()
+    assert(#env.sounds == sounds and view.banner.text == "TOP 3!", "reopening shows it again without a sound")
+
+    finish(1, 9)
+    assert(view.banner.text == "NEW #1!" and table.concat(view.medal.texCoords, ",")
+        == table.concat(Menu.CELEBRATION_COORDS.gold, ","), "#1 of several: gold")
+    finish(1, 1)
+    assert(view.banner.text == "FIRST ON THE BOARD!", "alone at #1: first on the board")
+    finish(3, 9)
+    assert(table.concat(view.medal.texCoords, ",") == table.concat(Menu.CELEBRATION_COORDS.bronze, ","), "#3: bronze")
+    sounds = #env.sounds
+    finish(7, 20)
+    assert(view.banner.text == "TOP 10!" and view.medalRank.text == "#7" and visible(view.medalRank)
+        and table.concat(view.medal.texCoords, ",") == table.concat(Menu.CELEBRATION_COORDS.wreath, ",")
+        and env.sounds[#env.sounds] == 878, "top ten: the wreath with the rank in it, its own sound")
+    -- Below the top ten, or on this computer's own board: no banner; the
+    -- notice in gold, the plain dialog, the finish fanfare.
+    sounds = #env.sounds
+    finish(11, 20)
+    assert(not visible(view.banner) and not visible(view.medal) and not visible(view.rays)
+        and UI.summary.height == 336 and view.resultScore.textColor
+        and view.resultScore.textColor[1] == 1 and env.sounds[#env.sounds] == 17316,
+        "a best off the top ten: a gold notice, no banner, the fanfare")
+    finish(1, 3, "local")
+    assert(not visible(view.banner) and UI.summary.height == 336 and not view.highscoresButton.locked,
+        "a local best: no banner")
+    UI.scoreResult = {message="Total 0:30.50 | Personal best unchanged", totalTicks=1830}
+    Menu.OnResults()
+    assert(not visible(view.banner) and view.resultScore.textColor[1] == 0.5, "no best: the plain grey notice")
+    -- Every celebration above reused the window's pieces.
+    sameCounts(env, before, "celebrations reuse their pooled pieces")
+
+    -- The board's button: the run's own board, at the player's page, their row in gold.
+    finish(12, 20)
+    click(view.highscoresButton)
+    assert(Menu.screen == "highscores" and not UI.summary.shown and Menu.highscorePage == 2,
+        "the board opens at the page with the player's row")
+    local own = view.highscoreRows[2]
+    assert(own.name.text == "Lene Conradi" and own.name.textColor[1] == 1 and own.name.textColor[3] == 0
+        and view.highscoreRows[1].name.textColor[3] == 1, "the player's row in gold, the others white")
+end)
+
+withMock({schemaVersion=1}, function(env, UI, Menu, AK)
+    UI.Toggle()
+    local view = Menu.view
+    AK.SoloRecords = {GetView=function() return {scope="community", rows={{playerName="Lene Conradi", totalTicks=1830,
+        finishedAt=5000}}} end, PlayerName=function() return "Lene Conradi" end}
+    UI.race, UI.scoreResult, UI.multiplayer = {status="finished", targetLaps=3, totalTicks=1830,
+        laps={completedLaps=3, lastLapTicks=600, checkpoints={passed=0}}}, {saved=true, totalTicks=1830}, false
+    env.textureModes[Menu.CELEBRATION_PATH] = "false"
+    UI.summary:Show()
+    assert(view.banner.text == "FIRST ON THE BOARD!" and visible(view.banner) and not visible(view.medal)
+        and not visible(view.rays), "a refused picture leaves the banner alone")
+    local calls = env.textureCalls
+    env.textureModes[Menu.CELEBRATION_PATH] = nil
+    Menu.fanfareRace = nil
+    Menu.OnResults()
+    assert(env.textureCalls == calls and not visible(view.medal), "the picture is not tried again")
+end)
+
+-- Two-player race screens: the HUD's place, the results' racers -----------------
+withMock({schemaVersion=1}, function(env, UI, Menu, AK)
+    UI.Toggle()
+    local view, P = Menu.view, AK.Presentation
+    local track = UI.track
+    local gates = #track.gates
+    AK.SoloRecords = {GetView=function() return {rows={}} end, PlayerName=function() return "Lene Conradi" end}
+    local live = {phase="running", peer="Amber Stone", peerKartId="steam_tank", remote={x=0, y=0, completedLaps=0,
+        passed=0, status="running", tick=10}}
+    local before = counts(env)
+    UI.multiplayer, UI.liveView = true, live
+    UI.race = {status="running", targetLaps=3, totalTicks=600, laps={completedLaps=1, checkpoints={passed=1}}}
+    UI.laps = UI.race.laps
+    UI.state.x, UI.state.y = track.gates[2].ax, track.gates[2].ay
+    UI.opponentWorldX, UI.opponentWorldY = nil, nil
+    Menu.RefreshRaceHud()
+    -- (The race overlay itself shows only in the race scene.)
+    assert(view.position.text == "1st" and view.position.shown and view.positionOf.text == "of 2",
+        "a lap and a gate ahead of the friend: 1st")
+    live.remote.completedLaps, live.remote.passed = 1, 2
+    Menu.RefreshRaceHud()
+    assert(view.position.text == "2nd", "the friend a gate further on: 2nd")
+    live.remote.status, live.remote.completedLaps, live.remote.passed, live.remote.tick = "finished", 3, 0, 2400
+    Menu.RefreshRaceHud()
+    assert(view.position.text == "2nd", "a finished friend is ahead of a racer still racing")
+    sameCounts(env, before, "the HUD's place creates nothing")
+
+    -- Finished first; the friend still racing; then finishing behind.
+    live.remote.status, live.remote.completedLaps, live.remote.passed, live.remote.tick = "running", 2, 1, 2000
+    UI.race = {status="finished", targetLaps=3, totalTicks=2280, laps={completedLaps=3, lastLapTicks=700,
+        checkpoints={passed=0}}}
+    UI.laps = UI.race.laps
+    local sounds = #env.sounds
+    UI.summary:Show()
+    assert(view.banner.text == "FINISHED!" and view.bannerSub.text == "Waiting for Amber Stone to finish"
+        and not visible(view.medal) and env.sounds[#env.sounds] == 17316 and #env.sounds == sounds + 1,
+        "finished first, the friend still racing: the fanfare, and waiting")
+    assert(view.standings[1].left.text:find("1st", 1, true) and view.standings[1].left.text:find("Lene Conradi", 1, true)
+        and view.standings[1].right.text == "0:38.00" and view.standings[2].left.text:find("Amber Stone", 1, true)
+        and view.standings[2].right.text:find("racing, lap 3/3", 1, true) and not visible(UI.summaryDetail),
+        "the racers in their places: the friend on their last lap")
+    assert(not view.highscoresButton.enabled and view.resultScore.text:find("each racer reported", 1, true),
+        "no board for a two-player race; the note says whose times these are")
+    live.remote.status, live.remote.completedLaps, live.remote.passed, live.remote.tick = "finished", 3, 0, 2379
+    Menu.AnimateResults(0.25)
+    assert(view.banner.text == "1st PLACE!" and view.bannerSub.text == "Amber Stone finished 1.65s behind you"
+        and visible(view.medal) and visible(view.rays) and env.sounds[#env.sounds] == 31578,
+        "the friend finishes behind: 1st place, the gold medal, the sound")
+    assert(view.standings[2].right.text == "0:39.65", "the friend's time as they reported it")
+    -- Finished second.
+    live.remote.tick = 2100
+    Menu.fanfareRace = nil
+    Menu.OnResults()
+    assert(view.banner.text == "2nd PLACE" and view.bannerSub.text == "You finished 3.00s behind Amber Stone"
+        and view.standings[1].left.text:find("Amber Stone", 1, true)
+        and table.concat(view.medal.texCoords, ",") == table.concat(Menu.CELEBRATION_COORDS.silver, ","),
+        "second: the silver medal, the friend first")
+    -- The friend left, or was lost.
+    live.remote.status, live.remote.tick, live.reason, live.phase = "stopped", 900, "peer_stopped", "closed"
+    Menu.fanfareRace = nil
+    Menu.OnResults()
+    assert(view.banner.text == "1st PLACE" and view.bannerSub.text == "Amber Stone left the race"
+        and view.standings[2].right.text:find("left the race", 1, true), "the friend left the race")
+    -- A stopped run: no banner, the plain dialog with the racers.
+    UI.race = {status="stopped", targetLaps=3, totalTicks=900, laps={completedLaps=1, checkpoints={passed=0}}}
+    UI.laps = UI.race.laps
+    live.remote.status, live.reason, live.phase = "running", nil, "closed"
+    Menu.OnResults()
+    assert(not visible(view.banner) and UI.summary.height == 336 and view.standings[2].right.text:find("stopped", 1, true)
+        and view.standings[1].left.text:find("Amber Stone", 1, true), "a stopped run ranks behind")
+    sameCounts(env, before, "the race screens reuse their pooled pieces")
+    -- Solo again: no place, no racers.
+    UI.multiplayer, UI.liveView = false, nil
+    Menu.RefreshRaceHud()
+    assert(not view.position.shown and not view.positionOf.shown, "no place outside a two-player race")
 end)
 
 print("mock menus: 8 screens, single-player flow, saved highscore pages, results paths, garage, settings, saved choices, " ..

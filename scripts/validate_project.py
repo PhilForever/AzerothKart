@@ -80,6 +80,8 @@ REQUIRED=[
  'tests/test_circuit.lua','scripts/build_city_tracks.py','scripts/city_layouts.py','scripts/wc3render.py','scripts/wc3casc.py',
  'addon/AzerothKart/Assets/UI/TrackPreviews.tga','docs/art/ui/front-end.md',
  'addon/AzerothKart/Assets/UI/StatBars.tga','scripts/build_stat_bars.py','docs/art/ui/stat-bars.png',
+ 'addon/AzerothKart/Assets/UI/Celebration.tga','scripts/build_celebration_art.py','docs/art/ui/celebration.png',
+ 'docs/art/ui/race-screens-review.png',
  'addon/AzerothKart/Assets/Karts/SteamTank.tga','addon/AzerothKart/Assets/Karts/DwarvenBiker.tga',
  'addon/AzerothKart/Assets/Karts/GryphonRider.tga','addon/AzerothKart/Assets/Karts/Gyrocopter.tga',
  'scripts/build_effect_sprites.py','scripts/preview_effects.py','docs/art/effects/drift-boost.md',

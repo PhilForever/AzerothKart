@@ -664,5 +664,94 @@ function Presentation.particleAt(p, now)
     return p.x + p.vx * travel, p.y + p.vy * travel + p.rise * age, size, alpha
 end
 
+-- ---------------------------------------------------------------------------
+-- Race standings for the HUD and the results: display estimates from each
+-- racer's own progress (gates passed, laps, where its kart is drawn). They
+-- are never written back into Race and award nothing; a remote racer's
+-- progress and finishing tick are what it reported, agreed by nobody.
+
+-- The distance from (x, y) to a gate's segment.
+local function toGate(gate, x, y)
+    local ax, ay, bx, by = gate.ax, gate.ay, gate.bx, gate.by
+    local dx, dy = bx - ax, by - ay
+    local length = dx * dx + dy * dy
+    local t = length > 0 and ((x - ax) * dx + (y - ay) * dy) / length or 0
+    t = t < 0 and 0 or (t > 1 and 1 or t)
+    local px, py = ax + dx * t - x, ay + dy * t - y
+    return math.sqrt(px * px + py * py)
+end
+
+local function count(value, low, high)
+    return finite(value) and value >= low and value <= high and value % 1 == 0
+end
+
+-- A racer's progress along a course, larger further on: every gate passed in
+-- its completed laps and this one, plus a fraction (0 to 0.999) for how far it
+-- has come from the previous gate toward the next, by straight distance.
+-- nil for anything unreadable (`passed` counts this lap's gates, below the
+-- course's gate count).
+function Presentation.raceProgress(track, completedLaps, passed, x, y)
+    local gates = type(track) == "table" and track.gates
+    local total = type(gates) == "table" and #gates or 0
+    if total == 0 or not count(completedLaps, 0, 1000) or not count(passed, 0, total - 1)
+        or not finite(x) or not finite(y) then return nil end
+    local nextGate, previous = gates[passed + 1], gates[passed] or gates[total]
+    local fraction = 0
+    if previous ~= nextGate then
+        local span = toGate(nextGate, (previous.ax + previous.bx) / 2, (previous.ay + previous.by) / 2)
+        if span > 0 then fraction = 1 - toGate(nextGate, x, y) / span end
+    end
+    fraction = fraction < 0 and 0 or (fraction > 0.999 and 0.999 or fraction)
+    return completedLaps * total + passed + fraction
+end
+
+-- 1 finished, 2 still racing, 3 out of the race (left, lost or stopped).
+local function standing(racer)
+    if racer.out then return 3 end
+    return racer.finishTicks and 1 or 2
+end
+
+-- Whether racer `a` places ahead of racer `b`. A racer is a table with
+-- `finishTicks` (its finishing tick, from its own start at tick 0) once it
+-- has finished, `progress` (Presentation.raceProgress) while it races, and
+-- `out` when it has left the race. Finished racers come first, the earlier
+-- tick ahead; then racers still racing, the further on ahead; then those out.
+-- Allocates nothing (the HUD asks every frame).
+function Presentation.ahead(a, b)
+    local sa, sb = standing(a), standing(b)
+    if sa ~= sb then return sa < sb end
+    if sa == 1 then return a.finishTicks < b.finishTicks end
+    if sa == 2 then return (a.progress or -1) > (b.progress or -1) end
+    return false
+end
+
+-- The racers in placing order (a new list; the racers themselves are not
+-- copied), each given its `place` from 1. Ties keep the order given.
+function Presentation.standings(racers)
+    local order = {}
+    for index, racer in ipairs(racers) do order[index] = racer end
+    for index = 2, #order do                 -- insertion sort: stable, and lists are short
+        local racer, slot = order[index], index
+        while slot > 1 and Presentation.ahead(racer, order[slot - 1]) do
+            order[slot] = order[slot - 1]
+            slot = slot - 1
+        end
+        order[slot] = racer
+    end
+    for place, racer in ipairs(order) do racer.place = place end
+    return order
+end
+
+-- "1st", "2nd", "3rd", "4th" ... "11th", "12th", "13th", "21st".
+function Presentation.ordinal(n)
+    if not count(n, 1, 9999) then return "--" end
+    local tens, ones = n % 100, n % 10
+    local suffix = "th"
+    if tens < 11 or tens > 13 then
+        suffix = ones == 1 and "st" or (ones == 2 and "nd" or (ones == 3 and "rd" or "th"))
+    end
+    return n .. suffix
+end
+
 if type(namespace) == "table" then namespace.Presentation = Presentation end
 return Presentation

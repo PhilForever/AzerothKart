@@ -964,8 +964,10 @@ local function renderOpponent()
     local remote = grid and grid.peerPose or (view and view.remote)
     if not UI.multiplayer or not remote then
         UI.remoteHeading,UI.remoteHeadingAt=nil,nil
+        UI.opponentWorldX,UI.opponentWorldY=nil,nil
         UI.opponent:Hide()
         UI.opponentLabel:Hide()
+        if UI.opponentTag then UI.opponentTag:Hide() end
         return
     end
     local wx,wy,heading,predicted
@@ -1001,7 +1003,14 @@ local function renderOpponent()
         heading=Presentation.remoteHeading(UI.remoteHeading,heading,elapsed)
         UI.remoteHeading=heading
     end
-    if not wx then UI.opponent:Hide(); UI.opponentLabel:Hide(); return end
+    if not wx then
+        UI.opponentWorldX,UI.opponentWorldY=nil,nil
+        UI.opponent:Hide(); UI.opponentLabel:Hide()
+        if UI.opponentTag then UI.opponentTag:Hide() end
+        return
+    end
+    -- Where the friend's kart is drawn: the HUD places the racers from it.
+    UI.opponentWorldX,UI.opponentWorldY=wx,wy
     local x,y = Presentation.project(UI.view,wx,wy)
     local scale = UI.view.scale
     local sprite=opponentSprite((grid and grid.peerKartId) or (view and view.peerKartId) or
@@ -1046,6 +1055,27 @@ local function renderOpponent()
         UI.opponentLabel:SetText(label)
     end
     UI.opponentLabel:Show()
+    local tag=UI.opponentTag
+    if tag then
+        -- The name over the kart's drawn top; off screen, held inside the
+        -- canvas edge toward the kart, with the distance to it.
+        local tagX,tagY=cx,cy+height*scale/2+4
+        local caption=peer
+        if not visible then
+            tagX=math.max(70,math.min(730,cx))
+            tagY=math.max(8,math.min(456,cy))
+            local pose=grid and grid.localPose or UI.state
+            caption=("%s (%d away)"):format(peer,math.floor(math.sqrt((wx-pose.x)^2+(wy-pose.y)^2)+0.5))
+        end
+        if caption~=UI.opponentTagText then
+            UI.opponentTagText=caption
+            tag:SetText(caption)
+        end
+        tag:ClearAllPoints()
+        tag:SetPoint("BOTTOM",UI.canvas,"BOTTOMLEFT",tagX,tagY)
+        if type(tag.SetAlpha)=="function" then tag:SetAlpha(view and view.remoteStale and 0.45 or 1) end
+        tag:Show()
+    end
 end
 
 render = function()
@@ -1172,6 +1202,10 @@ function UI.Create()
     UI.opponent:Hide()
     UI.opponentLabel = text(UI.canvas,"BOTTOMLEFT",12,12,"")
     UI.opponentLabel:Hide()
+    -- The friend's name tag: over their kart, or along the canvas edge toward it.
+    UI.opponentTag = text(UI.canvas,"BOTTOM",0,0,"",
+        _G.GameFontHighlightSmallOutline ~= nil and "GameFontHighlightSmallOutline" or "GameFontHighlightSmall")
+    UI.opponentTag:Hide()
     createEffects(UI.canvas)
     layoutTrack()
     UI.state = Physics.new(Track)

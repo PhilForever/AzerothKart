@@ -75,6 +75,7 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     end
     function methods:SetPoint(...) self.point={...} end
     function methods:SetRotation(value) self.rotation=value end
+    function methods:SetAlpha(value) self.alpha=value end
     function methods:SetColorTexture(...)
         self.color={...}
         self.colorWrites=(rawget(self,"colorWrites") or 0)+1
@@ -331,8 +332,10 @@ local EFFECT_TEXTURES=20+14+2*2
 -- results buttons once with the window; it replaced the old title line. The
 -- track list holds six finished courses and one coming-soon city under two
 -- cup headings; the injected geometry fixture has no player menu button.
-local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=73,17,124 -- ten pooled score rows and bounded navigation/result notice
--- (the kart screen's four handling bars: two textures and a label each)
+local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=74,31,133 -- ten pooled score rows and bounded navigation/result notice
+-- (the kart screen's four handling bars: two textures and a label each; the
+-- race screens: the HUD's place, and the results' Highscores button,
+-- celebration art, confetti, banner and the two racers' rows)
 -- City circuits have up to eight gates: the gate pool holds eight strips
 -- (the oval's four plus four kept hidden on the oval and Mirage Raceway).
 local GATE_STRIPS=8
@@ -347,7 +350,8 @@ local OUTLINE_CHECK_FRAMES,OUTLINE_CHECK_FONTS=1,2
 -- Graveyard and three coming-soon dungeons) to the track list.
 local SCARLET_CUP_FRAMES,SCARLET_CUP_FONTS=4,1
 local UI_FRAMES=11+MENU_FRAMES+OUTLINE_CHECK_FRAMES+SCARLET_CUP_FRAMES
-local UI_FONTS=13+MENU_FONTS+OUTLINE_CHECK_FONTS+SCARLET_CUP_FONTS
+-- (UI's own 14 font strings include the friend's name tag.)
+local UI_FONTS=14+MENU_FONTS+OUTLINE_CHECK_FONTS+SCARLET_CUP_FONTS
 local PARTICLES_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Effects\\Particles.tga"
 local FLAME_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Effects\\Flame.tga"
 local function effectPieces(UI)
@@ -3037,6 +3041,10 @@ withMock(nil,false,function(env,UI)
     advance(17); UI.OnUpdate(0.017)
     assert(UI.opponent:IsShown() and UI.opponentLabel:IsShown()
         and UI.opponentLabel.text:find("observed kart",1,true),"pooled opponent shows unverified observation")
+    assert(UI.opponentTag:IsShown() and UI.opponentTag.text=="Amber Stone" and UI.opponentTag.point[3]=="BOTTOMLEFT"
+        and UI.opponentTag.point[4]==UI.opponent.point[4] and UI.opponentTag.point[5]>UI.opponent.point[5],
+        "the friend's name tag rides over their kart")
+    assert(UI.opponentTag.alpha==1,"a live signal shows the name tag in full")
     local remote=UI.liveView.remote
     remote.x=-500
     UI.OnUpdate(0)
@@ -3145,12 +3153,18 @@ withMock(nil,false,function(env,UI)
     advance(1601); UI.OnUpdate(1.601)
     assert(UI.opponent:IsShown() and UI.opponentLabel.text:find("stale",1,true),
         "stale remote observations fade and never extrapolate")
+    assert(UI.opponentTag:IsShown() and UI.opponentTag.text=="Amber Stone" and UI.opponentTag.alpha==0.45,
+        "a stale signal fades the name tag too")
     assert(env.namespace.LiveRace.receive(token,2601,LP.PREFIX,observation(2,2,0,0),"WHISPER","Amber Stone"))
     advance(1601); UI.OnUpdate(1.601)
     assert(not UI.opponent:IsShown(),"off-viewport rotated marker cannot draw beyond canvas")
     assert(UI.opponentLabel:IsShown() and UI.opponentLabel.text:find("off-screen",1,true)
         and UI.opponentLabel.text:find("units",1,true) and not UI.opponentLabel.text:find("behind",1,true),
         "off-screen bearing and distance do not invent a behind/ahead race position")
+    local tagX,tagY=UI.opponentTag.point[4],UI.opponentTag.point[5]
+    assert(UI.opponentTag:IsShown() and UI.opponentTag.text:find("Amber Stone (",1,true)
+        and UI.opponentTag.text:find(" away)",1,true) and tagX>=70 and tagX<=730 and tagY>=8 and tagY<=456,
+        "off screen, the name tag waits at the canvas edge toward the kart, with its distance")
     assert(UI.MultiplayerAction("leave") and not UI.active and calls.left and calls.stop==1,
         "explicit Leave releases capture then invokes paced cancellation once")
 end)
@@ -3523,7 +3537,7 @@ withMock({schemaVersion=1,preferences={version=1,track="test_oval",futureField="
         UI.state.x==UI.track.spawn().x and UI.state.y==UI.track.spawn().y,
         "default Start uses the displayed Mirage spawn and no developer geometry")
     UI.Stop("production catalogue regression")
-    assert(UI.objects.frames==89 and UI.objects.textures==77 and UI.objects.fontStrings==140,
+    assert(UI.objects.frames==90 and UI.objects.textures==91 and UI.objects.fontStrings==150,
         "production pool excludes the 96 Oval bands and two fixture crates")
 end,nil,nil,true)
 
@@ -3552,4 +3566,4 @@ for _,failure in ipairs({"false","nil","throws","camera"}) do
     end,nil,nil,true)
 end
 
-originalPrint("test_ui production catalogue: eleven finished courses, real Mirage default/scenery, retired-save preservation, seven-map Ready/four solo sprints and asset-failure Start guard PASS (89/77/140 pool)")
+originalPrint("test_ui production catalogue: eleven finished courses, real Mirage default/scenery, retired-save preservation, seven-map Ready/four solo sprints and asset-failure Start guard PASS (90/91/150 pool)")

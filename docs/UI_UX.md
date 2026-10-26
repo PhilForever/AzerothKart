@@ -16,8 +16,8 @@ The accepted first-map direction is **Mirage Raceway** on the dry, pre-flood Shi
 - `HOME`: Single Player, Multiplayer (coming soon), Garage, How to Play and Settings.
 - `TRACK_SELECT`: preview, laps, gates, direction and off-road; no record holder or difficulty yet.
 - `GARAGE`: a turntable preview; every kart handles the same.
-- `RACE`: lap, gate and time at the top corners, the capture line and a large countdown.
-- `RESULTS`: total, last and best times with every lap; Restart, Change Kart, Change Track and Main Menu. There is no ranking until multiplayer.
+- `RACE`: lap, gate and time at the top corners, the capture line and a large countdown. Proposed on `claude/race-screens` (2026-10-26): in a two-player race, the place at bottom right and the friend's name tag, both from each racer's own reports.
+- `RESULTS`: total, last and best times with every lap; Restart, Change Kart, Change Track and Main Menu. Proposed on `claude/race-screens`: **Highscores** (the run's board at the player's page), a banner, medal or wreath and confetti for a top-ten personal best on the shared board, and a two-player race's racers in their reported places with the gap, under UI's unverified title and "No agreed winner" hint. See [race screens](art/ui/front-end.md#race-screens-and-score-celebrations).
 - `SETTINGS`: window size, effects, sound, developer info and reset position. Keybinds, reduced motion and volume are not offered yet.
 - `ROOM` is a disabled coming-soon preview until Codex's session adapter and command contract land.
 

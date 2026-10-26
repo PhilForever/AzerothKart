@@ -704,6 +704,25 @@ Reviewed Claude UI `1b2d3d5` is integrated with the Codex backend by `6cd611a` o
 - **Sounds.** `PlaySound(SOUNDKIT[name])`, guarded and muted by a setting: menu open/click/check, 3-2-1-GO, and one fanfare per finished run.
 - **Counts.** The original solo Menu brought the pool to65/160/79; the integrated city screen/gates and staging background bring it to71frames/165textures/80fonts, and the four Warcraft III karts' list buttons (proposed on `claude/kart-roster-wc3`, 2026-10-22) to **75 frames**/165 textures/80 fonts, all created with the window.
 
+### Proposed: race screens and score celebrations (Claude, `claude/race-screens`, 2026-10-26)
+
+The owner asked for the "screen side of multiplayer such as race positions, name tags, and results" and "a bigger celebration when you get a top 10 and top 3 score". Presentation only: nothing here writes Physics, Race, Laps, scores, SoloRecords, SessionTransport or LiveRace state, and no backend standings, winner or agreement is created. Codex's review is needed for the policy point in the last bullet.
+
+- **Presentation (pure, additive).**
+  - `Presentation.raceProgress(track, completedLaps, passed, x, y) -> number|nil`: gates passed over the completed laps and this one, plus a fraction (0 to 0.999) of the straight distance from the previous gate toward the next. nil for unreadable input (`passed` must be below the gate count).
+  - `Presentation.ahead(a, b) -> boolean` and `Presentation.standings(racers) -> list` order racers `{finishTicks?, progress?, out?}`: finished first by finishing tick, then racing by progress, then out of the race; ties keep their order; `standings` sets each racer's `place`. `ahead` allocates nothing (the HUD asks every frame).
+  - `Presentation.ordinal(n)`: "1st", "2nd", "3rd", "11th", "21st"…
+- **UI (visual, `renderOpponent` and `UI.Create`).** One new font string, `UI.opponentTag`: the friend's name over their drawn kart, or held inside the canvas edge toward it with "(N away)" when off screen, faded when stale. `renderOpponent` keeps the drawn pose in `UI.opponentWorldX/Y` for the HUD. The diagnostic `UI.opponentLabel` and its text are unchanged.
+- **Menu.**
+  - `Menu.liveRacers(mine, theirs)` fills two racer tables from copied views: the local `UI.race`/`UI.laps`/`UI.state`, and `UI.liveView.remote` (its own reported laps, gates, status and finishing tick), placed at the drawn pose. The friend is out on a stopped/interrupted report or a `peer_stopped`/`peer_timeout` close.
+  - The race overlay shows the place ("1st", "of 2", gold/silver) in a live race once it runs, never on the grid.
+  - The results show the two racers in their places (the friend's time or "racing, lap n/3", "left the race", "connection lost"), a banner ("1st PLACE!", "2nd PLACE", "FINISHED!" while the friend races) and a gold or silver medal. They refresh at 5 Hz while the friend's reports can still change them. UI's title ("LOCAL FINISH — UNVERIFIED") and hint ("No agreed winner or standings") stay; a note says the places and times are each racer's reports by their own clock.
+  - `Menu.scorePlacement(result, trackId)`: a saved new best's rank on SoloRecords' copied board (shared when score sharing runs), found as the newest row with the run's total, so the player's name is not read a second time. Kinds `record` (#1 of several), `first` (#1 alone), `top3`, `top10` (shared boards only) and `best`. The results celebrate the first four: a banner ("NEW #1!", "FIRST ON THE BOARD!", "TOP 3!", "TOP 10!"), the board place, a gold/silver/bronze medal or a wreath with the rank on a turning sunburst, confetti, and a sound in place of the fanfare (`UI_EPICLOOT_TOAST`; `IG_QUEST_LIST_COMPLETE` for the top ten; both in build 70450's SoundKitConstants). A best off the top ten turns the save notice gold. The art is `Assets/UI/Celebration.tga` (original, `scripts/build_celebration_art.py`), loaded once and not retried if refused.
+  - A **Highscores** button in the results opens the run's board at the page with the player's own row, which the board shows in gold (`Menu.PlayerName`, read once through `SoloRecords.PlayerName` and kept for the session).
+- **Proposed for Codex (not required).** `SoloRecords.Finish`'s result could carry the `Highscores.FinishPlacement` table that `ScoreSharing.Publish` already computes (`placement={rank, previousRank, tier, enteredTier, knownPlayers}`), so the results read the place instead of finding the row.
+- **Policy point for Codex.** Codex's live display deliberately claims no race position (its off-screen label "does not invent a behind/ahead race position", which still holds). At the owner's request the HUD and results now show places from each racer's own reports. They are labelled as such and the "No agreed winner or standings" hint stays; no result is agreed, verified or sent.
+- **Counts.** The HUD's place (2 font strings), the name tag (1), and in the results a Highscores button (1 frame), the sunburst, a medal and 12 confetti pieces (14 textures), the banner, its line, the wreath's rank and the racers' two rows (7 font strings): **90 frames, 91 textures, 150 font strings**, all created with the window. Nothing is created while driving or showing results.
+
 <a id="proposed-capital-cities-cup-city-circuits-and-the-course-catalog"></a>
 
 ### Implemented: Capital Cities Cup, city circuits and the course catalog
@@ -825,7 +844,7 @@ Proposed by Claude on `claude/scarlet-graveyard`, 2026-10-25, for Codex's review
   - the Highscores screen's rule line names a lap-count-1 board's times as sprints, reusing its label.
 
   The status line in `UI.Start` and `step` now says "Sprint" for this one-run course and retains "3 laps" for circuits.
-- **Counts:** the Scarlet cup's heading and four track buttons brought the pool to89/69/136 after Oval retirement. Reviewed stat bars add8textures and4font strings at window creation: **89 frames,77 textures,140 font strings**. No driving-time creation is added.
+- **Counts:** the Scarlet cup's heading and four track buttons brought the pool to89/69/136 after Oval retirement. Reviewed stat bars add8textures and4font strings at window creation: **89 frames,77 textures,140 font strings**. No driving-time creation is added. The proposed race screens (`claude/race-screens`, [above](#proposed-race-screens-and-score-celebrations-claude-claude-race-screens-2026-10-26)) bring it to **90/91/150**.
 - **Score sync:** Codex's combined adapter admits all eleven active contexts with stable codes and an extended bounded HELLO; the retired O digest remains zero. The original standalone Claude branch retains the documented sync dependency; use the combined build.
 - **Not claimed:** no client run, no multiplayer sprint, and no Physics change.
 

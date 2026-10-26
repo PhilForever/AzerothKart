@@ -941,6 +941,57 @@ do
     print(("offline Mirage background: %d road / %d rim samples agree with isDrivable"):format(road, rim))
 end
 
+-- Race standings: display estimates from each racer's own progress.
+do
+    -- A square course, four gates of 100 across, the start/finish the fourth.
+    local course = {gates={
+        {ax=400, ay=0, bx=400, by=100, nx=1, ny=0}, {ax=500, ay=400, bx=600, by=400, nx=0, ny=1},
+        {ax=100, ay=500, bx=100, by=600, nx=-1, ny=0}, {ax=0, ay=100, bx=100, by=100, nx=0, ny=-1}}}
+    -- Before the first gate, from the start line (the fourth's middle, 50,100):
+    -- the fraction of the straight distance to gate 1.
+    near(P.raceProgress(course, 0, 0, 50, 100), 0, "at the previous gate: no progress yet")
+    near(P.raceProgress(course, 0, 0, 225, 50), 0.5, "halfway to the next gate: half")
+    near(P.raceProgress(course, 0, 0, 400, 50), 0.999, "at the next gate's line: just short of it")
+    local third = P.raceProgress(course, 0, 2, 300, 550)        -- 200 from gate 3, which is 461 from gate 2
+    assert(third > 2.56 and third < 2.57, "two gates passed, then the fraction toward the third: " .. third)
+    assert(P.raceProgress(course, 1, 0, 50, 100) == 4, "a completed lap counts every gate")
+    assert(P.raceProgress(course, 0, 1, 600, 200) > P.raceProgress(course, 0, 0, 399, 50),
+        "one more gate passed is further on, however near the other is to its gate")
+    assert(P.raceProgress(course, 0, 0, -900, 900) == 0, "far behind the previous gate clamps at 0")
+    for _, bad in ipairs({{course, -1, 0, 0, 0}, {course, 0, 4, 0, 0}, {course, 0, 1.5, 0, 0},
+        {course, 0, 0, 0 / 0, 0}, {course, 0, 0, 0, math.huge}, {{gates={}}, 0, 0, 0, 0}, {nil, 0, 0, 0, 0}}) do
+        assert(P.raceProgress(bad[1], bad[2], bad[3], bad[4], bad[5]) == nil, "unreadable progress is nil")
+    end
+    local one = {gates={{ax=0, ay=0, bx=0, by=100, nx=1, ny=0}}}
+    assert(P.raceProgress(one, 0, 0, 50, 50) == 0, "a one-gate course has no fraction")
+
+    -- Placing: finished first by tick, then racing by progress, then out.
+    local finishedLate = {name="late", finishTicks=4000}
+    local finishedEarly = {name="early", finishTicks=3900}
+    local leading = {name="leading", progress=11.4}
+    local trailing = {name="trailing", progress=9.2}
+    local left = {name="left", progress=11.9, out=true}
+    assert(P.ahead(finishedEarly, finishedLate) and not P.ahead(finishedLate, finishedEarly), "the earlier finish")
+    assert(P.ahead(finishedLate, leading) and P.ahead(leading, trailing) and P.ahead(trailing, left),
+        "finished, then racing by progress, then out, whatever the progress")
+    assert(not P.ahead(leading, {progress=11.4}) and not P.ahead(left, {out=true}), "a tie is not ahead")
+    local order = P.standings({left, trailing, finishedLate, leading, finishedEarly})
+    local names = {}
+    for index, racer in ipairs(order) do names[index] = racer.name .. racer.place end
+    assert(table.concat(names, ",") == "early1,late2,leading3,trailing4,left5", "standings: " .. table.concat(names, ","))
+    local a, b = {name="a", progress=3}, {name="b", progress=3}
+    order = P.standings({a, b})
+    assert(order[1] == a and order[2] == b and a.place == 1 and b.place == 2, "ties keep the given order")
+    assert(#P.standings({}) == 0, "no racers, no standings")
+
+    local ordinals = {}
+    for _, n in ipairs({1, 2, 3, 4, 8, 11, 12, 13, 21, 22, 23, 101, 111}) do ordinals[#ordinals + 1] = P.ordinal(n) end
+    assert(table.concat(ordinals, " ") == "1st 2nd 3rd 4th 8th 11th 12th 13th 21st 22nd 23rd 101st 111th",
+        "ordinals: " .. table.concat(ordinals, " "))
+    assert(P.ordinal(0) == "--" and P.ordinal(1.5) == "--" and P.ordinal(nil) == "--", "no ordinal for a non-place")
+    print("offline presentation: race progress, placing (finished, racing, out) and ordinals")
+end
+
 assert(_G.AzerothKart == beforeGlobal, "offline import must not create or replace an addon global")
 local namespace = {sentinel=marker}
 local loaded = assert(loadfile("addon/AzerothKart/Presentation.lua"))("AzerothKart", namespace)

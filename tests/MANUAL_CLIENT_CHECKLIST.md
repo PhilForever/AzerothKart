@@ -1,5 +1,15 @@
 # Manual client acceptance — F0/F1/F2/F5
 
+## Deferred race screens and celebrations check (proposed, `claude/race-screens`)
+
+**NOT RUN.** Run it after Codex's review and a coordinated install. **Fully restart the client:** `Assets/UI/Celebration.tga` is a new file. The owner runs these checks; Claude does not control the client.
+
+1. **A top-ten celebration.** With shared scores running (the board reads "Shared community scores"), set a new personal best that ranks in the top ten; a fresh version-3 board (the Library or the Cathedral) puts the first run at #1. The results grow: the banner (**FIRST ON THE BOARD!**, **NEW #1!**, **TOP 3!** or **TOP 10!**) and "#N of M on the shared board" under it, the medal or the wreath with the rank popping in over the dialog's top edge on a slowly turning sunburst, confetti falling for under three seconds, and the epic-loot toast (top three) or the quest-complete chime (top ten) instead of the finish fanfare. Record whether it reads as big enough and not too much, whether the medal clears the window's header, and whether `Game42Font` (the banner) and the sounds exist on Forever.
+2. **The flow.** The middle row reads **Restart · Highscores · Close results**; after a celebration Highscores is lit. Click it: the run's own board opens at the page with your row, your row in gold. **Close results**, then reopen the results from the track view: the celebration shows still, with no sound or confetti.
+3. **A plain finish.** A best off the top ten, or with shared scores off, keeps the plain window with its notice in gold; no best keeps it grey; the fanfare plays once.
+4. **A two-player race** (with Codex's live flow): the place ("1st"/"2nd", "of 2") at bottom right changes as you pass; the friend's name rides over their kart, or waits at the canvas edge toward it with the distance, and fades when the signal goes stale. At the finish both racers are listed in their places with their karts and times or state; **FINISHED!** waits for the friend, then turns into **1st PLACE!** (the gold medal, the toast) or **2nd PLACE** with the gap. UI's "No agreed winner or standings" hint and the note about reported times stay.
+5. **Print Probe** (developer info): 90 frames, 91 textures and 150 font strings.
+
 ## Deferred Scarlet v3 check (proposed, `claude/scarlet-v3`)
 
 **NOT RUN.** Run it after Codex's review and a coordinated install. **Fully restart the client:** the Library's and the Cathedral's pictures keep their paths but changed. The owner runs these checks; Claude does not control the client.
