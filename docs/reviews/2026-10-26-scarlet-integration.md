@@ -1,5 +1,10 @@
 # Scarlet integration — collision, scores and reviewed content
 
+**Published checkpoint:** merge/source `9c80746` is on
+`origin/codex/scarlet-integration`. The four original Claude branches were
+published atomically with it and exact remote tips verified; main remains
+`f923d15`. The following documentation commit changes no runtime source.
+
 ## Source and scope
 
 Owner authorized both fixes and the ensuing GitHub publication on2026-10-26.

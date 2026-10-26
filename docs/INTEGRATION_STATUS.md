@@ -2,6 +2,11 @@
 
 ## Scarlet Cup combined source — 2026-10-26
 
+**Published:** tested source/runtime `9c80746` and its documentation on
+`origin/codex/scarlet-integration`. All four original Claude feature tips are
+also published, with exact remote hashes verified. Main remains `f923d15`.
+No installation or release was performed by this publication task.
+
 `codex/scarlet-integration` combines reviewed Claude ea4425d with current Codex
 source, closes the swept-pool and score-code findings, and preserves remote
 turning/group score discovery/Physics12/Oval retirement. Eleven solo/score maps,

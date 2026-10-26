@@ -1,5 +1,29 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-26 10:10 +01:00 — authorized Scarlet publication verified
+
+Atomic dry-run and actual normal atomic push succeeded for all five branches.
+Independent `git ls-remote --heads` readback matched every local tip:
+
+- `codex/scarlet-integration`: tested merge/runtime source `9c80746`.
+- `claude/scarlet-library`: `8b09309`.
+- `claude/drive-fixes`: `fb8b296`.
+- `claude/scarlet-armory`: `559cc4f`.
+- `claude/scarlet-cathedral`: `ea4425d`.
+
+Remote `main` remains `f923d15`; no forced update, author rewrite or release.
+Both original worktrees and their untracked files are unchanged. This entry
+adds documentation only; the full combined source checks in the preceding
+entry still apply. The final documentation commit is published on the same
+integration branch after this verified runtime-source publication.
+
+Installed addon remains `01bd880`: source publication did not copy addon files
+or touch player data. Native checks for new courses remain NOT RUN.
+**Next exact task:** deploy the tested combined source with a complete prior
+addon backup/hash verification and matching friend ZIP, then fully restart
+both clients for the new asset paths and check Cathedral pool sliding/score
+catch-up. Main integration and release remain separate, unperformed actions.
+
 ## 2026-10-26 10:06 +01:00 — Scarlet fixes integrated and combined checks passed
 
 Owner authorized fixing the two review findings and publishing the queued work.

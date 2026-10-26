@@ -1,5 +1,22 @@
 # Codex handoff — production maps and Claude course review
 
+## Published Scarlet integration — 2026-10-26 10:10 CET
+
+Tested combined runtime/source `9c80746` is published on
+`origin/codex/scarlet-integration`; the final docs checkpoint follows it on
+the same branch. Atomic create-only push and exact remote readback succeeded.
+The four original Claude branches are also published at unchanged tips:
+Library8b09309, drive-fixesfb8b296, Armory559cc4f, Cathedralea4425d.
+Main remainsf923d15. No force push, release, other checkout edit or install.
+
+Both requested fixes and full combined Lua51/24Python/catalogue/asset checks
+are recorded below and in the integration review. Native/Lua54/rebuild pending;
+the structural validator retains only its2historical expired links.
+Installed runtime remains01bd880. Next exact task: coordinated backup/verified
+install of this combined source and matching friend ZIP; full restart needed
+for six new asset paths. Preserve scores, legacy extra and Claude outputs.
+Claude sync commands are in the integration review; Codex did not run them.
+
 ## Combined Scarlet source ready — 2026-10-26 10:06 CET
 
 Own `codex/scarlet-integration`, base2f04f3a/reservation1ae33e6 plus Claudeea4425d.
