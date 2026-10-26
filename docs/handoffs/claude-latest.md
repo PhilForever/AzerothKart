@@ -1,4 +1,24 @@
-# Claude handoff — kart stat bars
+# Claude handoff — Scarlet v3 (reservation, in progress)
+
+Reserved 2026-10-26 at about 15:30 CET by Claude (rendering/UI/sprites owner).
+
+**Base:** Codex's `codex/scarlet-stats-review` `caab661`, the installed and published combined build (runtime `da292f6`: Scarlet v2 and the kart stat bars). **Branch:** `claude/scarlet-v3`. Nothing is installed.
+
+**Owner instructions** (after driving the installed Scarlet v2; his screenshot shows the kart stopped in the Library's courtyard between the fountain and the south-east tree): "cant even fit through here dawg. and yeah - the same terrain should have the same effects across maps - at least maps in the same "cup". We are inside a monastery, so the grass is short you could say - meaning driving over it should be perfectly fine. Everything else looks fine, except maybe the cathedral stairs turning at a landing, im assuming I understand what you mean, but yeah if it makes the map a bit more difficult - go for it. After fixing these - feel free to start on screen side of multiplayer such as race positions, name tags, and results. I also want a bigger celebration when you get a top 10 and top 3 score, take a look at that whole window and flow."
+
+**Task (this branch):** open the Library's courtyard (a clear ring round the fountain, clear ways in), all Scarlet Cup grass at full speed (the Library's courtyard and the Graveyard's cloister become `road`), and the Cathedral's stairs turning at a landing. The multiplayer screens and the bigger score celebration follow on a separate branch, reserved there.
+
+**Reserved files and regions:**
+
+- `scripts/dungeon_layouts.py` (the Graveyard's, Library's and Cathedral's sections), `scripts/build_dungeon_tracks.py` (`validate_geometry`: water between rooms);
+- generated: `addon/AzerothKart/ScarletCrusade.lua`, the Library's and Cathedral's `Background.tga`/`Preview.tga`, their overviews, sources lists and review images, `services/leaderboard/catalog.json`;
+- `addon/AzerothKart/Courses.lua` (three Scarlet status lines), `addon/AzerothKart/Menu.lua` (the Scarlet courses' `Menu.TRACKS` copy);
+- `tests/test_dungeon.lua` (the three Scarlet sections; the production pool-grazing regression follows the Cathedral's moved pool, for Codex's review);
+- docs: the three track sheets, ADR 0020 (an addendum), `TRACKS.md`, `TEST_PLAN.md`, `CHANGELOG.md`, `tests/MANUAL_CLIENT_CHECKLIST.md`, this handoff.
+
+No change to `Dungeon.lua`, `UI.lua`, Physics, scores, networking or any other Codex-owned file. `docs/PROGRESS.md` stays with the integrator.
+
+# Previous: kart stat bars
 
 Prepared 2026-10-26 by Claude (rendering/UI/sprites owner).
 
