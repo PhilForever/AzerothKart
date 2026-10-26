@@ -1,5 +1,16 @@
 # Shared integration and deployment status
 
+## Installed Claude visual/rematch integration — 2026-10-26 21:14 CET
+
+Reviewed runtime `3f1b3fe` on `codex/claude-race-integration` combines Claude
+e3c82ad (Gryphon/race-screens/Scarlet-v3) with the current rematch build. Exact
+finish metadata, pending/tied results, cold-first-save and peer wing lifecycle
+corrections are included. [Review/tests](reviews/2026-10-26-claude-visual-integration.md).
+All85source/installed and85prior backup files independently verified; legacy
+extra preserved. Matching ZIP `AzerothKart-ClaudeVisuals-3f1b3fe.zip`,85entries.
+[Deployment evidence](PROGRESS.md). **Full restart required**, native checks
+pending. Other branches/worktrees unchanged; no new GitHub push/main/release.
+
 ## Installed multiplayer rematch build — 2026-10-26 20:49 CET
 
 Local tested runtime `94d4d1e` is installed with a complete prior-addon backup.

@@ -1,5 +1,36 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-26 21:14 +01:00 — combined Claude visuals installed and packaged
+
+Reviewed merge/runtime `3f1b3fe` on `codex/claude-race-integration` is committed
+and installed in the existing classic_beta AzerothKart folder. Merge parents
+preserve Codex's rematch work and Claude e3c82ad unchanged. Independent preflight
+confirmed prior installed94d4d1e; normal WhatIf/approved helper then backed up
+all85prior files and verified all85new source/installed hashes. Installed tree
+has86files, retaining the legacy GoblinDragCar extra unchanged. No deletes,
+SavedVariables/WTF edits, other-addon changes or native input.
+
+Ignored deployment root `local-artifacts/deploy-20261026-claude-visuals/` holds
+preflight, audit/package script, receipt and backup manifest
+`backups/20261026-211330-182-12bf1d52b9d04a30aa045823e40bd41e/install.json`.
+The independent audit reread all prior backup and current source/target files.
+ZIP from the tested installed paths: `../AzerothKart-ClaudeVisuals-3f1b3fe.zip`,
+85entries/71,169,577bytes, SHA256
+`A79B1F35CD6040BAD37F3FF58B0354267748D0F57D91D145FF406F4D5ABA8683`.
+Every entry read back and hashed. New Celebration.tga/resized Gryphon sheets
+require a full restart on both clients; reload is insufficient.
+
+Executed source checks and open native limitations are in the reviewed entry
+below. Native visual/sound/wing/hitch/rematch checks remain NOT RUN. No branch
+publication, release, main merge or milestone completion; other worktrees and
+untracked outputs remain unchanged. The review request authorizes integration,
+not a new automatic GitHub push.
+
+**Next exact task:** after full restart, select Gryphon Rider, check beat/glide,
+then finish a solo run and inspect its score/result screen. When a friend is
+available, use the matching ZIP for one race→Play Again→Change Map, confirming
+same players and quiet pending/tied result updates. No standalone probe.
+
 ## 2026-10-26 21:09 +01:00 — Claude visual stack reviewed and integrated
 
 Owner authorizes conditional integration. From clean7cd2aed/installed94d4d1e,

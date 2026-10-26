@@ -1,5 +1,32 @@
 # Codex handoff — production maps and Claude course review
 
+## Installed reviewed integration — 2026-10-26 21:14 CET
+
+Runtime `3f1b3fe`, branch `codex/claude-race-integration`, is installed and
+committed. [Review](../reviews/2026-10-26-claude-visual-integration.md) and
+[deployment receipt](../PROGRESS.md) record tests/corrections and limitations.
+All85source/target and85prior backup files independently hashed;86installed
+files include the unchanged legacy extra. Backup ID
+`20261026-211330-182-12bf1d52b9d04a30aa045823e40bd41e`, deployment root
+`local-artifacts/deploy-20261026-claude-visuals/`. Friend ZIP
+`../AzerothKart-ClaudeVisuals-3f1b3fe.zip`:85entries/71,169,577bytes; SHA256
+`A79B1F35CD6040BAD37F3FF58B0354267748D0F57D91D145FF406F4D5ABA8683`.
+Full restart required for new atlas/resized sheets. No native check/push/release.
+
+Claude originals a4fe2d5/8511d8c/e3c82ad remain unchanged. Review exact additive
+transaction API before extending results: saved playerName/placement, optional
+priorPersonal snapshot on Publish for cold activation. Final MP results use
+the retained backend snapshot, not sequential Presentation standings. Preserve
+same-player room actions and quiet refresh; never infer player identity from
+equal-time rows. Peer wings require fresh running data. Current G3/L3/A2/C3.
+
+Next user check: restart, Gryphon beat/glide, solo finish screen, then later
+same-friend rematch/map change with matching ZIP. No standalone transport probe.
+For Claude's next task, inspect this reviewed diff from caab661. After its own
+clean-tree check/review it may merge `codex/claude-race-integration` into its
+next feature branch; do not reset/repoint the currently owned worktree. No
+synchronization command has been executed in either original checkout.
+
 ## Reviewed source ready for installation — 2026-10-26 21:09 CET
 
 `codex/claude-race-integration` combines the current rematch backend with Claude
