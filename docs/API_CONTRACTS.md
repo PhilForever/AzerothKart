@@ -28,16 +28,16 @@ Successful eligible solo Finish queues sharing after local saving under pcall;
 errors cannot prevent normal results/local persistence.
 
 **Proposed for Codex (Claude, 2026-10-25, `claude/thunder-bluff`; extended on
-`claude/scarlet-graveyard` and `claude/scarlet-library`):** `ScoreSync` knows seven
-courses by one-letter code, and `Sync.new` requires exactly seven contexts.
-`ScoreSharing` builds one context per selectable course. With Thunder Bluff Skyway
-selectable it offers eight, nine with Scarlet Graveyard and ten with Scarlet
-Library. The sync then cannot start, for any course; local saving is unaffected.
-A tested patch is in Claude's handoff:
+`claude/scarlet-graveyard`, `claude/scarlet-library` and `claude/scarlet-armory`):**
+`ScoreSync` knows seven courses by one-letter code, and `Sync.new` requires exactly
+seven contexts. `ScoreSharing` builds one context per selectable course. With
+Thunder Bluff Skyway selectable it offers eight, nine with Scarlet Graveyard, ten
+with Scarlet Library and eleven with Scarlet Armory. The sync then cannot start,
+for any course; local saving is unaffected. A tested patch is in Claude's handoff:
 
-- codes `T` for `thunder_bluff_skyway`, `G` for `scarlet_graveyard` and `L` for
-  `scarlet_library`;
-- a HELLO with one board hash per course, twelve fields with all three.
+- codes `T` for `thunder_bluff_skyway`, `G` for `scarlet_graveyard`, `L` for
+  `scarlet_library` and `A` for `scarlet_armory`;
+- a HELLO with one board hash per course, thirteen fields with all four.
 
 Older builds would refuse the new HELLO, as they already refuse a different
 catalogue. Codex's decision; not applied.
@@ -676,11 +676,18 @@ Proposed by Claude on `claude/scarlet-graveyard`, 2026-10-25, for Codex's review
   - five gates: Huntsman's Cloister, Houndmaster Loksey (across the dead-end kennel: in across it, then back out), Gallery of Treasures, Athenaeum, and Arcanist Doan (the finish);
   - spawn (80, 1668), facing north; and `route`.
 
-  The generator refuses a layout unless every gate is unavoidable (a flood fill of the floor with the gate as a barrier) and the route crosses the gates in order without touching a wall or a solid. It counts a crossing only across the gate's own segment, as `Track.crossesGate` does. On `claude/drive-fixes` it also refuses an invisible wall (the karts' floor ending with no wall painted within the inset and 3 units, measured square, as where two rooms abut without a doorway) and, when painting, a model that is not solid with its drawn body more than 3 units onto the kart centre's floor. Neither rule changes the runtime contract.
+  `ScarletCrusade.scarlet_armory` (proposed on `claude/scarlet-armory`):
+  - version 1, 2048 × 2048, `wallInset` 18, `laps` 1;
+  - 26 rooms: 24 stone rectangles, the Training Grounds' yard (a lawn) and one round room (the Hall of Champions);
+  - 38 solids;
+  - five gates: Training Grounds, Footman's Armory, Crusader's Armory, Hall of Champions, and Herod (the finish, across the round hall's middle; Herod is solid and stands on it, so the karts cross it either side of him);
+  - spawn (500, 105), facing east; and `route`.
+
+  The generator refuses a layout unless every gate is unavoidable (a flood fill of the floor with the gate as a barrier) and the route crosses the gates in order without touching a wall or a solid. It counts a crossing only across the gate's own segment, as `Track.crossesGate` does. On `claude/scarlet-armory` it checks the floor just past a gate all along its length, not only at its middle, so a solid may stand on a gate. On `claude/drive-fixes` it also refuses an invisible wall (the karts' floor ending with no wall painted within the inset and 3 units, measured square, as where two rooms abut without a doorway) and, when painting, a model that is not solid with its drawn body more than 3 units onto the kart centre's floor. Neither rule changes the runtime contract.
 - **`Courses`:**
   - `CUPS` gains `{id="scarlet", name="Scarlet Crusade Cup"}`;
   - geometry `"dungeon"` builds `Dungeon.new(ScarletCrusade[id], crossesGate)`;
-  - Scarlet Graveyard is available; Scarlet Library, Scarlet Armory and Scarlet Monastery are listed `soon`. On `claude/scarlet-library` the Library is available too, and only the Armory and the Monastery are `soon`.
+  - Scarlet Graveyard is available; Scarlet Library, Scarlet Armory and Scarlet Monastery are listed `soon`. On `claude/scarlet-library` the Library is available too, and only the Armory and the Monastery are `soon`. On `claude/scarlet-armory` the Armory is available as well, and only the Monastery is `soon`.
 - **Load order (both TOCs):** `CapitalCities.lua`, `Dungeon.lua`, `ScarletCrusade.lua`, then `Courses.lua`.
 - **Presentation (Claude's regions).** When `targetLaps` is 1:
   - UI `refreshCheckpoints` shows "Checkpoints: sprint complete";
@@ -690,7 +697,7 @@ Proposed by Claude on `claude/scarlet-graveyard`, 2026-10-25, for Codex's review
   - the Highscores screen's rule line names a lap-count-1 board's times as sprints, reusing its label.
 
   The status line in `UI.Start` and `step` (Codex's) still says "3 laps". A one-line wording change is proposed in Claude's handoff.
-- **Counts:** the Scarlet cup's heading and four track buttons bring the pool to **90 frames, 167 textures and 136 font strings**, from 86/167/135. They are created with the window.
+- **Counts:** the Scarlet cup's heading and four track buttons bring the pool to **90 frames, 167 textures and 136 font strings**, from 86/167/135. They are created with the window. A course moving from coming soon to ready keeps the counts.
 - **Score sync:** see the proposal under [automatic score sharing](#automatic-score-sharing--source-integration). Until Codex changes `ScoreSync`, community sync does not start with this course selectable. This branch must not be installed alone.
 - **Not claimed:** no client run, no multiplayer sprint, and no Physics change.
 

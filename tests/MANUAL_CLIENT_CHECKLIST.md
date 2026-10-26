@@ -1,5 +1,23 @@
 # Manual client acceptance — F0/F1/F2/F5
 
+## Deferred Scarlet Armory check (proposed, `claude/scarlet-armory`)
+
+**NOT RUN.** Run it after Codex's review (the score-sync change with the Armory's code `A`) and a coordinated install. **Fully restart the client:** `Assets/Tracks/ScarletArmory/` is new. The owner runs these checks; Claude does not control the client.
+
+1. **Track screen.** The *Scarlet Crusade Cup* lists Scarlet Graveyard, Scarlet Library and Scarlet Armory, then the Monastery marked "(soon)". Choose the Armory: its square preview and three facts appear. The bar's Track button steps from the Library to the Armory, then Test Oval.
+2. **Load.** The 2048×2048 TGA. Record any refusal and any hitch when switching to it.
+3. **The drive.** The kart starts at the portal facing east between two guards. The HUD reads "Sprint" with the gates passed (n/5). Find the way:
+   - east along the entrance hall, north through the door into the Training Grounds (the first gate);
+   - round the walks or across the yard, then up the stairs from the north walk (the second gate) into the Footman's Armory;
+   - round its pillars to its east side room, up the stairs (the third gate) and west through the Crusader's Armory;
+   - out of its north-west corner, north, then east along the long hall to the Hall of Champions' door (the fourth gate);
+   - down the round hall's stairs to the chequered line across its middle, either side of Herod: the finish.
+4. **The Training Grounds.** The yard slows the kart; the walks are stone. Record whether the stepping stones read as paint on grass or invite the karts to expect stone, and whether the yard reads as the only open sky.
+5. **Solids and walls.** Record whether the columns, targets, dummies, hay, footmen, forge, anvil, table, cart, junk, candles and Herod block where they are drawn, and whether anything else stands where the kart drives.
+6. **The Hall of Champions.** Record whether the ring of stairs and Herod read clearly in the follow camera, whether the north wall and statues show whole at the top of the world, and whether the round wall slides the kart round smoothly.
+7. **Results and scores.** "RUN COMPLETE" with "Sprint | Total: …" and "All 5 gates". Highscores shows the Armory's own board as sprints. Community sharing needs Codex's score-sync change.
+8. **Camera and performance.** Record the frame rate while driving. Print Probe still shows 90 frames, 167 textures and 136 font strings.
+
 ## Deferred drive-fixes check (proposed, `claude/drive-fixes`)
 
 **NOT RUN.** Run it after Codex's review and a coordinated install. The owner runs these checks; Claude does not control the client. No new files: a `/reload` is enough unless the install also brings the Library, whose folder is new (then fully restart).

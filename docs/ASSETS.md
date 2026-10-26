@@ -22,6 +22,13 @@ Mirage now has one original geometry-registered background at `addon/AzerothKart
 
 The same painter draws it, with Reforged's Scarlet huntsmen, cleric and invoker hero, its dark hound and Lordaeron statue and pillar, and the classic dungeon bookshelves. One scenery picture is held at a time, and at most two are resident through the staging texture. Loading it in the client is **NOT RUN**.
 
+[Scarlet Armory](art/tracks/scarlet-armory.md) (proposed on `claude/scarlet-armory`) adds `Assets/Tracks/ScarletArmory/`:
+
+- `Background.tga`, 2048×2048 (16 MiB raw pixels);
+- `Preview.tga`, 512×512.
+
+The same painter draws it, with Reforged's Scarlet footmen, Renault Mograine as Herod, Lordaeron's scarecrows, smithy tools, furniture and statues, and the classic archery targets, armour stands and weapon racks. Loading it in the client is **NOT RUN**.
+
 Menu art: [the front end](art/ui/front-end.md) adds one original atlas, `addon/AzerothKart/Assets/UI/TrackPreviews.tga` (1024×512, opaque, 2 MiB), loaded on the first visit to the track screen. Its Mirage cell is scenery v1 halved; its Test Oval cell is painted from `Track.lua` geometry by `scripts/build_ui_art.py`. The dialogs, buttons, fonts and sounds are the client's own (`BACKDROP_*_DIALOG_32_32`, `DialogHeaderTemplate`, `MainMenuFrameButtonTemplate`, `Fancy*Font`, `SOUNDKIT`), referenced by name and not shipped. The kart turntable reuses the race's kart sheets. Client appearance is NOT RUN.
 
 ## Precomposed track pipeline

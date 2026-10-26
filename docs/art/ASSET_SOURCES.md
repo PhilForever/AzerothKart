@@ -169,3 +169,17 @@ Mirage scenery v1 imports no Warcraft III file; it was painted procedurally so e
   - the columned halls' and the round library's tiles greyed;
   - painted by the generator: the round library's gold ring and carpet, the courtyard's kerbs and its green-tinged moonlight and mist.
 - **Terms and credits:** as for Stormwind: [ADR 0009](../adr/0009-warcraft-iii-asset-reuse.md); redistribution **unresolved** for release review; Blizzard Entertainment. The rooms follow the owner's map of the Scarlet Monastery Library (MapsForTanks) and his route on it; his screenshots of the Huntsman's Cloister and of Arcanist Doan's round library guided the look. None of them is stored. See [the Scarlet Library sheet](tracks/scarlet-library.md).
+
+**Scarlet Crusade Cup, Scarlet Armory (2026-10-26, `claude/scarlet-armory`, proposed).** `addon/AzerothKart/Assets/Tracks/ScarletArmory/Background.tga` (2048×2048) and `Preview.tga` (512×512) are composited the same way from the same install. The sources are:
+
+- **Terrain:** the city's square tiles, bricks, grass and wall cliff; Dalaran's square tiles; the Dalaran ruins' bricks.
+- **The city:** the arcade's columns, crates and a bush.
+- **The Dungeon:** a junk pile.
+- **Lordaeron:** archery targets, armour stands, weapon racks, braziers, torches and hay.
+- **Reforged's own `_de.w3mod` set:** the Scarlet Crusade's standing banners and footman; Renault Mograine's boss model (as Herod); Lordaeron's scarecrows, smithy tools, furniture, and statues with a sword and with a shield.
+
+- **Files:** 25 models, 89 placements, 26 textures; [the generated sources list](tracks/scarlet_armory-sources.txt) names them. Extracted files stay outside Git.
+- **Modifications:**
+  - as for the Graveyard, in a crimson team colour, with the statues tinted pale green-grey;
+  - painted by the generator: the Hall of Champions' ring of stairs, gold ring, red arena and gold lozenge, the stairs' treads, the Training Grounds' stepping stones and kerbs, the armories' mats, and the yard's green-tinged moonlight and mist.
+- **Terms and credits:** as for Stormwind: [ADR 0009](../adr/0009-warcraft-iii-asset-reuse.md); redistribution **unresolved** for release review; Blizzard Entertainment. The rooms follow the wing's in-game map and the Sanctum of Maps battle map, which the owner sent; his screenshots of the Training Grounds and of the Hall of Champions guided the look. None of them is stored. See [the Scarlet Armory sheet](tracks/scarlet-armory.md).

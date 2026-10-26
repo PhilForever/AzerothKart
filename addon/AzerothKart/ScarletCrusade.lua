@@ -230,5 +230,92 @@ ScarletCrusade["scarlet_library"] = {
     },
 }
 
+ScarletCrusade["scarlet_armory"] = {
+    id="scarlet_armory", version=1, name="Scarlet Armory", laps=1,
+    width=2048, height=2048, wallInset=18, checkpointMaxStep=5,
+    spawn={x=500, y=105, heading=0},
+    rooms={
+        {x=350, y=40, width=660, height=130, surface="road"}, -- entrance hall
+        {x=750, y=130, width=130, height=120, surface="road"}, -- training door
+        {x=670, y=210, width=580, height=420, surface="rough"}, -- training yard
+        {x=670, y=210, width=580, height=90, surface="road"}, -- south walk
+        {x=670, y=540, width=580, height=90, surface="road"}, -- north walk
+        {x=670, y=210, width=90, height=420, surface="road"}, -- west walk
+        {x=1160, y=210, width=90, height=420, surface="road"}, -- east walk
+        {x=790, y=590, width=130, height=120, surface="road"}, -- training stairs
+        {x=750, y=670, width=460, height=145, surface="road"}, -- footman south
+        {x=750, y=885, width=460, height=145, surface="road"}, -- footman north
+        {x=750, y=670, width=100, height=360, surface="road"}, -- footman west
+        {x=920, y=670, width=120, height=360, surface="road"}, -- footman aisle
+        {x=1110, y=670, width=100, height=360, surface="road"}, -- footman east
+        {x=1170, y=910, width=160, height=120, surface="road"}, -- footman landing
+        {x=1190, y=990, width=120, height=120, surface="road"}, -- armory stairs
+        {x=1170, y=1070, width=160, height=120, surface="road"}, -- crusader landing
+        {x=750, y=1070, width=460, height=145, surface="road"}, -- crusader south
+        {x=750, y=1285, width=460, height=145, surface="road"}, -- crusader north
+        {x=750, y=1070, width=100, height=360, surface="road"}, -- crusader west
+        {x=920, y=1070, width=120, height=360, surface="road"}, -- crusader aisle
+        {x=1110, y=1070, width=100, height=360, surface="road"}, -- crusader east
+        {x=570, y=1310, width=220, height=120, surface="road"}, -- antechamber
+        {x=590, y=1390, width=120, height=160, surface="road"}, -- north hall
+        {x=590, y=1510, width=1180, height=120, surface="road"}, -- long hall
+        {x=1510, y=1590, width=120, height=150, surface="road"}, -- champions door
+        {x=1395, y=1653, width=350, height=350, surface="road", shape="disc"}, -- Hall of Champions
+    },
+    gates={
+        {name="Training Grounds", ax=750, ay=200, bx=880, by=200, nx=0, ny=1},
+        {name="Footman's Armory", ax=790, ay=650, bx=920, by=650, nx=0, ny=1},
+        {name="Crusader's Armory", ax=1190, ay=1050, bx=1310, by=1050, nx=0, ny=1},
+        {name="Hall of Champions", ax=1510, ay=1650, bx=1630, by=1650, nx=0, ny=1},
+        {name="Herod", ax=1395, ay=1828, bx=1745, by=1828, nx=0, ny=1},
+    },
+    solids={
+        {id="Scarlet guard", x=435, y=145, width=10, height=10},
+        {id="Scarlet guard_2", x=435, y=55, width=10, height=10},
+        {id="arcade column", x=753, y=293, width=14, height=14},
+        {id="arcade column_2", x=833, y=293, width=14, height=14},
+        {id="arcade column_3", x=1073, y=293, width=14, height=14},
+        {id="arcade column_4", x=1153, y=293, width=14, height=14},
+        {id="arcade column_5", x=753, y=533, width=14, height=14},
+        {id="arcade column_6", x=833, y=533, width=14, height=14},
+        {id="arcade column_7", x=1073, y=533, width=14, height=14},
+        {id="arcade column_8", x=1153, y=533, width=14, height=14},
+        {id="arcade column_9", x=753, y=413, width=14, height=14},
+        {id="arcade column_10", x=1153, y=413, width=14, height=14},
+        {id="archery target", x=1099, y=330, width=39, height=39},
+        {id="archery target_2", x=1099, y=385, width=39, height=39},
+        {id="archery target_3", x=1099, y=440, width=39, height=39},
+        {id="archery target_4", x=1099, y=495, width=39, height=39},
+        {id="training dummy", x=844, y=364, width=12, height=12},
+        {id="training dummy_2", x=954, y=454, width=12, height=12},
+        {id="training dummy_3", x=1004, y=349, width=12, height=12},
+        {id="training dummy_4", x=874, y=484, width=12, height=12},
+        {id="hay", x=1047, y=493, width=25, height=26},
+        {id="bush", x=788, y=328, width=25, height=24},
+        {id="crates", x=1202, y=228, width=36, height=21},
+        {id="forge", x=786, y=962, width=68, height=26},
+        {id="anvil", x=965, y=952, width=29, height=16},
+        {id="crates_2", x=1160, y=686, width=38, height=26},
+        {id="Scarlet footman", x=879, y=784, width=12, height=12},
+        {id="Scarlet footman_2", x=1069, y=784, width=12, height=12},
+        {id="table", x=955, y=1358, width=50, height=24},
+        {id="junk", x=1141, y=1367, width=28, height=22},
+        {id="cart", x=853, y=1386, width=34, height=18},
+        {id="Scarlet footman_3", x=879, y=1184, width=12, height=12},
+        {id="Scarlet footman_4", x=1069, y=1184, width=12, height=12},
+        {id="Herod", x=1561, y=1819, width=18, height=18},
+        {id="candles", x=1487, y=1901, width=10, height=10},
+        {id="candles_2", x=1643, y=1901, width=10, height=10},
+        {id="candles_3", x=1487, y=1745, width=10, height=10},
+        {id="candles_4", x=1643, y=1745, width=10, height=10},
+    },
+    route={
+        {x=500,y=105}, {x=815,y=105}, {x=815,y=255}, {x=715,y=255}, {x=715,y=585}, {x=855,y=585},
+        {x=855,y=700}, {x=1100,y=745}, {x=1160,y=800}, {x=1160,y=960}, {x=1250,y=960}, {x=1250,y=1130},
+        {x=1160,y=1130}, {x=800,y=1130}, {x=800,y=1360}, {x=650,y=1360}, {x=650,y=1570}, {x=1570,y=1570},
+        {x=1570,y=1690}, {x=1525,y=1770}, {x=1525,y=1880},
+    },
+}
+
 if type(namespace) == "table" then namespace.ScarletCrusade = ScarletCrusade end
 return ScarletCrusade

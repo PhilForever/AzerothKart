@@ -73,6 +73,12 @@ Menu.TRACKS = {
             .. "round library.",
         facts={"Sprint: one run through 5 gates", "Loksey's kennel: in across his line, then back out",
             "The finish is the round library's door"}},
+    {id="scarlet_armory", name="Scarlet Armory", cell="scarletarmory",
+        blurb="From the portal across the Training Grounds, the one open sky, up into the Footman's and the "
+            .. "Crusader's Armories, along the long hall into the round Hall of Champions and down its stairs "
+            .. "to Herod.",
+        facts={"Sprint: one run through 5 gates", "Grass slows you in the Training Grounds",
+            "The finish is down the stairs, beside Herod"}},
 }
 
 local WC3C = "Model: ITE project (wc3c), author unknown"
@@ -135,10 +141,13 @@ Menu.PREVIEW_CELLS = {
         left=0, right=1, top=0, bottom=1, width=320, height=320},
     thunderbluff={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\ThunderBluff\\Preview.tga",
         left=0, right=1, top=0, bottom=1, width=320, height=320},
-    -- The Graveyard's picture is twice as wide as tall (2048 x 1024 world units); the Library's is square.
+    -- The Graveyard's picture is twice as wide as tall (2048 x 1024 world units); the Library's and the
+    -- Armory's are square.
     scarletgraveyard={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\ScarletGraveyard\\Preview.tga",
         left=0, right=1, top=0, bottom=1, width=320, height=160},
     scarletlibrary={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\ScarletLibrary\\Preview.tga",
+        left=0, right=1, top=0, bottom=1, width=320, height=320},
+    scarletarmory={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\ScarletArmory\\Preview.tga",
         left=0, right=1, top=0, bottom=1, width=320, height=320},
 }
 

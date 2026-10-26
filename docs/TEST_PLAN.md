@@ -70,6 +70,15 @@ On `claude/scarlet-library`, `tests/test_dungeon.lua` also covers round rooms (`
 
 It walks the Scarlet Library's reviewed route through its five gates in order, crossing back over Loksey's line once on the way out, never meeting a wall or a solid, and checks a clean launch and every solid. The menu tests follow the Library into the Track cycle, its square preview and its sprint board. The rebuild commands are in [the Scarlet Library sheet](art/tracks/scarlet-library.md#rebuilding).
 
+On `claude/scarlet-armory`, `tests/test_dungeon.lua` walks the Scarlet Armory's reviewed route through its five gates in order (Training Grounds, Footman's Armory, Crusader's Armory, Hall of Champions, Herod), never meeting a wall or a solid. It also checks:
+
+- a clean launch east from the grid, and every solid;
+- the Training Grounds' yard as grass inside its stone walks;
+- the round Hall of Champions to its wall;
+- Herod blocking on the finish line, with stone either side of him.
+
+Only the Monastery is coming soon. The menu tests follow the Armory into the Track cycle, the cup's rows, its square preview and its sprint board. The generator now checks the floor just past each gate all along it (Herod stands on the finish). `build_dungeon_tracks.py --check` keeps the Graveyard's and the Library's data and pictures byte for byte after the painter's new layers. The rebuild commands are in [the Scarlet Armory sheet](art/tracks/scarlet-armory.md#rebuilding).
+
 `test_score_sharing` needs Codex's score-sync change (the patch is in Claude's handoff). The drive, the lawn, the picture and the camera in the client are NOT RUN; see [the client checklist](../tests/MANUAL_CLIENT_CHECKLIST.md).
 
 ## Current front-end slice (proposed, `claude/ui-flow`)

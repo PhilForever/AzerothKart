@@ -93,3 +93,17 @@ The owner drove the installed Graveyard (version 1) and found two kinds of fault
 - **Nothing to drive over.** `dungeon_paint.check_props` refuses a model that is not solid with its drawn body (not its shadow) more than 3 units onto the kart centre's floor, where a solid's grown box also counts as off the floor. Scenery out on the floor is solid, or stands against a wall, in a corner or behind a solid. Version 2 of the Graveyard and the not-yet-installed Library are laid out so.
 
 Solids' leaned tops (a column drawn north of its base) are not checked: a kart can still pass over the drawn top of a tall solid it cannot drive into. Graveyard version 2 has its own score boards; the Library stays version 1, since it has not been installed.
+
+## Addendum: a solid on a gate, and Scarlet Armory (proposed, `claude/scarlet-armory`, 2026-10-26)
+
+The Armory's finish is the owner's choice, "Down at Herod": a line across the middle of the round Hall of Champions, with Herod standing in the arena. Herod is solid, so the line runs through his box and the karts cross it either side of him. The runtime contract does not change: `Track.crossesGate` counts any crossing of the gate's segment, and a kart cannot reach the part inside a solid.
+
+- **The generator's gate check** needed one change. It looked for open floor just past a gate at the gate's middle only, which Herod covers, so it stopped the build ("past gate Herod cannot be reached"). It now samples the floor just past the gate every 4 units all along it. A gate passes if some of that floor is reachable from the spawn, and if none of it is reachable round the gate (the flood fill with the gate as a barrier, as before). The Graveyard's and the Library's data and pictures are byte for byte unchanged.
+- **No elevation.** The round hall's ring of stairs and the armories' stairs are painted on a flat floor, as the Graveyard's stairs are. Heights stay art only, as in [ADR 0015](0015-track-elevation.md), where physical slopes remain a proposal.
+
+Evidence, offline only:
+
+- `tests/test_dungeon.lua` walks the Armory's route through its five gates in order, never meeting a wall or a solid, and checks a clean launch, its grass yard inside stone walks, its round hall, every solid, and Herod blocking on the finish with stone either side.
+- `build_dungeon_tracks.py --check` passes for all three dungeons, byte for byte.
+
+**NOT RUN in the client:** the Armory's drive, the finish beside Herod, the 2048 × 2048 picture's load and performance.

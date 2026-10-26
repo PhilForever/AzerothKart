@@ -156,55 +156,85 @@ GOLD = (204, 160, 64)
 
 def paint_rings(pic, d, floor):
     """A round room's floor in rings about its centre (the round library's
-    stone, gold ring and Scarlet carpet). `rings` = {"room": name, "bands":
-    [(outer radius, kind), ...]}, innermost first: "floor" keeps the room's
-    tile, "gold" lays a gilt ring, "carpet" the red carpet, its edges hemmed
-    dark and gold. Beyond the last band the tile runs on to the wall."""
+    stone, gold ring and Scarlet carpet; the Hall of Champions' stairs down
+    to its arena). `rings` = {"room": name, "bands": [(outer radius, kind),
+    ...], "diamond": half-diagonal?}, innermost first: "floor" keeps the
+    room's tile, "gold" lays a gilt ring, "carpet" the red carpet, its edges
+    hemmed dark and gold, and (outer, "stairs", tread) steps the tile down
+    toward the centre, a riser every `tread` units, darker the deeper. Beyond
+    the last band the tile runs on to the wall. `diamond` inlays a gold
+    lozenge, quartered, at the centre."""
     spec = d.get("rings")
     if not spec:
         return
     w, h = pic.w, pic.h
     r = _room(d, spec["room"])
     cx, cy = (r["x0"] + r["x1"]) / 2, (r["y0"] + r["y1"]) / 2
+    diamond = spec.get("diamond")
     for y in range(int(r["y0"]), int(r["y1"])):
         for x in range(int(r["x0"]), int(r["x1"])):
             i = (h - 1 - y) * w + x
             if not floor[i]:
                 continue
-            dist = sqrt((x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2)
-            inner, kind, outer = 0.0, None, 0.0
-            for outer, kind in spec["bands"]:
+            dx, dy = x + 0.5 - cx, y + 0.5 - cy
+            dist = sqrt(dx * dx + dy * dy)
+            inner, band, outer = 0.0, None, 0.0
+            for band in spec["bands"]:
+                outer = band[0]
                 if dist < outer:
                     break
                 inner = outer
             else:
                 continue
-            if kind == "floor":
-                continue
-            edge = min(dist - inner, outer - dist)            # texels from the band's nearer edge
+            kind = band[1]
             v = hash32(x // 2, y // 2, 431) % 11 - 5
-            if kind == "gold":
-                k = 200 if edge < 1.5 else 256
-                c = (GOLD[0] * k >> 8, GOLD[1] * k >> 8, GOLD[2] * k >> 8)
-            elif edge < 1.5:
-                c = (96, 14, 18)                                 # the carpet's dark hem
-            elif edge < 4.5:
-                c = CARPET_EDGE
+            if diamond and abs(dx) + abs(dy) <= diamond:
+                a = abs(dx) + abs(dy)
+                if a > diamond - 4 or abs(dx) < 2 or abs(dy) < 2:
+                    c = GOLD                                     # the inlay's edge and its quartering
+                else:
+                    c = (GOLD[0] * 160 >> 8, GOLD[1] * 150 >> 8, GOLD[2] * 130 >> 8)
+            elif kind == "floor":
+                continue
+            elif kind == "stairs":
+                # Steps down toward the centre: each tread's nose lit, the
+                # riser below it in shadow, the lower treads darker.
+                tread = band[2]
+                t = outer - dist
+                pos = t % tread
+                k = 286 if pos < 2 else (150 if pos > tread - 2 else 256)
+                k = int(k * (256 - 80 * t / (outer - inner))) >> 8
+                pic.r[i] = min(255, pic.r[i] * k >> 8)
+                pic.g[i] = min(255, pic.g[i] * k >> 8)
+                pic.b[i] = min(255, pic.b[i] * k >> 8)
+                continue
             else:
-                c = CARPET
+                # Texels from the band's nearer edge (an innermost band has
+                # no inner edge).
+                edge = outer - dist if inner == 0.0 else min(dist - inner, outer - dist)
+                if kind == "gold":
+                    k = 200 if edge < 1.5 else 256
+                    c = (GOLD[0] * k >> 8, GOLD[1] * k >> 8, GOLD[2] * k >> 8)
+                elif edge < 1.5:
+                    c = (96, 14, 18)                             # the carpet's dark hem
+                elif edge < 4.5:
+                    c = CARPET_EDGE
+                else:
+                    c = CARPET
             pic.r[i] = max(0, min(255, c[0] + v))
             pic.g[i] = max(0, min(255, c[1] + v // 2))
             pic.b[i] = max(0, min(255, c[2] + v // 2))
 
 
 def paint_kerbs(pic, d, style, names, floor):
-    """A stone kerb where a paved room meets the lawn (`kerbed` floors)."""
+    """A stone kerb where a paved room meets the lawn (`kerbed` floors; the
+    lawn's floor style is `lawn`, "lawn" unless the layout names another)."""
     w, h = pic.w, pic.h
     for name in d.get("kerbed", ()):
         k = names.index(name)
         mask = bytearray(1 if v == k else 0 for v in style)
         edge = bank_distance(mask, w, h, 4)
-        lawn = names.index("lawn")
+        lawn = names.index(d.get("lawn", "lawn"))
         for i in range(w * h):
             if not mask[i] or edge[i] > 3:
                 continue
@@ -221,6 +251,57 @@ def paint_kerbs(pic, d, style, names, floor):
             pic.r[i] = max(0, min(255, (150 + v) * s >> 8))
             pic.g[i] = max(0, min(255, (146 + v) * s >> 8))
             pic.b[i] = max(0, min(255, (136 + v) * s >> 8))
+
+
+STONE = (178, 172, 158)
+
+
+def paint_stones(pic, d, style, names):
+    """Stepping stones on a lawn (`stones` = {"floor": style, "step",
+    "radius", "density"?, "seed"?}): pale octagonal flags in staggered rows,
+    `density` per cent of the places taken, each stone a little off its
+    place and its own size, shape and shade, lit from the north-west, the
+    grass growing over its edge."""
+    spec = d.get("stones")
+    if not spec:
+        return
+    w, h = pic.w, pic.h
+    k = names.index(spec["floor"])
+    step, radius, seed = spec["step"], spec["radius"], spec.get("seed", 433)
+    density = spec.get("density", 100)
+    room = step // 2 - radius - 3                          # how far a stone strays from its place
+    for i in range(w * h):
+        if style[i] != k:
+            continue
+        row, x = divmod(i, w)
+        y = h - 1 - row
+        gx, gy = x // step, y // step
+        best = None
+        for ci in (gx - 1, gx, gx + 1):
+            for cj in (gy - 1, gy, gy + 1):
+                hv = hash32(ci, cj, seed)
+                if hv % 100 >= density:
+                    continue
+                sx = ci * step + step // 2 + (cj % 2) * (step // 2) + (hv >> 7) % (2 * room + 1) - room
+                sy = cj * step + step // 2 + (hv >> 12) % (2 * room + 1) - room
+                rx = radius + (hv >> 17) % 7 - 3
+                ry = radius + (hv >> 21) % 7 - 3
+                ax, ay = abs(x + 0.5 - sx) / rx, abs(y + 0.5 - sy) / ry
+                a = max(ax, ay, (ax + ay) * 0.7071)        # an octagon's measure: 1 at its edge
+                if a <= 1.0:
+                    depth = (1.0 - a) * min(rx, ry)        # units in from the edge
+                    if best is None or depth > best[0]:
+                        best = (depth, hv, sx, sy, rx)
+        if best is None:
+            continue
+        depth, hv, sx, sy, rx = best
+        tone = (hv >> 25) % 21 - 10
+        v = hash32(x // 2, y // 2, 437) % 9 - 4
+        lit = 256 + int(28 * ((y + 0.5 - sy) - (x + 0.5 - sx)) / rx)    # lit from the north-west
+        r, g, b = ((c + tone + v) * lit >> 8 for c in STONE)
+        if depth < 2.0:                                    # the grass grows over the edge
+            r, g, b = (r + pic.r[i]) >> 1, (g + pic.g[i]) >> 1, (b + pic.b[i]) >> 1
+        pic.r[i], pic.g[i], pic.b[i] = max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b))
 
 
 def paint_room_lights(pic, lights, floor, faced):
@@ -242,26 +323,36 @@ def paint_room_lights(pic, lights, floor, faced):
 
 
 def paint_stairs(pic, d):
-    """Steps down the stair hall, its risers across it every `tread` units."""
+    """Steps in a stair hall, their risers across it every `tread` units:
+    `stairs` is one {"room", "tread", "from"?, "to"?, "axis"?} or a list of
+    them. Along "x" (the default) the risers run north-south; along "y"
+    they run east-west, for stairs climbing north."""
     w, h = pic.w, pic.h
     spec = d.get("stairs")
     if not spec:
         return
-    r = _room(d, spec["room"])
-    tread = spec["tread"]
-    for y in range(r["y0"], r["y1"]):
-        for x in range(r["x0"] + spec.get("from", 0), r["x1"] - spec.get("to", 0)):
-            i = (h - 1 - y) * w + x
-            step = (x - r["x0"]) % tread
-            if step < 2:
-                k = 150                                   # the riser's shadowed lip
-            elif step < 4:
-                k = 286                                   # the tread's lit nose
-            else:
-                k = 256
-            pic.r[i] = min(255, pic.r[i] * k >> 8)
-            pic.g[i] = min(255, pic.g[i] * k >> 8)
-            pic.b[i] = min(255, pic.b[i] * k >> 8)
+    for one in ([spec] if isinstance(spec, dict) else spec):
+        r = _room(d, one["room"])
+        tread = one["tread"]
+        across = one.get("axis", "x") == "y"
+        x0, x1, y0, y1 = r["x0"], r["x1"], r["y0"], r["y1"]
+        if across:
+            y0, y1 = y0 + one.get("from", 0), y1 - one.get("to", 0)
+        else:
+            x0, x1 = x0 + one.get("from", 0), x1 - one.get("to", 0)
+        for y in range(y0, y1):
+            for x in range(x0, x1):
+                i = (h - 1 - y) * w + x
+                step = ((y - r["y0"]) if across else (x - r["x0"])) % tread
+                if step < 2:
+                    k = 150                               # the riser's shadowed lip
+                elif step < 4:
+                    k = 286                               # the tread's lit nose
+                else:
+                    k = 256
+                pic.r[i] = min(255, pic.r[i] * k >> 8)
+                pic.g[i] = min(255, pic.g[i] * k >> 8)
+                pic.b[i] = min(255, pic.b[i] * k >> 8)
 
 
 def paint_portal(pic, d):
@@ -426,6 +517,7 @@ def build(wc3, d, geometry, check=False, preview=False, log=print):
     paint_masonry(pic, d, floor)
     paint_floors(pic, d, tiles, names, style, floor)
     paint_kerbs(pic, d, style, names, floor)
+    paint_stones(pic, d, style, names)
     paint_carpets(pic, d, floor)
     paint_rings(pic, d, floor)
     paint_stairs(pic, d)

@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased — Scarlet Crusade Cup: Scarlet Armory (2026-10-26, `claude/scarlet-armory`)
+- **Scarlet Armory**, the cup's third dungeon sprint, is selectable. The owner: "Image 3 is the training grounds area. Final room is the iconic round room with stairs leading down to herod (image 4). Same style. Free driving through the whole map. The Training grounds is the only outside you see on this map." He chose the finish down at Herod. From the wing's maps:
+  - from the portal east along the entrance hall, north into the Training Grounds;
+  - across the Training Grounds, the one open yard, and up the stairs into the Footman's Armory;
+  - out by its east side room, up the stairs to the Crusader's Armory and west through it;
+  - out of its north-west corner, along the long hall to the round Hall of Champions;
+  - down its ring of stairs to the finish across its middle, either side of Herod.
+
+  Five gates, about 4,200 units, one run. Every room on the way is open to the karts. See `docs/art/tracks/scarlet-armory.md`.
+- **The look:**
+  - the Training Grounds under the green-tinged night sky: grass with stepping stones, the arcade's columns, archery targets, training dummies and hay, inside kerbed stone walks;
+  - two armories round their great pillars: armour stands, weapon racks, a forge and an anvil, a table, a cart, crates, red mats and Scarlet footmen;
+  - the Hall of Champions: an upper floor with four champions' statues and a Scarlet banner, a ring of stairs down to a red arena with a gold ring and a gold lozenge, candles, and Herod (Reforged's Renault Mograine stands in for him).
+- **The painter** (`scripts/dungeon_paint.py`): stairs in the round hall's rings, the arena's lozenge, stairs that climb north, and stepping stones. **The generator** checks the floor just past a gate all along it, so a solid may stand on a gate, as Herod does on the finish. The Graveyard's and the Library's data and pictures are byte for byte unchanged.
+- **Tests:**
+  - `test_dungeon` walks the Armory's five gates in order and checks its yard, its round hall and Herod on the finish;
+  - `test_menu` and `test_circuit` follow the longer Track cycle; only the Monastery is coming soon;
+  - the score catalogue gains the Armory's board (eleven).
+- **Needs Codex:** the score-sync patch in the handoff now adds the Armory's code `A` too. The drive and the picture in the client are NOT RUN.
+
 ## Unreleased — fixes from the owner's client run (2026-10-26, `claude/drive-fixes`)
 - The owner drove the installed build and sent five screenshots: "fix invisible wall at infront of kart on image 1 and 2. remove object under kart on image 3 and 4. image 5 shows the startline of thunderbluff - arrow is not in the picture, so it's literally impossible and pretty unexpected having to take a left turn at the start."
 - **Scarlet Graveyard version 2:**

@@ -16,6 +16,8 @@ World units, bottom-left origin, one texel per unit in the picture. The
 painter (dungeon_paint.py) reads `floor` styles, walls, lights and props
 from the same layout.
 """
+import math
+
 from city_layouts import WALL_INSET, prop
 
 T = "war3.w3mod:terrainart/"
@@ -607,4 +609,202 @@ SCARLET_LIBRARY = {
     "moonlight": (204, 232, 214), "mist": (146, 164, 156),
 }
 
-DUNGEONS = [SCARLET_GRAVEYARD, SCARLET_LIBRARY]
+# ---------------------------------------------------------------------------
+# Scarlet Armory.
+#
+# The owner (2026-10-26): "let's get to work on Scarlet Armory. Image 3 is
+# the training grounds area. Final room is the iconic round room with
+# stairs leading down to herod (image 4). Same style. Free driving through
+# the whole map. The Training grounds is the only outside you see on this
+# map." He sent the wing's in-game map and a battle map of it (Sanctum of
+# Maps), and chose (asked) the finish line down at Herod, across the Hall
+# of Champions' middle. The way, from the maps: the entrance hall from the
+# portal, the Training Grounds (its yard the one open sky), stairs up into
+# the Footman's Armory, round by its east side room and stairs to the
+# Crusader's Armory, out of its north-west corner, along the long hall and
+# into the round Hall of Champions, down its ring of stairs to Herod.
+#
+# At karting scale in a 2048 x 2048 world: halls 120 to 130 units wide, the
+# yard 400 x 240, each armory 460 x 360 round two great square pillars (the
+# map's two octagons), the round hall 175 in radius, low enough in the world
+# that its north wall and the statues before it are drawn whole.
+
+SA_ROOMS = [
+    # The entrance hall, east from the portal, and its door north.
+    room("entrance hall", 350, 40, 1010, 170),
+    room("training door", 750, 130, 880, 250, floor="door"),
+    # The Training Grounds: the yard open to the sky, the four roofed walks
+    # round it painted over its edges.
+    room("training yard", 670, 210, 1250, 630, surface="rough", floor="yard"),
+    room("south walk", 670, 210, 1250, 300, floor="walk"),
+    room("north walk", 670, 540, 1250, 630, floor="walk"),
+    room("west walk", 670, 210, 760, 630, floor="walk"),
+    room("east walk", 1160, 210, 1250, 630, floor="walk"),
+    # Stairs up from the north walk into the Footman's Armory.
+    room("training stairs", 790, 590, 920, 710, floor="stairs"),
+    # The Footman's Armory: two bands and three aisles round its two great
+    # pillars (the masonry left between them).
+    room("footman south", 750, 670, 1210, 815, floor="armory"),
+    room("footman north", 750, 885, 1210, 1030, floor="armory"),
+    room("footman west", 750, 670, 850, 1030, floor="armory"),
+    room("footman aisle", 920, 670, 1040, 1030, floor="armory"),
+    room("footman east", 1110, 670, 1210, 1030, floor="armory"),
+    # Its east side room, the stairs up and the Crusader's side room.
+    room("footman landing", 1170, 910, 1330, 1030, floor="landing"),
+    room("armory stairs", 1190, 990, 1310, 1110, floor="stairs"),
+    room("crusader landing", 1170, 1070, 1330, 1190, floor="landing"),
+    # The Crusader's Armory, as the Footman's.
+    room("crusader south", 750, 1070, 1210, 1215, floor="armory"),
+    room("crusader north", 750, 1285, 1210, 1430, floor="armory"),
+    room("crusader west", 750, 1070, 850, 1430, floor="armory"),
+    room("crusader aisle", 920, 1070, 1040, 1430, floor="armory"),
+    room("crusader east", 1110, 1070, 1210, 1430, floor="armory"),
+    # Out of its north-west corner: the antechamber, the hall north and the
+    # long hall east to the Hall of Champions' door.
+    room("antechamber", 570, 1310, 790, 1430, floor="landing"),
+    room("north hall", 590, 1390, 710, 1550),
+    room("long hall", 590, 1510, 1770, 1630),
+    room("champions door", 1510, 1590, 1630, 1740, floor="door"),
+    # The Hall of Champions: a round hall, its floor in rings down a ring of
+    # stairs to the arena where Herod stands.
+    disc_room("Hall of Champions", 1570, 1828, 175, floor="champions"),
+]
+
+# The gates, in driving order. The last is the finish, across the round
+# hall's middle beside Herod: the karts drive down the stairs to cross it.
+SA_GATES = [
+    gate("Training Grounds", 750, 200, 880, 200, 0, 1),
+    gate("Footman's Armory", 790, 650, 920, 650, 0, 1),
+    gate("Crusader's Armory", 1190, 1050, 1310, 1050, 0, 1),
+    gate("Hall of Champions", 1510, 1650, 1630, 1650, 0, 1),
+    gate("Herod", 1395, 1828, 1745, 1828, 0, 1),
+]
+
+SA_ROUTE = [
+    (500, 105), (815, 105), (815, 255), (715, 255), (715, 585), (855, 585), (855, 700), (1100, 745),
+    (1160, 800), (1160, 960), (1250, 960), (1250, 1130), (1160, 1130), (800, 1130), (800, 1360), (650, 1360), (650, 1570),
+    (1570, 1570), (1570, 1690), (1525, 1770), (1525, 1880),
+]
+
+SCARECROW = DE + "doodads/lordaeroncapital/props/scarecrow/scarecrow%d.mdx"
+ARCHERY = SUMMER + "archeryrange/archeryrange.mdx"
+WEAPONS = SUMMER + "weapons/weapons.mdx"
+ARMORRACK = SUMMER + "armorrack/armorrack.mdx"
+CRATES = CITY + "props/emptycrates/emptycrates%d.mdx"
+SMITHY = DE + "doodads/lordaeroncapital/props/smithytools/smithytools%d.mdx"
+FURNITURE = DE + "doodads/lordaeroncapital/props/lordaeronfurniture/lordaeronfurniture%d.mdx"
+STATUES = [DE + "doodads/lordaeroncapital/props/statues/lordaeron_statue_sword.mdx",
+           DE + "doodads/lordaeroncapital/props/statues/lordaeron_statue_shield.mdx"]
+STATUE_TINT = (0.78, 0.86, 0.84)        # the hall's pale green-grey stone
+FOOTMAN = DE + "units/human/scarletfootman/scarletfootman.mdx"
+HEROD = DE + "units/human/herorenaultmograine/herorenaultmograineboss.mdx"
+
+
+def _unit(model, x, y, yaw, scale, name, half=6):
+    """A Scarlet soldier standing guard: solid at his feet."""
+    return prop(model, x, y, yaw=yaw, scale=scale, solid=solid_at(x, y, half, half), name=name)
+
+
+SA_PROPS = (
+    # The entrance hall: guards by the portal, banners and torches.
+    [_unit(FOOTMAN, 440, 150, 270, 0.3, "Scarlet guard", 5), _unit(FOOTMAN, 440, 60, 90, 0.3, "Scarlet guard", 5),
+     prop(BANNER % 0, 600, 162, scale=0.3), prop(BANNER % 1, 980, 162, scale=0.3)]
+    + wall_props(SA_ROOMS, "entrance hall", "north", TORCH, 120, light=TORCHLIGHT, scale=0.3, start=520)
+    # The Training Grounds: the arcade's columns round the yard (an opening
+    # in each side), archery targets down its east side, training dummies,
+    # hay and a bush; racks of weapons and armour along the walks.
+    + [_column(x, y) for x, y in ((760, 300), (840, 300), (1080, 300), (1160, 300), (760, 540), (840, 540),
+                                  (1080, 540), (1160, 540), (760, 420), (1160, 420))]
+    + [prop(ARCHERY, 1118, y, yaw=270, scale=0.45, solid=True, margin=2, name="archery target")
+       for y in (350, 405, 460, 515)]
+    + [prop(SCARECROW % (k % 3), x, y, yaw=yaw, scale=0.28, solid=solid_at(x, y, 6, 6), name="training dummy")
+       for k, (x, y, yaw) in enumerate(((850, 370, 0), (960, 460, 315), (1010, 355, 45), (880, 490, 270)))]
+    + [prop(SUMMER + "hayclump/hayclump.mdx", 1060, 510, scale=0.24, solid=True, margin=4, name="hay"),
+       prop(CITY + "plants/citybush/citybush.mdx", 800, 340, scale=0.22, solid=True, margin=3, name="bush")]
+    + [prop(ARMORRACK, 677, y, yaw=0, scale=0.3) for y in (340, 480)]
+    + [prop(ARMORRACK, 1243, y, yaw=180, scale=0.3) for y in (290, 530)]
+    + [prop(WEAPONS, x, 622, yaw=270, scale=0.44) for x in (722, 1060)]
+    + [prop(BANNER % 2, 980, 622, scale=0.3), prop(BANNER % 0, 1200, 622, scale=0.3)]
+    + [prop(CRATES % 0, 1220, 240, scale=0.3, solid=True, margin=3, name="crates")]
+    + wall_props(SA_ROOMS, "west walk", "west", TORCH, 150, light=TORCHLIGHT, scale=0.3, start=270)
+    + wall_props(SA_ROOMS, "east walk", "east", TORCH, 150, light=TORCHLIGHT, scale=0.3, start=270)
+    # The Footman's Armory: armour stands down its side walls, weapon racks
+    # face on along its north wall, a forge and an anvil, crates and Scarlet
+    # footmen at their drill by the pillars. (A rack seen end on from above
+    # is a stick: racks stand face on only against north walls.)
+    + [prop(ARMORRACK, 758, y, yaw=0, scale=0.42) for y in (735, 815, 895)]
+    + [prop(ARMORRACK, 1202, y, yaw=180, scale=0.42) for y in (760, 840)]
+    + [prop(WEAPONS, x, 1022, yaw=270, scale=0.46) for x in (900, 1075)]
+    + [prop(SMITHY % 0, 820, 975, scale=0.3, solid=True, margin=6, name="forge"),
+       prop(SMITHY % 1, 980, 960, scale=0.3, solid=True, margin=2, name="anvil"),
+       prop(CRATES % 1, 1180, 700, scale=0.3, solid=True, margin=3, name="crates"),
+       _unit(FOOTMAN, 885, 790, 270, 0.3, "Scarlet footman"), _unit(FOOTMAN, 1075, 790, 270, 0.3, "Scarlet footman")]
+    + [prop(BANNER % 1, 1000, 1022, scale=0.3), prop(BANNER % 2, 1150, 1022, scale=0.3)]
+    # The landings and the stairs between the armories.
+    + [prop(BRAZIER, 1318, 920, scale=0.26, light=FIRELIGHT), prop(BRAZIER, 1318, 1180, scale=0.26, light=FIRELIGHT)]
+    # The Crusader's Armory: armour stands, weapon racks along its north
+    # wall, a table of arms, junk.
+    + [prop(ARMORRACK, 758, y, yaw=0, scale=0.42) for y in (1120, 1200, 1280)]
+    + [prop(ARMORRACK, 1202, y, yaw=180, scale=0.42) for y in (1250, 1330)]
+    + [prop(WEAPONS, x, 1422, yaw=270, scale=0.46) for x in (930, 1110)]
+    + [prop(FURNITURE % 0, 980, 1370, scale=0.3, solid=True, margin=3, name="table"),
+       prop(DUNGEON + "junkpile/junkpile0.mdx", 1150, 1380, scale=0.3, solid=True, margin=4, name="junk"),
+       prop(SMITHY % 3, 870, 1395, scale=0.3, solid=True, margin=3, name="cart"),
+       _unit(FOOTMAN, 885, 1190, 270, 0.3, "Scarlet footman"), _unit(FOOTMAN, 1075, 1190, 270, 0.3, "Scarlet footman")]
+    + [prop(BANNER % 0, 820, 1422, scale=0.3), prop(BANNER % 1, 1060, 1422, scale=0.3)]
+    # The halls: torches and banners.
+    + wall_props(SA_ROOMS, "north hall", "west", TORCH, 130, light=TORCHLIGHT, scale=0.3, start=1420)
+    + wall_props(SA_ROOMS, "long hall", "north", TORCH, 140, light=TORCHLIGHT, scale=0.3, start=680)
+    + [prop(BANNER % 2, 1450, 1622, scale=0.3), prop(BANNER % 0, 1690, 1622, scale=0.3)]
+    # The Hall of Champions: Herod in its arena, candles round it on the
+    # stairs, statues of champions round the north of its wall facing him
+    # (on the south wall they would lean out over the floor), a Scarlet
+    # banner between them.
+    + [prop(HEROD, 1570, 1828, yaw=270, scale=0.42, solid=solid_at(1570, 1828, 9, 9), name="Herod")]
+    + [prop(BRAZIER, 1570 + dx, 1828 + dy, scale=0.22, light=CANDLELIGHT, solid=solid_at(1570 + dx, 1828 + dy, 5, 5),
+            name="candles") for dx, dy in ((-78, 78), (78, 78), (-78, -78), (78, -78))]
+    + [prop(STATUES[k], 1570 + round(172 * math.cos(math.radians(a))), 1828 + round(172 * math.sin(math.radians(a))),
+            yaw=yaw, scale=0.08, tint=STATUE_TINT)
+       for k, a, yaw in ((0, 160, 0), (1, 125, 315), (1, 55, 225), (0, 20, 180))]
+    + [prop(BANNER % 2, 1570, 1995, scale=0.32)]
+)
+
+SCARLET_ARMORY = {
+    "id": "scarlet_armory", "name": "Scarlet Armory", "version": 1, "folder": "ScarletArmory",
+    "size": (2048, 2048), "laps": 1,
+    "rooms": SA_ROOMS, "gates": SA_GATES, "route": SA_ROUTE, "spawn": (500, 105, "east"),
+    "props": SA_PROPS,
+    "lean": 0.6, "team": (0.72, 0.04, 0.04), "supersample": 3,
+    "replaceables": {31: "war3.w3mod:replaceabletextures/lordaerontree/lordaeronsummertree.dds"},
+    "floors": {
+        "hall": {"tile": T + "cityscape/city_squaretiles.dds", "shade": (0.92, 0.88, 0.82, 0.8)},
+        "door": {"tile": T + "cityscape/city_squaretiles.dds", "shade": (0.92, 0.88, 0.82, 0.8)},
+        "walk": {"tile": T + "dalaran/dalaran_squaretiles.dds", "shade": (0.86, 0.86, 0.84, 0.4)},
+        "yard": {"tile": T + "cityscape/city_grass.dds", "shade": (0.92, 1.0, 0.9)},
+        "stairs": {"tile": T + "cityscape/city_bricktiles.dds", "shade": (0.95, 0.9, 0.84)},
+        "armory": {"tile": T + "dalaranruins/druins_bricktiles.dds", "shade": (1.08, 0.96, 0.82, 0.5)},
+        "landing": {"tile": T + "cityscape/city_squaretiles.dds", "shade": (0.86, 0.80, 0.72, 0.7)},
+        "champions": {"tile": T + "cityscape/city_squaretiles.dds", "shade": (1.06, 0.92, 0.70, 0.6)},
+    },
+    "wall": {"face": (T + "cityscape/city_cliff1.dds", (0, 0, 192, 64), (0.9, 0.84, 0.76)),
+             "height": 70, "top": (34, 30, 30), "coping": (150, 140, 124)},
+    "open_sky": ["training yard"],
+    "portal": (440, 105, 38),
+    "carpets": [([(560, 105), (815, 105), (815, 230)], 40),
+                ([(650, 1570), (1570, 1570), (1570, 1686)], 42),
+                # The armories' red mats.
+                ([(975, 722), (975, 752)], 64), ([(860, 1335), (900, 1335)], 52),
+                ([(1100, 1110), (1130, 1110)], 48)],
+    "kerbed": ["walk"], "lawn": "yard",
+    "stairs": [{"room": "training stairs", "tread": 10, "axis": "y", "from": 40, "to": 40},
+               {"room": "armory stairs", "tread": 10, "axis": "y", "from": 40, "to": 40}],
+    # The Hall of Champions' floor: the arena's red carpet with its gold
+    # lozenge, a gold ring, the stairs down to it, the upper floor round them.
+    "rings": {"room": "Hall of Champions", "bands": [(83, "carpet"), (88, "gold"), (138, "stairs", 9)],
+              "diamond": 53},
+    # The yard's stepping stones in the grass.
+    "stones": {"floor": "yard", "step": 46, "radius": 13, "density": 62},
+    "moonlight": (204, 232, 214), "mist": (146, 164, 156),
+}
+
+DUNGEONS = [SCARLET_GRAVEYARD, SCARLET_LIBRARY, SCARLET_ARMORY]

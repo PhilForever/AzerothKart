@@ -300,10 +300,13 @@ def validate_geometry(g):
             for k in range(1, 40):
                 assert not floor.on_floor(px + ux * sign * k, py + uy * sign * k), \
                     f"gate {gt['name']} does not reach the wall"
-        mx, my = (gt["ax"] + gt["bx"]) / 2 + gt["nx"] * 12, (gt["ay"] + gt["by"]) / 2 + gt["ny"] * 12
-        assert free(mx, my), f"past gate {gt['name']} cannot be reached"
+        # Just past the gate, all along it (a solid may stand on the line, as
+        # Herod does on the Armory's finish): reachable, but not round it.
+        beyond = [(gt["ax"] + ux * k + gt["nx"] * 12, gt["ay"] + uy * k + gt["ny"] * 12)
+                  for k in range(2, int(length) - 1, 4)]
+        assert any(free(x, y) for x, y in beyond), f"past gate {gt['name']} cannot be reached"
         around = reachable(floor, (sx, sy), barrier=gt)
-        assert not around(mx, my), f"gate {gt['name']} can be passed round"
+        assert not any(around(x, y) for x, y in beyond), f"gate {gt['name']} can be passed round"
     return True
 
 

@@ -206,22 +206,22 @@ local context = Records.Context(crypt)
 assert(context.lapCount == 1 and context.trackId == "crypt", "a sprint's score context is one run")
 assert(Records.Context(Track).lapCount == 3, "the oval's score context keeps three laps")
 
--- The Scarlet Crusade Cup: the catalogue's third cup. Scarlet Graveyard and
--- Scarlet Library are ready; the Armory and the Monastery are coming soon.
+-- The Scarlet Crusade Cup: the catalogue's third cup. Scarlet Graveyard,
+-- Scarlet Library and Scarlet Armory are ready; the Monastery is coming soon.
 assert(#Courses.CUPS == 3 and Courses.CUPS[3].id == "scarlet" and Courses.CUPS[3].name == "Scarlet Crusade Cup",
     "the Scarlet Crusade Cup")
-for _,id in ipairs({"scarlet_graveyard", "scarlet_library"}) do
+for _,id in ipairs({"scarlet_graveyard", "scarlet_library", "scarlet_armory"}) do
     local course = Courses.get(id)
     assert(course.cup == "scarlet" and course.geometry == "dungeon" and Courses.available(id), id .. " is a ready dungeon")
 end
-for _,id in ipairs({"scarlet_armory", "scarlet_monastery"}) do
+for _,id in ipairs({"scarlet_monastery"}) do
     local course = Courses.get(id)
     assert(course and course.cup == "scarlet" and course.soon and not Courses.available(id)
         and Courses.build(id, Track.crossesGate) == nil, id .. " is coming soon")
 end
 assert(Courses.next("undercity_slime") == "scarlet_graveyard" and Courses.next("scarlet_graveyard") == "scarlet_library"
-    and Courses.next("scarlet_library") == "test_oval",
-    "the Track button steps on to the Graveyard and the Library, then round to the oval")
+    and Courses.next("scarlet_library") == "scarlet_armory" and Courses.next("scarlet_armory") == "test_oval",
+    "the Track button steps on to the Graveyard, the Library and the Armory, then round to the oval")
 
 -- Scarlet Graveyard: one run from the entrance to Honor's Tomb. The spawn
 -- stands on stone; the reviewed route crosses the three gates in order and
@@ -325,6 +325,62 @@ for _,box in ipairs(library.solids) do
 end
 assert(blocking == #library.solids and blocking >= 40, "every solid blocks (columns, trees, pillars, the living)")
 
+-- Scarlet Armory: one run from the portal to Herod. The grid faces east on
+-- stone; the reviewed route crosses the five gates in order and never meets
+-- a wall or a solid. The Training Grounds' yard is grass inside its stone
+-- walks; the Hall of Champions is a round room, and the finish runs across
+-- its middle through Herod, who blocks.
+local armory = Courses.build("scarlet_armory", Track.crossesGate)
+local armoryData = namespace.ScarletCrusade.scarlet_armory
+assert(armory and armory.laps == 1 and armory.width == 2048 and armory.height == 2048 and #armory.gates == 5,
+    "the Armory: a 2048 x 2048 sprint with five gates")
+round = {}
+for _,room in ipairs(armoryData.rooms) do
+    if room.shape == "disc" then round[#round + 1] = room end
+end
+assert(#round == 1 and round[1].width == 350 and round[1].height == 350, "one round room: the Hall of Champions")
+spawn = armory.spawn()
+assert(armory.surfaceAt(spawn.x, spawn.y) == "road" and near(spawn.heading, 0), "the grid faces east on stone")
+assert(armory.surfaceAt(960, 400) == "grass" and armory.surfaceAt(715, 420) == "road"
+    and armory.surfaceAt(960, 585) == "road", "the yard is grass, its walks stone")
+assert(armory.surfaceAt(1570, 1975) == "road" and armory.surfaceAt(1570, 1990) == "wall"
+    and armory.surfaceAt(1720, 1978) == "wall", "the Hall of Champions is stone to its round wall, less the inset")
+local finish = armory.gates[5]
+assert(finish.name == "Herod" and finish.ay == 1828 and finish.by == 1828 and armory.surfaceAt(1570, 1828) == "wall"
+    and armory.surfaceAt(1500, 1828) == "road" and armory.surfaceAt(1640, 1828) == "road",
+    "the finish crosses the hall's middle, either side of Herod")
+progress = Checkpoints.new(armory, 0)
+previous = {x=spawn.x, y=spawn.y, tick=0}
+names, walls = {}, 0
+for index=2,#armoryData.route do
+    local target = armoryData.route[index]
+    local steps = math.max(1, math.ceil(distance(previous.x, previous.y, target.x, target.y) / 4))
+    local fromX, fromY = previous.x, previous.y
+    for k=1,steps do
+        local tx, ty = fromX + (target.x - fromX) * k / steps, fromY + (target.y - fromY) * k / steps
+        local mx, my, contact = armory.resolveMovement(previous.x, previous.y, tx, ty)
+        if contact or mx ~= tx or my ~= ty then walls = walls + 1 end
+        local current = {x=tx, y=ty, tick=previous.tick + 1}
+        local before = progress.passed
+        progress = Checkpoints.step(progress, previous, current, armory)
+        if progress.passed > before then names[#names + 1] = armory.gates[progress.passed].name end
+        previous = current
+    end
+end
+assert(table.concat(names, ",") == "Training Grounds,Footman's Armory,Crusader's Armory,Hall of Champions,Herod"
+    and progress.complete, "the route passes the gates in order: " .. table.concat(names, ","))
+assert(walls == 0, "the route never meets a wall or a solid")
+-- Full throttle from the grid runs cleanly east along the entrance hall.
+state = Physics.new(armory)
+for _=1,60 do state = Physics.step(state, {accelerate=true}, Physics.FIXED_DT, armory) end
+assert(state.surface == "road" and state.impacts == 0 and state.x > spawn.x + 40, "a clean launch from the grid")
+blocking = 0
+for _,box in ipairs(armory.solids) do
+    if armory.surfaceAt(box.x + box.width / 2, box.y + box.height / 2) == "wall" then blocking = blocking + 1 end
+end
+assert(blocking == #armory.solids and blocking >= 30, "every solid blocks (columns, targets, dummies, the living)")
+
 print(("dungeon: rooms (and round rooms), lawns, solids and sliding walls; random steps; sprint race and one-run "
-    .. "scores; Scarlet Graveyard %d rooms, %d solids; Scarlet Library %d rooms, %d solids; gates in order")
-    :format(#graveyard.rooms, #graveyard.solids, #library.rooms, #library.solids))
+    .. "scores; Scarlet Graveyard %d rooms, %d solids; Scarlet Library %d rooms, %d solids; "
+    .. "Scarlet Armory %d rooms, %d solids; gates in order")
+    :format(#graveyard.rooms, #graveyard.solids, #library.rooms, #library.solids, #armory.rooms, #armory.solids))
