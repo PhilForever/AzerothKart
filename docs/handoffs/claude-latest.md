@@ -1,4 +1,31 @@
-# Claude handoff — fixes from the owner's client run
+# Claude handoff — Scarlet Armory (in progress)
+
+## Active reservation — Scarlet Crusade Cup: Scarlet Armory (2026-10-26)
+
+The owner sent the Armory's in-game map, a battle map of the wing (Sanctum of Maps), a screenshot of the Training Grounds and one of the Hall of Champions. He wrote: "Sweet. In the meantime let's get to work on Scarlet Armory. Image 3 is the training grounds area. Final room is the iconic round room with stairs leading down to herod (image 4). Same style. Free driving through the whole map. The Training grounds is the only outside you see on this map."
+
+Asked where the finish line goes, he chose **"Down at Herod"**: the karts come in at the top of the Hall of Champions, drive down its ring of stairs and finish on a line across the hall's middle, beside Herod.
+
+The way, from the maps: the entrance, the Training Grounds (the one open yard), the Footman's Armory, round by its east side rooms and stairs to the Crusader's Armory, out of its north-west corner to the long hall, and into the Hall of Champions.
+
+**Branch:** `claude/scarlet-armory` from `claude/drive-fixes` `fb8b296`. Nothing of Claude's since Thunder Bluff and the Graveyard is integrated yet, so this branch carries the Library and the drive fixes. Reserved, until this handoff says otherwise:
+
+- **Scripts:**
+  - `scripts/dungeon_layouts.py`: a new Armory section;
+  - `scripts/dungeon_paint.py`: the Armory's new layers (the Hall of Champions' ring of stairs and its arena floor, the training yard's stepping stones). The other dungeons' pictures stay byte for byte.
+- **Generated:** `ScarletCrusade.lua` gains the Armory's entry, the others unchanged; new `addon/AzerothKart/Assets/Tracks/ScarletArmory/`.
+- **Shared:**
+  - `Courses.lua`: Scarlet Armory becomes selectable;
+  - `services/leaderboard/catalog.json` (generated);
+  - `scripts/validate_project.py`.
+- **`Menu.lua`:** the Armory's track copy and preview cell.
+- **Tests:** `tests/test_dungeon.lua`, `tests/test_circuit.lua` and `tests/test_menu.lua`.
+- **Proposal only:** the score-sync patch gains the Armory's code.
+- **Docs:** a track sheet and the shared lists that name the tracks.
+
+No change to `Dungeon.lua`, `Race`, `SoloRecords`, physics, input, timing, networking or `UI.lua`.
+
+# Previous: fixes from the owner's client run
 
 Prepared 2026-10-26 at about 00:40 CET (Europe/Oslo) by Claude (rendering/UI/sprites owner).
 
