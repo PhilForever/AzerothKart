@@ -1,6 +1,31 @@
 # Implemented simulation and rendering contracts
 
 
+## Score discovery fallback - 2026-10-26
+
+`ScoreDiscovery.ReadGroup(api,selfName)` is an additive read-only source. Inject
+`GetNumGroupMembers`, `IsInRaid`, `NameUtil.GetUnmodifiedUnitFullName`, and optional
+`issecretvalue`. It returns `{peers,ready=true,members,raid}` or nil/reason. Solo0
+is complete empty; groups1..40 preserve full native identities, exclude self,
+deduplicate/sort deterministically, and recheck count/kind/identity set. Partial,
+secret or replaced rows remain pending. No native UI selection, join or send.
+
+`ScoreSharing.RememberPeer(name)` retains only a validated incoming session peer
+introduced by SessionTransport's accepted control receive. Its own call queues
+no traffic and cannot take the Core lease. Source union still caps32 recipients;
+no arbitrary friend/target enumeration or inbound HELLO self-admission. Channel/
+group partial snapshots have30/15second leases; confirmed peers expire30minutes
+after confirmation/accepted activity. Expiry and explicit source invalidation
+are enforced on receive and send as well as idle scans. No persistent contact
+list or save/schema migration is added.
+
+`GetView().discovery={channel,group,remembered}` supplies copied reason/count
+metadata; Report prints it. The existing cached `Read` API, wire protocol,
+contexts, score merge/ranks, pacing, notices and protected saves are unchanged.
+Public channel discovery remains pending; grouped/confirmed native delivery is
+NOT RUN in the current client. [Behavior and short check](AUTOMATIC_SCORES.md).
+
+
 ## Multiplayer display and group diagnostic - 2026-10-25
 
 `Presentation.buildRemotePath(previous,current,track,horizonMS?)` keeps its

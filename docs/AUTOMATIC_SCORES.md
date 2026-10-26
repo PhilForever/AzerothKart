@@ -3,7 +3,7 @@
 Implemented on `codex/automatic-score-sync`, from `1c029f8`. This connects the
 existing saved solo results, pure community ranking and menu. No manual result
 exchange, desktop uploader or continuously logged-in scorekeeper is required.
-Actual Forever roster population and end-to-end delivery remain **NOT RUN**.
+Actual Forever end-to-end delivery for the latest discovery fix remains **NOT RUN**. The owner's two screenshots confirm channel discovery is stuck, with each client showing only its own saved sprint time. Local saving is working.
 
 ## Player flow
 
@@ -11,8 +11,14 @@ Fully restart WoW after installing this build: it adds three Lua files. Enter
 the world and open **Main Menu → Highscores**. Azeroth Kart automatically joins
 its own `AzerothKartScores` channel and reads the cached/event-fed member list.
 Compatible addon users exchange scores through logged whispers in the background.
-There is no setup command, code to copy or dependency on being grouped/nearby.
-Cross-faction reach is still unverified.
+Discovery now also reads complete native party/raid names and remembers a full
+peer identity after a valid incoming multiplayer control message. Friends can
+therefore synchronize even when the public channel's cached roster never arrives.
+No scores or character names need to be copied. Being grouped is one discovery
+source, not a requirement for the existing two-player game. Public discovery
+for strangers with no current group/racing contact remains unresolved; proximity
+or having a character selected as target is not admission. Cross-faction reach
+is still unverified.
 
 Finish a normal three-lap solo race. A new personal best is saved locally,
 merged into the shared cache and queued ahead of historical catch-up. The visible
@@ -25,12 +31,25 @@ time and UTC finish date remain visible. Historical handling versions remain
 saved separately. The garage and kart picker show the current actual handling
 profiles, replacing the older installed identical-handling text.
 
+## Quick check for the reported separate boards
+
+Both players update to the same fixed build and `/reload` from the installed
+combined build. Join the same ordinary WoW party, then open Highscores for the
+same map while stopped and out of combat. Existing saved times are seeded and
+shared automatically; no new race is required. Give the boards roughly30seconds;
+older multi-map catch-up may take longer. This is the next native check, not
+an already verified delivery guarantee. A confirmed multiplayer counterpart is
+another automatic source after the race lease ends.
+
 ## Status and limits
 
 The board shows its actual discovery/connection state. **Waiting for channel
 member list** means the native roster has not become available. No player names
 are guessed, and no native chat-channel selection is changed to force it.
-`/akart scores` prints the automatic status if diagnostic detail is useful;
+`Automatic sharing connected (known peers)` means the group/racing-peer path
+has exchanged compatible score messages while public channel discovery remains
+pending. `/akart scores` also prints the exact channel/group reason and remembered
+count;
 the older explicit diagnostic remains `/akart scores check`.
 
 This is a cache of the best compatible scores learned from other players.
@@ -40,12 +59,12 @@ send results are not delivery acknowledgements. New-score delivery should be
 prompt once connected; a missed update recovers through periodic reconciliation.
 Returning players' historical catch-up takes longer than a new-result update.
 
-The initial test implementation admits at most 32 other channel members. An
+The initial test implementation admits at most32distinct recipients across all discovery sources. An
 over-capacity roster stops traffic and displays that limit instead of retaining
 a stale connected state. Large-community throughput, native latency, full names
 from actual rosters and cross-faction delivery need evidence before release.
 The previous failed CHANNEL broadcast test remains failed; this adapter uses
-roster discovery plus the separately verified WHISPER route.
+cached-channel/native-group/confirmed-racer discovery plus the separately verified WHISPER route.
 
 ## Implementation
 
@@ -54,6 +73,19 @@ Current catalogue: eight finished courses. HELLO has nine fixed digest slots; re
 - `ScoreDiscovery.Read` validates an entire bounded cached roster using display
   indices, not local send-channel IDs. Missing/secret/partial data stays pending.
   It neither joins channels nor changes native selection.
+- `ScoreDiscovery.ReadGroup` reads complete native group names, preserves full
+  Forever surnames/UTF-8, deduplicates and rechecks membership. It makes no joins,
+  selection changes or sends. Its40-member read bound is not a racing capacity.
+- `ScoreSharing.RememberPeer` is called only after an accepted scoped incoming
+  session control message. Configuring a name, an arbitrary score HELLO, a
+  target, or the native friend list cannot introduce recipients.
+- Discovery unions/deduplicates these sources. Last good channel/group snapshots
+  survive partial data for at most30/15seconds. A complete empty/leave removes
+  that source; pending data is not treated as an authoritative empty roster.
+  Confirmed racing peers live30minutes in memory; accepted score traffic can
+  renew an already admitted remembered peer. Receive/send check expiry before
+  use, even if a race/combat has prevented the next idle scan. Remembered names
+  are not persisted and do not alter score save schemas.
 - `ScoreSync` owns readable versioned HELLO/digest, request, row, end and new-best
   packets. Full Forever names are preserved. Current contexts and registered
   kart IDs are validated. Canonical merges converge after duplicates/reordering.

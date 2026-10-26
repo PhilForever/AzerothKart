@@ -1,5 +1,14 @@
 # ADR 0018 — Automatic addon-only community leaderboard
 
+
+Implementation update,2026-10-26: public channel cache remains pending in owner
+screenshots. The same paced logged-whisper engine now also uses current native
+group names and validated incoming multiplayer peers. This is automatic known-
+peer discovery, not complete public/global delivery. No native channel selection
+or friend/target scan is performed; sources have bounded leases and expired
+admission cannot be renewed by an unsolicited score message. Native acceptance
+remains open; saved records and the existing source/wire rules are preserved.
+
 Status: Product direction selected from the owner's 2026-10-25 request for
 automatic sharing, prompt board updates and top-3/top-10 congratulations.
 Native shared discovery/delivery is still OPEN; no global rollout is enabled.

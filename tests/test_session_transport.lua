@@ -268,6 +268,77 @@ do
 end
 
 -- Missing/ambiguous enums and native setup refusals may not leak hooks or lease.
+do
+    local e=client(GUEST)
+    local remembered={}
+    e.namespace.ScoreSharing={RememberPeer=function(peer)
+        assert(e.frame.akNetworkOwner==e.transport and #e.sends==0,
+            "remembering an accepted control peer cannot send or replace the race lease")
+        remembered[#remembered+1]=peer
+    end}
+    assert(e:call("Listen","  Åmber   Stone  ",CODE))
+    assert(#remembered==0,"an outgoing configured name alone is not an observed peer")
+    local offer=wire(e,"INVITE",1,{physicsVersion=e.namespace.Physics.VERSION,
+        trackId="mirage_raceway",trackVersion=1,laps=3})
+    receive(e,offer,"Åmber Stone","OTHER")
+    receive(e,offer,"Åmber Stone",nil,"PARTY")
+    receive(e,offer,"Åmber Wrong")
+    receive(e,wire(e,"INVITE",1,{session="OLD123",physicsVersion=e.namespace.Physics.VERSION,
+        trackId="mirage_raceway",trackVersion=1,laps=3}),"Åmber Stone")
+    receive(e,"malformed","Åmber Stone")
+    assert(#remembered==0,"unrelated, malformed and rejected packets do not admit score peers")
+    assert(receive(e,offer,"Åmber sToNe"))
+    assert(#remembered==1 and remembered[1]=="Åmber sToNe" and e:view().canJoin,
+        "accepted incoming discovery preserves the complete native sender, including surname")
+    e:call("Stop","stopped"); detached(e)
+end
+do
+    local e=client(GUEST)
+    local calls=0
+    e.namespace.ScoreSharing={RememberPeer=function()
+        calls=calls+1; error("private score callback failure")
+    end}
+    assert(e:call("Listen",HOST,CODE))
+    assert(receive(e,wire(e,"INVITE",1,{physicsVersion=e.namespace.Physics.VERSION,
+        trackId="mirage_raceway",trackVersion=1,laps=3})))
+    assert(calls==1 and e:view().canJoin and e:call("IsActive") and #e.sends==0,
+        "a failing score callback does not turn a valid session packet into a controller error")
+    e:call("Stop","stopped"); detached(e)
+end
+do
+    local e=client(GUEST)
+    local foreign,callback={},function() end
+    e.namespace.ScoreSharing={RememberPeer=function()
+        e:call("Stop","stopped")
+        e.frame.akNetworkOwner=foreign
+        e.frame.scripts.OnUpdate=callback
+    end}
+    assert(e:call("Listen",HOST,CODE))
+    assert(receive(e,wire(e,"INVITE",1,{physicsVersion=e.namespace.Physics.VERSION,
+        trackId="mirage_raceway",trackVersion=1,laps=3})))
+    assert(not e:call("IsActive") and e.frame.akNetworkOwner==foreign
+        and e.frame.scripts.OnUpdate==callback and #e.sends==0,
+        "a callback stop wins and the old receive cannot clear a newly acquired foreign lease")
+end
+do
+    local e=client()
+    e.namespace.ScoreSharing={RememberPeer=function()
+        e:call("Stop","stopped")
+        assert(e.frame.akNetworkSending==e.transport,
+            "a score callback cannot clear a native send still unwinding")
+        refusal(e,"Listen",GUEST,"DEF456")
+    end}
+    assert(e:call("Host",GUEST,CODE,"mirage_raceway"))
+    e.onSend=function(packet)
+        local message=assert(e.namespace.RaceProtocol.decode(packet.payload))
+        receive(e,wire(e,"ACK",1,{ackKind=message.kind,ackSequence=message.sequence}),GUEST)
+    end
+    e:update(0.5); detached(e)
+    assert(#e.sends==1 and e.frame.akNetworkSending==nil,
+        "the accepted-peer hook preserves native callback reentry cleanup")
+end
+
+-- Missing/ambiguous enums and native setup refusals may not leak hooks or lease.
 local setupFailures={
     function(e) e.globals.Enum=nil end,
     function(e) e.globals.Enum.SendAddonMessageResult.TargetOffline=nil end,

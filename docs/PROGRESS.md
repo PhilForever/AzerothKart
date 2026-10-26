@@ -1,5 +1,63 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-26 07:58 +01:00 - scores discover native groups and validated racing partners
+
+Owner screenshots show separate own-only Graveyard records with channel member
+list pending/zero connected. Saving works; recipient discovery never completed.
+Own `codex/score-peer-discovery` from clean installed`d480373`/runtime`c9ebf03`.
+Read both handoffs and preserved Claude's independent Library/drive/Armory work;
+current observed checkout is`claude/scarlet-armory`559cc4f. No new map integration.
+
+Pinned70450native source confirms the existing channel tuple/display index.
+Its UI selects a channel before roster reads; no documented request-only method
+was found. Existing mocks incorrectly populated the cache automatically on join.
+No native selection borrowing, ordinary/unlogged fallback or global-route claim.
+An initial CUA observation found an active drive and issued no game input; the
+current26October app inventory shows no open WoW. Native receipt NOT RUN.
+
+Implemented additive ScoreDiscovery.ReadGroup: bounded complete native party/
+raid full names, noUI/join/send, stable copied/deduped identities and repeated
+shape/identity checks. ScoreSharing unions channel/currentgroup/validated native
+racer sources under the same32recipient cap and existing paced logged whispers.
+SessionTransport introduces a peer only after accepted scoped incoming control;
+configured names, targets, friends lists and arbitrary inbound HELLOs do not
+admit recipients. Callback errors/reentrant Stop cannot damage the game lease.
+
+Partial channel/group data retains last good snapshots for30/15seconds, not
+forever and not an immediate empty reset. Confirmed racing peers last30minutes
+in memory, refreshed by already-admitted valid score traffic. Complete leave/
+empty replaces its source; expired admission is checked again on receive/send,
+even while a race/combat blocks idle scanning. This closed a review finding
+where a late HELLO could otherwise revive expired contact before Update.
+Pending group events also preserve their bounded lease/urgent queue; complete
+membership invalidation takes effect immediately. Copied discovery reason/
+count fields and `/akart scores` explain each source. No contacts save/schema
+migration, score deletion, UI allocation, wire/physics/course/art changes.
+
+Executed actual pinned Lua5.1: `scripts/test_lua.py --runtime lua51 --tests
+score_discovery score_sharing session_transport solo_records score_sync menu
+multiplayer_integration` PASS7modules/80files. After final admission/event guards,
+`--tests score_sharing` PASS again. New native-mocked permanent-empty-channel
+case exchanges the reported638/865tick Graveyard records between full UTF8-named
+group peers, preserves rows/ranks across repeated pending reads, and never asks
+for UI selection. Tests also cover group/race union, known ungrouped partners,
+source expiry before Update/under a Core lease, true leave, partial group events,
+protected saves and native callback errors/reentry. Independent review found no
+remaining practical blocker after the expiry fix. Whitespace PASS; validator
+retains only2historical expired skill links. BroadLua54/native delivery NOT RUN.
+
+All77installed files still match the previousc9manifest, with the one knownextra;
+no unexpected installed work. Source is ready for the requested follow-up fix
+install with full backup/hash verification and updated friendZIP. Public
+stranger discovery remains pending. This does not claim complete/global ranking
+or actual two-client delivery. Both clients must update; `/reload` suffices from
+the previous combined build because no runtime file is added.
+
+**Next:** install this reviewed correction, then both players reload, join the
+same ordinary party and open matching Highscores while stopped. Existing times
+should seed/sync without another race; record actual receipt before native pass.
+
+
 ## 2026-10-25 22:58 +01:00 - all reviewed updates installed and packaged
 
 Owner explicitly requests installation of all missing updates. Tested runtime

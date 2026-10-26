@@ -1,6 +1,18 @@
 # M0–M2 feasibility — evidence gates
 
 
+**2026-10-26 score-discovery finding:** owner screenshots show separate own-only
+Graveyard boards, channel member list pending and0connected. Pinned70450source
+confirms the existing display-index/tuple mapping; its native channel UI uses
+selection before roster reads, with no documented request-only method found.
+The old tests incorrectly assumed joining immediately fills that cache. No
+selection borrowing, ordinary/unlogged fallback or working public route is
+inferred. Additive native-group/validated-session discovery and bounded source
+leases are now implemented/offline-tested; [short next check](AUTOMATIC_SCORES.md).
+Initial CUA observation found an active kart drive and issued no game input;
+current26October inventory has no running WoW window. Native receipt NOT RUN.
+
+
 **2026-10-25 group route gate:** [short finite PARTY/RAID check](GROUP_DELIVERY.md)
 is implemented with actual native recipients/whisper receipts, fixed roster and
 shared race-window pacing. The pinned70450generated API source documents the

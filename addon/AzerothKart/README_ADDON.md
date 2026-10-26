@@ -49,3 +49,10 @@ direction, without increasing network traffic. Native smoothness remains pending
 `/akart net group help` describes the separate finite group-delivery check; it
 does not start a race or require grouping for existing two-player racing. The
 new GroupProbe file requires a full client restart after installing this build.
+
+Score-discovery fix: current party/raid members and validated multiplayer peers
+are now automatic recipients even when the public channel member list stays
+pending. Both players update and `/reload`; while stopped, open the same board.
+Existing saved times are reused. No new race or copied names/results is needed.
+Public discovery for strangers remains pending; native delivery still needs a
+check. `/akart scores` prints channel/group reasons if it does not connect.

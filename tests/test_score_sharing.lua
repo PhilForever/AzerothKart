@@ -4,7 +4,7 @@ local GLOBALS={"AzerothKartDB","C_ChatInfo","Enum","GetTime","GetServerTime",
     "InCombatLockdown","NameUtil","UnitNameUnmodified","Constants","issecretvalue",
     "CreateFrame","JoinPermanentChannel","GetChannelName","GetNumDisplayChannels","GetChannelDisplayInfo",
     "DEFAULT_CHAT_FRAME","SetSelectedDisplayChannel","GetSelectedDisplayChannel",
-    "ListChannelByName","date"}
+    "ListChannelByName","date","GetNumGroupMembers","IsInRaid"}
 local function pack(...) return {n=select("#",...),...} end
 local function using(client,fn,...)
     local prior={}
@@ -42,7 +42,21 @@ local function bus()
         local g=client.globals
         g.GetTime=function() return network.now end
         g.GetServerTime=function() return 1792860000+math.floor(network.now) end
-        g.NameUtil={GetUnmodifiedUnitFullName=function(unit) assert(unit=="player");return name end}
+        g.NameUtil={GetUnmodifiedUnitFullName=function(unit)
+            if unit=="player" then return name end
+            if client.groupPending then return nil end
+            local index=tonumber(unit:match("^raid(%d+)$"))
+            if index then return client.group and client.group[index] end
+            index=tonumber(unit:match("^party(%d+)$"))
+            assert(index,"only native group units are enumerated")
+            local peers={}
+            for _,member in ipairs(client.group or {}) do
+                if folded(member)~=folded(name) then peers[#peers+1]=member end
+            end
+            return peers[index]
+        end}
+        g.GetNumGroupMembers=function() return client.group and #client.group or 0 end
+        g.IsInRaid=function() return client.raid==true end
         g.InCombatLockdown=function() return client.combat end
         g.issecretvalue=function() return false end
         g.Enum={RegisterAddonMessagePrefixResult={Success=0,DuplicatePrefix=1},SendAddonMessageResult={Success=0}}
@@ -63,7 +77,7 @@ local function bus()
             if index==1 then return "Channels",true,true,nil,nil,false end
             if index==2 then return "General",false,true,1,1,true end
             if index==3 and client.joined then
-                return "AzerothKartScores",false,true,6,#network:roster(),true
+                return "AzerothKartScores",false,true,6,client.rosterCountPending and 0 or #network:roster(),true
             end
         end
         g.C_ChatInfo={
@@ -165,6 +179,14 @@ local function bus()
     end
     return network
 end
+local function group(clients,names,raid)
+    for _,client in ipairs(clients) do
+        client.group=names
+        client.raid=raid or false
+        client:fire("GROUP_ROSTER_UPDATE")
+    end
+end
+
 local function congratulations(client)
     local count=0
     for _,message in ipairs(client.messages) do
@@ -406,5 +428,123 @@ assert(registerCalls==1 and #retryClient.sends==0,
     "a refused prefix registration does not hammer the native API each background update")
 failedRegistration:step(30)
 assert(registerCalls==2,"registration recovers through a bounded retry interval")
+
+-- Reproduce the reported permanent channel-cache wait. Merely joining must
+-- not magically populate the mock roster; current native group names suffice.
+do
+    local n=bus()
+    local a=n:client("Fourtwenty Blazeit",{schemaVersion=1,preferences={keep=true}})
+    local b=n:client("Bæppmeg Plis")
+    a.rosterPending,a.rosterCountPending=true,true
+    b.rosterPending,b.rosterCountPending=true,true
+    group({a,b},{a.name,b.name})
+    a:fire("PLAYER_ENTERING_WORLD");b:fire("PLAYER_ENTERING_WORLD");n:flush()
+    n:untilTrue(function() return a:view().connected==1 and b:view().connected==1 end,15)
+    assert(a:view().discovery.channel=="pending" and a:view().discovery.group=="ready"
+        and a:view().publication=="Automatic sharing connected (known peers)",
+        "group discovery connects without a requested public roster or hidden UI selection")
+    assert(a:finish(638,"scarlet_graveyard").saved and b:finish(865,"scarlet_graveyard").saved)
+    n:untilTrue(function() return #a:view("scarlet_graveyard").rows==2
+        and #b:view("scarlet_graveyard").rows==2 end,15)
+    for _,client in ipairs({a,b}) do
+        local rows=client:view("scarlet_graveyard").rows
+        assert(rows[1].playerName==a.name and rows[1].totalTicks==638
+            and rows[2].playerName==b.name and rows[2].totalTicks==865,
+            "both boards display the same two saved sprint totals in rank order")
+        assert(#client.frames==1)
+    end
+    a.groupPending=true
+    a:fire("GROUP_ROSTER_UPDATE")
+    assert(a:finish(630,"scarlet_graveyard").saved)
+    n:untilTrue(function() return b:view("scarlet_graveyard").rows[1].totalTicks==630 end,5)
+    assert(a:view().connected==1,
+        "a pending group event preserves the valid lease and urgent update rather than clearing its queue")
+    a.groupPending=false
+    a:fire("GROUP_ROSTER_UPDATE")
+    n:step(31)
+    assert(a:view().connected==1 and b:view().connected==1 and a.db.preferences.keep,
+        "repeated channel-cache misses cannot erase a valid group admission or preferences")
+    group({a,b},{}) -- a native authoritative leave, rather than pending data
+    local previousReceived=a:view().lastReceived
+    local oldHello=b.sends[1]
+    a:fire("CHAT_MSG_ADDON_LOGGED",oldHello.prefix,oldHello.payload,oldHello.route,oldHello.sender)
+    assert(a:view().lastReceived==previousReceived,
+        "an explicit group leave invalidates that source before the next scan")
+    n:step(0.25)
+    local beforeA,beforeB=#a.sends,#b.sends
+    n:step(3)
+    assert(a:view().peers==0 and b:view().peers==0 and #a.sends==beforeA and #b.sends==beforeB,
+        "leaving the group removes that source and its queued traffic")
+    assert(#a:view("scarlet_graveyard").rows==2 and #b:view("scarlet_graveyard").rows==2,
+        "losing discovery never deletes learned scores")
+end
+
+-- A validated session peer also works ungrouped. Configured-but-unconfirmed
+-- candidates are covered at SessionTransport's native receive boundary.
+do
+    local n=bus()
+    local a,b=n:client("Session Racer"),n:client("Session Friend")
+    a.rosterPending,a.rosterCountPending=true,true
+    b.rosterPending,b.rosterCountPending=true,true
+    a:fire("PLAYER_ENTERING_WORLD");b:fire("PLAYER_ENTERING_WORLD");n:flush();n:step(2)
+    assert(#a.sends==0 and #b.sends==0)
+    using(a,function() assert(a.namespace.ScoreSharing.RememberPeer(b.name)) end)
+    using(b,function() assert(b.namespace.ScoreSharing.RememberPeer(a.name)) end)
+    n:untilTrue(function() return a:view().connected==1 and b:view().connected==1 end,15)
+    assert(a:view().discovery.remembered==1 and a:view().discovery.group=="ready")
+    assert(a:finish(1600).saved)
+    n:untilTrue(function() return #b:view().rows==1 end,5)
+    b.enabled=false
+    n.now=n.now+1801
+    local priorReceived=a:view().lastReceived
+    local hello=b.sends[1]
+    a.core.akNetworkOwner={}
+    a:fire("CHAT_MSG_ADDON_LOGGED",hello.prefix,hello.payload,hello.route,hello.sender)
+    assert(a:view().lastReceived==priorReceived,
+        "an expired remembered contact cannot renew itself before an idle scan, even during a race lease")
+    a.core.akNetworkOwner=nil
+    n:step(0.25)
+    assert(a:view().peers==0 and a:view().discovery.remembered==0 and #a:view().rows==1,
+        "an offline remembered partner expires after30minutes without deleting scores")
+end
+
+-- Overlapping sources are deduplicated. A transient channel miss cannot tear
+-- down an active queue; an indefinitely missing source has an exact lease end.
+do
+    local n=bus()
+    local a,b=n:client("Cache Keeper"),n:client("Cache Friend")
+    group({a,b},{a.name,b.name},true)
+    a:fire("PLAYER_ENTERING_WORLD");b:fire("PLAYER_ENTERING_WORLD");n:flush()
+    n:untilTrue(function() return a:view().connected==1 and b:view().connected==1 end,15)
+    assert(a:view().peers==1 and b:view().peers==1,"channel and raid do not duplicate the same recipient")
+    a.rosterPending=true
+    a:fire("CHANNEL_ROSTER_UPDATE")
+    assert(a:finish(1500).saved)
+    n:untilTrue(function() return #b:view().rows==1 end,5)
+    assert(a:view().connected==1 and a:view().peers==1)
+    a.groupPending=true
+    a:fire("CHANNEL_ROSTER_UPDATE")
+    n:step(31)
+    assert(a:view().peers==0 and #a:view().rows==1,
+        "partial data expires both channel/group admission rather than retaining stale peers forever")
+end
+
+-- Group leases also expire on receive, not only when the next idle update
+-- gets a chance to reconcile sources after a long foreground race/combat.
+do
+    local n=bus()
+    local a,b=n:client("Group Lease Keeper"),n:client("Group Lease Friend")
+    a.rosterPending,a.rosterCountPending=true,true
+    b.rosterPending,b.rosterCountPending=true,true
+    group({a,b},{a.name,b.name})
+    a:fire("PLAYER_ENTERING_WORLD");b:fire("PLAYER_ENTERING_WORLD");n:flush()
+    n:untilTrue(function() return a:view().connected==1 and b:view().connected==1 end,15)
+    local previous=a:view().lastReceived
+    local hello=b.sends[1]
+    a.groupPending=true;a.core.akNetworkOwner={}
+    n.now=n.now+16
+    a:fire("CHAT_MSG_ADDON_LOGGED",hello.prefix,hello.payload,hello.route,hello.sender)
+    assert(a:view().lastReceived==previous,"a pending group cannot keep receiving beyond its15second lease")
+end
 
 originalPrint("score sharing: automatic native-roster whispers, finish notices, quiet catch-up/reload, bounded pacing and preserved saves (mock APIs)")

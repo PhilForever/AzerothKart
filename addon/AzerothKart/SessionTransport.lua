@@ -658,6 +658,17 @@ function Transport.Message(prefix,payload,channel,nativeSender)
     end
     local ok, accepted, why = pcall(Session.receive,expected,now,prefix,payload,channel,nativeSender)
     if not ok then return hardStop("controller_error") end
+    if accepted==true and control==expected then
+        -- Only a validated incoming control packet establishes this peer. A
+        -- configured name or local send acceptance alone is not discovery.
+        -- Remembering queues no traffic; score sharing still yields this lease.
+        pcall(function()
+            local sharing=AK.ScoreSharing
+            if type(sharing)=="table" and type(sharing.RememberPeer)=="function" then
+                sharing.RememberPeer(nativeSender)
+            end
+        end)
+    end
     if control==expected then
         finish(now)
         if control==expected then

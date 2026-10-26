@@ -10,6 +10,10 @@ local lastNow, nextScan, nextJoin, nextSend, idleSince, savedRevision = nil, 0, 
 local nextRegistration=0
 local allowed, status, statusKey = {}, "Waiting for world", nil
 local notified, announcing = {}, false
+local channelPeers,groupPeers,remembered = {},{},{}
+local channelUntil,groupUntil = 0,0
+local discovery = {channel="pending",group="unsupported",remembered=0}
+local CHANNEL_LEASE,GROUP_LEASE,PEER_LEASE = 30,15,1800
 
 local function plain(value)
     if type(issecretvalue)=="function" then
@@ -131,6 +135,30 @@ local function prefixReady(now)
     registered=value==success or (type(duplicate)=="number" and value==duplicate)
     return registered
 end
+local function connectionStatus(view)
+    if (view.connected or 0)>0 then
+        return discovery.channel=="ready" and "Automatic sharing connected"
+            or "Automatic sharing connected (known peers)"
+    end
+    if (view.peers or 0)>0 then return "Players discovered; connecting" end
+    return discovery.channel=="ready" and "Waiting for other racers"
+        or (discovery.channel=="unsupported" and "Channel member list unavailable"
+            or "Waiting for channel member list")
+end
+local function clearAdmission(now,message)
+    allowed={}
+    Sync.discover(engine,{},now)
+    status=message
+end
+local function refreshGroup(now,name)
+    local group,reason=AK.ScoreDiscovery.ReadGroup({
+        GetNumGroupMembers=GetNumGroupMembers,IsInRaid=IsInRaid,NameUtil=NameUtil,
+        issecretvalue=issecretvalue},name)
+    discovery.group=group and "ready" or reason or "pending"
+    if group then groupPeers,groupUntil=group.peers,now+GROUP_LEASE
+    elseif now>=groupUntil then groupPeers={} end
+    return group
+end
 local function discover(now)
     if now<nextScan then return end
     nextScan=now+10
@@ -138,36 +166,89 @@ local function discover(now)
     local snapshot,reason=AK.ScoreDiscovery.Read({
         GetNumDisplayChannels=GetNumDisplayChannels,GetChannelDisplayInfo=GetChannelDisplayInfo,
         C_ChatInfo=C_ChatInfo,issecretvalue=issecretvalue},Sharing.CHANNEL,name)
+    discovery.channel=snapshot and "ready" or reason or "pending"
     if snapshot then
         if #snapshot.peers>Sync.MAX_PEERS then
-            allowed={};Sync.discover(engine,{},now)
-            status="Sharing capacity reached (32-peer test limit)"
+            channelPeers,channelUntil={},0
+            clearAdmission(now,"Sharing capacity reached (32-peer test limit)")
             return
         end
-        local accepted=Sync.discover(engine,snapshot.peers,now)
-        if not accepted then
-            allowed={};Sync.discover(engine,{},now)
-            status="Channel member list unavailable"
-            return
-        end
-        allowed={}
-        for _,peer in ipairs(snapshot.peers) do allowed[key(peer)]=true end
-        local view=Sync.view(engine)
-        status=(view.connected or 0)>0 and "Automatic sharing connected"
-            or (#snapshot.peers>0 and "Players discovered; connecting" or "Waiting for other racers")
-    else
-        allowed={}
-        Sync.discover(engine,{},now)
-        status=reason=="unsupported" and "Channel member list unavailable"
-            or "Waiting for channel member list"
-        if now>=nextJoin then
-            nextJoin=now+60
-            local joined=read(GetChannelName,Sharing.CHANNEL)
-            if not (type(joined)=="number" and joined>0) and type(JoinPermanentChannel)=="function" then
-                pcall(JoinPermanentChannel,Sharing.CHANNEL)
-            end
+        channelPeers,channelUntil=snapshot.peers,now+CHANNEL_LEASE
+    elseif now>=channelUntil then channelPeers={}
+    else nextScan=math.min(nextScan,channelUntil) end
+    if not snapshot and now>=nextJoin then
+        nextJoin=now+60
+        local joined=read(GetChannelName,Sharing.CHANNEL)
+        if not (type(joined)=="number" and joined>0) and type(JoinPermanentChannel)=="function" then
+            pcall(JoinPermanentChannel,Sharing.CHANNEL)
         end
     end
+    local group=refreshGroup(now,name)
+    if not group and now<groupUntil then nextScan=math.min(nextScan,groupUntil) end
+
+    local peers,names={},{}
+    local own=name and key(name)
+    local function add(peer)
+        local id=key(peer)
+        if id~=own and not names[id] then names[id]=true;peers[#peers+1]=peer end
+    end
+    for _,peer in ipairs(channelPeers) do add(peer) end
+    for _,peer in ipairs(groupPeers) do add(peer) end
+    discovery.remembered=0
+    for id,peer in pairs(remembered) do
+        if now>=peer.untilTime then remembered[id]=nil
+        else
+            discovery.remembered=discovery.remembered+1;add(peer.name)
+            nextScan=math.min(nextScan,peer.untilTime)
+        end
+    end
+    table.sort(peers,function(a,b) return key(a)<key(b) end)
+    if #peers>Sync.MAX_PEERS then
+        clearAdmission(now,"Sharing capacity reached (32-peer test limit)")
+        return
+    end
+    if not Sync.discover(engine,peers,now) then
+        clearAdmission(now,"Player discovery unavailable")
+        return
+    end
+    allowed=names
+    status=connectionStatus(Sync.view(engine))
+end
+
+-- Only callers that validated a native session message introduce this peer.
+-- A candidate's configured name or arbitrary score HELLO is not admission.
+function Sharing.RememberPeer(name)
+    if not plain(name) then return false end
+    name=H.NormalizeName(name)
+    local own=AK.SoloRecords.PlayerName()
+    if not name or not own or key(name)==key(own) then return false end
+    local now=clock()
+    if not now then return false end
+    for id,peer in pairs(remembered) do
+        if now>=peer.untilTime then remembered[id]=nil end
+    end
+    local id=key(name)
+    if not remembered[id] then
+        local count=0
+        for _ in pairs(remembered) do count=count+1 end
+        if count>=Sync.MAX_PEERS then return false end
+    end
+    remembered[id]={name=name,untilTime=now+PEER_LEASE}
+    nextScan=0
+    return true
+end
+local function admitted(name,now)
+    local id=key(name)
+    if not allowed[id] then return false end
+    local known=remembered[id]
+    if known and now<known.untilTime then return true end
+    if now<channelUntil then
+        for _,peer in ipairs(channelPeers) do if key(peer)==id then return true end end
+    end
+    if now<groupUntil then
+        for _,peer in ipairs(groupPeers) do if key(peer)==id then return true end end
+    end
+    return false
 end
 local function nativeSend(peer,payload)
     if not unblocked() then return false end
@@ -175,7 +256,7 @@ local function nativeSend(peer,payload)
         writable,problem=false,"Saved community scores changed; reload to continue"
         status=problem;return false
     end
-    if type(peer)~="string" or not allowed[key(peer)] then return false end
+    if type(peer)~="string" or not admitted(peer,lastNow) then return false end
     if not core or core.akNetworkOwner or core.akNetworkSending then return false end
     if #payload+#Sharing.PREFIX>158 then return false end
     local resultEnums=type(Enum)=="table" and Enum.SendAddonMessageResult
@@ -217,11 +298,16 @@ function Sharing.Message(prefix,payload,route,sender)
     end
     local now=clock()
     if not now then return end
+    if not admitted(name,now) then return end
     local handled=Sync.receive(engine,name,payload,now)
     if handled then
+        -- Renew only an already confirmed racing partner. A score packet can
+        -- never introduce an arbitrary sender or extend a different source.
+        local known=remembered[key(name)]
+        if known then known.untilTime=now+PEER_LEASE end
         persist()
         local view=Sync.view(engine)
-        if (view.connected or 0)>0 then status="Automatic sharing connected" end
+        if (view.connected or 0)>0 then status=connectionStatus(view) end
         changed()
     end
 end
@@ -265,13 +351,17 @@ function Sharing.GetView(trackId)
         problem=problem,trackId=trackId,trackName=course and course.name or "Unknown track",
         context=context,rows=context and H.View(Sync.snapshot(engine),context) or {},
         peers=view.peers or 0,connected=view.connected or 0,queued=view.queued or 0,
-        received=view.received or 0,lastReceived=view.lastReceived}
+        received=view.received or 0,lastReceived=view.lastReceived,
+        discovery={channel=discovery.channel,group=discovery.group,remembered=discovery.remembered}}
 end
 function Sharing.Report()
     local view=engine and Sync.view(engine) or {}
     local message=("Azeroth Kart scores: %s | discovered=%d connected=%d queued=%d received=%d")
         :format(status,view.peers or 0,view.connected or 0,view.queued or 0,view.received or 0)
     if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage(message) else print(message) end
+    local details=("Azeroth Kart scores: discovery channel=%s group=%s remembered=%d")
+        :format(tostring(discovery.channel),tostring(discovery.group),discovery.remembered)
+    if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage(details) else print(details) end
 end
 function Sharing.Init(coreFrame)
     core=coreFrame
@@ -283,7 +373,8 @@ function Sharing.Init(coreFrame)
     buildContexts()
     frame=CreateFrame("Frame")
     local events={"PLAYER_ENTERING_WORLD","PLAYER_LEAVING_WORLD","PLAYER_LOGOUT",
-        "CHAT_MSG_ADDON_LOGGED","CHANNEL_ROSTER_UPDATE","CHANNEL_UI_UPDATE","CHAT_MSG_CHANNEL_NOTICE"}
+        "CHAT_MSG_ADDON_LOGGED","CHANNEL_ROSTER_UPDATE","CHANNEL_UI_UPDATE","CHAT_MSG_CHANNEL_NOTICE",
+        "GROUP_ROSTER_UPDATE","CHANNEL_LEFT"}
     for _,event in ipairs(events) do
         local ok,result=pcall(frame.RegisterEvent,frame,event)
         if not ok or not plain(result) or result==false then
@@ -294,8 +385,22 @@ function Sharing.Init(coreFrame)
         if event=="PLAYER_ENTERING_WORLD" then
             world=true;nextScan,nextJoin=0,0;idleSince=nil;Sharing.Update()
         elseif event=="PLAYER_LEAVING_WORLD" or event=="PLAYER_LOGOUT" then
-            world=false;idleSince=nil;allowed={};status="Sharing paused outside world";changed()
+            world=false;idleSince=nil;allowed={};channelPeers,groupPeers={},{};channelUntil,groupUntil=0,0
+            status="Sharing paused outside world";changed()
         elseif event=="CHAT_MSG_ADDON_LOGGED" then Sharing.Message(...)
+        elseif event=="GROUP_ROSTER_UPDATE" then
+            -- An event can arrive before its rows. Only a complete snapshot
+            -- replaces membership; pending data retains the bounded lease.
+            if world and engine then
+                local now=clock()
+                if now then refreshGroup(now,AK.SoloRecords.PlayerName()) end
+            end
+            nextScan=0
+        elseif event=="CHANNEL_LEFT" then
+            local _,name=...
+            if plain(name) and type(name)=="string" and key(name)==key(Sharing.CHANNEL) then
+                channelPeers,channelUntil={},0;nextScan=0
+            end
         else nextScan=math.min(nextScan,(lastNow or 0)+1) end
     end)
     local elapsedTotal=0

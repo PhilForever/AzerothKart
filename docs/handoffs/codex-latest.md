@@ -1,5 +1,56 @@
 # Codex handoff — production maps and Claude course review
 
+## Latest score-discovery correction - 2026-10-26 07:58 CET
+
+Own `codex/score-peer-discovery` fromd480373/c9installed. Screenshot symptom is
+missing discovery, not lost totals. Implemented native group source and accepted
+incoming-session peer notification, with bounded union/leases and expiry-aware
+receive/send checks. No target/friend sweeps, unknownHELLO admission, native UI
+selection changes or public/globaldelivery claim. Known racing contacts are
+memory-only; saved score schemas/times remain intact. [Current behavior/check](../AUTOMATIC_SCORES.md).
+
+Actual focused Lua51 seven-module integration PASS/80parsedfiles. Final source-
+admission/partial-group-event regressions also PASS. Reproduces permanently
+empty native channel cache with shared638/865tick Graveyard results, without
+manual score transfer. Source union/cap/expiry and score/native callback guards
+are covered. Independent review found no remaining blocker. Structural validator
+retains only2historical expired links; nativegroup delivery/Lua54 NOT RUN.
+
+CUA observed an active kart and sent no input; current app inventory has no WoW
+window. Native/public discovery remains unverified. Installed77files currently
+still matchc9; correction deployment pending. No new runtime files: both clients
+need `/reload` after update. Keep oldscores and the known legacy extra unchanged.
+Root prepares verifiedbackup/install/friendZIP, then ordinaryparty Highscores
+check using existing times. No new race or throughput-probe series is needed.
+
+Claude is independently on`claude/scarlet-armory`559cc4f; its Library/drive/Armory
+changes are not part of this patch. Canonical checkout remains5570968. Do not
+overwrite or auto-integrate either checkout; root source was the only edited one.
+
+
+
+## Active reservation - scores saved but automatic discovery remains pending
+
+Owner screenshots show two different local Graveyard records, both Waiting for
+channel member list/zero connected. Source is clean installedc9ebf03/docsd480373.
+Own `codex/score-peer-discovery` fromd480373; preserve all saves, other worktrees,
+Physics12/art/multiplayer and Claude's ongoingLibraryfa75cf4. No new course merge.
+
+Plan: fix automatic sharing for known native peers even if public channel cache
+never arrives. Reserve ScoreDiscovery additive guarded current-group reader and
+its tests; ScoreSharing bounded sourceunion/currentgroup/confirmedracer lifetime,
+status/diagnostic reason fields and its focused tests; SessionTransport accepted
+native-peer notification only and tests. No arbitrary friend-list or target
+whispers, inbound-HELLO self-admission or unlogged/ordinary-chat fallback. Cache
+pending must not destroy another valid source or reset the queue every scan.
+Root owns shared contract/ADR/docs/PROGRESS/handoff and all commits/deployment.
+
+Pinned70450channel tuple/displayindex mapping is correct. No separate request API
+was found; UI requests through selection. Do not silently borrow/steal native UI
+selection or claim complete public discovery. A read-only CUA inventory/snapshot
+found the client running an active kart drive and a native group; no game input
+or API command was issued. Resume any client check only when inactive.
+
 ## Installed checkpoint - 2026-10-25 22:58 CET
 
 Owner-authorized deployment complete. Runtime`c9ebf03` is installed in the
