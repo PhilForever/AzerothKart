@@ -844,7 +844,7 @@ Proposed by Claude on `claude/scarlet-graveyard`, 2026-10-25, for Codex's review
   - the Highscores screen's rule line names a lap-count-1 board's times as sprints, reusing its label.
 
   The status line in `UI.Start` and `step` now says "Sprint" for this one-run course and retains "3 laps" for circuits.
-- **Counts:** the Scarlet cup's heading and four track buttons brought the pool to89/69/136 after Oval retirement. Reviewed stat bars add8textures and4font strings at window creation: **89 frames,77 textures,140 font strings**. No driving-time creation is added. The proposed race screens (`claude/race-screens`, [above](#proposed-race-screens-and-score-celebrations-claude-claude-race-screens-2026-10-26)) bring it to **90/91/150**.
+- **Counts:** the Scarlet cup's heading and four track buttons brought the pool to89/69/136 after Oval retirement. Reviewed stat bars add8textures and4font strings at window creation: **89 frames,77 textures,140 font strings**. No driving-time creation is added. The proposed race screens (`claude/race-screens`, [above](#proposed-race-screens-and-score-celebrations-claude-clauderace-screens-2026-10-26)) bring it to **90/91/150**.
 - **Score sync:** Codex's combined adapter admits all eleven active contexts with stable codes and an extended bounded HELLO; the retired O digest remains zero. The original standalone Claude branch retains the documented sync dependency; use the combined build.
 - **Not claimed:** no client run, no multiplayer sprint, and no Physics change.
 

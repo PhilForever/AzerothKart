@@ -1,23 +1,95 @@
-# Claude handoff — race screens and score celebrations (reservation, in progress)
+# Claude handoff — race screens and score celebrations
 
-Reserved 2026-10-26 at about 16:10 CET by Claude (rendering/UI/sprites owner).
+Prepared 2026-10-26 at about 16:15 CET by Claude (rendering/UI/sprites owner).
 
-**Base:** `claude/scarlet-v3` `a4fe2d5` (on Codex's installed `codex/scarlet-stats-review` `caab661`). **Branch:** `claude/race-screens`. Nothing is installed.
+**Base:** `claude/scarlet-v3` `a4fe2d5` (on Codex's installed `codex/scarlet-stats-review` `caab661`). **Branch:** `claude/race-screens`, with these commits:
 
-**Owner instructions:** "After fixing these - feel free to start on screen side of multiplayer such as race positions, name tags, and results. I also want a bigger celebration when you get a top 10 and top 3 score, take a look at that whole window and flow."
+- `c4865ae`: the reservation;
+- `117e5c1`: the race screens and the celebrations;
+- this handoff.
 
-**Task:** presentation only. In a two-player race: an estimated position badge in the HUD, a name tag over the friend's kart, and a results panel ranking both racers from the copied live view (labelled unverified; no backend standings, winner or agreement). For solo runs: a bigger celebration in the results window for a new personal best in a shared board's top 10 or top 3 (and at #1), with the window's flow reviewed (a way to the board from the results).
+It descends from `claude/scarlet-v3`, so integrating it brings Scarlet v3 too. Nothing is installed.
 
-**Reserved files and regions:**
+## Owner instructions
 
-- `addon/AzerothKart/Presentation.lua`: new pure functions for race progress, standings and ordinals (additive);
-- `addon/AzerothKart/UI.lua`: `renderOpponent` (the name tag; the displayed pose kept for the HUD) and the opponent's visual objects in `UI.Create`. `pollLive`, `applyLiveView`, `finishLive`, `UI.OnUpdate`, `UI.Stop`, `UI.Start`, `UI.MultiplayerAction`, `step`, `keyEvent` and `UI.HandleEvent` stay untouched, and so does the existing diagnostic opponent label's text, which Codex's tests read;
-- `addon/AzerothKart/Menu.lua`: the race overlay (position badge), the results dialog (layout, standings, celebration, a Highscores button), the Highscores screen (the player's own row; opening on the run's board), the sound names;
-- new art: `scripts/build_celebration_art.py`, `addon/AzerothKart/Assets/UI/Celebration.tga`, `docs/art/ui/celebration.png`;
-- tests: `tests/test_presentation.lua`, `tests/test_menu.lua`, `tests/test_ui.lua` (the object budget only);
-- docs: `docs/art/ui/front-end.md`, `docs/API_CONTRACTS.md` (the counts line; a proposed placement field), `docs/UI_UX.md`, `CHANGELOG.md`, `docs/TEST_PLAN.md`, `tests/MANUAL_CLIENT_CHECKLIST.md`, `docs/ASSETS.md`, `docs/art/ASSET_SOURCES.md`, `scripts/validate_project.py` (the new files), this handoff.
+> "After fixing these - feel free to start on screen side of multiplayer such as race positions, name tags, and results. I also want a bigger celebration when you get a top 10 and top 3 score, take a look at that whole window and flow."
 
-No change to SessionTransport, LiveRace, LiveProtocol, PeerSession, SoloRecords, Highscores, ScoreSync, ScoreSharing, Physics, Race or any other Codex-owned file: they are read through their public, copied views. `docs/PROGRESS.md` stays with the integrator.
+The standing instructions hold: no merge into `main`; no claim of in-game verification without the actual client; the owner pushes and runs the client checks; Codex prepares coordinated installs.
+
+## Scope (reserved and changed)
+
+The reservation (`c4865ae`) held, with two additions:
+
+- `tests/test_ui.lua` gained more than the budget: additive name-tag assertions placed after Codex's live-observation assertions, and a mock `SetAlpha` that records the alpha. None of Codex's assertions changed.
+- `scripts/preview_ui.py` (four new scenes and `--race-out`) and the review pictures `docs/art/ui/front-end-review.png` and `docs/art/ui/race-screens-review.png`: Claude's layout tooling, not listed in the reservation.
+
+What changed:
+
+- **`addon/AzerothKart/Presentation.lua`:** `raceProgress`, `ahead`, `standings` and `ordinal`, appended (pure, additive).
+- **`addon/AzerothKart/UI.lua`:** `UI.Create` makes `UI.opponentTag` (one font string, hidden). `renderOpponent` keeps the drawn pose in `UI.opponentWorldX/Y`, hides the tag wherever it hides the kart, and places, captions and fades the tag. `pollLive`, `applyLiveView`, `finishLive`, `step`, `UI.Start/Stop/OnUpdate/HandleEvent`, `keyEvent` and `UI.MultiplayerAction` are untouched, and so is `UI.opponentLabel`'s text.
+- **`addon/AzerothKart/Menu.lua`:** `FONT.position`/`FONT.banner`, `SOUNDS.top3`/`SOUNDS.top10`, `Menu.CELEBRATION_PATH`/`CELEBRATION_COORDS`, `Menu.CONFETTI`, `Menu.scorePlacement`, `Menu.PlayerName`, `Menu.liveRacers`, `Menu.ShowBoard`; the race overlay's place; the results (`arrangeResults`, `layoutResults`, `refreshStandings`, `celebrate`, `Menu.OnResults`, `Menu.AnimateResults`); the Highscores screen (the player's own row in gold, opening at the player's page).
+- **New art:** `scripts/build_celebration_art.py`, `addon/AzerothKart/Assets/UI/Celebration.tga` (512×256 with alpha, 524,306 bytes, sha256 `2296c4ac…92fd`), `docs/art/ui/celebration.png`.
+- **Tests:** `tests/test_presentation.lua` (one new block); `tests/test_menu.lua` (three new blocks, a recording `SetTextColor`, two more SOUNDKIT entries, the budget); `tests/test_ui.lua` (above).
+- **Docs:** `docs/art/ui/front-end.md`, `docs/API_CONTRACTS.md` (a proposed section and the counts line), `docs/UI_UX.md`, `CHANGELOG.md`, `docs/TEST_PLAN.md`, `tests/MANUAL_CLIENT_CHECKLIST.md`, `docs/ASSETS.md`, `docs/art/ASSET_SOURCES.md`, `scripts/validate_project.py` (the four new files).
+
+No change to SessionTransport, LiveRace, LiveProtocol, PeerSession, SoloRecords, Highscores, ScoreSync, ScoreSharing, Physics, Race or any other Codex-owned file: they are read through their copied views. `docs/PROGRESS.md` was not edited; the entry is [below](#progress-ledger-entry-for-the-integrator-race-screens).
+
+## Delivered
+
+![A top-three and a top-ten best, a two-player race and its results (layout pictures on stand-in data)](../art/ui/race-screens-review.png)
+
+- **Top-ten celebrations.** A saved new personal best that ranks in the shared board's top ten grows the results: a banner (**NEW #1!**, **FIRST ON THE BOARD!** when alone, **TOP 3!**, **TOP 10!**) and its place ("#2 of 14 on the shared board"); a gold, silver or bronze medal, or a laurel wreath with the rank in it, popping in over the dialog's top edge on a slowly turning sunburst; a dozen pieces of confetti (eight for the top ten) for under three seconds; and the epic-loot toast (#1, top three) or the quest-complete chime (top ten) in place of the finish fanfare. Reopening the results shows the celebration still and silent. A best off the top ten keeps the plain window with its notice in gold.
+- **The flow.** The results' rows are **Restart · Highscores · Close results**, then **Change Kart · Change Track · Main Menu**. **Highscores** opens the run's own board at the page with the player's row, which the board now shows in gold; after a celebration the button is lit.
+- **Two-player races:**
+  - the place, large at bottom right ("1st" gold, "2nd" silver, "of 2"), shown once the race runs (not on the grid);
+  - the friend's name over their kart, or held inside the canvas edge toward it with the distance ("Amber Stone (420 away)"), faded when their signal is stale;
+  - the results list both racers in their places with their karts and times or state ("racing, lap 3/3", "left the race", "connection lost"), with **1st PLACE!** (the gold medal, sunburst, confetti, toast), **2nd PLACE** (the silver medal) or **FINISHED!** while the friend races, and the gap ("Amber Stone finished 1.65s behind you"). They refresh five times a second until the places are settled. UI's "LOCAL FINISH — UNVERIFIED" title and "No agreed winner or standings" hint stay, and a note says whose times these are.
+- **Budget:** 1 frame, 14 textures and 10 font strings more, all created with the window: **90/91/150**. Nothing is created while driving or showing results; the HUD's place rewrites its text only when the place changes.
+
+## Decisions for review
+
+1. **Places are estimates from each racer's own reports.** A racer's progress is the gates passed over their completed laps and this one, plus the straight-line fraction from the previous gate toward the next (capped below the next gate), at the friend's drawn pose. Finished racers come first by their own finishing tick (tick 0 at each machine's GO), then racing racers by progress, then racers out of the race. Nothing is verified, agreed or sent.
+2. **Policy point for Codex.** Codex's live display deliberately claimed no race position, and its off-screen label still "does not invent a behind/ahead race position". At the owner's request the HUD and results now show places, labelled as reported: UI's title and hint stay, and the results add "Places and times as each racer reported them, by their own clock." If Codex prefers stronger copy (an "est." on the HUD, say), it is Menu copy only.
+3. **Which bests celebrate:** every saved new personal best in the shared board's top ten, including a better time at the same rank, not only on entering a tier as ScoreSharing's chat notice does (entering the top three or ten, or a new #1). The owner's words were "when you get a top 10 and top 3 score". A board of this computer's own times (score sharing not running) never celebrates, since every best would be #1 there; its notice turns gold instead.
+4. **Finding the run's place without a second name read** (Codex's `nameReads==1`): the newest row with the run's total. A different racer's row with the same total and a later date could be taken for the player's; the proposal in [API_CONTRACTS](../API_CONTRACTS.md#proposed-race-screens-and-score-celebrations-claude-clauderace-screens-2026-10-26) removes the guess: `SoloRecords.Finish`'s result carries the `Highscores.FinishPlacement` table that `ScoreSharing.Publish` already computes.
+5. **Sounds and fonts:** `UI_EPICLOOT_TOAST` (31578) for #1, the top three and a won race; `IG_QUEST_LIST_COMPLETE` (878) for the top ten; `LFG_REWARDS` (17316) still plays for every other finish, once. `Game42Font`/`Game36Font` for the banner and `Game48Font` for the place, each with a fallback. All are in build 70450's interface source; on Forever they are NOT RUN.
+6. **Original art:** the medals, wreath and sunburst are painted from numbers; no Mario Kart, Crash Team Racing or other game's picture is an input (AGENTS).
+
+## Needs Codex
+
+- **Review and integration** after Scarlet v3, which this branch carries. `UI.lua` changes only in `UI.Create` (one font string) and `renderOpponent`; `Presentation.lua` is additive.
+- **The policy point** (decision 2) and, optionally, **the placement field** (decision 4).
+- **The budget:** 90/91/150; please carry it into your production-maps and integration notes.
+- **Install:** `Assets/UI/Celebration.tga` is a new path: both clients need a full restart.
+- **`codex/multiplayer-rematch`** (created at `caab661`; no commits seen on the owner's machine): a rematch control would sit in the results' button rows, where this branch moved Restart and Close results and added Highscores (greyed out in a two-player race, so a rematch could take its place there). Please coordinate before either of us edits the results section again.
+
+## Tests
+
+| Command | Cloud | The owner's machine |
+|---|---|---|
+| `python scripts/test_lua.py --runtime lua51` | PASS, full suite | PASS, full suite (79 s; the pool line reads 90/91/150) |
+| `python scripts/test_lua.py --runtime lua54 --tests presentation menu ui multiplayer_integration` | PASS | not run |
+| `python scripts/build_celebration_art.py --check` | PASS | PASS, the same sha256 |
+| `python scripts/export_score_catalog.py --check` | PASS, 11 boards | PASS |
+| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in `PROGRESS.md` fail | the same |
+| `python scripts/preview_ui.py` | Wrote both review pictures (the front end's 17 screens; the four race-screen scenes), byte for byte the same on a rerun; layout pictures with stand-in fonts, not screenshots | not run |
+| `git diff --check` | clean | |
+
+**NOT RUN in the client:** the celebrations' look, motion and sounds, the Highscores button, and a two-player race's place, name tag and results. The owner runs [the checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-race-screens-and-celebrations-check-proposed-clauderace-screens).
+
+## PROGRESS ledger entry for the integrator (race screens)
+
+> **2026-10-26 — Race screens and score celebrations (Claude, `claude/race-screens` `117e5c1` on `claude/scarlet-v3` `a4fe2d5`).** The owner's "race positions, name tags, and results" and "a bigger celebration when you get a top 10 and top 3 score". Results: a saved new best in the shared board's top ten grows a banner (NEW #1!/FIRST ON THE BOARD!/TOP 3!/TOP 10!) with its place, a gold/silver/bronze medal or a wreath on a turning sunburst, confetti and a toast/chime in place of the fanfare; a Highscores button opens the run's board at the player's page (own row gold). Two-player races: the place in the HUD and the friend's name tag from each racer's own reports; results with both racers, 1st/2nd PLACE and the gap; UI's unverified title and "No agreed winner" hint kept. New original atlas `Assets/UI/Celebration.tga` (`scripts/build_celebration_art.py`). Pool 90/91/150. Lua 5.1 full suite PASS on both machines; Lua 5.4 presentation/menu/ui/multiplayer_integration PASS (cloud); atlas check and catalogue PASS on both; validator: only the 2 pre-existing `PROGRESS.md` links fail. NOT RUN: client.
+
+## Push (the owner's)
+
+```
+git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/scarlet-v3 claude/race-screens
+```
+
+## Next
+
+The owner looks at Scarlet v3 and the race screens after Codex's review and install, with the two checklists. Then, as he directs: the multiplayer lobby's look, or results for more than two racers once Codex's capacity work allows it (`Presentation.standings` already orders any number).
 
 # Previous: Scarlet v3: an open courtyard, the grass at full speed, the Cathedral's landings
 

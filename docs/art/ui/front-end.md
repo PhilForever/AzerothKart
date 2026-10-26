@@ -103,7 +103,7 @@ python scripts/build_stat_bars.py --preview  # also docs/art/ui/stat-bars.png
 
 ## Race screens and score celebrations
 
-The owner (2026-10-26): "feel free to start on screen side of multiplayer such as race positions, name tags, and results. I also want a bigger celebration when you get a top 10 and top 3 score, take a look at that whole window and flow." Proposed on `claude/race-screens`; the contract notes are in [API_CONTRACTS](../../API_CONTRACTS.md#proposed-race-screens-and-score-celebrations-claude-claude-race-screens-2026-10-26).
+The owner (2026-10-26): "feel free to start on screen side of multiplayer such as race positions, name tags, and results. I also want a bigger celebration when you get a top 10 and top 3 score, take a look at that whole window and flow." Proposed on `claude/race-screens`; the contract notes are in [API_CONTRACTS](../../API_CONTRACTS.md#proposed-race-screens-and-score-celebrations-claude-clauderace-screens-2026-10-26).
 
 ![A top-three and a top-ten best, a two-player race and its results (layout pictures on stand-in data)](race-screens-review.png)
 
