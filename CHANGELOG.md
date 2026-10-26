@@ -1,5 +1,85 @@
 # Changelog
 
+## Unreleased — Scarlet Crusade Cup: Scarlet Cathedral (2026-10-26, `claude/scarlet-cathedral`)
+- **Scarlet Cathedral**, the cup's fourth and last dungeon sprint, takes the place of the coming-soon "Scarlet Monastery" and is selectable. The owner: "Scarlet Cathedral next." He chose the finish at the altar and the gardens' pools as water the karts drive round. From the wing's maps:
+  - from the portal west along the entrance hall, north into the Chapel Gardens;
+  - round the lower garden's long pool and up beside the falls, by the stairs or the platforms with the champions' statues;
+  - round the round pool and its fountain, up the terrace's steps to the cathedral's door;
+  - up the nave between its pillars, across the transept and up the chancel's steps to the finish before the altar, where Mograine and Whitemane stand.
+
+  Four gates, about 2,500 units, one run, in a 1024 × 2048 world. Every room is open, the side chapels and Fairbanks' round chamber behind the altar included. See `docs/art/tracks/scarlet-cathedral.md`.
+- **Round solids** in `Dungeon.lua` (`shape="disc"` on a solid; ADR 0020 addendum, for Codex's review): the round pool blocks as a circle, and a kart slides round its rim. Box solids, rooms and the other dungeons are unchanged.
+- **The look:** the gardens under the green-tinged night sky, their pools of tinted water with stone rims, the falls spilling white, jets, trees, lanterns, giant champions' statues and lions; the nave's red carpet between great pillars, candles, Scarlet clerics and footmen; the chancel's wooden parquet; Renault Mograine and Sally Whitemane at the altar.
+- **The painter and the generator:** pools (water, rims, falls, jets) over solids of the same shapes, a wooden parquet floor, and the invisible-wall rule counting water as a visible edge. The Graveyard's and the Library's data and pictures are byte for byte unchanged.
+- **Scarlet Armory:** Herod takes a model of his own, Dagren the Orcslayer in crimson, since Renault Mograine now stands at the Cathedral's altar. Its data is unchanged; its picture and review image are redrawn.
+- **Tests:**
+  - `test_dungeon` adds a pond (round solids) and walks the Cathedral's four gates in order, round its pools;
+  - `test_menu` and `test_circuit` follow the full Track cycle; no course is coming soon; the Cathedral's preview is twice as tall as wide;
+  - the score catalogue gains the Cathedral's board (twelve).
+- **Needs Codex:** the score-sync patch in the handoff now adds the Cathedral's code `C` too, and round solids need Codex's review. The drive and the picture in the client are NOT RUN.
+
+## Unreleased — Scarlet Crusade Cup: Scarlet Armory (2026-10-26, `claude/scarlet-armory`)
+- **Scarlet Armory**, the cup's third dungeon sprint, is selectable. The owner: "Image 3 is the training grounds area. Final room is the iconic round room with stairs leading down to herod (image 4). Same style. Free driving through the whole map. The Training grounds is the only outside you see on this map." He chose the finish down at Herod. From the wing's maps:
+  - from the portal east along the entrance hall, north into the Training Grounds;
+  - across the Training Grounds, the one open yard, and up the stairs into the Footman's Armory;
+  - out by its east side room, up the stairs to the Crusader's Armory and west through it;
+  - out of its north-west corner, along the long hall to the round Hall of Champions;
+  - down its ring of stairs to the finish across its middle, either side of Herod.
+
+  Five gates, about 4,200 units, one run. Every room on the way is open to the karts. See `docs/art/tracks/scarlet-armory.md`.
+- **The look:**
+  - the Training Grounds under the green-tinged night sky: grass with stepping stones, the arcade's columns, archery targets, training dummies and hay, inside kerbed stone walks;
+  - two armories round their great pillars: armour stands, weapon racks, a forge and an anvil, a table, a cart, crates, red mats and Scarlet footmen;
+  - the Hall of Champions: an upper floor with four champions' statues and a Scarlet banner, a ring of stairs down to a red arena with a gold ring and a gold lozenge, candles, and Herod (Reforged's Dagren the Orcslayer, in crimson, stands in for him; Renault Mograine did on `claude/scarlet-armory`).
+- **The painter** (`scripts/dungeon_paint.py`): stairs in the round hall's rings, the arena's lozenge, stairs that climb north, and stepping stones. **The generator** checks the floor just past a gate all along it, so a solid may stand on a gate, as Herod does on the finish. The Graveyard's and the Library's data and pictures are byte for byte unchanged.
+- **Tests:**
+  - `test_dungeon` walks the Armory's five gates in order and checks its yard, its round hall and Herod on the finish;
+  - `test_menu` and `test_circuit` follow the longer Track cycle; only the Monastery is coming soon;
+  - the score catalogue gains the Armory's board (eleven).
+- **Needs Codex:** the score-sync patch in the handoff now adds the Armory's code `A` too. The drive and the picture in the client are NOT RUN.
+
+## Unreleased — fixes from the owner's client run (2026-10-26, `claude/drive-fixes`)
+- The owner drove the installed build and sent five screenshots: "fix invisible wall at infront of kart on image 1 and 2. remove object under kart on image 3 and 4. image 5 shows the startline of thunderbluff - arrow is not in the picture, so it's literally impossible and pretty unexpected having to take a left turn at the start."
+- **Scarlet Graveyard version 2:**
+  - **The invisible wall:** the Chamber of Atonement's floor met the west hall's with no wall painted between them, and the karts stopped there. A wall now stands either side of the chamber's west door; the door is the way through.
+  - **Nothing under the kart:** the armour rack stands in the corner at the head of the stairs, off the steps, and the ghost on the cloister's path is gone. The ghosts, the sitting corpse and the stone benches left on the floor are solid. The skull piles, banners, iron maiden and weapons stand back against the walls.
+  - 59 solids (from 52). The route, the gates and the spawn are unchanged.
+- **Scarlet Library** (not installed yet, still version 1) gets the same treatment: the courtyard's bushes, the kennel's cages, bones and hay, and the round library's candles are solid; the flowers, the hay on the kennel's floor, a rib cage, the south walk's torches and the round library's south shelves and banners are gone; shelves, chests and braziers stand back against the walls. 65 solids (from 47).
+- **The generator's new rules** (`scripts/build_dungeon_tracks.py`, `scripts/dungeon_paint.py`):
+  - **no invisible wall:** wherever the karts' floor ends, the picture paints a wall within the inset (3 units' slack, measured square);
+  - **nothing to drive over:** a model that is not solid keeps its drawn body off the kart centre's floor (3 units' slack), so it stands against a wall, in a corner or behind a solid.
+
+  On the installed version 1 they flag the chamber's meeting floors and 17 props, the armour rack and the path's ghost among them; on the Library as first proposed, 71 props.
+- **Thunder Bluff Skyway version 2:** the grid stands on the loop at the foot of the Lower Rise's west side, facing up it, with the finish line 75 units ahead and the start sign in view. The race no longer starts on the road from the lift with a left turn the camera did not show coming. The road from the lift still joins behind the grid, and the picture is unchanged.
+- **Scores:** both courses are version 2, so their boards start afresh; version 1 times stay saved under version 1. The score catalogue is regenerated.
+- **Tests:** `test_dungeon` checks the chamber's west wall and the Library's lawn; `test_circuit` checks that Thunder Bluff's grid is on the loop, facing the way the course runs, the finish line ahead. The client checks are NOT RUN.
+
+## Unreleased — Scarlet Crusade Cup: Scarlet Library (2026-10-25, `claude/scarlet-library`)
+- **Scarlet Library**, the cup's second dungeon sprint, is selectable. The owner: "Scarlet Library. Everything is inside except the first courtyard with the fountain/statue in the middle, everything else is inside - ending in the iconic round library." It follows his route on his map of the wing:
+  - from the portal, north and east, then south down the long hall;
+  - round the Huntsman's Cloister;
+  - into Houndmaster Loksey's kennel across the line he drew there, and back out;
+  - north up the east hall into the Gallery of Treasures;
+  - east through two columned halls and south down the Athenaeum;
+  - to Arcanist Doan's round library, where the finish is the chequered line in its door.
+
+  Five gates, about 6,200 units, one run. See `docs/art/tracks/scarlet-library.md`.
+- **Round rooms** in `Dungeon.lua` (`shape="disc"`; ADR 0020 addendum, for Codex's review): the round library and the courtyard fountain's court are true circles, and a kart slides round their walls. Rectangle rooms and the Graveyard are unchanged.
+- **The look:**
+  - the open courtyard under a green-tinged moon: a lawn, stone paths, a statue fountain, summer trees, the arcade's columns, Scarlet huntsmen and their red hounds;
+  - straw, cages and bones in the kennel;
+  - treasure, chests, shields and statues in the gallery;
+  - square pillars in the halls;
+  - bookshelves down the Athenaeum;
+  - in the round library, a gold ring on dark stone, the red carpet to its wall, bookshelves round it and Doan at his lectern.
+- The generator counts a route crossing only across a gate's own segment, as the runtime does. The Graveyard's data and picture are byte for byte unchanged.
+- **Tests:**
+  - `test_dungeon` adds a round room and walks the Library's five gates in order, back across Loksey's line once;
+  - `test_menu` and `test_circuit` follow the longer Track cycle and the square preview;
+  - the Highscores rule line names the Library's board a sprint;
+  - the score catalogue gains the Library's board (ten).
+- **Needs Codex:** the score-sync patch in the handoff now adds the Library's code `L` too. The drive and the picture in the client are NOT RUN.
+
 ## Unreleased — Scarlet Crusade Cup: Scarlet Graveyard (2026-10-25, `claude/scarlet-graveyard`)
 - **The Scarlet Crusade Cup**, the third cup, of dungeon sprints. The owner: "This will be A-B sprint type maps ... Start of dungeon to end of dungeon. Let's start with Scarlet Graveyard. It starts in a closed space and enters into an open graveyard. You don't need to put a traditional track here, just recreate the dungeon and let players find their way to the end." Scarlet Graveyard is selectable. Scarlet Library, Scarlet Armory and Scarlet Monastery are listed as coming soon.
 - **Scarlet Graveyard** follows his green route on his map of the wing:

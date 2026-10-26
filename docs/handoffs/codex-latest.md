@@ -1,5 +1,27 @@
 # Codex handoff — production maps and Claude course review
 
+## Combined Scarlet source ready — 2026-10-26 10:06 CET
+
+Own `codex/scarlet-integration`, base2f04f3a/reservation1ae33e6 plus Claudeea4425d.
+[Closed findings, checks and Claude sync commands](../reviews/2026-10-26-scarlet-integration.md).
+Both requested fixes implemented: swept-disc/tangent slide plus L/A/C with
+11activecontexts/12slots/retiredO=0. Max legal HELLO155B incl prefix; traffic
+ceiling158 unchanged. Current networking/turning/Physics12 and retired history
+preserved. Four sprints remain solo. Production catalogue regenerated11boards.
+
+Actual full Lua51 PASS43modules/80parsed, Python24PASS, catalogue/TOC/TGA and
+diff checks PASS. Initial stale test_solo_records unavailable-Library fixture
+was updated to an unknown-course rejection plus real sprint-context positives;
+this necessary added test scope is Codex-owned. Independent fix review clear.
+Structural check retains only2historical link failures. Native/Lua54/rebuild
+NOT RUN. No milestone completion, global authority or8-racer claim.
+
+Next: commit reviewed combination, then authorized normal push of this branch
+and four original Claude branches, verify exact refs. Main/Claude/canonical
+checkout/untracked outputs stay unchanged. Installed source remains01bd880;
+no install in this publication task. New image paths require full restart after
+the later backed-up combined installation; both peers need matching builds.
+
 ## Active integration — Scarlet collision and scores, 2026-10-26 09:53 CET
 
 Owner now authorizes fixing both review findings and the ensuing GitHub push.

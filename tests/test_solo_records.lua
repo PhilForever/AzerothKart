@@ -70,8 +70,14 @@ fixture({schemaVersion=1}, function(R, ns, run, reads)
     local old=ns.Highscores.Submit(ns.Highscores.Load(nil),historical)
     AzerothKartDB.highscores=old
     R.Init()
-    assert(R.Context(ns.Track)==nil and R.Context({id="scarlet_library",version=1})==nil,
-        "retired and unfinished courses cannot create current score contexts")
+    assert(R.Context(ns.Track)==nil and R.Context({id="future_course",version=1})==nil,
+        "retired and unknown courses cannot create current score contexts")
+    for _,id in ipairs({"scarlet_library","scarlet_armory","scarlet_cathedral"}) do
+        local track=ns.Courses.build(id,ns.Track.crossesGate)
+        local context=assert(R.Context(track))
+        assert(context.trackId==id and context.trackVersion==track.version and context.lapCount==1,
+            "reviewed dungeon contexts use their actual one-run geometry: "..id)
+    end
     local _,race=run()
     assert(R.Finish(R.Begin(ns.Track,"goblin_mortar_trike"),race,false)==nil)
     assert(reads.name==0 and reads.time==0 and AzerothKartDB.highscores==old,

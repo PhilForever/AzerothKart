@@ -218,6 +218,13 @@ def texture_path(root, mod, name):
 _TEXTURES = {}
 
 
+def forget_textures():
+    """Drop the decoded textures. Reforged's are large (hundreds of MB each
+    once decoded); a build drawing many of them keeps one model's at a time.
+    Decoding is deterministic, so a texture decoded again is the same."""
+    _TEXTURES.clear()
+
+
 def archive_file(root, path):
     return root.joinpath(*path.replace(":", "/").split("/"))
 

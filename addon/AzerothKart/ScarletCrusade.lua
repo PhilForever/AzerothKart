@@ -5,7 +5,7 @@ local _, namespace = ...
 local ScarletCrusade = {}
 
 ScarletCrusade["scarlet_graveyard"] = {
-    id="scarlet_graveyard", version=1, name="Scarlet Graveyard", laps=1,
+    id="scarlet_graveyard", version=2, name="Scarlet Graveyard", laps=1,
     width=2048, height=1024, wallInset=18, checkpointMaxStep=5,
     spawn={x=1945, y=150, heading=math.pi},
     rooms={
@@ -13,7 +13,7 @@ ScarletCrusade["scarlet_graveyard"] = {
         {x=1720, y=70, width=150, height=490, surface="road"}, -- north hall
         {x=1640, y=380, width=120, height=140, surface="road"}, -- chamber door
         {x=1380, y=300, width=260, height=360, surface="road"}, -- chamber
-        {x=1340, y=340, width=340, height=280, surface="road"}, -- chamber wings
+        {x=1360, y=340, width=320, height=280, surface="road"}, -- chamber wings
         {x=1300, y=440, width=100, height=120, surface="road"}, -- chamber west door
         {x=1180, y=420, width=160, height=300, surface="road"}, -- west hall
         {x=1000, y=550, width=220, height=140, surface="road"}, -- stairs
@@ -52,9 +52,16 @@ ScarletCrusade["scarlet_graveyard"] = {
         {id="dead tree_6", x=953, y=513, width=14, height=14},
         {id="obelisk", x=885, y=829, width=19, height=18},
         {id="obelisk_2", x=885, y=389, width=19, height=18},
+        {id="stone bench", x=808, y=897, width=44, height=17},
+        {id="stone bench_2", x=938, y=897, width=44, height=17},
+        {id="stone bench_3", x=808, y=458, width=44, height=17},
+        {id="stone bench_4", x=938, y=458, width=44, height=17},
+        {id="corpse", x=604, y=754, width=12, height=12},
         {id="broken column", x=732, y=892, width=16, height=16},
         {id="Scarlet guard", x=999, y=739, width=12, height=12},
         {id="Scarlet guard_2", x=999, y=494, width=12, height=12},
+        {id="ghost", x=424, y=794, width=12, height=12},
+        {id="ghost_2", x=604, y=464, width=12, height=12},
         {id="zombie", x=514, y=784, width=12, height=12},
         {id="skeleton", x=384, y=414, width=12, height=12},
         {id="torture table", x=1494, y=459, width=33, height=49},
@@ -91,6 +98,312 @@ ScarletCrusade["scarlet_graveyard"] = {
         {x=1945,y=150}, {x=1830,y=150}, {x=1795,y=185}, {x=1795,y=420}, {x=1765,y=450}, {x=1640,y=450},
         {x=1590,y=560}, {x=1440,y=560}, {x=1390,y=520}, {x=1330,y=500}, {x=1260,y=520}, {x=1230,y=600},
         {x=1190,y=620}, {x=600,y=620}, {x=560,y=700}, {x=460,y=700}, {x=425,y=620}, {x=200,y=620},
+    },
+}
+
+ScarletCrusade["scarlet_library"] = {
+    id="scarlet_library", version=1, name="Scarlet Library", laps=1,
+    width=2048, height=2048, wallInset=18, checkpointMaxStep=5,
+    spawn={x=80, y=1668, heading=math.pi/2},
+    rooms={
+        {x=20, y=1600, width=120, height=330, surface="road"}, -- portal hall
+        {x=20, y=1800, width=340, height=130, surface="road"}, -- upper hall
+        {x=230, y=900, width=130, height=1110, surface="road"}, -- long hall
+        {x=324, y=970, width=112, height=100, surface="road"}, -- cloister door
+        {x=484, y=644, width=352, height=352, surface="rough"}, -- courtyard
+        {x=630, y=644, width=60, height=352, surface="road"}, -- courtyard path
+        {x=484, y=790, width=352, height=60, surface="road"}, -- courtyard cross path
+        {x=570, y=730, width=180, height=180, surface="road", shape="disc"}, -- fountain court
+        {x=400, y=560, width=120, height=520, surface="road"}, -- west walk
+        {x=400, y=960, width=520, height=120, surface="road"}, -- north walk
+        {x=800, y=560, width=120, height=520, surface="road"}, -- east walk
+        {x=400, y=560, width=520, height=120, surface="road"}, -- south walk
+        {x=590, y=444, width=140, height=152, surface="road"}, -- kennel door
+        {x=510, y=110, width=300, height=370, surface="road"}, -- kennel
+        {x=884, y=760, width=112, height=120, surface="road"}, -- cloister east door
+        {x=960, y=640, width=130, height=830, surface="road"}, -- east hall
+        {x=888, y=1280, width=112, height=80, surface="road"}, -- east alcove door
+        {x=780, y=1250, width=144, height=140, surface="road"}, -- east alcove
+        {x=1054, y=1270, width=112, height=110, surface="road"}, -- gallery door
+        {x=1130, y=1180, width=190, height=810, surface="road"}, -- gallery
+        {x=1054, y=1820, width=112, height=90, surface="road"}, -- gallery alcove north door
+        {x=960, y=1800, width=130, height=130, surface="road"}, -- gallery alcove north
+        {x=1054, y=1580, width=112, height=90, surface="road"}, -- gallery alcove south door
+        {x=960, y=1560, width=130, height=130, surface="road"}, -- gallery alcove south
+        {x=1284, y=1250, width=76, height=90, surface="road"}, -- gallery niche south
+        {x=1284, y=1420, width=76, height=90, surface="road"}, -- gallery niche north
+        {x=1284, y=1760, width=112, height=120, surface="road"}, -- first hall door
+        {x=1360, y=1730, width=190, height=180, surface="road"}, -- first hall
+        {x=1395, y=1690, width=120, height=260, surface="road"}, -- first hall cross
+        {x=1514, y=1760, width=112, height=120, surface="road"}, -- second hall door
+        {x=1590, y=1730, width=190, height=180, surface="road"}, -- second hall
+        {x=1625, y=1690, width=120, height=260, surface="road"}, -- second hall cross
+        {x=1744, y=1760, width=112, height=120, surface="road"}, -- Athenaeum door
+        {x=1820, y=1180, width=190, height=810, surface="road"}, -- Athenaeum
+        {x=1784, y=1460, width=72, height=90, surface="road"}, -- Athenaeum niche north
+        {x=1784, y=1300, width=72, height=90, surface="road"}, -- Athenaeum niche south
+        {x=1855, y=1114, width=120, height=102, surface="road"}, -- last hall door
+        {x=1690, y=950, width=320, height=160, surface="road"}, -- last hall
+        {x=1730, y=910, width=240, height=240, surface="road"}, -- last hall cross
+        {x=1750, y=690, width=120, height=260, surface="road"}, -- library door
+        {x=1610, y=360, width=400, height=400, surface="road", shape="disc"}, -- round library
+    },
+    gates={
+        {name="Huntsman's Cloister", ax=230, ay=1700, bx=360, by=1700, nx=0, ny=-1},
+        {name="Houndmaster Loksey", ax=510, ay=400, bx=810, by=400, nx=0, ny=-1},
+        {name="Gallery of Treasures", ax=1110, ay=1270, bx=1110, by=1380, nx=1, ny=0},
+        {name="Athenaeum", ax=1800, ay=1760, bx=1800, by=1880, nx=1, ny=0},
+        {name="Arcanist Doan", ax=1750, ay=800, bx=1870, by=800, nx=0, ny=-1},
+    },
+    solids={
+        {id="Scarlet guard", x=35, y=1699, width=10, height=10},
+        {id="Scarlet guard_2", x=115, y=1699, width=10, height=10},
+        {id="arcade column", x=513, y=673, width=14, height=14},
+        {id="arcade column_2", x=513, y=718, width=14, height=14},
+        {id="arcade column_3", x=513, y=908, width=14, height=14},
+        {id="arcade column_4", x=513, y=953, width=14, height=14},
+        {id="arcade column_5", x=793, y=673, width=14, height=14},
+        {id="arcade column_6", x=793, y=718, width=14, height=14},
+        {id="arcade column_7", x=793, y=908, width=14, height=14},
+        {id="arcade column_8", x=793, y=953, width=14, height=14},
+        {id="arcade column_9", x=558, y=673, width=14, height=14},
+        {id="arcade column_10", x=748, y=673, width=14, height=14},
+        {id="arcade column_11", x=558, y=953, width=14, height=14},
+        {id="arcade column_12", x=748, y=953, width=14, height=14},
+        {id="cloister fountain", x=632, y=804, width=57, height=37},
+        {id="tree", x=583, y=743, width=14, height=14},
+        {id="tree_2", x=723, y=743, width=14, height=14},
+        {id="tree_3", x=583, y=883, width=14, height=14},
+        {id="tree_4", x=723, y=883, width=14, height=14},
+        {id="bush", x=536, y=758, width=25, height=24},
+        {id="bush_2", x=536, y=858, width=25, height=24},
+        {id="bush_3", x=760, y=758, width=25, height=24},
+        {id="bush_4", x=760, y=858, width=25, height=24},
+        {id="bush_5", x=598, y=696, width=25, height=24},
+        {id="bush_6", x=698, y=696, width=25, height=24},
+        {id="bush_7", x=598, y=920, width=25, height=24},
+        {id="bush_8", x=698, y=920, width=25, height=24},
+        {id="huntsman", x=542, y=824, width=12, height=12},
+        {id="huntsman_2", x=766, y=714, width=12, height=12},
+        {id="hound", x=609, y=909, width=12, height=12},
+        {id="hound_2", x=699, y=719, width=12, height=12},
+        {id="hound_3", x=559, y=714, width=12, height=12},
+        {id="Houndmaster Loksey", x=651, y=163, width=18, height=18},
+        {id="hound_4", x=594, y=204, width=12, height=12},
+        {id="hound_5", x=716, y=208, width=12, height=12},
+        {id="hound_6", x=764, y=134, width=12, height=12},
+        {id="cage", x=530, y=118, width=17, height=26},
+        {id="cage_2", x=530, y=418, width=17, height=26},
+        {id="bones", x=762, y=273, width=49, height=40},
+        {id="hay", x=513, y=189, width=35, height=35},
+        {id="hay_2", x=551, y=311, width=28, height=29},
+        {id="hay_3", x=741, y=311, width=28, height=29},
+        {id="table", x=830, y=1307, width=43, height=28},
+        {id="treasure", x=1324, y=1284, width=33, height=21},
+        {id="treasure_2", x=1322, y=1456, width=33, height=23},
+        {id="treasure chest", x=1142, y=1449, width=25, height=25},
+        {id="treasure chest_2", x=1142, y=1729, width=25, height=25},
+        {id="shield", x=1278, y=1713, width=33, height=32},
+        {id="statue", x=987, y=1607, width=18, height=36},
+        {id="statue_2", x=987, y=1847, width=18, height=36},
+        {id="pillar", x=1443, y=1738, width=24, height=24},
+        {id="pillar_2", x=1443, y=1878, width=24, height=24},
+        {id="pillar_3", x=1673, y=1738, width=24, height=24},
+        {id="pillar_4", x=1673, y=1878, width=24, height=24},
+        {id="table_2", x=1806, y=1327, width=26, height=39},
+        {id="table_3", x=1806, y=1487, width=26, height=39},
+        {id="Scarlet cleric", x=1979, y=1484, width=12, height=12},
+        {id="pillar_5", x=1768, y=1018, width=24, height=24},
+        {id="pillar_6", x=1928, y=1018, width=24, height=24},
+        {id="Arcanist Doan", x=1801, y=539, width=18, height=18},
+        {id="lectern", x=1803, y=590, width=14, height=12},
+        {id="candles", x=1699, y=449, width=10, height=10},
+        {id="candles_2", x=1911, y=449, width=10, height=10},
+        {id="candles_3", x=1699, y=661, width=10, height=10},
+        {id="candles_4", x=1911, y=661, width=10, height=10},
+    },
+    route={
+        {x=80,y=1668}, {x=80,y=1865}, {x=295,y=1865}, {x=295,y=1020}, {x=460,y=1020}, {x=460,y=620},
+        {x=620,y=620}, {x=620,y=300}, {x=660,y=250}, {x=700,y=300}, {x=700,y=620}, {x=860,y=620},
+        {x=860,y=820}, {x=1025,y=820}, {x=1025,y=1325}, {x=1225,y=1325}, {x=1225,y=1820}, {x=1915,y=1820},
+        {x=1915,y=1160}, {x=1860,y=1030}, {x=1810,y=900}, {x=1810,y=700},
+    },
+}
+
+ScarletCrusade["scarlet_armory"] = {
+    id="scarlet_armory", version=1, name="Scarlet Armory", laps=1,
+    width=2048, height=2048, wallInset=18, checkpointMaxStep=5,
+    spawn={x=500, y=105, heading=0},
+    rooms={
+        {x=350, y=40, width=660, height=130, surface="road"}, -- entrance hall
+        {x=750, y=130, width=130, height=120, surface="road"}, -- training door
+        {x=670, y=210, width=580, height=420, surface="rough"}, -- training yard
+        {x=670, y=210, width=580, height=90, surface="road"}, -- south walk
+        {x=670, y=540, width=580, height=90, surface="road"}, -- north walk
+        {x=670, y=210, width=90, height=420, surface="road"}, -- west walk
+        {x=1160, y=210, width=90, height=420, surface="road"}, -- east walk
+        {x=790, y=590, width=130, height=120, surface="road"}, -- training stairs
+        {x=750, y=670, width=460, height=145, surface="road"}, -- footman south
+        {x=750, y=885, width=460, height=145, surface="road"}, -- footman north
+        {x=750, y=670, width=100, height=360, surface="road"}, -- footman west
+        {x=920, y=670, width=120, height=360, surface="road"}, -- footman aisle
+        {x=1110, y=670, width=100, height=360, surface="road"}, -- footman east
+        {x=1170, y=910, width=160, height=120, surface="road"}, -- footman landing
+        {x=1190, y=990, width=120, height=120, surface="road"}, -- armory stairs
+        {x=1170, y=1070, width=160, height=120, surface="road"}, -- crusader landing
+        {x=750, y=1070, width=460, height=145, surface="road"}, -- crusader south
+        {x=750, y=1285, width=460, height=145, surface="road"}, -- crusader north
+        {x=750, y=1070, width=100, height=360, surface="road"}, -- crusader west
+        {x=920, y=1070, width=120, height=360, surface="road"}, -- crusader aisle
+        {x=1110, y=1070, width=100, height=360, surface="road"}, -- crusader east
+        {x=570, y=1310, width=220, height=120, surface="road"}, -- antechamber
+        {x=590, y=1390, width=120, height=160, surface="road"}, -- north hall
+        {x=590, y=1510, width=1180, height=120, surface="road"}, -- long hall
+        {x=1510, y=1590, width=120, height=150, surface="road"}, -- champions door
+        {x=1395, y=1653, width=350, height=350, surface="road", shape="disc"}, -- Hall of Champions
+    },
+    gates={
+        {name="Training Grounds", ax=750, ay=200, bx=880, by=200, nx=0, ny=1},
+        {name="Footman's Armory", ax=790, ay=650, bx=920, by=650, nx=0, ny=1},
+        {name="Crusader's Armory", ax=1190, ay=1050, bx=1310, by=1050, nx=0, ny=1},
+        {name="Hall of Champions", ax=1510, ay=1650, bx=1630, by=1650, nx=0, ny=1},
+        {name="Herod", ax=1395, ay=1828, bx=1745, by=1828, nx=0, ny=1},
+    },
+    solids={
+        {id="Scarlet guard", x=435, y=145, width=10, height=10},
+        {id="Scarlet guard_2", x=435, y=55, width=10, height=10},
+        {id="arcade column", x=753, y=293, width=14, height=14},
+        {id="arcade column_2", x=833, y=293, width=14, height=14},
+        {id="arcade column_3", x=1073, y=293, width=14, height=14},
+        {id="arcade column_4", x=1153, y=293, width=14, height=14},
+        {id="arcade column_5", x=753, y=533, width=14, height=14},
+        {id="arcade column_6", x=833, y=533, width=14, height=14},
+        {id="arcade column_7", x=1073, y=533, width=14, height=14},
+        {id="arcade column_8", x=1153, y=533, width=14, height=14},
+        {id="arcade column_9", x=753, y=413, width=14, height=14},
+        {id="arcade column_10", x=1153, y=413, width=14, height=14},
+        {id="archery target", x=1099, y=330, width=39, height=39},
+        {id="archery target_2", x=1099, y=385, width=39, height=39},
+        {id="archery target_3", x=1099, y=440, width=39, height=39},
+        {id="archery target_4", x=1099, y=495, width=39, height=39},
+        {id="training dummy", x=844, y=364, width=12, height=12},
+        {id="training dummy_2", x=954, y=454, width=12, height=12},
+        {id="training dummy_3", x=1004, y=349, width=12, height=12},
+        {id="training dummy_4", x=874, y=484, width=12, height=12},
+        {id="hay", x=1047, y=493, width=25, height=26},
+        {id="bush", x=788, y=328, width=25, height=24},
+        {id="crates", x=1202, y=228, width=36, height=21},
+        {id="forge", x=786, y=962, width=68, height=26},
+        {id="anvil", x=965, y=952, width=29, height=16},
+        {id="crates_2", x=1160, y=686, width=38, height=26},
+        {id="Scarlet footman", x=879, y=784, width=12, height=12},
+        {id="Scarlet footman_2", x=1069, y=784, width=12, height=12},
+        {id="table", x=955, y=1358, width=50, height=24},
+        {id="junk", x=1141, y=1367, width=28, height=22},
+        {id="cart", x=853, y=1386, width=34, height=18},
+        {id="Scarlet footman_3", x=879, y=1184, width=12, height=12},
+        {id="Scarlet footman_4", x=1069, y=1184, width=12, height=12},
+        {id="Herod", x=1561, y=1819, width=18, height=18},
+        {id="candles", x=1487, y=1901, width=10, height=10},
+        {id="candles_2", x=1643, y=1901, width=10, height=10},
+        {id="candles_3", x=1487, y=1745, width=10, height=10},
+        {id="candles_4", x=1643, y=1745, width=10, height=10},
+    },
+    route={
+        {x=500,y=105}, {x=815,y=105}, {x=815,y=255}, {x=715,y=255}, {x=715,y=585}, {x=855,y=585},
+        {x=855,y=700}, {x=1100,y=745}, {x=1160,y=800}, {x=1160,y=960}, {x=1250,y=960}, {x=1250,y=1130},
+        {x=1160,y=1130}, {x=800,y=1130}, {x=800,y=1360}, {x=650,y=1360}, {x=650,y=1570}, {x=1570,y=1570},
+        {x=1570,y=1690}, {x=1525,y=1770}, {x=1525,y=1880},
+    },
+}
+
+ScarletCrusade["scarlet_cathedral"] = {
+    id="scarlet_cathedral", version=1, name="Scarlet Cathedral", laps=1,
+    width=1024, height=2048, wallInset=18, checkpointMaxStep=5,
+    spawn={x=790, y=110, heading=math.pi},
+    rooms={
+        {x=440, y=50, width=460, height=120, surface="road"}, -- entrance hall
+        {x=452, y=130, width=120, height=136, surface="road"}, -- garden gate
+        {x=205, y=230, width=614, height=370, surface="rough"}, -- lower garden
+        {x=205, y=230, width=614, height=90, surface="road"}, -- south walk
+        {x=205, y=230, width=100, height=370, surface="road"}, -- lower west walk
+        {x=719, y=230, width=100, height=370, surface="road"}, -- lower east walk
+        {x=105, y=600, width=814, height=440, surface="rough"}, -- upper garden
+        {x=105, y=600, width=100, height=440, surface="road"}, -- upper west walk
+        {x=819, y=600, width=100, height=440, surface="road"}, -- upper east walk
+        {x=205, y=560, width=167, height=100, surface="road"}, -- west platform
+        {x=336, y=560, width=116, height=140, surface="road"}, -- west stairs
+        {x=572, y=560, width=116, height=140, surface="road"}, -- east stairs
+        {x=652, y=560, width=167, height=100, surface="road"}, -- east platform
+        {x=265, y=1000, width=494, height=96, surface="road"}, -- cathedral terrace
+        {x=412, y=1040, width=200, height=56, surface="road"}, -- door steps
+        {x=452, y=1060, width=120, height=116, surface="road"}, -- cathedral door
+        {x=270, y=1140, width=484, height=380, surface="road"}, -- nave
+        {x=60, y=1480, width=904, height=190, surface="road"}, -- transept
+        {x=90, y=1634, width=160, height=136, surface="road"}, -- west chapel
+        {x=774, y=1634, width=160, height=136, surface="road"}, -- east chapel
+        {x=295, y=1634, width=434, height=166, surface="road"}, -- chancel
+        {x=432, y=1626, width=160, height=46, surface="road"}, -- chancel steps
+        {x=452, y=1764, width=120, height=156, surface="road"}, -- chancel hall
+        {x=442, y=1860, width=140, height=140, surface="road", shape="disc"}, -- Fairbanks' chamber
+    },
+    gates={
+        {name="Chapel Gardens", ax=452, ay=200, bx=572, by=200, nx=0, ny=1},
+        {name="Upper Gardens", ax=205, ay=590, bx=819, by=590, nx=0, ny=1},
+        {name="Crusader's Chapel", ax=452, ay=1118, bx=572, by=1118, nx=0, ny=1},
+        {name="High Altar", ax=295, ay=1700, bx=729, by=1700, nx=0, ny=1},
+    },
+    solids={
+        {id="Scarlet guard", x=845, y=145, width=10, height=10},
+        {id="Scarlet guard_2", x=845, y=65, width=10, height=10},
+        {id="tree", x=353, y=365, width=14, height=14},
+        {id="tree_2", x=657, y=365, width=14, height=14},
+        {id="tree_3", x=353, y=513, width=14, height=14},
+        {id="tree_4", x=657, y=513, width=14, height=14},
+        {id="bush", x=318, y=438, width=25, height=24},
+        {id="bush_2", x=682, y=438, width=25, height=24},
+        {id="champion's statue", x=286, y=606, width=28, height=24},
+        {id="champion's statue_2", x=710, y=606, width=28, height=24},
+        {id="tree_5", x=255, y=723, width=14, height=14},
+        {id="tree_6", x=755, y=723, width=14, height=14},
+        {id="tree_7", x=255, y=978, width=14, height=14},
+        {id="tree_8", x=755, y=978, width=14, height=14},
+        {id="bush_3", x=298, y=848, width=25, height=24},
+        {id="bush_4", x=702, y=848, width=25, height=24},
+        {id="tree_9", x=293, y=1053, width=14, height=14},
+        {id="tree_10", x=717, y=1053, width=14, height=14},
+        {id="pillar", x=396, y=1204, width=32, height=32},
+        {id="pillar_2", x=396, y=1329, width=32, height=32},
+        {id="pillar_3", x=396, y=1472, width=32, height=32},
+        {id="pillar_4", x=596, y=1204, width=32, height=32},
+        {id="pillar_5", x=596, y=1329, width=32, height=32},
+        {id="pillar_6", x=596, y=1472, width=32, height=32},
+        {id="Scarlet footman", x=434, y=1244, width=12, height=12},
+        {id="Scarlet cleric", x=578, y=1244, width=12, height=12},
+        {id="Scarlet footman_2", x=434, y=1369, width=12, height=12},
+        {id="Scarlet cleric_2", x=578, y=1369, width=12, height=12},
+        {id="pillar_7", x=164, y=1559, width=32, height=32},
+        {id="pillar_8", x=828, y=1559, width=32, height=32},
+        {id="pillar_9", x=398, y=1648, width=24, height=24},
+        {id="pillar_10", x=602, y=1648, width=24, height=24},
+        {id="altar", x=483, y=1738, width=58, height=28},
+        {id="Scarlet Commander Mograine", x=459, y=1721, width=14, height=14},
+        {id="High Inquisitor Whitemane", x=551, y=1721, width=14, height=14},
+        {id="candles", x=431, y=1767, width=10, height=10},
+        {id="candles_2", x=583, y=1767, width=10, height=10},
+        {id="table", x=163, y=1694, width=14, height=12},
+        {id="Scarlet cleric_3", x=134, y=1684, width=12, height=12},
+        {id="crates", x=882, y=1733, width=36, height=21},
+        {id="crates_2", x=788, y=1731, width=38, height=26},
+        {id="Scarlet footman_3", x=848, y=1694, width=12, height=12},
+        {id="High Inquisitor Fairbanks", x=506, y=1939, width=12, height=12},
+        {id="lower pool", x=432, y=380, width=160, height=186},
+        {id="falls", x=452, y=560, width=120, height=146},
+        {id="round pool", x=372, y=690, width=280, height=280, shape="disc"},
+    },
+    route={
+        {x=790,y=110}, {x=512,y=110}, {x=512,y=280}, {x=255,y=280}, {x=255,y=625}, {x=155,y=640},
+        {x=155,y=1000}, {x=512,y=1050}, {x=512,y=1200}, {x=512,y=1640}, {x=512,y=1712},
     },
 }
 

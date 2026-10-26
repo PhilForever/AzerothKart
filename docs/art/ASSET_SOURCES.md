@@ -153,3 +153,46 @@ Mirage scenery v1 imports no Warcraft III file; it was painted procedurally so e
   - the wall cliff's stones laid along the north walls' faces.
   - These are painted by the generator: the masonry, the walls' faces and coping, the red carpets, the stairs, the kerbs, the portal's swirl, the chequered finish, the light pools, the moonlight and the mist.
 - **Terms and credits:** as for Stormwind: [ADR 0009](../adr/0009-warcraft-iii-asset-reuse.md); redistribution **unresolved** for release review; Blizzard Entertainment. The rooms follow the owner's map of the Scarlet Monastery Graveyard (MapsForTanks) and his green route on it, and his screenshot of the Grand Vestibule guided the look. Neither is stored. See [the Scarlet Graveyard sheet](tracks/scarlet-graveyard.md).
+
+**Scarlet Crusade Cup, Scarlet Library (2026-10-25, `claude/scarlet-library`, proposed).** `addon/AzerothKart/Assets/Tracks/ScarletLibrary/Background.tga` (2048×2048) and `Preview.tga` (512×512) are composited the same way from the same install. The sources are:
+
+- **Terrain:** the city's square and round tiles, bricks, grass and wall cliff; Dalaran's square tiles and white marble; the Black Citadel's dark tiles; the Dungeon's tiles; the village's stone path; Lordaeron's summer tree texture.
+- **The city:** the arcade's columns, the statue fountain, a shield display and bushes.
+- **The Dungeon:** bookshelves (wall, diagonal and tall), tables with chairs, and treasure piles.
+- **Lordaeron:** torches, braziers, armour racks, cages, hay, rib bones, a skull pile, a trough, weapons and its summer trees.
+- **Buildings and items:** the book of summoning as a lectern, and treasure chests.
+- **Reforged's own `_de.w3mod` set:** the Scarlet Crusade's standing banners, footman, huntsman, cleric and invoker hero; the dark hound; a Lordaeron sword statue; an interior pillar; the Undercity's iron chest.
+
+- **Files:** 40 models, 163 placements, 38 textures (on `claude/drive-fixes`, which removed the flowers and other props from the karts' floor; 48, 180 and 39 before); [the generated sources list](tracks/scarlet_library-sources.txt) names them. Extracted files stay outside Git.
+- **Modifications:**
+  - as for the Graveyard, in a crimson team colour, with the hounds tinted red;
+  - the columned halls' and the round library's tiles greyed;
+  - painted by the generator: the round library's gold ring and carpet, the courtyard's kerbs and its green-tinged moonlight and mist.
+- **Terms and credits:** as for Stormwind: [ADR 0009](../adr/0009-warcraft-iii-asset-reuse.md); redistribution **unresolved** for release review; Blizzard Entertainment. The rooms follow the owner's map of the Scarlet Monastery Library (MapsForTanks) and his route on it; his screenshots of the Huntsman's Cloister and of Arcanist Doan's round library guided the look. None of them is stored. See [the Scarlet Library sheet](tracks/scarlet-library.md).
+
+**Scarlet Crusade Cup, Scarlet Armory (2026-10-26, `claude/scarlet-armory`, proposed).** `addon/AzerothKart/Assets/Tracks/ScarletArmory/Background.tga` (2048×2048) and `Preview.tga` (512×512) are composited the same way from the same install. The sources are:
+
+- **Terrain:** the city's square tiles, bricks, grass and wall cliff; Dalaran's square tiles; the Dalaran ruins' bricks.
+- **The city:** the arcade's columns, crates and a bush.
+- **The Dungeon:** a junk pile.
+- **Lordaeron:** archery targets, armour stands, weapon racks, braziers, torches and hay.
+- **Reforged's own `_de.w3mod` set:** the Scarlet Crusade's standing banners and footman; Dagren the Orcslayer (as Herod, his gilt armour recoloured crimson, from `claude/scarlet-cathedral`; Renault Mograine's boss model before); Lordaeron's scarecrows, smithy tools, furniture, and statues with a sword and with a shield.
+
+- **Files:** 25 models, 89 placements, 26 textures; [the generated sources list](tracks/scarlet_armory-sources.txt) names them. Extracted files stay outside Git.
+- **Modifications:**
+  - as for the Graveyard, in a crimson team colour, with the statues tinted pale green-grey;
+  - painted by the generator: the Hall of Champions' ring of stairs, gold ring, red arena and gold lozenge, the stairs' treads, the Training Grounds' stepping stones and kerbs, the armories' mats, and the yard's green-tinged moonlight and mist.
+- **Terms and credits:** as for Stormwind: [ADR 0009](../adr/0009-warcraft-iii-asset-reuse.md); redistribution **unresolved** for release review; Blizzard Entertainment. The rooms follow the wing's in-game map and the Sanctum of Maps battle map, which the owner sent; his screenshots of the Training Grounds and of the Hall of Champions guided the look. None of them is stored. See [the Scarlet Armory sheet](tracks/scarlet-armory.md).
+
+**Scarlet Crusade Cup, Scarlet Cathedral (2026-10-26, `claude/scarlet-cathedral`, proposed).** `addon/AzerothKart/Assets/Tracks/ScarletCathedral/Background.tga` (1024×2048) and `Preview.tga` (256×512) are composited the same way from the same install. The sources are:
+
+- **Terrain:** the city's square and round tiles, bricks, grass and wall cliff; the village's cobbles; Lordaeron's summer tree texture; Warcraft III's water.
+- **The city:** bushes, lantern posts and crates.
+- **Lordaeron:** braziers, torches and its summer trees.
+- **Reforged's own `_de.w3mod` set:** the Scarlet Crusade's standing banners, footman and cleric; Renault Mograine and Sally Whitemane; the city fountain and a wooden bench; Lordaeron's sword statue, lions, interior pillars, bookshelves and furniture.
+
+- **Files:** 27 models, 88 placements, 30 textures; [the generated sources list](tracks/scarlet_cathedral-sources.txt) names them. Extracted files stay outside Git.
+- **Modifications:**
+  - as for the Graveyard, in a crimson team colour, with the champions' statues tinted pale green-grey;
+  - painted by the generator: the pools' tinted water and stone rims, the falls and the jets, the wooden parquet, the runners, kerbs and steps, and the gardens' green-tinged moonlight and mist.
+- **Terms and credits:** as for Stormwind: [ADR 0009](../adr/0009-warcraft-iii-asset-reuse.md); redistribution **unresolved** for release review; Blizzard Entertainment. The rooms follow the wing's in-game map and the Sanctum of Maps battle map, which the owner sent; his screenshots of the Chapel Gardens and of the nave guided the look. None of them is stored. See [the Scarlet Cathedral sheet](tracks/scarlet-cathedral.md).

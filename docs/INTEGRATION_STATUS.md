@@ -1,5 +1,17 @@
 # Shared integration and deployment status
 
+## Scarlet Cup combined source — 2026-10-26
+
+`codex/scarlet-integration` combines reviewed Claude ea4425d with current Codex
+source, closes the swept-pool and score-code findings, and preserves remote
+turning/group score discovery/Physics12/Oval retirement. Eleven solo/score maps,
+seven current two-peer circuits; four Scarlet sprints remain solo. Full Lua51
+43-module suite,24 Python tests, catalogue and load/asset checks pass offline;
+native checks remain pending. [Exact review and limits](reviews/2026-10-26-scarlet-integration.md).
+The owner authorizes publishing this integration and the four original Claude
+branches. No main update or release. Installed runtime remains01bd880; no install
+is performed in this publication task. Claude's worktree remains untouched.
+
 ## Latest reviewed source/package — 2026-10-24
 
 Runtime **77a1891**, `codex/podracer-score-review`, integrates Claude0afeedf

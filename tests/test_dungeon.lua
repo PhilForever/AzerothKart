@@ -18,6 +18,12 @@ local Records = namespace.SoloRecords
 
 local function near(a, b, tolerance) return math.abs(a - b) <= (tolerance or 1e-6) end
 local function distance(ax, ay, bx, by) return math.sqrt((bx - ax) ^ 2 + (by - ay) ^ 2) end
+local function segmentRadius(ax, ay, bx, by, cx, cy)
+    local dx,dy = bx-ax,by-ay
+    local squared = dx*dx+dy*dy
+    local t = squared > 0 and math.max(0,math.min(1,((cx-ax)*dx+(cy-ay)*dy)/squared)) or 0
+    return distance(cx,cy,ax+dx*t,ay+dy*t)
+end
 local function copy(t)
     local out = {}
     for key,value in pairs(t) do out[key] = value end
@@ -104,10 +110,188 @@ while moves < 4000 do
     end
 end
 
+-- A round room (a round library): a corridor from the west into a rotunda of
+-- radius 100 about (300, 200). Inset 10: the kart centre reaches 90 from the
+-- centre, and the corridor runs 50 units into the disc's square.
+local rotunda = Dungeon.new({
+    id="rotunda", width=500, height=400, wallInset=10, laps=1,
+    rooms={
+        {x=20, y=160, width=240, height=80, surface="road"},                 -- the corridor: x 20-260, y 160-240
+        {x=200, y=100, width=200, height=200, surface="road", shape="disc"}, -- the rotunda
+    },
+    gates={{name="In", ax=150, ay=160, bx=150, by=240, nx=1, ny=0}},
+    spawn={x=60, y=200, heading=0},
+}, Track.crossesGate)
+assert(rotunda.surfaceAt(300, 200) == "road" and rotunda.surfaceAt(300, 285) == "road" and rotunda.isDrivable(300, 285),
+    "the rotunda's floor is stone to the kart's reach")
+assert(rotunda.surfaceAt(300, 295) == "wall" and rotunda.surfaceAt(300, 305) == "wall"
+    and rotunda.surfaceAt(372, 272) == "wall" and rotunda.surfaceAt(360, 260) == "road",
+    "a round wall: off the reach, beyond the radius, and the square's corner")
+px, py = 60, 200
+for _=1,60 do
+    px, py, hit = rotunda.resolveMovement(px, py, px + 4, py)
+    assert(not hit, "the corridor runs on into the rotunda")
+end
+assert(px == 300 and py == 200, "to the rotunda's centre")
+x, y, hit = rotunda.resolveMovement(300, 288, 304, 292)
+assert(hit and near(distance(300, 200, x, y), 90, 1e-3) and x > 302 and distance(300, 288, x, y) <= math.sqrt(32),
+    "a step into the round wall slides along it")
+local around = 0
+px, py = 300, 288
+for _=1,200 do            -- pushing on east-north-east, the kart follows the curve round
+    local ex, ey = rotunda.resolveMovement(px, py, px + 4, py + 2)
+    assert(distance(300, 200, ex, ey) <= 90 + 1e-9, "the kart stays within the round wall")
+    if ex ~= px or ey ~= py then around = around + 1 end
+    px, py = ex, ey
+end
+assert(around > 20 and near(px, 300 + 90 * 4 / math.sqrt(20), 0.1) and near(py, 200 + 90 * 2 / math.sqrt(20), 0.1),
+    "and slides round it to where the wall faces the push")
+seed = 11
+moves = 0
+while moves < 2000 do
+    local sx, sy = 200 + random() * 200, 100 + random() * 200
+    local fx, fy, recovered = rotunda.resolveMovement(sx, sy, sx, sy)
+    if not recovered then
+        local tx, ty = sx + (random() - 0.5) * 8, sy + (random() - 0.5) * 8
+        local ex, ey = rotunda.resolveMovement(sx, sy, tx, ty)
+        assert(distance(sx, sy, ex, ey) <= distance(sx, sy, tx, ty) + 1e-9, "never further than requested")
+        assert(not ({rotunda.resolveMovement(ex, ey, ex, ey)})[3], "every end point is on the round floor")
+        moves = moves + 1
+    else
+        assert(rotunda.surfaceAt(fx, fy) ~= "wall", "a recovered centre stands on the floor")
+    end
+end
+
+-- A round solid (a round pool): a court with a pool of radius 60 about
+-- (300, 200). Inset 10: the kart centre keeps 70 from the pool's centre.
+local pond = Dungeon.new({
+    id="pond", width=600, height=400, wallInset=10, laps=1,
+    rooms={{x=20, y=20, width=560, height=360, surface="road"}},
+    solids={{id="pool", x=240, y=140, width=120, height=120, shape="disc"}},
+    gates={{name="Past", ax=450, ay=20, bx=450, by=380, nx=1, ny=0}},
+    spawn={x=60, y=200, heading=0},
+}, Track.crossesGate)
+assert(pond.solids[1].shape == "disc", "the round solid keeps its shape")
+assert(pond.surfaceAt(300, 200) == "wall" and pond.surfaceAt(300, 259) == "wall" and pond.surfaceAt(300, 261) == "road"
+    and pond.surfaceAt(345, 245) == "road" and pond.isDrivable(300, 271) and not pond.isDrivable(300, 265),
+    "the pool is wall to its rim, its square's corners floor; the kart keeps its inset off the rim")
+px, py = 60, 200
+for _=1,60 do
+    px, py, hit = pond.resolveMovement(px, py, px + 4, py)
+end
+assert(hit and near(px, 230, 1e-3) and near(py, 200, 1e-3), "head on, the pool stops the kart at its reach")
+px, py = 200, 129
+for _=1,50 do
+    px, py, hit = pond.resolveMovement(px, py, px + 4, py)
+    assert(not hit, "a kart passing clear of the pool's reach never meets it")
+end
+assert(px == 400 and py == 129, "and drives on past it")
+local slid = 0
+px, py = 230, 200
+for _=1,80 do            -- pushing on east-north-east from the pool's west side
+    local ex, ey, contact = pond.resolveMovement(px, py, px + 4, py + 2)
+    assert(distance(300, 200, ex, ey) >= 70, "the kart stays out of the pool")
+    assert(distance(px, py, ex, ey) <= math.sqrt(20) + 1e-9, "never further than requested")
+    if contact and ey < 300 then slid = slid + 1 end
+    px, py = ex, ey
+end
+assert(slid > 10 and px > 300, "it slides round the pool's north side and on past it")
+x, y, hit = pond.resolveMovement(200,200,400,200)
+assert(hit and near(x,230,1e-8) and near(y,200),
+    "a long segment with both endpoints outside cannot tunnel through the pool")
+x, y, hit = pond.resolveMovement(400,200,200,200)
+assert(hit and near(x,370,1e-8) and near(y,200), "the opposite long sweep stops at its first entry")
+x, y, hit = pond.resolveMovement(230,200,234,202)
+assert(hit and near(x,230,1e-8) and near(y,202,1e-8),
+    "starting on the rim removes inward movement and preserves tangential movement")
+x, y, hit = pond.resolveMovement(230,200,226,200)
+assert(not hit and x==226 and y==200, "starting on the rim can drive outward freely")
+x, y, hit = pond.resolveMovement(230,200,230,204)
+assert(not hit and x==230 and y==204, "a tangent from the rim does not enter the pool")
+x, y, hit = pond.resolveMovement(200,270,400,270)
+assert(not hit and x==400 and y==270, "exact tangency along the whole segment is free")
+-- Each requested segment is shorter than the maximum60Hz step, with both
+-- endpoints legal but a middle point inside the pool's clearance. Checking
+-- returned endpoints alone misses the original crossing defect.
+for degree=0,359 do
+    local angle=degree*math.pi/180
+    local nx,ny=math.cos(angle),math.sin(angle)
+    local tx,ty=-ny,nx
+    local sx,sy=300+nx*69.99-tx*2.15,200+ny*69.99-ty*2.15
+    local ex,ey,contact=pond.resolveMovement(sx,sy,sx+tx*4.3,sy+ty*4.3)
+    assert(contact,"a shallow crossing registers contact in every direction")
+    assert(segmentRadius(sx,sy,ex,ey,300,200)>=70-1e-7,
+        "the resolved movement segment clears the entire round obstacle")
+    assert(distance(sx,sy,ex,ey)>4.25 and distance(sx,sy,ex,ey)<=4.3+1e-8,
+        "grazing contact slides without a stall or excess displacement")
+end
+x, y, hit = pond.resolveMovement(300, 210, 300, 210)
+assert(hit and near(x, 300) and near(y, 270, 1e-3), "a centre in the pool (never by driving) leaves it along the radius")
+seed = 13
+moves = 0
+while moves < 2000 do
+    local sx, sy = 200 + random() * 200, 100 + random() * 200
+    local fx, fy, recovered = pond.resolveMovement(sx, sy, sx, sy)
+    if not recovered then
+        local tx, ty = sx + (random() - 0.5) * 12, sy + (random() - 0.5) * 12
+        local ex, ey = pond.resolveMovement(sx, sy, tx, ty)
+        assert(distance(sx, sy, ex, ey) <= distance(sx, sy, tx, ty) + 1e-9, "never further than requested")
+        assert(distance(300, 200, ex, ey) >= 70, "never ending within the pool's reach")
+        assert(segmentRadius(sx,sy,ex,ey,300,200)>=70-1e-7,
+            "random movement clears the pool along its segment, not only at the endpoint")
+        assert(not ({pond.resolveMovement(ex, ey, ex, ey)})[3], "every end point is allowed")
+        moves = moves + 1
+    else
+        assert(distance(300, 200, fx, fy) >= 70 and pond.surfaceAt(fx, fy) ~= "wall", "a recovered centre is clear")
+    end
+end
+
+-- A box and a round solid can meet within one requested movement. The bounded
+-- contact loop keeps the corner blocked and permits driving back out of it.
+local corner = Dungeon.new({
+    id="pool_corner", width=600, height=400, wallInset=10, laps=1,
+    rooms={{x=20,y=20,width=560,height=360,surface="road"}},
+    solids={{x=240,y=140,width=120,height=120,shape="disc"},
+        {x=225,y=230,width=20,height=20}},
+    gates={{name="Past",ax=450,ay=20,bx=450,by=380,nx=1,ny=0}},
+    spawn={x=60,y=200,heading=0},
+},Track.crossesGate)
+x,y,hit=corner.resolveMovement(200,200,400,400)
+assert(hit and x<240 and y<=220+1e-8 and distance(200,200,x,y)<=math.sqrt(80000),
+    "multiple circle/box contacts keep the concave corner blocked")
+local ax,ay,again=corner.resolveMovement(x,y,x,y)
+assert(not again and ax==x and ay==y,"a multi-contact endpoint needs no recovery")
+ax,ay,again=corner.resolveMovement(x,y,x-4,y-4)
+assert(not again and ax<x and ay<y,"driving away from a multi-contact corner stays free")
+local tieX,tieY
+for _,boxFirst in ipairs({false,true}) do
+    local pool={x=240,y=140,width=120,height=120,shape="disc"}
+    local box={x=268,y=110,width=60,height=80}
+    local tie= Dungeon.new({
+        id="pool_tie",width=600,height=400,wallInset=10,laps=1,
+        rooms={{x=20,y=20,width=560,height=360,surface="road"}},
+        solids=boxFirst and {box,pool} or {pool,box},
+        gates={{name="Past",ax=450,ay=20,bx=450,by=380,nx=1,ny=0}},
+        spawn={x=60,y=200,heading=0},
+    },Track.crossesGate)
+    -- Both entry times are exactly0.5 at(258,144), where the circle's
+    -- normal is(-0.6,-0.8) and the box blocks positive X.
+    ax,ay,again=tie.resolveMovement(200,100,316,188)
+    assert(again and ax<258 and ay>144 and segmentRadius(200,100,ax,ay,300,200)>=70-1e-7,
+        "equal box/disc entry resolves both normals and preserves the free tangent")
+    assert(not ({tie.resolveMovement(ax,ay,ax,ay)})[3],"equal-entry output is allowed")
+    if tieX then assert(ax==tieX and ay==tieY,"equal contact is independent of solid list order") end
+    tieX,tieY=ax,ay
+end
+
 -- Invalid dungeons are refused.
 for _,bad in ipairs({
     {rooms={{x=20, y=20, width=15, height=100, surface="road"}}},
     {rooms={{x=20, y=20, width=200, height=160, surface="lava"}}},
+    {rooms={{x=20, y=20, width=200, height=160, surface="road", shape="disc"}}},
+    {rooms={{x=20, y=20, width=200, height=200, surface="road", shape="oval"}}},
+    {solids={{id="pool", x=440, y=200, width=40, height=30, shape="disc"}}},
+    {solids={{id="pool", x=440, y=200, width=40, height=40, shape="oval"}}},
     {laps=0}, {laps=1.5}, {laps=10},
     {spawn={x=250, y=300, heading=0}},
     {spawn={x=445, y=205, heading=0}, rooms=definition.rooms},
@@ -152,20 +336,25 @@ local context = Records.Context(crypt)
 assert(context == nil and Records.Context(Track) == nil, "developer fixtures cannot create production score contexts")
 assert(Records.Context(Courses.build("mirage_raceway",Track.crossesGate)).lapCount == 3, "existing production circuits keep three laps")
 
--- The Scarlet Crusade Cup: the catalogue's third cup. Scarlet Graveyard is
--- ready; the Library, the Armory and the Monastery are coming soon.
+-- The Scarlet Crusade Cup: the catalogue's third cup, its four dungeons
+-- ready: Scarlet Graveyard, Library, Armory and Cathedral. None is coming
+-- soon.
 assert(#Courses.CUPS == 3 and Courses.CUPS[3].id == "scarlet" and Courses.CUPS[3].name == "Scarlet Crusade Cup",
     "the Scarlet Crusade Cup")
-local graveyardCourse = Courses.get("scarlet_graveyard")
-assert(graveyardCourse.cup == "scarlet" and graveyardCourse.geometry == "dungeon" and Courses.available("scarlet_graveyard"),
-    "Scarlet Graveyard is a ready dungeon")
-for _,id in ipairs({"scarlet_library", "scarlet_armory", "scarlet_monastery"}) do
-    local course = Courses.get(id)
-    assert(course and course.cup == "scarlet" and course.soon and not Courses.available(id)
-        and Courses.build(id, Track.crossesGate) == nil, id .. " is coming soon")
+local scarlet = 0
+for _,course in ipairs(Courses.LIST) do
+    if course.cup == "scarlet" then
+        scarlet = scarlet + 1
+        assert(course.geometry == "dungeon" and not course.soon and Courses.available(course.id),
+            course.id .. " is a ready dungeon")
+    end
 end
-assert(Courses.next("undercity_slime") == "scarlet_graveyard" and Courses.next("scarlet_graveyard") == "mirage_raceway",
-    "the Track button steps on to the Graveyard, then round to Mirage")
+assert(scarlet == 4 and Courses.get("scarlet_cathedral") and not Courses.get("scarlet_monastery"),
+    "four dungeons, the last the Cathedral")
+assert(Courses.next("undercity_slime") == "scarlet_graveyard" and Courses.next("scarlet_graveyard") == "scarlet_library"
+    and Courses.next("scarlet_library") == "scarlet_armory" and Courses.next("scarlet_armory") == "scarlet_cathedral"
+    and Courses.next("scarlet_cathedral") == "mirage_raceway",
+    "the Track button steps on through the four dungeons, then round to Mirage")
 
 -- Scarlet Graveyard: one run from the entrance to Honor's Tomb. The spawn
 -- stands on stone; the reviewed route crosses the three gates in order and
@@ -181,6 +370,11 @@ local spawn = graveyard.spawn()
 assert(graveyard.surfaceAt(spawn.x, spawn.y) == "road" and near(spawn.heading, math.pi), "the grid faces west on stone")
 assert(graveyard.surfaceAt(400, 820) == "grass" and graveyard.surfaceAt(400, 620) == "road",
     "the cloister's lawn is grass, its path stone")
+-- Version 2: the chamber's west wall stands either side of its door, where
+-- the karts stopped at a wall the picture did not show; the door is the way
+-- from the chamber into the west hall.
+assert(graveyard.version == 2 and graveyard.surfaceAt(1350, 580) == "wall" and graveyard.surfaceAt(1350, 440) == "wall"
+    and graveyard.surfaceAt(1350, 500) == "road", "the karts leave the chamber west by its door")
 local progress = Checkpoints.new(graveyard, 0)
 previous = {x=spawn.x, y=spawn.y, tick=0}
 local names, walls = {}, 0
@@ -213,5 +407,193 @@ for _,box in ipairs(graveyard.solids) do
 end
 assert(graves == #graveyard.solids and graves >= 20, "every solid blocks (graves, the fountain, the tomb's dead)")
 
-print(("dungeon: rooms, lawns, solids and sliding walls; 4000 random steps; sprint race and one-run scores; "
-    .. "Scarlet Graveyard %d rooms, %d solids, gates in order"):format(#graveyard.rooms, #graveyard.solids))
+-- Scarlet Library: one run from the portal to the round library. The grid
+-- faces north on stone; the reviewed route crosses the five gates in order,
+-- in and back out of Loksey's kennel (crossing his line backwards counts
+-- nothing), and never meets a wall or a solid. The courtyard's lawn is
+-- grass; the fountain's court and the round library are round rooms.
+local library = Courses.build("scarlet_library", Track.crossesGate)
+local libraryData = namespace.ScarletCrusade.scarlet_library
+assert(library and library.laps == 1 and library.width == 2048 and library.height == 2048 and #library.gates == 5,
+    "the Library: a 2048 x 2048 sprint with five gates")
+local round = {}
+for _,room in ipairs(libraryData.rooms) do
+    if room.shape == "disc" then round[#round + 1] = room end
+end
+assert(#round == 2, "two round rooms: the fountain's court and the round library")
+spawn = library.spawn()
+assert(library.surfaceAt(spawn.x, spawn.y) == "road" and near(spawn.heading, math.pi / 2), "the grid faces north on stone")
+assert(library.surfaceAt(560, 740) == "grass" and library.surfaceAt(660, 700) == "road"
+    and library.surfaceAt(1810, 450) == "road" and library.surfaceAt(1810, 340) == "wall",
+    "the courtyard's lawn is grass, its path stone; the round library is stone to its round wall")
+progress = Checkpoints.new(library, 0)
+previous = {x=spawn.x, y=spawn.y, tick=0}
+names, walls = {}, 0
+local backwards = 0
+for index=2,#libraryData.route do
+    local target = libraryData.route[index]
+    local steps = math.max(1, math.ceil(distance(previous.x, previous.y, target.x, target.y) / 4))
+    local fromX, fromY = previous.x, previous.y
+    for k=1,steps do
+        local tx, ty = fromX + (target.x - fromX) * k / steps, fromY + (target.y - fromY) * k / steps
+        local mx, my, contact = library.resolveMovement(previous.x, previous.y, tx, ty)
+        if contact or mx ~= tx or my ~= ty then walls = walls + 1 end
+        local current = {x=tx, y=ty, tick=previous.tick + 1}
+        local before = progress.passed
+        local loksey = library.gates[2]
+        if library.crossesGate(current, previous, loksey) then backwards = backwards + 1 end
+        progress = Checkpoints.step(progress, previous, current, library)
+        if progress.passed > before then names[#names + 1] = library.gates[progress.passed].name end
+        previous = current
+    end
+end
+assert(table.concat(names, ",") == "Huntsman's Cloister,Houndmaster Loksey,Gallery of Treasures,Athenaeum,Arcanist Doan"
+    and progress.complete, "the route passes the gates in order: " .. table.concat(names, ","))
+assert(backwards == 1 and walls == 0, "out of the kennel back across Loksey's line, never meeting a wall or a solid")
+-- Full throttle from the grid runs cleanly north up the portal hall.
+state = Physics.new(library)
+for _=1,60 do state = Physics.step(state, {accelerate=true}, Physics.FIXED_DT, library) end
+assert(state.surface == "road" and state.impacts == 0 and state.y > spawn.y + 40, "a clean launch from the grid")
+local blocking = 0
+for _,box in ipairs(library.solids) do
+    if library.surfaceAt(box.x + box.width / 2, box.y + box.height / 2) == "wall" then blocking = blocking + 1 end
+end
+assert(blocking == #library.solids and blocking >= 40, "every solid blocks (columns, trees, pillars, the living)")
+
+-- Scarlet Armory: one run from the portal to Herod. The grid faces east on
+-- stone; the reviewed route crosses the five gates in order and never meets
+-- a wall or a solid. The Training Grounds' yard is grass inside its stone
+-- walks; the Hall of Champions is a round room, and the finish runs across
+-- its middle through Herod, who blocks.
+local armory = Courses.build("scarlet_armory", Track.crossesGate)
+local armoryData = namespace.ScarletCrusade.scarlet_armory
+assert(armory and armory.laps == 1 and armory.width == 2048 and armory.height == 2048 and #armory.gates == 5,
+    "the Armory: a 2048 x 2048 sprint with five gates")
+round = {}
+for _,room in ipairs(armoryData.rooms) do
+    if room.shape == "disc" then round[#round + 1] = room end
+end
+assert(#round == 1 and round[1].width == 350 and round[1].height == 350, "one round room: the Hall of Champions")
+spawn = armory.spawn()
+assert(armory.surfaceAt(spawn.x, spawn.y) == "road" and near(spawn.heading, 0), "the grid faces east on stone")
+assert(armory.surfaceAt(960, 400) == "grass" and armory.surfaceAt(715, 420) == "road"
+    and armory.surfaceAt(960, 585) == "road", "the yard is grass, its walks stone")
+assert(armory.surfaceAt(1570, 1975) == "road" and armory.surfaceAt(1570, 1990) == "wall"
+    and armory.surfaceAt(1720, 1978) == "wall", "the Hall of Champions is stone to its round wall, less the inset")
+local finish = armory.gates[5]
+assert(finish.name == "Herod" and finish.ay == 1828 and finish.by == 1828 and armory.surfaceAt(1570, 1828) == "wall"
+    and armory.surfaceAt(1500, 1828) == "road" and armory.surfaceAt(1640, 1828) == "road",
+    "the finish crosses the hall's middle, either side of Herod")
+progress = Checkpoints.new(armory, 0)
+previous = {x=spawn.x, y=spawn.y, tick=0}
+names, walls = {}, 0
+for index=2,#armoryData.route do
+    local target = armoryData.route[index]
+    local steps = math.max(1, math.ceil(distance(previous.x, previous.y, target.x, target.y) / 4))
+    local fromX, fromY = previous.x, previous.y
+    for k=1,steps do
+        local tx, ty = fromX + (target.x - fromX) * k / steps, fromY + (target.y - fromY) * k / steps
+        local mx, my, contact = armory.resolveMovement(previous.x, previous.y, tx, ty)
+        if contact or mx ~= tx or my ~= ty then walls = walls + 1 end
+        local current = {x=tx, y=ty, tick=previous.tick + 1}
+        local before = progress.passed
+        progress = Checkpoints.step(progress, previous, current, armory)
+        if progress.passed > before then names[#names + 1] = armory.gates[progress.passed].name end
+        previous = current
+    end
+end
+assert(table.concat(names, ",") == "Training Grounds,Footman's Armory,Crusader's Armory,Hall of Champions,Herod"
+    and progress.complete, "the route passes the gates in order: " .. table.concat(names, ","))
+assert(walls == 0, "the route never meets a wall or a solid")
+-- Full throttle from the grid runs cleanly east along the entrance hall.
+state = Physics.new(armory)
+for _=1,60 do state = Physics.step(state, {accelerate=true}, Physics.FIXED_DT, armory) end
+assert(state.surface == "road" and state.impacts == 0 and state.x > spawn.x + 40, "a clean launch from the grid")
+blocking = 0
+for _,box in ipairs(armory.solids) do
+    if armory.surfaceAt(box.x + box.width / 2, box.y + box.height / 2) == "wall" then blocking = blocking + 1 end
+end
+assert(blocking == #armory.solids and blocking >= 30, "every solid blocks (columns, targets, dummies, the living)")
+
+-- Scarlet Cathedral: one run from the portal to the altar. The grid faces
+-- west on stone; the reviewed route crosses the four gates in order and
+-- never meets a wall or a solid. The gardens' lawns are grass and their
+-- pools water the karts drive round, the round pool a round solid; the
+-- finish runs across the chancel before the altar.
+local cathedral = Courses.build("scarlet_cathedral", Track.crossesGate)
+local cathedralData = namespace.ScarletCrusade.scarlet_cathedral
+assert(cathedral and cathedral.laps == 1 and cathedral.width == 1024 and cathedral.height == 2048
+    and #cathedral.gates == 4, "the Cathedral: a 1024 x 2048 sprint with four gates")
+local grazingX,grazingY,grazingHit=cathedral.resolveMovement(509.85,987.99,514.15,987.99)
+assert(grazingHit and segmentRadius(509.85,987.99,grazingX,grazingY,512,830)>=158-1e-7
+    and distance(509.85,987.99,grazingX,grazingY)<=4.3+1e-8,
+    "production Cathedral normal-step grazing hits the round pool without crossing its clearance")
+assert(not ({cathedral.resolveMovement(grazingX,grazingY,grazingX,grazingY)})[3],
+    "the corrected production grazing endpoint needs no recovery")
+print(("dungeon swept pool: production4.3-unit graze hit=%s, clearance=%.9f;360rotated grazes and circle/box ties covered"):format(
+    tostring(grazingHit),segmentRadius(509.85,987.99,grazingX,grazingY,512,830)))
+local roundRooms, roundSolids = 0, 0
+for _,room in ipairs(cathedralData.rooms) do if room.shape == "disc" then roundRooms = roundRooms + 1 end end
+for _,solid in ipairs(cathedralData.solids) do if solid.shape == "disc" then roundSolids = roundSolids + 1 end end
+assert(roundRooms == 1 and roundSolids == 1, "one round room (Fairbanks' chamber) and one round solid (the round pool)")
+spawn = cathedral.spawn()
+assert(cathedral.surfaceAt(spawn.x, spawn.y) == "road" and near(spawn.heading, math.pi), "the grid faces west on stone")
+assert(cathedral.surfaceAt(390, 446) == "grass" and cathedral.surfaceAt(255, 446) == "road"
+    and cathedral.surfaceAt(300, 900) == "grass" and cathedral.surfaceAt(155, 900) == "road",
+    "the gardens' lawns are grass, their walks stone")
+assert(cathedral.surfaceAt(512, 470) == "wall" and cathedral.surfaceAt(512, 640) == "wall"
+    and cathedral.surfaceAt(512, 968) == "wall" and cathedral.surfaceAt(610, 928) == "wall"
+    and cathedral.surfaceAt(512, 975) == "grass", "the lower pool, the falls and the round pool to its rim block")
+local finishGate = cathedral.gates[4]
+assert(finishGate.name == "High Altar" and finishGate.ay == 1700 and finishGate.by == 1700
+    and finishGate.ax == 295 and finishGate.bx == 729, "the finish crosses the chancel before the altar")
+-- Head on into the round pool from its west lawn: the kart stops at the
+-- pool's reach and, pushing on, slides round its rim, never into it.
+px, py = 330, 800
+local touched = false
+for _=1,40 do
+    local ex, ey, contact = cathedral.resolveMovement(px, py, px + 4, py)
+    assert(distance(512, 830, ex, ey) >= 158, "never into the round pool")
+    if contact and not touched then
+        touched = true
+        assert(near(distance(512, 830, ex, ey), 158, 1e-3), "stopped at the pool's reach")
+    end
+    px, py = ex, ey
+end
+assert(touched and py < 800, "and slides round its rim")
+progress = Checkpoints.new(cathedral, 0)
+previous = {x=spawn.x, y=spawn.y, tick=0}
+names, walls = {}, 0
+for index=2,#cathedralData.route do
+    local target = cathedralData.route[index]
+    local steps = math.max(1, math.ceil(distance(previous.x, previous.y, target.x, target.y) / 4))
+    local fromX, fromY = previous.x, previous.y
+    for k=1,steps do
+        local tx, ty = fromX + (target.x - fromX) * k / steps, fromY + (target.y - fromY) * k / steps
+        local mx, my, contact = cathedral.resolveMovement(previous.x, previous.y, tx, ty)
+        if contact or mx ~= tx or my ~= ty then walls = walls + 1 end
+        local current = {x=tx, y=ty, tick=previous.tick + 1}
+        local before = progress.passed
+        progress = Checkpoints.step(progress, previous, current, cathedral)
+        if progress.passed > before then names[#names + 1] = cathedral.gates[progress.passed].name end
+        previous = current
+    end
+end
+assert(table.concat(names, ",") == "Chapel Gardens,Upper Gardens,Crusader's Chapel,High Altar"
+    and progress.complete, "the route passes the gates in order: " .. table.concat(names, ","))
+assert(walls == 0, "the route never meets a wall or a solid")
+-- Full throttle from the grid runs cleanly west along the entrance hall.
+state = Physics.new(cathedral)
+for _=1,60 do state = Physics.step(state, {accelerate=true}, Physics.FIXED_DT, cathedral) end
+assert(state.surface == "road" and state.impacts == 0 and state.x < spawn.x - 40, "a clean launch from the grid")
+blocking = 0
+for _,box in ipairs(cathedral.solids) do
+    if cathedral.surfaceAt(box.x + box.width / 2, box.y + box.height / 2) == "wall" then blocking = blocking + 1 end
+end
+assert(blocking == #cathedral.solids and blocking >= 40, "every solid blocks (pools, pillars, trees, the living)")
+
+print(("dungeon: rooms (and round rooms), lawns, solids (and round solids) and sliding walls; random steps; sprint "
+    .. "race and one-run scores; Scarlet Graveyard %d rooms, %d solids; Scarlet Library %d rooms, %d solids; "
+    .. "Scarlet Armory %d rooms, %d solids; Scarlet Cathedral %d rooms, %d solids; gates in order")
+    :format(#graveyard.rooms, #graveyard.solids, #library.rooms, #library.solids, #armory.rooms, #armory.solids,
+        #cathedral.rooms, #cathedral.solids))

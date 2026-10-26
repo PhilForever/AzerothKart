@@ -68,7 +68,15 @@ cached-channel/native-group/confirmed-racer discovery plus the separately verifi
 
 ## Implementation
 
-Current catalogue: eight finished courses. HELLO has nine fixed digest slots; retired `O` is zero and has no record/request admission. The `retired:O` catalogue marker separates older sync peers. Historical Oval saves are preserved and ignored for current publication. Both participants should update. [Map scope](PRODUCTION_MAPS.md).
+Current catalogue: eleven finished courses. HELLO has twelve fixed digest slots;
+retired `O` must be zero in encode/decode and has no record/request admission.
+Stable M/S/I/D/R/U/T/G codes retain their meanings; L/A/C identify Library,
+Armory and Cathedral. A full-bound legal HELLO is155bytes including its prefix,
+within the unchanged158-byte native ceiling. The `retired:O` catalogue marker
+still separates older peers. Old nine-slot HELLOs cannot perform catch-up with
+this build; both participants should update. Exact-context direct NEW admission
+before HELLO is preserved. Historical Oval saves and old geometry-version
+records remain saved and separate from current publication. [Map scope](PRODUCTION_MAPS.md).
 
 - `ScoreDiscovery.Read` validates an entire bounded cached roster using display
   indices, not local send-channel IDs. Missing/secret/partial data stays pending.

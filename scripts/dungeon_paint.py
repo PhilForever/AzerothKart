@@ -7,17 +7,20 @@ leans north by `lean`, as in the cities). Layers, bottom to top:
 1. Masonry: everything off the floor is the walls' tops, dark stone in
    courses, darkest far from any room.
 2. Floors: each room's Warcraft III tile in its style (a later room paints
-   over an earlier: the cloister's path over its lawn), with the dungeon's
-   carpets, stairs and the portal the karts arrive through; shade along the
-   foot of every wall; the chequered finish across the last gate.
+   over an earlier: the cloister's path over its lawn; a round room is the
+   disc in its square), with the dungeon's carpets, a round room's rings,
+   stairs and the portal the karts arrive through; shade along the foot of
+   every wall; the chequered finish across the last gate.
 3. Walls: the camera sees a room's north wall, so it rises `height` x lean
    rows over the masonry beyond, in a Warcraft III city wall's stones, its
    coping lit along the top. Every other wall shows its coping edge.
 4. Lights, then the models, north to south so nearer things cover farther
    ones: banners, torches, braziers and lanterns, graves, tombs and trees,
    the dead and the living. Each model is rendered by wc3render.py with its
-   ground shadow.
-5. Grade: moonlight on the open cloister; the halls stay lamplit.
+   ground shadow. Nothing stands where the karts drive unless it is solid
+   (check_props stops the build).
+5. Grade: moonlight on the open cloister (`moonlight`, `mist`); the halls
+   stay lamplit.
 
 One texel per world unit; row 0 is the north edge. Integer compositing, no
 transcendental function feeds a pixel: the bytes are the same on every
@@ -29,6 +32,7 @@ from pathlib import Path
 
 from city_paint import Picture, Strata, Tileset, bank_distance, hash32, paint_sprite, sprite_for
 from paintkit import encode_png, encode_tga
+from wc3render import forget_textures
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -42,11 +46,23 @@ def _masks(d, w, h):
     open_sky = set(d.get("open_sky", ()))
     for r in d["rooms"]:
         k = names.index(r["floor"])
+        open_ = 1 if r["name"] in open_sky else 0
         x0, x1 = int(r["x0"]), int(r["x1"])
+        if r.get("shape") == "disc":
+            # A round room: every texel whose centre lies within the radius.
+            cx, cy, radius = (r["x0"] + r["x1"]) / 2, (r["y0"] + r["y1"]) / 2, (r["x1"] - r["x0"]) / 2
+            for y in range(int(r["y0"]), int(r["y1"])):
+                base = (h - 1 - y) * w
+                for x in range(x0, x1):
+                    dx, dy = x + 0.5 - cx, y + 0.5 - cy
+                    if dx * dx + dy * dy <= radius * radius:
+                        style[base + x] = k
+                        sky[base + x] = open_
+            continue
         for y in range(int(r["y0"]), int(r["y1"])):
             base = (h - 1 - y) * w
             style[base + x0:base + x1] = bytes([k]) * (x1 - x0)
-            sky[base + x0:base + x1] = bytes([1 if r["name"] in open_sky else 0]) * (x1 - x0)
+            sky[base + x0:base + x1] = bytes([open_]) * (x1 - x0)
     return names, style, sky
 
 
@@ -79,8 +95,31 @@ def paint_masonry(pic, d, floor):
             pic.b[i] = max(0, min(255, (tb + v) * k >> 8))
 
 
+WOOD = (138, 88, 50)
+
+
+def parquet(x, y, spec):
+    """A wooden floor at world texel (x, y) (`parquet` = {"block", "plank",
+    "colour"?}): blocks of planks turned 45 degrees, alternate blocks laid
+    crosswise, each plank its own tone with the grain along it, dark joints
+    between planks and blocks."""
+    block, plank = spec.get("block", 32), spec.get("plank", 8)
+    cr, cg, cb = spec.get("colour", WOOD)
+    u, v = x + y, x - y
+    bu, bv = u // block, v // block
+    a, b = (u, v) if (bu + bv) % 2 == 0 else (v, u)       # a along the planks, b across them
+    lane = b // plank
+    tone = hash32(bu * 7 + lane, bv, 451) % 25 - 12
+    grain = hash32(lane, b % plank, 453) % 9 - 4 + hash32(a // 5, b, 455) % 5 - 2
+    k = 256
+    if b % plank == 0 or u % block == 0 or v % block == 0:
+        k = 170                                              # the joints
+    return ((cr + tone + grain) * k >> 8, (cg + tone + grain * 3 // 4) * k >> 8, (cb + tone // 2 + grain // 2) * k >> 8)
+
+
 def paint_floors(pic, d, tiles, names, style, floor):
-    """Each room's tile; shade along the foot of every wall."""
+    """Each room's tile (or a wooden `parquet`); shade along the foot of
+    every wall."""
     w, h = pic.w, pic.h
     specs = [None] + [d["floors"][n] for n in names[1:]]
     edge = bank_distance(floor, w, h, 14)                 # distance from the wall's foot
@@ -93,7 +132,10 @@ def paint_floors(pic, d, tiles, names, style, floor):
             if not k:
                 continue
             spec = specs[k]
-            r, g, b, _ = tiles.whole(spec["tile"], x, y, seed=spec.get("seed", 3), shade=spec["shade"])
+            if spec.get("parquet"):
+                r, g, b = parquet(x, y, spec["parquet"])
+            else:
+                r, g, b, _ = tiles.whole(spec["tile"], x, y, seed=spec.get("seed", 3), shade=spec["shade"])
             e = edge[i]
             if e <= 1:
                 s = 150                                   # the skirting stone at the wall's foot
@@ -135,14 +177,90 @@ def paint_carpets(pic, d, floor):
         pic.b[i] = max(0, min(255, c[2] + v // 2))
 
 
+GOLD = (204, 160, 64)
+
+
+def paint_rings(pic, d, floor):
+    """A round room's floor in rings about its centre (the round library's
+    stone, gold ring and Scarlet carpet; the Hall of Champions' stairs down
+    to its arena). `rings` = {"room": name, "bands": [(outer radius, kind),
+    ...], "diamond": half-diagonal?}, innermost first: "floor" keeps the
+    room's tile, "gold" lays a gilt ring, "carpet" the red carpet, its edges
+    hemmed dark and gold, and (outer, "stairs", tread) steps the tile down
+    toward the centre, a riser every `tread` units, darker the deeper. Beyond
+    the last band the tile runs on to the wall. `diamond` inlays a gold
+    lozenge, quartered, at the centre."""
+    spec = d.get("rings")
+    if not spec:
+        return
+    w, h = pic.w, pic.h
+    r = _room(d, spec["room"])
+    cx, cy = (r["x0"] + r["x1"]) / 2, (r["y0"] + r["y1"]) / 2
+    diamond = spec.get("diamond")
+    for y in range(int(r["y0"]), int(r["y1"])):
+        for x in range(int(r["x0"]), int(r["x1"])):
+            i = (h - 1 - y) * w + x
+            if not floor[i]:
+                continue
+            dx, dy = x + 0.5 - cx, y + 0.5 - cy
+            dist = sqrt(dx * dx + dy * dy)
+            inner, band, outer = 0.0, None, 0.0
+            for band in spec["bands"]:
+                outer = band[0]
+                if dist < outer:
+                    break
+                inner = outer
+            else:
+                continue
+            kind = band[1]
+            v = hash32(x // 2, y // 2, 431) % 11 - 5
+            if diamond and abs(dx) + abs(dy) <= diamond:
+                a = abs(dx) + abs(dy)
+                if a > diamond - 4 or abs(dx) < 2 or abs(dy) < 2:
+                    c = GOLD                                     # the inlay's edge and its quartering
+                else:
+                    c = (GOLD[0] * 160 >> 8, GOLD[1] * 150 >> 8, GOLD[2] * 130 >> 8)
+            elif kind == "floor":
+                continue
+            elif kind == "stairs":
+                # Steps down toward the centre: each tread's nose lit, the
+                # riser below it in shadow, the lower treads darker.
+                tread = band[2]
+                t = outer - dist
+                pos = t % tread
+                k = 286 if pos < 2 else (150 if pos > tread - 2 else 256)
+                k = int(k * (256 - 80 * t / (outer - inner))) >> 8
+                pic.r[i] = min(255, pic.r[i] * k >> 8)
+                pic.g[i] = min(255, pic.g[i] * k >> 8)
+                pic.b[i] = min(255, pic.b[i] * k >> 8)
+                continue
+            else:
+                # Texels from the band's nearer edge (an innermost band has
+                # no inner edge).
+                edge = outer - dist if inner == 0.0 else min(dist - inner, outer - dist)
+                if kind == "gold":
+                    k = 200 if edge < 1.5 else 256
+                    c = (GOLD[0] * k >> 8, GOLD[1] * k >> 8, GOLD[2] * k >> 8)
+                elif edge < 1.5:
+                    c = (96, 14, 18)                             # the carpet's dark hem
+                elif edge < 4.5:
+                    c = CARPET_EDGE
+                else:
+                    c = CARPET
+            pic.r[i] = max(0, min(255, c[0] + v))
+            pic.g[i] = max(0, min(255, c[1] + v // 2))
+            pic.b[i] = max(0, min(255, c[2] + v // 2))
+
+
 def paint_kerbs(pic, d, style, names, floor):
-    """A stone kerb where a paved room meets the lawn (`kerbed` floors)."""
+    """A stone kerb where a paved room meets the lawn (`kerbed` floors; the
+    lawn's floor style is `lawn`, "lawn" unless the layout names another)."""
     w, h = pic.w, pic.h
     for name in d.get("kerbed", ()):
         k = names.index(name)
         mask = bytearray(1 if v == k else 0 for v in style)
         edge = bank_distance(mask, w, h, 4)
-        lawn = names.index("lawn")
+        lawn = names.index(d.get("lawn", "lawn"))
         for i in range(w * h):
             if not mask[i] or edge[i] > 3:
                 continue
@@ -159,6 +277,178 @@ def paint_kerbs(pic, d, style, names, floor):
             pic.r[i] = max(0, min(255, (150 + v) * s >> 8))
             pic.g[i] = max(0, min(255, (146 + v) * s >> 8))
             pic.b[i] = max(0, min(255, (136 + v) * s >> 8))
+
+
+STONE = (178, 172, 158)
+
+
+def paint_stones(pic, d, style, names):
+    """Stepping stones on a lawn (`stones` = {"floor": style, "step",
+    "radius", "density"?, "seed"?}): pale octagonal flags in staggered rows,
+    `density` per cent of the places taken, each stone a little off its
+    place and its own size, shape and shade, lit from the north-west, the
+    grass growing over its edge."""
+    spec = d.get("stones")
+    if not spec:
+        return
+    w, h = pic.w, pic.h
+    k = names.index(spec["floor"])
+    step, radius, seed = spec["step"], spec["radius"], spec.get("seed", 433)
+    density = spec.get("density", 100)
+    room = step // 2 - radius - 3                          # how far a stone strays from its place
+    for i in range(w * h):
+        if style[i] != k:
+            continue
+        row, x = divmod(i, w)
+        y = h - 1 - row
+        gx, gy = x // step, y // step
+        best = None
+        for ci in (gx - 1, gx, gx + 1):
+            for cj in (gy - 1, gy, gy + 1):
+                hv = hash32(ci, cj, seed)
+                if hv % 100 >= density:
+                    continue
+                sx = ci * step + step // 2 + (cj % 2) * (step // 2) + (hv >> 7) % (2 * room + 1) - room
+                sy = cj * step + step // 2 + (hv >> 12) % (2 * room + 1) - room
+                rx = radius + (hv >> 17) % 7 - 3
+                ry = radius + (hv >> 21) % 7 - 3
+                ax, ay = abs(x + 0.5 - sx) / rx, abs(y + 0.5 - sy) / ry
+                a = max(ax, ay, (ax + ay) * 0.7071)        # an octagon's measure: 1 at its edge
+                if a <= 1.0:
+                    depth = (1.0 - a) * min(rx, ry)        # units in from the edge
+                    if best is None or depth > best[0]:
+                        best = (depth, hv, sx, sy, rx)
+        if best is None:
+            continue
+        depth, hv, sx, sy, rx = best
+        tone = (hv >> 25) % 21 - 10
+        v = hash32(x // 2, y // 2, 437) % 9 - 4
+        lit = 256 + int(28 * ((y + 0.5 - sy) - (x + 0.5 - sx)) / rx)    # lit from the north-west
+        r, g, b = ((c + tone + v) * lit >> 8 for c in STONE)
+        if depth < 2.0:                                    # the grass grows over the edge
+            r, g, b = (r + pic.r[i]) >> 1, (g + pic.g[i]) >> 1, (b + pic.b[i]) >> 1
+        pic.r[i], pic.g[i], pic.b[i] = max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b))
+
+
+WATER_TEXTURE = "war3.w3mod:replaceabletextures/water/water00.dds"
+RIM = (190, 186, 174)
+
+
+def pool_mask(d, w, h):
+    """The pools' texels (row 0 north), water and rim: a round pool's whose
+    centres lie in its disc, as Dungeon.lua's round solid is the disc."""
+    mask = bytearray(w * h)
+    for p in d.get("pools", ()):
+        if p["shape"] == "disc":
+            cx, cy, r = p["cx"], p["cy"], p["radius"]
+            for y in range(cy - r, cy + r):
+                base = (h - 1 - y) * w
+                for x in range(cx - r, cx + r):
+                    dx, dy = x + 0.5 - cx, y + 0.5 - cy
+                    if dx * dx + dy * dy <= r * r:
+                        mask[base + x] = 1
+        else:
+            for y in range(p["y0"], p["y1"]):
+                base = (h - 1 - y) * w
+                mask[base + p["x0"]:base + p["x1"]] = b"\x01" * (p["x1"] - p["x0"])
+    return mask
+
+
+def paint_pools(pic, d, tiles):
+    """Water the karts drive round (`pools`, each a solid of the same shape):
+    a stone rim `rim` texels wide, then the water, darker toward the rim,
+    the rim's inner face showing below its north side. Then the falls
+    (`waterfalls`: {"x0", "x1", "y"}, foam spilling south over a lip) and
+    the fountains' jets (`jets`: (x, y, radius): spray and rings)."""
+    pools = d.get("pools")
+    if not pools:
+        return
+    import wc3render as R
+    w, h = pic.w, pic.h
+    spec = d.get("water", {})
+    rim = spec.get("rim", 5)
+    tint = spec.get("tint", (0.20, 0.40, 0.46))
+    rr, rg, rb = spec.get("rim_colour", RIM)
+    tex_w, tex_h, tex = R.read_dds(R.archive_file(tiles.wc3, WATER_TEXTURE).read_bytes())
+    mask = pool_mask(d, w, h)
+    near = bank_distance(mask, w, h, rim + 14)
+    up = bytearray(w * h)                  # water texels straight north of a texel, capped
+    for i in range(w, w * h):
+        if mask[i] and mask[i - w] and near[i - w] > rim:
+            up[i] = min(250, up[i - w] + 1)
+    for i in range(w * h):
+        if not mask[i]:
+            continue
+        row, x = divmod(i, w)
+        e = near[i]
+        if e <= rim:
+            # The rim: dressed stone, its outer edge darker.
+            v = hash32(x // 4, row // 4, 457) % 13 - 6
+            k = 200 if e == 1 else (236 if e == rim else 256)
+            pic.r[i] = max(0, min(255, (rr + v) * k >> 8))
+            pic.g[i] = max(0, min(255, (rg + v) * k >> 8))
+            pic.b[i] = max(0, min(255, (rb + v) * k >> 8))
+            continue
+        k = up[i]
+        if k < 5:
+            # The rim's inner face below its north side, then its shadow.
+            shade = 0.80 - 0.10 * k
+            pic.r[i], pic.g[i], pic.b[i] = int(rr * shade * 0.62), int(rg * shade * 0.64), int(rb * shade * 0.66)
+            continue
+        shade = 0.66 + 0.34 * min(e - rim, 14) / 14.0       # darker toward the rim
+        if k < 12:
+            shade *= 0.70                                    # the rim's shadow on the water
+        tx, ty = (x * 2) % tex_w, (row * 2) % tex_h
+        acc = 0.0
+        for dy in (0, 1):
+            for dx in (0, 1):
+                t = tex[((ty + dy) % tex_h) * tex_w + (tx + dx) % tex_w]
+                acc += t[0] + t[1] + t[2]
+        light = acc / 12.0
+        pic.r[i] = min(255, int((tint[0] * 0.75 + light * 0.225) * shade * 255 + 0.5))
+        pic.g[i] = min(255, int((tint[1] * 0.75 + light * 0.25) * shade * 255 + 0.5))
+        pic.b[i] = min(255, int((tint[2] * 0.75 + light * 0.275) * shade * 255 + 0.5))
+    for fall in d.get("waterfalls", ()):
+        # Foam spilling south over the lip, in streaks, thinning as it falls.
+        x0, x1, y0 = fall["x0"], fall["x1"], fall["y"]
+        drop = fall.get("drop", 26)
+        for y in range(y0 - drop, y0 + 2):
+            row = h - 1 - y
+            for x in range(x0, x1):
+                i = row * w + x
+                if not mask[i] or near[i] <= rim:
+                    continue
+                if y >= y0:
+                    pic.r[i], pic.g[i], pic.b[i] = 236, 240, 238          # the lip
+                    continue
+                t = (y0 - y) / drop                                      # 0 at the lip, 1 at the foot
+                streak = hash32(x // 3, 0, 459) % 100 / 100.0
+                foam = max(0.0, 1.0 - t * (0.6 + 0.8 * streak)) + (0.35 if t > 0.82 else 0.0) * (1 - streak)
+                foam = min(1.0, foam)
+                pic.r[i] = int(pic.r[i] + (232 - pic.r[i]) * foam)
+                pic.g[i] = int(pic.g[i] + (240 - pic.g[i]) * foam)
+                pic.b[i] = int(pic.b[i] + (242 - pic.b[i]) * foam)
+    for jx, jy, radius in d.get("jets", ()):
+        # A fountain's jet: white spray at its heart, rings spreading out.
+        for y in range(jy - radius - 1, jy + radius + 2):
+            row = h - 1 - y
+            for x in range(jx - radius - 1, jx + radius + 2):
+                i = row * w + x
+                if not mask[i] or near[i] <= rim:
+                    continue
+                dx, dy = x + 0.5 - jx, y + 0.5 - jy
+                dist = sqrt(dx * dx + dy * dy)
+                if dist > radius:
+                    continue
+                if dist < radius * 0.32:
+                    foam = 0.9
+                elif int(dist) % 4 == 0:
+                    foam = 0.45 * (1 - dist / radius)
+                else:
+                    foam = 0.12 * (1 - dist / radius)
+                pic.r[i] = int(pic.r[i] + (236 - pic.r[i]) * foam)
+                pic.g[i] = int(pic.g[i] + (242 - pic.g[i]) * foam)
+                pic.b[i] = int(pic.b[i] + (244 - pic.b[i]) * foam)
 
 
 def paint_room_lights(pic, lights, floor, faced):
@@ -180,26 +470,36 @@ def paint_room_lights(pic, lights, floor, faced):
 
 
 def paint_stairs(pic, d):
-    """Steps down the stair hall, its risers across it every `tread` units."""
+    """Steps in a stair hall, their risers across it every `tread` units:
+    `stairs` is one {"room", "tread", "from"?, "to"?, "axis"?} or a list of
+    them. Along "x" (the default) the risers run north-south; along "y"
+    they run east-west, for stairs climbing north."""
     w, h = pic.w, pic.h
     spec = d.get("stairs")
     if not spec:
         return
-    r = _room(d, spec["room"])
-    tread = spec["tread"]
-    for y in range(r["y0"], r["y1"]):
-        for x in range(r["x0"] + spec.get("from", 0), r["x1"] - spec.get("to", 0)):
-            i = (h - 1 - y) * w + x
-            step = (x - r["x0"]) % tread
-            if step < 2:
-                k = 150                                   # the riser's shadowed lip
-            elif step < 4:
-                k = 286                                   # the tread's lit nose
-            else:
-                k = 256
-            pic.r[i] = min(255, pic.r[i] * k >> 8)
-            pic.g[i] = min(255, pic.g[i] * k >> 8)
-            pic.b[i] = min(255, pic.b[i] * k >> 8)
+    for one in ([spec] if isinstance(spec, dict) else spec):
+        r = _room(d, one["room"])
+        tread = one["tread"]
+        across = one.get("axis", "x") == "y"
+        x0, x1, y0, y1 = r["x0"], r["x1"], r["y0"], r["y1"]
+        if across:
+            y0, y1 = y0 + one.get("from", 0), y1 - one.get("to", 0)
+        else:
+            x0, x1 = x0 + one.get("from", 0), x1 - one.get("to", 0)
+        for y in range(y0, y1):
+            for x in range(x0, x1):
+                i = (h - 1 - y) * w + x
+                step = ((y - r["y0"]) if across else (x - r["x0"])) % tread
+                if step < 2:
+                    k = 150                               # the riser's shadowed lip
+                elif step < 4:
+                    k = 286                               # the tread's lit nose
+                else:
+                    k = 256
+                pic.r[i] = min(255, pic.r[i] * k >> 8)
+                pic.g[i] = min(255, pic.g[i] * k >> 8)
+                pic.b[i] = min(255, pic.b[i] * k >> 8)
 
 
 def paint_portal(pic, d):
@@ -305,6 +605,7 @@ def paint_grade(pic, d, sky, floor):
     mist = _Noise(150, 421)
     fine = _Noise(46, 423)
     mr, mg, mb = d.get("mist", (150, 160, 176))
+    mr2, mg2, mb2 = d.get("moonlight", (214, 228, 250))     # the open sky's tint, of 256
     for row in range(h):
         y = h - 1 - row
         base = row * w
@@ -316,7 +617,7 @@ def paint_grade(pic, d, sky, floor):
                 r = (r * 3 + grey) >> 2
                 g = (g * 3 + grey) >> 2
                 b = (b * 3 + grey) >> 2
-                r, g, b = r * 214 >> 8, g * 228 >> 8, min(255, (b * 250 >> 8) + 10)
+                r, g, b = r * mr2 >> 8, g * mg2 >> 8, min(255, (b * mb2 >> 8) + 10)
                 m = mist.at(x, y) * 0.7 + fine.at(x, y) * 0.3
                 a = max(0.0, m - 0.42) * 0.42                    # 0 .. ~0.24 where the mist lies
                 r = int(r + (mr - r) * a + 0.5)
@@ -325,6 +626,31 @@ def paint_grade(pic, d, sky, floor):
             elif floor[i]:
                 r, g, b = min(255, r * 262 >> 8), g * 250 >> 8, b * 226 >> 8
             pic.r[i], pic.g[i], pic.b[i] = r, g, b
+
+
+# A model that is not solid may reach this far onto the karts' floor at its
+# edges (a texel or two of a torch, a banner's hem).
+PROP_SLACK = 3
+
+
+def check_props(geometry, models):
+    """Nothing the karts drive over: a model that is not solid keeps its
+    drawn body (not its shadow) off the kart centre's floor, by the slack,
+    against a wall, in a corner or behind a solid. A model that stands out
+    on the floor is solid (it blocks) or moves. Stops the build at the
+    first that does not."""
+    from build_dungeon_tracks import Floor
+    w, h = geometry["width"], geometry["height"]
+    free = Floor(dict(geometry, wallInset=geometry["wallInset"] + PROP_SLACK))
+    for item, sprite, X, Y in models:
+        if item["solid"]:
+            continue
+        col0, row0 = X - sprite["ox"], h - Y - sprite["oy"]
+        for i, j in sprite["body_points"]:
+            x, y = col0 + i + 0.5, h - 1 - (row0 + j) + 0.5
+            if free.allowed(x, y):
+                raise SystemExit(f"LAYOUT: {item['name']} at ({X}, {Y}) stands where the karts drive "
+                                 f"(its body at {x:.0f}, {y:.0f}): make it solid or move it off the floor")
 
 
 def build(wc3, d, geometry, check=False, preview=False, log=print):
@@ -338,7 +664,10 @@ def build(wc3, d, geometry, check=False, preview=False, log=print):
     paint_masonry(pic, d, floor)
     paint_floors(pic, d, tiles, names, style, floor)
     paint_kerbs(pic, d, style, names, floor)
+    paint_stones(pic, d, style, names)
+    paint_pools(pic, d, tiles)
     paint_carpets(pic, d, floor)
+    paint_rings(pic, d, floor)
     paint_stairs(pic, d)
     paint_portal(pic, d)
     paint_finish(pic, geometry["gates"][-1], floor, w, h)
@@ -349,8 +678,10 @@ def build(wc3, d, geometry, check=False, preview=False, log=print):
     models = []
     for item in d["props"]:
         sprite = sprite_for(wc3, d, item, cache)
+        forget_textures()                 # Reforged's textures are large: one model's at a time
         models.append((item, sprite, int(round(item["x"])), int(round(item["y"]))))
-    lights = [(X + 0.5, Y + 0.5, item["light"][0], item["light"][1]) for item, sprite, X, Y in models
+    check_props(geometry, models)
+    lights =[(X + 0.5, Y + 0.5, item["light"][0], item["light"][1]) for item, sprite, X, Y in models
               if item.get("light")]
     if lights:
         paint_room_lights(pic, lights, floor, faced)
@@ -396,6 +727,8 @@ def sources(d, tiles, models):
         textures.add(path)
     for path, _, _ in tiles.strata:
         textures.add(path)
+    if d.get("pools"):
+        textures.add(WATER_TEXTURE)
     lines = [f"# {d['name']}: Warcraft III Reforged files used by {d['folder']}/Background.tga",
              "# Generated by scripts/build_dungeon_tracks.py --preview. Archive paths as the client stores them.",
              "", "## Models (placements)"]

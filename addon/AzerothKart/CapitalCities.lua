@@ -6751,7 +6751,7 @@ CapitalCities["undercity_slime"] = {
 }
 
 CapitalCities["thunder_bluff_skyway"] = {
-    id="thunder_bluff_skyway", version=1, name="Thunder Bluff Skyway",
+    id="thunder_bluff_skyway", version=2, name="Thunder Bluff Skyway",
     width=2048, height=2048, wallInset=18, roadRadius=56, wallRadius=76, checkpointMaxStep=5,
     narrows={
         {name="Spirit Rise west bridge", first=30, last=51, wallRadius=54},
@@ -7884,7 +7884,7 @@ CapitalCities["thunder_bluff_skyway"] = {
         {x=1967.41117753,y=1520.16744881},
         {x=1967.86199677,y=1508.18482568},
     },
-    spawn={x=430.2, y=714.6, heading=0.387844},
+    spawn={x=522.1, y=861.7, heading=1.695796},
     centerline={
         {x=528,y=792}, {x=526.3,y=809.6}, {x=525.8,y=829.1}, {x=523.8,y=848.1}, {x=521.4,y=867.2},
         {x=518.4,y=886.6}, {x=515.1,y=906}, {x=511.5,y=925.5}, {x=507.8,y=945}, {x=503.9,y=964.5},

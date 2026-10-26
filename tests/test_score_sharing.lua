@@ -206,7 +206,7 @@ do
     for _,course in ipairs(owner.namespace.Courses.LIST) do
         if owner.namespace.Courses.available(course.id) then ids[#ids+1]=course.id end
     end
-    assert(#ids==8,"eight finished production courses including both new maps")
+    assert(#ids==11,"eleven finished production courses, including all four Scarlet sprints")
     for index,id in ipairs(ids) do assert(owner:finish(2000+index,id).saved,"eligible current board saves: "..id) end
     owner:fire("PLAYER_ENTERING_WORLD");learner:fire("PLAYER_ENTERING_WORLD");allMaps:flush()
     allMaps:untilTrue(function()
@@ -220,11 +220,19 @@ do
     end
     assert(learner:view("scarlet_graveyard").rows[1].lapCount==1)
     assert(learner:view("thunder_bluff_skyway").rows[1].lapCount==3)
+    assert(learner:view("scarlet_graveyard").rows[1].trackVersion==2
+        and learner:view("thunder_bluff_skyway").rows[1].trackVersion==2,
+        "catch-up uses the reviewed drive-fix geometry versions")
     assert(#learner:view("test_oval").rows==0 and congratulations(learner)==0,
         "retired boards remain hidden and login catch-up never celebrates")
     local result=owner:finish(1800,"scarlet_graveyard")
     assert(result.saved and owner:view("scarlet_graveyard").rows[1].lapCount==1)
     allMaps:untilTrue(function() return learner:view("scarlet_graveyard").rows[1].totalTicks==1800 end,5)
+    for _,id in ipairs({"scarlet_library","scarlet_armory","scarlet_cathedral"}) do
+        assert(learner:view(id).rows[1].lapCount==1,"new dungeon catch-up retains sprint context: "..id)
+        assert(owner:finish(1700,id).saved,"new dungeon finish saves: "..id)
+        allMaps:untilTrue(function() return learner:view(id).rows[1].totalTicks==1700 end,5)
+    end
 end
 
 -- Only native world/roster events start discovery and handshake; finishing a

@@ -6,9 +6,15 @@ The owner sent his in-game Thunder Bluff map with a blue line and three screensh
 
 ![Thunder Bluff overview, 4x reduced](thunder_bluff_skyway-overview.png)
 
-**Status:** proposed on `claude/thunder-bluff` for Codex review and integration. It is selectable in this branch. Thunder Bluff's scores save locally. Community sharing needs Codex's score-sync change described in [the handoff](../../handoffs/claude-latest.md#needs-codex-score-sync-learns-thunder-bluff): without it the sync does not start for any course, so this branch is not to be installed alone. **NOT RUN in the client:** the drive, the look in the follow camera, performance. See [the client checklist](../../../tests/MANUAL_CLIENT_CHECKLIST.md).
+**Status:** version 1 was proposed on `claude/thunder-bluff`, reviewed and integrated by Codex, and installed (runtime `c9ebf03`); the owner has driven it. **Version 2**, proposed on `claude/drive-fixes` for Codex review, moves the grid ([below](#version-2-the-grid-on-the-loop)). It is selectable in this branch. Thunder Bluff's scores save locally. Community sharing needs Codex's score-sync change described in [the handoff](../../handoffs/claude-latest.md#needs-codex-score-sync-learns-thunder-bluff): without it the sync does not start for any course, so this branch is not to be installed alone. **NOT RUN in the client:** the drive, the look in the follow camera, performance. See [the client checklist](../../../tests/MANUAL_CLIENT_CHECKLIST.md).
 
 ![The loop, its direction and nine follow-camera views](thunder_bluff_skyway-review.png)
+
+## Version 2: the grid on the loop
+
+Version 1's grid stood on the road in from the lift, at his X, 100 units before the junction. There the road ran straight on to the east, the wrong way along the south side, and the course turned left, up the west side. The start sign in the junction's corner stood above the follow camera's view until the kart was through the junction. After his client run the owner wrote: "image 5 shows the startline of thunderbluff - arrow is not in the picture, so it's literally impossible and pretty unexpected having to take a left turn at the start."
+
+The grid now stands on the loop at the foot of the Lower Rise's west side, 70 units past the junction, facing up it. The finish line is 75 units ahead, and the start sign is in view on the right. The race starts straight on. The road from the lift still joins behind the grid, and the picture is unchanged; only the spawn moved. Version 2 has its own score boards.
 
 ## The route
 
@@ -16,19 +22,20 @@ The owner marked no direction. His stroke runs from the start road straight on u
 
 The route is traced from his line on his 1055×794 screenshot (world = map pixels × 3.0). The rises' turns are widened so a kart can turn on them.
 
-1. **The lift.** The start grid is on the road in from the west, where the lift arrives, at his X.
-2. **Up the west side.** At the junction the road bears left, north up the Lower Rise's west side, and crosses the finish line. A start sign stands in the junction's corner. Gate: *The Lift*, the finish line.
+1. **The grid,** at the foot of the Lower Rise's west side, just past the junction where the road from the lift joins (version 1 started on that road, at his X).
+2. **Up the west side.** North up the Lower Rise's west side, across the finish line. A start sign stands in the junction's corner. Gate: *The Lift*, the finish line.
 3. **The Spirit Rise.** Out over the west bridge (366 units over the drop) and round the Spirit Rise's hairpin, then back over the north bridge (210). Gate: *Spirit Rise*.
 4. **The north side.** East along the Lower Rise's north side. Gate: *Lower Rise*.
 5. **The Elder Rise.** Out along the long bridge (408 over the drop) and round the Elder Rise, past Cairne's lodge. Back over the lower bridge (294). Gate: *Elder Rise*.
 6. **The east side.** South down the Lower Rise's east side, past the wind riders' roost. Gate: *Wind Rider Roost*.
 7. **The Hunter Rise.** Over the east bridge (283) and across the Hunter Rise, past the hunters' hall. Back over the south-west bridge (327). Gate: *Hunter Rise*.
-8. **The south side,** west to the junction, then round onto the next lap.
+8. **The south side,** west to the junction, then right, up the west side onto the next lap.
 
 | Measure | Value |
 |---|---|
 | Lap | 5,616 world units |
-| Approach | 285 units; the grid is 200 along it |
+| Approach | 285 units from the lift to the junction, unused by the race since version 2 |
+| Grid | on the loop, 70 units past the junction, 75 before the finish line |
 | Gates | six, named for the rises and the lift |
 | Bridges | six; 2,080 units of deck, 1,888 of them over the drop (about a third of the lap) |
 
@@ -64,7 +71,7 @@ The mesas over Mulgore, in Warcraft III's summer, Barrens and village art.
   - the Spirit Rise: its lodge and a spirit walker;
   - the Elder Rise: Cairne Bloodhoof before his lodge;
   - the Hunter Rise: the hunters' hall and a kodo.
-- **Start sign:** the goblin racing arrow post, as on the other cities that start off the loop. It stands in the junction's corner beyond the walls, pointing north-west: bear left, up the west side.
+- **Start sign:** the goblin racing arrow post, as on the cities that start off the loop. It stands in the junction's corner beyond the walls, pointing north-west, up the west side: in view from the grid since version 2, and the way on at each lap's end.
 
 A model's ground shadow is left off the drop, so a totem at the brink does not shade the far face.
 
@@ -77,7 +84,7 @@ A model's ground shadow is left off the drop, so a totem at the brink does not s
 | `addon/AzerothKart/CapitalCities.lua` | The circuit data (with the other cities'), generated, with the six bridges' `narrows`. |
 | [`thunder_bluff_skyway-overview.png`](thunder_bluff_skyway-overview.png) | The preview as PNG, for review. |
 | [`thunder_bluff_skyway-sources.txt`](thunder_bluff_skyway-sources.txt) | Every Warcraft III model and texture the picture uses, with placement counts. |
-| [`thunder_bluff_skyway-review.png`](thunder_bluff_skyway-review.png) | The loop with its direction and nine follow-camera views, as sent to the owner. |
+| [`thunder_bluff_skyway-review.png`](thunder_bluff_skyway-review.png) | The loop with its direction and nine follow-camera views (version 2: the first is the view from the grid). |
 
 ## Rebuilding
 

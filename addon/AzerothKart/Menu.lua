@@ -64,6 +64,23 @@ Menu.TRACKS = {
             .. "the Forlorn Cloister and across its graveyard to Honor's Tomb. No road here: find your way.",
         facts={"Sprint: one run through 3 gates", "Grass slows you; graves and tombs block",
             "The finish is Honor's Tomb"}},
+    {id="scarlet_library", name="Scarlet Library", cell="scarletlibrary",
+        blurb="From the portal down the long hall to the Huntsman's Cloister, into Houndmaster Loksey's kennel "
+            .. "and back out, then up through the Gallery of Treasures and the Athenaeum to Arcanist Doan's "
+            .. "round library.",
+        facts={"Sprint: one run through 5 gates", "Loksey's kennel: in across his line, then back out",
+            "The finish is the round library's door"}},
+    {id="scarlet_armory", name="Scarlet Armory", cell="scarletarmory",
+        blurb="From the portal across the Training Grounds, the one open sky, up into the Footman's and the "
+            .. "Crusader's Armories, along the long hall into the round Hall of Champions and down its stairs "
+            .. "to Herod.",
+        facts={"Sprint: one run through 5 gates", "Grass slows you in the Training Grounds",
+            "The finish is down the stairs, beside Herod"}},
+    {id="scarlet_cathedral", name="Scarlet Cathedral", cell="scarletcathedral",
+        blurb="From the portal into the Chapel Gardens, round their pools and up beside the falls, through the "
+            .. "cathedral's door and up the nave to the altar, where Mograine and Whitemane stand.",
+        facts={"Sprint: one run through 4 gates", "The pools and the falls block; grass slows you",
+            "The finish is before the altar"}},
 }
 
 local WC3C = "Model: ITE project (wc3c), author unknown"
@@ -126,9 +143,16 @@ Menu.PREVIEW_CELLS = {
         left=0, right=1, top=0, bottom=1, width=320, height=320},
     thunderbluff={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\ThunderBluff\\Preview.tga",
         left=0, right=1, top=0, bottom=1, width=320, height=320},
-    -- A dungeon's picture is twice as wide as tall (2048 x 1024 world units).
+    -- The Graveyard's picture is twice as wide as tall (2048 x 1024 world units); the Library's and the
+    -- Armory's are square; the Cathedral's is twice as tall as wide (1024 x 2048).
     scarletgraveyard={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\ScarletGraveyard\\Preview.tga",
         left=0, right=1, top=0, bottom=1, width=320, height=160},
+    scarletlibrary={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\ScarletLibrary\\Preview.tga",
+        left=0, right=1, top=0, bottom=1, width=320, height=320},
+    scarletarmory={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\ScarletArmory\\Preview.tga",
+        left=0, right=1, top=0, bottom=1, width=320, height=320},
+    scarletcathedral={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\ScarletCathedral\\Preview.tga",
+        left=0, right=1, top=0, bottom=1, width=160, height=320},
 }
 
 -- Fixed fonts; each falls back to GameFontNormal when the client lacks it.

@@ -3,10 +3,12 @@ local AK={}
 local H=assert(loadfile("addon/AzerothKart/Highscores.lua"))("AzerothKart",AK)
 local S=assert(loadfile("addon/AzerothKart/ScoreSync.lua"))("AzerothKart",AK)
 local ids={"mirage_raceway","stormwind_city","ironforge_gp",
-    "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway","scarlet_graveyard"}
+    "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway","scarlet_graveyard",
+    "scarlet_library","scarlet_armory","scarlet_cathedral"}
 local contexts={}
-for i,id in ipairs(ids) do contexts[i]={trackId=id,trackVersion=1,physicsVersion=11,
-    lapCount=id=="scarlet_graveyard" and 1 or 3,tickRate=60,rulesVersion=1} end
+for i,id in ipairs(ids) do contexts[i]={trackId=id,
+    trackVersion=(id=="scarlet_graveyard" or id=="thunder_bluff_skyway") and 2 or 1,physicsVersion=11,
+    lapCount=id:match("^scarlet_") and 1 or 3,tickRate=60,rulesVersion=1} end
 local function copy(t)
     if type(t)~="table" then return t end
     local out={};for k,v in pairs(t) do out[k]=copy(v) end;return out
@@ -42,7 +44,7 @@ local function drive(a,b,first,last,drop)
     for now=first,last do
         local function send(from,to,expected,name)
             return function(peer,payload)
-                assert(peer==expected and #payload<=S.MAX_BYTES)
+                assert(peer==expected and #payload<=S.MAX_BYTES and #payload+#S.PREFIX<=158)
                 local m=assert(S.decode(payload))
                 if not drop or not drop(from,m,now) then assert(S.receive(to,name,payload,now)) end
                 return true
@@ -110,9 +112,10 @@ do
     end))
 end
 do
-    -- Every active board has its own stable wire code, including the one-run
-    -- sprint. Expanded HELLOs still fit the native send budget at full bounds.
-    local codes={"M","S","I","D","R","U","T","G"}
+    -- Every active board has its own stable wire code, including all four
+    -- one-run sprints. Expanded HELLOs fit the unchanged native byte budget.
+    assert(#contexts==11,"only eleven active production boards, with no Test Oval")
+    local codes={"M","S","I","D","R","U","T","G","L","A","C"}
     local rows={}
     for index,context in ipairs(contexts) do
         local row=record("Amber Stone",1000+index,index)
@@ -122,24 +125,47 @@ do
             and decoded.record.lapCount==context.lapCount,"stable course code and lap count")
         rows[#rows+1]=row
     end
-    assert(rows[#rows].lapCount==1,"the Graveyard shares a one-run score")
+    for index=8,11 do assert(rows[index].lapCount==1,"each Scarlet course shares a one-run score") end
     local a,b=pair(rows,{})
     drive(a,b,0,55)
     assert(signature(a)==signature(b),"all active boards converge through automatic catch-up")
     for _,context in ipairs(contexts) do assert(#H.View(S.snapshot(b),context)==1) end
     local maximum={}
     for index=1,#contexts+1 do maximum[index]=4294967295 end
+    maximum[1]=0 -- retired O is never a legal nonzero digest
     local payload=assert(S.encode({kind="HELLO",physicsVersion=2147483647,
         catalogHash=4294967295,hashes=maximum}))
-    assert(#payload+#S.PREFIX<=158 and #assert(S.decode(payload)).hashes==#contexts+1,
+    assert(#payload+#S.PREFIX==155 and #payload+#S.PREFIX<=158
+        and #assert(S.decode(payload)).hashes==12,
         "expanded maximum HELLO fits the existing native byte ceiling")
+    local nonzeroRetired=copy(maximum);nonzeroRetired[1]=4294967295
+    assert(S.encode({kind="HELLO",physicsVersion=2147483647,
+        catalogHash=4294967295,hashes=nonzeroRetired})==nil,
+        "a retired digest cannot expand outgoing packets beyond the native ceiling")
+    local invalidPayload=payload:gsub("^(1 H %d+ %d+) 0 ","%1 4294967295 ",1)
+    assert(#invalidPayload+#S.PREFIX==164 and S.decode(invalidPayload)==nil,
+        "incoming nonzero retired digests are rejected before a handshake")
+    local smallInvalid=payload:gsub("^(1 H %d+ %d+) 0 ","%1 1 ",1)
+    assert(#smallInvalid+#S.PREFIX==155 and S.decode(smallInvalid)==nil,
+        "a nonzero retired digest is rejected even when it fits the native byte ceiling")
+    local normalPayload=assert(S.encode({kind="HELLO",physicsVersion=12,
+        catalogHash=4294967295,hashes=maximum}))
+    assert(#normalPayload+#S.PREFIX==147,"Physics12 retains spare capacity at maximum board hashes")
     assert(S.decode("1 H 11 1 0 0 0 0 0 0 0")==nil,
         "older seven-slot catalogues cannot silently handshake with new boards")
+    assert(S.decode("1 H 11 1 0 0 0 0 0 0 0 0 0")==nil,
+        "the previous nine-slot catalogue cannot silently omit Library, Armory or Cathedral")
+    print("score sync catalogue: 11 active boards/12 slots, O=0, maximum HELLO155B/Physics12 147B including prefix")
 end
 local early=new("Amber Stone");assert(S.discover(early,{"Birch Vale"},0))
 assert(S.receive(early,"Birch Vale",assert(S.encode({kind="NEW",record=record("Birch Vale",900)})),0),
     "a validated direct update may arrive before HELLO without losing the new score")
 assert(H.Rank(S.snapshot(early),contexts[1],"Birch Vale")==1)
+for index=9,11 do
+    assert(S.receive(early,"Birch Vale",assert(S.encode({kind="NEW",record=record("Birch Vale",900,index)})),index-8),
+        "compatible direct new-course scores remain admissible before HELLO")
+    assert(H.Rank(S.snapshot(early),contexts[index],"Birch Vale")==1)
+end
 
 -- A local PB between outgoing and incoming HELLO must survive that handshake.
 local flightA,flightB=pair({}, {})

@@ -1,5 +1,74 @@
 # Manual client acceptance — F0/F1/F2/F5
 
+## Deferred Scarlet Cathedral check (proposed, `claude/scarlet-cathedral`)
+
+**NOT RUN.** Run it after Codex's review (round solids in ADR 0020's addendum, and the score-sync change with the Cathedral's code `C`) and a coordinated install. **Fully restart the client:** `Assets/Tracks/ScarletCathedral/` is new. The owner runs these checks; Claude does not control the client.
+
+1. **Track screen.** The *Scarlet Crusade Cup* lists Scarlet Graveyard, Scarlet Library, Scarlet Armory and Scarlet Cathedral, and nothing is marked "(soon)". Choose the Cathedral: its tall preview and three facts appear. The bar's Track button steps from the Armory to the Cathedral, then Test Oval.
+2. **Load.** The 1024×2048 TGA. Record any refusal and any hitch when switching to it.
+3. **The drive.** The kart starts at the portal facing west between two guards. The HUD reads "Sprint" with the gates passed (n/4). Find the way:
+   - west along the entrance hall, north through the garden gate (the first gate);
+   - round the lower pool, then up the stairs beside the falls or across a platform (the second gate spans them all);
+   - round the round pool to the terrace and the cathedral's door (the third gate);
+   - up the nave, across the transept and up the chancel's steps to the chequered line before the altar, the finish.
+4. **The pools.** Record whether the karts stop where the water's rim is drawn, and whether sliding round the round pool feels smooth, not sticky.
+5. **Solids and walls.** Record whether the pillars, trees, bushes, statues, the Crusade, Mograine, Whitemane, the altar and the candles block where they are drawn, and whether anything else stands where the kart drives.
+6. **The gardens and the chancel.** Record whether the gardens read as the open sky, the falls and stairs as the way up, and the finish as before the altar. Fairbanks' chamber behind it should be drivable after the finish.
+7. **Results and scores.** "RUN COMPLETE" with "Sprint | Total: …" and "All 4 gates". Highscores shows the Cathedral's own board as sprints. Community sharing needs Codex's score-sync change.
+8. **Camera and performance.** Record the frame rate while driving. Print Probe still shows 90 frames, 167 textures and 136 font strings.
+9. **Scarlet Armory's Herod** now has a model of his own (a hulking champion in crimson with a great blade). Record whether he reads as Herod.
+
+## Deferred Scarlet Armory check (proposed, `claude/scarlet-armory`)
+
+**NOT RUN.** Run it after Codex's review (the score-sync change with the Armory's code `A`) and a coordinated install. **Fully restart the client:** `Assets/Tracks/ScarletArmory/` is new. The owner runs these checks; Claude does not control the client.
+
+1. **Track screen.** The *Scarlet Crusade Cup* lists Scarlet Graveyard, Scarlet Library and Scarlet Armory, then the Monastery marked "(soon)". Choose the Armory: its square preview and three facts appear. The bar's Track button steps from the Library to the Armory, then Test Oval.
+2. **Load.** The 2048×2048 TGA. Record any refusal and any hitch when switching to it.
+3. **The drive.** The kart starts at the portal facing east between two guards. The HUD reads "Sprint" with the gates passed (n/5). Find the way:
+   - east along the entrance hall, north through the door into the Training Grounds (the first gate);
+   - round the walks or across the yard, then up the stairs from the north walk (the second gate) into the Footman's Armory;
+   - round its pillars to its east side room, up the stairs (the third gate) and west through the Crusader's Armory;
+   - out of its north-west corner, north, then east along the long hall to the Hall of Champions' door (the fourth gate);
+   - down the round hall's stairs to the chequered line across its middle, either side of Herod: the finish.
+4. **The Training Grounds.** The yard slows the kart; the walks are stone. Record whether the stepping stones read as paint on grass or invite the karts to expect stone, and whether the yard reads as the only open sky.
+5. **Solids and walls.** Record whether the columns, targets, dummies, hay, footmen, forge, anvil, table, cart, junk, candles and Herod block where they are drawn, and whether anything else stands where the kart drives.
+6. **The Hall of Champions.** Record whether the ring of stairs and Herod read clearly in the follow camera, whether the north wall and statues show whole at the top of the world, and whether the round wall slides the kart round smoothly.
+7. **Results and scores.** "RUN COMPLETE" with "Sprint | Total: …" and "All 5 gates". Highscores shows the Armory's own board as sprints. Community sharing needs Codex's score-sync change.
+8. **Camera and performance.** Record the frame rate while driving. Print Probe still shows 90 frames, 167 textures and 136 font strings.
+
+## Deferred drive-fixes check (proposed, `claude/drive-fixes`)
+
+**NOT RUN.** Run it after Codex's review and a coordinated install. The owner runs these checks; Claude does not control the client. No new files: a `/reload` is enough unless the install also brings the Library, whose folder is new (then fully restart).
+
+1. **Scarlet Graveyard, the chamber's west side** (his images 1 and 2). A wall stands either side of the Chamber of Atonement's west door, and the kart stops at it where it is drawn. The way west is through the door, into the west hall.
+2. **Nothing under the kart** (his images 3 and 4). The armour rack stands in the corner at the head of the stairs, off the steps, and there is no ghost on the cloister's path. The ghosts on the lawns, the sitting corpse and the stone benches block. Record anything else the kart drives over.
+3. **Thunder Bluff's start** (his image 5). At GO the kart stands at the foot of the Lower Rise's west side facing up it, the finish line ahead and the start sign on the right. Straight on is the way. Record the lap count after the first full loop: crossing the finish line just after GO counts nothing, as before.
+4. **Each lap's end at Thunder Bluff.** Coming west along the south side, the way on is right at the junction, up the west side; the road from the lift goes on west to the lift.
+5. **Scores.** Both courses are version 2: their Highscores boards start empty, and version 1 times stay saved under version 1.
+6. **The Library** (when installed): the courtyard's bushes, the kennel's cages, rib cage and hay, and the candles round Doan block; nothing else stands on the floor.
+
+## Deferred Scarlet Library check (proposed, `claude/scarlet-library`)
+
+**NOT RUN.** Run it after Codex's review (round rooms in ADR 0020's addendum, and the score-sync change with the Library's code) and a coordinated install. **Fully restart the client:** `Assets/Tracks/ScarletLibrary/` is new. The owner runs these checks; Claude does not control the client.
+
+1. **Track screen.** The *Scarlet Crusade Cup* lists Scarlet Graveyard and Scarlet Library, then the Armory and the Monastery marked "(soon)". Choose the Library: its square preview and three facts appear. The bar's Track button steps from the Graveyard to the Library, then Test Oval.
+2. **Load.** The 2048×2048 TGA. Record any refusal and any hitch when switching to it.
+3. **The drive.** The kart starts at the portal facing north between two guards. The HUD reads "Sprint" with the gates passed (n/5). Find the way:
+   - north, east, then south down the long hall (the first gate is just past the turn);
+   - round the cloister's walks, or across the open courtyard;
+   - into Loksey's kennel across his line (the second gate), turn round, and back out;
+   - north up the east hall into the Gallery of Treasures (the third gate in its door);
+   - east through the two columned halls (the fourth gate in the Athenaeum's door) and south down the Athenaeum;
+   - through the last hall to the chequered line in the round library's door, the finish.
+4. **The kennel's hairpin.** Record whether the turn round in the kennel is fair at speed. The houndmaster, his hounds, the cages, the rib cage and the hay block; the straw piles and the skull pile by the walls stand off the floor.
+5. **Walls, columns and the round wall.** Record:
+   - whether the arcade's columns and the courtyard's trees block where they are drawn;
+   - whether the pillars in the halls leave enough room;
+   - whether the round library's wall slides the kart round smoothly.
+6. **The courtyard.** The lawn slows the kart; the paths and the fountain's court are stone. Record whether the courtyard reads as the only open sky.
+7. **Results and scores.** "RUN COMPLETE" with "Sprint | Total: …" and "All 5 gates". Highscores shows the Library's own board as sprints. Community sharing needs Codex's score-sync change.
+8. **Camera and performance.** Record the frame rate while driving, and whether the long halls and the round library read clearly in the follow camera. Print Probe still shows 90 frames, 167 textures and 136 font strings.
+
 ## Deferred Scarlet Graveyard check (proposed, `claude/scarlet-graveyard`)
 
 **NOT RUN.** Run it only after Codex's review and a coordinated install. Codex's review includes the sprint rules (ADR 0020) and the score-sync change in Claude's handoff.

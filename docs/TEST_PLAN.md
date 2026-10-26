@@ -28,7 +28,7 @@ Focused command: `python scripts/test_lua.py --runtime lua51 --tests track obsta
 
 ## Current Capital Cities Cup slice (proposed, `claude/capital-cup`)
 
-Focused command: `python scripts/test_lua.py --runtime lua51 --tests circuit menu ui`; geometry and art bytes: `python scripts/build_city_tracks.py --wc3 WC3 --check` (needs the Warcraft III files extracted as in [the Stormwind sheet](art/tracks/stormwind.md#rebuilding)). `tests/test_circuit.lua` builds a small street circuit and the generated Stormwind circuit: road, kerbside strip and wall surfaces; a step into a wall ends at it and slides along it with a hit; the plaza is open paving and its statue blocks with the usual clearance (a fixture: Stormwind has no plaza or solid); recovery from outside the street; 4,000 random steps near walls never move further than requested or end in a wall; the catalog's cups, coming-soon entries (none left once Thunder Bluff is ready: it is marked soon for one check), Track button cycle and kept builds; a walk of Stormwind's course passes the six district gates in order, completes the lap's checkpoints and never meets a wall, and so does Ironforge's with its seven, then throttle from Ironforge's grid stays on the road; Orgrimmar's walk passes its four gates in order with a wall-free centerline, its gates close the street at both ends, and throttle from its grid stays on the road; so do Darnassus's six and Undercity's five (Undercity's walk starts on the loop: it has no approach road); Thunder Bluff's six (proposed on `claude/thunder-bluff`), each of its six rope-bridge narrows road to its own wall at 54, and both new cities' proposed street heights have one finite value per centerline and branch point while the flat cities carry none; reviewed `narrows` (Ironforge version3): a narrowed square side is road to its own wall, invalid narrows are refused; closing-segment numbering, minimum overlap radii, independent metadata copies and unchanged branches are covered; Ironforge's two Forlorn Cavern tunnels have road then wall either side with shoulders kept before them, and steering into a tunnel wall registers impacts without ending a step in it (`tests/test_circuit_boundary.py` adds the narrow/wide join vertices); a Physics drive up the approach stays on the road, and steering into a wall registers impacts without leaving the street. The generator validates the layout before painting (gates span wall to wall and guard one stretch, separate stretches keep a wall between them, spawn, solids, world bounds, nothing drawn over the street). `tests/test_ui.lua` and `tests/test_menu.lua` cover the pooled counts (79/166/81 in the integrated build), gate visibility, safe background refusal, preference restoration and the Track button's cycle through the seven tracks (Orgrimmar's four gates in the gate-pool test; a fixture is the coming-soon example since Thunder Bluff is ready). Loading the 2048-square scenery, the drive, the camera and the menus in the client are NOT RUN; see [the client checklist](../tests/MANUAL_CLIENT_CHECKLIST.md).
+Focused command: `python scripts/test_lua.py --runtime lua51 --tests circuit menu ui`; geometry and art bytes: `python scripts/build_city_tracks.py --wc3 WC3 --check` (needs the Warcraft III files extracted as in [the Stormwind sheet](art/tracks/stormwind.md#rebuilding)). `tests/test_circuit.lua` builds a small street circuit and the generated Stormwind circuit: road, kerbside strip and wall surfaces; a step into a wall ends at it and slides along it with a hit; the plaza is open paving and its statue blocks with the usual clearance (a fixture: Stormwind has no plaza or solid); recovery from outside the street; 4,000 random steps near walls never move further than requested or end in a wall; the catalog's cups, coming-soon entries (none left once Thunder Bluff is ready: it is marked soon for one check), Track button cycle and kept builds; a walk of Stormwind's course passes the six district gates in order, completes the lap's checkpoints and never meets a wall, and so does Ironforge's with its seven, then throttle from Ironforge's grid stays on the road; Orgrimmar's walk passes its four gates in order with a wall-free centerline, its gates close the street at both ends, and throttle from its grid stays on the road; so do Darnassus's six and Undercity's five (Undercity's walk starts on the loop: it has no approach road); Thunder Bluff's six (proposed on `claude/thunder-bluff`; on `claude/drive-fixes` its version 2 grid stands on the loop, facing the way the course runs, with the finish line just ahead), each of its six rope-bridge narrows road to its own wall at 54, and both new cities' proposed street heights have one finite value per centerline and branch point while the flat cities carry none; reviewed `narrows` (Ironforge version3): a narrowed square side is road to its own wall, invalid narrows are refused; closing-segment numbering, minimum overlap radii, independent metadata copies and unchanged branches are covered; Ironforge's two Forlorn Cavern tunnels have road then wall either side with shoulders kept before them, and steering into a tunnel wall registers impacts without ending a step in it (`tests/test_circuit_boundary.py` adds the narrow/wide join vertices); a Physics drive up the approach stays on the road, and steering into a wall registers impacts without leaving the street. The generator validates the layout before painting (gates span wall to wall and guard one stretch, separate stretches keep a wall between them, spawn, solids, world bounds, nothing drawn over the street). `tests/test_ui.lua` and `tests/test_menu.lua` cover the pooled counts (79/166/81 in the integrated build), gate visibility, safe background refusal, preference restoration and the Track button's cycle through the seven tracks (Orgrimmar's four gates in the gate-pool test; a fixture is the coming-soon example since Thunder Bluff is ready). Loading the 2048-square scenery, the drive, the camera and the menus in the client are NOT RUN; see [the client checklist](../tests/MANUAL_CLIENT_CHECKLIST.md).
 
 ## Current Scarlet Crusade Cup slice (proposed, `claude/scarlet-graveyard`)
 
@@ -54,7 +54,49 @@ The generator refuses a layout unless:
 - the spawn is on stone;
 - every solid is on the floor;
 - each gate is axis-aligned, reaches the walls and is unavoidable, by a flood fill with the gate as a barrier;
-- the route crosses the gates in order.
+- the route crosses the gates in order;
+- (on `claude/drive-fixes`) no invisible wall: wherever the karts' floor ends, the picture's masonry lies within the inset and 3 units, measured square (`hidden_walls`);
+- (on `claude/drive-fixes`, when painting) no model that is not solid has its drawn body more than 3 units onto the kart centre's floor (`dungeon_paint.check_props`).
+
+On the installed Graveyard (version 1) the new rules flag the places in the owner's screenshots: the floors of the Chamber of Atonement and the west hall meeting without a wall, and 17 props, among them the armour rack on the stairs and the ghost on the path. The Library as first proposed had 71 such props. Both rules pass for the Graveyard's version 2 and the Library on `claude/drive-fixes`. `tests/test_dungeon.lua` checks that the karts leave the chamber west only by its door (version 2), and the Library's lawn at a point clear of its now-solid bushes.
+
+On `claude/scarlet-library`, `tests/test_dungeon.lua` also covers round rooms (`shape="disc"`):
+
+- a rotunda's floor to its round wall;
+- a doorway into it;
+- a step into the wall that slides round it;
+- 2,000 random steps that never end off the round floor;
+- refused shapes.
+
+It walks the Scarlet Library's reviewed route through its five gates in order, crossing back over Loksey's line once on the way out, never meeting a wall or a solid, and checks a clean launch and every solid. The menu tests follow the Library into the Track cycle, its square preview and its sprint board. The rebuild commands are in [the Scarlet Library sheet](art/tracks/scarlet-library.md#rebuilding).
+
+On `claude/scarlet-armory`, `tests/test_dungeon.lua` walks the Scarlet Armory's reviewed route through its five gates in order (Training Grounds, Footman's Armory, Crusader's Armory, Hall of Champions, Herod), never meeting a wall or a solid. It also checks:
+
+- a clean launch east from the grid, and every solid;
+- the Training Grounds' yard as grass inside its stone walks;
+- the round Hall of Champions to its wall;
+- Herod blocking on the finish line, with stone either side of him.
+
+Only the Monastery is coming soon. The menu tests follow the Armory into the Track cycle, the cup's rows, its square preview and its sprint board. The generator now checks the floor just past each gate all along it (Herod stands on the finish). `build_dungeon_tracks.py --check` keeps the Graveyard's and the Library's data and pictures byte for byte after the painter's new layers. The rebuild commands are in [the Scarlet Armory sheet](art/tracks/scarlet-armory.md#rebuilding).
+
+On `claude/scarlet-cathedral`, `tests/test_dungeon.lua` also covers round solids (`shape="disc"` on a solid), with a pond:
+
+- the pool is wall to its rim, its square's corners floor;
+- a kart driving at it head on stops at its reach, and one passing clear never meets it;
+- one pushing past it slides round it and on;
+- a centre inside it leaves along the radius;
+- 2,000 random steps never end within its reach;
+- invalid solid shapes are refused.
+
+It walks the Scarlet Cathedral's reviewed route through its four gates in order (Chapel Gardens, Upper Gardens, Crusader's Chapel, High Altar), never meeting a wall or a solid. It also checks:
+
+- a clean launch west from the grid, and every solid, the round pool's centre included;
+- the lawns as grass and the walks as stone;
+- the three pools blocking to their rims;
+- the finish across the chancel;
+- a kart stopped at the round pool's reach and sliding round its rim.
+
+No course is coming soon now. The menu tests follow the Cathedral into the Track cycle, the cup's four rows, its twice-as-tall preview and its sprint board. `build_dungeon_tracks.py --check` keeps the Graveyard's and the Library's data and pictures byte for byte after the painter's pools and parquet; the Armory's picture changes only with Herod's new model. The rebuild commands are in [the Scarlet Cathedral sheet](art/tracks/scarlet-cathedral.md#rebuilding).
 
 `test_score_sharing` needs Codex's score-sync change (the patch is in Claude's handoff). The drive, the lawn, the picture and the camera in the client are NOT RUN; see [the client checklist](../tests/MANUAL_CLIENT_CHECKLIST.md).
 

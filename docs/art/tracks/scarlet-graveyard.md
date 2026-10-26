@@ -11,12 +11,26 @@ Asked, he chose:
 
 ![Scarlet Graveyard overview, 4x reduced](scarlet_graveyard-overview.png)
 
-**Status:** proposed on `claude/scarlet-graveyard` for Codex review and integration. The branch carries Thunder Bluff too (`claude/thunder-bluff`, not integrated yet). The Graveyard is selectable in this branch.
+**Status:** version 1 was proposed on `claude/scarlet-graveyard`, reviewed and integrated by Codex, and installed (runtime `c9ebf03`); the owner has driven it. **Version 2**, proposed on `claude/drive-fixes` for Codex review, fixes what he found ([below](#version-2-fixes-from-the-owners-client-run)).
 
 - **Scores:** Graveyard runs save locally, on their own one-run board. Community sharing needs Codex's score-sync change described in [the handoff](../../handoffs/claude-latest.md#needs-codex-score-sync-learns-the-new-courses). Without that change the sync does not start for any course, so this branch must not be installed on its own.
 - **NOT RUN in the client:** the drive, the look in the follow camera, loading the 2048×1024 picture, performance. See [the client checklist](../../../tests/MANUAL_CLIENT_CHECKLIST.md).
 
 ![The way through and nine follow-camera views](scarlet_graveyard-review.png)
+
+## Version 2: fixes from the owner's client run
+
+The owner drove version 1 in the client and sent screenshots. He wrote: "fix invisible wall at infront of kart on image 1 and 2. remove object under kart on image 3 and 4."
+
+- **The invisible wall** (images 1 and 2). The Chamber of Atonement's west wing ran right up to the west hall, so the two floors met with no wall painted between them. The karts' floors stopped 36 units apart there (each room's inset) and joined only through the west door, so a kart stopped in what looked like open floor. The wing now starts 20 units east of the hall, and a wall stands either side of the west door. The door is the way through, as on the chamber's east side.
+- **Objects under the kart** (images 3 and 4). The armour rack stood on the stairs and a ghost on the cloister's path, and neither was solid.
+  - The rack now stands in the corner at the head of the stairs, off the steps. The ghost on the path is gone.
+  - Everything else that stood on the floor now blocks: the two ghosts on the lawns, the sitting corpse and the four stone benches.
+  - The skull piles, the banners by the stairs, the iron maiden and the weapons stand back against the walls.
+- **The generator** refuses both faults now: a floor that ends with no wall painted beside it, and a model that is not solid with its drawn body on the karts' floor ([Rebuilding](#rebuilding)).
+- **Scores:** version 2 has its own boards. Version 1 times stay saved under version 1.
+
+The route, the gates and the spawn are unchanged.
 
 ## The course
 
@@ -35,7 +49,7 @@ The rooms follow his map at karting scale. Halls and doors are 120 to 160 units 
 | The way through | about 2,200 units from the portal to the finish line, along the reviewed route |
 | Gates | three: Chamber of Atonement, Forlorn Cloister, Honor's Tomb (the finish) |
 | Rooms | 18 rectangles of floor: 17 stone and the cloister's lawn |
-| Solids | 52 boxes: 23 graves, 2 crypts, 6 dead trees, the fountain, 3 lanterns, 2 obelisks, a broken column, the torture table, the cage, Vishas and his torturer, Thalnos, the tomb and coffins, 4 guards, a zombie and a skeleton |
+| Solids | 59 boxes: 23 graves, 2 crypts, 6 dead trees, the fountain, 3 lanterns, 2 obelisks, 4 stone benches, a broken column, the torture table, the cage, Vishas and his torturer, Thalnos, the tomb and coffins, 4 guards, 2 ghosts, a zombie, a skeleton and a sitting corpse |
 
 ## How it plays
 
@@ -45,6 +59,7 @@ The rooms follow his map at karting scale. Halls and doors are 120 to 160 units 
 - **Open floor, no road.** The kart centre stays 18 units (`wallInset`) inside the rooms. Where rooms meet they overlap, so the floor runs on through the doors. A step into a wall ends at the wall and slides along it, counting as a hit, as on the city streets.
 - **Stone and grass.** Stone floor has full grip. The cloister's lawn is rough ground, which Physics slows to 70 units a second, so the path is the fast way.
 - **Solids** block as the test oval's crates do: each grown by the kart's inset, so a kart slides along their faces.
+- **Nothing to drive over.** Scenery that stands on the floor is solid. The rest stands against the walls, out of the karts' way.
 - **The gates** span doorways from wall to wall, so they cannot be driven round. The generator checks this for each gate by flood-filling the karts' floor with the gate as a barrier.
 - **Collision** comes from the generated analytic data, never a pixel. The picture paints exactly the rooms Dungeon.lua collides with.
 
@@ -84,7 +99,7 @@ The Scarlet Monastery at night, in Warcraft III's city, dungeon and Lordaeron ar
 | `addon/AzerothKart/Assets/Tracks/ScarletGraveyard/Preview.tga` | 512×256 (the background reduced 4×) for the track screen; 524,306 bytes. |
 | [`scarlet_graveyard-overview.png`](scarlet_graveyard-overview.png) | The preview as PNG, for review. |
 | [`scarlet_graveyard-sources.txt`](scarlet_graveyard-sources.txt) | Every Warcraft III model and texture the picture uses, with placement counts. |
-| [`scarlet_graveyard-review.png`](scarlet_graveyard-review.png) | The way through and nine follow-camera views, as sent to the owner. |
+| [`scarlet_graveyard-review.png`](scarlet_graveyard-review.png) | The way through and nine follow-camera views (version 2). |
 
 ## Rebuilding
 
@@ -107,12 +122,13 @@ The layout is `SCARLET_GRAVEYARD` in `scripts/dungeon_layouts.py`:
 `scripts/build_dungeon_tracks.py` writes `ScarletCrusade.lua` and validates the geometry:
 
 - rooms inside the world, and apart wherever they do not meet;
+- no invisible wall: wherever the karts' floor ends, the picture's masonry lies within the inset, with 3 units' slack, measured square;
 - the spawn on stone;
 - every solid on the floor;
 - the route clear of walls and solids, crossing the gates in order;
 - each gate axis-aligned, reaching the walls and unavoidable.
 
-`scripts/dungeon_paint.py` paints the picture. It shares the city painter's tiles, sprites and compositing, and the cities' pictures are untouched.
+`scripts/dungeon_paint.py` paints the picture. It stops on a model that is not solid with its drawn body (not its shadow) more than 3 units onto the kart centre's floor. It shares the city painter's tiles, sprites and compositing, and the cities' pictures are untouched.
 
 ## Provenance and rights
 

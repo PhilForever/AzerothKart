@@ -2236,6 +2236,7 @@ UNDERCITY = {
 # the X, so the course runs clockwise. The rises' turns are widened so a
 # kart can turn on them; everything off the mesas drops a long way to the
 # plain (the city's `chasm`), and the course crosses it on six bridges.
+# Version 2 moves the grid off the start road onto the loop (below).
 
 TB_MAP = {"scale": 3.0, "left": 182.0, "bottom": 752.0}
 
@@ -2350,8 +2351,13 @@ def tb_arc(mx, my):
     return arc_at(THUNDER_BLUFF_LINE, mx, my, TBW)
 
 
-# The grid on his X, the start road's last straight before the junction.
-THUNDER_BLUFF_START, THUNDER_BLUFF_START_HEADING = along_spur(200.0, THUNDER_BLUFF_SPUR)
+# The grid: at the foot of the Lower Rise's west side, facing up it with the
+# finish line ahead; the road from the lift joins behind it. Version 1 put
+# the grid on his X, on the start road, where the race began with a left
+# turn at the junction that the camera did not show coming. The owner
+# (2026-10-25): "arrow is not in the picture, so it's literally impossible
+# and pretty unexpected having to take a left turn at the start."
+THUNDER_BLUFF_START, THUNDER_BLUFF_START_HEADING = along_loop(70.0, THUNDER_BLUFF_LINE)
 
 # Each bridge's deck spans its chasm and runs ABUTMENT units onto the
 # rock at either end, narrower than the street: a rope bridge (the
@@ -2498,7 +2504,7 @@ def _corner_totems():
 
 THUNDER_BLUFF = {
     "id": "thunder_bluff_skyway",
-    "version": 1,
+    "version": 2,
     "wall_clearance": KART,
     "full_speed_to_walls": True,
     "name": "Thunder Bluff Skyway",
@@ -2646,10 +2652,12 @@ def start_sign(city, x, y, way, scale=1.0, clearing=50):
 
 
 # Each stands beyond the wall, facing a driver who has just left the grid.
+# (Thunder Bluff's grid, on the loop since its version 2, already faces the
+# way its sign points; the sign stays for the turn at the junction each lap.)
 start_sign(STORMWIND, 1239.0, 798.0, "north-east")   # in the bend's corner: right, then north
 start_sign(IRONFORGE, 420.0, 682.0, "north-west")    # across the street: left, up the hall
 start_sign(ORGRIMMAR, 1047.0, 377.0, "north-east")   # on the island's tip: keep right
 start_sign(DARNASSUS, 1083.0, 1095.0, "north-west")  # straight ahead: right, then north
-start_sign(THUNDER_BLUFF, 648.0, 870.0, "north-west")  # in the junction's corner: left, up the west side
+start_sign(THUNDER_BLUFF, 648.0, 870.0, "north-west")  # in the junction's corner: up the west side
 
 CITIES = [STORMWIND, IRONFORGE, ORGRIMMAR, DARNASSUS, UNDERCITY, THUNDER_BLUFF]

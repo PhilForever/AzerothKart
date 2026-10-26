@@ -65,7 +65,7 @@ The owner's second cup races through Azeroth's capitals along their real streets
 
 **Undercity Slime Circuit** (`undercity_slime`, version 2, `fullSpeedToWalls=true`, proposed on `claude/undercity-river`): the owner's revamp, "a river of slime with bridges at every section", the karts "crossing the bridges (sharp turns)". The slime is the canal ring round the Trade Quarter; from his arrow below the Apothecarium the course runs counter-clockwise along its outer and inner walkways and changes walkway on a bridge at every section (six: timber and stone by turns), each a sharp turn on, a straight across the slime and a sharp turn off: inside round the Rogues' Quarter's corner, outside up the Magic Quarter's side, inside under the Ruins of Lordaeron, outside down the War Quarter's side, inside round the Apothecarium's corner and out onto the start straight. Six gates named for the quarters (the finish is *The Canals*); a 5,797-unit lap; no approach road (the spawn is on the loop, 136 units past the finish line); no plazas, solids or narrows. The Trade Quarter is still painted 30 below the ring, and the stone bridges rise in painted humps (the karts drive flat). Version 1's loop down into the Trade Quarter is replaced. Offline: the walk from the loop passes the gates in order and never meets a wall. See [the Undercity sheet](art/tracks/undercity.md).
 
-**Thunder Bluff Skyway** (`thunder_bluff_skyway`, version 1, `fullSpeedToWalls=true`, proposed on `claude/thunder-bluff`): the owner's blue line, clockwise, as his stroke runs. Start on the road in from the lift at his X, bear left up the Lower Rise's west side, out over the west bridge and round the Spirit Rise, back over the north bridge, east along the north side, along the long bridge and round the Elder Rise, back over the lower bridge, down the east side, over the east bridge and across the Hunter Rise, back over the south-west bridge. Six gates named for the rises (the finish is *The Lift*); a 5,616-unit lap and a 285-unit approach; no plazas or solids. The six bridges are `narrows` (wall radius 54) over a painted drop to Mulgore's plain (the city's `chasm`); the course is on one level and the karts drive it flat. Offline: the walk passes the gates in order and never meets a wall; each bridge is road to its own wall. See [the Thunder Bluff sheet](art/tracks/thunder-bluff.md).
+**Thunder Bluff Skyway** (`thunder_bluff_skyway`, version 2 on `claude/drive-fixes`, `fullSpeedToWalls=true`; version 1 is integrated and installed): the owner's blue line, clockwise, as his stroke runs. Start at the foot of the Lower Rise's west side, facing up it with the finish line ahead (version 1 started on the road in from the lift at his X, with a left turn at the junction that the camera did not show: the owner, after his client run, found it "pretty unexpected"), then up the west side, out over the west bridge and round the Spirit Rise, back over the north bridge, east along the north side, along the long bridge and round the Elder Rise, back over the lower bridge, down the east side, over the east bridge and across the Hunter Rise, back over the south-west bridge. Six gates named for the rises (the finish is *The Lift*); a 5,616-unit lap and a 285-unit approach from the lift (unused by the race since version 2); no plazas or solids. The six bridges are `narrows` (wall radius 54) over a painted drop to Mulgore's plain (the city's `chasm`); the course is on one level and the karts drive it flat. Offline: the walk passes the gates in order and never meets a wall; each bridge is road to its own wall. See [the Thunder Bluff sheet](art/tracks/thunder-bluff.md).
 
 **Elevation** ([ADR 0015](adr/0015-track-elevation.md), proposed): the owner asked for elevation on the maps that need it and chose looks first, then slopes you can feel, then bridges over the track. Only the looks are built; the new cities' street heights are generated into `CapitalCities.lua` for the proposed physics.
 
@@ -75,7 +75,7 @@ Owner handling correction2026-10-22: Stormwind has full road grip and normal spe
 
 ## Scarlet Crusade Cup: dungeon sprints (proposed, `claude/scarlet-graveyard`)
 
-The owner's third cup runs through the Scarlet Monastery's four wings, from the start of each dungeon to its end: Scarlet Graveyard, Scarlet Library, Scarlet Armory and Scarlet Monastery. He wrote that there is no need for "a traditional track here, just recreate the dungeon and let players find their way to the end."
+The owner's third cup runs through the Scarlet Monastery's four wings, from the start of each dungeon to its end: Scarlet Graveyard, Scarlet Library, Scarlet Armory and Scarlet Cathedral (listed as "Scarlet Monastery" until it was built). He wrote that there is no need for "a traditional track here, just recreate the dungeon and let players find their way to the end."
 
 Each is a **sprint**: one run from the entrance through its gates to the last, which is the finish ([ADR 0020](adr/0020-dungeon-sprints.md), proposed). The owner approved Claude adding the minimal rules for Codex's review:
 
@@ -84,7 +84,7 @@ Each is a **sprint**: one run from the entrance through its gates to the last, w
 
 The geometry is `Dungeon.new` ([contract](API_CONTRACTS.md#proposed-dungeon-sprints-the-scarlet-crusade-cup)):
 
-- the floor is the dungeon's rooms, axis-aligned rectangles, with no road to follow;
+- the floor is the dungeon's rooms, axis-aligned rectangles and round rooms, with no road to follow;
 - stone has full grip, and lawns are rough ground;
 - walls slide the kart along them, as on the city streets;
 - graves, tombs and furniture are solid boxes, as on the test oval.
@@ -94,20 +94,66 @@ One generator, `scripts/build_dungeon_tracks.py`, writes the data (`ScarletCrusa
 - the spawn stands on stone;
 - every solid stands on the floor;
 - the reviewed route crosses the gates in order without touching a wall or a solid;
-- each gate spans its doorway from wall to wall, and a flood fill of the floor with that gate as a barrier proves it cannot be driven round.
+- each gate spans its doorway from wall to wall, and a flood fill of the floor with that gate as a barrier proves it cannot be driven round (a solid may stand on a gate, as Herod does on the Armory's finish: the floor past the gate is checked all along it);
+- wherever the karts' floor ends, a wall is painted beside it: no invisible wall (on `claude/drive-fixes`);
+- nothing the karts drive over is left non-solid: a model that does not block keeps its drawn body off their floor (on `claude/drive-fixes`).
 
-**Scarlet Graveyard** (`scarlet_graveyard`, version 1, sprint; proposed): the owner's green route on his map of the wing, at karting scale.
+**Scarlet Graveyard** (`scarlet_graveyard`, version 2 on `claude/drive-fixes`; version 1 is integrated and installed): the owner's green route on his map of the wing, at karting scale.
 
 1. From the instance portal in the entrance hall, the run turns north up the long hall.
 2. It turns west through the east door of the Chamber of Atonement and passes its torture table.
 3. It leaves by the west door, then goes down the stairs into the Forlorn Cloister.
 4. It crosses the graveyard on the path round the ruined fountain, to Honor's Tomb.
 
-- 2048 × 1024; 18 rooms (the cloister's lawn is rough); 52 solids.
+- 2048 × 1024; 18 rooms (the cloister's lawn is rough); 59 solids.
 - Three gates: *Chamber of Atonement*, *Forlorn Cloister* and *Honor's Tomb* (the finish).
 - About 2,200 units from the portal to the finish line along the reviewed route.
 
-Offline: the route walk crosses the gates in order and never meets a wall or a solid, and full throttle from the grid launches cleanly (`tests/test_dungeon.lua`). The Library, Armory and Monastery are listed as coming soon. See [the Scarlet Graveyard sheet](art/tracks/scarlet-graveyard.md).
+Offline: the route walk crosses the gates in order and never meets a wall or a solid, and full throttle from the grid launches cleanly (`tests/test_dungeon.lua`). Version 2 answers the owner's client run: a wall either side of the chamber's west door, where the karts stopped at a wall the picture did not show, and nothing left on the floor for the karts to drive over (the ghost on the path is gone; the ghosts, the corpse and the benches on the floor block). See [the Scarlet Graveyard sheet](art/tracks/scarlet-graveyard.md).
+
+**Scarlet Library** (`scarlet_library`, version 1, sprint; proposed on `claude/scarlet-library`): the owner's route on his map of the Library wing. "Everything is inside except the first courtyard with the fountain/statue in the middle", ending "in the iconic round library".
+
+1. From the portal, north and east, then south down the long hall.
+2. Round the Huntsman's Cloister, whose four roofed walks surround the open courtyard: a lawn, stone paths, the statue fountain, trees, huntsmen and hounds.
+3. Into Houndmaster Loksey's kennel and back out: his gate spans the dead-end kennel, so the karts cross it inward, turn and leave.
+4. North up the east hall into the Gallery of Treasures.
+5. East through two columned halls, then south down the Athenaeum's bookshelves.
+6. Through the last hall to Arcanist Doan's round library: a true circle, the first round room (`shape="disc"`).
+
+- 2048 × 2048; 41 rooms (the courtyard's lawn is rough; the fountain's court and the round library are round); 65 solids (on `claude/drive-fixes`, where the bushes, cages, bones, hay and candles block and nothing else stands on the floor).
+- Five gates: *Huntsman's Cloister*, *Houndmaster Loksey*, *Gallery of Treasures*, *Athenaeum* and *Arcanist Doan* (the finish).
+- About 6,200 units from the portal to the finish line along the reviewed route.
+
+Offline: the route walk crosses the five gates in order, crosses back over Loksey's line once on the way out (which counts nothing), and never meets a wall or a solid; full throttle from the grid launches cleanly. See [the Scarlet Library sheet](art/tracks/scarlet-library.md).
+
+**Scarlet Armory** (`scarlet_armory`, version 1, sprint; proposed on `claude/scarlet-armory`): the wing's in-game map and battle map, at karting scale. "The Training grounds is the only outside you see on this map"; the final room is "the iconic round room with stairs leading down to herod". "Free driving through the whole map." The owner chose the finish down at Herod.
+
+1. From the portal east along the entrance hall, north through the door into the Training Grounds.
+2. Across the Training Grounds: four roofed walks round the one open yard (grass with stepping stones, archery targets, training dummies, the arcade's columns).
+3. Up the stairs into the Footman's Armory, round its two great pillars, out by its east side room.
+4. Up the stairs to the Crusader's side room and west through the Crusader's Armory.
+5. Out of its north-west corner, north, then east along the long hall.
+6. Into the round Hall of Champions, down its ring of stairs to the finish across its middle, either side of Herod.
+
+- 2048 × 2048; 26 rooms (the yard is rough; the Hall of Champions is round); 38 solids.
+- Five gates: *Training Grounds*, *Footman's Armory*, *Crusader's Armory*, *Hall of Champions* and *Herod* (the finish).
+- About 4,200 units from the portal to the finish line along the reviewed route.
+
+Offline: the route walk crosses the five gates in order and never meets a wall or a solid; full throttle from the grid launches cleanly; Herod blocks on the finish line. See [the Scarlet Armory sheet](art/tracks/scarlet-armory.md). On `claude/scarlet-cathedral` Herod takes a model of his own (Dagren the Orcslayer in crimson), since Renault Mograine stands at the Cathedral's altar.
+
+**Scarlet Cathedral** (`scarlet_cathedral`, version 1, sprint; proposed on `claude/scarlet-cathedral`): the wing's in-game map and battle map, at karting scale. "Scarlet Cathedral next." The owner chose the finish at the altar and the gardens' pools as water the karts drive round.
+
+1. From the portal west along the entrance hall, north through the garden gate into the Chapel Gardens, the open sky.
+2. Round the lower garden's long pool, on the lawn or the walks.
+3. Up the stairs either side of the falls, or across the platforms with the champions' statues, into the upper garden.
+4. Round the round pool and its fountain, up the terrace's steps to the cathedral's door.
+5. Up the nave between its pillars, across the transept, up the chancel's steps to the finish before the altar, where Mograine and Whitemane stand. Fairbanks' round chamber lies behind.
+
+- 1024 × 2048; 24 rooms (the two lawns are rough; Fairbanks' chamber is round); 46 solids, the three pools among them. The round pool is the first round solid (`shape="disc"`, ADR 0020's fourth addendum).
+- Four gates: *Chapel Gardens*, *Upper Gardens*, *Crusader's Chapel* and *High Altar* (the finish).
+- About 2,500 units from the portal to the finish line along the reviewed route.
+
+Offline: the route walk crosses the four gates in order and never meets a wall or a solid; full throttle from the grid launches cleanly; the pools block and a kart slides round the round pool's rim. With the Cathedral every course is ready; none is listed as coming soon. See [the Scarlet Cathedral sheet](art/tracks/scarlet-cathedral.md).
 
 ## Test Oval checkpoint sequence
 
@@ -146,6 +192,6 @@ UI releases capture, draws the exact finish pose and shows a pooled `RUN COMPLET
 - Document copyright/ownership of every texture, icon, music/sound asset. Start from plain colored tiles where feasible.
 
 ## Initial track sequence
-M0 `Test Oval` → M3 `Mirage Raceway` (dry, pre-flood Shimmering Flats) → M7 `Murloc Marsh` → M9 `Frost Gearway` and more based on performance metrics. Mirage replaces the planned Tinker Speedway name; no production-map acceptance is claimed. The owner's Capital Cities Cup (2026-10-21) comes first among the new maps: Stormwind, then Ironforge, Darnassus, Orgrimmar, Thunder Bluff and Undercity on the same pipeline. The Scarlet Crusade Cup's dungeon sprints follow (2026-10-25): the Graveyard first, then the Library, Armory and Monastery.
+M0 `Test Oval` → M3 `Mirage Raceway` (dry, pre-flood Shimmering Flats) → M7 `Murloc Marsh` → M9 `Frost Gearway` and more based on performance metrics. Mirage replaces the planned Tinker Speedway name; no production-map acceptance is claimed. The owner's Capital Cities Cup (2026-10-21) comes first among the new maps: Stormwind, then Ironforge, Darnassus, Orgrimmar, Thunder Bluff and Undercity on the same pipeline. The Scarlet Crusade Cup's dungeon sprints follow (2026-10-25): the Graveyard, the Library, the Armory and the Cathedral.
 
 Stormwind v3 wall alignment (2026-10-22): the white parapet is the exposed union of radius90 visual capsules. Collision now keeps14-unit centre clearance from that union, rather than separately shrinking every capsule to76 (which created invisible wedges at concave joins). Radius56 paving and normal straight-wall clearance are unchanged; generated exposed junctions/analytic projections provide the corner shape. Movement candidates obey the original step bound before nearest ranking. Artwork/gates/spawn and full-speed shoulders are unchanged.

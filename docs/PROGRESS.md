@@ -1,5 +1,44 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-26 10:06 +01:00 — Scarlet fixes integrated and combined checks passed
+
+Owner authorized fixing the two review findings and publishing the queued work.
+Own `codex/scarlet-integration` from2f04f3a/reservation1ae33e6, combined with
+reviewed Claude ea4425d. Four merge conflicts resolved while preserving retired
+Oval and both sides' assertions. [Full integration review](reviews/2026-10-26-scarlet-integration.md).
+
+Swept-disc first contact now registers the production4.3-unit grazing repro;
+minimum resolved-segment clearance158.003751800 exceeds required158. Tangent
+slide, rim escape,360rotated grazes, long sweeps and circle/box ties are covered.
+Rectangle-only resolution retains three passes; disc tracks have eight bounded
+contacts, no per-step allocations and the same Physics wall-penalty signal.
+
+ScoreSync appends L/A/C with11activeboards/12slots and mandatory retiredO=0.
+Max legal HELLO155bytes incl prefix (Physics12 max147), under unchanged158.
+All11 production boards catch up in adapter mocks; new L/A/C finishes publish
+at the existing pace. Test Oval cannot re-enter publication or selection.
+The four sprints stay solo; the seven lap maps keep the existing two-peer flow.
+Thunder Bluff/Graveyard v2 retain old saved contexts. No save migration/deletion.
+
+Executed: full Lua51 suite PASS43modules/80parsedfiles; focused geometry/score
+and combined UI/menu/circuit/adapter/multiplayer checks PASS; Python24tests PASS;
+catalogue check PASS11boards; matching36moduleTOCs/83runtimefiles and six TGA
+header/length/hash checks PASS; staged/working diffcheck PASS. First full Lua
+run found a stale unavailable-Library assertion; its unknown-course guard and
+new sprint positives now pass in the corrected full run. Independent review
+found no remaining blocker. Structural validator has only the two historical
+expired skill links, not a full pass. Lua54/rebuild/native checks NOT RUN.
+
+UI/Presentation/Physics/SessionTransport/ScoreDiscovery/ScoreSharing runtime
+files are unchanged from the Codex base. Production pool89/69/136 unchanged.
+Claude's worktree and canonical/untracked outputs are preserved. No main merge,
+release or install. Installed runtime remains01bd880. Authorized regular branch
+publication follows after committing this reviewed combination.
+
+**Next exact task:** publish/verify the combined branch and all four original
+Claude tips; then prepare the separately coordinated backed-up install and
+matching friend package. Native checks require full restart for new image paths.
+
 ## 2026-10-26 — Claude Scarlet queue reviewed; integration held for two fixes
 
 Reviewed all13queued commits through Claude`ea4425d`, including Library,

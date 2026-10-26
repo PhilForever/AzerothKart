@@ -3484,7 +3484,8 @@ withMock({schemaVersion=1,preferences={version=1,track="test_oval",futureField="
         "retired Oval has no catalogue, selection or menu path")
     for _,track in ipairs(AK.Menu.TRACKS) do assert(track.id~="test_oval") end
     local ids={"mirage_raceway","stormwind_city","ironforge_gp","darnassus_canopy",
-        "orgrimmar_canyon","thunder_bluff_skyway","undercity_slime","scarlet_graveyard"}
+        "orgrimmar_canyon","thunder_bluff_skyway","undercity_slime","scarlet_graveyard",
+        "scarlet_library","scarlet_armory","scarlet_cathedral"}
     local offered,readyCalls="test_oval",0
     AK.SessionTransport={GetView=function()
         return {liveMode=true,canSetReady=true,transportBusy=false,offer={trackId=offered},session="MAP001"}
@@ -3502,8 +3503,14 @@ withMock({schemaVersion=1,preferences={version=1,track="test_oval",futureField="
         assert(UI.MultiplayerAction("ready",false) and not UI.liveArmed)
       end
     end
-    offered="scarlet_graveyard"
-    assert(not UI.MultiplayerAction("ready",true) and not UI.liveArmed, "a solo sprint offer cannot capture live controls")
+    for _,id in ipairs({"scarlet_graveyard","scarlet_library","scarlet_armory","scarlet_cathedral"}) do
+        offered=id
+        assert(not UI.MultiplayerAction("ready",true) and not UI.liveArmed,
+            "a solo sprint offer cannot capture live controls: "..id)
+        assert(UI.SelectTrack(id) and UI.track.laps==1 and
+            UI.backgroundPath==AK.Courses.get(id).background,
+            "each reviewed sprint selects its own geometry and loaded art: "..id)
+    end
     assert(UI.SelectTrack("mirage_raceway"))
     AK.Menu.Show(nil)
     for index=2,#ids+1 do
@@ -3544,4 +3551,4 @@ for _,failure in ipairs({"false","nil","throws","camera"}) do
     end,nil,nil,true)
 end
 
-originalPrint("test_ui production catalogue: eight finished courses, real Mirage default/scenery, retired-save preservation, all-map Ready and asset-failure Start guard PASS (89/69/136 pool)")
+originalPrint("test_ui production catalogue: eleven finished courses, real Mirage default/scenery, retired-save preservation, seven-map Ready/four solo sprints and asset-failure Start guard PASS (89/69/136 pool)")

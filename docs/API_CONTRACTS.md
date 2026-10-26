@@ -1,5 +1,26 @@
 # Implemented simulation and rendering contracts
 
+## Scarlet Cup integration — 2026-10-26
+
+The reviewed combination with Claude ea4425d retains all current Codex APIs
+and retires no saved data. Courses exposes eleven production tracks: seven
+three-lap circuits for solo/current two-peer races and four solo dungeon
+sprints. Scarlet Library/Armory/Cathedral add score codes L/A/C. ScoreSync has
+eleven active contexts and twelve HELLO digest slots; retired O must be zero
+in both encode/decode. Maximum legal HELLO is155bytes including prefix, below
+the unchanged158-byte native ceiling. Older nine-slot HELLOs cannot catch up
+with this build; exact-context direct NEW admission is unchanged. Thunder Bluff
+and Graveyard are geometry version2; their old-version saved boards remain.
+
+Round solids use swept-circle contact in the movement resolver, including
+paths with both endpoints outside. Contact reports hit for the existing wall
+penalty, removes inward normal remainder and retains tangential slide within
+the step budget. This replaces the endpoint-only proposal described in the
+original Claude handoff. The exact algorithm and regressions are recorded in
+[ADR0020](adr/0020-dungeon-sprints.md). There is no texture-derived collision,
+new UI object, per-step allocation or change to local Physics/input/network
+cadence. Native checks for the new courses remain pending.
+
 
 ## Score discovery fallback - 2026-10-26
 
@@ -115,14 +136,17 @@ Successful eligible solo Finish queues sharing after local saving under pcall;
 errors cannot prevent normal results/local persistence.
 
 **Proposed for Codex (Claude, 2026-10-25, `claude/thunder-bluff`; extended on
-`claude/scarlet-graveyard`):** `ScoreSync` knows seven courses by one-letter code,
+`claude/scarlet-graveyard`, `claude/scarlet-library`, `claude/scarlet-armory` and
+`claude/scarlet-cathedral`):** `ScoreSync` knows seven courses by one-letter code,
 and `Sync.new` requires exactly seven contexts. `ScoreSharing` builds one context
-per selectable course. With Thunder Bluff Skyway selectable it offers eight, and
-nine with Scarlet Graveyard. The sync then cannot start, for any course; local
+per selectable course. With Thunder Bluff Skyway selectable it offers eight, nine
+with Scarlet Graveyard, ten with Scarlet Library, eleven with Scarlet Armory and
+twelve with Scarlet Cathedral. The sync then cannot start, for any course; local
 saving is unaffected. A tested patch is in Claude's handoff:
 
-- codes `T` for `thunder_bluff_skyway` and `G` for `scarlet_graveyard`;
-- a HELLO with one board hash per course, eleven fields with both.
+- codes `T` for `thunder_bluff_skyway`, `G` for `scarlet_graveyard`, `L` for
+  `scarlet_library`, `A` for `scarlet_armory` and `C` for `scarlet_cathedral`;
+- a HELLO with one board hash per course, fourteen fields with all five.
 
 Older builds would refuse the new HELLO, as they already refuse a different
 catalogue. Codex's decision; not applied.
@@ -686,7 +710,7 @@ Integrated from `claude/capital-cup`78d97a1 on2026-10-22 after Codex collision/t
   - A64-unit grid indexes capsules and boundary vertices at construction; no geometry generation, UI allocation or asset sampling occurs per step. Generated coordinates use exactly the rounded runtime capsules; artwork remains separate. This revision changes only Ironforge artwork, preserving Stormwind and every other runtime asset.
   - Street endpoint resolution considers allowed projection candidates inside the requested displacement bound before ranking, including movement/vertex-clearance circle intersections for a bounded concave slide. Perimeter/solids sweeps are unchanged. This is still the existing endpoint-based street model with radial clearance, not a new oriented-body or continuous-street sweep guarantee.
   - The factory supports solid scenery for future reviewed definitions, following the city direction recorded in Claude's handoff. The shipped Stormwind definition has no solids or plazas. Mirage remains obstacle-free; this integration adds no solid fixture outside Test Oval.
-- **`CapitalCities`** (generated data, `scripts/build_city_tracks.py`): `CapitalCities[id]` definitions for `Circuit.new`. Stormwind City Circuit: 2048×2048, road radius 56, wall radius 76, no plazas or solids (the 2026-10-22 rework removed the first build's plaza and fountain), six gates, a 3,831-unit loop and a 769-unit approach branch. Ironforge Grand Prix (`ironforge_gp`, version3): 2048×2048, the same radii, no plazas or solids, seven gates, a 7,077-unit loop and a 369-unit approach branch. Integrated version3 from `claude/ironforge-design` adds the two Forlorn Cavern `narrows` above; route, gates, spawn and the rest of the street are unchanged. Orgrimmar Canyon Rush (`orgrimmar_canyon`, version1; Codex-approved [2026-10-22](reviews/2026-10-22-orgrimmar.md) and integrated on `codex/live-multiplayer-integration`): 2048×2048, the same radii, `fullSpeedToWalls=true` (as Stormwind, the owner's choice there), `wallClearance`14 with1,222 generated junctions, no plazas, solids or narrows, four gates, a 4,769-unit loop and a 734-unit approach branch. It uses only existing definition fields; no Circuit change. **Proposed (`claude/darnassus-undercity`, for Codex review):** Darnassus Canopy Run (`darnassus_canopy`, version1): the same radii, `fullSpeedToWalls=true`, `wallClearance`14 with 931 junctions, no plazas, solids or narrows, six gates, a 3,895-unit loop and a 206-unit approach branch. Undercity Slime Circuit (`undercity_slime`, version1): the same radii and walls, 1,721 junctions, five gates, a 7,327-unit loop and **no branch**: its spawn lies on the loop itself, 131 units past the finish gate, as Mirage Raceway's does (`branches={}`; `Circuit.new` already accepts it). Both add the optional `elevation` table [proposed below](#proposed-track-elevation-claude-2026-10-23-for-codex-review), which `Circuit.new` ignores; nothing else new. **Proposed (`claude/undercity-river`, 2026-10-23, for Codex review):** Undercity version 2, the owner's revamp: the same radii, `fullSpeedToWalls=true`, `wallClearance` 14 with 1,340 junctions, six gates (Rogues' Quarter, Magic Quarter, Ruins of Lordaeron, War Quarter, Apothecarium, The Canals), a 5,797-unit loop round the canal ring that changes walkway on six bridges, each a sharp turn on (radius 70 on the centerline), a 197-unit straight and a sharp turn off; still no branch (the spawn 136 units past the finish gate) and `elevation` (the stone bridges' painted humps, 6 high, and the sunken Trade Quarter, which the course no longer enters). Ironforge version 4 sets `fullSpeedToWalls=true` at the owner's request for no shoulders on a city map: the only change of handling (its rough strip becomes road); its route, gates, spawn, narrows, junctions and walls are unchanged. Every city's picture is now paved from wall to wall (the generated `roadRadius` stays 56). Only existing definition fields are used; no Circuit change. Thunder Bluff Skyway (`thunder_bluff_skyway`, version 1, proposed on `claude/thunder-bluff`): 2048×2048, the same radii, no plazas or solids, six gates, a 5,616-unit loop, a 285-unit approach branch and six `narrows` (wall radius 54), one per rope bridge; no elevation.
+- **`CapitalCities`** (generated data, `scripts/build_city_tracks.py`): `CapitalCities[id]` definitions for `Circuit.new`. Stormwind City Circuit: 2048×2048, road radius 56, wall radius 76, no plazas or solids (the 2026-10-22 rework removed the first build's plaza and fountain), six gates, a 3,831-unit loop and a 769-unit approach branch. Ironforge Grand Prix (`ironforge_gp`, version3): 2048×2048, the same radii, no plazas or solids, seven gates, a 7,077-unit loop and a 369-unit approach branch. Integrated version3 from `claude/ironforge-design` adds the two Forlorn Cavern `narrows` above; route, gates, spawn and the rest of the street are unchanged. Orgrimmar Canyon Rush (`orgrimmar_canyon`, version1; Codex-approved [2026-10-22](reviews/2026-10-22-orgrimmar.md) and integrated on `codex/live-multiplayer-integration`): 2048×2048, the same radii, `fullSpeedToWalls=true` (as Stormwind, the owner's choice there), `wallClearance`14 with1,222 generated junctions, no plazas, solids or narrows, four gates, a 4,769-unit loop and a 734-unit approach branch. It uses only existing definition fields; no Circuit change. **Proposed (`claude/darnassus-undercity`, for Codex review):** Darnassus Canopy Run (`darnassus_canopy`, version1): the same radii, `fullSpeedToWalls=true`, `wallClearance`14 with 931 junctions, no plazas, solids or narrows, six gates, a 3,895-unit loop and a 206-unit approach branch. Undercity Slime Circuit (`undercity_slime`, version1): the same radii and walls, 1,721 junctions, five gates, a 7,327-unit loop and **no branch**: its spawn lies on the loop itself, 131 units past the finish gate, as Mirage Raceway's does (`branches={}`; `Circuit.new` already accepts it). Both add the optional `elevation` table [proposed below](#proposed-track-elevation-claude-2026-10-23-for-codex-review), which `Circuit.new` ignores; nothing else new. **Proposed (`claude/undercity-river`, 2026-10-23, for Codex review):** Undercity version 2, the owner's revamp: the same radii, `fullSpeedToWalls=true`, `wallClearance` 14 with 1,340 junctions, six gates (Rogues' Quarter, Magic Quarter, Ruins of Lordaeron, War Quarter, Apothecarium, The Canals), a 5,797-unit loop round the canal ring that changes walkway on six bridges, each a sharp turn on (radius 70 on the centerline), a 197-unit straight and a sharp turn off; still no branch (the spawn 136 units past the finish gate) and `elevation` (the stone bridges' painted humps, 6 high, and the sunken Trade Quarter, which the course no longer enters). Ironforge version 4 sets `fullSpeedToWalls=true` at the owner's request for no shoulders on a city map: the only change of handling (its rough strip becomes road); its route, gates, spawn, narrows, junctions and walls are unchanged. Every city's picture is now paved from wall to wall (the generated `roadRadius` stays 56). Only existing definition fields are used; no Circuit change. Thunder Bluff Skyway (`thunder_bluff_skyway`, version 1, proposed on `claude/thunder-bluff`): 2048×2048, the same radii, no plazas or solids, six gates, a 5,616-unit loop, a 285-unit approach branch and six `narrows` (wall radius 54), one per rope bridge; no elevation. Version 2 (proposed on `claude/drive-fixes`) moves only the spawn: onto the loop, 70 units past the junction, facing up the west side, 75 units before the finish gate; the approach branch stays.
 - **`Courses`** (new module, Claude: presentation data): `CUPS` (Proving Grounds, Capital Cities Cup); `LIST` in display order with `id, name, short?, cup, geometry ("oval" | "mirage" | "city"), background?, rough?, dust?, ground?, status, soon?`; `get(id)`, `available(id)`, `next(id)` (the next available course, wrapping), `build(id, crossesGate)` (the oval singleton, a fresh Mirage track, or `Circuit.new(CapitalCities[id])`; built once and kept). The other cities are listed `soon`: shown, not selectable (Thunder Bluff Skyway alone once Darnassus and Undercity, proposed on `claude/darnassus-undercity`, are ready). On `claude/thunder-bluff` (proposed) Thunder Bluff Skyway is selectable too and no course is listed `soon`; the mechanism stays for future courses.
 - **`UI.SelectTrack(id)`** (**Codex: reviewed transaction**). Available IDs come from `Courses`; the track comes from `Courses.build`. The stopped/shown/out-of-combat and same-ID guards remain. A course background is UV-validated and loaded on a preallocated hidden staging texture. Only a successful guarded load swaps it into the visible slot; failed/throwing loads do not touch the old picture/crop/path or authoritative run. Both textures are pooled at window creation; no rollback load of the visible texture is required. The previous hidden picture can remain resident alongside the current one (up to32MiB of raw city pixels across two2048-square images, excluding preview textures/native overhead); this is bounded retention, not a memory benchmark. Catalog text supplies the button/status. Successful selection resets local run samples as before.
 - **Track button** (**Codex**): steps through `Courses.next`, skipping a course that refuses to load on that click; still disabled while a run is active.
@@ -725,39 +749,64 @@ Proposed by Claude on `claude/scarlet-graveyard`, 2026-10-25, for Codex's review
   - A sprint's board holds one-run totals under its own key: lap count 1.
   - `Finish` already requires `race.targetLaps == context.lapCount`.
 - **`Dungeon.new(definition, crossesGate)`** (new pure module, written by Claude; geometry for Codex's review). It returns the [track interface above](#track-geometry-and-assets), plus copies of `rooms`, `solids`, `gates` and the optional `laps`.
-  - **Definition:** `id, version?, name, width, height, wallInset, checkpointMaxStep?, laps?, rooms, solids?, gates, spawn`. Each room is `{x,y,width,height,surface}`, with surface `"road"` (stone) or `"rough"` (a lawn); each solid is `{id,x,y,width,height}`. Bottom-left origin, as every track.
-  - **The floor** is every room shrunk by `wallInset` on each side. Rooms that meet overlap by at least two insets, so the floor runs on through the doorway.
+  - **Definition:** `id, version?, name, width, height, wallInset, checkpointMaxStep?, laps?, rooms, solids?, gates, spawn`. Each room is `{x,y,width,height,surface,shape?}`, with surface `"road"` (stone) or `"rough"` (a lawn); each solid is `{id,x,y,width,height,shape?}`. Bottom-left origin, as every track.
+  - **Round rooms** (proposed on `claude/scarlet-library`): `shape="disc"` makes a room the disc inscribed in its square, which must be square; `"rect"` or no shape is a rectangle. The kart centre stays `wallInset` inside the round wall.
+  - **Round solids** (reviewed source integration): `shape="disc"` makes a solid the disc inscribed in its square, which must be square (a round pool); `"rect"` or no shape is a box. The kart centre stays `wallInset` outside its rim.
+  - **The floor** is every room shrunk by `wallInset` on each side (a round room to its radius less the inset). Rooms that meet overlap by at least two insets, so the floor runs on through the doorway.
   - **`surfaceAt`:**
-    - `"wall"` outside the inset perimeter, on a solid's footprint (edges included), or off the floor;
+    - `"wall"` outside the inset perimeter, on a solid's footprint (edges included; a round solid's disc), or off the floor;
     - otherwise `"road"` wherever a stone room covers the point;
     - otherwise `"grass"` on a lawn: Physics' existing rough response, at most 70 units a second.
   - **`isDrivable`:** on the floor, clear of every grown solid, and on stone.
   - **`constrainPosition`:** the perimeter clamp only, as on Track.
   - **`resolveMovement`:**
-    1. the perimeter and the solids, grown by the inset, as Track.lua's swept crate boxes (up to three slides);
-    2. then the walls: an end point off the floor moves to the nearest floor point no further from the step's start than the step was long, or stays at the start if none is found, and reports a hit.
+    1. the perimeter, grown boxes and grown circles use earliest swept contact with bounded slide iterations; circles remove inward normal remainder and preserve tangential movement;
+    2. then the floor/recovery guard: an endpoint off the floor, or within a round solid's reach, moves to the nearest allowed point no further from the step's start than the step was long, or stays at the start if none is found, and reports a hit. Round-room walls use radial projection. This fallback does not replace swept disc contact.
 
     A resolved step never moves further than requested, so `checkpointMaxStep=5` still holds. A centre that starts off the floor or inside a grown solid (never by driving) moves to the nearest allowed point, or back to the spawn.
   - **Refused at construction:**
     - missing fields;
     - a room not wider and taller than two insets;
     - an unknown surface;
+    - an unknown shape, or a round room that is not square;
+    - an unknown solid shape, or a round solid that is not square;
     - a non-finite solid;
     - `laps` out of range;
     - a spawn off the floor or inside a solid.
   - **Cost:** a 64-unit grid of rooms and solids is built once. A step of up to 16 units on either axis checks only its cell's lists. A longer step checks every solid, plus every room when it ends off the floor. No allocation per step.
 - **`ScarletCrusade`** (generated data, `scripts/build_dungeon_tracks.py`). `ScarletCrusade.scarlet_graveyard`:
-  - version 1, 2048 × 1024, `wallInset` 18, `laps` 1;
-  - 18 rooms, 17 stone and the cloister's lawn, and 52 solids;
+  - version 2 on `claude/drive-fixes` (version 1 is integrated), 2048 × 1024, `wallInset` 18, `laps` 1;
+  - 18 rooms, 17 stone and the cloister's lawn, and 59 solids (version 2: the chamber's wings start 20 units east of the west hall, so a wall stands between them either side of the west door);
   - three gates: Chamber of Atonement, Forlorn Cloister, Honor's Tomb (the finish);
   - spawn (1945, 150), facing west;
   - `route`, the reviewed way through. It is data for the tests and the review; `Dungeon.new` does not read it.
 
-  The generator refuses a layout unless every gate is unavoidable (a flood fill of the floor with the gate as a barrier) and the route crosses the gates in order without touching a wall or a solid.
+  `ScarletCrusade.scarlet_library` (proposed on `claude/scarlet-library`):
+  - version 1, 2048 × 2048, `wallInset` 18, `laps` 1;
+  - 41 rooms: 38 stone rectangles, the courtyard's lawn, and two round rooms (the fountain's court and the round library);
+  - 65 solids (on `claude/drive-fixes`);
+  - five gates: Huntsman's Cloister, Houndmaster Loksey (across the dead-end kennel: in across it, then back out), Gallery of Treasures, Athenaeum, and Arcanist Doan (the finish);
+  - spawn (80, 1668), facing north; and `route`.
+
+  `ScarletCrusade.scarlet_armory` (proposed on `claude/scarlet-armory`):
+  - version 1, 2048 × 2048, `wallInset` 18, `laps` 1;
+  - 26 rooms: 24 stone rectangles, the Training Grounds' yard (a lawn) and one round room (the Hall of Champions);
+  - 38 solids;
+  - five gates: Training Grounds, Footman's Armory, Crusader's Armory, Hall of Champions, and Herod (the finish, across the round hall's middle; Herod is solid and stands on it, so the karts cross it either side of him);
+  - spawn (500, 105), facing east; and `route`.
+
+  `ScarletCrusade.scarlet_cathedral` (proposed on `claude/scarlet-cathedral`):
+  - version 1, 1024 × 2048, `wallInset` 18, `laps` 1;
+  - 24 rooms: 21 rectangles of stone or wood, the two gardens' lawns, and one round room (Fairbanks' chamber);
+  - 46 solids, the gardens' three pools among them: the lower pool and the falls are boxes, the round pool a round solid;
+  - four gates: Chapel Gardens, Upper Gardens (through the falls), Crusader's Chapel, and High Altar (the finish, across the chancel before the altar);
+  - spawn (790, 110), facing west; and `route`.
+
+  The generator refuses a layout unless every gate is unavoidable (a flood fill of the floor with the gate as a barrier) and the route crosses the gates in order without touching a wall or a solid. It counts a crossing only across the gate's own segment, as `Track.crossesGate` does. On `claude/scarlet-armory` it checks the floor just past a gate all along its length, not only at its middle, so a solid may stand on a gate. On `claude/drive-fixes` it also refuses an invisible wall (the karts' floor ending with no wall painted within the inset and 3 units, measured square, as where two rooms abut without a doorway) and, when painting, a model that is not solid with its drawn body more than 3 units onto the kart centre's floor. Neither rule changes the runtime contract. On `claude/scarlet-cathedral` a layout's `pools` become solids of their own shape, painted as water over exactly their footprints, and the invisible-wall rule counts the water as a visible edge.
 - **`Courses`:**
   - `CUPS` gains `{id="scarlet", name="Scarlet Crusade Cup"}`;
   - geometry `"dungeon"` builds `Dungeon.new(ScarletCrusade[id], crossesGate)`;
-  - Scarlet Graveyard is available; Scarlet Library, Scarlet Armory and Scarlet Monastery are listed `soon`.
+  - Scarlet Graveyard is available; Scarlet Library, Scarlet Armory and Scarlet Monastery are listed `soon`. On `claude/scarlet-library` the Library is available too, and only the Armory and the Monastery are `soon`. On `claude/scarlet-armory` the Armory is available as well, and only the Monastery is `soon`. On `claude/scarlet-cathedral` the Monastery's place goes to Scarlet Cathedral (`scarlet_cathedral`), available, and no course is `soon`.
 - **Load order (both TOCs):** `CapitalCities.lua`, `Dungeon.lua`, `ScarletCrusade.lua`, then `Courses.lua`.
 - **Presentation (Claude's regions).** When `targetLaps` is 1:
   - UI `refreshCheckpoints` shows "Checkpoints: sprint complete";
@@ -768,7 +817,7 @@ Proposed by Claude on `claude/scarlet-graveyard`, 2026-10-25, for Codex's review
 
   The status line in `UI.Start` and `step` now says "Sprint" for this one-run course and retains "3 laps" for circuits.
 - **Counts:** the Scarlet cup's heading and four track buttons bring the pool to **89 frames, 69 textures and 136 font strings** after Oval retirement (Claude's original branch was90/167/136). They are created with the window.
-- **Score sync:** see the proposal under [automatic score sharing](#automatic-score-sharing--source-integration). Codex's combined adapter now admits all eight active contexts with stable codes and an extended bounded HELLO. The original standalone Claude branch retains the documented sync dependency; use the combined build.
+- **Score sync:** Codex's combined adapter admits all eleven active contexts with stable codes and an extended bounded HELLO; the retired O digest remains zero. The original standalone Claude branch retains the documented sync dependency; use the combined build.
 - **Not claimed:** no client run, no multiplayer sprint, and no Physics change.
 
 ## Rendering cadence, resources and lifecycle
@@ -779,7 +828,7 @@ The window is 856×762 with an 800×480 canvas. Current integrated explicit allo
 
 Preserve creation-time pooling: no `CreateFrame`/`CreateTexture`/font-string creation, texture file loads or chat output per simulation tick or render callback. Current snapshots allocate bounded Lua tables per tick; there is no promise of zero Lua allocation. Profile before replacing their immutable-style behavior. Opt-in Performance collects at most 600 callback spans and includes instrumentation overhead; it is not exclusive CPU/GPU cost.
 
-`UI.SelectTrack(id) -> boolean` accepts the eight available production Courses IDs only with an existing shown window, while stopped and out of combat. The staging texture's guarded `SetTexture` must return true; its guarded UV check must succeed before committing the switch. Failure preserves the old track/run/sample. Successful selection clears samples and creates a new spawn/lap state; loaded artwork is reused. The Track button is disabled while active; clicking a disabled selector does not stop a run. Mirage is the default after reload; `UI` itself does not persist the selection. The integrated front end saves deliberate successful choices, including the already-current ID, and restores the saved choice through this function ([above](#implemented-front-end-menus-race-hud-and-results)). The same-ID return is allowed only after that map's scenery is loaded; an initial default load uses the guarded transaction. Failed loads preserve the current run/sample, and Start requires a valid loaded production map.
+`UI.SelectTrack(id) -> boolean` accepts the eleven available production Courses IDs only with an existing shown window, while stopped and out of combat. The staging texture's guarded `SetTexture` must return true; its guarded UV check must succeed before committing the switch. Failure preserves the old track/run/sample. Successful selection clears samples and creates a new spawn/lap state; loaded artwork is reused. The Track button is disabled while active; clicking a disabled selector does not stop a run. Mirage is the default after reload; `UI` itself does not persist the selection. The integrated front end saves deliberate successful choices, including the already-current ID, and restores the saved choice through this function ([above](#implemented-front-end-menus-race-hud-and-results)). The same-ID return is allowed only after that map's scenery is loaded; an initial default load uses the guarded transaction. Failed loads preserve the current run/sample, and Start requires a valid loaded production map.
 
 Capture/release safeguards and combat/lifecycle handling remain controller-owned. Under the owner's revised input policy, incidental mouse clicks and unassigned keys leave the run active; there is no global-mouse event requirement for Start. Stop, Escape and Close deliberately end the run; Enter and detected chat/text focus release racing input, as do supported focus-loss and lifecycle paths. Required keyboard capture/propagation and text-focus capabilities still gate Start, and capture never automatically resumes. Build 70450 lacks `IsGameWindowFocused`/`IsWindowFocused`; full held-input focus-loss behavior remains unverified. Do not substitute guessed protected APIs or make global WoW movement bindings part of rendering. See [FEASIBILITY](FEASIBILITY.md) and [ADR 0006](adr/0006-combat-interrupted-results.md).
 

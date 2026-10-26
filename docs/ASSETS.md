@@ -1,5 +1,12 @@
 # Art, sound, track tools, and license provenance
 
+Current combined source,2026-10-26: the three reviewed Scarlet additions bring
+the production catalogue to eleven courses. Test Oval is retired from all
+player-facing paths; old fallback/default statements below describe earlier
+sources. The three new background/preview pairs require a full client restart
+after installation. Runtime allocation counts stay89frames/69textures/136font
+strings in the production mock; native loading/performance remains pending.
+
 ## Accepted direction and current status
 
 The first production map is **Mirage Raceway**, depicting the dry, pre-flood Shimmering Flats. Vehicles should be recognizable Warcraft III-like fantasy machines and riders, rather than modern go-karts. [ADR 0008](adr/0008-mirage-raceway-art-direction.md) records the owner's direction; [the map brief](art/MIRAGE_RACEWAY.md) and [source ledger](art/ASSET_SOURCES.md) carry the working references.
@@ -14,6 +21,27 @@ Mirage now has one original geometry-registered background at `addon/AzerothKart
 - `Preview.tga`, 512×256, for the track screen.
 
 `scripts/build_dungeon_tracks.py` composites them from Warcraft III Reforged models and terrain, including Reforged's Scarlet Crusade banners and soldiers. It shares the city painter's tiles, sprites and compositing. [The source ledger](art/ASSET_SOURCES.md) records provenance and the unresolved redistribution status. Collision comes from the generated rooms and boxes in `ScarletCrusade.lua`, never from the picture. Loading the 2048×1024 TGA in the client is **NOT RUN**.
+
+[Scarlet Library](art/tracks/scarlet-library.md) (proposed on `claude/scarlet-library`) adds `Assets/Tracks/ScarletLibrary/`:
+
+- `Background.tga`, 2048×2048 (16 MiB raw pixels, as a city);
+- `Preview.tga`, 512×512.
+
+The same painter draws it, with Reforged's Scarlet huntsmen, cleric and invoker hero, its dark hound and Lordaeron statue and pillar, and the classic dungeon bookshelves. One scenery picture is held at a time, and at most two are resident through the staging texture. Loading it in the client is **NOT RUN**.
+
+[Scarlet Armory](art/tracks/scarlet-armory.md) (proposed on `claude/scarlet-armory`) adds `Assets/Tracks/ScarletArmory/`:
+
+- `Background.tga`, 2048×2048 (16 MiB raw pixels);
+- `Preview.tga`, 512×512.
+
+The same painter draws it, with Reforged's Scarlet footmen, Dagren the Orcslayer in crimson as Herod (Renault Mograine on `claude/scarlet-armory`), Lordaeron's scarecrows, smithy tools, furniture and statues, and the classic archery targets, armour stands and weapon racks. Loading it in the client is **NOT RUN**.
+
+[Scarlet Cathedral](art/tracks/scarlet-cathedral.md) (proposed on `claude/scarlet-cathedral`) adds `Assets/Tracks/ScarletCathedral/`:
+
+- `Background.tga`, 1024×2048 (8 MiB raw pixels, as the Graveyard);
+- `Preview.tga`, 256×512.
+
+The same painter draws it, with its new pools (Warcraft III's water, tinted), the falls and a wooden parquet, and Reforged's Renault Mograine, Sally Whitemane, Scarlet clerics, city fountain and Lordaeron lions, pillars, bookshelves and furniture. Loading it in the client is **NOT RUN**.
 
 Menu art: [the front end](art/ui/front-end.md) adds one original atlas, `addon/AzerothKart/Assets/UI/TrackPreviews.tga` (1024×512, opaque, 2 MiB), loaded on the first visit to the track screen. Its Mirage cell is scenery v1 halved; its Test Oval cell is painted from `Track.lua` geometry by `scripts/build_ui_art.py`. The dialogs, buttons, fonts and sounds are the client's own (`BACKDROP_*_DIALOG_32_32`, `DialogHeaderTemplate`, `MainMenuFrameButtonTemplate`, `Fancy*Font`, `SOUNDKIT`), referenced by name and not shipped. The kart turntable reuses the race's kart sheets. Client appearance is NOT RUN.
 

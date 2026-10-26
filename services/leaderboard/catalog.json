@@ -43,7 +43,7 @@
     },
     {
       "trackId": "thunder_bluff_skyway",
-      "trackVersion": 1,
+      "trackVersion": 2,
       "physicsVersion": 12,
       "lapCount": 3,
       "tickRate": 60,
@@ -59,6 +59,30 @@
     },
     {
       "trackId": "scarlet_graveyard",
+      "trackVersion": 2,
+      "physicsVersion": 12,
+      "lapCount": 1,
+      "tickRate": 60,
+      "rulesVersion": 1
+    },
+    {
+      "trackId": "scarlet_library",
+      "trackVersion": 1,
+      "physicsVersion": 12,
+      "lapCount": 1,
+      "tickRate": 60,
+      "rulesVersion": 1
+    },
+    {
+      "trackId": "scarlet_armory",
+      "trackVersion": 1,
+      "physicsVersion": 12,
+      "lapCount": 1,
+      "tickRate": 60,
+      "rulesVersion": 1
+    },
+    {
+      "trackId": "scarlet_cathedral",
       "trackVersion": 1,
       "physicsVersion": 12,
       "lapCount": 1,

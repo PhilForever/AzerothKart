@@ -1,5 +1,10 @@
 # Scarlet queue review — 2026-10-26
 
+**Follow-up:** the owner subsequently authorized both fixes and integration.
+The [combined integration review](2026-10-26-scarlet-integration.md) records the
+swept-circle correction, bounded L/A/C score support and executed combined
+validation. The findings below describe the original queued source.
+
 ## Disposition
 
 Reviewed Claude's queued Library, drive fixes, Armory and Cathedral through

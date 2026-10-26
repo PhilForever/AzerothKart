@@ -6,10 +6,11 @@ local Sync = {PREFIX="AZKSCR1", MAX_BYTES=240, MAX_PEERS=32, SEND_INTERVAL=1,
     HELLO_INTERVAL=60, REQUEST_TIMEOUT=120, MAX_ROWS=50}
 AK.ScoreSync = Sync
 local courseIds={"mirage_raceway","stormwind_city","ironforge_gp",
-    "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway","scarlet_graveyard"}
+    "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway","scarlet_graveyard",
+    "scarlet_library","scarlet_armory","scarlet_cathedral"}
 -- O remains a zero-digest placeholder, never an admitted course. Active
 -- production codes stay stable; new courses append their own digest slots.
-local courseCodes={"O","M","S","I","D","R","U","T","G"}
+local courseCodes={"O","M","S","I","D","R","U","T","G","L","A","C"}
 local ACTIVE_BOARDS,HELLO_SLOTS=#courseIds,#courseCodes
 local courseToCode,codeToCourse={},{}
 for i,id in ipairs(courseIds) do courseToCode[id],codeToCourse[courseCodes[i+1]]=courseCodes[i+1],id end
@@ -62,7 +63,11 @@ function Sync.encode(message)
         and integer(message.hash,0,4294967295) and integer(message.count,0,Sync.MAX_ROWS) then
         text=table.concat({"1 E",message.code,decimal(message.hash),decimal(message.count)}," ")
     elseif message.kind=="HELLO" and integer(message.physicsVersion,1,2147483647)
-        and integer(message.catalogHash,0,4294967295) and dense(message.hashes,HELLO_SLOTS)==HELLO_SLOTS then
+        and integer(message.catalogHash,0,4294967295) and dense(message.hashes,HELLO_SLOTS)==HELLO_SLOTS
+        and message.hashes[1]==0 then
+        -- Retired O has no board: its zero digest is mandatory, not a peer
+        -- claim. Keeping it zero also bounds a full-range HELLO to155 bytes
+        -- including the prefix, below the native158-byte send ceiling.
         local parts={"1 H",decimal(message.physicsVersion),decimal(message.catalogHash)}
         for _,value in ipairs(message.hashes) do
             if not integer(value,0,4294967295) then return nil,"hash" end
@@ -113,7 +118,9 @@ function Sync.decode(payload)
         local physics,catalog=number(p[1],1,2147483647),number(p[2],0,4294967295)
         local hashes={}
         for i=1,HELLO_SLOTS do hashes[i]=number(p[i+2],0,4294967295);if not hashes[i] then return nil,"hello" end end
-        if physics and catalog then return {kind="HELLO",physicsVersion=physics,catalogHash=catalog,hashes=hashes} end
+        if physics and catalog and hashes[1]==0 then
+            return {kind="HELLO",physicsVersion=physics,catalogHash=catalog,hashes=hashes}
+        end
     end
     return nil,"message"
 end
