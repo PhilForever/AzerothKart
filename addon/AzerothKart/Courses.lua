@@ -52,11 +52,11 @@ Courses.LIST = {
     {id="scarlet_graveyard", name="Scarlet Graveyard", short="Graveyard", cup="scarlet", geometry="dungeon",
         background=TRACKS .. "ScarletGraveyard\\Background.tga",
         dust={0.78,0.74,0.68}, ground={0.05,0.05,0.05},
-        status="Scarlet Graveyard | Sprint to Honor's Tomb | Grass slows you; graves block"},
+        status="Scarlet Graveyard | Sprint to Honor's Tomb | Full speed on the grass; graves block"},
     {id="scarlet_library", name="Scarlet Library", short="Library", cup="scarlet", geometry="dungeon",
         background=TRACKS .. "ScarletLibrary\\Background.tga",
         dust={0.80,0.74,0.66}, ground={0.05,0.05,0.05},
-        status="Scarlet Library | Sprint to Arcanist Doan | The cloister's lawns slow you"},
+        status="Scarlet Library | Sprint to Arcanist Doan | Full speed across the cloister's lawn"},
     {id="scarlet_armory", name="Scarlet Armory", short="Armory", cup="scarlet", geometry="dungeon",
         background=TRACKS .. "ScarletArmory\\Background.tga",
         dust={0.80,0.72,0.62}, ground={0.05,0.05,0.05},
@@ -64,7 +64,7 @@ Courses.LIST = {
     {id="scarlet_cathedral", name="Scarlet Cathedral", short="Cathedral", cup="scarlet", geometry="dungeon",
         background=TRACKS .. "ScarletCathedral\\Background.tga",
         dust={0.78,0.74,0.68}, ground={0.05,0.05,0.05},
-        status="Scarlet Cathedral | Sprint to the altar | Up the stairs beside the falls"},
+        status="Scarlet Cathedral | Sprint to the altar | Up the stairs and turn at the landing"},
 }
 
 local byId = {}

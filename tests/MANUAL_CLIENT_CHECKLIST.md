@@ -1,5 +1,15 @@
 # Manual client acceptance — F0/F1/F2/F5
 
+## Deferred Scarlet v3 check (proposed, `claude/scarlet-v3`)
+
+**NOT RUN.** Run it after Codex's review and a coordinated install. **Fully restart the client:** the Library's and the Cathedral's pictures keep their paths but changed. The owner runs these checks; Claude does not control the client.
+
+1. **Scarlet Library, the courtyard.** Drive into the courtyard from each side of the arcade and round the fountain both ways, near and wide: the kart fits everywhere between the fountain and the trees (the place in his screenshot, south-east of the fountain, included). The HUD shows "Road" on the lawn: nothing slows. Record whether the corners' trees, the bush and the hounds look right, and whether the courtyard now feels too empty.
+2. **Scarlet Graveyard.** The cloister's lawn shows "Road" and does not slow; the graves still block. The board keeps its version-2 times.
+3. **Scarlet Cathedral, the stairs.** Up either long flight beside the falls to its landing: driving on north, the parapet stops the kart where it is drawn; turn outward (west on the west stairs, east on the east) down the short flight onto the lawn, then up past the round pool to the terrace. Record whether the two turns feel like a fair bit more difficulty, or too tight.
+4. **Scarlet Cathedral, the upper garden.** The round pool is smaller and farther north: the kart stops where its rim is drawn and slides round it. The trees behind the parapets block where their crowns are drawn.
+5. **Scores.** The Library and the Cathedral show fresh boards (version 3); older times stay saved under their versions.
+
 ## Deferred kart stat bars check (proposed, `claude/kart-stat-bars`)
 
 **NOT RUN.** Run it after Codex's review and a coordinated install. **Fully restart the client:** `Assets/UI/StatBars.tga` is a new file. The owner runs these checks; Claude does not control the client.

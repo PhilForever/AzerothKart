@@ -108,6 +108,14 @@ On `claude/scarlet-fixes` (the three courses' version 2, after the owner's first
 
 `build_dungeon_tracks.py` validates the new layouts (gates that cannot be passed round, the plinths as walls, no invisible wall, nothing non-solid on the floor) and keeps the Graveyard byte for byte. The full Lua 5.1 suite and the score catalogue's check cover the three new versions. The drive, the yard's look, the plinths and the trees in the client are NOT RUN.
 
+On `claude/scarlet-v3` (after the owner's second drive), `tests/test_dungeon.lua` checks:
+
+- the Graveyard: every room `road` (its lawn no longer slows; still version 2);
+- the Library (version 3): every room `road`; a kart driven in 5-degree steps round a ring 75 units from the fountain's middle never meets a wall or a solid, nor one driven in from each of the arcade's four openings to that ring; the route, now across the courtyard, through the four gates in order;
+- the Cathedral (version 3): the parapets `wall`, the landings and short flights floor; a kart runs clean up either long flight onto its landing, driving on north stops at the parapet (y 754), and the short flights lead clean off west and east onto the lawns; the round pool moved (115 about (512, 865)): a kart stops at its reach, 133, and slides round its rim; Codex's production grazing regression at the reach's top (y 998).
+
+`build_dungeon_tracks.py` validates the layouts (the check that every solid stands on the floor lets water lie between rooms if it borders one) and keeps the Graveyard's and the Armory's pictures byte for byte; the score catalogue's check covers the two new versions. The drive, the open courtyard, the landings and the pictures in the client are NOT RUN.
+
 On `claude/kart-stat-bars`, `tests/test_menu.lua` checks the kart screen's handling bars: `Menu.statFill`'s scale (four windows of six at par, one per 4%, half a window to the full bar, nil for unreadable values); for the Steam Tank, the Dwarven Biker and the Goblin Mortar Trike, the profile's name, each bar's label, the atlas' two rows and the full bar's crop computed from `Physics.GetHandling`, and the literal windows (Heavy 5, 2, 2, 6; Agile 3, 6, 6, 2; Balanced 4 each); no object created while choosing; and, with the picture refused, hidden bars, the words in their place and no retry. The budget assertions in `test_menu` and `test_ui` become 89/77/140. `scripts/build_stat_bars.py --check` verifies the atlas's bytes. The bars in the client are NOT RUN.
 
 ## Current front-end slice (proposed, `claude/ui-flow`)

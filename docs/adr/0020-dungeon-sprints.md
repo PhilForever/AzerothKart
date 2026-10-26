@@ -159,3 +159,21 @@ Evidence, offline only:
 - `tests/test_dungeon.lua`: the Library's four gates in order and its clear cross path; the Armory's and the Cathedral's rooms all `road`; a plinth's face stops a kart, the stairs run clean up; a kart stops at a tree's crown, not at its trunk; the routes never meet a wall or a solid.
 
 **NOT RUN in the client:** the three courses' version 2 drive, look and picture load.
+
+## Addendum: the Scarlet Cup's grass at full speed, an open courtyard, landings (proposed, `claude/scarlet-v3`, 2026-10-26)
+
+After his second drive (Scarlet v2 installed, runtime `da292f6`) the owner sent his kart stopped in the Library's courtyard between the fountain and a tree and wrote: "cant even fit through here dawg. and yeah - the same terrain should have the same effects across maps - at least maps in the same "cup". We are inside a monastery, so the grass is short you could say - meaning driving over it should be perfectly fine." Of the Cathedral's stairs turning at a landing: "if it makes the map a bit more difficult - go for it."
+
+Decisions, all data and generator; `Dungeon.lua` and every other runtime file are unchanged:
+
+1. **The Scarlet Cup's grass never slows.** This supersedes decision 1 of the previous addendum (grass slows where a clear edge marks it): the Library's courtyard and the Graveyard's cloister are `road`, as the Armory's yard and the Cathedral's gardens already were. No Scarlet room is `rough`; `Dungeon.lua` keeps `rough` for any future course.
+2. **A course must leave room to drive past its scenery.** The Library's trees, as round solids, had closed the courtyard round its fountain. Its trees are smaller and stand in the courtyard's corners; the test drives a ring round the fountain and the four ways in from the arcade. The bushes but one, a huntsman and a hound left the lawn.
+3. **The Cathedral's stairs turn at a landing.** Each long flight climbs beside the falls to a landing walled by a parapet; a short flight turns outward onto the upper lawn. The parapets are low plinths (decision 3 of the previous addendum); the round pool moves north and shrinks to clear the landings. The generator lets water lie between rooms (the falls between the landings) if it borders one.
+4. **Versions:** the Library and the Cathedral become geometry version 3; their boards start fresh, older records stay saved. The Graveyard stays version 2: only its lawn's surface changes, its stone path stays the fastest line (the graves fill the lawns), so its times stay comparable, and Codex's score-sharing test pins that board's version. Bumping it instead is a one-line change and Codex's call.
+
+Evidence, offline only:
+
+- `build_dungeon_tracks.py` validates all four dungeons as before.
+- `tests/test_dungeon.lua`: no Scarlet room is `rough`; the Library's ring round the fountain and four ways in drive clean, and its route crosses the courtyard; the Cathedral's long flights run onto their landings, the parapet stops a kart driving on north, the short flights lead off to the lawns, the round pool's reach (133 about (512, 865)) stops and slides a kart. Codex's production grazing regression follows the moved pool (its reach's top, y 998).
+
+**NOT RUN in the client:** the three courses' drive, the Library's and the Cathedral's look and picture load.

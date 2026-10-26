@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — Scarlet v3: an open courtyard, the grass at full speed, the Cathedral's landings (2026-10-26, `claude/scarlet-v3`)
+After driving the installed Scarlet v2 the owner sent his kart stopped in the Library's courtyard between the fountain and a tree: "cant even fit through here dawg. and yeah - the same terrain should have the same effects across maps - at least maps in the same "cup". We are inside a monastery, so the grass is short you could say - meaning driving over it should be perfectly fine. Everything else looks fine, except maybe the cathedral stairs turning at a landing, im assuming I understand what you mean, but yeah if it makes the map a bit more difficult - go for it." Based on Codex's installed `codex/scarlet-stats-review`.
+- **The Scarlet Cup's grass never slows** (ADR 0020's sixth addendum, superseding the "clear edge" reading): the Library's courtyard and the Graveyard's cloister drive as stone, like the Armory's yard and the Cathedral's gardens.
+- **Scarlet Library, version 3:** the courtyard is open. The trees' crowns had closed it round the fountain; now the trees are smaller and stand in its corners, a clear ring (48 units and wider for the kart's centre) runs round the fountain and the four ways in from the arcade are clear. One bush and three hounds stay at the trees' feet; the huntsman on the lawn is gone. The reviewed route crosses the courtyard.
+- **Scarlet Cathedral, version 3:** the stairs turn at a landing, as on the battle map: each long flight climbs beside the falls to a landing walled by a low parapet, and a short flight turns outward onto the upper lawn. The round pool moves north and shrinks to make room; two trees move behind the parapets.
+- **Scarlet Graveyard:** the lawn no longer slows; nothing else changes, the picture included, and it stays version 2: the stone path is still the fastest way, so its times stay comparable.
+- **The generator:** water may lie between rooms if it borders one (the falls between the landings).
+- **Copy:** the three courses' status lines and track-screen facts (full speed on the grass; the stairs turn at a landing).
+- **Tests:** `test_dungeon` checks that no Scarlet room slows, drives a ring round the Library's fountain and the four ways in, and the Cathedral's flights, landings, parapets and moved pool; the score catalogue carries the two new versions. The drive and the pictures in the client are NOT RUN.
+
 ## Unreleased — kart stat bars (2026-10-26, `claude/kart-stat-bars`)
 - **The kart screen shows handling as bars**, as the owner asked: "more mario kart/crash team racing way of seeing the different kart attributes ... in wow style obviously and use the actual ingame addon kart attributes as guidance for how much each bar should be filled". Asked which, he chose four: **Speed, Acceleration, Turning and Braking**, under the profile's name ("Handling: Heavy"), in the kart choice and the garage.
 - **WoW style:** gold-framed bars with six recessed windows and a glossy green fill, painted by `scripts/build_stat_bars.py` into `Assets/UI/StatBars.tga` (original art).

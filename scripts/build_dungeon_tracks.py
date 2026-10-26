@@ -331,6 +331,7 @@ def validate_geometry(g):
     sx, sy, heading = g["spawn"]
     assert heading in HEADINGS, "spawn heading is a compass word"
     assert floor.allowed(sx, sy) and floor.road(sx, sy), "spawn stands on stone floor, clear of solids"
+    pools = {p["name"] for p in g.get("pools", ())}
     for s in g["solids"]:
         assert s["width"] > 0 and s["height"] > 0, f"solid {s['id']} is empty"
         assert s.get("shape", "rect") in ("rect", "disc"), s["id"]
@@ -338,9 +339,14 @@ def validate_geometry(g):
         # On the floor: its middle, or (a tree's crown drawn over a wall
         # beyond) the middle of one of its sides.
         cx, cy = s["x"] + s["width"] / 2, s["y"] + s["height"] / 2
-        assert any(floor.on_floor(px, py) for px, py in (
-            (cx, cy), (s["x"], cy), (s["x"] + s["width"], cy), (cx, s["y"]), (cx, s["y"] + s["height"]))), \
-            f"solid {s['id']} stands off the floor"
+        probes = ((cx, cy), (s["x"], cy), (s["x"] + s["width"], cy), (cx, s["y"]), (cx, s["y"] + s["height"]))
+        if s["id"] in pools:
+            # Water lies in the gardens, at least beside a room (the
+            # Cathedral's falls run between its landings, in no room).
+            assert any(r["x0"] <= px <= r["x1"] and r["y0"] <= py <= r["y1"] for px, py in probes
+                       for r in g["rooms"]), f"pool {s['id']} lies off the floor"
+            continue
+        assert any(floor.on_floor(px, py) for px, py in probes), f"solid {s['id']} stands off the floor"
     # The route: clear of walls and solids, from the spawn through every gate.
     route = g["route"]
     assert route[0] == (sx, sy), "the route starts at the spawn"

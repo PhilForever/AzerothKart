@@ -7,7 +7,7 @@ The owner sent the Scarlet Monastery Graveyard map with his route drawn on it, a
 Asked, he chose:
 
 - that Claude add the minimal sprint rules, for Codex's review;
-- that the cloister's grass slows the karts and its graves block them.
+- that the cloister's grass slows the karts and its graves block them (the grass no longer slows, at his word, since 2026-10-26).
 
 ![Scarlet Graveyard overview, 4x reduced](scarlet_graveyard-overview.png)
 
@@ -17,6 +17,12 @@ Asked, he chose:
 - **NOT RUN in the client:** the drive, the look in the follow camera, loading the 2048×1024 picture, performance. See [the client checklist](../../../tests/MANUAL_CLIENT_CHECKLIST.md).
 
 ![The way through and nine follow-camera views](scarlet_graveyard-review.png)
+
+## Full speed on the grass (2026-10-26, still version 2)
+
+After driving the Scarlet Cup's second versions the owner wrote: "the same terrain should have the same effects across maps - at least maps in the same "cup". We are inside a monastery, so the grass is short you could say - meaning driving over it should be perfectly fine." The cloister's lawn is now stone underfoot (`road`), as the Library's, the Armory's and the Cathedral's: nothing in the Scarlet Cup slows the karts. The graves still block, as he chose.
+
+Nothing else changes, the picture included (byte for byte), and the geometry stays **version 2**: the stone path straight across the cloister, round the court's fountain on stone, was and is the fastest way to the tomb, and the graves make the lawn no shortcut, so the times already driven stay comparable on the same board. (Codex's score-sharing test pins the Graveyard's board at version 2; a bump would be its call.) On `claude/scarlet-v3`, for Codex's review; NOT RUN in the client.
 
 ## Version 2: fixes from the owner's client run
 
@@ -57,7 +63,7 @@ The rooms follow his map at karting scale. Halls and doors are 120 to 160 units 
 
 - **A sprint.** The course sets `laps=1`. The race finishes at the third gate after one run, and the score is a one-run total on the Graveyard's own board.
 - **Open floor, no road.** The kart centre stays 18 units (`wallInset`) inside the rooms. Where rooms meet they overlap, so the floor runs on through the doors. A step into a wall ends at the wall and slides along it, counting as a hit, as on the city streets.
-- **Stone and grass.** Stone floor has full grip. The cloister's lawn is rough ground, which Physics slows to 70 units a second, so the path is the fast way.
+- **Stone and grass.** Stone floor has full grip. The cloister's lawn was rough ground, which Physics slows to 70 units a second; since 2026-10-26 it is stone underfoot too ([above](#full-speed-on-the-grass-2026-10-26-still-version-2)). The path stays the fast way: the graves fill the lawns.
 - **Solids** block as the test oval's crates do: each grown by the kart's inset, so a kart slides along their faces.
 - **Nothing to drive over.** Scenery that stands on the floor is solid. The rest stands against the walls, out of the karts' way.
 - **The gates** span doorways from wall to wall, so they cannot be driven round. The generator checks this for each gate by flood-filling the karts' floor with the gate as a barrier.
