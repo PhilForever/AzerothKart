@@ -1,4 +1,36 @@
-# Claude handoff — Scarlet Armory
+# Claude handoff — Scarlet Cathedral (in progress)
+
+## Active reservation — Scarlet Crusade Cup: Scarlet Cathedral (2026-10-26)
+
+The owner sent the Cathedral's in-game map, a battle map of the wing (Sanctum of Maps), a screenshot of the Chapel Gardens and one of the cathedral's nave. He wrote: "Scarlet Cathedral next."
+
+Asked two questions, he chose:
+
+- **the finish "At the altar"**: a line across the chancel in front of the altar, where Mograine and Whitemane stand; the round room behind stays open to drive;
+- **the gardens' pools as "Water you drive round"**: the pools and the waterfall block, as water does in the cities, so the karts pick a side. The round pool needs round obstacles in the dungeon geometry, proposed for Codex's review.
+
+**Branch:** `claude/scarlet-cathedral` from `claude/scarlet-armory` `559cc4f`. None of the Library, the drive fixes or the Armory is integrated yet, so this branch carries them. Reserved, until this handoff says otherwise:
+
+- **`addon/AzerothKart/Dungeon.lua`** (Claude's proposed module, not yet reviewed): round solids (`shape="disc"` on a solid), for the round pool, with an ADR 0020 addendum for Codex's review. Rectangle solids, rooms and the other dungeons stay as they are.
+- **Scripts:**
+  - `scripts/dungeon_layouts.py`: a new Cathedral section;
+  - `scripts/dungeon_paint.py`: the Cathedral's new layers (the pools and the waterfall, the chancel's wooden floor, the steps);
+  - `scripts/build_dungeon_tracks.py`: round solids in the generator's floor and checks.
+
+  The other dungeons' data and pictures stay byte for byte.
+- **Generated:** `ScarletCrusade.lua` gains the Cathedral's entry, the others unchanged; new `addon/AzerothKart/Assets/Tracks/ScarletCathedral/`.
+- **Shared:**
+  - `Courses.lua`: the coming-soon Scarlet Monastery becomes Scarlet Cathedral (`scarlet_cathedral`, as the wing is named) and selectable;
+  - `services/leaderboard/catalog.json` (generated);
+  - `scripts/validate_project.py`.
+- **`Menu.lua`:** the Cathedral's track copy and preview cell.
+- **Tests:** `tests/test_dungeon.lua`, `tests/test_circuit.lua` and `tests/test_menu.lua`.
+- **Proposal only:** the score-sync patch gains the Cathedral's code.
+- **Docs:** a track sheet, ADR 0020 and the shared lists that name the tracks.
+
+No change to `Race`, `SoloRecords`, physics, input, timing, networking, `Circuit` or `UI.lua`.
+
+# Previous: Scarlet Armory
 
 Prepared 2026-10-26 at about 02:50 CET (Europe/Oslo) by Claude (rendering/UI/sprites owner).
 
