@@ -1,5 +1,40 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-26 20:49 +01:00 — multiplayer rematch build installed and packaged
+
+Owner resumes the pending task. Source remains clean tested `94d4d1e` on
+`codex/multiplayer-rematch`. The earlier actual install did not execute because
+automatic approval review reached a usage quota; it created no protected copy
+or backup. This run rechecked the unchanged prior da292f6 installation, reran
+WhatIf, then completed the normally approved backup/copy/hash operation.
+
+Independent preflight and post-copy Python readback verify all84source/installed/
+manifest hashes, all85complete prior backup files, and the unchanged legacy
+GoblinDragCar.tga extra. Installed tree remains85files. No source changes since
+the recorded focused Lua51 passes, so those suites were not repeated. No native
+input, SavedVariables/WTF, other-addon, deletion, push or release.
+
+Ignored deployment root: `local-artifacts/deploy-20261026-multiplayer-rematch/`;
+backup manifest `backups/20261026-204850-439-ec75c19688c84acb9438ab1e8695b76a/install.json`.
+Receipt and reproducible audit/package script are stored there. Matching ZIP
+from tested installed paths: `../AzerothKart-MultiplayerRematch-94d4d1e.zip`,
+84entries/69,360,087bytes, SHA256
+`FA0A41B01F507F26D184B5216E36AA2AA32C31757C711D5429E5656E44CE48CA`.
+Every ZIP entry read back and hashed. No new runtime paths; reload suffices from
+the preceding Scarlet-stat-bars build. Older clients missing its atlas need a
+full restart after updating. Native rematch/turning checks remain NOT RUN.
+
+Claude now has `claude/gryphon-wings`e3c82ad, carrying its race screens and
+Scarlet-v3. Its results layout overlaps the already-recorded rematch boundary;
+all that source/art stays separate for a reviewed integration. Its worktree,
+the canonical checkout and existing untracked files are unchanged. This local
+feature branch has not been published; no milestone acceptance was added.
+
+**Next exact task:** both matching clients update/reload when available, finish
+one race, use Play Again, then host Change Map→Play Again with the same friend.
+Guest Join, both Ready, host Start. Check observed placements/Close results and
+explicit Leave Multiplayer. No standalone transport probe is required.
+
 ## 2026-10-26 16:33 +01:00 — multiplayer postrace room and rematch implemented
 
 Owner prioritizes local multiplayer placements and same-player Play Again/map

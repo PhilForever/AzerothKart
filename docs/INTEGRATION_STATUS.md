@@ -1,5 +1,15 @@
 # Shared integration and deployment status
 
+## Installed multiplayer rematch build — 2026-10-26 20:49 CET
+
+Local tested runtime `94d4d1e` is installed with a complete prior-addon backup.
+All84source/installed hashes and85prior files independently verified; legacy
+extra preserved. Matching verified friend ZIP is
+`AzerothKart-MultiplayerRematch-94d4d1e.zip`. No new paths: reload from da292f6.
+[Deployment evidence](PROGRESS.md), [room/results API and short check](MULTIPLAYER_POSTRACE.md).
+Native checks remain pending. No new push/release. Claude's newer Gryphon/race
+screens/Scarlet-v3 branch remains separate for reviewed integration.
+
 ## Local multiplayer postrace candidate — 2026-10-26
 
 `codex/multiplayer-rematch` adds a bounded same-player postrace room, observed

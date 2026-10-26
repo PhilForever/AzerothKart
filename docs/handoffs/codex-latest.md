@@ -1,5 +1,37 @@
 # Codex handoff — production maps and Claude course review
 
+## Installed rematch checkpoint — 2026-10-26 20:49 CET
+
+Tested local runtime `94d4d1e` is installed. Previous approval-service quota
+prevented any copy; resumed preflight/WhatIf/normal approved install now PASS.
+All84source/installed hashes and85prior backup files independently verified,
+legacy extra preserved. No new runtime path; reload suffices from da292f6.
+
+Ignored receipt/audit under `local-artifacts/deploy-20261026-multiplayer-rematch/`;
+backup ID `20261026-204850-439-ec75c19688c84acb9438ab1e8695b76a`.
+Friend ZIP `../AzerothKart-MultiplayerRematch-94d4d1e.zip`:84entries/69,360,087bytes,
+SHA256 `FA0A41B01F507F26D184B5216E36AA2AA32C31757C711D5429E5656E44CE48CA`.
+Every entry read-back verified. Existing source pass/review evidence remains
+below; no redundant broad tests. Native postrace/turning NOT RUN. No push/release.
+
+Next exact task: same-build friend race→Play Again→host Change Map/Play Again;
+guest Join, both Ready, host Start. Verify local unverified rows, Close results
+retains room, explicit Leave restores solo. User will test when available.
+Claude e3c82ad Gryphon/race-screens/Scarlet-v3 stack is still separate; do not
+overwrite the tested rematch handlers during its later reviewed visual merge.
+Both parallel worktrees/untracked outputs and all player data remain untouched.
+
+## Resumed deployment — 2026-10-26 20:46 CET
+
+Owner asks to continue. Clean source remains tested `94d4d1e`; the prior actual
+install command never executed because automatic approval review hit its usage
+limit. No protected copy or backup was created by that failed attempt. Resume
+preflight/backup/verified install and friend ZIP without repeating unchanged
+source tests. Recheck target against installed da292f6 before replacement.
+Claude now has `claude/gryphon-wings`e3c82ad; its stacked presentation/Scarlet-v3
+work remains separate and untouched. Only deployment receipts, PROGRESS and
+INTEGRATION_STATUS are reserved now. No new feature push or release.
+
 ## Multiplayer postrace/rematch source — 2026-10-26 16:33 CET
 
 Parallel-work update16:36: Claude has advanced to `claude/race-screens`8511d8c,
