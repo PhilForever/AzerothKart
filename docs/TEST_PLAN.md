@@ -108,7 +108,30 @@ On `claude/scarlet-fixes` (the three courses' version 2, after the owner's first
 
 `build_dungeon_tracks.py` validates the new layouts (gates that cannot be passed round, the plinths as walls, no invisible wall, nothing non-solid on the floor) and keeps the Graveyard byte for byte. The full Lua 5.1 suite and the score catalogue's check cover the three new versions. The drive, the yard's look, the plinths and the trees in the client are NOT RUN.
 
+On `claude/scarlet-v3` (after the owner's second drive), `tests/test_dungeon.lua` checks:
+
+- the Graveyard: every room `road` (its lawn no longer slows; still version 2);
+- the Library (version 3): every room `road`; a kart driven in 5-degree steps round a ring 75 units from the fountain's middle never meets a wall or a solid, nor one driven in from each of the arcade's four openings to that ring; the route, now across the courtyard, through the four gates in order;
+- the Cathedral (version 3): the parapets `wall`, the landings and short flights floor; a kart runs clean up either long flight onto its landing, driving on north stops at the parapet (y 754), and the short flights lead clean off west and east onto the lawns; the round pool moved (115 about (512, 865)): a kart stops at its reach, 133, and slides round its rim; Codex's production grazing regression at the reach's top (y 998).
+
+`build_dungeon_tracks.py` validates the layouts (the check that every solid stands on the floor lets water lie between rooms if it borders one) and keeps the Graveyard's and the Armory's pictures byte for byte; the score catalogue's check covers the two new versions. The drive, the open courtyard, the landings and the pictures in the client are NOT RUN.
+
 On `claude/kart-stat-bars`, `tests/test_menu.lua` checks the kart screen's handling bars: `Menu.statFill`'s scale (four windows of six at par, one per 4%, half a window to the full bar, nil for unreadable values); for the Steam Tank, the Dwarven Biker and the Goblin Mortar Trike, the profile's name, each bar's label, the atlas' two rows and the full bar's crop computed from `Physics.GetHandling`, and the literal windows (Heavy 5, 2, 2, 6; Agile 3, 6, 6, 2; Balanced 4 each); no object created while choosing; and, with the picture refused, hidden bars, the words in their place and no retry. The budget assertions in `test_menu` and `test_ui` become 89/77/140. `scripts/build_stat_bars.py --check` verifies the atlas's bytes. The bars in the client are NOT RUN.
+
+On `claude/gryphon-wings` (focused: `python scripts/test_lua.py --runtime lua51 --tests presentation menu ui`; art bytes: `python scripts/build_wc3_kart.py --source local-artifacts/third-party/gryphon-rider --vehicle gryphon_rider --check`, or a quarter of it with `--phase N`, and `python scripts/build_kart_outlines.py --check`):
+
+- `tests/test_presentation.lua`: every sheet's grid, borders, coverage and crops per pose (the gryphon's four poses of 64 headings, its coverage floor lowered for the tucked wings in the larger window); opposite headings and the poses at one heading are different pictures; the outline sheets at half their sheet's size; `wingPhase` (the beat rest, top, rest, bottom, its timing and wrap, the glide at any time, the rest pose for other karts and unreadable input) and the four-pose crops.
+- `tests/test_menu.lua`: the garage beats the wings for four seconds, then glides; a run beats them from the countdown (ten frames a step), glides while `boostTicks` is above zero and beats again after; the outline shows the kart's frame and pose throughout; a friend's gryphon beats on the copied race clock half a beat apart and glides on their reported boost; stopping shows the rest pose; no object is created.
+
+Other karts' sheets stay byte for byte (the trike's and the Meat Wagon's checks pass after the builder change). The wings in the client are NOT RUN.
+
+On `claude/race-screens` (focused: `python scripts/test_lua.py --runtime lua51 --tests presentation menu ui`; art bytes: `python scripts/build_celebration_art.py --check`):
+
+- `tests/test_presentation.lua`: `Presentation.raceProgress` (no progress at the previous gate, the straight-line fraction toward the next, a completed lap counting every gate, one more gate always further on, clamping, nil for unreadable input); `ahead` and `standings` (finished by time, then racing by progress, then out; ties keep their order); `ordinal`.
+- `tests/test_menu.lua`: `Menu.scorePlacement` on stand-in boards (#1 of several, alone, #3, #7, #11, the local board, an unsaved run); for each celebration the banner, its place line, the medal or wreath with its crop and the wreath's rank, the sunburst, the taller dialog, the sound in place of the fanfare, the medal's pop, confetti falling and gone by three seconds, the turning sunburst, and a reopening shown still and silent; a best off the top ten kept plain with its notice in gold; a refused picture (the banner alone, no retry); **Highscores** opening the run's board at the player's page, their row in gold; the two-player HUD place (1st, 2nd behind a friend further on or finished, hidden outside a live race) and results (the racers' rows and banners while the friend races, finishes behind or ahead, or leaves; a stopped run); and no object created by any of it.
+- `tests/test_ui.lua`: the name tag over the observed kart, its stale fade, and off screen held at the canvas edge with the distance; the budget, 90/91/150. Codex's assertions stay unchanged and pass: the plain results' 460×336, one name read per finish, the finish fanfare last, the live results' "No agreed winner" hint.
+
+The look, the sounds, the medal's motion and a two-player race in the client are NOT RUN.
 
 ## Current front-end slice (proposed, `claude/ui-flow`)
 

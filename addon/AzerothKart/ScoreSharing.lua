@@ -87,13 +87,15 @@ local function buildContexts()
         end
     end
 end
-local function activate(now)
+local function activate(now, priorPersonal, capturedName)
     if engine then return true end
     if not writable then return false end
-    local name=AK.SoloRecords.PlayerName()
+    local name=H.NormalizeName(capturedName) or AK.SoloRecords.PlayerName()
     if not name then status="Waiting for full player name"; return false end
     local seeded=H.Load(source)
-    local personal,valid=H.Load(root.highscores)
+    -- A finish may initialize sharing after committing its personal score.
+    -- Seed from that transaction's prior snapshot so publish can compare it.
+    local personal,valid=H.Load(priorPersonal or root.highscores)
     if valid then
         for _,context in ipairs(contexts) do
             seeded=H.Merge(seeded,context,H.View(personal,context))
@@ -311,9 +313,11 @@ function Sharing.Message(prefix,payload,route,sender)
         changed()
     end
 end
-local function publish(record)
+local function publish(record, priorPersonal)
     local now=clock()
-    if not now or not activate(now) or not unchanged() then return nil end
+    if not now or not activate(now,priorPersonal,
+        priorPersonal and type(record)=="table" and record.playerName or nil)
+        or not unchanged() then return nil end
     local ok,placement=pcall(Sync.publish,engine,record,now)
     if not ok or not persist() then return nil end
     changed()
@@ -333,14 +337,20 @@ local function publish(record)
     if message and DEFAULT_CHAT_FRAME and type(DEFAULT_CHAT_FRAME.AddMessage)=="function" then
         pcall(DEFAULT_CHAT_FRAME.AddMessage,DEFAULT_CHAT_FRAME,"|cffffd100Azeroth Kart: "..message.."|r")
     end
-    return message
+    -- Preserve the exact finish transaction's placement for presentation.
+    -- A later cache scan or equal-time row cannot identify this finisher.
+    local detached={}
+    for _,key in ipairs({"rank","previousRank","tier","enteredTier","knownPlayers","scope"}) do
+        detached[key]=placement[key]
+    end
+    return message,detached
 end
-function Sharing.Publish(record)
+function Sharing.Publish(record, priorPersonal)
     if announcing then return nil end
     announcing=true
-    local ok,notice=pcall(publish,record)
+    local ok,notice,placement=pcall(publish,record,priorPersonal)
     announcing=false
-    if ok then return notice end
+    if ok then return notice,placement end
 end
 function Sharing.GetView(trackId)
     if not engine then return nil end

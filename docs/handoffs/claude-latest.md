@@ -1,4 +1,277 @@
-# Claude handoff — kart stat bars
+# Claude handoff — the Gryphon Rider's wingbeat
+
+Prepared 2026-10-26 at about 17:20 CET by Claude (rendering/UI/sprites owner).
+
+**Base:** `claude/race-screens` `8511d8c` (on `claude/scarlet-v3` and Codex's installed `caab661`). **Branch:** `claude/gryphon-wings`, with these commits:
+
+- `cb9b657`: the reservation;
+- `f7ca53f`: the wingbeat;
+- this handoff.
+
+It descends from `claude/race-screens`, so integrating it brings the race screens and Scarlet v3 too. Nothing is installed.
+
+## Owner instructions
+
+After my note on moving parts (the flyers first, the gryphon's wings the most visible), he chose: "Sure let's start with the griphon. I want flapping during normal speed and gliding during boost."
+
+The standing instructions hold: no merge into `main`; no claim of in-game verification without the actual client; the owner pushes and runs the client checks; Codex prepares coordinated installs.
+
+## Scope (reserved and changed)
+
+The reservation (`cb9b657`) held.
+
+- **`scripts/build_wc3_kart.py`:** `posed_triangles` takes a frame time; new `bone_height`, `phases`, `layout`, `render_phase`, `phase_count`, `check_phases`, `ground_tile` and `wings_review`; `build`, `window_bounds`, `validate` and `run` handle phases; the CLI's `--phase N` checks one phase. The gryphon's entry gains its `wings` and a 58-unit window round (4.5, 0), its coverage floor 0.025. Every other sheet is byte for byte unchanged (the trike's and the Meat Wagon's checks pass).
+- **`scripts/build_kart_outlines.py`:** `grid`; `build`, `validate` and `review` read the sheet's size.
+- **Assets:** `Assets/Karts/GryphonRider.tga` (2048×2048, 16,777,234 bytes, sha256 `d8a1389f…454e`) and `Assets/Karts/Outlines/GryphonRider.tga` (1024×1024, sha256 `33860c4c…`), same paths.
+- **`Presentation.lua`:** the gryphon's entry (`winged`: size, columns, `phases`, `wings`; quad, pivot, its boost `trails`), `kartFrameCoords(sprite, frame, phase)` (optional), new `wingPhase`.
+- **`UI.lua`:** the visual body of `render` (the kart's and outline's crop with the pose) and `renderOpponent`/`opponentSprite` (the friend's). Nothing else.
+- **`Menu.lua`:** `spin`, `showStage` and `Menu.STAGE_GLIDE` (the turntable) only.
+- **Tests:** `tests/test_presentation.lua` (sheet and outline validation per pose, the gryphon's floor, `wingPhase`, crops); `tests/test_menu.lua` (one new block). `tests/test_ui.lua` is untouched, as reserved for Codex's rematch task.
+- **Docs:** `docs/art/karts/roster.md` (a wingbeat section and its review picture `gryphon-rider-wings-review.png`; the regenerated `gryphon-rider-review.png` and `kart-outlines-review.png`), `docs/API_CONTRACTS.md` (a proposed section and the signature list), `docs/ASSETS.md`, `docs/art/ASSET_SOURCES.md`, `docs/art/ui/front-end.md`, `CHANGELOG.md`, `docs/TEST_PLAN.md`, `tests/MANUAL_CLIENT_CHECKLIST.md`, `scripts/validate_project.py` (the new review picture), this handoff.
+
+No change to SessionTransport, LiveRace, LiveProtocol, PeerSession, Physics, Race or any other Codex-owned file, nor to the results and lobby sections of `Menu.lua` or the live callbacks of `UI.lua` that Codex reserved for `codex/multiplayer-rematch`. `docs/PROGRESS.md` was not edited; the entry is [below](#progress-ledger-entry-for-the-integrator-gryphon-wings).
+
+## Delivered
+
+![The four poses at eight headings over Mirage Raceway at about 1440p, then the beat as played and the glide at the garage's size](../art/karts/gryphon-rider-wings-review.png)
+
+- **The wings beat while it flies:** rest (level), top (raised in a V), rest, bottom (swept down), one beat every 0.667 s, the model's own `Walk` timing, ten frames a step at 60 Hz. The beat runs on the run's own clock: from the countdown until the run ends.
+- **It glides while boosting:** the model's soaring loop (`Walk - 2`), wings spread wide and legs trailing, its body at the rest pose's height so it does not jump. The boost's wind trails leave the glide's wingtips, (4, ±20.2, 13.5).
+- **Every pose casts its own shadow**, rendered from the model like the rest of the sheet; all four keep Stand's scale, centre and hover.
+- **Where it shows:** the player's kart and its outline; a friend's gryphon in a two-player race (beating on the copied race clock half a beat apart, gliding on their reported `boosting`; the rest pose on the grid); the garage turntable (four seconds of beats, two of glide, once round). With no run (stopped, results, track view) it shows the rest pose, as before.
+- **Nothing else changes:** the 17×31 body, handling, effects timing, the other nine karts and the object counts (90/91/150).
+
+## Decisions for review
+
+1. **Three flying poses, played as a four-step beat** (rest, top, rest, bottom). The model's own loop passes through level on both strokes; four poses of 64 headings fill a 2048×2048 sheet, the largest size the addon already uses (the city backgrounds). More beat poses would need 4096×2048 (32 MiB) or fewer headings.
+2. **"Normal speed" is any time it is not boosting,** standstill included: a hovering gryphon has to beat its wings. The beat keeps the model's timing whatever the speed.
+3. **A larger frame window.** The raised wings and their shadow need 58 units round (4.5, 0), from 41 round (2.6, 0); the frames keep 128 texels, so the gryphon is drawn from about 2.2 texels a world unit instead of 3.1 (still above a screen pixel at the race camera), and the garage, which fits the quad, shows it about a fifth smaller.
+4. **Memory:** the gryphon's sheet is 16 MiB raw instead of 4, and its outline 4 MiB instead of 1, loaded only when the gryphon is chosen or a friend races it.
+5. **Clocks:** the player's beat follows the simulation tick (with the render's interpolation), so it is repeatable and stops with the run; the friend's follows the live view's `elapsedMS`; the garage its own. All read copied state only; `boostTicks` and `remote.boosting` decide the glide.
+
+## Needs Codex
+
+- **Review and integration** after the race screens, which this branch carries. `Presentation` gains an optional argument and a pure function; `UI.lua` changes only the crop in `render`, `renderOpponent` and `opponentSprite`.
+- **Install:** `GryphonRider.tga` and its outline keep their paths but change size: both clients need a full restart. The package grows by about 15 MiB.
+- **The budget** is unchanged (90/91/150): only crops change.
+
+## Tests
+
+| Command | Cloud | The owner's machine |
+|---|---|---|
+| `python scripts/build_wc3_kart.py --source …/gryphon-rider --vehicle gryphon_rider --preview` | Wrote the sheet (`d8a1389f…454e`, 2 min 41 s) and both review pictures | not run |
+| `… --vehicle gryphon_rider --check --phase N` | not run | PASS for all four phases (0; 1 and 2; 3), 42 s a phase, the same sha256 |
+| `python scripts/build_wc3_kart.py --source …/goblin-mortar-trike --vehicle goblin_mortar_trike --check` | PASS (unchanged bytes after the builder change) | PASS |
+| `python scripts/build_wc3_kart.py --wc3 … --vehicle meat_wagon --check` | PASS | not run |
+| `python scripts/build_kart_outlines.py --check` | Wrote; only the gryphon's changed | PASS, all ten |
+| `python scripts/test_lua.py --runtime lua51` | PASS, full suite | PASS, full suite (48 s) |
+| `python scripts/test_lua.py --runtime lua54 --tests presentation menu ui multiplayer_integration` | PASS | not run |
+| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in `PROGRESS.md` fail | the same |
+| `git diff --check` | clean | |
+
+An animated preview of the beat and the glide at about twice race size (made from the sheet, not a screenshot) went to the owner with this report; it is not committed.
+
+**NOT RUN in the client:** the beat's look and speed at race size, the glide, the outline, a friend's gryphon, and any hitch from the 16 MiB sheet. The owner runs [the checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-gryphon-rider-wingbeat-check-proposed-claudegryphon-wings).
+
+## PROGRESS ledger entry for the integrator (gryphon wings)
+
+> **2026-10-26 — Gryphon Rider wingbeat (Claude, `claude/gryphon-wings` `f7ca53f` on `claude/race-screens` `8511d8c`).** The owner: "flapping during normal speed and gliding during boost". `GryphonRider.tga` holds four poses of 64 headings from the model's own `Walk` (rest, beat top, beat bottom) and `Walk - 2` (glide) loops, 2048×2048 with a 58-unit window; outline 1024×1024. The run beats rest/top/rest/bottom every 0.667 s on its own clock and glides while `boostTicks > 0`; rest pose with no run; the outline follows; a friend's gryphon beats on the copied clock and glides on `remote.boosting`; the garage beats four seconds and glides two. `kartFrameCoords(sprite, frame, phase?)`, new pure `wingPhase`; counts unchanged 90/91/150. Gryphon phases check PASS on the owner's machine (same sha256), other sheets unchanged (trike PASS on both), outlines PASS on both, Lua 5.1 full suite PASS on both, Lua 5.4 presentation/menu/ui/multiplayer_integration PASS (cloud); validator: only the 2 pre-existing `PROGRESS.md` links fail. NOT RUN: client.
+
+## Push (the owner's)
+
+```
+git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/scarlet-v3 claude/race-screens claude/gryphon-wings
+```
+
+## Next
+
+The owner's verdict on the beat in the client (its speed, whether the swept-down pose reads as flapping or flicker, the glide). Then more moving parts as he chooses: the Gyrocopter's spinning rotor is the cheapest (one small overlay for every heading), the big-wheeled karts' rolling wheels next.
+
+# Previous: race screens and score celebrations
+
+Prepared 2026-10-26 at about 16:15 CET by Claude (rendering/UI/sprites owner).
+
+**Base:** `claude/scarlet-v3` `a4fe2d5` (on Codex's installed `codex/scarlet-stats-review` `caab661`). **Branch:** `claude/race-screens`, with these commits:
+
+- `c4865ae`: the reservation;
+- `117e5c1`: the race screens and the celebrations;
+- this handoff.
+
+It descends from `claude/scarlet-v3`, so integrating it brings Scarlet v3 too. Nothing is installed.
+
+## Owner instructions
+
+> "After fixing these - feel free to start on screen side of multiplayer such as race positions, name tags, and results. I also want a bigger celebration when you get a top 10 and top 3 score, take a look at that whole window and flow."
+
+The standing instructions hold: no merge into `main`; no claim of in-game verification without the actual client; the owner pushes and runs the client checks; Codex prepares coordinated installs.
+
+## Scope (reserved and changed)
+
+The reservation (`c4865ae`) held, with two additions:
+
+- `tests/test_ui.lua` gained more than the budget: additive name-tag assertions placed after Codex's live-observation assertions, and a mock `SetAlpha` that records the alpha. None of Codex's assertions changed.
+- `scripts/preview_ui.py` (four new scenes and `--race-out`) and the review pictures `docs/art/ui/front-end-review.png` and `docs/art/ui/race-screens-review.png`: Claude's layout tooling, not listed in the reservation.
+
+What changed:
+
+- **`addon/AzerothKart/Presentation.lua`:** `raceProgress`, `ahead`, `standings` and `ordinal`, appended (pure, additive).
+- **`addon/AzerothKart/UI.lua`:** `UI.Create` makes `UI.opponentTag` (one font string, hidden). `renderOpponent` keeps the drawn pose in `UI.opponentWorldX/Y`, hides the tag wherever it hides the kart, and places, captions and fades the tag. `pollLive`, `applyLiveView`, `finishLive`, `step`, `UI.Start/Stop/OnUpdate/HandleEvent`, `keyEvent` and `UI.MultiplayerAction` are untouched, and so is `UI.opponentLabel`'s text.
+- **`addon/AzerothKart/Menu.lua`:** `FONT.position`/`FONT.banner`, `SOUNDS.top3`/`SOUNDS.top10`, `Menu.CELEBRATION_PATH`/`CELEBRATION_COORDS`, `Menu.CONFETTI`, `Menu.scorePlacement`, `Menu.PlayerName`, `Menu.liveRacers`, `Menu.ShowBoard`; the race overlay's place; the results (`arrangeResults`, `layoutResults`, `refreshStandings`, `celebrate`, `Menu.OnResults`, `Menu.AnimateResults`); the Highscores screen (the player's own row in gold, opening at the player's page).
+- **New art:** `scripts/build_celebration_art.py`, `addon/AzerothKart/Assets/UI/Celebration.tga` (512×256 with alpha, 524,306 bytes, sha256 `2296c4ac…92fd`), `docs/art/ui/celebration.png`.
+- **Tests:** `tests/test_presentation.lua` (one new block); `tests/test_menu.lua` (three new blocks, a recording `SetTextColor`, two more SOUNDKIT entries, the budget); `tests/test_ui.lua` (above).
+- **Docs:** `docs/art/ui/front-end.md`, `docs/API_CONTRACTS.md` (a proposed section and the counts line), `docs/UI_UX.md`, `CHANGELOG.md`, `docs/TEST_PLAN.md`, `tests/MANUAL_CLIENT_CHECKLIST.md`, `docs/ASSETS.md`, `docs/art/ASSET_SOURCES.md`, `scripts/validate_project.py` (the four new files).
+
+No change to SessionTransport, LiveRace, LiveProtocol, PeerSession, SoloRecords, Highscores, ScoreSync, ScoreSharing, Physics, Race or any other Codex-owned file: they are read through their copied views. `docs/PROGRESS.md` was not edited; the entry is [below](#progress-ledger-entry-for-the-integrator-race-screens).
+
+## Delivered
+
+![A top-three and a top-ten best, a two-player race and its results (layout pictures on stand-in data)](../art/ui/race-screens-review.png)
+
+- **Top-ten celebrations.** A saved new personal best that ranks in the shared board's top ten grows the results: a banner (**NEW #1!**, **FIRST ON THE BOARD!** when alone, **TOP 3!**, **TOP 10!**) and its place ("#2 of 14 on the shared board"); a gold, silver or bronze medal, or a laurel wreath with the rank in it, popping in over the dialog's top edge on a slowly turning sunburst; a dozen pieces of confetti (eight for the top ten) for under three seconds; and the epic-loot toast (#1, top three) or the quest-complete chime (top ten) in place of the finish fanfare. Reopening the results shows the celebration still and silent. A best off the top ten keeps the plain window with its notice in gold.
+- **The flow.** The results' rows are **Restart · Highscores · Close results**, then **Change Kart · Change Track · Main Menu**. **Highscores** opens the run's own board at the page with the player's row, which the board now shows in gold; after a celebration the button is lit.
+- **Two-player races:**
+  - the place, large at bottom right ("1st" gold, "2nd" silver, "of 2"), shown once the race runs (not on the grid);
+  - the friend's name over their kart, or held inside the canvas edge toward it with the distance ("Amber Stone (420 away)"), faded when their signal is stale;
+  - the results list both racers in their places with their karts and times or state ("racing, lap 3/3", "left the race", "connection lost"), with **1st PLACE!** (the gold medal, sunburst, confetti, toast), **2nd PLACE** (the silver medal) or **FINISHED!** while the friend races, and the gap ("Amber Stone finished 1.65s behind you"). They refresh five times a second until the places are settled. UI's "LOCAL FINISH — UNVERIFIED" title and "No agreed winner or standings" hint stay, and a note says whose times these are.
+- **Budget:** 1 frame, 14 textures and 10 font strings more, all created with the window: **90/91/150**. Nothing is created while driving or showing results; the HUD's place rewrites its text only when the place changes.
+
+## Decisions for review
+
+1. **Places are estimates from each racer's own reports.** A racer's progress is the gates passed over their completed laps and this one, plus the straight-line fraction from the previous gate toward the next (capped below the next gate), at the friend's drawn pose. Finished racers come first by their own finishing tick (tick 0 at each machine's GO), then racing racers by progress, then racers out of the race. Nothing is verified, agreed or sent.
+2. **Policy point for Codex.** Codex's live display deliberately claimed no race position, and its off-screen label still "does not invent a behind/ahead race position". At the owner's request the HUD and results now show places, labelled as reported: UI's title and hint stay, and the results add "Places and times as each racer reported them, by their own clock." If Codex prefers stronger copy (an "est." on the HUD, say), it is Menu copy only.
+3. **Which bests celebrate:** every saved new personal best in the shared board's top ten, including a better time at the same rank, not only on entering a tier as ScoreSharing's chat notice does (entering the top three or ten, or a new #1). The owner's words were "when you get a top 10 and top 3 score". A board of this computer's own times (score sharing not running) never celebrates, since every best would be #1 there; its notice turns gold instead.
+4. **Finding the run's place without a second name read** (Codex's `nameReads==1`): the newest row with the run's total. A different racer's row with the same total and a later date could be taken for the player's; the proposal in [API_CONTRACTS](../API_CONTRACTS.md#proposed-race-screens-and-score-celebrations-claude-clauderace-screens-2026-10-26) removes the guess: `SoloRecords.Finish`'s result carries the `Highscores.FinishPlacement` table that `ScoreSharing.Publish` already computes.
+5. **Sounds and fonts:** `UI_EPICLOOT_TOAST` (31578) for #1, the top three and a won race; `IG_QUEST_LIST_COMPLETE` (878) for the top ten; `LFG_REWARDS` (17316) still plays for every other finish, once. `Game42Font`/`Game36Font` for the banner and `Game48Font` for the place, each with a fallback. All are in build 70450's interface source; on Forever they are NOT RUN.
+6. **Original art:** the medals, wreath and sunburst are painted from numbers; no Mario Kart, Crash Team Racing or other game's picture is an input (AGENTS).
+
+## Needs Codex
+
+- **Review and integration** after Scarlet v3, which this branch carries. `UI.lua` changes only in `UI.Create` (one font string) and `renderOpponent`; `Presentation.lua` is additive.
+- **The policy point** (decision 2) and, optionally, **the placement field** (decision 4).
+- **The budget:** 90/91/150; please carry it into your production-maps and integration notes.
+- **Install:** `Assets/UI/Celebration.tga` is a new path: both clients need a full restart.
+- **`codex/multiplayer-rematch`** (created at `caab661`; no commits seen on the owner's machine): a rematch control would sit in the results' button rows, where this branch moved Restart and Close results and added Highscores (greyed out in a two-player race, so a rematch could take its place there). Please coordinate before either of us edits the results section again.
+
+## Tests
+
+| Command | Cloud | The owner's machine |
+|---|---|---|
+| `python scripts/test_lua.py --runtime lua51` | PASS, full suite | PASS, full suite (79 s; the pool line reads 90/91/150) |
+| `python scripts/test_lua.py --runtime lua54 --tests presentation menu ui multiplayer_integration` | PASS | not run |
+| `python scripts/build_celebration_art.py --check` | PASS | PASS, the same sha256 |
+| `python scripts/export_score_catalog.py --check` | PASS, 11 boards | PASS |
+| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in `PROGRESS.md` fail | the same |
+| `python scripts/preview_ui.py` | Wrote both review pictures (the front end's 17 screens; the four race-screen scenes), byte for byte the same on a rerun; layout pictures with stand-in fonts, not screenshots | not run |
+| `git diff --check` | clean | |
+
+**NOT RUN in the client:** the celebrations' look, motion and sounds, the Highscores button, and a two-player race's place, name tag and results. The owner runs [the checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-race-screens-and-celebrations-check-proposed-clauderace-screens).
+
+## PROGRESS ledger entry for the integrator (race screens)
+
+> **2026-10-26 — Race screens and score celebrations (Claude, `claude/race-screens` `117e5c1` on `claude/scarlet-v3` `a4fe2d5`).** The owner's "race positions, name tags, and results" and "a bigger celebration when you get a top 10 and top 3 score". Results: a saved new best in the shared board's top ten grows a banner (NEW #1!/FIRST ON THE BOARD!/TOP 3!/TOP 10!) with its place, a gold/silver/bronze medal or a wreath on a turning sunburst, confetti and a toast/chime in place of the fanfare; a Highscores button opens the run's board at the player's page (own row gold). Two-player races: the place in the HUD and the friend's name tag from each racer's own reports; results with both racers, 1st/2nd PLACE and the gap; UI's unverified title and "No agreed winner" hint kept. New original atlas `Assets/UI/Celebration.tga` (`scripts/build_celebration_art.py`). Pool 90/91/150. Lua 5.1 full suite PASS on both machines; Lua 5.4 presentation/menu/ui/multiplayer_integration PASS (cloud); atlas check and catalogue PASS on both; validator: only the 2 pre-existing `PROGRESS.md` links fail. NOT RUN: client.
+
+## Push (the owner's)
+
+```
+git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/scarlet-v3 claude/race-screens
+```
+
+## Next
+
+The owner looks at Scarlet v3 and the race screens after Codex's review and install, with the two checklists. Then, as he directs: the multiplayer lobby's look, or results for more than two racers once Codex's capacity work allows it (`Presentation.standings` already orders any number).
+
+# Previous: Scarlet v3: an open courtyard, the grass at full speed, the Cathedral's landings
+
+Prepared 2026-10-26 at about 16:00 CET by Claude (rendering/UI/sprites owner).
+
+**Base:** Codex's `codex/scarlet-stats-review` `caab661`, the installed and published combined build (runtime `da292f6`: Scarlet v2 and the kart stat bars). **Branch:** `claude/scarlet-v3`, with these commits:
+
+- `100fa0a`: the reservation;
+- `86efbca`: Scarlet v3;
+- this handoff.
+
+It descends from Codex's integration branch, so it fast-forwards it. Nothing is installed.
+
+## Owner instructions
+
+After driving the installed Scarlet v2 he sent a screenshot of his kart stopped in the Library's courtyard, between the fountain and the south-east tree, and wrote:
+
+> "cant even fit through here dawg. and yeah - the same terrain should have the same effects across maps - at least maps in the same "cup". We are inside a monastery, so the grass is short you could say - meaning driving over it should be perfectly fine. Everything else looks fine, except maybe the cathedral stairs turning at a landing, im assuming I understand what you mean, but yeah if it makes the map a bit more difficult - go for it. After fixing these - feel free to start on screen side of multiplayer such as race positions, name tags, and results. I also want a bigger celebration when you get a top 10 and top 3 score, take a look at that whole window and flow."
+
+This branch covers the first three; the multiplayer screens and the celebration follow on their own branch. The standing instructions hold: no merge into `main`; no claim of in-game verification without the actual client; the owner pushes and runs the client checks; Codex prepares coordinated installs.
+
+## Scope (reserved and changed)
+
+The reservation (`100fa0a`) held.
+
+- **Scripts:** `scripts/dungeon_layouts.py` (the Graveyard's, Library's and Cathedral's sections; the Armory's is unchanged), `scripts/build_dungeon_tracks.py` (`validate_geometry`: water may lie between rooms if it borders one).
+- **Generated:** `addon/AzerothKart/ScarletCrusade.lua`, the Library's and the Cathedral's `Background.tga`/`Preview.tga`, overviews and review images, the Library's sources list, `services/leaderboard/catalog.json` (the Library and the Cathedral at `trackVersion` 3; eleven boards). The Graveyard's and the Armory's pictures are byte for byte unchanged.
+- **Shared data:** `Courses.lua` (three status lines), `Menu.lua` (the three courses' `Menu.TRACKS` copy).
+- **Tests:** the three Scarlet sections of `tests/test_dungeon.lua`.
+- **Docs:** the three track sheets, ADR 0020 (a sixth addendum), `TRACKS.md`, `TEST_PLAN.md`, `CHANGELOG.md`, `tests/MANUAL_CLIENT_CHECKLIST.md`, this handoff.
+
+No change to `Dungeon.lua`, `UI.lua`, `Presentation.lua`, Physics, scores, networking or any other Codex-owned file. `docs/PROGRESS.md` was not edited; the entry is [below](#progress-ledger-entry-for-the-integrator-scarlet-v3).
+
+## Delivered
+
+![The Library: the way through and nine follow-camera views](../art/tracks/scarlet_library-review.png)
+
+- **All Scarlet grass at full speed.** The Library's courtyard and the Graveyard's cloister are `road`, like the Armory's yard and the Cathedral's gardens: no Scarlet room slows the karts. ADR 0020's sixth addendum supersedes the fifth's "grass slows where a clear edge marks it".
+- **Scarlet Library, version 3** ([sheet](../art/tracks/scarlet-library.md#version-3-an-open-courtyard-at-full-speed)): the courtyard was closed. The four trees' round crowns reached within a kart's width of the fountain and of the bushes and columns, so a kart could drive in from any side but never past the fountain. Now:
+  - the trees are a little smaller and stand in the courtyard's corners, among the arcade's columns;
+  - a clear ring runs round the fountain, at least 48 units wide for the kart's centre at its narrowest, and the four ways in from the arcade are 84 units and wider (measured on the generated collision data);
+  - one bush and three hounds stay at the trees' feet, out of the way; the huntsman who stood on the lawn is gone;
+  - the reviewed route now crosses the courtyard, round the fountain's north side.
+- **Scarlet Cathedral, version 3** ([sheet](../art/tracks/scarlet-cathedral.md#version-3-the-stairs-turn-at-a-landing), [review image](../art/tracks/scarlet_cathedral-review.png)): the stairs turn at a landing, as on the battle map.
+  - Each long flight climbs north beside the falls to a landing of grey flags, walled on the north by a low parapet of dressed stone over the round pool; a short flight turns outward (west on the west stairs, east on the east) onto the upper lawn. The lanes are 80 units wide for the kart's centre (60 at a long flight's foot, beside the lower pool): two turns to take briskly, not flat out.
+  - The upper garden now starts behind the parapets, its lawns running down either side to the short flights; the champions' plinths stand south of the short flights.
+  - The round pool moves north and shrinks (115 in radius about (512, 865), from 140 about (512, 830)); the falls run on up to it; the lions sit on its rim. The two trees where the short flights land moved behind the parapets; the bushes stand by the walks.
+- **Scarlet Graveyard:** the lawn no longer slows; nothing else changes, its picture included, and it stays **version 2** (decision 1).
+- **Copy:** "Full speed on the grass; graves block" (Graveyard), "Full speed across the cloister's lawn" (Library), "Up the stairs and turn at the landing" (Cathedral) in the status lines; the track-screen facts likewise.
+
+## Decisions for review
+
+1. **The Graveyard keeps version 2.** Only its lawn's surface changes. Its stone path runs straight across the cloister, round the court's fountain on stone, and the graves fill the lawns, so the lawn was never the faster way and the times on its board stay comparable. Codex's `test_score_sharing.lua` also pins that board at version 2 ("catch-up uses the reviewed drive-fix geometry versions"), and the test is Codex's. If Codex prefers a bump anyway, it is the `"version"` in `SCARLET_GRAVEYARD`, a regeneration, the catalogue and that test's expectation.
+2. **Codex's production grazing regression follows the moved pool.** In `tests/test_dungeon.lua` the Cathedral's "normal-step grazing" check now grazes the top of the version-3 pool's reach (y 997.99 instead of 987.99; centre (512, 865), clearance 133 instead of (512, 830), 158). Same intent and tolerances; please confirm.
+3. **The parapets are plinths** (no new painter code): narrow raised blocks whose dressed rim covers their tops, their faces 24 units tall. A kart on a landing stops at the parapet by its inset, as at any wall.
+4. **The Library's courtyard is now the short way** round the cloister (about 5,280 units along the route instead of 5,600). No gate changes; the walks stay open. The owner drove into it; a race through it seemed the point.
+
+## Needs Codex
+
+- **Review and integration** on top of the installed `codex/scarlet-stats-review`. Data, pictures, copy and tests only; the runtime code is untouched.
+- **Install:** the Library's and the Cathedral's pictures change at the same paths: a full client restart.
+- **PRODUCTION_MAPS / INTEGRATION_STATUS** list the courses' versions; they are Codex's and are left as they are.
+
+## Tests
+
+| Command | Cloud | The owner's machine |
+|---|---|---|
+| `python scripts/build_dungeon_tracks.py --wc3 WC3 --check` | PASS, all four dungeons (3 min, fresh sprites) | PASS, each dungeon in turn (the device's own sprite cache, 5 new sprites); the same sha256 for all eight pictures |
+| `python scripts/test_lua.py --runtime lua51` | PASS, full suite | PASS, full suite |
+| `python scripts/test_lua.py --runtime lua54 --tests dungeon menu circuit` | PASS | not run |
+| `python scripts/export_score_catalog.py --check` | PASS, 11 boards | PASS |
+| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in `PROGRESS.md` fail | not run |
+| `git diff --check` | clean | |
+
+The pictures' sha256: Library `02ad8b5d…` (preview `34a784df…`), Cathedral `dfcf9f89…` (preview `c5655012…`); the Graveyard `753cc171…` and the Armory `ec27ff52…` unchanged. The clearance figures (the ring's 48, the ways in 84 and wider, the stairs' 60 and 80) come from a distance transform of the generated collision data, a review aid not committed.
+
+**NOT RUN in the client:** the drive, the open courtyard, the landings and the pictures. The owner runs [the checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-scarlet-v3-check-proposed-claudescarlet-v3).
+
+## PROGRESS ledger entry for the integrator (Scarlet v3)
+
+> **2026-10-26 — Scarlet v3 (Claude, `claude/scarlet-v3` `86efbca` on Codex `caab661`).** After the owner's second drive ("cant even fit through here"; "the same terrain should have the same effects across maps"): no Scarlet room is rough any more (the Library's courtyard and the Graveyard's cloister become `road`; ADR 0020 sixth addendum). Library v3: the courtyard opened (smaller trees in the corners; a clear ring round the fountain, 48+ units for the kart's centre; four clear ways in), route across it. Cathedral v3: each long flight climbs to a landing walled by a low parapet (a plinth) and a short flight turns outward onto the upper lawn; the round pool moves north and shrinks. Graveyard surface only, still version 2. Catalogue: Library and Cathedral at version 3. Dungeon checks PASS on both machines (same sha256), Lua 5.1 full suite PASS on both, Lua 5.4 dungeon/menu/circuit PASS (cloud), catalogue PASS on both; validator: only the 2 pre-existing `PROGRESS.md` links fail. NOT RUN: client.
+
+## Push (the owner's)
+
+```
+git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/scarlet-v3
+```
+
+## Next
+
+The multiplayer screens (race positions, name tags, results) and the bigger top-10/top-3 celebration, on `claude/race-screens` from this branch.
+
+# Previous: kart stat bars
 
 Prepared 2026-10-26 by Claude (rendering/UI/sprites owner).
 

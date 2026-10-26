@@ -1,5 +1,12 @@
 # Technical architecture
 
+Reviewed visual integration,2026-10-26: estimated HUD placing is presentation
+only; final MP rows use retained LiveRace.results with pending/tied semantics.
+Score celebrations consume detached exact finish identity/placement rather
+than scanning shared rows. Gryphon poses read simulation/copied observations
+without modifying them; stale/terminal peers rest. See [contracts](API_CONTRACTS.md)
+and the [review/budgets](reviews/2026-10-26-claude-visual-integration.md).
+
 Postrace extension,2026-10-26: a bounded retained two-peer room owns the existing
 Core lease and copied unverified result rows. Same-player rematches reuse the
 existing control/grid/clock flow with a fresh session; Ready/Start remain

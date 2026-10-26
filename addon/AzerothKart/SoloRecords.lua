@@ -133,12 +133,21 @@ function Records.Finish(run, race, multiplayer)
         -- Only this independently versioned child is written. Preferences and
         -- unknown top-level fields remain intact; no SavedVariables file I/O.
         db.highscores, source, store = updated, updated, updated
-        local message="Personal best saved: " .. Records.FormatTime(ticks)
+        local output=result("Personal best saved: " .. Records.FormatTime(ticks),ticks,true)
+        output.playerName=playerName -- already captured once for this exact run
         if AK.ScoreSharing and type(AK.ScoreSharing.Publish)=="function" then
-            local ok,notice=pcall(AK.ScoreSharing.Publish,record)
-            if ok and type(notice)=="string" then message=notice.." | "..message end
+            local ok,notice,placement=pcall(AK.ScoreSharing.Publish,record,current)
+            if ok and type(notice)=="string" then output.message=notice.." | "..output.message end
+            if ok and type(placement)=="table" and getmetatable(placement)==nil
+                and placement.scope=="known_board" and integer(placement.rank,1,Scores.MAX_ROWS)
+                and integer(placement.knownPlayers,placement.rank,Scores.MAX_ROWS) then
+                output.placement={}
+                for _,key in ipairs({"rank","previousRank","tier","enteredTier","knownPlayers","scope"}) do
+                    output.placement[key]=placement[key]
+                end
+            end
         end
-        return result(message, ticks, true)
+        return output
     end
     if reason == "not_better" then
         return result("Total " .. Records.FormatTime(ticks) .. " | Personal best unchanged", ticks)

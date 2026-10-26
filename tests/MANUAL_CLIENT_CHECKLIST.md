@@ -1,5 +1,37 @@
 # Manual client acceptance — F0/F1/F2/F5
 
+## Deferred Gryphon Rider wingbeat check (proposed, `claude/gryphon-wings`)
+
+**NOT RUN.** Run it after Codex's review and a coordinated install. **Fully restart the client:** `GryphonRider.tga` and its outline keep their paths but are larger. The owner runs these checks; Claude does not control the client.
+
+1. **The garage:** choose the Gryphon Rider. On the turntable its wings beat (raised, level, swept down) for four seconds, then it glides with its wings spread for two. Nothing reads "Lua error".
+2. **A run:** the wings beat from the countdown on, about one and a half beats a second. Fire a boost: it glides, wings spread, the wind trails leaving its wingtips; when the boost ends, the beat resumes. Record whether the beat reads as flapping at race size or as flicker, whether it is too fast or too slow, and whether the glide is clear enough.
+3. **Turning:** at every heading the gryphon faces its travel and its shadow moves with the wings; no neighbouring frame shows at a frame's edge.
+4. **Outline on** (Settings): the line follows the wings.
+5. **No run:** stop or finish: the gryphon rests with its wings level, as before.
+6. **Two players:** a friend on the gryphon beats its wings too and glides while they boost.
+7. **Memory:** choosing the gryphon loads a 16 MiB sheet: note any hitch when choosing it or starting a race with it.
+
+## Deferred race screens and celebrations check (proposed, `claude/race-screens`)
+
+**NOT RUN.** Run it after Codex's review and a coordinated install. **Fully restart the client:** `Assets/UI/Celebration.tga` is a new file. The owner runs these checks; Claude does not control the client.
+
+1. **A top-ten celebration.** With shared scores running (the board reads "Shared community scores"), set a new personal best that ranks in the top ten; a fresh version-3 board (the Library or the Cathedral) puts the first run at #1. The results grow: the banner (**FIRST ON THE BOARD!**, **NEW #1!**, **TOP 3!** or **TOP 10!**) and "#N of M on the shared board" under it, the medal or the wreath with the rank popping in over the dialog's top edge on a slowly turning sunburst, confetti falling for under three seconds, and the epic-loot toast (top three) or the quest-complete chime (top ten) instead of the finish fanfare. Record whether it reads as big enough and not too much, whether the medal clears the window's header, and whether `Game42Font` (the banner) and the sounds exist on Forever.
+2. **The flow.** The middle row reads **Restart · Highscores · Close results**; after a celebration Highscores is lit. Click it: the run's own board opens at the page with your row, your row in gold. **Close results**, then reopen the results from the track view: the celebration shows still, with no sound or confetti.
+3. **A plain finish.** A best off the top ten, or with shared scores off, keeps the plain window with its notice in gold; no best keeps it grey; the fanfare plays once.
+4. **A two-player race** (with Codex's live flow): the place ("1st"/"2nd", "of 2") at bottom right changes as you pass; the friend's name rides over their kart, or waits at the canvas edge toward it with the distance, and fades when the signal goes stale. At the finish both racers are listed in their places with their karts and times or state; **FINISHED!** waits for the friend, then turns into **1st PLACE!** (the gold medal, the toast) or **2nd PLACE** with the gap. UI's "No agreed winner or standings" hint and the note about reported times stay.
+5. **Print Probe** (developer info): 90 frames, 91 textures and 150 font strings.
+
+## Deferred Scarlet v3 check (proposed, `claude/scarlet-v3`)
+
+**NOT RUN.** Run it after Codex's review and a coordinated install. **Fully restart the client:** the Library's and the Cathedral's pictures keep their paths but changed. The owner runs these checks; Claude does not control the client.
+
+1. **Scarlet Library, the courtyard.** Drive into the courtyard from each side of the arcade and round the fountain both ways, near and wide: the kart fits everywhere between the fountain and the trees (the place in his screenshot, south-east of the fountain, included). The HUD shows "Road" on the lawn: nothing slows. Record whether the corners' trees, the bush and the hounds look right, and whether the courtyard now feels too empty.
+2. **Scarlet Graveyard.** The cloister's lawn shows "Road" and does not slow; the graves still block. The board keeps its version-2 times.
+3. **Scarlet Cathedral, the stairs.** Up either long flight beside the falls to its landing: driving on north, the parapet stops the kart where it is drawn; turn outward (west on the west stairs, east on the east) down the short flight onto the lawn, then up past the round pool to the terrace. Record whether the two turns feel like a fair bit more difficulty, or too tight.
+4. **Scarlet Cathedral, the upper garden.** The round pool is smaller and farther north: the kart stops where its rim is drawn and slides round it. The trees behind the parapets block where their crowns are drawn.
+5. **Scores.** The Library and the Cathedral show fresh boards (version 3); older times stay saved under their versions.
+
 ## Deferred kart stat bars check (proposed, `claude/kart-stat-bars`)
 
 **NOT RUN.** Run it after Codex's review and a coordinated install. **Fully restart the client:** `Assets/UI/StatBars.tga` is a new file. The owner runs these checks; Claude does not control the client.

@@ -1,5 +1,35 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-26 21:09 +01:00 — Claude visual stack reviewed and integrated
+
+Owner authorizes conditional integration. From clean7cd2aed/installed94d4d1e,
+`codex/claude-race-integration` combines unchanged Claude tips a4fe2d5/8511d8c/
+e3c82ad with current rematch work. [Review](reviews/2026-10-26-claude-visual-integration.md)
+records accepted source, corrections and exact tests. Other worktrees and their
+untracked files are untouched. The Menu overlap was resolved around the current
+room controls, preserving both branches' regressions.
+
+Includes Scarlet courtyard/landing/full-grip fixes, HUD/name tags/results/score
+celebrations and Gryphon wingbeat/glide. Graveyard now3 (Library3/Armory2/
+Cathedral3), keeping all historical boards. Exact finish identity/placement
+metadata replaces row guessing, including a tested cold-first-save fix.
+Final MP visuals preserve pending/tied retained backend results and quiet late
+refresh/reopen, Play Again/map/Leave commands. Stale/terminal peers rest their
+wings. No mechanics, wire, live-controller or send-budget change.
+
+Focused Lua51 dungeon/presentation/menu/ui/solo_records/score_sharing/
+multiplayer_integration PASS7modules, all80sources/tests parse. Final metadata
+checks rerun PASS after cold-initialization correction. Agent menu Lua54 PASS.
+Celebration byte check, all10outline checks and11board export PASS. Structural
+validator retains only the2historical expired skill links; no full pass claimed.
+Review notes record initial stale assertions/fixture failures and corrections.
+No redundant broad suite or image rebuild. Native client checks NOT RUN.
+
+Production pool90/91/150; Gryphon sheet/outline add15MiB raw, Celebration0.5MiB;
+all preallocated, actual native memory/hitches unmeasured. Full restart needed.
+No milestone gate closed, push, release, force or main change. Prepare backed-up
+combined install and matching ZIP next; exact runtime/receipt follows below.
+
 ## 2026-10-26 20:49 +01:00 — multiplayer rematch build installed and packaged
 
 Owner resumes the pending task. Source remains clean tested `94d4d1e` on

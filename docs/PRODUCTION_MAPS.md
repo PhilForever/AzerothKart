@@ -20,24 +20,25 @@ No eight-player implementation or capacity acceptance is claimed.
 | Orgrimmar Canyon Rush (`orgrimmar_canyon`) | 1 | 5 |
 | Undercity Slime Circuit (`undercity_slime`) | 2 | 6 |
 | Thunder Bluff Skyway (`thunder_bluff_skyway`) | 2 | 7 |
-| Scarlet Graveyard (`scarlet_graveyard`) | 2 | Solo sprint |
-| Scarlet Library (`scarlet_library`) | 2 | Solo sprint |
+| Scarlet Graveyard (`scarlet_graveyard`) | 3 | Solo sprint |
+| Scarlet Library (`scarlet_library`) | 3 | Solo sprint |
 | Scarlet Armory (`scarlet_armory`) | 2 | Solo sprint |
-| Scarlet Cathedral (`scarlet_cathedral`) | 2 | Solo sprint |
+| Scarlet Cathedral (`scarlet_cathedral`) | 3 | Solo sprint |
 
 All eleven courses are available in solo and Highscores. The seven three-lap
 circuits are available in the existing two-peer lobby. The four dungeon sprints
 are excluded from live admission until their multiplayer lifecycle is reviewed.
 There are no coming-soon entries. Mirage is the actual default geometry and scenery.
 
-Reviewed Scarlet v2 changes remove the Library's Loksey checkpoint/path NPC,
-make the Armory Training Grounds and Cathedral gardens full grip, and limit
-the Cathedral climb to its two stairs beside the falls. Library's kerbed lawns
-and Graveyard retain their rough surfaces. Version1 records remain saved in
-their old contexts; current boards use version2. Stat-bar integration changes
-the explicit production UI pool to89frames/77textures/140fontStrings, adding
-only eight creation-time textures and four labels. Native appearance/feel for
-these changes remains pending.
+Reviewed Scarlet v3 opens the Library courtyard and the ring around its pool,
+makes all four Scarlet courses full grip, and gives the Cathedral staircases
+their turning landings. Graveyard, Library and Cathedral now use version3;
+Armory remains2. Graveyard's handling change requires a new board even though
+its scenery is unchanged. All older version1/2 records remain saved in their
+original contexts. Current score catalogue/export has eleven boards, still
+within the unchanged packet limit. The integrated race screens bring the
+explicit production pool to90frames/91textures/150fontStrings, created once.
+Native appearance/feel for these changes remains pending.
 
 A failed scenery load refuses Start until a valid map loads;
 there is no hidden Oval fallback. An obsolete saved Oval preference falls back

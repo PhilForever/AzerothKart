@@ -17,7 +17,7 @@ The owner asked for "the ready to ship UI": clear Single Player and Multiplayer 
 ```
 open window ─► Main menu ─► Single Player ─► Choose a Track ─► Choose Your Kart ─► Race! ─► 3-2-1-GO ─► race ─► Results
                  │                                                                                                 │
-                 ├─ Multiplayer: lobby preview, coming soon         Restart · Close results · Change Kart · Change Track · Main Menu
+                 ├─ Multiplayer: lobby preview, coming soon    Restart · Highscores · Close results · Change Kart · Change Track · Main Menu
                  ├─ Garage: choose a kart                                                                          │
                  ├─ How to Play                                       track view: Start Race · Track · Kart · Main Menu
                  └─ Settings
@@ -33,13 +33,13 @@ open window ─► Main menu ─► Single Player ─► Choose a Track ─► C
 |---|---|
 | Main menu | The "Azeroth Kart" title, then **Single Player**, **Multiplayer (soon)**, **Garage**, **How to Play** and **Settings**, with the current track and kart named underneath |
 | Choose a Track | Mirage Raceway and Test Oval, each with a preview picture, a short description and its facts (3 laps, 4 gates, direction, off-road). Choosing one applies it at once; **Next: Choose Kart** continues |
-| Choose Your Kart | A turntable that spins the chosen kart's own 64-heading sheet, arrows and a grid of all ten karts (five rows of two), the kart's description and model credit, its handling profile's name and four gold-framed **stat bars**, Speed, Acceleration, Turning and Braking, filled from the profile's actual values ([below](#new-art-kart-stat-bars); `claude/kart-stat-bars`). **Race!** starts the countdown |
+| Choose Your Kart | A turntable that spins the chosen kart's own 64-heading sheet (the Gryphon Rider beating its wings, then gliding), arrows and a grid of all ten karts (five rows of two), the kart's description and model credit, its handling profile's name and four gold-framed **stat bars**, Speed, Acceleration, Turning and Braking, filled from the profile's actual values ([below](#new-art-kart-stat-bars); `claude/kart-stat-bars`). **Race!** starts the countdown |
 | Garage | The same kart choice from the main menu, with **Done** instead of Race! |
 | Multiplayer | **COMING SOON**. Disabled **Host a Race** and **Join a Race**, a disabled lobby preview (you, an open slot, track, Ready/Start/Leave), and how to help with today's connection test (`/akart net help`) |
 | How to Play | The controls and the racing rules, plus the model credits |
 | Settings | Window size (80–125%; sizes that would not fit the screen are disabled), drift and boost effects, **Outline my kart** (a bright yellow line round your own kart; [outlines](../karts/outlines.md), since 2026-10-23), sound effects, developer info (the timing line and Print Probe), and reset window position. The window can be dragged by its title bar |
-| Race | Big **LAP x/3** and the next gate at top left. The clock in tenths and the best lap at top right. "Controls active - Esc to release" at the bottom. A large gold 3-2-1-GO. **Stop** sits away from where Start was, so a double click cannot start and stop |
-| Results | A dark dialog with the result title, track and kart, total/last/best times and every lap time, the fastest in green. **Restart**, **Close results**, **Change Kart**, **Change Track** and **Main Menu** |
+| Race | Big **LAP x/3** and the next gate at top left. The clock in tenths and the best lap at top right. "Controls active - Esc to release" at the bottom. A large gold 3-2-1-GO. **Stop** sits away from where Start was, so a double click cannot start and stop. In a two-player race, the place ("1st"/"2nd", "of 2") at bottom right and the friend's name over their kart ([race screens](#race-screens-and-score-celebrations), `claude/race-screens`) |
+| Results | A dark dialog with the result title, track and kart, total/last/best times and every lap time, the fastest in green. **Restart**, **Highscores** (the run's board at the player's page) and **Close results**, then **Change Kart**, **Change Track** and **Main Menu**. A top-ten best on the shared board, or a two-player place, adds a banner, a medal or wreath on a sunburst and confetti; a two-player race lists both racers ([race screens](#race-screens-and-score-celebrations)) |
 | Track view (after Close results) | The frozen run and its HUD, with **Start Race**, **Track**, **Kart** and **Main Menu** on the bar |
 
 The UI's own HUD lines keep their rows and text: laps, checkpoints, status, drift feedback and the meter. They gain colours: white detail, gold status. The timing line shows only with developer info.
@@ -101,6 +101,35 @@ python scripts/build_stat_bars.py --check    # verify the bytes
 python scripts/build_stat_bars.py --preview  # also docs/art/ui/stat-bars.png
 ```
 
+## Race screens and score celebrations
+
+The owner (2026-10-26): "feel free to start on screen side of multiplayer such as race positions, name tags, and results. I also want a bigger celebration when you get a top 10 and top 3 score, take a look at that whole window and flow." Proposed on `claude/race-screens`; the contract notes are in [API_CONTRACTS](../../API_CONTRACTS.md#proposed-race-screens-and-score-celebrations-claude-clauderace-screens-2026-10-26).
+
+![A top-three and a top-ten best, a two-player race and its results (layout pictures on stand-in data)](race-screens-review.png)
+
+- **The results window's celebrations.** When a run saves a new personal best high on the shared score board, the results grow a banner over UI's title:
+  - **NEW #1!** (gold medal), or **FIRST ON THE BOARD!** when nobody else is on it yet;
+  - **TOP 3!** with a silver (#2) or bronze (#3) medal;
+  - **TOP 10!** with a golden laurel wreath, the rank written in it;
+  - under the banner, the place: "#2 of 14 on the shared board".
+
+  The medal or wreath sits over the dialog's top edge on a slowly turning gold sunburst; it pops in (40% to 115% to full size in a third of a second) while the banner fades in and a dozen pieces of confetti (eight for the top ten) fall through the window for under three seconds. A sound plays in place of the finish fanfare: the epic-loot toast for #1 and the top three, the quest-complete chime for the top ten. Reopening the results shows the celebration still, without the sound or the confetti. A best off the top ten, or on this computer's own board, keeps the plain window with the save notice in gold.
+- **The flow.** The results' middle row is now **Restart · Highscores · Close results**. **Highscores** opens the run's own board at the page with the player's row; the board shows the player's own row in gold. After a top-ten celebration the button is lit, inviting the look.
+- **A two-player race:**
+  - **the place** in the bottom-right corner while racing, large: "1st" in gold or "2nd" in silver, "of 2" under it, from each racer's own progress (laps, gates and how far on toward the next, where their kart is drawn);
+  - **the name tag**: the friend's name over their kart, or held inside the canvas edge toward it with the distance ("Amber Stone (420 away)"), faded when their signal goes stale;
+  - **the results**: the racers in their places with their karts and times ("racing, lap 3/3", "left the race" or "connection lost" until they finish), a banner (**1st PLACE!** with the gold medal, sunburst, confetti and sound; **2nd PLACE** with the silver; **FINISHED!** while the friend still races, then the place as soon as their finish arrives), and the gap: "Amber Stone finished 1.65s behind you". The places are each racer's own reports: UI's "LOCAL FINISH — UNVERIFIED" title and "No agreed winner or standings" hint stay, and a note says so.
+- **Art:** `addon/AzerothKart/Assets/UI/Celebration.tga`, a 512×256 BGRA32 atlas with alpha (512 KiB), painted by `scripts/build_celebration_art.py`: the sunburst (16 soft rays round a glow), the gold, silver and bronze medals (a bevelled disc with a faceted star, on two crimson ribbon tails edged in gold) and the laurel wreath round a dark disc with a crimson bow. Original art; the bytes are the same on every platform. It loads once, at the first celebration; if it fails, the banner shows alone and the load is not retried. The confetti is plain coloured squares.
+
+![The celebration atlas: sunburst, gold, silver and bronze medals, the top-ten wreath](celebration.png)
+
+```
+python scripts/build_celebration_art.py            # write the TGA
+python scripts/build_celebration_art.py --check    # verify the bytes
+python scripts/build_celebration_art.py --preview  # also docs/art/ui/celebration.png
+python scripts/preview_ui.py                       # the layout pictures, race-screens-review.png too
+```
+
 ## Saved preferences
 
 `AzerothKartDB.preferences` (account-wide) is a version-1 record, read defensively and written on deliberate successful choices or settings changes, never per tick:
@@ -147,7 +176,8 @@ Explicit UI counts were65/160/79 for the original Menu. Current integrated city 
 - **Creation:** everything is created once with the window; nothing is created per tick or frame.
 - **Per frame:** the race HUD compares numbers and rewrites its text only when it can change, about ten times a second while the clock runs. The shown kart/garage turntable has its own visual spin callback while the race simulation is inactive; it never advances physics or the race clock.
 - **Stat bars** (`claude/kart-stat-bars`): the kart screen's four bars add **8 textures and 4 font strings**, created once with the window, bringing the integrated production pool from 89/69/136 to **89 frames, 77 textures and 140 font strings**. Choosing a kart only re-crops them.
-- **Texture memory:** the preview atlas adds 2 MiB when the track screen is first opened; the stat bars' atlas 128 KiB when the kart screen is first opened. The turntable reuses the kart sheets the race already loads. The two scenery slots can retain Mirage and Stormwind simultaneously; the latter adds16MiB raw pixels. Native memory/performance remains unmeasured.
+- **Race screens** (`claude/race-screens`): the HUD's place (2 font strings), the name tag (1), and in the results a Highscores button (1 frame), the sunburst, a medal and 12 confetti pieces (14 textures), the banner, its line, the wreath's rank and the racers' two rows (7 font strings): **90 frames, 91 textures and 150 font strings**, all created with the window. The HUD's place compares numbers every frame and rewrites its text only when the place changes; the results' motion and their 5 Hz refresh move and re-text pooled pieces only.
+- **Texture memory:** the preview atlas adds 2 MiB when the track screen is first opened; the stat bars' atlas 128 KiB when the kart screen is first opened; the celebration atlas 512 KiB at the first celebration. The turntable reuses the kart sheets the race already loads; the Gryphon Rider's is 16 MiB with its wingbeat (`claude/gryphon-wings`), and the turntable beats its wings for four seconds and glides for two. The two scenery slots can retain Mirage and Stormwind simultaneously; the latter adds16MiB raw pixels. Native memory/performance remains unmeasured.
 
 ## Tests (offline)
 
@@ -158,6 +188,8 @@ Explicit UI counts were65/160/79 for the original Menu. Current integrated city 
 - every results path, the track view and the lap list;
 - the garage and the turntable;
 - the stat bars: `Menu.statFill`'s scale, each profile's four bars from `Physics.GetHandling` (Heavy 5, 2, 2, 6; Agile 3, 6, 6, 2; Balanced 4 each), the atlas rows and crops, no new objects when choosing karts, and the words in their place when the picture cannot load (`claude/kart-stat-bars`);
+- the celebrations (`claude/race-screens`): `Menu.scorePlacement` on stand-in boards (#1 of several, alone, #3, #7, #11, a local board), the banner, place line, medal or wreath (its crop, the rank in the wreath) and sunburst for each, the dialog's two sizes, the sound in place of the fanfare, the medal's pop, falling and vanishing confetti, the turning sunburst, a still reopening, the gold notice for a best off the top ten, a refused picture (the banner alone, no retry) and the Highscores button opening the run's board at the player's page with their row in gold;
+- the two-player screens: the HUD's place (1st, 2nd behind a friend further on or finished, hidden outside a live race), the results' rows and banners while the friend races, finishes behind or ahead, or leaves, and a stopped run; no objects created;
 - settings and their effects, including no effects while switched off;
 - saving, restoring and failed restores; explicit already-current fallback choices after a deferred or failed restore; quick-bar precedence before restoration; unknown and newer records; sizes that do not fit;
 - a newer-version failed-load fixture: explicit fallback choices update in-memory preferences but preserve the original saved table/unknown field, stopped vehicle/race/clock/lap/checkpoint references, held input and inactive state;

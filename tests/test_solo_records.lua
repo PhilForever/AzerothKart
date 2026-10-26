@@ -39,6 +39,8 @@ fixture({schemaVersion=1, custom={keep=true}, preferences={sound=false}}, functi
     assert(reads.name==0 and reads.time==0 and root.highscores==nil, "load/start performs no date/name read or storage write")
     local result = R.Finish(token, race, false)
     assert(result.saved and result.totalTicks==2345 and result.message:find("0:39.08",1,true))
+    assert(result.playerName=="Lene Conradi" and result.placement==nil and reads.name==1,
+        "exact captured finisher is supplied once; unavailable sharing cannot invent a placement")
     assert(AzerothKartDB==root and root.preferences==prefs and root.custom.keep, "finish preserves unrelated saved data")
     local raw = root.highscores
     assert(R.Finish(token,race,false)==nil and root.highscores==raw and reads.name==1 and reads.time==1,
@@ -64,6 +66,45 @@ fixture({schemaVersion=1, custom={keep=true}, preferences={sound=false}}, functi
 end)
 
 fixture({schemaVersion=1}, function(R, ns, run, reads)
+    local placement={rank=3,previousRank=11,tier=3,enteredTier=3,knownPlayers=12,scope="known_board"}
+    local calls=0
+    ns.ScoreSharing={Publish=function(record)
+        calls=calls+1
+        assert(record.playerName=="Lene Conradi" and record.totalTicks==2345)
+        return "Top 3 in known shared scores! #3",placement
+    end}
+    local token,race=run()
+    local saved=R.Finish(token,race,false)
+    assert(saved.saved and saved.playerName=="Lene Conradi" and reads.name==1 and calls==1)
+    assert(saved.placement.rank==3 and saved.placement.previousRank==11
+        and saved.placement.enteredTier==3 and saved.placement.knownPlayers==12
+        and saved.message:find("Top 3",1,true),"exact transaction placement and existing notice reach presentation")
+    saved.placement.rank=1
+    assert(placement.rank==3,"presentation placement is detached from sharing state")
+    assert(R.Finish(token,race,false)==nil and calls==1,"repeated finish cannot replay publication or celebration")
+end)
+
+for _, failure in ipairs({"throws","unavailable","unknown_scope","bad_rank","bad_count","metatable"}) do
+    fixture({schemaVersion=1}, function(R, ns, run, reads)
+        ns.ScoreSharing={Publish=function()
+            if failure=="throws" then error("sharing unavailable") end
+            if failure=="unavailable" then return nil end
+            local placement={rank=3,knownPlayers=12,scope="known_board"}
+            if failure=="unknown_scope" then placement.scope="global"
+            elseif failure=="bad_rank" then placement.rank=0/0
+            elseif failure=="bad_count" then placement.knownPlayers=2
+            elseif failure=="metatable" then setmetatable(placement,{}) end
+            return nil,placement
+        end}
+        local token,race=run()
+        local saved=R.Finish(token,race,false)
+        assert(saved.saved and saved.playerName=="Lene Conradi" and reads.name==1
+            and saved.placement==nil and R.GetView("mirage_raceway").rows[1].totalTicks==2345,
+            failure.." cannot invent a rank or prevent the completed local save")
+    end)
+end
+
+fixture({schemaVersion=1}, function(R, ns, run, reads)
     local historical={trackId="test_oval",trackVersion=ns.Track.version,physicsVersion=12,
         lapCount=3,tickRate=60,rulesVersion=1,playerName="Lene Conradi",totalTicks=2500,
         finishedAt=1792756800,kartId="goblin_mortar_trike"}
@@ -87,6 +128,19 @@ fixture({schemaVersion=1}, function(R, ns, run, reads)
     assert(R.Finish(token,current,false).saved and #R.GetView("mirage_raceway").rows==1)
     assert(ns.Highscores.View(AzerothKartDB.highscores,historical)[1].totalTicks==2500,
         "current production finish preserves historical retired-course records")
+end)
+
+fixture({schemaVersion=1}, function(R, ns)
+    local old={trackId="scarlet_graveyard",trackVersion=2,physicsVersion=ns.Physics.VERSION,
+        lapCount=1,tickRate=60,rulesVersion=1,playerName="Lene Conradi",totalTicks=2500,
+        finishedAt=1792756800,kartId="goblin_mortar_trike"}
+    AzerothKartDB.highscores=ns.Highscores.Submit(ns.Highscores.Load(nil),old)
+    R.Init()
+    local track=ns.Courses.build("scarlet_graveyard",ns.Track.crossesGate)
+    assert(R.Context(track).trackVersion==3 and #R.GetView(track.id).rows==0,
+        "full-speed Graveyard grass has a new board; older handling records are historical")
+    assert(ns.Highscores.View(AzerothKartDB.highscores,old)[1].totalTicks==2500,
+        "version change preserves the old Graveyard board")
 end)
 
 for _, kind in ipairs({"stopped", "countdown", "interrupted", "partial", "inconsistent", "multiplayer", "hitch"}) do

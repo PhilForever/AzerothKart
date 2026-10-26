@@ -62,12 +62,12 @@ Menu.TRACKS = {
     {id="scarlet_graveyard", name="Scarlet Graveyard", cell="scarletgraveyard",
         blurb="Through the monastery's portal and up the hall to the Chamber of Atonement, down the stairs into "
             .. "the Forlorn Cloister and across its graveyard to Honor's Tomb. No road here: find your way.",
-        facts={"Sprint: one run through 3 gates", "Grass slows you; graves and tombs block",
+        facts={"Sprint: one run through 3 gates", "Full speed on the grass; graves and tombs block",
             "The finish is Honor's Tomb"}},
     {id="scarlet_library", name="Scarlet Library", cell="scarletlibrary",
         blurb="From the portal down the long hall to the Huntsman's Cloister, past Houndmaster Loksey's kennel, "
             .. "then up through the Gallery of Treasures and the Athenaeum to Arcanist Doan's round library.",
-        facts={"Sprint: one run through 4 gates", "The cloister's lawns slow you; its paths are stone",
+        facts={"Sprint: one run through 4 gates", "Full speed across the cloister's lawn",
             "The finish is the round library's door"}},
     {id="scarlet_armory", name="Scarlet Armory", cell="scarletarmory",
         blurb="From the portal across the Training Grounds, the one open sky, up into the Footman's and the "
@@ -76,9 +76,10 @@ Menu.TRACKS = {
         facts={"Sprint: one run through 5 gates", "Full speed across the Training Grounds",
             "The finish is down the stairs, beside Herod"}},
     {id="scarlet_cathedral", name="Scarlet Cathedral", cell="scarletcathedral",
-        blurb="From the portal into the Chapel Gardens, round their pools and up the stairs beside the falls, "
-            .. "through the cathedral's door and up the nave to the altar, where Mograine and Whitemane stand.",
-        facts={"Sprint: one run through 4 gates", "The pools block; only the stairs lead up",
+        blurb="From the portal into the Chapel Gardens, round their pools, up the stairs beside the falls and "
+            .. "off their landing, through the cathedral's door and up the nave to the altar, where Mograine and "
+            .. "Whitemane stand.",
+        facts={"Sprint: one run through 4 gates", "The pools block; the stairs turn at a landing",
             "The finish is before the altar"}},
 }
 
@@ -182,6 +183,68 @@ function Menu.statFill(value, par)
     return math.max(0.5, math.min(Menu.STAT_SEGMENTS, windows)) / Menu.STAT_SEGMENTS
 end
 
+-- The results window's celebration art (scripts/build_celebration_art.py):
+-- a 512x256 atlas of a sunburst, gold, silver and bronze medals and a laurel
+-- wreath, as {left, right, top, bottom} texture coordinates; and how many
+-- confetti pieces fall (plain coloured squares).
+Menu.CELEBRATION_PATH = "Interface\\AddOns\\AzerothKart\\Assets\\UI\\Celebration.tga"
+Menu.CELEBRATION_COORDS = {rays={0, 0.5, 0, 1}, gold={0.5, 0.75, 0, 0.5}, silver={0.75, 1, 0, 0.5},
+    bronze={0.5, 0.75, 0.5, 1}, wreath={0.75, 1, 0.5, 1}}
+Menu.CONFETTI = 12
+
+-- Use the once-latched local finish's exact copied placement; never guess
+-- identity from equal totals or rerank an old finish using a later board cache.
+function Menu.scorePlacement(result, trackId)
+    if type(result) ~= "table" or result.saved ~= true then return nil end
+    local place = result.placement
+    if type(place) ~= "table" or place.scope ~= "known_board" then return nil end
+    local rank, count = place.rank, place.knownPlayers
+    if type(rank) ~= "number" or rank < 1 or rank % 1 ~= 0
+        or type(count) ~= "number" or count < rank or count % 1 ~= 0 then return nil end
+    local kind = "best"
+    if rank == 1 then kind = count > 1 and "record" or "first"
+    elseif rank <= 3 then kind = "top3"
+    elseif rank <= 10 then kind = "top10" end
+    return {rank=rank, count=count, shared=true, kind=kind}
+end
+
+-- The player's full name for display (their own row on a board, the
+-- results' racers): read once through SoloRecords, kept for the session.
+function Menu.PlayerName()
+    local finish = UI.scoreResult
+    if type(finish) == "table" and type(finish.playerName) == "string" then return finish.playerName end
+    local backend = AK.SoloRecords
+    if Menu.playerName == nil and type(backend) == "table" and type(backend.PlayerName) == "function" then
+        local ok, name = pcall(backend.PlayerName)
+        if ok and type(name) == "string" then Menu.playerName = name end
+    end
+    return Menu.playerName
+end
+
+-- The racers of a live two-player race as Presentation.standings reads them,
+-- into the two tables given (reused: the HUD asks every frame): the local
+-- race, and the friend's latest reported observation, placed where their
+-- kart is drawn. Returns them, or nil outside a live race. Display only.
+function Menu.liveRacers(mine, theirs)
+    local live, race, laps, state, track = UI.liveView, UI.race, UI.laps, UI.state, UI.track
+    if not (UI.multiplayer and type(live) == "table" and race and laps and state and track) then return nil end
+    mine.out = race.status == "stopped" or race.status == "interrupted"
+    mine.finishTicks = race.status == "finished" and race.totalTicks or nil
+    mine.progress = Presentation.raceProgress(track, laps.completedLaps, laps.checkpoints.passed, state.x, state.y)
+    local remote = live.remote
+    theirs.finishTicks, theirs.progress, theirs.out = nil, nil, false
+    if type(remote) == "table" then
+        theirs.finishTicks = remote.status == "finished" and remote.tick or nil
+        theirs.out = remote.status == "stopped" or remote.status == "interrupted"
+        theirs.progress = Presentation.raceProgress(track, remote.completedLaps, remote.passed,
+            UI.opponentWorldX or remote.x, UI.opponentWorldY or remote.y)
+    end
+    if not theirs.finishTicks and (live.reason == "peer_stopped" or live.reason == "peer_timeout") then
+        theirs.out = true
+    end
+    return mine, theirs
+end
+
 -- Fixed fonts; each falls back to GameFontNormal when the client lacks it.
 local FONT = {
     logo={"Fancy48Font", "GameFontNormalHuge3", "GameFontNormalHuge"},
@@ -197,6 +260,8 @@ local FONT = {
     lap={"GameFontNormalHuge3Outline", "GameFontNormalHuge3", "GameFontNormalHuge"},
     timer={"GameFontHighlightHuge2", "GameFontHighlightHuge", "GameFontNormalHuge"},
     countdown={"Game72Font", "Game48Font", "GameFontNormalHuge3", "GameFontNormalHuge"},
+    position={"Game48Font", "GameFontNormalHuge3Outline", "GameFontNormalHuge3", "GameFontNormalHuge"},
+    banner={"Game42Font", "Game36Font", "GameFontNormalHuge3", "GameFontNormalHuge"},
 }
 
 local GOLD, WHITE, RED = {1, 0.82, 0}, {1, 1, 1}, {1, 0.35, 0.3}
@@ -371,7 +436,10 @@ end
 
 Menu.SOUNDS = {click="IG_MAINMENU_OPTION", open="IG_MAINMENU_OPEN", checkOn="IG_MAINMENU_OPTION_CHECKBOX_ON",
     checkOff="IG_MAINMENU_OPTION_CHECKBOX_OFF", tick="UI_BATTLEGROUND_COUNTDOWN_TIMER",
-    go="UI_BATTLEGROUND_COUNTDOWN_FINISHED", finish="LFG_REWARDS"}
+    go="UI_BATTLEGROUND_COUNTDOWN_FINISHED", finish="LFG_REWARDS",
+    -- The results window's celebrations: a top-ten board place, and a top
+    -- three, #1 or a race won (in place of the finish fanfare).
+    top10="IG_QUEST_LIST_COMPLETE", top3="UI_EPICLOOT_TOAST"}
 
 function Menu.Play(name)
     if Menu.prefs and Menu.prefs.sound == false then return end
@@ -642,8 +710,19 @@ local function buildHighscores()
             local ok, result = pcall(backend.GetView, track.id)
             if ok and type(result) == "table" then snapshot = result end
         end
+        local me = Menu.PlayerName()
         local rows = snapshot and type(snapshot.rows) == "table" and snapshot.rows or {}
         local pages = math.max(1, math.ceil(#rows / 10))
+        if Menu.highscoreFindSelf then
+            -- Opened from the results: the page with the player's own row.
+            Menu.highscoreFindSelf = nil
+            for rank,row in ipairs(rows) do
+                if type(row) == "table" and me and row.playerName == me then
+                    Menu.highscorePage = math.ceil(rank / 10)
+                    break
+                end
+            end
+        end
         local page = math.max(1, math.min(Menu.highscorePage or 1, pages))
         Menu.highscorePage = page
         view.highscoreTrack:SetText("Track: " .. track.name)
@@ -674,6 +753,11 @@ local function buildHighscores()
                 line.rank:SetText(tostring(rank))
                 local name = type(row.playerName) == "string" and row.playerName or "Unknown player"
                 line.name:SetText(name:gsub("|", "||"))
+                -- The player's own row in gold.
+                local own = me ~= nil and row.playerName == me
+                for _,cell in ipairs({line.rank, line.name, line.total, line.date}) do
+                    color(cell, own and GOLD or WHITE)
+                end
                 local total, date = "--", "--"
                 if type(backend.FormatTime) == "function" then
                     local ok, text = pcall(backend.FormatTime, row.totalTicks)
@@ -694,6 +778,16 @@ end
 
 function Menu.OnScoresChanged()
     if Menu.screen=="highscores" and refresh.highscores then refresh.highscores() end
+end
+
+-- From the results: the run's own board, at the page with the player's row.
+function Menu.ShowBoard(trackId)
+    for index,track in ipairs(Menu.TRACKS) do
+        if track.id == trackId then Menu.highscoreTrackIndex = index end
+    end
+    Menu.highscorePage, Menu.highscoreFindSelf = 1, true
+    UI.DismissSummary()
+    Menu.Show("highscores")
 end
 
 -- The list: each cup's heading, its tracks (Menu.TRACKS order), then its
@@ -779,17 +873,22 @@ local function buildTracks()
 end
 
 -- The garage turntable spins the chosen kart's sheet once every six seconds.
+-- A winged kart beats its wings for four of them and glides for two, so both
+-- of its race poses show.
 local SPIN = 2 * math.pi / 6
+Menu.STAGE_GLIDE = {from = 4, every = 6}
 local function spin(elapsed)
     local view = Menu.view
     local sprite = view.stageSprite
     if not sprite or not view.stageReady then return end
     view.stageHeading = (view.stageHeading + (elapsed or 0) * SPIN) % (2 * math.pi)
+    view.stageTime = ((view.stageTime or 0) + (elapsed or 0)) % Menu.STAGE_GLIDE.every
     if sprite.frames then
         local frame = Presentation.kartFrame(sprite, view.stageHeading)
-        if frame ~= view.stageFrame then
-            view.stageFrame = frame
-            view.stage:SetTexCoord(Presentation.kartFrameCoords(sprite, frame))
+        local phase = Presentation.wingPhase(sprite, view.stageTime, view.stageTime >= Menu.STAGE_GLIDE.from)
+        if frame ~= view.stageFrame or phase ~= view.stagePhase then
+            view.stageFrame, view.stagePhase = frame, phase
+            view.stage:SetTexCoord(Presentation.kartFrameCoords(sprite, frame, phase))
         end
     else view.stage:SetRotation(view.stageHeading - math.pi / 2) end
 end
@@ -797,7 +896,8 @@ end
 local function showStage(sprite)
     local view = Menu.view
     if view.stageSprite == sprite then return end
-    view.stageSprite, view.stageFrame, view.stageHeading = sprite, nil, -math.pi / 4
+    view.stageSprite, view.stageFrame, view.stagePhase, view.stageHeading = sprite, nil, nil, -math.pi / 4
+    view.stageTime = 0
     local ok, loaded = false, false
     if sprite then ok, loaded = call(view.stage, "SetTexture", sprite.path) end
     view.stageReady = ok and loaded == true
@@ -1339,6 +1439,50 @@ local function buildRaceOverlay()
     color(view.time, WHITE)
     view.capture = newText(overlay, FONT.small, "BOTTOM", 0, 8, "Controls active - Esc to release")
     view.capture:Hide()
+    -- A two-player race's place, large in the bottom-right corner ("1st",
+    -- "of 2" under it), from each racer's own progress (Menu.liveRacers).
+    view.position = newText(overlay, FONT.position, "BOTTOMRIGHT", -18, 30, "")
+    view.positionOf = newText(overlay, FONT.white, "BOTTOMRIGHT", -20, 14, "")
+    for _,label in ipairs({view.position, view.positionOf}) do
+        call(label, "SetShadowOffset", 2, -2)
+        call(label, "SetShadowColor", 0, 0, 0, 1)
+        label:Hide()
+    end
+    view.racerMine, view.racerTheirs = {}, {}
+end
+
+-- A place's colour: gold, silver, bronze, then white.
+local PLACE_COLORS = {{1, 0.82, 0}, {0.82, 0.86, 0.92}, {0.86, 0.56, 0.32}}
+
+-- The race HUD's place: shown in a live two-player race once it runs (not on
+-- the grid), from the copied views; text set only when the place changes.
+local function refreshPlace()
+    local view = Menu.view
+    if not view.position then return end
+    local race, place, tied, estimated = UI.race
+    if not UI.gridStaged and race then
+        if race.status == "running" then
+            local mine, theirs = Menu.liveRacers(view.racerMine, view.racerTheirs)
+            place = mine and (Presentation.ahead(theirs, mine) and 2 or 1) or nil
+            estimated = place ~= nil
+        elseif UI.multiplayer and race.status == "finished" then
+            local results = UI.multiplayerResults
+            for _,row in ipairs(type(results) == "table" and results.rows or {}) do
+                if row.localPlayer then place, tied = row.rank, row.tie end
+            end
+        end
+    end
+    local key = tostring(place) .. ":" .. tostring(tied) .. ":" .. tostring(estimated)
+    if key == view.shownPlace then return end
+    view.shownPlace = key
+    if not place then
+        view.position:Hide(); view.positionOf:Hide()
+        return
+    end
+    view.position:SetText((tied and "=" or "") .. Presentation.ordinal(place))
+    color(view.position, PLACE_COLORS[place] or WHITE)
+    view.positionOf:SetText(estimated and "of 2 (est.)" or "of 2 (reported)")
+    view.position:Show(); view.positionOf:Show()
 end
 
 -- UI's HUD lines and meter keep their rows; the bottom bar is rearranged so
@@ -1375,38 +1519,94 @@ local function arrangeRaceScreen()
 end
 
 -- UI's results panel restyled as a dark dialog, with track/kart, lap times
--- and three more ways out. Title, detail, hint, Restart and Close results
--- keep their text and behaviour.
+-- and more ways out. Title, detail, hint, Restart and Close results keep their
+-- text and behaviour. Over them, when there is something to celebrate (a new
+-- personal best, above all one high on a shared board, or a two-player
+-- race's place): a banner, a medal or wreath on a turning sunburst over the
+-- dialog's top edge, falling confetti, and in a two-player race the racers in
+-- their places. Everything is made here, once; showing results makes nothing.
+local RESULT_HEIGHT, CELEBRATION_HEIGHT = 336, 420
+local CONFETTI_COLORS = {{1, 0.82, 0.1}, {0.86, 0.12, 0.14}, {1, 1, 1}, {0.3, 0.78, 0.36}, {0.32, 0.6, 1},
+    {1, 0.56, 0.12}}
+-- The banner for each celebration, the art under it, its confetti and sound.
+local CELEBRATIONS = {
+    record={banner="NEW #1!", art="gold", rays=true, confetti=Menu.CONFETTI, sound="top3"},
+    first={banner="FIRST ON THE BOARD!", art="gold", rays=true, confetti=Menu.CONFETTI, sound="top3"},
+    top3={banner="TOP 3!", rays=true, confetti=Menu.CONFETTI, sound="top3"},
+    top10={banner="TOP 10!", art="wreath", rays=true, confetti=8, sound="top10"},
+    won={banner="1st PLACE!", art="gold", rays=true, confetti=Menu.CONFETTI, sound="top3"},
+    second={banner="2nd PLACE", art="silver"},
+    tied={banner="JOINT 1st PLACE", art="gold"},
+    alone={banner="FINISHED!"},
+    waiting={banner="FINISHED!"},
+}
+
 local function arrangeResults()
     local summary = UI.summary
-    summary:SetSize(460, 336)
+    summary:SetSize(460, RESULT_HEIGHT)
     local level = (UI.canvas:GetFrameLevel() or 1) + 8 -- above the race overlay
     call(summary, "SetFrameLevel", level)
     for _,button in ipairs({UI.restartButton, UI.dismissSummaryButton}) do call(button, "SetFrameLevel", level + 1) end
     backdrop(summary, _G.BACKDROP_DARK_DIALOG_32_32 or DARK_DIALOG)
-    local function place(region, anchor, x, y, justify)
-        region:ClearAllPoints()
-        region:SetPoint(anchor, summary, anchor, x, y)
-        if justify then region:SetJustifyH(justify) end
-    end
-    local huge = fontName(FONT.huge)
-    if _G[huge] ~= nil then call(UI.summaryTitle, "SetFontObject", _G[huge]) end
-    place(UI.summaryTitle, "TOP", 0, -26, "CENTER")
     local view = Menu.view
+    view.resultFonts = {huge=fontName(FONT.huge), large=fontName(FONT.large)}
     view.resultLine = newText(summary, FONT.white, "TOP", 0, -60, "")
     local detail = fontName(FONT.largeWhite)
     if _G[detail] ~= nil then call(UI.summaryDetail, "SetFontObject", _G[detail]) end
     call(UI.summaryDetail, "SetSpacing", 4)
-    place(UI.summaryDetail, "TOP", 0, -86, "CENTER")
     view.resultLaps = newText(summary, FONT.white, "TOP", 0, -172, "")
     view.resultScore = wrap(newText(summary, FONT.graySmall, "TOP", 0, -196, ""), 404, "CENTER")
     call(view.resultScore, "SetMaxLines", 2)
-    place(UI.summaryHint, "BOTTOM", 0, 92, "CENTER")
+    UI.summaryHint:ClearAllPoints()
+    UI.summaryHint:SetPoint("BOTTOM", summary, "BOTTOM", 0, 92)
+    UI.summaryHint:SetJustifyH("CENTER")
     color(UI.summaryHint, {0.62, 0.62, 0.62})
-    place(UI.restartButton, "BOTTOMLEFT", 28, 54)
-    UI.restartButton:SetSize(196, 28)
-    place(UI.dismissSummaryButton, "BOTTOMRIGHT", -28, 54)
-    UI.dismissSummaryButton:SetSize(196, 28)
+    -- The celebration: the sunburst behind the medal, the medal (or wreath,
+    -- its rank written in it), the banner and its line.
+    view.rays = newTexture(summary, "BORDER")          -- under the medal (ARTWORK)
+    view.rays:SetSize(140, 140)
+    view.rays:SetPoint("CENTER", summary, "TOP", 0, 14)
+    view.medal = newTexture(summary, "ARTWORK")
+    view.medal:SetSize(84, 84)
+    view.medal:SetPoint("CENTER", summary, "TOP", 0, 14)
+    view.medalRank = newText(summary, FONT.large, "CENTER", 0, 3, "", view.medal, "CENTER")
+    color(view.medalRank, GOLD)
+    view.banner = newText(summary, FONT.banner, "TOP", 0, -34, "")
+    view.bannerSub = newText(summary, FONT.normal, "TOP", 0, -80, "")
+    for _,label in ipairs({view.banner, view.medalRank}) do
+        call(label, "SetShadowOffset", 2, -2)
+        call(label, "SetShadowColor", 0, 0, 0, 1)
+    end
+    for _,piece in ipairs({view.rays, view.medal, view.medalRank, view.banner, view.bannerSub}) do piece:Hide() end
+    -- The racers in their places (two-player races).
+    view.standings = {}
+    for index=1,2 do
+        local y = -156 - (index - 1) * 24
+        local row = {left=newText(summary, FONT.white, "TOPLEFT", 44, y, ""),
+            right=newText(summary, FONT.white, "TOPRIGHT", -44, y, "")}
+        row.right:SetJustifyH("RIGHT")
+        row.left:Hide(); row.right:Hide()
+        view.standings[index] = row
+    end
+    view.confetti = {}
+    for index=1,Menu.CONFETTI do
+        local piece = newTexture(summary, "OVERLAY")
+        local rgb = CONFETTI_COLORS[(index - 1) % #CONFETTI_COLORS + 1]
+        piece:SetColorTexture(rgb[1], rgb[2], rgb[3], 1)
+        if index % 2 == 0 then piece:SetSize(5, 9) else piece:SetSize(7, 6) end
+        piece:Hide()
+        view.confetti[index] = piece
+    end
+    -- Ways out: Restart, the board, Close; then Kart, Track, Main Menu.
+    UI.restartButton:ClearAllPoints()
+    UI.restartButton:SetPoint("BOTTOMLEFT", summary, "BOTTOMLEFT", 28, 54)
+    UI.restartButton:SetSize(128, 28)
+    view.highscoresButton = newButton(summary, "Highscores", 128, 28, "BOTTOM", 0, 54,
+        function() Menu.ShowBoard(UI.trackId) end)
+    call(view.highscoresButton, "SetFrameLevel", level + 1)
+    UI.dismissSummaryButton:ClearAllPoints()
+    UI.dismissSummaryButton:SetPoint("BOTTOMRIGHT", summary, "BOTTOMRIGHT", -28, 54)
+    UI.dismissSummaryButton:SetSize(128, 28)
     UI.restartButton:SetScript("OnClick", function()
         if UI.multiplayer then Menu.ReplayResults() else UI.Start() end
     end)
@@ -1425,8 +1625,10 @@ local function arrangeResults()
         UI.DismissSummary()
         Menu.Show("home")
     end)
+    Menu.celebration = {}
     summary:SetScript("OnShow", function() Menu.OnResults() end)
     summary:SetScript("OnHide", function() Menu.barKey = nil; Menu.Sync() end)
+    summary:SetScript("OnUpdate", function(_, elapsed) Menu.AnimateResults(elapsed) end)
 end
 
 -- Completed lap times seen by presentation (never written into Laps/Race).
@@ -1441,8 +1643,136 @@ local function recordLaps()
     end
 end
 
--- May be called as copied result/capability data changes. It never records
--- another lap, plays a fanfare or changes the retained race/session itself.
+-- The dialog's layouts: plain, or taller with the banner over it; with the
+-- racers' rows in place of the run's detail in a two-player race. Rows, from
+-- the top: {title, track and kart, detail or first racer, laps, note}.
+local RESULT_ROWS = {
+    plain={-26, -60, -86, -172, -196}, plainRacers={-26, -60, -92, -148, -172},
+    banner={-104, -128, -152, -234, -256}, bannerRacers={-104, -128, -156, -210, -234},
+}
+local function layoutResults(banner, racers)
+    local summary, view = UI.summary, Menu.view
+    local rows = RESULT_ROWS[(banner and "banner" or "plain") .. (racers and "Racers" or "")]
+    local function place(region, y, anchor, x)
+        region:ClearAllPoints()
+        region:SetPoint(anchor or "TOP", summary, anchor or "TOP", x or 0, y)
+    end
+    summary:SetSize(460, banner and CELEBRATION_HEIGHT or RESULT_HEIGHT)
+    -- Lower, with the banner: the medal over the top edge stays clear of the
+    -- window's header.
+    summary:ClearAllPoints()
+    summary:SetPoint("CENTER", UI.canvas, "CENTER", 0, banner and -14 or 0)
+    local font = _G[banner and view.resultFonts.large or view.resultFonts.huge]
+    if font ~= nil then call(UI.summaryTitle, "SetFontObject", font) end
+    UI.summaryTitle:SetJustifyH("CENTER")
+    place(UI.summaryTitle, rows[1])
+    place(view.resultLine, rows[2])
+    place(UI.summaryDetail, rows[3])
+    UI.summaryDetail:SetJustifyH("CENTER")
+    setShown(UI.summaryDetail, not racers)
+    for index,row in ipairs(view.standings) do
+        place(row.left, rows[3] - (index - 1) * 24, "TOPLEFT", 44)
+        place(row.right, rows[3] - (index - 1) * 24, "TOPRIGHT", -44)
+    end
+    place(view.resultLaps, rows[4])
+    place(view.resultScore, rows[5])
+end
+
+-- Final rows consume the controller's retained results, not the HUD's
+-- transient progress estimates. This preserves unknown finishes and tied ranks.
+local function refreshStandings()
+    local view, results = Menu.view, UI.multiplayerResults
+    local rows = type(results) == "table" and results.rows
+    local mine, theirs, shown
+    for index, row in ipairs(view.standings) do
+        local racer = type(rows) == "table" and rows[index]
+        if type(racer) == "table" then
+            shown = true
+            local name = racer.localPlayer and (Menu.PlayerName() or racer.name or "You") or racer.name or "Your friend"
+            name = name:gsub("|", "||")
+            local rank = racer.rank and ((racer.tie and "=" or "") .. Presentation.ordinal(racer.rank)) or "--"
+            row.left:SetText(rank .. "   " .. name .. (racer.localPlayer and " |cff9a9a9a(you)|r" or ""))
+            local time = racer.status == "finished" and type(racer.totalTicks) == "number"
+                and Menu.formatTime(racer.totalTicks * Physics.FIXED_DT)
+                or (racer.status == "stopped" and "|cff9a9a9aDid not finish|r" or "|cff9a9a9aWaiting for finish|r")
+            row.right:SetText(time)
+            color(row.left, racer.localPlayer and GOLD or WHITE)
+            row.left:Show(); row.right:Show()
+            if racer.localPlayer then mine = racer else theirs = racer end
+        else row.left:Hide(); row.right:Hide() end
+    end
+    if not shown or not mine or mine.status ~= "finished" then return nil end
+    local peer = theirs and type(theirs.name) == "string" and theirs.name:gsub("|", "||") or "Your friend"
+    if results.complete and theirs and theirs.status == "finished" and mine.rank and theirs.rank then
+        if mine.tie or theirs.tie then
+            view.bannerSub:SetText("Equal reported finish times | Local observations")
+            return "tied"
+        end
+        local gap = math.abs(theirs.totalTicks - mine.totalTicks) * Physics.FIXED_DT
+        if mine.rank == 1 then
+            view.bannerSub:SetText(("%s finished %.2fs behind you"):format(peer, gap))
+            return "won"
+        end
+        view.bannerSub:SetText(("You finished %.2fs behind %s"):format(gap, peer))
+        return "second"
+    end
+    view.bannerSub:SetText(theirs and theirs.status == "stopped" and (peer .. " did not finish") or
+        ("Waiting for " .. peer .. " to finish"))
+    return "waiting"
+end
+
+-- Show the celebration `kind` (CELEBRATIONS), its animation starting over
+-- only when `fresh` (once per finished run; reopening shows it still).
+local function celebrate(kind, placement, fresh)
+    local view, c = Menu.view, Menu.celebration
+    local spec = kind and CELEBRATIONS[kind]
+    c.kind, c.spec = kind, spec
+    if not spec then
+        for _,piece in ipairs({view.rays, view.medal, view.medalRank, view.banner, view.bannerSub}) do piece:Hide() end
+        for _,piece in ipairs(view.confetti) do piece:Hide() end
+        c.time = nil
+        return
+    end
+    view.banner:SetText(spec.banner)
+    color(view.banner, spec.art == "silver" and {0.86, 0.9, 0.96} or GOLD)
+    view.banner:Show(); view.bannerSub:Show()
+    local art = spec.art
+    if placement and kind == "top3" then art = placement.rank == 2 and "silver" or "bronze" end
+    -- The art loads once; a refused picture leaves the banner alone.
+    if art and view.celebrationReady == nil then
+        local ok, loaded = call(view.medal, "SetTexture", Menu.CELEBRATION_PATH)
+        local okRays, loadedRays = call(view.rays, "SetTexture", Menu.CELEBRATION_PATH)
+        view.celebrationReady = ok and loaded == true and okRays and loadedRays == true
+    end
+    local ready = art and view.celebrationReady
+    if ready then
+        local coords = Menu.CELEBRATION_COORDS[art]
+        view.medal:SetTexCoord(coords[1], coords[2], coords[3], coords[4])
+        view.medal:SetSize(84, 84)
+        view.medal:Show()
+        view.medalRank:SetText(art == "wreath" and placement and ("#" .. placement.rank) or "")
+        setShown(view.medalRank, art == "wreath")
+    else
+        view.medal:Hide(); view.medalRank:Hide()
+    end
+    if ready and spec.rays then
+        local coords = Menu.CELEBRATION_COORDS.rays
+        view.rays:SetTexCoord(coords[1], coords[2], coords[3], coords[4])
+        call(view.rays, "SetAlpha", 0.9)
+        view.rays:Show()
+    else view.rays:Hide() end
+    c.rays = ready and spec.rays and true or false
+    if fresh then
+        c.time, c.confetti = 0, ready and spec.confetti or 0
+        if spec.sound then Menu.Play(spec.sound) end
+    elseif c.time == nil or c.time >= 3 then
+        c.time, c.confetti = 3, 0                          -- reopened: still, no confetti
+    end
+    for _,piece in ipairs(view.confetti) do piece:Hide() end   -- AnimateResults shows them, placed
+end
+
+-- Later copied result/capability changes are quiet: no lap recording,
+-- fanfare, confetti restart or authoritative race/session writes.
 function Menu.RefreshResults()
     if Menu.disabled or not Menu.view or not Menu.view.resultHome then return end
     local view, multiplayer = Menu.view, UI.multiplayer == true
@@ -1450,45 +1780,107 @@ function Menu.RefreshResults()
     local session = multiplayer and sessionView() or nil
     local room = session and type(session.room) == "table" and session.room
     local role = room and (session.role or room.role)
-    local host,guest = role == "host",role == "guest"
+    local host, guest = role == "host", role == "guest"
     UI.restartButton:SetText(multiplayer and "Play Again" or "Restart")
     setShown(view.resultChangeKart, not multiplayer)
     view.resultChangeTrack:SetText(multiplayer and (host and "Change Map" or "Lobby") or "Change Track")
     view.resultHome:SetText(multiplayer and "Leave Multiplayer" or "Main Menu")
+    setEnabled(view.highscoresButton, not multiplayer)
+    local kind, placement
     if multiplayer then
         setEnabled(UI.restartButton, commands and room and (host and session.canRematch == true or guest))
         setEnabled(view.resultChangeTrack, commands and room and (guest or host and session.canChangeMap == true))
         setEnabled(view.resultHome, commands)
-        view.resultScore:SetText("Local observations; finish timing is unverified.")
+        kind = refreshStandings()
+        view.resultScore:SetText("Local observations; unverified places and times from each racer's clock.")
     else
         setEnabled(view.resultChangeTrack, true)
         setEnabled(view.resultHome, true)
+        for _,row in ipairs(view.standings) do row.left:Hide(); row.right:Hide() end
         local score = UI.scoreResult
         view.resultScore:SetText(type(score) == "table" and type(score.message) == "string" and score.message or "")
+        placement = UI.race and UI.race.status == "finished" and Menu.scorePlacement(score, UI.trackId) or nil
+        kind = placement and CELEBRATIONS[placement.kind] and placement.kind or nil
+        if kind then view.bannerSub:SetText(("#%d of %d in known shared scores"):format(placement.rank, placement.count)) end
+    end
+    color(view.resultScore, not multiplayer and type(UI.scoreResult) == "table" and UI.scoreResult.saved == true
+        and GOLD or {0.5, 0.5, 0.5})
+    layoutResults(kind ~= nil, multiplayer and view.standings[1].left:IsShown() or false)
+    if kind and not multiplayer then call(view.highscoresButton, "LockHighlight")
+    else call(view.highscoresButton, "UnlockHighlight") end
+    if Menu.celebration.kind ~= kind then
+        Menu.celebration.time, Menu.celebration.confetti = 3, 0
+        celebrate(kind, placement, false)
     end
 end
 
 function Menu.OnResults()
     local view = Menu.view
     recordLaps()
-    if UI.race and UI.race.status == "finished" and Menu.fanfareRace ~= UI.race then
-        Menu.fanfareRace = UI.race -- once per finished run, not on every reopen
-        Menu.Play("finish")
-    end
+    local race = UI.race
+    local fresh = race and race.status == "finished" and Menu.fanfareRace ~= race
+    if fresh then Menu.fanfareRace = race end -- once per finished run, not on every reopen
     view.resultLine:SetText(("%s    %s"):format(trackName(), kartName()))
     local times, best = {}, nil
     for _,ticks in ipairs(view.lapTimes) do
         if not best or ticks < best then best = ticks end
     end
-    local sprint = UI.race and UI.race.targetLaps == 1
+    local sprint = race and race.targetLaps == 1
     for index,ticks in ipairs(view.lapTimes) do
         local line = (sprint and "Run  %s" or ("Lap " .. index .. "  %s")):format(Menu.formatTime(ticks * Physics.FIXED_DT))
         times[index] = ticks == best and #view.lapTimes > 1 and "|cff66ff66" .. line .. "|r" or line
     end
     view.resultLaps:SetText(#times > 0 and table.concat(times, "     ") or "")
     Menu.RefreshResults()
+    local placement = not UI.multiplayer and Menu.scorePlacement(UI.scoreResult, UI.trackId) or nil
+    local kind = Menu.celebration.kind
+    local spec = kind and CELEBRATIONS[kind]
+    if fresh and not (spec and spec.sound) then Menu.Play("finish") end
+    if not fresh then Menu.celebration.time, Menu.celebration.confetti = 3, 0 end
+    celebrate(kind, placement, fresh)
     Menu.barKey = nil
     Menu.Sync()
+end
+
+-- The results' motion, while shown: the medal pops in, the banner fades in,
+-- confetti falls for under three seconds and the sunburst turns. Copied
+-- final rows refresh quietly through RefreshResults. Nothing is created.
+function Menu.AnimateResults(elapsed)
+    local view, c = Menu.view, Menu.celebration
+    if Menu.disabled or not c or type(elapsed) ~= "number" or elapsed < 0 then return end
+    if c.rays then
+        c.angle = ((c.angle or 0) + elapsed * 0.35) % (2 * math.pi)
+        call(view.rays, "SetRotation", c.angle)
+    end
+    if c.time == nil or c.time >= 3 then return end
+    c.time = c.time + elapsed
+    local t = c.time
+    -- The medal: 40% to 115% in 0.18s, back to full by 0.32s.
+    local size = 84
+    if t < 0.18 then size = 84 * (0.4 + 0.75 * t / 0.18)
+    elseif t < 0.32 then size = 84 * (1.15 - 0.15 * (t - 0.18) / 0.14) end
+    view.medal:SetSize(size, size)
+    call(view.banner, "SetAlpha", math.min(1, t / 0.25))
+    for index=1,c.confetti or 0 do
+        local piece = view.confetti[index]
+        local delay = (index * 7 % 10) / 20
+        local age = t - delay
+        if age < 0 or t >= 3 then piece:Hide()
+        else
+            local x = 40 + (index * 37) % 380 + (6 + index % 4 * 3) * math.sin((2 + index % 3) * age + index)
+            local y = 24 - (70 + index * 13 % 50) * age
+            piece:ClearAllPoints()
+            piece:SetPoint("CENTER", UI.summary, "TOPLEFT", x, y)
+            call(piece, "SetRotation", index * 0.7 + age * (1.5 + index % 3))
+            call(piece, "SetAlpha", age > 2.1 and math.max(0, 1 - (age - 2.1) / 0.6) or 1)
+            piece:Show()
+        end
+    end
+    if c.time >= 3 then
+        for _,piece in ipairs(view.confetti) do piece:Hide() end
+        view.medal:SetSize(84, 84)
+        call(view.banner, "SetAlpha", 1)
+    end
 end
 
 -- Per-frame presentation from render(): the big lap/time/best lines. Cheap
@@ -1497,6 +1889,7 @@ end
 function Menu.RefreshRaceHud()
     local view = Menu.view
     if Menu.disabled or not view.lap then return end
+    refreshPlace()
     local race, laps, progress = UI.race, UI.laps, UI.checkpoints
     local status = UI.gridStaged and "grid" or (race and race.status or "none")
     local ticks = race and race.totalTicks or 0

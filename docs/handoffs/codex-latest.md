@@ -1,5 +1,18 @@
 # Codex handoff — production maps and Claude course review
 
+## Reviewed source ready for installation — 2026-10-26 21:09 CET
+
+`codex/claude-race-integration` combines the current rematch backend with Claude
+e3c82ad, carrying8511d8c/a4fe2d5. [Review/corrections/tests](../reviews/2026-10-26-claude-visual-integration.md).
+Focused seven-module Lua51 coverage, exact score transaction metadata, cold
+first-save regression, all10outlines, Celebration and11board export pass.
+Structural validator: only2historical expired skill links. Native NOT RUN.
+G3/L3/A2/C3 current boards, preserved history, tied/pending results and same-player
+Play Again/map flow. Pool90/91/150; raw texture growth15.5MiB, unprofiled in WoW.
+No backend/physics/wire change. Original branches/worktrees remain unchanged.
+Next: focused merge commit, backed-up installation, matching friend ZIP. Full
+client restart required. No new GitHub publication or release in this task.
+
 ## Active review/integration — Claude visual stack, 2026-10-26 20:52 CET
 
 Owner authorizes reviewing and conditionally integrating Claude's latest work.

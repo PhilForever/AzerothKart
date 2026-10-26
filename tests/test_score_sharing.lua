@@ -207,7 +207,13 @@ do
         if owner.namespace.Courses.available(course.id) then ids[#ids+1]=course.id end
     end
     assert(#ids==11,"eleven finished production courses, including all four Scarlet sprints")
-    for index,id in ipairs(ids) do assert(owner:finish(2000+index,id).saved,"eligible current board saves: "..id) end
+    for index,id in ipairs(ids) do
+        local saved=owner:finish(2000+index,id)
+        assert(saved.saved,"eligible current board saves: "..id)
+        assert(saved.playerName=="Course Keeper" and saved.placement and saved.placement.rank==1
+            and saved.placement.knownPlayers==1 and saved.placement.previousRank==nil,
+            "even a cold first finish returns exact placement without preseeding itself: "..id)
+    end
     owner:fire("PLAYER_ENTERING_WORLD");learner:fire("PLAYER_ENTERING_WORLD");allMaps:flush()
     allMaps:untilTrue(function()
         for _,id in ipairs(ids) do if #learner:view(id).rows~=1 then return false end end
@@ -220,7 +226,7 @@ do
     end
     assert(learner:view("scarlet_graveyard").rows[1].lapCount==1)
     assert(learner:view("thunder_bluff_skyway").rows[1].lapCount==3)
-    assert(learner:view("scarlet_graveyard").rows[1].trackVersion==2
+    assert(learner:view("scarlet_graveyard").rows[1].trackVersion==3
         and learner:view("thunder_bluff_skyway").rows[1].trackVersion==2,
         "catch-up uses the reviewed drive-fix geometry versions")
     assert(#learner:view("test_oval").rows==0 and congratulations(learner)==0,
@@ -332,11 +338,19 @@ ranked:fire("PLAYER_ENTERING_WORLD");rankedNetwork:flush()
 local topTen=ranked:finish(1950)
 assert(topTen.saved and topTen.message:find("Top 10",1,true) and topTen.message:find("#10",1,true),
     "a real cached rank12 to rank10 transition produces the visible top10 notice")
+assert(topTen.playerName=="Ranked Racer" and topTen.placement.rank==10
+    and topTen.placement.knownPlayers==12 and topTen.placement.scope=="known_board",
+    "the exact finish carries its captured name and shared placement to presentation")
+topTen.placement.rank=999
+assert(ranked:view().rows[10].playerName=="Ranked Racer",
+    "presentation metadata cannot mutate retained score rows")
 local topThree=ranked:finish(1250)
 assert(topThree.saved and topThree.message:find("Top 3",1,true) and congratulations(ranked)==2,
     "the later rank10 to rank3 transition produces one highest-tier celebration")
 local withinTier=ranked:finish(1150)
 assert(withinTier.saved and congratulations(ranked)==2,"improving within a tier does not replay its entry notice")
+assert(withinTier.placement and withinTier.placement.rank==2,
+    "a better time within the same tier still supplies exact placement without a new chat notice")
 local firstPlace=ranked:finish(1000)
 assert(firstPlace.saved and firstPlace.message:find("New #1",1,true) and congratulations(ranked)==3,
     "taking first from an existing ranked position produces its own visible notice")

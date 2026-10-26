@@ -77,6 +77,7 @@ local function withMock(savedDB, test, prepare)
     function methods:SetRotation(value) self.rotation = value end
     function methods:SetVertexColor(...) self.vertexColor = {...} end
     function methods:SetColorTexture(...) self.color = {...} end
+    function methods:SetTextColor(...) self.textColor = {...} end
     function methods:SetScale(value) self.scale = value end
     function methods:SetChecked(value) self.checked = value end
     function methods:LockHighlight() self.locked = true end
@@ -117,7 +118,8 @@ local function withMock(savedDB, test, prepare)
     env.sounds = {}
     _G.SOUNDKIT = {IG_MAINMENU_OPTION=852, IG_MAINMENU_OPEN=850, IG_MAINMENU_OPTION_CHECKBOX_ON=856,
         IG_MAINMENU_OPTION_CHECKBOX_OFF=857, UI_BATTLEGROUND_COUNTDOWN_TIMER=25477,
-        UI_BATTLEGROUND_COUNTDOWN_FINISHED=25478, LFG_REWARDS=17316}
+        UI_BATTLEGROUND_COUNTDOWN_FINISHED=25478, LFG_REWARDS=17316, IG_QUEST_LIST_COMPLETE=878,
+        UI_EPICLOOT_TOAST=31578}
     _G.PlaySound = function(kit) env.sounds[#env.sounds + 1] = kit end
     _G.UISpecialFrames = {}
     local ok, err = pcall(function()
@@ -256,8 +258,12 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu)
     -- Saved highscores add six frames and 52 labels, including the results notice.
     -- The player's kart outline adds a texture, its Settings check a button and two labels.
     -- The kart screen's four handling bars add two textures (empty, full) and a label each.
-    assert(UI.objects.frames == 89 and UI.objects.textures == 77 and UI.objects.fontStrings == 140,
-        ("explicit budget 89/77/140, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
+    -- The race screens add the HUD's place (two labels), the friend's name tag
+    -- (one label), and to the results a Highscores button, a sunburst, a medal
+    -- and twelve confetti pieces (14 textures), a banner, its line, the wreath's
+    -- rank and the two racers' rows (two labels each).
+    assert(UI.objects.frames == 90 and UI.objects.textures == 91 and UI.objects.fontStrings == 150,
+        ("explicit budget 90/91/150, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
             UI.objects.fontStrings))
     assert(AzerothKartDB.preferences == nil, "creation saves nothing")
     local before = counts(env)
@@ -1371,6 +1377,340 @@ withMock(nil, function(env, UI, Menu, AK)
     assert(Menu.view.highscoreRule.text == "Fastest completed three-lap totals for the current rules",
         "the next board holds three-lap totals again")
     sameCounts(env, before, "the board's rule line reuses its label")
+end)
+
+-- Results celebrations: a new personal best high on the shared board -------
+withMock({schemaVersion=1}, function(env, UI, Menu, AK)
+    UI.Toggle()
+    local view = Menu.view
+    local saved = {saved=true, totalTicks=1830, playerName="Lene Conradi", message="Top 3 in known shared scores! #2 | Personal best saved: 0:30.50"}
+    -- A navigation board of `count` racers, the player's new row at `rank` (the newest
+    -- row with the run's total; never used to infer the finish's identity).
+    local function board(rank, count, scope)
+        local rows = {}
+        for index=1,count do
+            rows[index] = {playerName="Racer " .. index, totalTicks=1700 + index * 20, finishedAt=1000 + index}
+        end
+        if count > rank then rows[rank + 1].totalTicks = 1830 end    -- an older equal total, below
+        rows[rank] = {playerName="Lene Conradi", totalTicks=1830, finishedAt=5000}
+        return {scope=scope or "community", rows=rows, context={lapCount=3}}
+    end
+    local shown
+    AK.SoloRecords = {GetView=function() return shown end, PlayerName=function() return "Lene Conradi" end,
+        FormatTime=function(ticks) return Menu.formatTime(ticks / 60) end, FormatDate=function() return "2026-10-26" end}
+    local race = {status="finished", targetLaps=3, totalTicks=1830, laps={completedLaps=3, lastLapTicks=600,
+        bestLapTicks=600, checkpoints={passed=0}}}
+    -- (Showing the results calls Menu.OnResults, as UI does at a finish.)
+    local function finish(rank, count, scope)
+        shown = board(rank, count, scope)
+        saved.placement = scope ~= "local" and {scope="known_board", rank=rank, knownPlayers=count} or nil
+        UI.race, UI.scoreResult, UI.multiplayer = {status=race.status, targetLaps=3, totalTicks=1830, laps=race.laps},
+            saved, false
+        if UI.summary.shown then Menu.OnResults() else UI.summary:Show() end
+    end
+    assert(Menu.scorePlacement(saved, "mirage_raceway") == nil, "no exact metadata, no guessed place")
+    shown = board(2, 14)
+    shown.rows[1] = {playerName="Someone Else", totalTicks=1830, finishedAt=9000}
+    assert(Menu.scorePlacement(saved, "mirage_raceway") == nil, "equal-time other player never congratulates this finish")
+    saved.placement = {scope="known_board", rank=2, knownPlayers=14}
+    local placement = Menu.scorePlacement(saved, "mirage_raceway")
+    assert(placement.rank == 2 and placement.count == 14 and placement.shared and placement.kind == "top3",
+        "exact local finish metadata gives #2 despite a newer equal-time row")
+    assert(Menu.scorePlacement({saved=false, totalTicks=1830}, "mirage_raceway") == nil
+        and Menu.scorePlacement({saved=true}, "mirage_raceway") == nil, "only a saved new best has a place")
+    local kinds = {}
+    for _,case in ipairs({{1, 9}, {1, 1}, {3, 9}, {7, 20}, {11, 20}}) do
+        shown = board(case[1], case[2])
+        saved.placement = {scope="known_board", rank=case[1], knownPlayers=case[2]}
+        kinds[#kinds + 1] = Menu.scorePlacement(saved, "x").kind
+    end
+    shown = board(1, 3, "local")
+    saved.placement = nil
+    kinds[#kinds + 1] = Menu.scorePlacement(saved, "x") and "best" or "none"
+    assert(table.concat(kinds, ",") == "record,first,top3,top10,best,none",
+        "#1, alone at #1, top three, top ten, below; a local board only says best: " .. table.concat(kinds, ","))
+
+    local before = counts(env)
+    local sounds = #env.sounds
+    finish(2, 14)
+    assert(view.banner.text == "TOP 3!" and visible(view.banner) and view.bannerSub.text == "#2 of 14 in known shared scores",
+        "a top-three best gets the banner and its place")
+    assert(visible(view.medal) and view.medal.texturePath == Menu.CELEBRATION_PATH
+        and table.concat(view.medal.texCoords, ",") == table.concat(Menu.CELEBRATION_COORDS.silver, ",")
+        and visible(view.rays) and not visible(view.medalRank), "#2 wears the silver medal on the sunburst")
+    assert(UI.summary.height == 420 and UI.summaryTitle.point[5] == -104 and view.resultScore.text == saved.message,
+        "the dialog grows for the banner, UI's title moves under it, the save notice stays")
+    assert(#env.sounds == sounds + 1 and env.sounds[#env.sounds] == 31578,
+        "the top-three sound plays in place of the finish fanfare")
+    assert(view.highscoresButton.locked and view.highscoresButton.enabled, "the board's button invites a look")
+    -- The motion: the medal pops, confetti falls and is gone within three seconds.
+    Menu.AnimateResults(0.1)
+    assert(view.medal.width > 84 * 0.4 and view.medal.width < 84 * 1.15, "the medal grows in")
+    local falling = 0
+    for _,piece in ipairs(view.confetti) do if piece.shown then falling = falling + 1 end end
+    Menu.AnimateResults(0.5)
+    for _,piece in ipairs(view.confetti) do if piece.shown then falling = falling + 1 end end
+    assert(falling > 0 and view.rays.rotation and view.rays.rotation > 0, "confetti falls and the sunburst turns")
+    for _=1,40 do Menu.AnimateResults(0.1) end
+    for _,piece in ipairs(view.confetti) do assert(not piece.shown, "the confetti has gone") end
+    assert(view.medal.width == 84 and visible(view.medal), "the medal stays, at its size")
+    -- Reopened: the same celebration, still, with no second sound.
+    sounds = #env.sounds
+    Menu.OnResults()
+    assert(#env.sounds == sounds and view.banner.text == "TOP 3!", "reopening shows it again without a sound")
+    shown = board(1, 1)
+    shown.rows[1].playerName = "Someone Else"
+    Menu.OnScoresChanged(); Menu.RefreshResults(); Menu.OnResults()
+    assert(view.bannerSub.text == "#2 of 14 in known shared scores" and #env.sounds == sounds,
+        "receive/cache changes cannot reinterpret a captured placement or replay congratulations")
+
+    finish(1, 9)
+    assert(view.banner.text == "NEW #1!" and table.concat(view.medal.texCoords, ",")
+        == table.concat(Menu.CELEBRATION_COORDS.gold, ","), "#1 of several: gold")
+    finish(1, 1)
+    assert(view.banner.text == "FIRST ON THE BOARD!", "alone at #1: first on the board")
+    finish(3, 9)
+    assert(table.concat(view.medal.texCoords, ",") == table.concat(Menu.CELEBRATION_COORDS.bronze, ","), "#3: bronze")
+    sounds = #env.sounds
+    finish(7, 20)
+    assert(view.banner.text == "TOP 10!" and view.medalRank.text == "#7" and visible(view.medalRank)
+        and table.concat(view.medal.texCoords, ",") == table.concat(Menu.CELEBRATION_COORDS.wreath, ",")
+        and env.sounds[#env.sounds] == 878, "top ten: the wreath with the rank in it, its own sound")
+    -- Below the top ten, or on this computer's own board: no banner; the
+    -- notice in gold, the plain dialog, the finish fanfare.
+    sounds = #env.sounds
+    finish(11, 20)
+    assert(not visible(view.banner) and not visible(view.medal) and not visible(view.rays)
+        and UI.summary.height == 336 and view.resultScore.textColor
+        and view.resultScore.textColor[1] == 1 and env.sounds[#env.sounds] == 17316,
+        "a best off the top ten: a gold notice, no banner, the fanfare")
+    finish(1, 3, "local")
+    assert(not visible(view.banner) and UI.summary.height == 336 and not view.highscoresButton.locked,
+        "a local best: no banner")
+    UI.scoreResult = {message="Total 0:30.50 | Personal best unchanged", totalTicks=1830}
+    Menu.OnResults()
+    assert(not visible(view.banner) and view.resultScore.textColor[1] == 0.5, "no best: the plain grey notice")
+    -- Every celebration above reused the window's pieces.
+    sameCounts(env, before, "celebrations reuse their pooled pieces")
+
+    -- The board's button: the run's own board, at the player's page, their row in gold.
+    finish(12, 20)
+    AK.SoloRecords.PlayerName = function() error("finish identity must not be read again") end
+    click(view.highscoresButton)
+    assert(Menu.screen == "highscores" and not UI.summary.shown and Menu.highscorePage == 2,
+        "the board opens at the page with the player's row")
+    local own = view.highscoreRows[2]
+    assert(own.name.text == "Lene Conradi" and own.name.textColor[1] == 1 and own.name.textColor[3] == 0
+        and view.highscoreRows[1].name.textColor[3] == 1, "the player's row in gold, the others white")
+end)
+
+withMock({schemaVersion=1}, function(env, UI, Menu, AK)
+    UI.Toggle()
+    local view = Menu.view
+    AK.SoloRecords = {GetView=function() return {scope="community", rows={{playerName="Lene Conradi", totalTicks=1830,
+        finishedAt=5000}}} end, PlayerName=function() return "Lene Conradi" end}
+    UI.race, UI.scoreResult, UI.multiplayer = {status="finished", targetLaps=3, totalTicks=1830,
+        laps={completedLaps=3, lastLapTicks=600, checkpoints={passed=0}}},
+        {saved=true, totalTicks=1830, playerName="Lene Conradi", placement={scope="known_board", rank=1, knownPlayers=1}}, false
+    env.textureModes[Menu.CELEBRATION_PATH] = "false"
+    UI.summary:Show()
+    assert(view.banner.text == "FIRST ON THE BOARD!" and visible(view.banner) and not visible(view.medal)
+        and not visible(view.rays), "a refused picture leaves the banner alone")
+    local calls = env.textureCalls
+    env.textureModes[Menu.CELEBRATION_PATH] = nil
+    Menu.fanfareRace = nil
+    Menu.OnResults()
+    assert(env.textureCalls == calls and not visible(view.medal), "the picture is not tried again")
+end)
+
+-- Two-player race screens: the HUD's place, the results' racers -----------------
+withMock({schemaVersion=1}, function(env, UI, Menu, AK)
+    UI.Toggle()
+    local view, P = Menu.view, AK.Presentation
+    local track = UI.track
+    local gates = #track.gates
+    AK.SoloRecords = {GetView=function() return {rows={}} end, PlayerName=function() return "Lene Conradi" end}
+    local live = {phase="running", peer="Amber Stone", peerKartId="steam_tank", remote={x=0, y=0, completedLaps=0,
+        passed=0, status="running", tick=10}}
+    local before = counts(env)
+    UI.multiplayer, UI.liveView = true, live
+    UI.race = {status="running", targetLaps=3, totalTicks=600, laps={completedLaps=1, checkpoints={passed=1}}}
+    UI.laps = UI.race.laps
+    UI.state.x, UI.state.y = track.gates[2].ax, track.gates[2].ay
+    UI.opponentWorldX, UI.opponentWorldY = nil, nil
+    Menu.RefreshRaceHud()
+    -- (The race overlay itself shows only in the race scene.)
+    assert(view.position.text == "1st" and view.position.shown and view.positionOf.text == "of 2 (est.)",
+        "a lap and a gate ahead of the friend: 1st")
+    live.remote.completedLaps, live.remote.passed = 1, 2
+    Menu.RefreshRaceHud()
+    assert(view.position.text == "2nd", "the friend a gate further on: 2nd")
+    live.remote.status, live.remote.completedLaps, live.remote.passed, live.remote.tick = "finished", 3, 0, 2400
+    Menu.RefreshRaceHud()
+    assert(view.position.text == "2nd", "a finished friend is ahead of a racer still racing")
+    sameCounts(env, before, "the HUD's place creates nothing")
+
+    -- Final rows use the controller's retained snapshot, not transient HUD order.
+    local function results(myStatus, peerStatus, mine, peer, myRank, peerRank, tied)
+        local here={name="You",localPlayer=true,status=myStatus,totalTicks=mine,rank=myRank,tie=tied}
+        local there={name="Amber Stone",localPlayer=false,status=peerStatus,totalTicks=peer,rank=peerRank,tie=tied}
+        return {session="OLD001",complete=myStatus=="finished" and peerStatus=="finished",
+            rows=peerRank==1 and myRank==2 and {there,here} or {here,there}}
+    end
+    UI.race = {status="finished", targetLaps=3, totalTicks=2280, laps={completedLaps=3, lastLapTicks=700,
+        checkpoints={passed=0}}}
+    UI.laps = UI.race.laps
+    UI.multiplayerResults = results("finished","pending",2280,nil)
+    local sounds = #env.sounds
+    UI.summary:Show()
+    assert(view.banner.text=="FINISHED!" and view.bannerSub.text=="Waiting for Amber Stone to finish"
+        and not visible(view.medal) and #env.sounds==sounds+1 and env.sounds[#env.sounds]==17316,
+        "pending peer finish gets no ranked win or medal")
+    assert(view.standings[1].left.text:find("--",1,true)
+        and view.standings[1].right.text=="0:38.00"
+        and view.standings[2].right.text:find("Waiting for finish",1,true),
+        "pending rows retain unknown places instead of inventing a loser")
+    assert(not view.highscoresButton.enabled and view.resultScore.text:find("unverified",1,true),
+        "multiplayer results visibly retain the unverified note")
+    sounds = #env.sounds
+    UI.multiplayerResults=results("finished","finished",2280,2379,1,2,false)
+    UI.liveView=nil
+    Menu.RefreshResults()
+    assert(view.banner.text=="1st PLACE!" and view.bannerSub.text=="Amber Stone finished 1.65s behind you"
+        and view.standings[2].right.text=="0:39.65" and visible(view.medal)
+        and #env.sounds==sounds and Menu.celebration.time==3,
+        "late result refreshes retained rows quietly without live state")
+    for _,piece in ipairs(view.confetti) do assert(not piece.shown,"late result starts no confetti") end
+    Menu.OnResults()
+    assert(#env.sounds==sounds,"reopening late-settled results plays no additional sound")
+    UI.multiplayerResults=results("finished","finished",2280,2100,2,1,false)
+    Menu.RefreshResults()
+    assert(view.banner.text=="2nd PLACE" and view.standings[1].left.text:find("Amber Stone",1,true)
+        and view.bannerSub.text=="You finished 3.00s behind Amber Stone" and #env.sounds==sounds,
+        "final order follows backend rows and ranks, not stale HUD progress")
+    local tied=results("finished","finished",2280,2280,1,1,true)
+    UI.multiplayerResults=tied
+    Menu.RefreshResults()
+    assert(view.banner.text=="JOINT 1st PLACE" and view.standings[1].left.text:find("=1st",1,true)
+        and view.standings[2].left.text:find("=1st",1,true) and #env.sounds==sounds
+        and tied.rows[1].rank==1 and tied.rows[2].rank==1 and tied.rows[1].place==nil,
+        "equal tick finishes retain joint first without unique victory or snapshot mutation")
+    Menu.RefreshRaceHud()
+    assert(view.position.text=="=1st" and view.positionOf.text=="of 2 (reported)",
+        "finished HUD consumes the retained tied rank, not a unique progress estimate")
+    UI.multiplayerResults=results("finished","stopped",2280,nil)
+    Menu.RefreshResults()
+    assert(view.banner.text=="FINISHED!" and view.bannerSub.text=="Amber Stone did not finish"
+        and view.standings[2].right.text:find("Did not finish",1,true)
+        and not view.standings[1].left.text:find("1st",1,true),
+        "a stopped peer never invents a ranked victory")
+    UI.race={status="stopped",targetLaps=3,totalTicks=900,laps={completedLaps=1,checkpoints={passed=0}}}
+    UI.laps=UI.race.laps
+    UI.multiplayerResults=results("stopped","pending",nil,nil)
+    Menu.OnResults()
+    assert(not visible(view.banner) and UI.summary.height==336
+        and view.standings[1].right.text:find("Did not finish",1,true),"stopped local run has no celebration")
+    sameCounts(env,before,"HUD, retained results and all refreshes reuse pooled pieces")
+    UI.multiplayer,UI.liveView=false,nil
+    Menu.RefreshRaceHud()
+    assert(not view.position.shown and not view.positionOf.shown,"no place outside multiplayer")
+end)
+
+-- The Gryphon Rider's wings -------------------------------------------------------
+-- The garage beats its wings and glides; a run beats them on its own clock and
+-- glides while boosting, the outline following; with no run, the rest pose; a
+-- winged friend beats on the copied race clock and glides on their report.
+withMock({schemaVersion=1}, function(env, UI, Menu, AK)
+    UI.Toggle()
+    local P = AK.Presentation
+    local gryphon = P.KART_SPRITES.gryphon_rider
+    local wings = gryphon.wings
+    -- The pose a crop shows: its cell's index over the frames of one phase.
+    local function poseOf(region)
+        local uv = region.texCoords
+        local column = math.floor(uv[1] * gryphon.columns + 0.5)
+        local row = math.floor(uv[3] * gryphon.frames * gryphon.phases / gryphon.columns + 0.5)
+        local index = row * gryphon.columns + column
+        return math.floor(index / gryphon.frames), index % gryphon.frames
+    end
+    local before = counts(env)
+    click(Menu.view.homeButtons[1]); click(Menu.view.trackNext)
+    click(Menu.view.kartButtons.gryphon_rider)
+    assert(UI.kartId == "gryphon_rider" and Menu.view.stage.texturePath == gryphon.path, "the gryphon is chosen")
+    local stage, turntable = Menu.view.stage, Menu.view.stageFrame0
+    assert(poseOf(stage) == 0, "the turntable starts at rest")
+    local garage = {}
+    for n = 1, 59 do
+        turntable.scripts.OnUpdate(turntable, 0.1)
+        local phase, frame = poseOf(stage)
+        assert(frame == P.kartFrame(gryphon, Menu.view.stageHeading), "the turntable keeps turning")
+        garage[n] = phase
+    end
+    -- 0.1 to 3.9 seconds: the beat (rest, top, rest, bottom, every 0.667s); 4 to 5.9: the glide.
+    local shown = table.concat(garage, "")
+    assert(shown:sub(1, 10) == "0110020011" and garage[39] ~= 3 and garage[40] == 3 and garage[59] == 3,
+        "the garage beats its wings for four seconds, then glides: " .. shown)
+    for n = 1, 39 do assert(garage[n] ~= 3, "no glide during the garage's beat") end
+
+    UI.SetKartOutline(true)
+    click(Menu.view.race)
+    assert(UI.active and UI.race.status == "countdown", "the gryphon races")
+    local line = UI.kartOutline
+    local function same(label)
+        local a, b = UI.kart.texCoords, line.texCoords
+        assert(line:IsShown() and a[1] == b[1] and a[2] == b[2] and a[3] == b[3] and a[4] == b[4],
+            label .. ": the outline shows the kart's frame and pose")
+    end
+    local run, steps = {}, {}
+    for _ = 1, 180 + 60 do
+        UI.OnUpdate(1 / 60)
+        local phase = poseOf(UI.kart)
+        if run[#run] ~= phase then run[#run + 1] = phase end
+        steps[#steps + 1] = phase
+        same("beating")
+    end
+    local order = table.concat(run, "")
+    assert(order:find("0102010", 1, true) and not order:find("3", 1, true),
+        "the countdown and the run beat the wings (rest, top, rest, bottom): " .. order)
+    -- A beat takes 0.667s: forty frames, ten a step.
+    local first = 1
+    while steps[first] == steps[1] do first = first + 1 end
+    local length = first
+    while steps[length] == steps[first] do length = length + 1 end
+    assert(length - first == 10, "a step of the beat lasts ten frames: " .. (length - first))
+    UI.state.boostTicks = 600                      -- as if a drift's boost had just fired
+    for _ = 1, 30 do
+        UI.OnUpdate(1 / 60)
+        assert(poseOf(UI.kart) == wings.glide and UI.state.boostTicks > 0, "boosting, the gryphon glides")
+        same("gliding")
+    end
+    UI.state.boostTicks = 0
+    UI.OnUpdate(1 / 60)
+    assert(poseOf(UI.kart) ~= wings.glide, "the boost over, the wings beat again")
+
+    -- A winged friend, beside the player in a two-player race.
+    local live = {phase="running", peer="Amber Stone", peerKartId="gryphon_rider", remoteSequence=1, elapsedMS=0,
+        remote={x=UI.state.x + 30, y=UI.state.y, heading=0, speed=0, status="running", sampleMS=0,
+            receivedAtMS=0, tick=10, completedLaps=0, passed=0, boosting=false}}
+    UI.multiplayer, UI.liveView = true, live
+    local friend = {}
+    for _, ms in ipairs({0, 200, 450, 520}) do
+        live.elapsedMS = ms
+        UI.OnUpdate(1 / 60)
+        assert(UI.opponent:IsShown() and UI.opponent.texturePath == gryphon.path, "the friend's gryphon shows")
+        friend[#friend + 1] = poseOf(UI.opponent)
+    end
+    -- Half a beat after the race clock: 0.33s rest, 0.53s bottom, 0.78s rest, 0.85s top.
+    assert(table.concat(friend, "") == "0201", "the friend beats on the copied clock: " .. table.concat(friend, ""))
+    live.remote.boosting = true
+    UI.OnUpdate(1 / 60)
+    assert(poseOf(UI.opponent) == wings.glide, "the friend glides while their report says they boost")
+    UI.multiplayer, UI.liveView = false, nil
+
+    click(UI.stopButton)
+    assert(not UI.active and poseOf(UI.kart) == 0 and poseOf(line) == 0, "with no run, the rest pose")
+    UI.SetKartOutline(false)
+    sameCounts(env, before, "the wings change crops only")
 end)
 
 print("mock menus: 8 screens, single-player flow, saved highscore pages, results paths, garage, settings, saved choices, " ..

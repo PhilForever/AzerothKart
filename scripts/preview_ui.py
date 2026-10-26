@@ -1,10 +1,12 @@
 """Offline layout review of the Azeroth Kart window and its menus.
 
 python scripts/preview_ui.py [--out docs/art/ui/front-end-review.png] [--screens DIR]
+    [--race-out docs/art/ui/race-screens-review.png]
 
 Runs the real addon Lua (pinned Lupa, Lua 5.1) against a recording mock of the
 widget API, visits every screen (main menu, track and kart choice, garage,
-multiplayer, help, settings, a race and its results), solves each widget's
+multiplayer, help, settings, a race and its results, the results' celebrations
+and a two-player race and its results on stand-in data), solves each widget's
 anchors the way the client does, and draws the result: the addon's own TGAs
 for the track, kart, effects and previews, and simple stand-ins for the
 client's dialog backdrops, buttons, check buttons, header and fonts.
@@ -40,6 +42,8 @@ FONTS = {  # client font object -> (face, pixel height, default colour, outline)
     "GameFontHighlightHuge": ("friz", 20, (1, 1, 1), False), "GameFontHighlightHuge2": ("friz", 24, (1, 1, 1), False),
     "Fancy48Font": ("morpheus", 48, (1, 1, 1), False), "Fancy32Font": ("morpheus", 32, (1, 1, 1), False),
     "Game72Font": ("friz", 72, (1, 1, 1), False), "Game48Font": ("friz", 48, (1, 1, 1), False),
+    "Game42Font": ("friz", 42, (1, 1, 1), False), "Game36Font": ("friz", 36, (1, 1, 1), False),
+    "GameFontHighlightSmallOutline": ("friz", 10, (1, 1, 1), True),
 }
 FACES = {"friz": "/usr/share/fonts/type1/texlive-fonts-recommended/bchb8a.pfb",
          "morpheus": "/usr/share/fonts/truetype/freefont/FreeSerifBold.ttf"}
@@ -166,7 +170,8 @@ function mock.step(ticks) for _ = 1, ticks do mock.namespace.UI.OnUpdate(1 / 60)
 -- A finished three-lap run with believable lap times: drive between gates,
 -- then place the kart just before each gate (as the UI tests do).
 function mock.finish(lapTicks)
-    local UI, Track = mock.namespace.UI, mock.namespace.Track
+    local UI = mock.namespace.UI
+    local Track = UI.track                     -- the selected course's gates
     UI.Start()
     mock.step(180)
     mock.key("OnKeyDown", "W")
@@ -492,6 +497,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--out", default=str(ROOT / "docs" / "art" / "ui" / "front-end-review.png"))
     parser.add_argument("--screens", help="also write each full-size screen into this folder")
+    parser.add_argument("--race-out", default=str(ROOT / "docs" / "art" / "ui" / "race-screens-review.png"))
     args = parser.parse_args()
     os.chdir(ROOT)
     lupa = importlib.import_module("lupa.lua51")
@@ -519,10 +525,65 @@ def main():
     run("mock.key('OnKeyUp', 'SPACE'); mock.key('OnKeyUp', 'A'); mock.step(6)")
     shots.append(("boost", capture(lua, "boost", out_dir)))
     run("mock.namespace.UI.Stop('preview'); mock.namespace.Menu.Show(nil); mock.namespace.UI.DismissSummary()")
-    run("mock.namespace.UI.SelectTrack('test_oval'); mock.finish({1874, 1818, 1826})")
+    run("mock.namespace.UI.SelectTrack('mirage_raceway'); mock.finish({1874, 1818, 1826})")
     shots.append(("results", capture(lua, "results", out_dir)))
+    # The results' celebrations: the same run's best saved at #2, then #7, on
+    # a shared board of fourteen (a stand-in board; the first finish saves
+    # nothing in this mock).
+    run("""local ns = mock.namespace
+        local UI, Menu = ns.UI, ns.Menu
+        mock.board = function(rank)
+            local rows = {}
+            for i = 1, 14 do rows[i] = {playerName = "Racer " .. i, totalTicks = 5300 + i * 40, finishedAt = 1000 + i} end
+            rows[rank] = {playerName = "Carl Bakke", totalTicks = UI.race.totalTicks, finishedAt = 9999}
+            ns.SoloRecords.GetView = function() return {scope = "community", rows = rows} end
+            UI.scoreResult = {saved = true, totalTicks = UI.race.totalTicks, message = (rank <= 3 and "Top 3" or "Top 10")
+                .. " in known shared scores! #" .. rank .. " | Personal best saved: 1:31.92"}
+            UI.summary:Hide(); Menu.fanfareRace = nil; UI.summary:Show(); Menu.AnimateResults(0.6)
+        end
+        mock.board(2)""")
+    shots.append(("results: top 3", capture(lua, "results-top3", out_dir)))
+    run("mock.board(7); mock.namespace.Menu.AnimateResults(2.6)")
+    shots.append(("results: top 10", capture(lua, "results-top10", out_dir)))
     run("mock.namespace.UI.DismissSummary()")
     shots.append(("track view", capture(lua, "track-view", out_dir)))
+    # A two-player race as the HUD shows it (a stand-in live view: the friend's
+    # kart just ahead, their name over it, the place in the corner), then its
+    # results once both have finished.
+    run("""local ns = mock.namespace
+        local UI, Menu = ns.UI, ns.Menu
+        UI.SelectTrack('mirage_raceway'); Menu.Show(nil); UI.Start(); mock.step(180)
+        mock.key('OnKeyDown', 'W'); mock.step(70)
+        local s = UI.state
+        local remote = {x = s.x + 70 * math.cos(s.heading) - 24 * math.sin(s.heading),
+            y = s.y + 70 * math.sin(s.heading) + 24 * math.cos(s.heading), heading = s.heading, speed = 150,
+            tick = 250, driftTier = 0, boosting = false, completedLaps = 0, passed = 0, status = "running",
+            receivedAtMS = 4100, sampleMS = 4100, sampleAgeMS = 0}
+        local previous = {}
+        for k, v in pairs(remote) do previous[k] = v end
+        previous.x, previous.y = remote.x - 20 * math.cos(s.heading), remote.y - 20 * math.sin(s.heading)
+        previous.sampleMS, previous.tick = 3600, 220
+        UI.multiplayer = true
+        UI.liveView = {phase = "running", peer = "Amber Stone", peerKartId = "steam_tank", remote = remote,
+            remotePrevious = previous, remoteSequence = 9, elapsedMS = 4100, remoteAgeMS = 0, remoteStale = false}
+        mock.step(1)""")
+    shots.append(("two-player race", capture(lua, "race-two-player", out_dir)))
+    run("""local ns = mock.namespace
+        local UI, Menu = ns.UI, ns.Menu
+        mock.key('OnKeyUp', 'W')
+        UI.active = false
+        UI.race = {status = "finished", targetLaps = 3, totalTicks = 5512, laps = {completedLaps = 3,
+            lastLapTicks = 1830, bestLapTicks = 1818, checkpoints = {passed = 0}}}
+        UI.laps = UI.race.laps
+        Menu.view.lapTimes = {1864, 1818, 1830}
+        local remote = UI.liveView.remote
+        remote.status, remote.tick, remote.completedLaps, remote.passed = "finished", 5611, 3, 0
+        UI.liveView.phase, UI.liveView.reason = "closed", "completed_unverified"
+        UI.summaryTitle:SetText("LOCAL FINISH — UNVERIFIED")
+        UI.summaryHint:SetText("Experimental race | No agreed winner or standings")
+        UI.summary:Hide(); Menu.fanfareRace = nil; UI.summary:Show(); Menu.AnimateResults(0.6)""")
+    shots.append(("two-player results", capture(lua, "results-two-player", out_dir)))
+    run("mock.namespace.UI.summary:Hide(); mock.namespace.UI.multiplayer = false; mock.namespace.UI.liveView = nil")
     # The Capital Cities Cup: the track list with Stormwind chosen, then a
     # drive up the Valley of Heroes on its follow camera.
     run("mock.namespace.UI.SelectTrack('stormwind_city'); mock.namespace.Menu.Show('tracks')")
@@ -544,6 +605,22 @@ def main():
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     sheet.save(args.out, optimize=True)
     print(f"wrote {args.out} ({len(shots)} screens)")
+    # The race screens and celebrations, larger: a sheet of their own.
+    chosen = [(name, image) for name, image in shots
+              if name in ("results: top 3", "results: top 10", "two-player race", "two-player results")]
+    scale = 0.75
+    w, h = round(SCREEN_W * scale), round(SCREEN_H * scale)
+    race = Image.new("RGB", (2 * w + 24, 2 * (h + 26) + 8), (24, 26, 30))
+    draw = ImageDraw.Draw(race)
+    label = ImageFont.truetype(FACES["friz"], 18)
+    for i, (name, image) in enumerate(chosen):
+        x, y = 8 + (i % 2) * (w + 8), 8 + (i // 2) * (h + 26)
+        draw.text((x, y), name, font=label, fill=(230, 230, 230))
+        race.paste(image.resize((w, h), Image.LANCZOS), (x, y + 22))
+    out = Path(args.race_out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    race.save(out, optimize=True)
+    print(f"wrote {out}")
 
 
 if __name__ == "__main__":

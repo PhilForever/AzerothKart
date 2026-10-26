@@ -301,13 +301,17 @@ end
 --   left to right and top to bottom. The nearest frame is shown unrotated; one
 --   frame covers quadWidth x quadHeight world units, and its centre sits
 --   (pivotX, pivotY) world units east/north of the kart's position on screen.
+-- * A sheet with `phases` holds that many poses of every heading, one after
+--   another: frame k of phase p is cell p * frames + k. Its `wings` say how
+--   the race plays them (Presentation.wingPhase); phase 0 is the rest pose.
 Presentation.KART_FOOTPRINT_WIDTH = 17
 Presentation.KART_FOOTPRINT_HEIGHT = 31
 Presentation.DEFAULT_KART = "goblin_mortar_trike"
 -- The optional line round the player's own kart (Settings: "Outline my
--- kart"). Each sheet's `outline` is a 512x512 sheet of the same 64 frames,
--- white, drawn over the kart with the kart's crop, quad and pivot, tinted
--- this colour (scripts/build_kart_outlines.py derives it from the sheet).
+-- kart"). Each sheet's `outline` is a 512x512 sheet of the same 64 frames
+-- (a sheet with phases: half its size, every phase), white, drawn over the
+-- kart with the kart's crop, quad and pivot, tinted this colour
+-- (scripts/build_kart_outlines.py derives it from the sheet).
 Presentation.KART_OUTLINE = {textureWidth = 512, textureHeight = 512, color = {1, 0.92, 0.16}}
 local OUTLINES = "Interface\\AddOns\\AzerothKart\\Assets\\Karts\\Outlines\\"
 -- Sheets rendered from Warcraft III and World of Warcraft models by
@@ -319,6 +323,14 @@ local function sheet(file, name, quad, pivotX, effects)
         textureWidth = 1024, textureHeight = 1024, quadWidth = quad, quadHeight = quad,
         frames = 64, columns = 8, pivotX = pivotX, pivotY = 0, effects = effects, outline = OUTLINES .. file,
     }
+end
+-- A sheet of four phases (2048x2048, 16 frames a row) whose `wings` play
+-- them: `cycle` lists the phases of one beat, which takes `beat` seconds;
+-- `glide` is the phase held while gliding.
+local function winged(entry, wings)
+    entry.textureWidth, entry.textureHeight, entry.columns, entry.phases = 2048, 2048, 16, 4
+    entry.wings = wings
+    return entry
 end
 Presentation.KART_SPRITES = {
     -- Rendered from World of Warcraft's goblin rocket car (Blizzard
@@ -362,11 +374,16 @@ Presentation.KART_SPRITES = {
         exhausts = {{-13.6, 5.4, 10.6}, {-14.4, -4.9, 10.5}},
         view = {0.8, 0.6},
     }),
-    gryphon_rider = sheet("GryphonRider.tga", "Gryphon Rider", 41, 2.6, {
+    -- Its wings beat while it flies and spread in a glide while it boosts
+    -- (the owner, 2026-10-26): four phases from the model's own flying
+    -- loops, the rest pose, the beat's top and bottom, and the glide. The
+    -- raised wings and their shadow need a larger frame window (58 units);
+    -- the wind trails leave the glide's wingtips.
+    gryphon_rider = winged(sheet("GryphonRider.tga", "Gryphon Rider", 58, 4.5, {
         wheels = {{-6, 3}, {-6, -3}}, exhausts = {},
-        trails = {{3.3, 16, 8.9}, {3.3, -16, 8.9}},             -- wingtips
+        trails = {{4, 20.2, 13.5}, {4, -20.2, 13.5}},           -- the glide's wingtips
         view = {0.8, 0.6},
-    }),
+    }), {cycle = {0, 1, 0, 2}, glide = 3, beat = 0.667}),
     gyrocopter = sheet("Gyrocopter.tga", "Gyrocopter", 58, 4, {
         wheels = {{-3.4, 6.5}, {-3.4, -6.5}},                  -- skids, 4 units up
         exhausts = {{-3.4, 8.6, 14.7}, {-3.4, -8.6, 14.7}},    -- the wing engines
@@ -418,12 +435,29 @@ function Presentation.kartFrame(sprite, heading)
     return math.floor((heading % tau) / tau * sprite.frames + 0.5) % sprite.frames
 end
 
--- Texture coordinates (left, right, top, bottom) of one frame of a sheet.
-function Presentation.kartFrameCoords(sprite, frame)
+-- Texture coordinates (left, right, top, bottom) of one frame of a sheet;
+-- `phase` (0-based, default 0) picks the pose of a sheet with phases.
+function Presentation.kartFrameCoords(sprite, frame, phase)
     local columns = sprite.columns
-    local rows = sprite.frames / columns
-    local column, row = frame % columns, math.floor(frame / columns)
+    local rows = sprite.frames * (sprite.phases or 1) / columns
+    local index = (phase or 0) * sprite.frames + frame
+    local column, row = index % columns, math.floor(index / columns)
     return column / columns, (column + 1) / columns, row / rows, (row + 1) / rows
+end
+
+-- The pose of a winged sheet at `time` seconds of a visual clock: its glide
+-- while `gliding`, otherwise the step of its beat (`wings.cycle`, one beat
+-- every `wings.beat` seconds). 0, the rest pose, for a sheet without wings or
+-- an unreadable time. Presentation only: the caller chooses the clock and
+-- what counts as gliding; nothing here reads or writes simulation state.
+function Presentation.wingPhase(sprite, time, gliding)
+    local wings = type(sprite) == "table" and sprite.wings
+    if type(wings) ~= "table" then return 0 end
+    if gliding then return wings.glide end
+    if not finite(time) then return 0 end
+    local cycle = wings.cycle
+    local step = math.floor(time % wings.beat / wings.beat * #cycle) % #cycle
+    return cycle[step + 1]
 end
 
 -- Drift and boost effects. Presentation-only particles: dust and sparks in the
@@ -662,6 +696,95 @@ function Presentation.particleAt(p, now)
     if p.spark then alpha = p.a0 * (1 - k * k * k)
     else alpha = p.a0 * math.min(1, age / 3) * (1 - k) * (1 - k) end
     return p.x + p.vx * travel, p.y + p.vy * travel + p.rise * age, size, alpha
+end
+
+-- ---------------------------------------------------------------------------
+-- Race standings for the HUD and the results: display estimates from each
+-- racer's own progress (gates passed, laps, where its kart is drawn). They
+-- are never written back into Race and award nothing; a remote racer's
+-- progress and finishing tick are what it reported, agreed by nobody.
+
+-- The distance from (x, y) to a gate's segment.
+local function toGate(gate, x, y)
+    local ax, ay, bx, by = gate.ax, gate.ay, gate.bx, gate.by
+    local dx, dy = bx - ax, by - ay
+    local length = dx * dx + dy * dy
+    local t = length > 0 and ((x - ax) * dx + (y - ay) * dy) / length or 0
+    t = t < 0 and 0 or (t > 1 and 1 or t)
+    local px, py = ax + dx * t - x, ay + dy * t - y
+    return math.sqrt(px * px + py * py)
+end
+
+local function count(value, low, high)
+    return finite(value) and value >= low and value <= high and value % 1 == 0
+end
+
+-- A racer's progress along a course, larger further on: every gate passed in
+-- its completed laps and this one, plus a fraction (0 to 0.999) for how far it
+-- has come from the previous gate toward the next, by straight distance.
+-- nil for anything unreadable (`passed` counts this lap's gates, below the
+-- course's gate count).
+function Presentation.raceProgress(track, completedLaps, passed, x, y)
+    local gates = type(track) == "table" and track.gates
+    local total = type(gates) == "table" and #gates or 0
+    if total == 0 or not count(completedLaps, 0, 1000) or not count(passed, 0, total - 1)
+        or not finite(x) or not finite(y) then return nil end
+    local nextGate, previous = gates[passed + 1], gates[passed] or gates[total]
+    local fraction = 0
+    if previous ~= nextGate then
+        local span = toGate(nextGate, (previous.ax + previous.bx) / 2, (previous.ay + previous.by) / 2)
+        if span > 0 then fraction = 1 - toGate(nextGate, x, y) / span end
+    end
+    fraction = fraction < 0 and 0 or (fraction > 0.999 and 0.999 or fraction)
+    return completedLaps * total + passed + fraction
+end
+
+-- 1 finished, 2 still racing, 3 out of the race (left, lost or stopped).
+local function standing(racer)
+    if racer.out then return 3 end
+    return racer.finishTicks and 1 or 2
+end
+
+-- Whether racer `a` places ahead of racer `b`. A racer is a table with
+-- `finishTicks` (its finishing tick, from its own start at tick 0) once it
+-- has finished, `progress` (Presentation.raceProgress) while it races, and
+-- `out` when it has left the race. Finished racers come first, the earlier
+-- tick ahead; then racers still racing, the further on ahead; then those out.
+-- Allocates nothing (the HUD asks every frame).
+function Presentation.ahead(a, b)
+    local sa, sb = standing(a), standing(b)
+    if sa ~= sb then return sa < sb end
+    if sa == 1 then return a.finishTicks < b.finishTicks end
+    if sa == 2 then return (a.progress or -1) > (b.progress or -1) end
+    return false
+end
+
+-- The racers in placing order (a new list; the racers themselves are not
+-- copied), each given its `place` from 1. Ties keep the order given.
+function Presentation.standings(racers)
+    local order = {}
+    for index, racer in ipairs(racers) do order[index] = racer end
+    for index = 2, #order do                 -- insertion sort: stable, and lists are short
+        local racer, slot = order[index], index
+        while slot > 1 and Presentation.ahead(racer, order[slot - 1]) do
+            order[slot] = order[slot - 1]
+            slot = slot - 1
+        end
+        order[slot] = racer
+    end
+    for place, racer in ipairs(order) do racer.place = place end
+    return order
+end
+
+-- "1st", "2nd", "3rd", "4th" ... "11th", "12th", "13th", "21st".
+function Presentation.ordinal(n)
+    if not count(n, 1, 9999) then return "--" end
+    local tens, ones = n % 100, n % 10
+    local suffix = "th"
+    if tens < 11 or tens > 13 then
+        suffix = ones == 1 and "st" or (ones == 2 and "nd" or (ones == 3 and "rd" or "th"))
+    end
+    return n .. suffix
 end
 
 if type(namespace) == "table" then namespace.Presentation = Presentation end

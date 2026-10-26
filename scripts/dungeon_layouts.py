@@ -77,6 +77,13 @@ def blocks(item, kind="drawn"):
 # Forlorn Cloister, then west across the graveyard to Honor's Tomb: "END!".
 # He chose (asked): grass slows, graves block.
 #
+# Since 2026-10-26 the grass no longer slows (the owner: "the same terrain
+# should have the same effects across maps - at least maps in the same
+# "cup". We are inside a monastery, so the grass is short you could say -
+# meaning driving over it should be perfectly fine"). The graves still
+# block. Version 3 separates scores made with the full-grip lawn from
+# earlier runs: the surface changes even though the geometry does not.
+#
 # The map's rooms are drawn here at karting scale: halls and doors are wide
 # enough for a kart (130 to 160 units), the rest keeps the map's layout and
 # proportions within a 2048 x 1024 world.
@@ -99,8 +106,9 @@ SG_ROOMS = [
     room("stairs", 1000, 550, 1220, 690, floor="stairs"),
     # The Forlorn Cloister: the graveyard's lawn, open to the sky, with the
     # stone path across it, the round court in its middle and the paved
-    # cloister walks of its east end.
-    room("cloister", 260, 300, 1040, 940, surface="rough", floor="lawn"),
+    # cloister walks of its east end. The lawn is short monastery grass,
+    # "road" underfoot.
+    room("cloister", 260, 300, 1040, 940, floor="lawn"),
     room("cloister path", 260, 550, 1040, 690, floor="path"),
     room("cloister court", 440, 510, 580, 730, floor="court"),
     room("north walk", 780, 760, 1010, 920, floor="walk"),
@@ -322,7 +330,7 @@ SG_PROPS = (
 )
 
 SCARLET_GRAVEYARD = {
-    "id": "scarlet_graveyard", "name": "Scarlet Graveyard", "version": 2, "folder": "ScarletGraveyard",
+    "id": "scarlet_graveyard", "name": "Scarlet Graveyard", "version": 3, "folder": "ScarletGraveyard",
     "size": (2048, 1024), "laps": 1,
     "rooms": SG_ROOMS, "gates": SG_GATES, "route": SG_ROUTE, "spawn": (1945, 150, "west"),
     "props": SG_PROPS,
@@ -375,9 +383,18 @@ SCARLET_GRAVEYARD = {
 # counterintuitive, the room is nice but not part of the checkpoints." The
 # huntsman on the courtyard's cross path is gone; Loksey's kennel stays, a
 # side room off the cloister's south walk, but its gate is gone: four gates.
-# The courtyard's lawns keep slowing the karts (kerbed paths edge them, and
-# he asked for grass without a clear edge to drive freely); its trees and
-# bushes block where their crowns are drawn.
+# Its trees and bushes block where their crowns are drawn.
+#
+# Version 3, after his second drive, stopped between the fountain and a
+# tree: "cant even fit through here dawg. and yeah - the same terrain should
+# have the same effects across maps - at least maps in the same "cup". We
+# are inside a monastery, so the grass is short you could say - meaning
+# driving over it should be perfectly fine." The lawns no longer slow the
+# karts, as in the Armory's yard and the Cathedral's gardens. The trees'
+# crowns and the fountain had closed the courtyard: it is open now, a
+# clear ring round the fountain and clear ways in from all four sides of
+# the arcade, the trees smaller and back in the courtyard's corners, a bush
+# and the hounds at their feet; the huntsman on the lawn is gone.
 
 SL_ROOMS = [
     # The portal hall, the upper hall east, and the long hall south to the
@@ -388,8 +405,9 @@ SL_ROOMS = [
     room("cloister door", 324, 970, 436, 1070, floor="door"),
     # The Huntsman's Cloister: the open courtyard (its lawn, a cross of paths
     # and the fountain's round court), then the four roofed walks round it,
-    # painted over the courtyard's edges.
-    room("courtyard", 484, 644, 836, 996, surface="rough", floor="lawn"),
+    # painted over the courtyard's edges. Its lawn is short, monastery
+    # grass, "road" underfoot (version 3).
+    room("courtyard", 484, 644, 836, 996, floor="lawn"),
     room("courtyard path", 630, 644, 690, 996, floor="path"),
     room("courtyard cross path", 484, 790, 836, 850, floor="path"),
     disc_room("fountain court", 660, 820, 90, floor="court"),
@@ -444,10 +462,11 @@ SL_GATES = [
     gate("Arcanist Doan", 1750, 800, 1870, 800, 0, -1),
 ]
 
+# (Version 3: through the open courtyard, round the fountain's north side.)
 SL_ROUTE = [
-    (80, 1668), (80, 1865), (295, 1865), (295, 1020), (460, 1020), (460, 620), (860, 620), (860, 820), (1025, 820),
-    (1025, 1325), (1225, 1325), (1225, 1820), (1915, 1820), (1915, 1160), (1860, 1030),
-    (1810, 900), (1810, 700),
+    (80, 1668), (80, 1865), (295, 1865), (295, 1020), (460, 1020), (460, 823), (585, 823), (615, 876), (660, 898),
+    (705, 876), (735, 823), (1025, 823), (1025, 1325), (1225, 1325), (1225, 1820), (1915, 1820), (1915, 1160),
+    (1860, 1030), (1810, 900), (1810, 700),
 ]
 
 COLUMN = CITY + "structures/city_columnsingle/city_columnsingle.mdx"
@@ -488,22 +507,21 @@ SL_PROPS = (
     + wall_props(SL_ROOMS, "long hall", "east", TORCH, 170, light=TORCHLIGHT, scale=0.3, start=1045)
     + [prop(BANNER % (k % 3), 353, y, scale=0.3) for k, y in enumerate((1180, 1460, 1760))]
     # The Huntsman's Cloister: the arcade's columns round the courtyard, an
-    # opening in the middle of each side; the statue in its fountain, four
-    # trees and bushes (solid where their crowns are drawn: nothing stands
-    # on the lawn the karts drive over); a huntsman and the hounds on the
-    # lawns, none on the paths.
+    # opening in the middle of each side; the statue in its fountain; a tree
+    # in each corner (solid where its crown is drawn), clear of the ring
+    # round the fountain and the ways in (version 3: the crowns had closed
+    # them); a bush and the hounds at the trees' feet, out of the karts' way
+    # (the huntsman who stood on the lawn is gone).
     + [_column(x, y) for x, y in ((520, 680), (520, 725), (520, 915), (520, 960), (800, 680), (800, 725),
                                   (800, 915), (800, 960), (565, 680), (755, 680), (565, 960), (755, 960))]
     + [prop(CITY + "props/city_statue/city_statue.mdx", 660, 820, scale=0.25, solid=True, margin=6,
             name="cloister fountain")]
-    + [blocks(prop(TREES + "lordaerontree%d.mdx" % n, x, y, scale=0.28, solid=solid_at(x, y, 7, 7), name="tree"),
-              "round") for n, (x, y) in enumerate(((590, 750), (730, 750), (590, 890), (730, 890)))]
-    + [blocks(prop(CITY + "plants/citybush/citybush.mdx", x, y, scale=0.22, solid=True, margin=3, name="bush"),
+    + [blocks(prop(TREES + "lordaerontree%d.mdx" % n, x, y, scale=scale, solid=solid_at(x, y, 7, 7), name="tree"),
               "round")
-       for x, y in ((548, 770), (548, 870), (772, 770), (772, 870), (610, 708), (710, 708), (610, 932),
-                    (710, 932))]
-    + [prop(HUNTSMAN, 772, 720, yaw=135, scale=0.3, solid=solid_at(772, 720, 6, 6), name="huntsman"),
-       _hound(615, 915, 45), _hound(705, 725, 225), _hound(565, 720, 90)]
+       for n, (x, y, scale) in enumerate(((555, 710, 0.26), (768, 699, 0.26), (552, 902, 0.26), (772, 902, 0.28)))]
+    + [blocks(prop(CITY + "plants/citybush/citybush.mdx", 540, 698, scale=0.2, solid=True, margin=3, name="bush"),
+              "round")]
+    + [_hound(586, 694, 45), _hound(734, 694, 135), _hound(788, 868, 225)]
     + wall_props(SL_ROOMS, "west walk", "west", TORCH, 150, light=TORCHLIGHT, scale=0.3, start=620)
     + wall_props(SL_ROOMS, "east walk", "east", TORCH, 150, light=TORCHLIGHT, scale=0.3, start=620)
     + wall_props(SL_ROOMS, "north walk", "north", TORCH, 140, light=TORCHLIGHT, scale=0.3, start=500)
@@ -594,7 +612,7 @@ SL_PROPS = (
 )
 
 SCARLET_LIBRARY = {
-    "id": "scarlet_library", "name": "Scarlet Library", "version": 2, "folder": "ScarletLibrary",
+    "id": "scarlet_library", "name": "Scarlet Library", "version": 3, "folder": "ScarletLibrary",
     "size": (2048, 2048), "laps": 1,
     "rooms": SL_ROOMS, "gates": SL_GATES, "route": SL_ROUTE, "spawn": (80, 1668, "north"),
     "props": SL_PROPS,
@@ -878,6 +896,12 @@ SCARLET_ARMORY = {
 # block where their crowns are drawn, the pillars where they are drawn,
 # never at an unseen trunk or foot.
 #
+# Version 3: the stairs turn at a landing, as on the battle map. Each long
+# flight climbs north beside the falls to a landing walled on the north by a
+# parapet over the round pool; a short flight turns outward from it onto the
+# upper lawn (the owner: "if it makes the map a bit more difficult - go for
+# it"). The round pool moves north and shrinks a little to make room.
+#
 # At karting scale in a 1024 x 2048 world (the wing is twice as tall as it
 # is wide): halls and doors 120 wide, walks 100, the nave 484 x 380 with two
 # rows of three pillars, the transept 904 x 190, the round pool 140 in
@@ -895,15 +919,24 @@ SC_ROOMS = [
     room("south walk", 205, 230, 819, 320, floor="walk"),
     room("lower west walk", 205, 230, 305, 560, floor="walk"),
     room("lower east walk", 719, 230, 819, 560, floor="walk"),
-    # The upper garden round the round pool and its walks. From the lower
-    # garden only the two stairs beside the falls lead up to it (the falls
-    # between them are water): either side of them the champions' statues
-    # stand on raised plinths (SC_PLINTHS), stone the karts drive round.
-    room("upper garden", 105, 660, 919, 1040, floor="lawn"),
-    room("upper west walk", 105, 660, 205, 1040, floor="walk"),
-    room("upper east walk", 819, 660, 919, 1040, floor="walk"),
-    room("west stairs", 336, 524, 452, 700, floor="stairs"),
-    room("east stairs", 572, 524, 688, 700, floor="stairs"),
+    # The upper garden round the round pool, its lawns down either side and
+    # its walks. From the lower garden only the two stairs beside the falls
+    # lead up to it (the falls between them are water), each a long flight
+    # north to a landing and a short flight turning outward onto the lawn:
+    # the landings' parapets wall them from the pool and the lawn beyond,
+    # the champions' statues stand on raised plinths beside the long flights
+    # (SC_PLINTHS: stone the karts drive round).
+    room("upper garden", 105, 796, 919, 1040, floor="lawn"),
+    room("west lawn", 105, 656, 290, 1040, floor="lawn"),
+    room("east lawn", 734, 656, 919, 1040, floor="lawn"),
+    room("upper west walk", 105, 656, 205, 1040, floor="walk"),
+    room("upper east walk", 819, 656, 919, 1040, floor="walk"),
+    room("west stairs", 336, 524, 452, 692, floor="stairs"),
+    room("east stairs", 572, 524, 688, 692, floor="stairs"),
+    room("west landing", 336, 656, 452, 772, floor="landing"),
+    room("east landing", 572, 656, 688, 772, floor="landing"),
+    room("west short flight", 254, 656, 372, 772, floor="stairs"),
+    room("east short flight", 652, 656, 770, 772, floor="stairs"),
     # The terrace and the steps up to the cathedral's door.
     room("cathedral terrace", 265, 1000, 759, 1096, floor="terrace"),
     room("door steps", 412, 1040, 612, 1096, floor="stairs"),
@@ -921,22 +954,27 @@ SC_ROOMS = [
 ]
 
 # Water the karts drive round, each pool a solid of its shape: the lower
-# pool, the falls down into it, the round pool above.
+# pool, the falls down into it, the round pool above (version 3: 115 in
+# radius, 35 farther north, clear of the landings).
 SC_POOLS = [
     {"name": "lower pool", "shape": "rect", "x0": 432, "y0": 380, "x1": 592, "y1": 566},
-    {"name": "falls", "shape": "rect", "x0": 452, "y0": 560, "x1": 572, "y1": 706},
-    {"name": "round pool", "shape": "disc", "cx": 512, "cy": 830, "radius": 140},
+    {"name": "falls", "shape": "rect", "x0": 452, "y0": 560, "x1": 572, "y1": 780},
+    {"name": "round pool", "shape": "disc", "cx": 512, "cy": 865, "radius": 115},
+]
+
+# The champions' plinths beside the long flights: raised stone, cobbled on
+# top inside a dressed rim, their faces toward the lower garden. The
+# landings' parapets: low walls of dressed stone, their faces toward the
+# landings.
+SC_PLINTHS = [
+    {"name": "west plinth", "x0": 205, "y0": 560, "x1": 336, "y1": 656, "height": 34, "top": "cobbles", "rim": 7},
+    {"name": "east plinth", "x0": 688, "y0": 560, "x1": 819, "y1": 656, "height": 34, "top": "cobbles", "rim": 7},
+    {"name": "west parapet", "x0": 290, "y0": 772, "x1": 452, "y1": 796, "height": 24, "top": "walk", "rim": 12},
+    {"name": "east parapet", "x0": 572, "y0": 772, "x1": 734, "y1": 796, "height": 24, "top": "walk", "rim": 12},
 ]
 
 # The gates, in driving order. The last is the finish, across the chancel
 # in front of the altar.
-# The champions' plinths either side of the stairs: raised stone, cobbled
-# on top inside a dressed rim, their faces toward the lower garden.
-SC_PLINTHS = [
-    {"name": "west plinth", "x0": 205, "y0": 560, "x1": 336, "y1": 660, "height": 34, "top": "cobbles", "rim": 7},
-    {"name": "east plinth", "x0": 688, "y0": 560, "x1": 819, "y1": 660, "height": 34, "top": "cobbles", "rim": 7},
-]
-
 SC_GATES = [
     gate("Chapel Gardens", 452, 200, 572, 200, 0, 1),
     gate("Upper Gardens", 205, 590, 819, 590, 0, 1),
@@ -945,8 +983,8 @@ SC_GATES = [
 ]
 
 SC_ROUTE = [
-    (790, 110), (512, 110), (512, 280), (280, 300), (280, 480), (394, 545), (394, 700), (350, 780),
-    (345, 880), (400, 990), (512, 1050), (512, 1200), (512, 1640), (512, 1712),
+    (790, 110), (512, 110), (512, 280), (280, 300), (280, 480), (394, 545), (394, 714), (272, 714), (200, 760),
+    (240, 880), (320, 950), (420, 1040), (512, 1050), (512, 1200), (512, 1640), (512, 1712),
 ]
 
 FOUNTAIN = DE + "doodads/cityscape/props/city_fountain/city_fountain.mdx"
@@ -989,15 +1027,16 @@ SC_PROPS = (
     + [prop(BENCH, 811, y, yaw=180, scale=0.3) for y in (370, 510)]
     # Up to the upper garden: the giant champions' statues on their plinths,
     # a Scarlet standard at each plinth's outer end, lions over the falls.
-    + [prop(STATUES[0], x, 598, yaw=yaw, scale=0.1, tint=STATUE_TINT, name="champion's statue")
+    + [prop(STATUES[0], x, 590, yaw=yaw, scale=0.1, tint=STATUE_TINT, name="champion's statue")
        for x, yaw in ((278, 0), (746, 180))]
     + [prop(BANNER % k, x, 604, scale=0.3) for k, x in ((1, 220), (1, 804))]
-    + [prop(LION, x, 706, yaw=270, scale=0.12) for x in (464, 560)]
+    + [prop(LION, x, 762, yaw=270, scale=0.12) for x in (464, 560)]
     # The upper garden: the fountain in the round pool, trees and bushes on
-    # its lawn, lanterns along its walks.
-    + [prop(FOUNTAIN, 512, 830, scale=0.32)]
-    + [_tree_green(n, x, y) for n, (x, y) in enumerate(((262, 730), (762, 730), (262, 985), (762, 985)), 1)]
-    + [_bush(x, y) for x, y in ((240, 860), (784, 860))]
+    # its lawn (a tree beyond each parapet, the rest by the walks, clear of
+    # the way from the short flights), lanterns along its walks.
+    + [prop(FOUNTAIN, 512, 865, scale=0.28)]
+    + [_tree_green(n, x, y) for n, (x, y) in enumerate(((337, 813), (687, 813), (262, 985), (762, 985)), 1)]
+    + [_bush(x, y) for x, y in ((225, 930), (799, 930))]
     + wall_props(SC_ROOMS, "upper west walk", "west", LANTERN, 140, light=LANTERNLIGHT, scale=0.2, start=680)
     + wall_props(SC_ROOMS, "upper east walk", "east", LANTERN, 140, light=LANTERNLIGHT, scale=0.2, start=680)
     # The terrace before the cathedral: trees at its ends, lanterns and
@@ -1040,7 +1079,7 @@ SC_PROPS = (
 )
 
 SCARLET_CATHEDRAL = {
-    "id": "scarlet_cathedral", "name": "Scarlet Cathedral", "version": 2, "folder": "ScarletCathedral",
+    "id": "scarlet_cathedral", "name": "Scarlet Cathedral", "version": 3, "folder": "ScarletCathedral",
     "size": (1024, 2048), "laps": 1,
     "rooms": SC_ROOMS, "gates": SC_GATES, "route": SC_ROUTE, "spawn": (790, 110, "west"),
     "props": SC_PROPS, "pools": SC_POOLS, "plinths": SC_PLINTHS,
@@ -1053,6 +1092,7 @@ SCARLET_CATHEDRAL = {
         "walk": {"tile": T + "cityscape/city_roundtiles.dds", "shade": (0.96, 0.95, 0.92)},
         "cobbles": {"tile": T + "village/village_cobblepath.dds", "shade": (1.1, 1.06, 1.0)},
         "stairs": {"tile": T + "cityscape/city_bricktiles.dds", "shade": (0.92, 0.9, 0.86)},
+        "landing": {"tile": T + "cityscape/city_squaretiles.dds", "shade": (0.9, 0.89, 0.86, 0.3)},
         "terrace": {"tile": T + "cityscape/city_squaretiles.dds", "shade": (0.86, 0.85, 0.84, 0.25)},
         "nave": {"tile": T + "cityscape/city_squaretiles.dds", "shade": (0.80, 0.76, 0.72, 0.45)},
         "wood": {"parquet": {"block": 32, "plank": 8}},
@@ -1060,8 +1100,9 @@ SCARLET_CATHEDRAL = {
     "wall": {"face": (T + "cityscape/city_cliff1.dds", (0, 0, 192, 64), (0.86, 0.84, 0.8)),
              "height": 70, "top": (34, 30, 30), "coping": (150, 140, 124)},
     "open_sky": ["lower garden", "south walk", "lower west walk", "lower east walk", "west stairs",
-                 "east stairs", "upper garden", "upper west walk", "upper east walk", "cathedral terrace",
-                 "door steps"],
+                 "east stairs", "west landing", "east landing", "west short flight", "east short flight",
+                 "upper garden", "west lawn", "east lawn", "upper west walk", "upper east walk",
+                 "cathedral terrace", "door steps"],
     "portal": (850, 110, 38),
     "carpets": [([(860, 110), (512, 110), (512, 250)], 40),
                 # The gardens' walks' runners.
@@ -1072,8 +1113,10 @@ SCARLET_CATHEDRAL = {
                 ([(512, 1676), (512, 1745)], 50),
                 ([(512, 1790), (512, 1925)], 40)],
     "kerbed": ["walk", "terrace"], "lawn": "lawn",
-    "stairs": [{"room": "west stairs", "tread": 10, "axis": "y", "from": 36, "to": 10},
-               {"room": "east stairs", "tread": 10, "axis": "y", "from": 36, "to": 10},
+    "stairs": [{"room": "west stairs", "tread": 10, "axis": "y", "from": 36, "to": 36},
+               {"room": "east stairs", "tread": 10, "axis": "y", "from": 36, "to": 36},
+               {"room": "west short flight", "tread": 10, "from": 36, "to": 36},
+               {"room": "east short flight", "tread": 10, "from": 36, "to": 36},
                {"room": "door steps", "tread": 8, "axis": "y"},
                {"room": "chancel steps", "tread": 8, "axis": "y", "from": 8, "to": 8}],
     "water": {"rim": 5, "tint": (0.20, 0.40, 0.46)},

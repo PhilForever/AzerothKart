@@ -98,34 +98,35 @@ One generator, `scripts/build_dungeon_tracks.py`, writes the data (`ScarletCrusa
 - wherever the karts' floor ends, a wall is painted beside it: no invisible wall (on `claude/drive-fixes`);
 - nothing the karts drive over is left non-solid: a model that does not block keeps its drawn body off their floor (on `claude/drive-fixes`);
 - a solid model may block where it is drawn (`blocks`, on `claude/scarlet-fixes`): trees and bushes are round solids the size of their crowns, the Cathedral's pillars and the Armory yard's dummies and targets boxes the size of their drawn bodies, so no kart stops on open floor short of what it sees ([ADR 0020's fifth addendum](adr/0020-dungeon-sprints.md#addendum-grass-with-a-clear-edge-models-that-block-as-drawn-plinths-proposed-claudescarlet-fixes-2026-10-26));
-- raised `plinths` are not floor: they stop the karts as walls do (the Cathedral's statue platforms).
+- raised `plinths` are not floor: they stop the karts as walls do (the Cathedral's statue platforms, and its landings' parapets since version 3);
+- since 2026-10-26 (`claude/scarlet-v3`) no Scarlet room is `rough`: "the same terrain should have the same effects across maps - at least maps in the same "cup"", the owner wrote, the monastery's grass short ([ADR 0020's sixth addendum](adr/0020-dungeon-sprints.md#addendum-the-scarlet-cups-grass-at-full-speed-an-open-courtyard-landings-proposed-claudescarlet-v3-2026-10-26)).
 
-**Scarlet Graveyard** (`scarlet_graveyard`, version 2 on `claude/drive-fixes`; version 1 is integrated and installed): the owner's green route on his map of the wing, at karting scale.
+**Scarlet Graveyard** (`scarlet_graveyard`, reviewed version 3): the owner's green route on his map of the wing, at karting scale. Its lawn no longer slows the kart. Codex bumps the handling version to3; version1/2 scores remain saved in their original contexts.
 
 1. From the instance portal in the entrance hall, the run turns north up the long hall.
 2. It turns west through the east door of the Chamber of Atonement and passes its torture table.
 3. It leaves by the west door, then goes down the stairs into the Forlorn Cloister.
 4. It crosses the graveyard on the path round the ruined fountain, to Honor's Tomb.
 
-- 2048 × 1024; 18 rooms (the cloister's lawn is rough); 59 solids.
+- 2048 × 1024; 18 rooms, all stone underfoot (the cloister's lawn was rough before `claude/scarlet-v3`); 59 solids.
 - Three gates: *Chamber of Atonement*, *Forlorn Cloister* and *Honor's Tomb* (the finish).
 - About 2,200 units from the portal to the finish line along the reviewed route.
 
 Offline: the route walk crosses the gates in order and never meets a wall or a solid, and full throttle from the grid launches cleanly (`tests/test_dungeon.lua`). Version 2 answers the owner's client run: a wall either side of the chamber's west door, where the karts stopped at a wall the picture did not show, and nothing left on the floor for the karts to drive over (the ghost on the path is gone; the ghosts, the corpse and the benches on the floor block). See [the Scarlet Graveyard sheet](art/tracks/scarlet-graveyard.md).
 
-**Scarlet Library** (`scarlet_library`, version 2 on `claude/scarlet-fixes`; version 1 is integrated and installed): the owner's route on his map of the Library wing. "Everything is inside except the first courtyard with the fountain/statue in the middle", ending "in the iconic round library".
+**Scarlet Library** (`scarlet_library`, version 3 on `claude/scarlet-v3`; version 2 is integrated and installed): the owner's route on his map of the Library wing. "Everything is inside except the first courtyard with the fountain/statue in the middle", ending "in the iconic round library".
 
 1. From the portal, north and east, then south down the long hall.
-2. Round the Huntsman's Cloister, whose four roofed walks surround the open courtyard: a lawn, kerbed stone paths, the statue fountain, trees, a huntsman and hounds on the lawns. Houndmaster Loksey's kennel opens off its south walk, a side room (version 1 had a gate in it, in and back out, which the owner found counterintuitive).
+2. Through or round the Huntsman's Cloister, whose four roofed walks surround the open courtyard: a lawn, kerbed stone paths, the statue fountain with a clear ring round it, a tree in each corner, hounds at their feet. Since version 3 the courtyard is open to drive across at full speed (in version 2 the trees' crowns closed it round the fountain: "cant even fit through here"). Houndmaster Loksey's kennel opens off its south walk, a side room (version 1 had a gate in it, in and back out, which the owner found counterintuitive).
 3. North up the east hall into the Gallery of Treasures.
 4. East through two columned halls, then south down the Athenaeum's bookshelves.
 5. Through the last hall to Arcanist Doan's round library: a true circle, the first round room (`shape="disc"`).
 
-- 2048 × 2048; 41 rooms (the courtyard's lawn is rough; the fountain's court and the round library are round); 64 solids, 12 of them round (the courtyard's trees and bushes, as drawn).
+- 2048 × 2048; 41 rooms, all stone underfoot since version 3 (the fountain's court and the round library are round); 56 solids, 5 of them round (the courtyard's trees and bush, as drawn).
 - Four gates: *Huntsman's Cloister*, *Gallery of Treasures*, *Athenaeum* and *Arcanist Doan* (the finish).
-- About 5,600 units from the portal to the finish line along the reviewed route.
+- About 5,280 units from the portal to the finish line along the reviewed route, across the courtyard (5,600 round the walks).
 
-Offline: the route walk crosses the four gates in order and never meets a wall or a solid; the courtyard's cross path is clear where version 1's huntsman stood; full throttle from the grid launches cleanly. See [the Scarlet Library sheet](art/tracks/scarlet-library.md).
+Offline: the route walk crosses the four gates in order and never meets a wall or a solid; the courtyard's cross path is clear where version 1's huntsman stood; a ring round the fountain and the four ways in from the arcade drive clean; full throttle from the grid launches cleanly. See [the Scarlet Library sheet](art/tracks/scarlet-library.md).
 
 **Scarlet Armory** (`scarlet_armory`, version 2 on `claude/scarlet-fixes`; version 1 is integrated and installed): the wing's in-game map and battle map, at karting scale. "The Training grounds is the only outside you see on this map"; the final room is "the iconic round room with stairs leading down to herod". "Free driving through the whole map." The owner chose the finish down at Herod.
 
@@ -142,19 +143,19 @@ Offline: the route walk crosses the four gates in order and never meets a wall o
 
 Offline: the route walk crosses the five gates in order and never meets a wall or a solid; full throttle from the grid launches cleanly; Herod blocks on the finish line; no room slows the karts. See [the Scarlet Armory sheet](art/tracks/scarlet-armory.md). On `claude/scarlet-cathedral` Herod takes a model of his own (Dagren the Orcslayer in crimson), since Renault Mograine stands at the Cathedral's altar.
 
-**Scarlet Cathedral** (`scarlet_cathedral`, version 2 on `claude/scarlet-fixes`; version 1 is integrated and installed): the wing's in-game map and battle map, at karting scale. "Scarlet Cathedral next." The owner chose the finish at the altar and the gardens' pools as water the karts drive round.
+**Scarlet Cathedral** (`scarlet_cathedral`, version 3 on `claude/scarlet-v3`; version 2 is integrated and installed): the wing's in-game map and battle map, at karting scale. "Scarlet Cathedral next." The owner chose the finish at the altar and the gardens' pools as water the karts drive round.
 
 1. From the portal west along the entrance hall, north through the garden gate into the Chapel Gardens, the open sky.
 2. Round the lower garden's long pool, on the lawn or the walks (since version 2 the lawns do not slow the karts).
-3. Up the stairs either side of the falls into the upper garden: the only way up, the champions' statues standing on raised plinths beyond them.
-4. Round the round pool and its fountain, up the terrace's steps to the cathedral's door.
+3. Up the stairs either side of the falls: the only way up, the champions' statues standing on raised plinths beside them. Since version 3 each long flight climbs to a landing walled by a parapet, and a short flight turns outward off it onto the upper lawn.
+4. Up either side of the round pool and its fountain, up the terrace's steps to the cathedral's door.
 5. Up the nave between its pillars, across the transept, up the chancel's steps to the finish before the altar, where Mograine and Whitemane stand. Fairbanks' round chamber lies behind.
 
-- 1024 × 2048; 22 rooms, all stone or wood (Fairbanks' chamber is round), and 2 plinths; 40 solids, the three pools among them, 11 round (the round pool, `shape="disc"` from ADR 0020's fourth addendum, and the trees' and bushes' crowns).
+- 1024 × 2048; 28 rooms, all stone or wood (Fairbanks' chamber is round), and 4 plinths (2 statue platforms, 2 parapets); 40 solids, the three pools among them, 11 round (the round pool, `shape="disc"` from ADR 0020's fourth addendum, and the trees' and bushes' crowns).
 - Four gates: *Chapel Gardens*, *Upper Gardens*, *Crusader's Chapel* and *High Altar* (the finish).
-- About 2,250 units from the portal to the finish line along the reviewed route.
+- About 2,490 units from the portal to the finish line along the reviewed route (2,250 before version 3's landings).
 
-Offline: the route walk crosses the four gates in order and never meets a wall or a solid; full throttle from the grid launches cleanly; the pools block and a kart slides round the round pool's rim; a plinth's face stops a kart and the stairs run clean up; a kart stops at a tree's crown, not at a hidden trunk. With the Cathedral every course is ready; none is listed as coming soon. See [the Scarlet Cathedral sheet](art/tracks/scarlet-cathedral.md).
+Offline: the route walk crosses the four gates in order and never meets a wall or a solid; full throttle from the grid launches cleanly; the pools block and a kart slides round the round pool's rim; a plinth's face stops a kart, the long flights run clean onto their landings, a parapet stops a kart driving on north and the short flights lead off to the lawns; a kart stops at a tree's crown, not at a hidden trunk. With the Cathedral every course is ready; none is listed as coming soon. See [the Scarlet Cathedral sheet](art/tracks/scarlet-cathedral.md).
 
 ## Test Oval checkpoint sequence
 

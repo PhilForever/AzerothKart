@@ -25,6 +25,9 @@ III-style camera:
 
 - pose the skeleton at the first frame of the vehicle's sequence and keep the
   geosets visible there; flyers are lifted to a hover height;
+- a vehicle with "wings" (the Gryphon Rider) also gets one set of frames per
+  wing phase, posed at given times of its own flying loops with the scale,
+  centre and lift of that first pose;
 - show the player team color (red) through the texture's alpha;
 - turn the vehicle to 64 headings, 5.625 degrees apart;
 - view each heading with an orthographic camera tilted 36.87 degrees from
@@ -35,7 +38,8 @@ III-style camera:
 
 The frames fill an 8x8 sheet (frame k faces heading k * 2pi/64, counter-
 clockwise from east). The UI picks the nearest frame by heading and never
-rotates the image. Each frame takes 4x4 samples per texel, resolved by
+rotates the image. A sheet with four wing phases is 16x16 frames, the phases
+one after another (frame k of phase p is cell p * 64 + k, sixteen a row). Each frame takes 4x4 samples per texel, resolved by
 paintkit's exact integer box filter, and transparent texels get bled edge
 color.
 
@@ -109,7 +113,18 @@ VEHICLES = {
     "gryphon_rider": {
         "name": "Gryphon Rider", "output": "GryphonRider.tga", "slug": "gryphon-rider",
         "archive": "GryphonRider.zip", "model": "gryphonrider.mdx", "sequence": "Stand",
-        "fit": ("width", 32.0), "hover": 4.0, "quad": 41.0, "pivot": (2.6, 0.0), "min_solid": 0.08,
+        "fit": ("width", 32.0), "hover": 4.0, "quad": 58.0, "pivot": (4.5, 0.0), "min_solid": 0.025,
+        # Its wingbeat (the owner, 2026-10-26: "flapping during normal speed
+        # and gliding during boost"), from the model's own flying loops: the
+        # rest pose (wings level, the start of Walk), the beat's top and its
+        # bottom (Walk, 667 ms a beat), and the glide (Walk - 2, wings spread
+        # wide, its body kept at the rest pose's height). The raised wings and
+        # their shadow need the larger frame window; the frames keep 128 texels.
+        # The race plays the beat as rest, top, rest, bottom ("cycle", as in
+        # Presentation.KART_SPRITES) and shows the last phase while boosting.
+        "wings": {"body": "Bone Griffon Body", "cycle": (0, 1, 0, 2),
+                  "phases": (("Walk", 0.0, False), ("Walk", 0.25, False), ("Walk", 0.6875, False),
+                             ("Walk - 2", 0.5, True))},
         "sha256": {
             "gryphonrider.mdx": "ff20667a4b7eba1e7a193993eff0c49ae3b2b096701dee585c4c5598103d7a0a",
             "Units/Human/GryphonRider/gryphonrider.blp":
@@ -432,13 +447,14 @@ def geoset_visible(model, index, frame, interval):
     return track_value(tracks.get("KGAO"), frame, interval, (alpha,))[0] > 0.0
 
 
-def posed_triangles(model, sequence, hidden_bones=()):
-    """World-space triangles (positions, normals, uvs, material) of geosets visible at the frame.
+def posed_triangles(model, sequence, hidden_bones=(), frame=None):
+    """World-space triangles (positions, normals, uvs, material) of geosets visible at the frame
+    (by default the sequence's first).
 
     Faces with a vertex bound to one of `hidden_bones` are left out (a
     spinning rotor's blades, which the game blurs)."""
     interval = model["sequences"][sequence]
-    frame = interval[0]
+    frame = interval[0] if frame is None else frame
     world = world_matrices(model, frame, interval)
     triangles = []
     for index, geo in enumerate(model["geosets"]):
@@ -809,6 +825,43 @@ def fitted(model, samplers, triangles, vehicle):
     return model, samplers, triangles, fit, cx, cy
 
 
+def bone_height(model, sequence, frame, name):
+    """Model-space height of a named bone's pivot at a frame of a sequence."""
+    node = next(i for i, n in model["nodes"].items() if n["name"] == name)
+    m = world_matrices(model, frame, model["sequences"][sequence])(node)
+    p = model["pivots"][node]
+    return m[2][0] * p[0] + m[2][1] * p[1] + m[2][2] * p[2] + m[2][3]
+
+
+def phases(posed, vehicle=TRIKE):
+    """The sheet's poses: one triangle list per phase, the posed vehicle's own for most.
+
+    A vehicle with "wings" lists (sequence, fraction of its loop, keep the
+    body's height) per phase; each is posed at that time and keeps the first
+    pose's scale, centre and lift (and, if asked, its body's height)."""
+    model, samplers, triangles, fit, cx, cy = posed
+    wings = vehicle.get("wings")
+    if not wings:
+        return [triangles]
+    rest = bone_height(model, vehicle["sequence"], model["sequences"][vehicle["sequence"]][0], wings["body"])
+    out = []
+    for sequence, part, keep in wings["phases"]:
+        start, end = model["sequences"][sequence]
+        frame = start + (end - start) * part
+        dz = model["lift"] + (rest - bone_height(model, sequence, frame, wings["body"]) if keep else 0.0)
+        out.append([(tuple((p[0], p[1], p[2] + dz) for p in pts), normals, uvs, material)
+                    for pts, normals, uvs, material in posed_triangles(model, sequence, vehicle.get("hide_bones", ()), frame)
+                    if renderable(model, samplers, model["materials"][material])])
+    return out
+
+
+def layout(count):
+    """Sheet columns and rows (in frames) for `count` phases of FRAMES headings."""
+    assert count in (1, 2, 4), "a sheet holds one, two or four phases"
+    columns = COLUMNS if count == 1 else 2 * COLUMNS
+    return columns, FRAMES * count // columns
+
+
 def emitters(source, posed, vehicle=TRIKE):
     """The model's particle emitters in the kart's frame (+x forward, +y left, z up), world units.
 
@@ -863,9 +916,11 @@ def rear_contacts(posed):
     return floor_z, sides
 
 
-def window_bounds(posed):
-    """Screen-space extent of trike plus shadow over all headings, in world units."""
-    model, samplers, triangles, fit, cx, cy = posed
+def window_bounds(posed, triangles=None):
+    """Screen-space extent of trike plus shadow over all headings, in world units
+    (of the posed vehicle, or of `triangles` posed with its scale and centre)."""
+    model, samplers, posed_triangles_, fit, cx, cy = posed
+    triangles = posed_triangles_ if triangles is None else triangles
     xmin = ymin = 1e30
     xmax = ymax = -1e30
     for c, s in directions():
@@ -876,15 +931,42 @@ def window_bounds(posed):
     return xmin, xmax, ymin, ymax
 
 
-def build(source, vehicle=TRIKE):
+def build(source, vehicle=TRIKE, only=None):
+    """The sheet (rows of texels), its frames (phase after phase), the model scale and extent.
+
+    With `only` (phase indices), just those phases' frames are rendered (the
+    others are None) and no sheet is assembled: a check of part of a sheet."""
     posed = pose(source, vehicle)
     model, samplers, triangles, fit, cx, cy = posed
-    xmin, xmax, ymin, ymax = window_bounds(posed)
+    poses = phases(posed, vehicle)
+    extents = [window_bounds(posed, tris) for tris in poses]
+    xmin, xmax = min(e[0] for e in extents), max(e[1] for e in extents)
+    ymin, ymax = min(e[2] for e in extents), max(e[3] for e in extents)
     quad, (px, py) = vehicle["quad"], vehicle["pivot"]
     inner = quad / 2 * (FRAME - 4) / FRAME              # keep two texels clear of each frame edge
     assert px - inner <= xmin and xmax <= px + inner and py - inner <= ymin and ymax <= py + inner, \
         f"{vehicle['name']} and shadow ({xmin:.2f}..{xmax:.2f}, {ymin:.2f}..{ymax:.2f}) exceed the frame window"
     rotor = vehicle.get("rotor")
+    frames = []
+    for index, tris in enumerate(poses):
+        if only is not None and index not in only:
+            frames += [None] * FRAMES
+            continue
+        frames += render_phase(model, samplers, tris, fit, cx, cy, vehicle, rotor, inner)
+    if only is not None:
+        return None, frames, fit, (xmin, xmax, ymin, ymax)
+    columns, rows = layout(len(poses))
+    sheet = [[None] * (columns * FRAME) for _ in range(rows * FRAME)]
+    for k, frame in enumerate(frames):
+        ox, oy = (k % columns) * FRAME, (k // columns) * FRAME
+        for j in range(FRAME):
+            sheet[oy + j][ox:ox + FRAME] = frame[j]
+    return sheet, frames, fit, (xmin, xmax, ymin, ymax)
+
+
+def render_phase(model, samplers, triangles, fit, cx, cy, vehicle, rotor, inner):
+    """One phase's FRAMES headings."""
+    quad, (px, py) = vehicle["quad"], vehicle["pivot"]
     frames = []
     for c, s in directions():
         disc = None
@@ -899,25 +981,30 @@ def build(source, vehicle=TRIKE):
                 f"{vehicle['name']}'s rotor disc exceeds the frame window"
         frames.append(render_frame(model, samplers, placed(triangles, fit, cx, cy, c, s), quad, vehicle["pivot"],
                                    disc=disc))
-    sheet = [[None] * ATLAS for _ in range(ATLAS)]
-    for k, frame in enumerate(frames):
-        ox, oy = (k % COLUMNS) * FRAME, (k // COLUMNS) * FRAME
-        for j in range(FRAME):
-            sheet[oy + j][ox:ox + FRAME] = frame[j]
-    return sheet, frames, fit, (xmin, xmax, ymin, ymax)
+    return frames
 
 
 # ---------------------------------------------------------------------------
 # Validation: packaging, frame borders and coverage, heading order.
 
 
+def phase_count(vehicle):
+    return len(vehicle["wings"]["phases"]) if vehicle.get("wings") else 1
+
+
 def validate(image, vehicle=TRIKE):
+    count = phase_count(vehicle)
+    columns, rows = layout(count)
+    width, height = columns * FRAME, rows * FRAME
     fields, px = decode_tga(image)
-    assert fields == (0, 0, 2, 0, 0, 0, 0, 0, ATLAS, ATLAS, 32, 8), "Unexpected TGA header"
-    assert len(image) == 18 + ATLAS * ATLAS * 4, "Unexpected TGA payload size"
+    assert fields == (0, 0, 2, 0, 0, 0, 0, 0, width, height, 32, 8), "Unexpected TGA header"
+    assert len(image) == 18 + width * height * 4, "Unexpected TGA payload size"
+
+    def cell(k):
+        return (k % columns) * FRAME, (k // columns) * FRAME
     counts = []
-    for k in range(FRAMES):
-        ox, oy = (k % COLUMNS) * FRAME, (k // COLUMNS) * FRAME
+    for k in range(FRAMES * count):
+        ox, oy = cell(k)
         solid = 0
         for j in range(FRAME):
             for i in range(FRAME):
@@ -927,11 +1014,12 @@ def validate(image, vehicle=TRIKE):
                 solid += a == 255
         assert solid > vehicle["min_solid"] * FRAME * FRAME, f"frame {k}: {vehicle['name']} unexpectedly small"
         counts.append(solid)
-    # A vehicle turned by 180 degrees is a different picture: frames must not repeat.
-    for k in range(FRAMES // 2):
-        ox, oy = (k % COLUMNS) * FRAME, (k // COLUMNS) * FRAME
-        k2 = k + FRAMES // 2
-        ox2, oy2 = (k2 % COLUMNS) * FRAME, (k2 // COLUMNS) * FRAME
+    # A vehicle turned by 180 degrees is a different picture: frames must not
+    # repeat. Nor may two phases at one heading.
+    pairs = [(p * FRAMES + k, p * FRAMES + k + FRAMES // 2) for p in range(count) for k in range(FRAMES // 2)]
+    pairs += [(p * FRAMES + k, q * FRAMES + k) for p in range(count) for q in range(p + 1, count) for k in range(FRAMES)]
+    for k, k2 in pairs:
+        (ox, oy), (ox2, oy2) = cell(k), cell(k2)
         assert any(px[oy + j][ox + i] != px[oy2 + j][ox2 + i] for j in range(FRAME) for i in range(FRAME)), \
             f"frames {k} and {k2} are identical"
     return min(counts), max(counts)
@@ -1052,11 +1140,97 @@ def review_sheet(frames, vehicle=TRIKE):
     return sheet
 
 
+def check_phases(vehicle, source, only):
+    """Render only the phases in `only` and compare them with the shipped sheet's cells."""
+    verify_sources(source, vehicle)
+    output = ASSETS / vehicle["output"]
+    count = phase_count(vehicle)
+    assert all(0 <= p < count for p in only), f"{vehicle['name']} has phases 0..{count - 1}"
+    image = output.read_bytes()
+    validate(image, vehicle)
+    _, px = decode_tga(image)
+    _, frames, _, _ = build(source, vehicle, only=set(only))
+    columns, _ = layout(count)
+    for k, frame in enumerate(frames):
+        if frame is None:
+            continue
+        ox, oy = (k % columns) * FRAME, (k // columns) * FRAME
+        if any(px[oy + j][ox:ox + FRAME] != frame[j] for j in range(FRAME)):
+            raise SystemExit(f"STALE: {output.relative_to(ROOT).as_posix()} frame {k}; run without --check")
+    print(f"CHECK PASS: {output.relative_to(ROOT).as_posix()} phases {', '.join(map(str, sorted(only)))} of {count} "
+          f"({FRAMES} frames each) match; sheet sha256={hashlib.sha256(image).hexdigest()}")
+
+
+def ground_tile(frame, vehicle, bg, kx, ky, pixels_per_unit, size=96):
+    """One frame over the Mirage ground at (kx, ky), as the race draws it."""
+    from paintkit import sample_bilinear
+    quad, (px, py) = vehicle["quad"], vehicle["pivot"]
+    rows = []
+    for j in range(size):
+        row = []
+        for i in range(size):
+            dx, dy = (i + 0.5 - size / 2) / pixels_per_unit, (size / 2 - j - 0.5) / pixels_per_unit
+            base = background_color(bg, kx + dx, ky + dy)
+            u = (dx - px + quad / 2) / quad * FRAME
+            v = (py + quad / 2 - dy) / quad * FRAME
+            r, g, b, a = sample_bilinear(frame, u, v) if 0 <= u < FRAME and 0 <= v < FRAME else (0, 0, 0, 0)
+            a /= 255.0
+            row.append([int(r * a + base[0] * (1 - a) + 0.5), int(g * a + base[1] * (1 - a) + 0.5),
+                        int(b * a + base[2] * (1 - a) + 0.5), 255])
+        rows.append(row)
+    return rows
+
+
+def wings_review(frames, vehicle):
+    """A winged sheet's phases (rows: rest, the beat's top and bottom, the
+    glide) at eight headings over the Mirage ground, at about 1440p size
+    (1.47 pixels per world unit) enlarged twice; then the beat as the race
+    plays it (rest, top, rest, bottom) and the glide at three headings, at
+    the garage's size (5.5 pixels per world unit)."""
+    from math import pi
+    bg = load_background()
+    count = phase_count(vehicle)
+    gap, back = 6, [28, 28, 32, 255]
+    blocks = []
+    zoom, size = 2, 96
+    for phase in range(count):
+        row = []
+        for n in range(8):
+            heading = pi / 2 - n * pi / 4
+            k = int(floor(heading / (2 * pi / FRAMES) + 0.5)) % FRAMES
+            t = ground_tile(frames[phase * FRAMES + k], vehicle, bg, 700, 600, 1.47, size)
+            row.append([[pixel for pixel in line for _ in range(zoom)] for line in t for _ in range(zoom)])
+        blocks.append(row)
+    big = []
+    cycle = vehicle["wings"].get("cycle", tuple(range(count)))
+    for heading in (pi / 2, pi / 4, pi + pi / 8):
+        k = int(floor(heading / (2 * pi / FRAMES) + 0.5)) % FRAMES
+        big.append([ground_tile(frames[phase * FRAMES + k], vehicle, bg, 700, 600, 5.5, 320)
+                    for phase in tuple(cycle) + (count - 1,)])
+    width = max(len(blocks[0]) * (size * zoom + gap), len(big[0]) * (320 + gap)) + gap
+    height = gap + count * (size * zoom + gap) + len(big) * (320 + gap)
+    sheet = [[list(back) for _ in range(width)] for _ in range(height)]
+
+    def paste(tile, ox, oy):
+        for j, line in enumerate(tile):
+            sheet[oy + j][ox:ox + len(line)] = [list(p) for p in line]
+    for r, row in enumerate(blocks):
+        for c, tile in enumerate(row):
+            paste(tile, gap + c * (size * zoom + gap), gap + r * (size * zoom + gap))
+    top = gap + count * (size * zoom + gap)
+    for r, row in enumerate(big):
+        for c, tile in enumerate(row):
+            paste(tile, gap + c * (320 + gap), top + r * (320 + gap))
+    return sheet
+
+
 def run(vehicle, source, check, preview):
     verify_sources(source, vehicle)
     sheet, frames, fit, bounds = build(source, vehicle)
     image = encode_tga(sheet)
     fewest, most = validate(image, vehicle)
+    count = phase_count(vehicle)
+    columns, rows = layout(count)
     output = ASSETS / vehicle["output"]
     if check:
         if not output.is_file() or output.read_bytes() != image:
@@ -1067,15 +1241,18 @@ def run(vehicle, source, check, preview):
     xmin, xmax, ymin, ymax = bounds
     quad, (px, py) = vehicle["quad"], vehicle["pivot"]
     print(f'{"CHECK PASS" if check else "GENERATED"}: {output.relative_to(ROOT).as_posix()}; '
-          f"{vehicle_id(vehicle)} {ATLAS}x{ATLAS} BGRA32 straight alpha bottom-left; {len(image)} bytes; "
-          f"{FRAMES} frames of {FRAME}x{FRAME} texels over {quad:g} world units (center {px:g} east, "
+          f"{vehicle_id(vehicle)} {columns * FRAME}x{rows * FRAME} BGRA32 straight alpha bottom-left; {len(image)} bytes; "
+          f"{count} x {FRAMES} frames of {FRAME}x{FRAME} texels over {quad:g} world units (center {px:g} east, "
           f"{py:g} north); "
           f"{fewest}-{most} opaque texels per frame; extent x {xmin:.2f}..{xmax:.2f}, y {ymin:.2f}..{ymax:.2f}; "
           f"model scale {fit:.5f}; sha256={hashlib.sha256(image).hexdigest()}")
     if preview and not check:
         DOCS.mkdir(parents=True, exist_ok=True)
-        (DOCS / f"{vehicle['slug']}-review.png").write_bytes(encode_png(review_sheet(frames, vehicle)))
+        (DOCS / f"{vehicle['slug']}-review.png").write_bytes(encode_png(review_sheet(frames[:FRAMES], vehicle)))
         print(f"PREVIEW: docs/art/karts/{vehicle['slug']}-review.png")
+        if count > 1:
+            (DOCS / f"{vehicle['slug']}-wings-review.png").write_bytes(encode_png(wings_review(frames, vehicle)))
+            print(f"PREVIEW: docs/art/karts/{vehicle['slug']}-wings-review.png")
 
 
 def vehicle_id(vehicle):
@@ -1094,6 +1271,8 @@ def main():
     parser.add_argument("--vehicle", choices=sorted(VEHICLES), default="goblin_mortar_trike",
                         help="the vehicle in --source (default: the Goblin Mortar Trike)")
     parser.add_argument("--check", action="store_true", help="verify exact runtime bytes without writing")
+    parser.add_argument("--phase", type=int, action="append", metavar="N",
+                        help="with --check: verify only this wing phase's frames (repeatable; a shorter check)")
     parser.add_argument("--preview", action="store_true", help="also write review PNGs under docs/art/karts/")
     parser.add_argument("--emitters", action="store_true",
                         help="list each model's particle emitters and rear ground contacts in the kart's frame")
@@ -1127,6 +1306,11 @@ def main():
             floor_z, sides = rear_contacts(posed)
             for x, y in sides:
                 print(f"  rear ground contact: trailing edge forward {x:.2f}, left {y:.2f} (floor {floor_z:.2f})")
+            continue
+        if args.phase:
+            if not args.check:
+                parser.error("--phase checks part of a sheet: give --check too")
+            check_phases(vehicle, source, args.phase)
             continue
         run(vehicle, source, args.check, args.preview)
 

@@ -554,7 +554,7 @@ end
 local addonPrefix = "Interface\\AddOns\\AzerothKart\\"
 local spriteFiles = 0
 local coverageFloors = {goblin_mortar_trike=0.12, steam_tank=0.12,
-    dwarven_biker=0.12, gryphon_rider=0.08, gyrocopter=0.06,
+    dwarven_biker=0.12, gryphon_rider=0.025, gyrocopter=0.06,  -- the gryphon: wings tucked, in a 58-unit window
     dwarf_car=0.10, orc_demolisher=0.10, meat_wagon=0.10, glaive_thrower=0.10,
     goblin_drag_car=0.08} -- the pod racer: two pods and a cart, open between them
 for id, sprite in pairs(P.KART_SPRITES) do
@@ -578,49 +578,72 @@ for id, sprite in pairs(P.KART_SPRITES) do
         return data:byte(18 + ((h - 1 - rowFromTop) * w + column) * 4 + 4)
     end
     if sprite.frames then
-        -- Directional sheet: an even grid of square frames, each with a
-        -- transparent border so filtering never pulls in a neighbor, a
-        -- substantial vehicle, and distinct pictures for opposite headings.
-        local columns, frames = sprite.columns, sprite.frames
-        local rows = frames / columns
-        assert(frames % columns == 0 and w % columns == 0 and h % rows == 0, id .. ": even frame grid")
+        -- Directional sheet: an even grid of square frames (a sheet with
+        -- phases holds every heading once per phase, phase after phase), each
+        -- with a transparent border so filtering never pulls in a neighbor, a
+        -- substantial vehicle, and distinct pictures for opposite headings and
+        -- for one heading's phases.
+        local columns, frames, phases = sprite.columns, sprite.frames, sprite.phases or 1
+        local rows = frames * phases / columns
+        assert(phases % 1 == 0 and phases >= 1 and (frames * phases) % columns == 0 and w % columns == 0
+               and h % rows == 0, id .. ": even frame grid")
         local fw, fh = w / columns, h / rows
         assert(fw == fh and fw / sprite.quadWidth == fh / sprite.quadHeight, id .. ": square frames and texels")
         assert(type(sprite.pivotX) == "number" and type(sprite.pivotY) == "number", id .. ": frame pivot")
-        local fewest, most = fw * fh, 0
-        for frame = 0, frames - 1 do
-            local ox, oy = (frame % columns) * fw, math.floor(frame / columns) * fh
-            local solid = 0
-            for row = 0, fh - 1 do
-                for column = 0, fw - 1 do
-                    local a = alpha(ox + column, oy + row)
-                    if row == 0 or column == 0 or row == fh - 1 or column == fw - 1 then
-                        assert(a == 0, id .. ": frame " .. frame .. " keeps a transparent border")
-                    end
-                    if a == 255 then solid = solid + 1 end
-                end
-            end
-            -- Thin flyers have explicit lower floors; ground kart coverage
-            -- must not regress when a new aircraft is registered.
-            local floor = assert(coverageFloors[id], id .. ": directional coverage floor declared")
-            assert(solid > floor * fw * fh, id .. ": frame " .. frame .. " shows the vehicle")
-            fewest, most = math.min(fewest, solid), math.max(most, solid)
-            local l, r, top, b = P.kartFrameCoords(sprite, frame)
-            assert(math.abs(l - ox / w) < 1e-12 and math.abs(r - (ox + fw) / w) < 1e-12 and
-                   math.abs(top - oy / h) < 1e-12 and math.abs(b - (oy + fh) / h) < 1e-12,
-                   id .. ": frame " .. frame .. " crop matches the sheet layout")
+        local function origin(phase, frame)
+            local index = phase * frames + frame
+            return (index % columns) * fw, math.floor(index / columns) * fh
         end
-        for frame = 0, frames / 2 - 1 do
-            local other = frame + frames / 2
-            local ox, oy = (frame % columns) * fw, math.floor(frame / columns) * fh
-            local px, py = (other % columns) * fw, math.floor(other / columns) * fh
-            local differs = false
-            for row = 0, fh - 1 do
-                for column = 0, fw - 1 do
-                    if alpha(ox + column, oy + row) ~= alpha(px + column, py + row) then differs = true end
+        local fewest, most = fw * fh, 0
+        for phase = 0, phases - 1 do
+            for frame = 0, frames - 1 do
+                local ox, oy = origin(phase, frame)
+                local solid = 0
+                for row = 0, fh - 1 do
+                    for column = 0, fw - 1 do
+                        local a = alpha(ox + column, oy + row)
+                        if row == 0 or column == 0 or row == fh - 1 or column == fw - 1 then
+                            assert(a == 0, id .. ": frame " .. frame .. " keeps a transparent border")
+                        end
+                        if a == 255 then solid = solid + 1 end
+                    end
+                end
+                -- Thin flyers have explicit lower floors; ground kart coverage
+                -- must not regress when a new aircraft is registered.
+                local floor = assert(coverageFloors[id], id .. ": directional coverage floor declared")
+                assert(solid > floor * fw * fh, id .. ": frame " .. frame .. " shows the vehicle")
+                fewest, most = math.min(fewest, solid), math.max(most, solid)
+                local l, r, top, b = P.kartFrameCoords(sprite, frame, phase)
+                assert(math.abs(l - ox / w) < 1e-12 and math.abs(r - (ox + fw) / w) < 1e-12 and
+                       math.abs(top - oy / h) < 1e-12 and math.abs(b - (oy + fh) / h) < 1e-12,
+                       id .. ": frame " .. frame .. " of phase " .. phase .. " crop matches the sheet layout")
+                if phase == 0 then
+                    local l0, r0, t0, b0 = P.kartFrameCoords(sprite, frame)
+                    assert(l0 == l and r0 == r and t0 == top and b0 == b, id .. ": the default crop is phase 0")
                 end
             end
-            assert(differs, id .. ": opposite headings " .. frame .. "/" .. other .. " are different pictures")
+        end
+        local function differ(phase, frame, otherPhase, other)
+            local ox, oy = origin(phase, frame)
+            local px, py = origin(otherPhase, other)
+            for row = 0, fh - 1 do
+                for column = 0, fw - 1 do
+                    if alpha(ox + column, oy + row) ~= alpha(px + column, py + row) then return true end
+                end
+            end
+            return false
+        end
+        for phase = 0, phases - 1 do
+            for frame = 0, frames / 2 - 1 do
+                assert(differ(phase, frame, phase, frame + frames / 2),
+                       id .. ": opposite headings " .. frame .. "/" .. frame + frames / 2 .. " are different pictures")
+            end
+            for other = phase + 1, phases - 1 do
+                for frame = 0, frames - 1 do
+                    assert(differ(phase, frame, other, frame),
+                           id .. ": phases " .. phase .. "/" .. other .. " at heading " .. frame .. " differ")
+                end
+            end
         end
         -- Heading lookup: east is frame 0, counter-clockwise, nearest frame, any turn count.
         local step = 2 * math.pi / frames
@@ -632,8 +655,8 @@ for id, sprite in pairs(P.KART_SPRITES) do
                P.kartFrame(sprite, 2 * math.pi + step) == 1 and P.kartFrame(sprite, -4 * math.pi + 2 * step) == 2,
                id .. ": nearest frame with wrap-around")
         spriteFiles = spriteFiles + 1
-        print(("offline kart sheet %s: %dx%d TGA, %d frames of %dx%d, %d-%d opaque texels per frame")
-            :format(id, w, h, frames, fw, fh, fewest, most))
+        print(("offline kart sheet %s: %dx%d TGA, %d x %d frames of %dx%d, %d-%d opaque texels per frame")
+            :format(id, w, h, phases, frames, fw, fh, fewest, most))
     else
         local perUnit = w / sprite.quadWidth
         local halfW, halfH = P.KART_FOOTPRINT_WIDTH * perUnit / 2, P.KART_FOOTPRINT_HEIGHT * perUnit / 2
@@ -665,7 +688,8 @@ end
 assert(spriteFiles >= 1, "at least one kart sprite is validated")
 
 -- The player's optional outline (Settings): every directional sheet names a
--- half-resolution outline sheet of the same frames (build_kart_outlines.py).
+-- half-resolution outline sheet of the same frames and phases (512x512 for
+-- the usual sheet; build_kart_outlines.py).
 -- White so the UI tints it; a clear border per frame; a line in every frame
 -- that never covers the kart's body (texels at least half opaque).
 do
@@ -687,17 +711,19 @@ do
             assert(sprite.outline == addonPrefix .. "Assets\\Karts\\Outlines\\" .. file,
                    id .. ": the outline sheet shares the kart sheet's name")
             local data, kart = read(sprite.outline), read(sprite.path)
-            local w, h = O.textureWidth, O.textureHeight
+            local w, h = sprite.textureWidth / 2, sprite.textureHeight / 2
+            assert(sprite.phases or (w == O.textureWidth and h == O.textureHeight), id .. ": the usual 512x512 outline")
             local function u16(index) return data:byte(index) + 256 * data:byte(index + 1) end
             assert(data:byte(3) == 2 and u16(13) == w and u16(15) == h and data:byte(17) == 32 and
-                   data:byte(18) == 8 and #data == 18 + w * h * 4, id .. ": outline BGRA32, bottom-left, 512x512")
+                   data:byte(18) == 8 and #data == 18 + w * h * 4, id .. ": outline BGRA32, bottom-left, half size")
             local kw, kh = sprite.textureWidth, sprite.textureHeight
             local function kartAlpha(column, rowFromTop)
                 return kart:byte(18 + ((kh - 1 - rowFromTop) * kw + column) * 4 + 4)
             end
-            local fw, fh = w / sprite.columns, h / (sprite.frames / sprite.columns)
+            local cells = sprite.frames * (sprite.phases or 1)
+            local fw, fh = w / sprite.columns, h / (cells / sprite.columns)
             local fewest = fw * fh
-            for frame = 0, sprite.frames - 1 do
+            for frame = 0, cells - 1 do
                 local ox, oy = (frame % sprite.columns) * fw, math.floor(frame / sprite.columns) * fh
                 local lit = 0
                 for row = 0, fh - 1 do
@@ -727,6 +753,53 @@ do
         end
     end
     assert(outlines >= 1, "at least one outline sheet is validated")
+end
+
+-- Wing phases: a winged sheet beats its wings on a clock and glides on
+-- request; every other sheet stays in its one pose. Pure: nothing is read
+-- from the simulation, and the crops follow the sheet's phase layout.
+do
+    local gryphon = P.KART_SPRITES.gryphon_rider
+    local wings = gryphon.wings
+    assert(gryphon.phases == 4 and gryphon.columns == 16 and gryphon.textureWidth == 2048 and
+           gryphon.textureHeight == 2048, "the gryphon's sheet holds four phases, 16 frames a row")
+    assert(type(wings) == "table" and wings.beat > 0 and wings.glide == 3 and #wings.cycle == 4,
+           "the gryphon's wings: a beat, its steps and a glide")
+    for _, phase in ipairs(wings.cycle) do
+        assert(phase >= 0 and phase < gryphon.phases and phase ~= wings.glide, "the beat's steps are flying poses")
+    end
+    for id, sprite in pairs(P.KART_SPRITES) do
+        if id ~= "gryphon_rider" then
+            assert(sprite.wings == nil and sprite.phases == nil, id .. ": one pose")
+            for _, time in ipairs({0, 0.2, 0.4, 7.5}) do
+                assert(P.wingPhase(sprite, time, false) == 0 and P.wingPhase(sprite, time, true) == 0,
+                       id .. ": no wings, always the rest pose")
+            end
+        end
+    end
+    local beat, step = wings.beat, wings.beat / 4
+    local seen = {}
+    for n = 0, 7 do
+        local time = (n + 0.5) * step
+        seen[#seen + 1] = P.wingPhase(gryphon, time, false)
+    end
+    assert(table.concat(seen, ",") == "0,1,0,2,0,1,0,2", "one beat: rest, top, rest, bottom, again: " .. table.concat(seen, ","))
+    assert(P.wingPhase(gryphon, 0, false) == 0 and P.wingPhase(gryphon, beat * 100 + 1.5 * step, false) == 1,
+           "the beat starts at rest and repeats")
+    assert(P.wingPhase(gryphon, -0.5 * step, false) == 2, "before zero the beat runs on backwards")
+    for _, time in ipairs({0, step * 1.5, step * 3.5, 1e6}) do
+        assert(P.wingPhase(gryphon, time, true) == wings.glide, "gliding holds the glide at any time")
+    end
+    assert(P.wingPhase(gryphon, 0 / 0, false) == 0 and P.wingPhase(gryphon, math.huge, false) == 0
+           and P.wingPhase(gryphon, nil, false) == 0 and P.wingPhase(nil, 1, false) == 0,
+           "an unreadable time or sheet gives the rest pose")
+    local l, r, t, b = P.kartFrameCoords(gryphon, 63, 3)
+    assert(l == 15 / 16 and r == 1 and t == 15 / 16 and b == 1, "the glide's last heading is the sheet's last cell")
+    l, r, t, b = P.kartFrameCoords(gryphon, 5, 1)
+    assert(l == 5 / 16 and r == 6 / 16 and t == 4 / 16 and b == 5 / 16, "phase 1 starts on the sheet's fifth row")
+    l, r, t, b = P.kartFrameCoords(P.KART_SPRITES.steam_tank, 9)
+    assert(l == 1 / 8 and r == 2 / 8 and t == 1 / 8 and b == 2 / 8, "a one-pose sheet keeps its 8x8 layout")
+    print("offline presentation: the gryphon's wing phases (beat 0,1,0,2 every " .. beat .. "s, glide 3), crops")
 end
 
 -- Drift and boost effects: the shipped atlases match Presentation.EFFECTS, and
@@ -939,6 +1012,57 @@ do
     end
     assert(road > 15000 and rim > 900, "registration samples cover the whole circuit")
     print(("offline Mirage background: %d road / %d rim samples agree with isDrivable"):format(road, rim))
+end
+
+-- Race standings: display estimates from each racer's own progress.
+do
+    -- A square course, four gates of 100 across, the start/finish the fourth.
+    local course = {gates={
+        {ax=400, ay=0, bx=400, by=100, nx=1, ny=0}, {ax=500, ay=400, bx=600, by=400, nx=0, ny=1},
+        {ax=100, ay=500, bx=100, by=600, nx=-1, ny=0}, {ax=0, ay=100, bx=100, by=100, nx=0, ny=-1}}}
+    -- Before the first gate, from the start line (the fourth's middle, 50,100):
+    -- the fraction of the straight distance to gate 1.
+    near(P.raceProgress(course, 0, 0, 50, 100), 0, "at the previous gate: no progress yet")
+    near(P.raceProgress(course, 0, 0, 225, 50), 0.5, "halfway to the next gate: half")
+    near(P.raceProgress(course, 0, 0, 400, 50), 0.999, "at the next gate's line: just short of it")
+    local third = P.raceProgress(course, 0, 2, 300, 550)        -- 200 from gate 3, which is 461 from gate 2
+    assert(third > 2.56 and third < 2.57, "two gates passed, then the fraction toward the third: " .. third)
+    assert(P.raceProgress(course, 1, 0, 50, 100) == 4, "a completed lap counts every gate")
+    assert(P.raceProgress(course, 0, 1, 600, 200) > P.raceProgress(course, 0, 0, 399, 50),
+        "one more gate passed is further on, however near the other is to its gate")
+    assert(P.raceProgress(course, 0, 0, -900, 900) == 0, "far behind the previous gate clamps at 0")
+    for _, bad in ipairs({{course, -1, 0, 0, 0}, {course, 0, 4, 0, 0}, {course, 0, 1.5, 0, 0},
+        {course, 0, 0, 0 / 0, 0}, {course, 0, 0, 0, math.huge}, {{gates={}}, 0, 0, 0, 0}, {nil, 0, 0, 0, 0}}) do
+        assert(P.raceProgress(bad[1], bad[2], bad[3], bad[4], bad[5]) == nil, "unreadable progress is nil")
+    end
+    local one = {gates={{ax=0, ay=0, bx=0, by=100, nx=1, ny=0}}}
+    assert(P.raceProgress(one, 0, 0, 50, 50) == 0, "a one-gate course has no fraction")
+
+    -- Placing: finished first by tick, then racing by progress, then out.
+    local finishedLate = {name="late", finishTicks=4000}
+    local finishedEarly = {name="early", finishTicks=3900}
+    local leading = {name="leading", progress=11.4}
+    local trailing = {name="trailing", progress=9.2}
+    local left = {name="left", progress=11.9, out=true}
+    assert(P.ahead(finishedEarly, finishedLate) and not P.ahead(finishedLate, finishedEarly), "the earlier finish")
+    assert(P.ahead(finishedLate, leading) and P.ahead(leading, trailing) and P.ahead(trailing, left),
+        "finished, then racing by progress, then out, whatever the progress")
+    assert(not P.ahead(leading, {progress=11.4}) and not P.ahead(left, {out=true}), "a tie is not ahead")
+    local order = P.standings({left, trailing, finishedLate, leading, finishedEarly})
+    local names = {}
+    for index, racer in ipairs(order) do names[index] = racer.name .. racer.place end
+    assert(table.concat(names, ",") == "early1,late2,leading3,trailing4,left5", "standings: " .. table.concat(names, ","))
+    local a, b = {name="a", progress=3}, {name="b", progress=3}
+    order = P.standings({a, b})
+    assert(order[1] == a and order[2] == b and a.place == 1 and b.place == 2, "ties keep the given order")
+    assert(#P.standings({}) == 0, "no racers, no standings")
+
+    local ordinals = {}
+    for _, n in ipairs({1, 2, 3, 4, 8, 11, 12, 13, 21, 22, 23, 101, 111}) do ordinals[#ordinals + 1] = P.ordinal(n) end
+    assert(table.concat(ordinals, " ") == "1st 2nd 3rd 4th 8th 11th 12th 13th 21st 22nd 23rd 101st 111th",
+        "ordinals: " .. table.concat(ordinals, " "))
+    assert(P.ordinal(0) == "--" and P.ordinal(1.5) == "--" and P.ordinal(nil) == "--", "no ordinal for a non-place")
+    print("offline presentation: race progress, placing (finished, racing, out) and ordinals")
 end
 
 assert(_G.AzerothKart == beforeGlobal, "offline import must not create or replace an addon global")

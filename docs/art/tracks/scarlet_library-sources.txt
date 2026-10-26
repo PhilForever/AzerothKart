@@ -11,10 +11,10 @@
    6  war3.w3mod:_de.w3mod:units/creeps/darkhound/darkhound.mdx
    1  war3.w3mod:_de.w3mod:units/human/scarletcleric/scarletcleric.mdx
    2  war3.w3mod:_de.w3mod:units/human/scarletfootman/scarletfootman.mdx
-   2  war3.w3mod:_de.w3mod:units/human/scarlethuntsman/scarlethuntsman.mdx
+   1  war3.w3mod:_de.w3mod:units/human/scarlethuntsman/scarlethuntsman.mdx
    1  war3.w3mod:_de.w3mod:units/human/scarletinvoker/scarletinvokerhero.mdx
    1  war3.w3mod:buildings/other/bookofsummoning/bookofsummoning.mdx
-   8  war3.w3mod:doodads/cityscape/plants/citybush/citybush.mdx
+   1  war3.w3mod:doodads/cityscape/plants/citybush/citybush.mdx
    1  war3.w3mod:doodads/cityscape/props/city_statue/city_statue.mdx
    1  war3.w3mod:doodads/cityscape/props/crystalshield/crystalshield.mdx
   12  war3.w3mod:doodads/cityscape/structures/city_columnsingle/city_columnsingle.mdx

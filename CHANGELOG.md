@@ -1,5 +1,44 @@
 # Changelog
 
+## Unreleased — reviewed visual/rematch integration (2026-10-26)
+
+- Integrate Claude's Scarlet-v3, race screens, score celebrations and Gryphon
+  wings with the existing multiplayer Play Again/map flow.
+- Use exact saved finisher/placement metadata, including the first finish;
+  retain joint first/pending peer results and quiet late refreshes.
+- Rest remote wings on stale/terminal observations. Separate Graveyard3's
+  full-grip score board while preserving older saved records.
+- Focused offline checks pass; native visual/sound/performance checks pending.
+
+## Unreleased — the Gryphon Rider's wingbeat (2026-10-26, `claude/gryphon-wings`)
+After a note on moving parts, the owner chose the gryphon first: "Sure let's start with the griphon. I want flapping during normal speed and gliding during boost." Based on `claude/race-screens`.
+- **Its wings beat while it flies:** rest, raised in a V, rest, swept down, one beat every two thirds of a second (the model's own timing), from the countdown until the run ends. Each pose casts its own shadow.
+- **It glides while boosting:** wings spread wide, legs trailing, from the model's own soaring loop; the boost's wind trails leave the glide's wingtips.
+- **Everywhere it shows:** the player's kart and its outline, a friend's gryphon in a two-player race (gliding on their reported boost), and the garage turntable, which beats for four seconds and glides for two. With no run, the rest pose, as before.
+- **The art:** `GryphonRider.tga` holds four poses of every heading (2048×2048, 16 MiB raw, from 4), rendered from the model's `Walk` and `Walk - 2` loops with its usual scale and hover; a larger frame window (58 units) fits the raised wings. Its outline sheet grows to 1024×1024. The builder can check one pose at a time (`--phase`).
+- **Presentation:** `kartFrameCoords` takes an optional pose; the new pure `wingPhase` picks it. Nothing reads or writes simulation state; the object counts are unchanged.
+- **Tests:** `test_presentation` validates the four-pose sheet and outline and the beat's timing; `test_menu` drives the turntable, a run (beat, glide, outline, rest) and a friend's gryphon. The look in the client is NOT RUN.
+
+## Unreleased — race screens and score celebrations (2026-10-26, `claude/race-screens`)
+The owner, after the Scarlet v3 fixes: "feel free to start on screen side of multiplayer such as race positions, name tags, and results. I also want a bigger celebration when you get a top 10 and top 3 score, take a look at that whole window and flow." Based on `claude/scarlet-v3`.
+- **Top-ten celebrations:** a new personal best that ranks on the shared score board grows the results into a celebration: **NEW #1!** (or **FIRST ON THE BOARD!**) with a gold medal, **TOP 3!** with a silver or bronze medal, **TOP 10!** with a golden laurel wreath and the rank in it, and the place under it ("#2 of 14 on the shared board"). The medal pops in over the dialog's top edge on a slowly turning gold sunburst, the banner fades in and confetti falls for under three seconds. The epic-loot toast (#1, top three) or the quest-complete chime (top ten) plays in place of the finish fanfare. Reopening the results shows the celebration still, without the sound or the confetti. A best off the top ten, or on the local board only, keeps the plain window with its notice in gold.
+- **The results' flow:** **Restart · Highscores · Close results**, then Change Kart, Change Track and Main Menu. **Highscores** opens the run's own board at the player's page, the player's own row in gold; after a celebration the button is lit.
+- **Two-player races:** the place while racing ("1st"/"2nd", "of 2", bottom right), from each racer's own laps, gates and progress toward the next gate; the friend's name over their kart, or held at the canvas edge toward it with the distance, faded when their signal is stale; and the results with both racers in their places, their karts and times or state ("racing, lap 3/3", "left the race", "connection lost"), a **1st PLACE!** celebration, **2nd PLACE** with the silver medal, or **FINISHED!** until the friend's finish arrives, and the gap ("Amber Stone finished 1.65s behind you"). The places are each racer's own reports: UI's unverified title and "No agreed winner or standings" hint stay, and a note says so.
+- **Art:** `Assets/UI/Celebration.tga` (512×256, 512 KiB, loaded at the first celebration), painted by `scripts/build_celebration_art.py`: the sunburst, gold, silver and bronze medals and the laurel wreath. Original art.
+- **Presentation:** `Presentation.raceProgress`, `ahead`, `standings` and `ordinal` order racers from copied reports; nothing writes race or physics state.
+- **Budget:** 1 frame, 14 textures and 10 font strings more, all created with the window: 90/91/150.
+- **Tests:** `test_presentation` (progress, order, ordinals), `test_menu` (every celebration, the refused picture, the board at the player's page, the two-player HUD and results) and `test_ui` (the name tag on and off screen, the budget). The look, the sounds and a two-player race in the client are NOT RUN.
+
+## Unreleased — Scarlet v3: an open courtyard, the grass at full speed, the Cathedral's landings (2026-10-26, `claude/scarlet-v3`)
+After driving the installed Scarlet v2 the owner sent his kart stopped in the Library's courtyard between the fountain and a tree: "cant even fit through here dawg. and yeah - the same terrain should have the same effects across maps - at least maps in the same "cup". We are inside a monastery, so the grass is short you could say - meaning driving over it should be perfectly fine. Everything else looks fine, except maybe the cathedral stairs turning at a landing, im assuming I understand what you mean, but yeah if it makes the map a bit more difficult - go for it." Based on Codex's installed `codex/scarlet-stats-review`.
+- **The Scarlet Cup's grass never slows** (ADR 0020's sixth addendum, superseding the "clear edge" reading): the Library's courtyard and the Graveyard's cloister drive as stone, like the Armory's yard and the Cathedral's gardens.
+- **Scarlet Library, version 3:** the courtyard is open. The trees' crowns had closed it round the fountain; now the trees are smaller and stand in its corners, a clear ring (48 units and wider for the kart's centre) runs round the fountain and the four ways in from the arcade are clear. One bush and three hounds stay at the trees' feet; the huntsman on the lawn is gone. The reviewed route crosses the courtyard.
+- **Scarlet Cathedral, version 3:** the stairs turn at a landing, as on the battle map: each long flight climbs beside the falls to a landing walled by a low parapet, and a short flight turns outward onto the upper lawn. The round pool moves north and shrinks to make room; two trees move behind the parapets.
+- **Scarlet Graveyard:** the lawn no longer slows; nothing else changes, the picture included, and it stays version 2: the stone path is still the fastest way, so its times stay comparable.
+- **The generator:** water may lie between rooms if it borders one (the falls between the landings).
+- **Copy:** the three courses' status lines and track-screen facts (full speed on the grass; the stairs turn at a landing).
+- **Tests:** `test_dungeon` checks that no Scarlet room slows, drives a ring round the Library's fountain and the four ways in, and the Cathedral's flights, landings, parapets and moved pool; the score catalogue carries the two new versions. The drive and the pictures in the client are NOT RUN.
+
 ## Unreleased — kart stat bars (2026-10-26, `claude/kart-stat-bars`)
 - **The kart screen shows handling as bars**, as the owner asked: "more mario kart/crash team racing way of seeing the different kart attributes ... in wow style obviously and use the actual ingame addon kart attributes as guidance for how much each bar should be filled". Asked which, he chose four: **Speed, Acceleration, Turning and Braking**, under the profile's name ("Handling: Heavy"), in the kart choice and the garage.
 - **WoW style:** gold-framed bars with six recessed windows and a glossy green fill, painted by `scripts/build_stat_bars.py` into `Assets/UI/StatBars.tga` (original art).

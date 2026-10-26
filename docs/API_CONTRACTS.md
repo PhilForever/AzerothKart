@@ -1,5 +1,33 @@
 # Implemented simulation and rendering contracts
 
+## Reviewed Claude visual integration — 2026-10-26
+
+The Scarlet-v3/race-screens/Gryphon stack is accepted with the corrections in
+the implemented sections below. No authoritative Physics, Race, room or wire
+API changes. Current Scarlet versions are G3/L3/A2/C3; saved older contexts
+remain intact. Production pool90frames/91textures/150fontStrings is counted
+offline. Native appearance, sound and memory/hitch behavior remain NOT RUN.
+
+`SoloRecords.Finish` adds `playerName` on a saved PB, captured once from the
+same identity used in the stored record. Optional detached `placement` is the
+exact successful finish transaction's `{rank,previousRank,tier,enteredTier,
+knownPlayers,scope="known_board"}`. No placement means no ranked celebration;
+matching ticks or newest cached rows must never infer the finisher. Existing
+saved/message/totalTicks return fields and failure behavior remain compatible.
+`ScoreSharing.Publish(record, priorPersonal?)` preserves its optional notice as first return
+and adds detached placement as second return. A later board refresh does not
+reinterpret or replay the captured finish. These are known community ranks,
+not a complete authenticated global ranking. SoloRecords supplies its validated
+pre-finish personal snapshot for lazy initialization, so the first save is not
+preseeded as its own previous result. The already captured record name is reused
+for this cold path. Existing one-argument callers remain supported.
+
+Final multiplayer visuals consume `UI.multiplayerResults` from LiveRace.results,
+retaining tied/pending/stopped semantics and the unverified notice. Only the
+in-race progress estimate uses Presentation helpers. Quiet RefreshResults
+updates late rows without another sound. Play Again/Change Map/Leave retain
+the postrace commands below, including when the next room has no live view.
+
 ## Multiplayer postrace room — 2026-10-26
 
 [ADR0021](adr/0021-multiplayer-postrace-room.md) and the
@@ -598,7 +626,8 @@ follow(view, x, y, heading, lookAhead?) -> sameView
 texCoords(view) -> left, right, top, bottom
 clipRect(view, x, y, width, height) -> canvasX, canvasY, width, height | nil
 kartFrame(sprite, heading) -> frame   -- nearest directional frame, 0-based
-kartFrameCoords(sprite, frame) -> left, right, top, bottom
+kartFrameCoords(sprite, frame, phase?) -> left, right, top, bottom   -- phase: proposed, claude/gryphon-wings
+wingPhase(sprite, time, gliding) -> phase                             -- integrated 2026-10-26
 ```
 
 `pose` linearly interpolates position and uses the shortest heading arc; an exact half-turn chooses the negative arc. Missing/NaN alpha uses current pose, alpha ≤0 previous, alpha ≥1 current. During active rendering alpha is `clock.accumulator/clock.dt`; this is up to one fixed step behind simulation. Start/Stop/inactive drawing uses the exact current pose. Presentation values must never affect Physics, gates or lap time.
@@ -719,6 +748,39 @@ Reviewed Claude UI `1b2d3d5` is integrated with the Codex backend by `6cd611a` o
   - No command is wired. Without a bridge, Host, Join, Ready, Start and Leave stay disabled and marked Coming soon.
 - **Sounds.** `PlaySound(SOUNDKIT[name])`, guarded and muted by a setting: menu open/click/check, 3-2-1-GO, and one fanfare per finished run.
 - **Counts.** The original solo Menu brought the pool to65/160/79; the integrated city screen/gates and staging background bring it to71frames/165textures/80fonts, and the four Warcraft III karts' list buttons (proposed on `claude/kart-roster-wc3`, 2026-10-22) to **75 frames**/165 textures/80 fonts, all created with the window.
+
+<a id="proposed-the-gryphon-riders-wingbeat-claude-claudegryphon-wings-2026-10-26"></a>
+
+### Implemented: the Gryphon Rider's wingbeat (reviewed 2026-10-26)
+
+The owner: "I want flapping during normal speed and gliding during boost." Presentation only; see [the roster](art/karts/roster.md#the-gryphon-riders-wingbeat). Additive: every other kart, the outline contract and the object counts (90/91/150) are unchanged.
+
+- **Sheets with phases.** A directional sheet may carry `phases` (here 4): every heading once per phase, phase after phase, `columns` frames a row; frame k of phase p is cell `p * frames + k`. `kartFrameCoords(sprite, frame, phase)` takes the phase (0-based, default 0, so every existing call keeps its crop). Phase 0 is the rest pose, the one a freshly applied sheet shows. The outline sheet of a phased sheet is half its size and holds every phase in the same layout.
+- **`wings`** on such a sheet: `cycle` (the phases of one beat, here rest, top, rest, bottom), `beat` (seconds a beat, 0.667, the model's own) and `glide` (the phase held while gliding, 3). `Presentation.wingPhase(sprite, time, gliding)` is pure: the glide while `gliding`, otherwise the beat's step at `time` seconds of the caller's clock; 0 for a sheet without wings or an unreadable time.
+- **The Gryphon Rider:** `GryphonRider.tga` becomes 2048×2048 (16 MiB raw, from 4) with quad 58 and pivot (4.5, 0) (from 41 and (2.6, 0)): the raised wings and their shadow need the window. Its boost `trails` move to the glide's wingtips, (4, ±20.2, 13.5).
+- **UI (visual body of `render`; `renderOpponent`/`opponentSprite`).** While a run is active, the player's gryphon beats on `(state.tick + alpha) * Physics.FIXED_DT` and glides while `state.boostTicks > 0`; with no run it shows phase 0. The crop is written only when the frame or the phase changes (six times a second while beating); the outline follows. A friend's gryphon beats on the live view's `elapsedMS`, half a beat apart, and glides while `remote.boosting` only for a fresh, non-grid running peer in a running live view. Grid, stale, terminal and non-running views rest at phase0, even with an old boost report. Both read copied state only.
+- **Menu:** the garage turntable beats the wings for four seconds and glides for two (`Menu.STAGE_GLIDE`), once round.
+
+<a id="proposed-race-screens-and-score-celebrations-claude-clauderace-screens-2026-10-26"></a>
+
+### Implemented: race screens and score celebrations (reviewed 2026-10-26)
+
+The owner asked for the "screen side of multiplayer such as race positions, name tags, and results" and "a bigger celebration when you get a top 10 and top 3 score". Reviewed visual code consumes copied state only. Codex adds exact finish metadata at the save boundary and preserves the existing backend results/rematch controls; no authenticated winner or agreement is created.
+
+- **Presentation (pure, additive).**
+  - `Presentation.raceProgress(track, completedLaps, passed, x, y) -> number|nil`: gates passed over the completed laps and this one, plus a fraction (0 to 0.999) of the straight distance from the previous gate toward the next. nil for unreadable input (`passed` must be below the gate count).
+  - `Presentation.ahead(a, b) -> boolean` and `Presentation.standings(racers) -> list` order racers `{finishTicks?, progress?, out?}`: finished first by finishing tick, then racing by progress, then out of the race; ties keep their order; `standings` sets each racer's `place`. `ahead` allocates nothing (the HUD asks every frame).
+  - `Presentation.ordinal(n)`: "1st", "2nd", "3rd", "11th", "21st"…
+- **UI (visual, `renderOpponent` and `UI.Create`).** One new font string, `UI.opponentTag`: the friend's name over their drawn kart, or held inside the canvas edge toward it with "(N away)" when off screen, faded when stale. `renderOpponent` keeps the drawn pose in `UI.opponentWorldX/Y` for the HUD. The diagnostic `UI.opponentLabel` and its text are unchanged.
+- **Menu.**
+  - `Menu.liveRacers(mine, theirs)` fills two racer tables from copied views: the local `UI.race`/`UI.laps`/`UI.state`, and `UI.liveView.remote` (its own reported laps, gates, status and finishing tick), placed at the drawn pose. The friend is out on a stopped/interrupted report or a `peer_stopped`/`peer_timeout` close.
+  - The race overlay shows an estimated place ("of 2 (est.)", gold/silver) once a live race runs, never on the grid. Final reported rank/tie comes from the retained backend result.
+  - The results show the two copied backend rows, including pending/stopped peers. Both finishes are required for a rank; equal finish ticks retain joint first. A missing peer cannot produce a victory. Late RefreshResults/reopen are quiet. UI's unverified title/hint remain visible even with a medal/banner. Play Again, Change Map/Lobby and Leave Multiplayer preserve the same-player room; they never fall back into solo implicitly.
+  - `Menu.scorePlacement(result, trackId)` consumes the exact detached `result.placement` and captured `result.playerName` described above, never scanning equal-time rows. Kinds `record` (#1 of several), `first` (#1 alone), `top3`, `top10` and `best`; missing placement falls back to plain PB. Ranked results use a banner, medal/wreath, bounded confetti and a guarded sound; a best outside the top ten turns the save notice gold. The original art is `Assets/UI/Celebration.tga`, generated by `scripts/build_celebration_art.py`, loaded once and not retried if refused.
+  - A **Highscores** button in the results opens the run's board at the page with the player's own row, which the board shows in gold (`Menu.PlayerName`, read once through `SoloRecords.PlayerName` and kept for the session).
+- **Integrated transaction metadata.** `SoloRecords.Finish` now carries the detached exact placement. This replaces the original row-matching proposal; no extra identity lookup or simulation/network state is introduced.
+- **Policy point for Codex.** Codex's live display deliberately claims no race position (its off-screen label "does not invent a behind/ahead race position", which still holds). At the owner's request the HUD and results now show places from each racer's own reports. They are labelled as such and the "No agreed winner or standings" hint stays; no result is agreed, verified or sent.
+- **Counts.** The HUD's place (2 font strings), the name tag (1), and in the results a Highscores button (1 frame), the sunburst, a medal and 12 confetti pieces (14 textures), the banner, its line, the wreath's rank and the racers' two rows (7 font strings): **90 frames, 91 textures, 150 font strings**, all created with the window. Nothing is created while driving or showing results.
 
 <a id="proposed-capital-cities-cup-city-circuits-and-the-course-catalog"></a>
 
@@ -841,7 +903,7 @@ Proposed by Claude on `claude/scarlet-graveyard`, 2026-10-25, for Codex's review
   - the Highscores screen's rule line names a lap-count-1 board's times as sprints, reusing its label.
 
   The status line in `UI.Start` and `step` now says "Sprint" for this one-run course and retains "3 laps" for circuits.
-- **Counts:** the Scarlet cup's heading and four track buttons brought the pool to89/69/136 after Oval retirement. Reviewed stat bars add8textures and4font strings at window creation: **89 frames,77 textures,140 font strings**. No driving-time creation is added.
+- **Counts:** the Scarlet cup's heading and four track buttons brought the pool to89/69/136 after Oval retirement. Reviewed stat bars add8textures and4font strings at window creation: **89 frames,77 textures,140 font strings**. No driving-time creation is added. The proposed race screens (`claude/race-screens`, [above](#proposed-race-screens-and-score-celebrations-claude-clauderace-screens-2026-10-26)) bring it to **90/91/150**.
 - **Score sync:** Codex's combined adapter admits all eleven active contexts with stable codes and an extended bounded HELLO; the retired O digest remains zero. The original standalone Claude branch retains the documented sync dependency; use the combined build.
 - **Not claimed:** no client run, no multiplayer sprint, and no Physics change.
 

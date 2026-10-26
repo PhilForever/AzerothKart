@@ -12,10 +12,22 @@ He wrote: "Scarlet Library. Everything is inside except the first courtyard with
 
 ![Scarlet Library overview, 4x reduced](scarlet_library-overview.png)
 
-**Status:** version 1 is integrated on Codex's `codex/scarlet-integration` and installed (runtime `9c80746`); the owner has driven it. **Version 2**, below, is proposed on `claude/scarlet-fixes` for Codex's review.
+**Status:** version 2 is integrated on Codex's `codex/scarlet-stats-review` and installed (runtime `da292f6`); the owner has driven it. **Version 3**, below, is proposed on `claude/scarlet-v3` for Codex's review.
 
-- **Scores:** Library runs save on their own one-run board, and Codex's score sync knows the Library (code `L`). Version 2 is a new geometry version, so its boards start fresh; version 1's records stay saved.
-- **NOT RUN in the client:** version 2's drive, look and picture load. See [the client checklist](../../../tests/MANUAL_CLIENT_CHECKLIST.md).
+- **Scores:** Library runs save on their own one-run board, and Codex's score sync knows the Library (code `L`). Version 3 is a new geometry version, so its boards start fresh; the older versions' records stay saved.
+- **NOT RUN in the client:** version 3's drive, look and picture load. See [the client checklist](../../../tests/MANUAL_CLIENT_CHECKLIST.md).
+
+## Version 3: an open courtyard at full speed
+
+After his second drive he sent a screenshot of his kart stopped in the courtyard, between the fountain and the south-east tree, and wrote: "cant even fit through here dawg. and yeah - the same terrain should have the same effects across maps - at least maps in the same "cup". We are inside a monastery, so the grass is short you could say - meaning driving over it should be perfectly fine."
+
+- **The courtyard was closed.** In version 2 the four trees' crowns, as round solids, reached within a kart's width of the fountain and of the bushes and arcade columns round them: a kart could drive in from any side of the arcade but not past the fountain, and the ring round it was shut.
+- **Now it is open.** The trees are smaller (scale 0.26 to 0.28, from 0.28) and stand back in the courtyard's corners among the arcade's columns. A clear ring runs round the fountain, at least 48 units wide for the kart's centre at its narrowest (the fountain's corners and the trees' crowns), and the four ways in from the arcade's openings are clear, 84 units and wider. The tests drive the ring and the four ways in.
+- **The lawn no longer slows the karts,** as in the Armory's yard and the Cathedral's gardens: nothing in the Library slows them. The kerbed paths stay, as paint.
+- **Less on the lawn.** Of the eight bushes, one stands at the south-west tree's foot; three hounds lie at the trees' feet, out of the karts' way; the huntsman who stood on the lawn is gone (Loksey, a huntsman too, stays in his kennel).
+- **The reviewed route** now crosses the courtyard, round the fountain's north side, where version 2's went round the walks.
+
+![The way through and nine follow-camera views](scarlet_library-review.png)
 
 ## Version 2: after the owner's first drive
 
@@ -23,10 +35,8 @@ He wrote: "remove the guy standing in the road on image 1. Remove the gate at ho
 
 - **No gate in Loksey's kennel.** Four gates now: *Huntsman's Cloister*, *Gallery of Treasures*, *Athenaeum*, *Arcanist Doan*. The kennel stays as it was, a side room off the cloister's south walk, with Loksey, his hounds, the cages and the hay; the karts may drive in, and nothing there counts.
 - **Nobody on the paths.** The huntsman who stood at the west end of the courtyard's cross path is gone. The other huntsman and the hounds stand on the lawns.
-- **The courtyard's lawns still slow the karts.** Kerbed stone paths edge them, the clear edge he asked for; the Armory's yard and the Cathedral's gardens, which had none, no longer slow.
+- **The courtyard's lawns still slowed the karts** in version 2: kerbed stone paths edged them, read as the clear edge he asked for. Version 3 drops that reading.
 - **Trees and bushes block where they are drawn.** The courtyard's four trees and eight bushes are round solids the size of their drawn crowns, so a kart never stops on the leaves short of an unseen trunk.
-
-![The way through and nine follow-camera views](scarlet_library-review.png)
 
 ## Before integration: nothing under the kart
 
@@ -42,11 +52,11 @@ The rooms follow his map at karting scale. Halls are 120 to 140 units wide and d
 
 1. **The portal hall.** The karts arrive through the instance portal at its south end, between two Scarlet guards, facing north. The upper hall turns east, then the long hall runs south on a red runner.
 2. **The long hall.** The first gate, *Huntsman's Cloister*, crosses it where the owner drew his line, just past the start.
-3. **The Huntsman's Cloister.** Four roofed walks surround the one open courtyard. The arcade's columns stand round the courtyard, with an opening in the middle of each side. In the courtyard:
+3. **The Huntsman's Cloister.** Four roofed walks surround the one open courtyard. The arcade's columns stand round the courtyard, with an opening in the middle of each side. In the courtyard, open to drive across since version 3:
    - a lawn with a cross of stone paths;
-   - a statue in its fountain at the centre, on a round court;
-   - four trees and eight bushes;
-   - a Scarlet huntsman and the hounds, on the lawns.
+   - a statue in its fountain at the centre, on a round court, with a clear ring round it;
+   - a tree in each corner, a bush at one's foot;
+   - three hounds at the trees' feet.
 4. **Houndmaster Loksey's kennel**, south of the cloister: a side room, off the way since version 2. Loksey stands at its back with his hounds, the cages and the hay.
 5. **The east hall**, north from the cloister's east side, past a reading room, to the second gate, *Gallery of Treasures*, in the gallery's door.
 6. **The Gallery of Treasures**: a long hall north with treasure in its niches, chests, armour and shields, and statues in its two west alcoves.
@@ -57,20 +67,20 @@ The rooms follow his map at karting scale. Halls are 120 to 140 units wide and d
 | Measure | Value |
 |---|---|
 | World | 2048 × 2048 units (one texel per unit) |
-| The way through | about 5,600 units from the portal to the finish line, along the reviewed route |
+| The way through | about 5,280 units from the portal to the finish line, along the reviewed route across the courtyard (5,600 round the walks) |
 | Gates | four: Huntsman's Cloister, Gallery of Treasures, Athenaeum, Arcanist Doan (the finish) |
-| Rooms | 41: 38 rectangles of stone, the courtyard's lawn, and two round rooms (the fountain's court and the round library) |
-| Solids | 64: 52 boxes (12 arcade columns, the fountain, 6 square pillars, the houndmaster and a huntsman, 6 hounds, 2 cages, a rib cage, a heap and two bales of hay, the guards, treasure, chests, statues and a shield, tables, the cleric, Doan, his lectern and 4 candle stands) and 12 round (the crowns of 4 trees and 8 bushes) |
+| Rooms | 41: 38 rectangles of stone, the courtyard's lawn (stone underfoot since version 3), and two round rooms (the fountain's court and the round library) |
+| Solids | 56: 51 boxes (12 arcade columns, the fountain, 6 square pillars, the houndmaster, 6 hounds, 2 cages, a rib cage, a heap and two bales of hay, the guards, treasure, chests, statues and a shield, tables, the cleric, Doan, his lectern and 4 candle stands) and 5 round (the crowns of 4 trees and a bush) |
 
 ## How it plays
 
 `Dungeon.new` builds it from `ScarletCrusade.lua`, exactly as the Graveyard. The contract is in [ADR 0020](../../adr/0020-dungeon-sprints.md) and [API_CONTRACTS](../../API_CONTRACTS.md#proposed-dungeon-sprints-the-scarlet-crusade-cup).
 
 - **A sprint:** one run, `laps=1`, on the Library's own board.
-- **Open floor, no road.** Stone everywhere but the courtyard's lawn, which slows the karts as the Graveyard's does. Walls slide the kart along them.
+- **Open floor, no road, nothing slowing.** Stone everywhere, the courtyard's lawn included since version 3. Walls slide the kart along them.
 - **Round rooms** (new, `shape="disc"`): the round library and the fountain's court are true circles. The kart centre stays inside a round wall by the kart's inset, and slides round it.
 - **Loksey's kennel** is a side room, off the way (version 1 had a gate in it, in and back out).
-- **Solids** block as on the test oval. Scenery that stands on the floor is solid; the rest stands against the walls, out of the karts' way. The courtyard's trees and bushes are round solids the size of their drawn crowns (`blocks`, version 2).
+- **Solids** block as on the test oval. Scenery that stands on the floor is solid; the rest stands against the walls, out of the karts' way. The courtyard's trees and bush are round solids the size of their drawn crowns (`blocks`, version 2), kept clear of the ring round the fountain (version 3).
 - **The gates** span their doors or halls from wall to wall. The generator checks with a flood fill that none can be driven round.
 - **Collision** comes from the generated data, never a pixel.
 
@@ -88,14 +98,14 @@ The Scarlet Monastery at night, in Warcraft III's city, dungeon, Dalaran and Lor
   - dark octagonal tiles at the round library's centre.
 - **The courtyard,** the only open sky:
   - lawn, stone paths with kerbs and the round court;
-  - the statue fountain, Lordaeron's summer trees and bushes;
+  - the statue fountain, Lordaeron's summer trees and a city bush;
   - graded to a cool, green-tinged moonlight with drifts of mist.
 - **The round library:**
   - a gold ring on dark stone, the Scarlet red carpet out to its round wall;
   - bookshelves round the north of the wall, Scarlet banners, and candles round Doan;
   - the runner in through its door.
 - **Light:** torches along the halls, braziers in the kennel, gallery and halls, candles among the books.
-- **The Scarlet Crusade** (Reforged): standing banners, the guards at the portal, a huntsman in the cloister and another as Houndmaster Loksey, a cleric in the Athenaeum, and an invoker hero as Arcanist Doan. Warcraft III's dark hounds, tinted red, are the Scarlet tracking hounds.
+- **The Scarlet Crusade** (Reforged): standing banners, the guards at the portal, a huntsman as Houndmaster Loksey, a cleric in the Athenaeum, and an invoker hero as Arcanist Doan. Warcraft III's dark hounds, tinted red, are the Scarlet tracking hounds.
 
 ## Files
 
@@ -120,7 +130,7 @@ python scripts/build_dungeon_tracks.py --wc3 WC3 --preview
 python scripts/build_dungeon_tracks.py --wc3 WC3 --check
 ```
 
-The layout is `SCARLET_LIBRARY` in `scripts/dungeon_layouts.py`: its rooms (`disc_room` for the round ones), gates, spawn, reviewed route, props with their collision boxes (`blocks(..., "round")` for the courtyard's trees and bushes), floors, carpets, the round library's `rings`, the courtyard's `moonlight` and `mist`. `scripts/build_dungeon_tracks.py` writes the data and validates the geometry as for the Graveyard, invisible walls included. It counts a route crossing a gate only across the gate's own segment, as the runtime does, since the Library's route passes beyond the ends of earlier gates. `scripts/dungeon_paint.py` paints the picture, and stops on a model that is not solid standing where the karts drive.
+The layout is `SCARLET_LIBRARY` in `scripts/dungeon_layouts.py`: its rooms (`disc_room` for the round ones), gates, spawn, reviewed route, props with their collision boxes (`blocks(..., "round")` for the courtyard's trees and bush), floors, carpets, the round library's `rings`, the courtyard's `moonlight` and `mist`. `scripts/build_dungeon_tracks.py` writes the data and validates the geometry as for the Graveyard, invisible walls included. It counts a route crossing a gate only across the gate's own segment, as the runtime does, since the Library's route passes beyond the ends of earlier gates. `scripts/dungeon_paint.py` paints the picture, and stops on a model that is not solid standing where the karts drive.
 
 ## Provenance and rights
 

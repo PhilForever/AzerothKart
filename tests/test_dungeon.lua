@@ -358,22 +358,27 @@ assert(Courses.next("undercity_slime") == "scarlet_graveyard" and Courses.next("
 
 -- Scarlet Graveyard: one run from the entrance to Honor's Tomb. The spawn
 -- stands on stone; the reviewed route crosses the three gates in order and
--- never meets a wall or a solid; the cloister's lawn is grass.
+-- never meets a wall or a solid. The cloister's lawn drives as its path
+-- does (the owner: "the same terrain should have the same effects across
+-- maps - at least maps in the same "cup""). Version 3 separates scores
+-- made with the full-grip lawn from earlier runs.
 local graveyard = Courses.build("scarlet_graveyard", Track.crossesGate)
 local data = namespace.ScarletCrusade.scarlet_graveyard
 assert(Records.Context(graveyard).lapCount==1 and Records.Context(graveyard).trackId=="scarlet_graveyard", "the production sprint has its own one-run score context")
 assert(not Courses.multiplayer("scarlet_graveyard") and Courses.next("undercity_slime",true)=="mirage_raceway", "solo sprint does not create an unsupported multiplayer offer")
 assert(graveyard and graveyard.laps == 1 and graveyard.width == 2048 and graveyard.height == 1024
-    and #graveyard.gates == 3, "the Graveyard: a 2048 x 1024 sprint with three gates")
+    and #graveyard.gates == 3 and graveyard.version == 3,
+    "the Graveyard: a 2048 x 1024 sprint with three gates, version 3")
 assert(Courses.build("scarlet_graveyard", Track.crossesGate) == graveyard, "the built course is kept")
 local spawn = graveyard.spawn()
 assert(graveyard.surfaceAt(spawn.x, spawn.y) == "road" and near(spawn.heading, math.pi), "the grid faces west on stone")
-assert(graveyard.surfaceAt(400, 820) == "grass" and graveyard.surfaceAt(400, 620) == "road",
-    "the cloister's lawn is grass, its path stone")
+assert(graveyard.surfaceAt(400, 820) == "road" and graveyard.surfaceAt(400, 620) == "road",
+    "the cloister's lawn drives as its path does")
+for _,room in ipairs(data.rooms) do assert(room.surface == "road", "nothing slows the karts: " .. room.x) end
 -- Version 2: the chamber's west wall stands either side of its door, where
 -- the karts stopped at a wall the picture did not show; the door is the way
 -- from the chamber into the west hall.
-assert(graveyard.version == 2 and graveyard.surfaceAt(1350, 580) == "wall" and graveyard.surfaceAt(1350, 440) == "wall"
+assert(graveyard.version == 3 and graveyard.surfaceAt(1350, 580) == "wall" and graveyard.surfaceAt(1350, 440) == "wall"
     and graveyard.surfaceAt(1350, 500) == "road", "the karts leave the chamber west by its door")
 local progress = Checkpoints.new(graveyard, 0)
 previous = {x=spawn.x, y=spawn.y, tick=0}
@@ -407,22 +412,40 @@ for _,box in ipairs(graveyard.solids) do
 end
 assert(graves == #graveyard.solids and graves >= 20, "every solid blocks (graves, the fountain, the tomb's dead)")
 
--- Scarlet Library (version 2): one run from the portal to the round
+-- Scarlet Library (version 3): one run from the portal to the round
 -- library. The grid faces north on stone; the reviewed route crosses the
 -- four gates in order and never meets a wall or a solid. Loksey's kennel is
 -- a side room with no gate (the owner: "the room is nice but not part of
--- the checkpoints"). The courtyard's lawn is grass, edged by its kerbed
--- paths, and nobody stands on the paths; the fountain's court and the
--- round library are round rooms.
+-- the checkpoints"). The courtyard's lawn drives as its paths do, and the
+-- courtyard is open (the owner, stopped between the fountain and a tree in
+-- version 2: "cant even fit through here"): a clear ring round the
+-- fountain and clear ways in from the four sides of the arcade. The
+-- fountain's court and the round library are round rooms.
 local library = Courses.build("scarlet_library", Track.crossesGate)
 local libraryData = namespace.ScarletCrusade.scarlet_library
 assert(library and library.laps == 1 and library.width == 2048 and library.height == 2048 and #library.gates == 4
-    and library.version == 2, "the Library: a 2048 x 2048 sprint with four gates, version 2")
+    and library.version == 3, "the Library: a 2048 x 2048 sprint with four gates, version 3")
 for _,gate in ipairs(library.gates) do assert(not gate.name:find("Loksey"), "no gate in Loksey's kennel") end
+for _,room in ipairs(libraryData.rooms) do assert(room.surface == "road", "nothing slows the karts: " .. room.x) end
 assert(library.surfaceAt(660, 300) == "road" and library.surfaceAt(660, 520) == "road",
     "the kennel and its door stay open floor")
 assert(not ({library.resolveMovement(505, 820, 590, 820)})[3] and not ({library.resolveMovement(505, 820, 505, 812)})[3],
     "the courtyard's cross path is clear where a huntsman stood in version 1")
+-- Round the fountain, 75 from its middle, in 5-degree steps: never a wall
+-- or a solid; then in from each side of the arcade to that ring.
+px, py = 660 + 75, 823
+for k = 1, 72 do
+    local angle = k * math.pi / 36
+    local tx, ty = 660 + 75 * math.cos(angle), 823 + 75 * math.sin(angle)
+    local mx, my, contact = library.resolveMovement(px, py, tx, ty)
+    assert(not contact and mx == tx and my == ty, ("the ring round the fountain is clear (%.0f, %.0f)"):format(tx, ty))
+    px, py = tx, ty
+end
+for _,way in ipairs({{505, 823, 585, 823}, {815, 823, 735, 823}, {660, 665, 660, 748}, {660, 975, 660, 898}}) do
+    local mx, my, contact = library.resolveMovement(way[1], way[2], way[3], way[4])
+    assert(not contact and mx == way[3] and my == way[4],
+        ("a clear way in from the arcade at (%d, %d)"):format(way[1], way[2]))
+end
 local round = {}
 for _,room in ipairs(libraryData.rooms) do
     if room.shape == "disc" then round[#round + 1] = room end
@@ -430,9 +453,9 @@ end
 assert(#round == 2, "two round rooms: the fountain's court and the round library")
 spawn = library.spawn()
 assert(library.surfaceAt(spawn.x, spawn.y) == "road" and near(spawn.heading, math.pi / 2), "the grid faces north on stone")
-assert(library.surfaceAt(560, 740) == "grass" and library.surfaceAt(660, 700) == "road"
+assert(library.surfaceAt(600, 760) == "road" and library.surfaceAt(660, 700) == "road"
     and library.surfaceAt(1810, 450) == "road" and library.surfaceAt(1810, 340) == "wall",
-    "the courtyard's lawn is grass, its path stone; the round library is stone to its round wall")
+    "the courtyard's lawn drives as its path does; the round library is stone to its round wall")
 progress = Checkpoints.new(library, 0)
 previous = {x=spawn.x, y=spawn.y, tick=0}
 names, walls = {}, 0
@@ -532,27 +555,30 @@ for _,box in ipairs(armory.solids) do
 end
 assert(blocking == #armory.solids and blocking >= 30, "every solid blocks (columns, targets, dummies, the living)")
 
--- Scarlet Cathedral (version 2): one run from the portal to the altar. The
+-- Scarlet Cathedral (version 3): one run from the portal to the altar. The
 -- grid faces west on stone; the reviewed route crosses the four gates in
 -- order and never meets a wall or a solid. The gardens' lawns no longer
 -- slow the karts; their pools are water the karts drive round, the round
 -- pool a round solid; the stairs beside the falls are the only way up, the
--- champions' statues standing on raised plinths either side; the trees and
--- bushes block at their crowns, round solids. The finish runs across the
--- chancel before the altar.
+-- champions' statues standing on raised plinths either side; each long
+-- flight climbs to a landing walled by a parapet, and a short flight turns
+-- outward onto the lawn (version 3); the trees and bushes block at their
+-- crowns, round solids. The finish runs across the chancel before the
+-- altar.
 local cathedral = Courses.build("scarlet_cathedral", Track.crossesGate)
 local cathedralData = namespace.ScarletCrusade.scarlet_cathedral
 assert(cathedral and cathedral.laps == 1 and cathedral.width == 1024 and cathedral.height == 2048
-    and #cathedral.gates == 4 and cathedral.version == 2, "the Cathedral: a 1024 x 2048 sprint with four gates, version 2")
+    and #cathedral.gates == 4 and cathedral.version == 3, "the Cathedral: a 1024 x 2048 sprint with four gates, version 3")
 for _,room in ipairs(cathedralData.rooms) do assert(room.surface == "road", "nothing slows the karts: " .. room.x) end
-local grazingX,grazingY,grazingHit=cathedral.resolveMovement(509.85,987.99,514.15,987.99)
-assert(grazingHit and segmentRadius(509.85,987.99,grazingX,grazingY,512,830)>=158-1e-7
-    and distance(509.85,987.99,grazingX,grazingY)<=4.3+1e-8,
+-- (Version 3's round pool: 115 in radius about (512, 865), its reach 133.)
+local grazingX,grazingY,grazingHit=cathedral.resolveMovement(509.85,997.99,514.15,997.99)
+assert(grazingHit and segmentRadius(509.85,997.99,grazingX,grazingY,512,865)>=133-1e-7
+    and distance(509.85,997.99,grazingX,grazingY)<=4.3+1e-8,
     "production Cathedral normal-step grazing hits the round pool without crossing its clearance")
 assert(not ({cathedral.resolveMovement(grazingX,grazingY,grazingX,grazingY)})[3],
     "the corrected production grazing endpoint needs no recovery")
 print(("dungeon swept pool: production4.3-unit graze hit=%s, clearance=%.9f;360rotated grazes and circle/box ties covered"):format(
-    tostring(grazingHit),segmentRadius(509.85,987.99,grazingX,grazingY,512,830)))
+    tostring(grazingHit),segmentRadius(509.85,997.99,grazingX,grazingY,512,865)))
 local roundRooms, roundSolids = 0, 0
 for _,room in ipairs(cathedralData.rooms) do if room.shape == "disc" then roundRooms = roundRooms + 1 end end
 for _,solid in ipairs(cathedralData.solids) do if solid.shape == "disc" then roundSolids = roundSolids + 1 end end
@@ -564,18 +590,32 @@ assert(cathedral.surfaceAt(390, 446) == "road" and cathedral.surfaceAt(255, 446)
     and cathedral.surfaceAt(300, 900) == "road" and cathedral.surfaceAt(155, 900) == "road",
     "the gardens' lawns drive as their walks do")
 assert(cathedral.surfaceAt(512, 470) == "wall" and cathedral.surfaceAt(512, 640) == "wall"
-    and cathedral.surfaceAt(512, 968) == "wall" and cathedral.surfaceAt(610, 928) == "wall"
-    and cathedral.surfaceAt(512, 975) == "road", "the lower pool, the falls and the round pool to its rim block")
+    and cathedral.surfaceAt(512, 978) == "wall" and cathedral.surfaceAt(600, 920) == "wall"
+    and cathedral.surfaceAt(512, 985) == "road", "the lower pool, the falls and the round pool to its rim block")
 assert(cathedral.surfaceAt(270, 610) == "wall" and cathedral.surfaceAt(754, 610) == "wall"
     and cathedral.surfaceAt(394, 610) == "road" and cathedral.surfaceAt(630, 610) == "road",
     "the plinths are stone the karts drive round; the stairs beside the falls are floor")
+assert(cathedral.surfaceAt(394, 784) == "wall" and cathedral.surfaceAt(630, 784) == "wall"
+    and cathedral.surfaceAt(394, 714) == "road" and cathedral.surfaceAt(300, 714) == "road"
+    and cathedral.surfaceAt(724, 714) == "road", "parapets wall the landings; the short flights are floor")
 -- The stairs are the only way up: driving north at a plinth's face stops at
--- it; up the stairs runs clean into the upper garden.
+-- it; up a long flight runs clean onto its landing, where the parapet stops
+-- a kart driving on north; the short flight leads off the landing onto the
+-- lawn, west on the west stairs and east on the east.
 px, py = 270, 500
 for _=1,60 do px, py = cathedral.resolveMovement(px, py, px, py + 4) end
 assert(near(py, 542, 1e-6), "a plinth's face stops the karts")
 x, y, hit = cathedral.resolveMovement(394, 520, 394, 700)
-assert(not hit and y == 700, "up the stairs into the upper garden")
+assert(not hit and y == 700, "up the west stairs onto the landing")
+x, y, hit = cathedral.resolveMovement(630, 520, 630, 700)
+assert(not hit and y == 700, "up the east stairs onto the landing")
+px, py = 394, 700
+for _=1,30 do px, py = cathedral.resolveMovement(px, py, px, py + 4) end
+assert(near(py, 772 - 18, 1e-6), "the parapet stops a kart driving on north from the landing")
+x, y, hit = cathedral.resolveMovement(394, 714, 230, 714)
+assert(not hit and x == 230, "the west landing's short flight leads west onto the lawn")
+x, y, hit = cathedral.resolveMovement(630, 714, 794, 714)
+assert(not hit and x == 794, "the east landing's short flight leads east onto the lawn")
 -- A tree blocks at its crown, as drawn: from the north a kart stops at the
 -- crown's reach, never on the leaves.
 local crown
@@ -592,18 +632,18 @@ assert(finishGate.name == "High Altar" and finishGate.ay == 1700 and finishGate.
     and finishGate.ax == 295 and finishGate.bx == 729, "the finish crosses the chancel before the altar")
 -- Head on into the round pool from its west lawn: the kart stops at the
 -- pool's reach and, pushing on, slides round its rim, never into it.
-px, py = 330, 800
+px, py = 300, 900
 local touched = false
 for _=1,40 do
     local ex, ey, contact = cathedral.resolveMovement(px, py, px + 4, py)
-    assert(distance(512, 830, ex, ey) >= 158, "never into the round pool")
+    assert(distance(512, 865, ex, ey) >= 133, "never into the round pool")
     if contact and not touched then
         touched = true
-        assert(near(distance(512, 830, ex, ey), 158, 1e-3), "stopped at the pool's reach")
+        assert(near(distance(512, 865, ex, ey), 133, 1e-3), "stopped at the pool's reach")
     end
     px, py = ex, ey
 end
-assert(touched and py < 800, "and slides round its rim")
+assert(touched and py > 900, "and slides round its rim")
 progress = Checkpoints.new(cathedral, 0)
 previous = {x=spawn.x, y=spawn.y, tick=0}
 names, walls = {}, 0

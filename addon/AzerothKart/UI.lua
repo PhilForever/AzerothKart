@@ -978,7 +978,7 @@ end
 local function opponentSprite(id)
     id = type(id)=="string" and id or "basic"
     if UI.opponentAssetId==id then return UI.opponentSprite end
-    UI.opponentAssetId,UI.opponentFrame=id,nil
+    UI.opponentAssetId,UI.opponentFrame,UI.opponentPhase=id,nil,nil
     local sprite = Presentation.KART_SPRITES[id]
     if sprite and applyKartSprite(sprite,0,nil,UI.opponent) then
         UI.opponentSprite,UI.opponentFrame=sprite,sprite.frames and 0 or nil
@@ -1003,8 +1003,10 @@ local function renderOpponent()
     local remote = grid and grid.peerPose or (view and view.remote)
     if not UI.multiplayer or not remote then
         UI.remoteHeading,UI.remoteHeadingAt=nil,nil
+        UI.opponentWorldX,UI.opponentWorldY=nil,nil
         UI.opponent:Hide()
         UI.opponentLabel:Hide()
+        if UI.opponentTag then UI.opponentTag:Hide() end
         return
     end
     local wx,wy,heading,predicted
@@ -1040,7 +1042,14 @@ local function renderOpponent()
         heading=Presentation.remoteHeading(UI.remoteHeading,heading,elapsed)
         UI.remoteHeading=heading
     end
-    if not wx then UI.opponent:Hide(); UI.opponentLabel:Hide(); return end
+    if not wx then
+        UI.opponentWorldX,UI.opponentWorldY=nil,nil
+        UI.opponent:Hide(); UI.opponentLabel:Hide()
+        if UI.opponentTag then UI.opponentTag:Hide() end
+        return
+    end
+    -- Where the friend's kart is drawn: the HUD places the racers from it.
+    UI.opponentWorldX,UI.opponentWorldY=wx,wy
     local x,y = Presentation.project(UI.view,wx,wy)
     local scale = UI.view.scale
     local sprite=opponentSprite((grid and grid.peerKartId) or (view and view.peerKartId) or
@@ -1057,9 +1066,19 @@ local function renderOpponent()
         UI.opponent:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",cx,cy)
         if sprite and sprite.frames then
             local frame=Presentation.kartFrame(sprite,heading)
-            if frame~=UI.opponentFrame then
-                UI.opponentFrame=frame
-                UI.opponent:SetTexCoord(Presentation.kartFrameCoords(sprite,frame))
+            -- A winged friend beats its wings on the race's copied clock, half
+            -- a beat from the player's, and glides while their report says
+            -- they boost. Grid, ended and stale reports use the rest pose:
+            -- a last observed boost is not a current boost after contact ends.
+            local phase=0
+            if sprite.wings and not grid and view.phase=="running"
+                and remote.status=="running" and not view.remoteStale
+                and type(view.elapsedMS)=="number" then
+                phase=Presentation.wingPhase(sprite,view.elapsedMS/1000+sprite.wings.beat/2,remote.boosting==true)
+            end
+            if frame~=UI.opponentFrame or phase~=(UI.opponentPhase or 0) then
+                UI.opponentFrame,UI.opponentPhase=frame,phase
+                UI.opponent:SetTexCoord(Presentation.kartFrameCoords(sprite,frame,phase))
             end
         elseif UI.opponentRotationReady then
             UI.opponentRotationReady = pcall(UI.opponent.SetRotation,UI.opponent,heading-math.pi/2)
@@ -1085,6 +1104,27 @@ local function renderOpponent()
         UI.opponentLabel:SetText(label)
     end
     UI.opponentLabel:Show()
+    local tag=UI.opponentTag
+    if tag then
+        -- The name over the kart's drawn top; off screen, held inside the
+        -- canvas edge toward the kart, with the distance to it.
+        local tagX,tagY=cx,cy+height*scale/2+4
+        local caption=peer
+        if not visible then
+            tagX=math.max(70,math.min(730,cx))
+            tagY=math.max(8,math.min(456,cy))
+            local pose=grid and grid.localPose or UI.state
+            caption=("%s (%d away)"):format(peer,math.floor(math.sqrt((wx-pose.x)^2+(wy-pose.y)^2)+0.5))
+        end
+        if caption~=UI.opponentTagText then
+            UI.opponentTagText=caption
+            tag:SetText(caption)
+        end
+        tag:ClearAllPoints()
+        tag:SetPoint("BOTTOM",UI.canvas,"BOTTOMLEFT",tagX,tagY)
+        if type(tag.SetAlpha)=="function" then tag:SetAlpha(view and view.remoteStale and 0.45 or 1) end
+        tag:Show()
+    end
 end
 
 render = function()
@@ -1107,19 +1147,26 @@ render = function()
     local sprite = UI.kartSprite
     if sprite and sprite.frames then
         -- Directional sheet: show the nearest pre-rendered heading, unrotated,
-        -- and only touch its crop when the frame changes.
+        -- and only touch its crop when the frame changes. A winged sheet beats
+        -- its wings on the run's own clock and glides while boosting; with no
+        -- run it shows its rest pose (phase 0, as a freshly applied sheet).
         local frame = Presentation.kartFrame(sprite,heading)
-        if frame ~= UI.kartFrame then
-            UI.kartFrame = frame
-            UI.kart:SetTexCoord(Presentation.kartFrameCoords(sprite,frame))
+        local phase = 0
+        if sprite.wings and UI.active then
+            local state = UI.state
+            phase = Presentation.wingPhase(sprite,(state.tick + alpha)*Physics.FIXED_DT,(state.boostTicks or 0) > 0)
+        end
+        if frame ~= UI.kartFrame or phase ~= (UI.kartPhase or 0) then
+            UI.kartFrame,UI.kartPhase = frame,phase
+            UI.kart:SetTexCoord(Presentation.kartFrameCoords(sprite,frame,phase))
         end
         local scale = UI.view.scale
         UI.kart:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x + sprite.pivotX*scale,y + sprite.pivotY*scale)
-        if UI.outlineReady then -- the player's line: the same frame and place
+        if UI.outlineReady then -- the player's line: the same frame, pose and place
             local line = UI.kartOutline
-            if UI.outlineFrame ~= frame then
-                UI.outlineFrame = frame
-                line:SetTexCoord(Presentation.kartFrameCoords(sprite,frame))
+            if UI.outlineFrame ~= frame or UI.outlinePhase ~= phase then
+                UI.outlineFrame,UI.outlinePhase = frame,phase
+                line:SetTexCoord(Presentation.kartFrameCoords(sprite,frame,phase))
             end
             line:ClearAllPoints()
             line:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x + sprite.pivotX*scale,y + sprite.pivotY*scale)
@@ -1211,6 +1258,10 @@ function UI.Create()
     UI.opponent:Hide()
     UI.opponentLabel = text(UI.canvas,"BOTTOMLEFT",12,12,"")
     UI.opponentLabel:Hide()
+    -- The friend's name tag: over their kart, or along the canvas edge toward it.
+    UI.opponentTag = text(UI.canvas,"BOTTOM",0,0,"",
+        _G.GameFontHighlightSmallOutline ~= nil and "GameFontHighlightSmallOutline" or "GameFontHighlightSmall")
+    UI.opponentTag:Hide()
     createEffects(UI.canvas)
     layoutTrack()
     UI.state = Physics.new(Track)

@@ -34,7 +34,11 @@ The normal race result remains usable even if saving fails.
 
 ## Data and compatibility
 
-Only the eight finished production courses have current contexts; Graveyard uses lapCount1 and the circuits use3. Test Oval records remain saved, but cannot be newly captured, displayed as a current board or published. No score history is deleted. See [catalogue boundary](PRODUCTION_MAPS.md).
+All eleven finished production courses have current contexts; the four Scarlet
+sprints use lapCount1 and the seven circuits use3. Current Scarlet versions
+are G3/L3/A2/C3. Test Oval and older-version records remain saved, but cannot be
+newly captured, displayed as a current board or published. No score history is
+deleted. See [catalogue boundary](PRODUCTION_MAPS.md).
 
 `AzerothKartDB.highscores` is independently versioned (`version=1`) under the
 existing root schema1. Boards are keyed by track ID, track version, physics
