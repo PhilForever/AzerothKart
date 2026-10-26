@@ -1,5 +1,21 @@
 # Codex handoff — production maps and Claude course review
 
+## Active task — all courses and remaining remote stutter, 2026-10-27
+
+Owner requests every new map in multiplayer and reports remaining stuttering.
+Clean base4d9f7a8, installed runtime3f1b3fe. Own new branch
+`codex/sprint-multiplayer-smoothing`; other worktrees/tips stay untouched.
+Reserve course admission, pure control/grid/live sprint rules and their tests;
+UI live-opponent presentation/reset regions and Presentation remote helpers,
+tests/test_ui and test_presentation; shared menu capability/lap labels only
+where needed; API/production/ADR/PROGRESS docs. No visual assets or unrelated
+menu redesign. Scope: eleven current courses, two peers, one-run Scarlet
+completion/rematch and corrected display continuity. Preserve Test Oval
+retirement, full countdown, score eligibility and current158-byte/2-send budget.
+Trace/reproduce display stutter offline; add bounded read-only reconciliation
+if supported by evidence. Focused checks, backed-up install/matching friend ZIP
+follow; native feel remains pending. No eight-player capacity or release claim.
+
 ## Installed reviewed integration — 2026-10-26 21:14 CET
 
 Runtime `3f1b3fe`, branch `codex/claude-race-integration`, is installed and
