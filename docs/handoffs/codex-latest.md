@@ -1,5 +1,22 @@
 # Codex handoff — production maps and Claude course review
 
+## Installed remote-turn checkpoint — 2026-10-26 09:18 CET
+
+Runtime`01bd880` installed on`codex/remote-turn-smoothing`. All77source/installed
+hashes and78complete prior backup files independently verified, legacy extra
+preserved. Manifest/receipt/audit script under ignored
+`local-artifacts/deploy-20261026-remote-turns/`; backup ID
+`20261026-091809-456-4768dfeab000436c8025ab41db6b5f65`.
+
+FriendZIP `../AzerothKart-SmoothTurns-01bd880.zip`:77entries/61,240,587bytes,
+SHA256`048CA20C14E8310C504BDD4E55DA53D65A517D5891986DEE21F0045B4CD40239`.
+Built from installed tested paths and read-back verified. No new path: both
+clients need only `/reload` from the preceding build. Native turns NOT RUN.
+No client input or other checkout touched; no push/release/course integration.
+Next: friend updates this package, both reload and compare a few corners.
+Preserve the straight-line and score-discovery improvements; public discovery,
+shared result authority and eight-peer capacity remain open.
+
 ## Reviewed remote-turn follow-up — 2026-10-26 09:17 CET
 
 Implemented on`codex/remote-turn-smoothing` from890c351, within the reservation

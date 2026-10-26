@@ -1,5 +1,29 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-26 09:18 +01:00 — turn smoothing installed and friend ZIP verified
+
+Runtime`01bd880` is now installed in the existing AzerothKart AddOns directory.
+PowerShell7 backup/copy/hash helper reported Verified; independent Python
+readback confirms77source/installed/manifest hashes, all78prior backup files
+and the preserved legacy GoblinDragCar.tga extra. No SavedVariables/WTF, other
+addon, client input, push, release or other worktree was changed.
+
+Ignored deployment root: `local-artifacts/deploy-20261026-remote-turns/`;
+backup manifest `backups/20261026-091809-456-4768dfeab000436c8025ab41db6b5f65/install.json`.
+Receipt and reproducible installed-file/ZIP audit script are in that root.
+Matching friend package `../AzerothKart-SmoothTurns-01bd880.zip` has77entries,
+61,240,587bytes; SHA256
+`048CA20C14E8310C504BDD4E55DA53D65A517D5891986DEE21F0045B4CD40239`.
+Every entry was read back and hashed against the tested source/installed files.
+There are no new runtime paths; `/reload` suffices from the preceding build.
+Focused source checks/review remain the preceding entry; native turning is
+NOT RUN. No acceptance checkbox changed.
+
+**Next exact task:** friend installs this matching ZIP, both clients reload,
+and compare remote motion through a few normal corners. Record turning feel;
+no standalone probe or score reset is needed. Score discovery/public sharing,
+shared result authority and eight-racer delivery remain separate open work.
+
 ## 2026-10-26 09:17 +01:00 — remote turn corrections at render cadence
 
 Owner's actual friend playtest confirms smoother straight-line opponent motion,
