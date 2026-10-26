@@ -1,21 +1,84 @@
-# Claude handoff — kart stat bars (reserved)
+# Claude handoff — kart stat bars
 
-Reserved 2026-10-26 at about 12:10 CET (Europe/Oslo) by Claude (rendering/UI/sprites owner). **Work in progress; nothing below is done yet.**
+Prepared 2026-10-26 by Claude (rendering/UI/sprites owner).
 
-**Base:** `claude/scarlet-fixes` `8889aa4` (itself on Codex's installed `codex/scarlet-integration` `98f433e`), so the two Claude branches stack and their handoff and changelog entries do not conflict. **Branch:** `claude/kart-stat-bars`.
+**Base:** `claude/scarlet-fixes` `8889aa4` (on Codex's installed `codex/scarlet-integration` `98f433e`), so the two Claude branches stack and their handoff and changelog entries do not conflict. **Branch:** `claude/kart-stat-bars`, with these commits:
+
+- `d1eedae`: the reservation;
+- `dd6090d`: the stat bars;
+- this handoff.
+
+Integrating it brings the Scarlet fixes too; it descends from them. Nothing is installed.
 
 ## Owner instructions
 
-He sent a Crash Team Racing-style picture of three segmented green bars (SPEED, ACCELERATION, TURN) and wrote: "I also want to introduce more mario kart/crash team racing way of seeing the different kart attributes. Currently it looks like image 1. Make the kart attributes look more like this but in wow style obviously and use the actual ingame addon kart attributes as guidance for how much each bar should be filled." Asked which bars, he chose **four: Speed, Acceleration, Turning and Braking**, every real difference between the handling profiles.
+He sent a Crash Team Racing-style picture of three segmented green bars (SPEED, ACCELERATION, TURN) and wrote: "I also want to introduce more mario kart/crash team racing way of seeing the different kart attributes. Currently it looks like image 1. Make the kart attributes look more like this but in wow style obviously and use the actual ingame addon kart attributes as guidance for how much each bar should be filled." Asked which bars, he chose **four: Speed, Acceleration, Turning and Braking**, every real difference between Physics' handling profiles (with three, Heavy would look strictly weaker).
 
-## Reserved scope
+## Scope (reserved and changed)
 
-- **`addon/AzerothKart/Menu.lua`:** `buildKarts` and its refresh (the kart and garage screens' right column), plus new pure helpers for the bars. Physics is read only through `Physics.GetHandling`.
-- **New art:** `scripts/build_stat_bars.py`, `addon/AzerothKart/Assets/UI/StatBars.tga` (original, painted by the script), `docs/art/ui/stat-bars.png`.
-- **Tests:** `tests/test_menu.lua` (the bars and the object budget); in the shared `tests/test_ui.lua` only the menu's object-budget constants, which the new textures and labels raise.
-- **Shared/docs:** `scripts/validate_project.py` (the new TGA), `docs/API_CONTRACTS.md` (the counts line), `docs/art/ui/front-end.md`, `docs/ASSETS.md`, `docs/art/ASSET_SOURCES.md`, `CHANGELOG.md`, `docs/TEST_PLAN.md`, `tests/MANUAL_CLIENT_CHECKLIST.md`, this handoff.
+The reservation (`d1eedae`) held.
 
-Physics, `UI.lua` and every Codex-owned file stay untouched. No install, push, main merge or client claim.
+- **`addon/AzerothKart/Menu.lua`:** new `Menu.STATS_PATH`, `Menu.KART_STATS`, `Menu.STAT_*` and the pure `Menu.statFill`; a `showStats` helper; in `buildKarts` the handling line becomes the profile's name in gold over four bars, and the kart buttons move from y −262 to −330. The unused `GREEN` colour is gone. No command, lifecycle, preference or session code changed.
+- **New art:** `scripts/build_stat_bars.py`, `addon/AzerothKart/Assets/UI/StatBars.tga` (512×64, 131,090 bytes, sha256 `f1528efd…6131`), `docs/art/ui/stat-bars.png`.
+- **Tests:** `tests/test_menu.lua` (two new blocks; the budget 89/77/140); `tests/test_ui.lua` (only `MENU_TEXTURES`/`MENU_FONTS`, 9/120 to 17/124, the production budget assertion and its printed line).
+- **Shared/docs:** `scripts/validate_project.py` (the three new files), `docs/API_CONTRACTS.md` (a proposed note under the kart-handling section, and the counts line), `docs/art/ui/front-end.md` (the kart screen row, a "New art: kart stat bars" section, the budget, the tests) and its regenerated review picture, `docs/ASSETS.md`, `docs/art/ASSET_SOURCES.md`, `CHANGELOG.md`, `docs/TEST_PLAN.md`, `tests/MANUAL_CLIENT_CHECKLIST.md`.
+
+Physics, `UI.lua` and every Codex-owned file are untouched; Physics is read only through `Physics.GetHandling`, as before.
+
+## Delivered
+
+![The atlas' two rows, then Balanced, Heavy and Agile at the menu's size](../art/ui/stat-bars.png)
+
+- **The look:** under the kart's credit, "Handling: Heavy" (Balanced, Agile) in gold, then four rows: a gold label and a 240×16 bar. Each bar is a gold plate, bright along its top and bronze at its foot, with a dark outline, rounded ends and six recessed windows, dark when empty and a glossy green when full: the client's gold trim and health-bar green, not the reference's art. Same in the kart choice and the garage.
+- **The values:** `Physics.GetHandling(kartId)` against `GetHandling(nil)` (the balanced profile, as the contract says). Balanced fills four windows of six; each 4% more or less is one window more or fewer, clamped between half a window and the full bar:
+
+  | Profile | Speed | Acceleration | Turning | Braking |
+  |---|---|---|---|---|
+  | Balanced | 4 | 4 | 4 | 4 |
+  | Heavy (+4% speed, −8% acceleration and turning, +8% braking) | 5 | 2 | 2 | 6 |
+  | Agile (−4% speed, +8% acceleration and turning, −8% braking) | 3 | 6 | 6 | 2 |
+
+  A retuned profile moves the bars with no Menu change.
+- **Drawing:** each bar is the empty row with the full row over it, cropped from the left (`SetTexCoord`) to the share, so part of a window can fill. The atlas loads once, on the first visit to the kart screen; if it fails, the bars stay hidden, the line shows the old tradeoff sentence, and the load is not retried.
+
+## Decisions for review
+
+1. **Four bars, not three** (the owner's choice): Braking is the fourth real difference, and with it Heavy and Agile trade evenly.
+2. **The scale.** 4% per window keeps the real proportions: speed differs half as much as the others, so its bar moves one window where the others move two. A scale stretching every stat to the full range would exaggerate speed's 4%.
+3. **Turning is `steerRate`.** The profiles' `steeringRiseRate`, `maxSlipAngle` and `slipRecoverRate` move with it or are drift details; they are not shown.
+4. **Original art,** painted from numbers; no Mario Kart or Crash Team Racing picture is an input (AGENTS forbids ripped art).
+
+## Needs Codex
+
+- **Review and integration** after the Scarlet fixes. The object budget rises by 8 textures and 4 font strings, all created once with the window: `test_menu` and `test_ui` assert **89/77/140**; please carry it into your production-maps and integration notes.
+- **Install:** `Assets/UI/StatBars.tga` is a new path: both clients need a full restart.
+
+## Tests
+
+| Command | Cloud | The owner's machine |
+|---|---|---|
+| `python scripts/test_lua.py --runtime lua51` | PASS, full suite | PASS, full suite (the pool line reads 89/77/140) |
+| `python scripts/test_lua.py --runtime lua54 --tests menu ui` | PASS | not run |
+| `python scripts/build_stat_bars.py --check` | PASS | PASS, the same sha256 |
+| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in `PROGRESS.md` fail | the same |
+| `python scripts/preview_ui.py` | Wrote the front end's review picture; the kart screen and garage show the bars (a layout picture with stand-in fonts, not a screenshot) | not run |
+| `git diff --check` | clean | |
+
+**NOT RUN in the client:** the bars' look, their load and the new layout. The owner runs [the checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-kart-stat-bars-check-proposed-claudekart-stat-bars).
+
+## PROGRESS ledger entry for the integrator (kart stat bars)
+
+> **2026-10-26 — Kart stat bars (Claude, `claude/kart-stat-bars` `dd6090d` on `claude/scarlet-fixes` `8889aa4`).** The kart screen and garage show the handling profile as four gold-framed bars (Speed, Acceleration, Turning, Braking) from `Physics.GetHandling`, four windows of six at the balanced profile, one per 4% (Heavy 5,2,2,6; Agile 3,6,6,2). New original atlas `Assets/UI/StatBars.tga` (`scripts/build_stat_bars.py`); text fallback if it cannot load. Pool 89/77/140 (+8 textures, +4 font strings). Lua 5.1 full suite PASS on both machines; Lua 5.4 menu/ui PASS (cloud); atlas check PASS on both; validator: only the 2 pre-existing `PROGRESS.md` links fail. NOT RUN: client.
+
+## Push (the owner's)
+
+```
+git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/scarlet-fixes claude/kart-stat-bars
+```
+
+## Next
+
+The owner looks at the bars after Codex's review and install, with [the checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-kart-stat-bars-check-proposed-claudekart-stat-bars).
 
 # Previous: Scarlet fixes from the owner's first drive
 
