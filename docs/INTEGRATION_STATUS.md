@@ -1,5 +1,16 @@
 # Shared integration and deployment status
 
+## Installed combined Scarlet build — 2026-10-26 10:16 CET
+
+Owner explicitly authorized installation. Tested runtime `9c80746` is installed
+in the existing AzerothKart AddOns target:83source/installed hashes and78prior
+backup files independently verified; legacy extra preserved. Installed files
+include both collision/score fixes and all reviewed content/current Codex work.
+The matching `AzerothKart-ScarletCup-9c80746.zip` contains83verified entries.
+[Exact deployment receipt and pending check](PROGRESS.md). Six new texture paths
+require a full WoW restart. Native testing remains pending. No saves/otheraddons,
+parallel worktrees, main or release were changed by this deployment.
+
 ## Scarlet Cup combined source — 2026-10-26
 
 **Published:** tested source/runtime `9c80746` and its documentation on

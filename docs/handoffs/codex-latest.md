@@ -1,5 +1,37 @@
 # Codex handoff — production maps and Claude course review
 
+## Installed combined Scarlet checkpoint — 2026-10-26 10:16 CET
+
+Owner-authorized installation complete: tested runtime `9c80746`, source/docs
+head `4d725a3`. All83source/installed hashes and78complete prior backup files
+independently verified; one unchanged legacy extra retained (84installedfiles).
+No source, saves, other addons, client input or other checkout changes.
+
+Ignored deployment root `local-artifacts/deploy-20261026-scarlet-integration/`
+contains receipt/audit and backup manifest under
+`backups/20261026-101557-482-e75adc6299df4e0b828e45e64ec8b259/install.json`.
+Friend ZIP `../AzerothKart-ScarletCup-9c80746.zip`:83entries/69,380,311bytes,
+SHA256 `D99637FECCC1E8FE0C84CAD78D2920E54F3B1A75367A29971DB5794BC20F4492`.
+Built from tested installed paths; every entry read back and verified.
+
+Six new image paths mean both clients need full exit/relaunch. Source test
+evidence remains the preceding combined suite; no redundant broad run. Native
+loading/pool feel/score receipt NOT RUN. Next: owner restarts, opens `/akart`,
+drives the new Scarlet maps/round pool; friend updates this ZIP/restarts for
+matching-build score catch-up. Keep saved history and public/8-peer gates open.
+
+## Active deployment — owner-authorized combined install, 2026-10-26 10:13 CET
+
+Owner explicitly requests installation for testing. Deploy tested runtime
+`9c80746` from clean published `4d725a3` on `codex/scarlet-integration`; there
+are no runtime changes since the recorded43-module Lua51/24Python passes.
+Reserve this handoff, PROGRESS and INTEGRATION_STATUS for the verified receipt.
+Use existing install_local.ps1 with complete prior-addon backup, no deletions,
+then independently hash all83source/installed files and preserve the legacy
+extra. Package those tested installed paths for the friend. No SavedVariables,
+other-addon, client-input or Claude/canonical-worktree changes. New TGA paths
+require full client restart; native checks stay pending until actually run.
+
 ## Published Scarlet integration — 2026-10-26 10:10 CET
 
 Tested combined runtime/source `9c80746` is published on

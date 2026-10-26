@@ -1,5 +1,34 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-26 10:16 +01:00 — combined Scarlet build installed and packaged
+
+Owner explicitly requests the addon installation for testing. Installed tested
+runtime `9c80746` from published documentation head `4d725a3` into the existing
+`_classic_beta_/Interface/AddOns/AzerothKart` target. Independent preflight
+confirmed no runtime changes since the43-module Lua51/24Python passes and an
+exact prior installed01bd880 tree. PowerShell7 WhatIf and actual backed-up
+copy/hash helper PASS; separate Python readback verifies all83source/installed/
+manifest hashes and all78prior backup files. The known legacy extra remains
+unchanged. Installed tree has84files. No deletion, SavedVariables/WTF, other
+addon, client input or parallel-worktree changes.
+
+Ignored deployment root: `local-artifacts/deploy-20261026-scarlet-integration/`.
+Backup manifest: `backups/20261026-101557-482-e75adc6299df4e0b828e45e64ec8b259/install.json`.
+Audit script and receipt are stored in the same deployment root. Matching
+friend ZIP, built from the tested installed paths and fully read-back hashed:
+`../AzerothKart-ScarletCup-9c80746.zip`,83entries/69,380,311bytes, SHA256
+`D99637FECCC1E8FE0C84CAD78D2920E54F3B1A75367A29971DB5794BC20F4492`.
+
+Six new Library/Armory/Cathedral background/preview paths were added; a full
+client exit/relaunch is required, rather than only reload. No runtime source
+changed during deployment, so the recorded full source tests were not repeated.
+Native map loading, pool feel and matched-build score delivery remain NOT RUN.
+
+**Next exact task:** owner fully restarts WoW, opens `/akart`, selects the new
+Scarlet sprints and drives Cathedral beside the round pool; friend installs the
+matching ZIP and also restarts before checking score catch-up. Preserve all
+saved scores. No milestone, eight-player or release acceptance is added.
+
 ## 2026-10-26 10:10 +01:00 — authorized Scarlet publication verified
 
 Atomic dry-run and actual normal atomic push succeeded for all five branches.
