@@ -1,4 +1,25 @@
-# Claude handoff — Scarlet v3: an open courtyard, the grass at full speed, the Cathedral's landings
+# Claude handoff — race screens and score celebrations (reservation, in progress)
+
+Reserved 2026-10-26 at about 16:10 CET by Claude (rendering/UI/sprites owner).
+
+**Base:** `claude/scarlet-v3` `a4fe2d5` (on Codex's installed `codex/scarlet-stats-review` `caab661`). **Branch:** `claude/race-screens`. Nothing is installed.
+
+**Owner instructions:** "After fixing these - feel free to start on screen side of multiplayer such as race positions, name tags, and results. I also want a bigger celebration when you get a top 10 and top 3 score, take a look at that whole window and flow."
+
+**Task:** presentation only. In a two-player race: an estimated position badge in the HUD, a name tag over the friend's kart, and a results panel ranking both racers from the copied live view (labelled unverified; no backend standings, winner or agreement). For solo runs: a bigger celebration in the results window for a new personal best in a shared board's top 10 or top 3 (and at #1), with the window's flow reviewed (a way to the board from the results).
+
+**Reserved files and regions:**
+
+- `addon/AzerothKart/Presentation.lua`: new pure functions for race progress, standings and ordinals (additive);
+- `addon/AzerothKart/UI.lua`: `renderOpponent` (the name tag; the displayed pose kept for the HUD) and the opponent's visual objects in `UI.Create`. `pollLive`, `applyLiveView`, `finishLive`, `UI.OnUpdate`, `UI.Stop`, `UI.Start`, `UI.MultiplayerAction`, `step`, `keyEvent` and `UI.HandleEvent` stay untouched, and so does the existing diagnostic opponent label's text, which Codex's tests read;
+- `addon/AzerothKart/Menu.lua`: the race overlay (position badge), the results dialog (layout, standings, celebration, a Highscores button), the Highscores screen (the player's own row; opening on the run's board), the sound names;
+- new art: `scripts/build_celebration_art.py`, `addon/AzerothKart/Assets/UI/Celebration.tga`, `docs/art/ui/celebration.png`;
+- tests: `tests/test_presentation.lua`, `tests/test_menu.lua`, `tests/test_ui.lua` (the object budget only);
+- docs: `docs/art/ui/front-end.md`, `docs/API_CONTRACTS.md` (the counts line; a proposed placement field), `docs/UI_UX.md`, `CHANGELOG.md`, `docs/TEST_PLAN.md`, `tests/MANUAL_CLIENT_CHECKLIST.md`, `docs/ASSETS.md`, `docs/art/ASSET_SOURCES.md`, `scripts/validate_project.py` (the new files), this handoff.
+
+No change to SessionTransport, LiveRace, LiveProtocol, PeerSession, SoloRecords, Highscores, ScoreSync, ScoreSharing, Physics, Race or any other Codex-owned file: they are read through their public, copied views. `docs/PROGRESS.md` stays with the integrator.
+
+# Previous: Scarlet v3: an open courtyard, the grass at full speed, the Cathedral's landings
 
 Prepared 2026-10-26 at about 16:00 CET by Claude (rendering/UI/sprites owner).
 
