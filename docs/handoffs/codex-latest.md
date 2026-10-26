@@ -1,5 +1,42 @@
 # Codex handoff — production maps and Claude course review
 
+## Latest review result — Scarlet queue, 2026-10-26
+
+Reviewed13commits through Claudeea4425d on own`codex/scarlet-review` from0edaf2c.
+[Review findings and exact next task](../reviews/2026-10-26-scarlet-queue.md).
+Visual/menu/earlier drive changes look sound; combined installation approval is
+held for swept-disc contact and the current bounded score-code adaptation.
+No source integration, push or install. Installed runtime01bd880 remains intact;
+Claudeea4425d and canonical5570968/untracked outputs remain untouched.
+
+Actual focused Claude Lua51 dungeon + menu/circuit PASS/78parsed; exact Cathedral
+4.3-unit pool-grazing reproduction returns hit=false while crossing clearance.
+Full-range12slot HELLO would be164B; require retiredO=0 for155Bmax under158.
+Final integrated catalogue must have11activecourses, not Claude's12includingOval.
+TGAs/catalogue independently checked; four-file merge-tree conflict preview only.
+Combined/native/rebuild/Lua54 NOT RUN. No milestone acceptance changed.
+
+Next: fix/test swept-circle contact; appendL/A/C with retiredzero validation;
+then prepare reviewed combination preserving newer code/oldscorehistory and all
+retirement assertions. No standalone Claude install or branch rewrite.
+
+## Active review — queued Scarlet work, 2026-10-26 09:44 CET
+
+Owner requests review of Claude's Library/drive-fixes/Armory/Cathedral queue.
+Own `codex/scarlet-review` from clean0edaf2c (installed runtime01bd880).
+Claude checkout is `claude/scarlet-cathedral`ea4425d, clean except untracked
+`Claude outputs/`; canonical5570968 and its untracked handoffs stay untouched.
+Reserve this handoff, PROGRESS and
+`docs/reviews/2026-10-26-scarlet-queue.md` only. Review/test work uses ignored
+local-artifacts when needed. No branch integration, push or install is assumed
+by this review request; do not overwrite the current installed combined build.
+
+Plan: inspect all13queued commits; independently audit new disc geometry,
+drive/menu/art changes and current score-protocol compatibility; execute
+focused checks/reproductions; record approval blockers and an exact integration
+plan preserving remote-turn smoothing, group score discovery and retired Oval.
+Claude's supplied score patch targets older code and needs adaptation.
+
 ## Installed remote-turn checkpoint — 2026-10-26 09:18 CET
 
 Runtime`01bd880` installed on`codex/remote-turn-smoothing`. All77source/installed

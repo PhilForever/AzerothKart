@@ -1,5 +1,40 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-26 — Claude Scarlet queue reviewed; integration held for two fixes
+
+Reviewed all13queued commits through Claude`ea4425d`, including Library,
+drive-fixes and Armory, against clean Codex`0edaf2c`/installed`01bd880`.
+Own`codex/scarlet-review`; source/installed addon, Claude's checkout and the
+canonical checkout remain untouched. No merge/push/install/release.
+[Findings, exact reproductions and integration plan](reviews/2026-10-26-scarlet-queue.md).
+
+Visual/menu/earlier drive work has no blocking finding. New round solids skip
+the sweep and test only endpoints: actual production Cathedral4.3-unit segment
+crosses the required pool clearance but returns hit=false. Fix swept-circle
+contact before accepting the primitive. Claude's known score dependency also
+needs adaptation to current retired-Oval source:11activecourses/12HELLOslots,
+L/A/C appended to stable codes, retiredO=0. Actual in-memory Lua51 codec proof:
+naive full-bound HELLO164bytes exceeds158; enforcing retiredzero yields155
+maximum,147with Physics12. No traffic-budget increase is accepted.
+
+Actual focused Claude Lua51 dungeon and menu/circuit PASS,78files parsed;
+catalogue check PASS12standaloneboards (includes oldOval). Six new TGA headers,
+raw lengths and SHA256 match the handoff. These checks do not approve the
+standalone tree or replace the failing collision reproduction. Conflict-only
+merge-tree preview identifies4files, with no refs/index/worktree changes.
+Full combined suite, native/newassetloading, asset rebuild and Lua54 NOT RUN.
+Old score contexts and all current networking/handling/turning fixes must stay.
+
+Claude's reported temporary archive deletion is recorded in the review; this
+run deletes nothing. The absent archive was not tracked, and its previous
+contents/actions are not independently certified. No source data was removed
+by this review.
+
+**Next exact task:** fix swept-disc contacts and extend bounded score mappings
+with regressions, then prepare the combined review branch preserving all current
+assertions and regenerate11activeboards. Native validation and installation
+follow only after those checks; leave both original worktrees untouched.
+
 ## 2026-10-26 09:18 +01:00 — turn smoothing installed and friend ZIP verified
 
 Runtime`01bd880` is now installed in the existing AzerothKart AddOns directory.
