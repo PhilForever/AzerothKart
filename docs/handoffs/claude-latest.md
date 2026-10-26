@@ -1,4 +1,23 @@
-# Claude handoff — Scarlet fixes from the owner's first drive
+# Claude handoff — kart stat bars (reserved)
+
+Reserved 2026-10-26 at about 12:10 CET (Europe/Oslo) by Claude (rendering/UI/sprites owner). **Work in progress; nothing below is done yet.**
+
+**Base:** `claude/scarlet-fixes` `8889aa4` (itself on Codex's installed `codex/scarlet-integration` `98f433e`), so the two Claude branches stack and their handoff and changelog entries do not conflict. **Branch:** `claude/kart-stat-bars`.
+
+## Owner instructions
+
+He sent a Crash Team Racing-style picture of three segmented green bars (SPEED, ACCELERATION, TURN) and wrote: "I also want to introduce more mario kart/crash team racing way of seeing the different kart attributes. Currently it looks like image 1. Make the kart attributes look more like this but in wow style obviously and use the actual ingame addon kart attributes as guidance for how much each bar should be filled." Asked which bars, he chose **four: Speed, Acceleration, Turning and Braking**, every real difference between the handling profiles.
+
+## Reserved scope
+
+- **`addon/AzerothKart/Menu.lua`:** `buildKarts` and its refresh (the kart and garage screens' right column), plus new pure helpers for the bars. Physics is read only through `Physics.GetHandling`.
+- **New art:** `scripts/build_stat_bars.py`, `addon/AzerothKart/Assets/UI/StatBars.tga` (original, painted by the script), `docs/art/ui/stat-bars.png`.
+- **Tests:** `tests/test_menu.lua` (the bars and the object budget); in the shared `tests/test_ui.lua` only the menu's object-budget constants, which the new textures and labels raise.
+- **Shared/docs:** `scripts/validate_project.py` (the new TGA), `docs/API_CONTRACTS.md` (the counts line), `docs/art/ui/front-end.md`, `docs/ASSETS.md`, `docs/art/ASSET_SOURCES.md`, `CHANGELOG.md`, `docs/TEST_PLAN.md`, `tests/MANUAL_CLIENT_CHECKLIST.md`, this handoff.
+
+Physics, `UI.lua` and every Codex-owned file stay untouched. No install, push, main merge or client claim.
+
+# Previous: Scarlet fixes from the owner's first drive
 
 Prepared 2026-10-26 at about 11:45 CET (Europe/Oslo) by Claude (rendering/UI/sprites owner).
 
