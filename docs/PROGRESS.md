@@ -1,5 +1,53 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-26 16:33 +01:00 — multiplayer postrace room and rematch implemented
+
+Owner prioritizes local multiplayer placements and same-player Play Again/map
+changes. Own `codex/multiplayer-rematch` from clean caab661; installed source
+was da292f6. Read Claude's separate Scarlet-v3 reservation86efbca, touching only
+map data/Menu.TRACKS here; did not integrate or edit that worktree. Reserved
+results/lobby/control regions in the Codex handoff. [ADR0021](adr/0021-multiplayer-postrace-room.md)
+and [implemented API/player flow](MULTIPLAYER_POSTRACE.md) document the slice.
+
+Actual race completion retains the selected peer/roles/kart in a bounded300s
+postrace room. Host rematch/map offer reuses current handshake/grid/clock flow
+with a fresh next session; guest Join, both Ready and host Start remain explicit.
+Late old-round traffic is rejected. Core lease/traffic history stays continuous,
+with unchanged0.5s/2attempts/158-byte ceiling and no new wire message or heartbeat.
+Dependency exceptions now close safely without a stuck busy flag, including
+guest candidate failure inside a native send callback.
+
+Copied local results compare local Race.totalTicks with received terminal peer
+tick, joint rank1 on ties; missing finish stays pending. Rows update after late
+peer finish without replacing the local race/fanfare. Results use Play Again,
+Change Map/Lobby and explicit Leave Multiplayer; Close results keeps the room.
+Solo Start/track/kart cannot silently dissolve it. Explicit Leave restores all
+selectors. No MP result enters solo Highscores. No trusted winner or8-player
+claim, and existing turning/physics/track/art data is unchanged.
+
+Actual Lua51 combined command for peer_session/live_race/session_transport/ui/
+menu/multiplayer_integration/score_sharing PASS7modules/80parsedfiles. Final
+exception-guard regressions plus real two-round menu integration also PASS.
+That integration finishes two races through actual Race/Checkpoints/Laps using
+a bounded waypoint tape, changes Mirage→Stormwind with same full peer names,
+fresh code/full countdown, opposite second finisher, pending→ranked rows and
+Close results, checking no solo scores/newwidgets or native budget reset.
+Earlier runs exposed obsolete solo-fallback assertions and a mock5Hz-refresh
+race; corrected targeted assertions preserve genuine solo behavior. Independent
+reviews found a missed Kart re-enable and constructor-error busy leak; both
+fixed with regressions. Final backend review reports no remaining blocker.
+
+Catalogue check PASS11boards; diffcheck PASS. Structural validator retains only
+the two historical expired skill links, not a full pass. Production pool stays
+89/77/140; legacy Oval fixture89/175/140. Full-suite/Python-service repetition,
+Lua54 and native postrace/rematch/turning checks NOT RUN for this slice. No
+roadmap checkbox closed. New source stays local; no new push/release authorized
+by this task. Both original worktrees and existing untracked files preserved.
+
+**Next exact task:** commit the tested source, complete the usual backed-up
+installation and matching friend ZIP. With both clients updated/reloaded, later
+test one race→Play Again→Change Map using the same players. No standalone probe.
+
 ## 2026-10-26 14:19 +01:00 — Scarlet v2/stat bars published and installed
 
 Approved combined runtime `da292f6` is published and installed. Atomic dry-run

@@ -21,6 +21,9 @@ local UI = {
 }
 AK.UI = UI
 local render, pollLive, finishLive, applyLiveView
+-- Only the validated Ready transaction may load a shared race's map while
+-- multiplayer mode is retained. Public solo selectors cannot dissolve a room.
+local liveTrackSelection
 -- Captured at a successful solo Start, never derived from the current artwork.
 local soloKartId
 
@@ -225,10 +228,40 @@ local function refreshSummary()
         or UI.dismissedSummaryRace == race then
         UI.summary:Hide(); return
     end
-    if UI.summaryRace ~= race then
+    local results=UI.multiplayer and UI.multiplayerResults
+    local resultsKey=""
+    if results and type(results.rows)=="table" then
+        resultsKey=tostring(results.session)..":"..tostring(results.complete)
+        for index=1,2 do
+            local row=results.rows[index]
+            if type(row)=="table" then
+                resultsKey=resultsKey..":"..tostring(row.name)..":"..tostring(row.status)
+                    ..":"..tostring(row.totalTicks)..":"..tostring(row.rank)..":"..tostring(row.tie)
+            end
+        end
+    end
+    if UI.summaryRace ~= race or UI.summaryResultsKey~=resultsKey then
         UI.summaryRace = race
+        UI.summaryResultsKey=resultsKey
         local sprint = race.targetLaps == 1
-        if race.status == "finished" then
+        if UI.multiplayer and results and type(results.rows)=="table" then
+            UI.summaryTitle:SetText(results.complete and "LOCAL PLACEMENTS — UNVERIFIED" or
+                (race.status=="finished" and "FINISHED — WAITING FOR FRIEND" or "MULTIPLAYER RESULTS"))
+            local lines={}
+            for index=1,2 do
+                local row=results.rows[index]
+                if type(row)=="table" then
+                    local rank=row.rank and ((row.tie and "=" or "")..tostring(row.rank)) or "—"
+                    local ticks=row.totalTicks
+                    local time=type(ticks)=="number" and ticks==ticks and ticks>=0 and ticks<math.huge
+                        and ("%.2fs"):format(ticks*Physics.FIXED_DT) or "--"
+                    local status=row.status=="finished" and time or
+                        (row.status=="stopped" and "Did not finish" or "Waiting for finish")
+                    lines[#lines+1]=rank..". "..tostring(row.name or "Friend").." | "..status
+                end
+            end
+            UI.summaryDetail:SetText(table.concat(lines,"\n"))
+        elseif race.status == "finished" then
             UI.summaryTitle:SetText(UI.multiplayer and "LOCAL FINISH — UNVERIFIED" or "RUN COMPLETE")
             if sprint then
                 UI.summaryDetail:SetText(("Sprint | Total: %.2fs\nAll %d gates"):format(
@@ -250,9 +283,10 @@ local function refreshSummary()
                     race.laps.currentLapTicks*Physics.FIXED_DT,bestLapText(race.laps)))
             end
         end
-        UI.summaryHint:SetText(UI.multiplayer and "Experimental race | No agreed winner or standings" or
+        UI.summaryHint:SetText(UI.multiplayer and "Local observations | Unverified placements" or
             "Restart or close results to view the track")
     end
+    if AK.Menu and type(AK.Menu.RefreshResults)=="function" then AK.Menu.RefreshResults() end
     UI.summary:Show()
 end
 
@@ -408,14 +442,16 @@ function UI.Stop(reason)
     -- Inactive OnUpdate does no work; a fresh Start creates a new clock.
     refreshHud()
     refreshSummary()
-    if UI.status then UI.status:SetText(UI.stopReason .. " | Start a new run or choose a track") end
+    if UI.status then UI.status:SetText(UI.stopReason .. (UI.multiplayer and
+        " | Multiplayer ended | Return to lobby or Leave Multiplayer" or " | Start a new run or choose a track")) end
     if UI.startButton then UI.startButton:Enable() end
     if UI.stopButton then UI.stopButton:Disable() end
     if UI.trackButton then UI.trackButton:Enable() end
-    if UI.multiplayer and pendingNativeLive() then
+    if UI.multiplayer then
         UI.startButton:Disable()
         UI.restartButton:Disable()
         UI.trackButton:Disable()
+        if UI.kartButton then UI.kartButton:Disable() end
     end
 end
 
@@ -825,6 +861,7 @@ end
 -- touches the run, its result, the track or the simulation state; every kart
 -- shares the same 17x31 body. Handling is captured only on the next Start.
 function UI.SelectKart(id)
+    if UI.multiplayer then return false end
     local sprite = Presentation.KART_SPRITES[id]
     if not UI.kart or UI.active or UI.liveArmed or livePending() or pendingNativeLive() or not sprite then return false end
     if id == UI.kartId then return true end
@@ -862,7 +899,8 @@ function UI.SetKartOutline(enabled)
 end
 
 function UI.SelectTrack(id)
-    if not UI.window or not UI.window:IsShown() or UI.active or UI.liveArmed or livePending() or inCombat() then return false end
+    if not UI.window or not UI.window:IsShown() or UI.active or UI.liveArmed or inCombat()
+        or ((UI.multiplayer or livePending()) and liveTrackSelection~=id) then return false end
     local course = Courses and Courses.get(id)
     if not course or course.soon then return false end
     local background = course.background
@@ -920,7 +958,8 @@ function UI.SelectTrack(id)
     UI.laps = Laps.new(Track,Checkpoints,UI.state.tick)
     UI.checkpoints,UI.previousState = UI.laps.checkpoints,UI.state
     UI.race,UI.result,UI.clock,UI.performance,UI.summaryRace = nil,nil,nil,nil,nil
-    UI.multiplayer,UI.liveView,UI.liveSession=false,nil,nil
+    if not liveTrackSelection then UI.multiplayer,UI.liveSession=false,nil end
+    UI.liveView=nil
     UI.gridStaged,UI.gridView,UI.remotePath,UI.remotePathAt=false,nil,nil,nil
     UI.remotePathSample,UI.remotePathSequence=nil,nil
     UI.remoteHeading,UI.remoteHeadingAt=nil,nil
@@ -1246,7 +1285,11 @@ function UI.Create()
     UI.restartButton:SetSize(130,24)
     UI.restartButton:SetPoint("BOTTOMLEFT",24,16)
     UI.restartButton:SetText("Restart")
-    UI.restartButton:SetScript("OnClick",function() UI.Start() end)
+    UI.restartButton:SetScript("OnClick",function()
+        if UI.multiplayer then
+            UI.status:SetText("Return to the multiplayer lobby to play again")
+        else UI.Start() end
+    end)
     UI.dismissSummaryButton = frame("Button",nil,UI.summary,"UIPanelButtonTemplate")
     UI.dismissSummaryButton:SetSize(130,24)
     UI.dismissSummaryButton:SetPoint("BOTTOMRIGHT",-24,16)
@@ -1281,9 +1324,13 @@ function UI.MultiplayerAction(action,...)
     local transport = AK.SessionTransport
     if not transport then return false,"unavailable" end
     if action=="leave" then
-        if UI.liveArmed or UI.liveActive or (UI.multiplayer and UI.liveSession) then
+        if UI.liveArmed or UI.liveActive or UI.multiplayer then
             UI.Stop("Stopped")
-            return UI.liveStopAccepted==true
+            UI.multiplayer,UI.liveSession,UI.liveView,UI.multiplayerResults=false,nil,nil,nil
+            UI.DismissSummary()
+            UI.startButton:Enable(); UI.restartButton:Enable(); UI.trackButton:Enable()
+            if UI.kartButton then UI.kartButton:Enable(); UI.kartButtonActive=false end
+            return true -- deliberate local exit, never a peer-delivery claim
         end
         return transport.Leave()
     end
@@ -1291,7 +1338,22 @@ function UI.MultiplayerAction(action,...)
     if not UI.window or not UI.window:IsShown() then return false,"window_hidden" end
     if inCombat() then return false,"combat" end
     local accepted,reason
-    if action=="host" then
+    if action=="return_lobby" then
+        local view=transport.GetView()
+        if not UI.multiplayer or not view.room then return false,"invalid_phase" end
+        return true
+    elseif action=="rematch" then
+        local view=transport.GetView()
+        local id=(...) or (view.room and view.room.trackId)
+        if not UI.multiplayer or not view.canRematch or not Courses.multiplayer(id)
+            or type(transport.Rematch)~="function" then return false,"invalid_phase" end
+        accepted,reason=transport.Rematch(id)
+        if accepted then
+            UI.liveArmed,UI.liveActive,UI.gridStaged=false,false,false
+            UI.liveSession=nil
+            UI.ReleaseInput()
+        end
+    elseif action=="host" then
         local peer,code,trackId=...
         accepted,reason=transport.HostLive(peer,code,trackId,UI.kartId or "basic")
     elseif action=="listen" then
@@ -1308,7 +1370,12 @@ function UI.MultiplayerAction(action,...)
             local id=view.offer and view.offer.trackId
             if not view.liveMode or not view.canSetReady then return false,"invalid_phase" end
             if not Courses.multiplayer(id) then return false,"track" end
-            if not UI.SelectTrack(id) then return false,"track_unavailable" end
+            liveTrackSelection=id
+            local loaded,selected=pcall(UI.SelectTrack,id)
+            liveTrackSelection=nil
+            if not loaded or not selected then return false,"track_unavailable" end
+            local current=transport.GetView()
+            if current.session~=view.session or not current.canSetReady then return false,"invalid_phase" end
         end
         accepted,reason=transport.Ready(ready)
         if accepted then
@@ -1321,7 +1388,7 @@ function UI.MultiplayerAction(action,...)
     else return false,"action" end
     if accepted and (action=="host" or action=="listen") then
         UI.liveArmed,UI.liveActive,UI.liveSession=false,false,nil
-        UI.multiplayer,UI.liveView=false,nil
+        UI.multiplayer,UI.liveView,UI.multiplayerResults=false,nil,nil
         UI.gridStaged,UI.gridView,UI.remotePath,UI.remotePathAt=false,nil,nil,nil
         UI.remotePathSample,UI.remotePathSequence=nil,nil
         UI.remoteHeading,UI.remoteHeadingAt=nil,nil
@@ -1345,6 +1412,10 @@ finishLive = function(reason)
     UI.stopReason=reason or "Experimental race ended"
     UI.result={status=UI.race.status,reason=UI.stopReason,tick=UI.state.tick,
         totalTicks=UI.race.totalTicks,completedLaps=UI.laps.completedLaps,resultVerified=false}
+    if AK.SessionTransport then
+        local view=AK.SessionTransport.GetView()
+        UI.multiplayerResults=view.results or UI.multiplayerResults
+    end
     render()
     refreshHud()
     refreshSummary()
@@ -1356,10 +1427,11 @@ finishLive = function(reason)
 end
 
 pollLive = function()
-    if not UI.liveArmed and not UI.liveSession then return end
+    if not UI.liveArmed and not UI.liveSession and not UI.multiplayer then return end
     local transport=AK.SessionTransport
     if not transport then return end
     local view=transport.GetView()
+    if UI.multiplayer then UI.multiplayerResults=view.results or UI.multiplayerResults end
     local live=view.live
     local grid=view.grid
     if UI.gridStaged and view.phase=="closed" then UI.Stop("Start session ended"); return end
@@ -1436,8 +1508,8 @@ pollLive = function()
         UI.liveArmed=false
     end
     if UI.multiplayer and not UI.active then
-        if view.transportBusy then UI.restartButton:Disable()
-        else UI.restartButton:Enable(); UI.startButton:Enable(); UI.trackButton:Enable() end
+        UI.startButton:Disable(); UI.trackButton:Disable(); UI.kartButton:Disable()
+        refreshSummary()
     end
     if not view.transportBusy and view.phase=="closed" then
         UI.liveArmed,UI.liveSession=false,nil
@@ -1445,11 +1517,8 @@ pollLive = function()
 end
 
 function UI.Start()
-    if AK.SessionTransport and UI.multiplayer then
-        local view=AK.SessionTransport.GetView()
-        if view.liveMode and view.transportBusy then
-            refuseStart("Leave or wait for the experimental session to close"); return
-        end
+    if UI.multiplayer then
+        refuseStart("Return to the multiplayer lobby, or Leave Multiplayer first"); return
     end
     if not UI.window or not UI.window:IsShown() then return end
     if inCombat() then refuseStart("Cannot start while in combat"); return end

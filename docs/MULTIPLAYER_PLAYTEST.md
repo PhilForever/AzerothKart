@@ -1,5 +1,21 @@
 # First two-player race test
 
+## Current postrace check — 2026-10-26
+
+The [same-player room flow](MULTIPLAYER_POSTRACE.md) adds pending/observed
+placements, Play Again and host Change Map. Both users need the matching build.
+From the installed Scarlet-stat-bars build this changes Lua only, so reload
+after updating is sufficient; older builds missing the stat atlas need a full
+restart. No new standalone net probe is required.
+
+After the first normal race below, wait for both observed finish rows. Close
+results once to confirm the room remains. Use Play Again, or host Change Map
+→ choose a lap map → Play Again. Guest Join, both Ready, host Start. No retyped
+name/code. Leave Multiplayer explicitly restores solo navigation. Current
+postrace native results are NOT RUN; the mock two-race flow passes.
+
+## Initial setup and first race
+
 This developer candidate connects the lobby, coordinated start and live pose
 display. The [first real race](evidence/2026-10-23-first-live-race.md) completed
 locally on both clients and exposed countdown/sprite/delay problems. This updated

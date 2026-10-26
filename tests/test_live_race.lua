@@ -257,13 +257,35 @@ assert(Live.advance(finishing,10100,{accelerate=true})==3)
 local final=Live.view(finishing)
 assert(final.vehicle.tick==3 and final.race.totalTicks==3 and final.race.laps.completedLaps==3
     and final.phase=="finishing" and final.race.status=="finished")
+local pending=Live.results(finishing)
+assert(not pending.verified and not pending.complete and pending.rows[1].totalTicks==3
+    and pending.rows[1].status=="finished" and pending.rows[2].status=="pending"
+    and pending.rows[1].rank==nil and pending.rows[2].totalTicks==nil,
+    "a local finish cannot invent a peer finish or placement")
+pending.rows[1].totalTicks=999;pending.rows[2].name="Mutated"
+assert(Live.results(finishing).rows[1].totalTicks==3 and Live.results(finishing).rows[2].name=="Birch Vale",
+    "post-race results expose copies, never live state")
 assert(Live.advance(finishing,10200,{accelerate=true})==0)
 same(final.vehicle,Live.view(finishing).vehicle)
 assert(receive(finishing,10200,1,3,{completedLaps=3,status="finished"}))
 for _,now in ipairs({10200,10700,11200}) do assert(Live.update(finishing,now,function() return "accepted" end)) end
 assert(Live.view(finishing).phase=="closed" and Live.view(finishing).reason=="completed_unverified"
     and Live.view(finishing).resultVerified==false,"both reports do not become an official winner")
+local tied=Live.results(finishing)
+assert(tied.complete and not tied.verified and tied.rows[1].rank==1 and tied.rows[2].rank==1
+    and tied.rows[1].tie and tied.rows[2].tie,"equal reported ticks share first place without a verified winner")
+local behind=new(finishTrack)
+assert(Live.advance(behind,10100,{accelerate=true})==3)
+assert(receive(behind,10200,1,2,{completedLaps=3,status="finished",sampleMS=1200}))
+local placement=Live.results(behind)
+assert(placement.complete and not placement.verified and placement.rows[1].name=="Birch Vale"
+    and placement.rows[1].totalTicks==2 and placement.rows[1].rank==1 and placement.rows[2].rank==2
+    and placement.rows[2].totalTicks==3,"reported fixed-step durations rank locally, not callback stamps")
 local peerStop=new(); assert(receive(peerStop,10010,1,1,{status="stopped"}))
 assert(Live.view(peerStop).reason=="peer_stopped")
+local stoppedResults=Live.results(peerStop)
+assert(not stoppedResults.complete and stoppedResults.rows[1].rank==nil
+    and stoppedResults.rows[2].status=="stopped" and stoppedResults.rows[2].totalTicks==nil,
+    "a stopped peer is not assigned an invented completed time")
 
 print("live_race: actual GO/physics/laps, 1200-tick two-peer tape, 700ms synthetic RTT, bounded telemetry and frozen cleanup")

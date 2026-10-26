@@ -707,9 +707,10 @@ end
 
 -- Live mode adopts the one-shot bundle inside the existing transport owner.
 -- Real fixed-step modules and two isolated native mocks are used throughout.
-local function livePair(track,delayed)
+local function livePair(track,delayed,beforeLobby)
     local p=pair(true,true)
     if delayed then p.delay,p.offset=0.35,{host=0,guest=5} end
+    if beforeLobby then beforeLobby(p) end
     p:lobby(track); p:ready()
     local leases={}
     for _,role in ipairs({"host","guest"}) do
@@ -1134,6 +1135,286 @@ do
     e:update(1); assert(#e.sends==1,"a normal send resumes only after cadence and bytes permit it")
     assert(not e:call("ReserveDiagnosticSend",probe,1.5,20),"a live controller cannot grant a probe budget")
     e:call("Stop","stopped"); detached(e)
+end
+
+-- Exercise room/result transitions using real transport, clock/grid and
+-- fixed-step driving. A short race-rule fixture finishes after N simulation
+-- ticks so this lifecycle test need not steer three physical laps per round.
+local function finishAt(e,ticks)
+    e.finishTick=ticks
+    if e.finishFixture then return end
+    e.finishFixture=true
+    local step=e.namespace.Race.step
+    e.namespace.Race.step=function(race,previous,current,...)
+        local nextRace=step(race,previous,current,...)
+        if nextRace.status=="running" and current.tick>=e.finishTick then
+            nextRace.status,nextRace.finishTick,nextRace.totalTicks="finished",current.tick,current.tick
+            nextRace.laps.completedLaps,nextRace.laps.checkpoints.passed=3,0
+        end
+        return nextRace
+    end
+end
+local function finishRound(p)
+    local pending=false
+    for _=1,360 do
+        p:step(1/60)
+        for _,role in ipairs({"host","guest"}) do
+            local e=p[role]
+            local v=e:view()
+            if v.live and v.live.phase=="running" then assert(e:call("AdvanceLive",{accelerate=true})) end
+            local result=e:view().results
+            if result and result.rows[1].status=="finished" and not result.complete then
+                pending=true
+                assert(result.rows[1].rank==nil,"local-only finishes cannot have a fabricated placement")
+            end
+        end
+        if p.host:view().phase=="postrace" and p.guest:view().phase=="postrace" then return pending end
+    end
+    error("two finished peers did not retain their postrace room")
+end
+local function nextGo(p)
+    p:untilTrue(function() return p.guest:view().canJoin end)
+    assert(p.guest:view().live==nil and p.host:view().live==nil,
+        "a next-round offer must not expose the previous live token for adoption")
+    assert(p.guest:call("Join"))
+    p:untilTrue(function() return p.host:view().phase=="lobby" and p.guest:view().phase=="lobby"
+        and not p.host:view().pendingKind and not p.guest:view().pendingKind end)
+    p:ready();assert(p.host:call("PrepareStart",42))
+    for _=1,160 do
+        if p.host:view().phase=="racing" and p.guest:view().phase=="racing" then return end
+        p:step(0.1)
+    end
+    error("next shared round did not reach GO")
+end
+
+do
+    local p=livePair()
+    local leases={}
+    for _,role in ipairs({"host","guest"}) do
+        local e=p[role]
+        finishAt(e,role=="host" and 30 or 90)
+        leases[role]={owner=e.frame.akNetworkOwner,update=e.frame.scripts.OnUpdate,eventCalls=e.eventCalls}
+    end
+    assert(finishRound(p),"the first finisher shows pending results before the late peer finishes")
+    local h,g=p.host:view(),p.guest:view()
+    assert(h.room.peer==GUEST and g.room.peer==HOST and h.canRematch and not g.canRematch)
+    assert(h.results.complete and not h.results.verified and h.results.rows[1].localPlayer
+        and h.results.rows[1].rank==1 and h.results.rows[1].totalTicks==30
+        and g.results.rows[1].name==HOST and g.results.rows[1].totalTicks==30)
+    local resultSession=h.results.session
+    local oldPacket
+    for _,packet in ipairs(p.host.sends) do if packet.prefix=="AZKRUN2" then oldPacket=packet end end
+    assert(oldPacket)
+    local attempts=h.traffic.attempts
+    refusal(p.guest,"Rematch","stormwind_city")
+    refusal(p.host,"Rematch","scarlet_graveyard")
+    assert(p.host:view().room and p.host:view().traffic.attempts==attempts,
+        "a refused rematch cannot send, leave the room or switch to solo")
+    h.room.peer,h.results.rows[1].totalTicks="Mutated",999
+    assert(p.host:view().room.peer==GUEST and p.host:view().results.rows[1].totalTicks==30)
+    local fake=assert(p.guest.namespace.RaceProtocol.encode({kind="INVITE",session="ABC124",sequence=1,
+        physicsVersion=p.guest.namespace.Physics.VERSION,trackId="stormwind_city",trackVersion=999,laps=3}))
+    assert(not receive(p.guest,fake,"Other Person") and p.guest:view().phase=="postrace")
+    assert(not receive(p.guest,fake,HOST) and p.guest:view().phase=="postrace"
+        and p.guest:view().session==CODE,"a refused next offer cannot consume its code or replace the old room")
+    assert(p.host:call("Rematch","stormwind_city"))
+    assert(p.host:view().session=="ABC124" and p.host:view().offer.trackId=="stormwind_city"
+        and p.host:view().results.session==resultSession and p.host:view().live==nil)
+    nextGo(p)
+    for _,role in ipairs({"host","guest"}) do
+        local e,v=p[role],p[role]:view()
+        assert(v.live.session=="ABC124" and v.live.trackId=="stormwind_city" and v.live.vehicle.tick==0)
+        assert(v.room.peer==(role=="host" and GUEST or HOST) and v.results.session=="ABC124")
+        local lease=leases[role]
+        assert(e.frame.akNetworkOwner==lease.owner and e.frame.scripts.OnUpdate==lease.update
+            and e.eventCalls==lease.eventCalls and e.unregisterCalls==0,
+            "rematch retains the same native owner/hooks and traffic window")
+    end
+    local before=p.guest:view().live.vehicle.tick
+    assert(not receive(p.guest,oldPacket.payload,oldPacket.sender,oldPacket.prefix))
+    assert(p.guest:view().live.vehicle.tick==before and p.guest:view().live.remote==nil,
+        "old-round telemetry cannot enter the fresh round")
+    finishAt(p.host,50);finishAt(p.guest,20)
+    assert(finishRound(p))
+    assert(p.host:view().results.rows[1].name==GUEST and p.host:view().results.rows[1].rank==1
+        and p.host:view().results.session=="ABC124","second-round placements cannot retain old results")
+    for _,e in ipairs({p.host,p.guest}) do assertPacing(e) end
+    assert(p.host:call("Leave") and p.host:view().room==nil)
+    p:step(0.5);p:step(0.5);p:step(1)
+    detached(p.host);detached(p.guest)
+    assert(not p.host:view().canRematch and not p.guest:view().room,"Leave clears the selected multiplayer room")
+end
+
+-- A host can offer again while a finished guest is still draining terminal
+-- poses, without waiting for a coincidental last-packet ordering.
+do
+    local p=livePair();finishAt(p.host,10);finishAt(p.guest,11)
+    for _=1,300 do
+        p:step(1/60)
+        for _,e in ipairs({p.host,p.guest}) do
+            if e:view().live and e:view().live.phase=="running" then e:call("AdvanceLive",{}) end
+        end
+        if p.host:view().canRematch then break end
+    end
+    assert(p.host:view().canRematch and p.guest:view().live.race.status=="finished")
+    assert(p.host:call("Rematch"))
+    p:untilTrue(function() return p.guest:view().canJoin end)
+    assert(p.guest:view().session=="ABC124" and p.guest:view().results.complete)
+    p.host:call("Stop","stopped");p.guest:call("Stop","stopped")
+end
+
+-- Postrace inactivity and explicit lifecycle exits cannot keep an idle lease.
+for _,event in ipairs({"expiry","PLAYER_REGEN_DISABLED","PLAYER_LEAVING_WORLD","PLAYER_LOGOUT"}) do
+    local p=livePair();finishAt(p.host,5);finishAt(p.guest,5);finishRound(p)
+    if event=="expiry" then p.host:update(p.now+301) else p.host:call("HandleEvent",event) end
+    assert(p.host:view().room==nil and not p.host:view().canRematch)
+    detached(p.host)
+    p.guest:call("Stop","stopped")
+end
+
+-- Missing terminal delivery keeps an honest pending result and the known
+-- players, rather than guessing last place or falling into single player.
+do
+    local p=livePair();finishAt(p.host,5);finishAt(p.guest,8)
+    p.drop=function(packet)
+        local message=packet.prefix=="AZKRUN2" and p.host.namespace.LiveProtocol.decode(packet.payload)
+        return packet.sender==GUEST and message and message.status=="finished"
+    end
+    finishRound(p)
+    local view=p.host:view()
+    assert(view.phase=="postrace" and view.room.peer==GUEST and not view.results.complete
+        and view.results.rows[1].status=="finished" and view.results.rows[1].rank==nil
+        and view.results.rows[2].status=="pending" and view.canRematch)
+    p.drop=nil
+    assert(p.host:call("Rematch"));nextGo(p)
+    p.host:call("Stop","stopped");p.guest:call("Stop","stopped")
+end
+
+-- Never wrap, asymmetrically skip a used id, or erase the lifetime session cap.
+for _,mode in ipairs({"wrap","collision","capacity"}) do
+    local oldCode=CODE
+    if mode=="wrap" then CODE="ZZZZZZ" end
+    local p=livePair(nil,nil,function(pair)
+        if mode=="collision" then
+            assert(pair.host:call("Host",GUEST,"ABC124","mirage_raceway"))
+            pair.host:call("Stop","stopped")
+        elseif mode=="capacity" then
+            for index=0,62 do
+                assert(pair.host:call("Host",GUEST,("CAP%03d"):format(index),"mirage_raceway"))
+                pair.host:call("Stop","stopped")
+            end
+        end
+        -- Observation counters for this deliberate current lease only. Native
+        -- attempt/pacing accounting is never cleared by these preliminary arms.
+        pair.host.unregisterCalls,pair.host.detachCalls=0,0
+    end)
+    CODE=oldCode
+    finishAt(p.host,5);finishAt(p.guest,5);finishRound(p)
+    local expected=mode=="wrap" and "next_session_limit" or (mode=="collision" and "reused_session" or "session_limit")
+    assert(not p.host:view().canRematch and p.host:view().room.rematchReason==expected)
+    local sends=#p.host.sends
+    local accepted,why=p.host:call("Rematch")
+    assert(not accepted and why==expected and p.host:view().room and #p.host.sends==sends)
+    p.host:call("Stop","stopped");p.guest:call("Stop","stopped")
+end
+
+-- Native callbacks cannot commit a rematch after Stop releases/replaces its
+-- owner. This covers both the action preflight and the receive candidate build.
+for _,where in ipairs({"clock","candidate"}) do
+    local p=livePair();finishAt(p.host,5);finishAt(p.guest,5);finishRound(p)
+    if where=="clock" then
+        local get=p.host.globals.GetTime
+        p.host.globals.GetTime=function() p.host:call("Stop","stopped");return get() end
+        assert(not p.host:call("Rematch"));detached(p.host)
+        p.host.globals.GetTime=get
+    else
+        local build=p.guest.namespace.Courses.build
+        p.guest.namespace.Courses.build=function(...)
+            p.guest:call("Stop","stopped")
+            return build(...)
+        end
+        assert(p.host:call("Rematch"))
+        p:step(0.5);detached(p.guest)
+        assert(p.guest:view().room==nil and p.guest:view().session==CODE,
+            "a canceled candidate cannot consume/adopt the next round")
+    end
+    p.host:call("Stop","stopped");p.guest:call("Stop","stopped")
+end
+
+-- Rejected next-round offers from the selected peer cannot allocate an
+-- unbounded number of private candidate/geometry snapshots per callback.
+do
+    local p=livePair();finishAt(p.host,5);finishAt(p.guest,5);finishRound(p)
+    local fake=assert(p.guest.namespace.RaceProtocol.encode({kind="INVITE",session="ABC124",sequence=1,
+        physicsVersion=p.guest.namespace.Physics.VERSION,trackId="stormwind_city",trackVersion=999,laps=3}))
+    local builds,build=0,p.guest.namespace.Courses.build
+    p.guest.namespace.Courses.build=function(...) builds=builds+1;return build(...) end
+    for _=1,8 do assert(not receive(p.guest,fake,HOST) and p.guest:view().room) end
+    local before=builds
+    assert(not receive(p.guest,fake,HOST) and builds==before and p.guest:view().room==nil
+        and p.guest:view().lastError=="peer_flood")
+    detached(p.guest);p.host:call("Stop","stopped")
+end
+
+-- A failed fresh-controller dependency must be a fixed terminal refusal,
+-- never an escaping Lua error or a permanent busy owner. Restore the injected
+-- function and perform a new explicit arm to prove the action lock is free.
+for _,method in ipairs({"new","invite"}) do
+    local p=livePair();finishAt(p.host,5);finishAt(p.guest,5);finishRound(p)
+    local e=p.host
+    local original=e.namespace.PeerSession[method]
+    e.namespace.PeerSession[method]=function() error("private rematch dependency error") end
+    local called,accepted,why=pcall(function() return e:call("Rematch") end)
+    e.namespace.PeerSession[method]=original
+    assert(called and not accepted and why=="controller_error" and e:view().room==nil,
+        "a throwing host rematch dependency fails closed with a fixed public reason: "..method)
+    detached(e)
+    assert(e:view().canHost and not e:view().transportBusy,
+        "a failed rematch cannot strand busy=true: "..method)
+    assert(e:call("Host",GUEST,"ERR001","mirage_raceway"))
+    e:call("Stop","stopped");p.guest:call("Stop","stopped")
+end
+
+for _,method in ipairs({"new","receive"}) do
+    local p=livePair();finishAt(p.host,5);finishAt(p.guest,5);finishRound(p)
+    local e=p.guest
+    local offer=assert(e.namespace.RaceProtocol.encode({kind="INVITE",session="ABC124",sequence=1,
+        physicsVersion=e.namespace.Physics.VERSION,trackId="mirage_raceway",trackVersion=1,laps=3}))
+    local original=e.namespace.PeerSession[method]
+    e.namespace.PeerSession[method]=function() error("private guest candidate error") end
+    local called,accepted,why=pcall(receive,e,offer,HOST)
+    e.namespace.PeerSession[method]=original
+    assert(called and not accepted and why=="controller_error" and e:view().room==nil,
+        "a throwing guest candidate cannot escape the native message callback: "..method)
+    detached(e)
+    assert(e:view().canListen and not e:view().transportBusy)
+    assert(e:call("Listen",HOST,"ERR002"))
+    e:call("Stop","stopped");p.host:call("Stop","stopped")
+end
+
+do
+    local p=livePair();finishAt(p.host,50);finishAt(p.guest,5);drivePair(p,0.2)
+    local e=p.guest
+    assert(e:view().live.race.status=="finished","fixture is draining a local finish")
+    local offer=assert(e.namespace.RaceProtocol.encode({kind="INVITE",session="ABC124",sequence=1,
+        physicsVersion=e.namespace.Physics.VERSION,trackId="mirage_raceway",trackVersion=1,laps=3}))
+    local callbacks=0
+    e.onSend=function(packet)
+        assert(packet.prefix=="AZKRUN2")
+        callbacks=callbacks+1
+        local original=e.namespace.PeerSession.new
+        e.namespace.PeerSession.new=function() error("private nested candidate error") end
+        local called,accepted,why=pcall(receive,e,offer,HOST)
+        e.namespace.PeerSession.new=original
+        assert(called and not accepted and why=="controller_error")
+        assert(e.frame.akNetworkSending==e.transport and e:view().transportBusy,
+            "a nested candidate failure retains the current native-send marker until unwinding")
+    end
+    e:update(e.now+1)
+    assert(callbacks==1 and e:view().room==nil and e:view().canHost and not e:view().transportBusy,
+        "the outer Update unlocks once after a nested receive failure")
+    detached(e);assertPacing(e)
+    e.onSend=nil;p.host:call("Stop","stopped")
 end
 
 originalPrint("Session logged-whisper adapter: explicit actions, scoped identities, negotiated live GO, persistent pacing and cleanup verified with mocks")

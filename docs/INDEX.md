@@ -1,5 +1,10 @@
 # Documentation index / reading order
 
+**Latest multiplayer flow:** [postrace local placements and same-player rematch](MULTIPLAYER_POSTRACE.md),
+[ADR0021](adr/0021-multiplayer-postrace-room.md). Play Again/Change Map reuse
+the selected peer with fresh round sessions; solo actions stay blocked until
+explicit Leave. Native verification remains pending.
+
 **Latest score fix:** [automatic native-group and confirmed-racer discovery](AUTOMATIC_SCORES.md) works independently of the still-pending channel cache in source; actual native receipt remains to check. Existing scores are preserved.
 
 **Multiplayer follow-up:** bounded transit-aware opponent forecasts and [the finite group-delivery check](GROUP_DELIVERY.md). Existing ungrouped two-player mode stays available. Eight-racer multicast capacity remains unverified.

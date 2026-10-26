@@ -1,5 +1,11 @@
 # Technical architecture
 
+Postrace extension,2026-10-26: a bounded retained two-peer room owns the existing
+Core lease and copied unverified result rows. Same-player rematches reuse the
+existing control/grid/clock flow with a fresh session; Ready/Start remain
+explicit. Menu calls agreed commands and cannot start solo from multiplayer
+results. [Contract, timing bounds and native check](MULTIPLAYER_POSTRACE.md).
+
 Current map boundary (2026-10-26): [production catalogue and capacity](PRODUCTION_MAPS.md). Courses exposes eleven finished maps, with Mirage geometry/scenery as the guarded default. Test Oval is a developer fixture only; production does not allocate its road/obstacle textures. The seven lap circuits enter the existing two-peer transport; the four Scarlet sprints remain solo. Eight-player transport/grouping and shared-room design remain open. Round obstacles use swept-circle contact with tangential slide; score sync retains the native byte ceiling with eleven active contexts and a required zero retired-O digest.
 
 Automatic community scores are now wired in source through ScoreDiscovery,

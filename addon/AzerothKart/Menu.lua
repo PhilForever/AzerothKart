@@ -293,6 +293,7 @@ local PHASES = {
     coordinating="Coordinating the start. Keep this window open.",
     racing="Race running. The other kart is an observation; karts do not collide.",
     finishing="Your run finished. Waiting briefly for the other kart's finish observation.",
+    postrace="Same players are here. The host can play again or choose another map.",
 }
 local REASONS = {
     left="You left the session.", peer_left="%s left the session.",
@@ -345,12 +346,22 @@ function Menu.lobbyPresentation(view)
     copy.ready, copy.start, copy.leave = view.canSetReady == true,
         (view.coordinated and view.canPrepareStart == true) or (not view.coordinated and view.canStart == true),
         view.canLeave == true
-    copy.readyLabel = view.localReady and "Not ready" or "Ready"
+    copy.readyLabel = view.phase == "postrace" and "Play Again" or (view.localReady and "Not ready" or "Ready")
+    if view.phase == "postrace" then
+        copy.ready = view.canRematch == true
+        copy.status = view.role == "host" and
+            "Choose a map, then Play Again. Your friend will receive the new invite." or
+            "Waiting for the host to choose the next race. The same players remain together."
+    end
     copy.you = view.localReady and (view.localReadyConfirmed and "Ready" or "Ready (sending)") or "Not ready"
     local joined = view.phase == "lobby" or view.phase == "starting" or view.phase == "coordinating"
-        or view.phase == "racing" or view.phase == "finishing"
+        or view.phase == "racing" or view.phase == "finishing" or view.phase == "postrace"
     copy.friend = joined and peer or ((view.phase == "closed" or not view.peer) and "Open slot" or peer .. " (not joined)")
     copy.friendReady = joined and (view.peerReady and "Ready" or "Not ready") or ""
+    if view.phase == "postrace" then
+        copy.host,copy.listen,copy.join,copy.start = false,false,false,false
+        copy.you,copy.friendReady = "Not ready","Not ready"
+    end
     return copy
 end
 
@@ -981,14 +992,20 @@ local ACTION_ERRORS = {
     send_failed="Forever refused the send. Leave and try again with a fresh code.",
     send_unknown="Forever could not confirm the send. Leave and try again with a fresh code.",
     send_throttled="Forever limited the send. Leave and try again with a fresh code.",
+    postrace="Wait for this race to finish before choosing the next race.",
+    host_only="The host chooses the next race and map.",
+    room="This multiplayer room has ended. Leave Multiplayer to return to the main menu.",
 }
 
-local function lobbyAction(action)
+local function lobbyAction(action, trackId)
     local session, view = sessionView(), Menu.view
     local copy = Menu.lobbyPresentation(session)
+    if action == "ready" and session and session.phase == "postrace" then action = "rematch" end
     local allowed = action == "start" and copy.start or action == "ready" and copy.ready
         or action == "host" and copy.host or action == "listen" and copy.listen
-        or action == "join" and copy.join or action == "leave" and copy.leave
+        or action == "join" and copy.join or action == "leave" and (copy.leave or UI.multiplayer)
+        or action == "rematch" and session and session.canRematch == true
+        or action == "return_lobby" and session and type(session.room) == "table"
     if not sessionCommands() or not allowed then return false end
     releaseLobbyFocus()
     local ok, accepted, reason
@@ -1008,6 +1025,8 @@ local function lobbyAction(action)
         end
         if action == "host" then ok, accepted, reason = pcall(Menu.bridge.action, action, peer, code, Menu.lobbyTrackId)
         else ok, accepted, reason = pcall(Menu.bridge.action, action, peer, code) end
+    elseif action == "rematch" then
+        ok, accepted, reason = pcall(Menu.bridge.action, action, trackId or Menu.lobbyTrackId)
     elseif action == "ready" then
         ok, accepted, reason = pcall(Menu.bridge.action, action, not session.localReady)
     else ok, accepted, reason = pcall(Menu.bridge.action, action) end
@@ -1015,6 +1034,33 @@ local function lobbyAction(action)
     else toast("multiplayer", ACTION_ERRORS[reason] or "That action could not complete. Check the session status and try again.") end
     if refresh.multiplayer then refresh.multiplayer() end
     return ok and accepted == true
+end
+
+-- Explicit results navigation keeps the same multiplayer room. Only Leave
+-- may return it to the solo menus; no results action calls the solo loop.
+function Menu.ReturnLobby()
+    if not UI.multiplayer then return false end
+    local session = sessionView()
+    local room = session and type(session.room) == "table" and session.room
+    if not room or not lobbyAction("return_lobby") then return false end
+    if Courses.multiplayer(room.trackId) then Menu.lobbyTrackId = room.trackId end
+    UI.DismissSummary()
+    Menu.Show("multiplayer")
+    return true
+end
+
+function Menu.ReplayResults()
+    if not UI.multiplayer then return false end
+    local session = sessionView()
+    local room = session and type(session.room) == "table" and session.room
+    if not room then return false end
+    local role = session.role or room.role
+    if role == "host" then
+        if not session.canRematch or not lobbyAction("rematch", room.trackId) then return false end
+    elseif role == "guest" then
+        if session.canJoin and not lobbyAction("join") then return false end
+    else return false end
+    return Menu.ReturnLobby()
 end
 
 local function buildMultiplayer()
@@ -1046,7 +1092,7 @@ local function buildMultiplayer()
     Menu.lobbyTrackId = "mirage_raceway"
     view.lobbyTrackChoice = newButton(box, "Track: Mirage Raceway", 300, 28, "TOPLEFT", 40, -296, function()
         local session = sessionView()
-        if not sessionCommands() or not session or not session.canHost then return end
+        if not sessionCommands() or not session or not (session.canHost or session.canChangeMap) then return end
         Menu.lobbyTrackId = Courses.next(Menu.lobbyTrackId,true)
         refresh.multiplayer()
     end)
@@ -1073,7 +1119,10 @@ local function buildMultiplayer()
     view.ready = newButton(card, "Ready", 100, 26, "BOTTOMLEFT", 16, 16, function() lobbyAction("ready") end)
     view.start = newButton(card, "Start", 100, 26, "BOTTOM", 0, 16, function() lobbyAction("start") end)
     view.leave = newButton(card, "Leave", 100, 26, "BOTTOMRIGHT", -16, 16, function() lobbyAction("leave") end)
-    newButton(box, "Back", 150, 30, "BOTTOMLEFT", 30, 26, function() Menu.Show("home") end)
+    newButton(box, "Back", 150, 30, "BOTTOMLEFT", 30, 26, function()
+        if UI.multiplayer and not lobbyAction("leave") then return end
+        Menu.Show("home")
+    end)
     refresh.multiplayer = function()
         local session = sessionView()
         local copy, commands = Menu.lobbyPresentation(session), sessionCommands()
@@ -1083,9 +1132,19 @@ local function buildMultiplayer()
         view.youReady:SetText(copy.you)
         view.friend:SetText(copy.friend)
         view.friendReady:SetText(copy.friendReady)
+        local room = session and type(session.room) == "table" and session.room
+        if room then
+            local peer = session.peer or room.peer
+            if type(peer) == "string" and view.peerName:GetText() ~= peer then view.peerName:SetText(peer) end
+            if type(session.session) == "string" and view.sessionCode:GetText() ~= session.session then
+                view.sessionCode:SetText(session.session)
+            end
+        end
         local offered = session and type(session.offer) == "table" and session.offer.trackId
-        local chosen = trackInfo(offered or Menu.lobbyTrackId)
-        view.lobbyTrack:SetText(("Track: %s    Laps: 3"):format(chosen and chosen.name or "Unavailable"))
+        local staged = session and session.phase == "postrace" and session.canChangeMap == true
+        local chosen = trackInfo(staged and Menu.lobbyTrackId or offered or (room and room.trackId) or Menu.lobbyTrackId)
+        view.lobbyTrack:SetText((staged and "Next choice: %s    Laps: 3" or "Track: %s    Laps: 3"):
+            format(chosen and chosen.name or "Unavailable"))
         view.lobbyTrackChoice:SetText("Track: " .. (trackInfo(Menu.lobbyTrackId) or Menu.TRACKS[1]).name)
         view.lobbyStatus:SetText(copy.available and copy.status or "Not connected. Hosting and joining are unavailable.")
         view.ready:SetText(copy.readyLabel)
@@ -1093,7 +1152,7 @@ local function buildMultiplayer()
             setEnabled(view[key], commands and copy[key] == true)
         end
         local free = commands and session and (session.canHost or session.canListen)
-        setEnabled(view.lobbyTrackChoice, commands and session and session.canHost)
+        setEnabled(view.lobbyTrackChoice, commands and session and (session.canHost or session.canChangeMap))
         for _,field in ipairs({view.peerName, view.sessionCode}) do
             call(field, free and "Enable" or "Disable")
             if not free then call(field, "ClearFocus") end
@@ -1348,15 +1407,24 @@ local function arrangeResults()
     UI.restartButton:SetSize(196, 28)
     place(UI.dismissSummaryButton, "BOTTOMRIGHT", -28, 54)
     UI.dismissSummaryButton:SetSize(196, 28)
+    UI.restartButton:SetScript("OnClick", function()
+        if UI.multiplayer then Menu.ReplayResults() else UI.Start() end
+    end)
     local function leave(screen)
         return function()
             UI.DismissSummary()
             Menu.Show(screen)
         end
     end
-    newButton(summary, "Change Kart", 128, 26, "BOTTOMLEFT", 28, 20, leave("karts"))
-    newButton(summary, "Change Track", 128, 26, "BOTTOM", 0, 20, leave("tracks"))
-    newButton(summary, "Main Menu", 128, 26, "BOTTOMRIGHT", -28, 20, leave("home"))
+    view.resultChangeKart = newButton(summary, "Change Kart", 128, 26, "BOTTOMLEFT", 28, 20, leave("karts"))
+    view.resultChangeTrack = newButton(summary, "Change Track", 128, 26, "BOTTOM", 0, 20, function()
+        if UI.multiplayer then Menu.ReturnLobby() else leave("tracks")() end
+    end)
+    view.resultHome = newButton(summary, "Main Menu", 128, 26, "BOTTOMRIGHT", -28, 20, function()
+        if UI.multiplayer and not lobbyAction("leave") then return end
+        UI.DismissSummary()
+        Menu.Show("home")
+    end)
     summary:SetScript("OnShow", function() Menu.OnResults() end)
     summary:SetScript("OnHide", function() Menu.barKey = nil; Menu.Sync() end)
 end
@@ -1370,6 +1438,33 @@ local function recordLaps()
     if race.status == "countdown" or laps.completedLaps < #view.lapTimes then view.lapTimes = {} end
     while #view.lapTimes < laps.completedLaps and laps.lastLapTicks do
         view.lapTimes[#view.lapTimes + 1] = laps.lastLapTicks
+    end
+end
+
+-- May be called as copied result/capability data changes. It never records
+-- another lap, plays a fanfare or changes the retained race/session itself.
+function Menu.RefreshResults()
+    if Menu.disabled or not Menu.view or not Menu.view.resultHome then return end
+    local view, multiplayer = Menu.view, UI.multiplayer == true
+    local commands = sessionCommands()
+    local session = multiplayer and sessionView() or nil
+    local room = session and type(session.room) == "table" and session.room
+    local role = room and (session.role or room.role)
+    local host,guest = role == "host",role == "guest"
+    UI.restartButton:SetText(multiplayer and "Play Again" or "Restart")
+    setShown(view.resultChangeKart, not multiplayer)
+    view.resultChangeTrack:SetText(multiplayer and (host and "Change Map" or "Lobby") or "Change Track")
+    view.resultHome:SetText(multiplayer and "Leave Multiplayer" or "Main Menu")
+    if multiplayer then
+        setEnabled(UI.restartButton, commands and room and (host and session.canRematch == true or guest))
+        setEnabled(view.resultChangeTrack, commands and room and (guest or host and session.canChangeMap == true))
+        setEnabled(view.resultHome, commands)
+        view.resultScore:SetText("Local observations; finish timing is unverified.")
+    else
+        setEnabled(view.resultChangeTrack, true)
+        setEnabled(view.resultHome, true)
+        local score = UI.scoreResult
+        view.resultScore:SetText(type(score) == "table" and type(score.message) == "string" and score.message or "")
     end
 end
 
@@ -1391,8 +1486,7 @@ function Menu.OnResults()
         times[index] = ticks == best and #view.lapTimes > 1 and "|cff66ff66" .. line .. "|r" or line
     end
     view.resultLaps:SetText(#times > 0 and table.concat(times, "     ") or "")
-    local score = UI.scoreResult
-    view.resultScore:SetText(type(score) == "table" and type(score.message) == "string" and score.message or "")
+    Menu.RefreshResults()
     Menu.barKey = nil
     Menu.Sync()
 end
@@ -1499,6 +1593,7 @@ end
 function Menu.Show(screen)
     if Menu.disabled or not Menu.root then return end
     if screen and (UI.active or UI.gridStaged) then screen = nil end -- never cover a live run/grid
+    if screen and screen ~= "multiplayer" and UI.multiplayer then screen = "multiplayer" end
     if screen == "highscores" and Menu.screen ~= "highscores" then
         Menu.highscoreTrackIndex, Menu.highscorePage = 1, 1
         for index,track in ipairs(Menu.TRACKS) do
@@ -1507,13 +1602,8 @@ function Menu.Show(screen)
     end
     local leavingLobby = Menu.screen == "multiplayer" and screen ~= "multiplayer"
     local session = (leavingLobby or (screen and screen ~= "multiplayer" and UI.multiplayer)) and sessionView()
-    -- Results can be shown while the native owner still drains finish poses.
-    -- Choosing another screen deliberately leaves that run too; otherwise its
-    -- lease blocks the next track/kart choice. GO's Show(nil) never does this.
-    local leavingLiveResults = screen and screen ~= "multiplayer" and UI.multiplayer and UI.liveSession
-        and session and session.liveMode and session.transportBusy
     if not UI.active and not UI.gridStaged and session and session.canLeave and sessionCommands() and
-        (leavingLiveResults or (leavingLobby and session.phase ~= "racing" and session.phase ~= "finishing")) then
+        leavingLobby and screen and session.phase ~= "racing" and session.phase ~= "finishing" then
         lobbyAction("leave")
     end
     if leavingLobby then releaseLobbyFocus() end

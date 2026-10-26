@@ -455,4 +455,27 @@ do
     end
 end
 
+-- A post-race room is bounded and never carries readiness into another race.
+do
+    local p=pair();p:lobby();p:ready()
+    assert(Session.start(p.host,p.now,180,42));p:pump(3)
+    for _,role in ipairs({"host","guest"}) do
+        local state=p[role]
+        assert(Session.handoffStart(state,p.now));assert(Session.beginRace(state,p.now))
+        assert(Session.enterPostRace(state,p.now))
+        local v=view(state)
+        assert(v.phase=="postrace" and v.deadline==p.now+300 and not v.localReady and not v.peerReady
+            and not v.localReadyConfirmed and not v.canStart and not v.canSetReady and v.canLeave)
+        assert(not Session.enterPostRace(state,p.now) and not Session.setReady(state,p.now,true))
+        Session.update(state,p.now+299,function() error("idle postrace cannot send") end,false)
+        phase(state,"postrace")
+        Session.update(state,p.now+300,function() error("expired postrace cannot send") end,false)
+        closed(state,"timeout")
+    end
+    assert(Session.nextSession("ABC123")=="ABC124" and Session.nextSession("00000Z")=="000010")
+    local code,why=Session.nextSession("ZZZZZZ")
+    assert(code==nil and why=="next_session_limit","round ids never wrap onto an earlier session")
+    for _,bad in ipairs({"bad","abc123","ABC12!",false,{},123}) do assert(Session.nextSession(bad)==nil) end
+end
+
 print("Pure peer sessions: explicit handshake/readiness, scoped compatibility, bounded delivery and terminal cleanup verified offline")

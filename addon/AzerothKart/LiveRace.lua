@@ -254,5 +254,34 @@ function Live.view(token)
         counters=copy(s.counters)}
 end
 
+-- Local observations only: neither native delivery order nor these reported
+-- durations establishes an agreed winner. All runs start at simulation tick0;
+-- a peer's validated terminal tick is its reported racing duration. sampleMS
+-- stamps a callback and must never be used as a finish time.
+function Live.results(token)
+    local s=runs[token]; if not s then return nil,"run" end
+    local localFinished=s.race.status=="finished"
+    local remote=s.remote
+    local peerFinished=remote and remote.status=="finished" or false
+    local here={name="You",localPlayer=true,status=localFinished and "finished" or
+        (s.phase=="closed" and "stopped" or "pending"),completedLaps=s.race.laps.completedLaps}
+    local there={name=s.peer,localPlayer=false,status=peerFinished and "finished" or
+        (remote and (remote.status=="stopped" or remote.status=="interrupted") and "stopped" or "pending"),
+        completedLaps=remote and remote.completedLaps or nil}
+    if localFinished then here.totalTicks=s.race.totalTicks end
+    if peerFinished then there.totalTicks=remote.tick end
+    local rows={here,there}
+    local complete=localFinished and peerFinished
+    if complete then
+        local tie=here.totalTicks==there.totalTicks
+        here.rank,there.rank=tie and 1 or (here.totalTicks<there.totalTicks and 1 or 2),
+            tie and 1 or (there.totalTicks<here.totalTicks and 1 or 2)
+        here.tie,there.tie=tie,tie
+        if there.rank<here.rank then rows[1],rows[2]=there,here end
+    end
+    return {session=s.bundle.session,trackId=s.bundle.trackId,trackVersion=s.bundle.trackVersion,
+        verified=false,complete=complete,rows=rows}
+end
+
 if type(namespace)=="table" then namespace.LiveRace=Live end
 return Live

@@ -1022,33 +1022,103 @@ withMock(nil, function(env, UI, Menu)
     Menu.SetSessionBridge(nil)
 end)
 
--- Leaving finished live results releases the session before browsing solo -----
-for _,choice in ipairs({{"Main Menu", "home"}, {"Change Track", "tracks"}, {"Change Kart", "karts"}}) do
+-- Multiplayer results retain the room; only explicit Leave returns to solo. --
+for _,role in ipairs({"host", "guest"}) do
     withMock(nil, function(env, UI, Menu)
         UI.Toggle(); Menu.Show(nil); UI.Start(); UI.Stop("results navigation")
-        assert(UI.summary:IsShown() and Menu.screen == nil and not UI.active,
-            "the results panel is separate from menu screens")
         UI.multiplayer, UI.liveSession = true, "AKT903"
-        local session = {phase="finishing", liveMode=true, transportBusy=true, canLeave=true}
-        local leaves = 0
-        Menu.SetSessionBridge({view=function() return session end, action=function(action)
-            assert(action == "leave", "results navigation can only leave; never ready or start")
-            leaves = leaves + 1
-            session = {phase="closed", liveMode=true, transportBusy=false, canLeave=false, reason="left"}
+        local room={role=role,peer="Birch Vale",trackId="mirage_raceway"}
+        local session={phase="postrace",role=role,peer=room.peer,session="AKT903",room=room,
+            liveMode=true,transportBusy=true,canLeave=true,canRematch=role=="host",canChangeMap=role=="host"}
+        local commands={}
+        Menu.SetSessionBridge({view=function() return session end,action=function(action,...)
+            commands[#commands+1]={action,...}
+            if action=="rematch" then
+                assert(role=="host" and session.canRematch)
+                session.phase,session.canRematch,session.canChangeMap="inviting",false,false
+                session.offer={trackId=(...)}
+            elseif action=="join" then
+                assert(role=="guest" and session.canJoin)
+                session.phase,session.canJoin,session.canSetReady="lobby",false,true
+            elseif action=="leave" then
+                session={phase="closed",reason="left",liveMode=true,canLeave=false}
+                UI.multiplayer,UI.liveSession=false,nil -- backend safety-wrapper effect
+            else assert(action=="return_lobby","unexpected results action") end
             return true
         end})
-        Menu.Show("multiplayer")
-        assert(leaves == 0, "opening the lobby only displays an existing finishing session")
+        Menu.RefreshResults()
+        local before=counts(env)
+        local state,race,input,clock,track=UI.state,UI.race,UI.input,UI.clock,UI.trackId
+        assert(UI.restartButton.text=="Play Again" and UI.restartButton:IsEnabled()
+            and Menu.view.resultHome.text=="Leave Multiplayer" and not Menu.view.resultChangeKart:IsShown(),
+            "multiplayer results expose replay/lobby/explicit leave instead of solo routes")
+        assert(Menu.view.resultChangeTrack.text==(role=="host" and "Change Map" or "Lobby"))
+        for _,screen in ipairs({"tracks","karts","garage","home"}) do
+            Menu.Show(screen)
+            assert(Menu.screen=="multiplayer" and #commands==0,
+                "accidental solo navigation retains the room: "..screen)
+        end
         Menu.Show(nil)
-        assert(leaves == 0, "showing the race/results canvas never implicitly ends a finishing session")
-        click(find(env, UI.summary, choice[1]))
-        assert(leaves == 1 and Menu.screen == choice[2] and not UI.active,
-            choice[1] .. " explicitly leaves the draining live run exactly once")
-        Menu.Show("garage")
-        assert(leaves == 1, "subsequent navigation cannot repeat a completed Leave")
+        click(Menu.view.resultChangeTrack)
+        assert(commands[1][1]=="return_lobby" and Menu.screen=="multiplayer" and UI.multiplayer,
+            "map/lobby results action keeps the same players without leaving")
+        assert(Menu.view.peerName:GetText()==room.peer and not Menu.view.peerName:IsEnabled()
+            and not Menu.view.sessionCode:IsEnabled(),"retained room does not ask for the players or code again")
+        if role=="host" then
+            assert(Menu.view.ready.text=="Play Again" and Menu.view.ready:IsEnabled()
+                and Menu.view.lobbyTrackChoice:IsEnabled(),"host postrace lobby exposes the next map and replay")
+            local commandCount=#commands
+            click(Menu.view.lobbyTrackChoice)
+            assert(Menu.lobbyTrackId=="stormwind_city" and UI.trackId==track and #commands==commandCount
+                and Menu.view.lobbyTrack.text:find("Next choice: Stormwind",1,true),
+                "map is staged locally until the explicit replay offer")
+            click(Menu.view.ready)
+            assert(commands[#commands][1]=="rematch" and commands[#commands][2]=="stormwind_city"
+                and not Menu.view.ready:IsEnabled(),"Play Again proposes the staged map and resets readiness")
+        else
+            assert(not Menu.view.ready:IsEnabled() and not Menu.view.lobbyTrackChoice:IsEnabled(),
+                "guest waits for a new host offer and cannot choose a map")
+            session.phase,session.canJoin,session.offer="invited",true,{trackId="stormwind_city"}
+            Menu.ReplayResults()
+            assert(commands[#commands-1][1]=="join" and commands[#commands][1]=="return_lobby"
+                and session.canSetReady and not session.localReady,
+                "guest replay can explicitly join the new offer without automatically readying")
+        end
+        assert(UI.state==state and UI.race==race and UI.input==input and UI.clock==clock
+            and UI.trackId==track and not UI.active,"postrace presentation never creates a solo simulation")
+        click(Menu.view.resultHome)
+        assert(commands[#commands][1]=="leave" and Menu.screen=="home" and not UI.multiplayer,
+            "Leave Multiplayer explicitly releases the room before opening the main menu")
+        local count=#commands; Menu.Show("garage")
+        assert(Menu.screen=="garage" and #commands==count,"solo navigation resumes only after explicit leave")
+        sameCounts(env,before,"postrace results and replay use existing widgets")
         Menu.SetSessionBridge(nil)
     end)
 end
+
+withMock(nil,function(env,UI,Menu)
+    UI.Toggle(); Menu.Show(nil); UI.Start(); UI.Stop("rematch guard")
+    UI.multiplayer,UI.liveSession=true,"AKT904"
+    local session={phase="finishing",role="host",peer="Birch Vale",room={role="host",peer="Birch Vale",
+        trackId="mirage_raceway"},liveMode=true,transportBusy=true,canLeave=true}
+    local commands=0
+    Menu.SetSessionBridge({view=function() return session end,action=function()
+        commands=commands+1; return false,"postrace"
+    end})
+    Menu.RefreshResults()
+    assert(not UI.restartButton:IsEnabled() and not Menu.view.resultChangeTrack:IsEnabled(),
+        "host cannot replay or change map while final observations are draining")
+    UI.restartButton.scripts.OnClick(UI.restartButton)
+    assert(commands==0 and not UI.active,"stale replay callbacks revalidate copied capabilities")
+    session.phase,session.canRematch,session.canChangeMap="postrace",true,true
+    Menu.RefreshResults()
+    assert(UI.restartButton:IsEnabled() and Menu.view.resultChangeTrack:IsEnabled(),
+        "same results dialog responds when the backend opens postrace capabilities")
+    UI.restartButton.scripts.OnClick(UI.restartButton)
+    assert(commands==1 and not UI.active and UI.multiplayer and UI.summary:IsShown(),
+        "a rejected multiplayer replay remains in results and never falls back to solo Start")
+    Menu.SetSessionBridge(nil)
+end)
 
 -- A front end that cannot build hands the window back to the basic controls -----
 withMock(nil, function(env, UI, Menu)

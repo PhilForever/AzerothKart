@@ -1,5 +1,15 @@
 # Shared integration and deployment status
 
+## Local multiplayer postrace candidate — 2026-10-26
+
+`codex/multiplayer-rematch` adds a bounded same-player postrace room, observed
+placements and fresh-session rematch/map flow. Current turning/physics/art/
+scores/maps remain intact; Claude Scarlet-v3 is not included. Seven focused
+Lua51 integration modules and final guard/two-round regressions pass. Native
+checks remain pending. [API, player steps and limits](MULTIPLAYER_POSTRACE.md).
+No new push/release or main change. Backed-up local test deployment follows in
+PROGRESS; same84runtime paths mean reload is sufficient from the previous build.
+
 ## Installed Scarlet v2/stat bars — 2026-10-26 14:19 CET
 
 Reviewed runtime `da292f6` is published on `codex/scarlet-stats-review` and

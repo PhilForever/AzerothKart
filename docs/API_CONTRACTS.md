@@ -1,5 +1,21 @@
 # Implemented simulation and rendering contracts
 
+## Multiplayer postrace room — 2026-10-26
+
+[ADR0021](adr/0021-multiplayer-postrace-room.md) and the
+[implemented view/actions](MULTIPLAYER_POSTRACE.md) add local-observed result
+rows and a bounded same-player room. `LiveRace.results(token)` returns detached
+`{session,trackId,trackVersion,verified=false,complete,rows}`. Rank appears only
+after both finishes, joint rank1 on equal ticks. Durations use local totalTicks
+and the peer's terminal tick; missing finish is pending, sampleMS is not time.
+UI refreshes rows without replaying fanfare; multiplayer never submits solo
+records. `PeerSession.enterPostRace` clears readiness for a300-second idle room;
+nextSession derives a fresh code with wrap/collision refused. Host-only
+`SessionTransport.Rematch(trackId?)` and copied room/results/canRematch/
+canChangeMap preserve identity, geometry checks, lease and pacing. Guest still
+joins/readies explicitly. UI return_lobby/rematch retain mode; explicit Leave
+restores public solo selectors/Start. No new widgets or packet formats.
+
 ## Scarlet Cup integration — 2026-10-26
 
 The reviewed combination with Claude ea4425d retains all current Codex APIs

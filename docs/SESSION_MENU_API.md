@@ -1,5 +1,15 @@
 # Session actions for Claude's menu
 
+## Implemented postrace/rematch extension — 2026-10-26
+
+[Current contract](MULTIPLAYER_POSTRACE.md): copied room/results and canRematch/
+canChangeMap support results Play Again/Change Map/Lobby/Leave. UI action
+return_lobby validates context without capture; rematch(trackId?) invokes the
+host-only backend action. Guest Play Again can Join an already received offer.
+Both Ready, host Start. Seven lap maps remain supported; four sprints stay solo.
+Close results keeps the room, solo selectors stay blocked until explicit Leave.
+Polish layout independently while preserving these commands and89/77/140 pool.
+
 Current course admission (2026-10-25): all six finished Courses IDs are supported in the existing two-peer flow. Test Oval is retired; no eight-player room is enabled. A grouping requirement remains undecided. See [catalogue and capacity](PRODUCTION_MAPS.md).
 
 **Latest integration:** the owner-assigned native/player flow is now wired on `codex/live-multiplayer-integration`: Core registers `{view=GetView, action=UI.MultiplayerAction}` after menu creation. New live host/listen actions, matching-session GO and copied race views are described in [LIVE_RACE](LIVE_RACE.md#implemented-native-and-player-flow-integration); [friend-test steps](MULTIPLAYER_PLAYTEST.md) are available. Actual Forever racing is NOT RUN. Older unwired notes below retain the previous API checkpoint scope.

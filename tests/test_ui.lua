@@ -2972,6 +2972,10 @@ local function liveFixture(env,UI,trackId)
         return liveView()
     end
     AK.SessionTransport=transport
+    if AK.Menu then
+        AK.Menu.SetSessionBridge({view=function() return transport.GetView() end,
+            action=function(name,...) return UI.MultiplayerAction(name,...) end})
+    end
     local function launch()
         local track=UI.track
         local vehicle=AK.Physics.new(track)
@@ -3049,7 +3053,7 @@ withMock(nil,false,function(env,UI)
         "explicit Escape stops native live owner and freezes actual partial result")
     UI.OnUpdate(2)
     assert(UI.state==state and UI.clock==clock and UI.race==race,"idle polling cannot advance stopped state")
-    assert(UI.summaryHint.text:find("No agreed winner",1,true),"live results do not invent standings")
+    assert(UI.summaryHint.text:find("Unverified",1,true),"live results label observations as unverified")
     for key,value in pairs(objects) do assert(env.counts[key]==value,"live loop allocated objects: "..key) end
     for key,value in pairs(counts) do assert(env.counts[key]==value,"stop allocated objects: "..key) end
 end)
@@ -3109,28 +3113,52 @@ withMock(nil,false,function(env,UI)
     frozen.race.laps.bestLapNumber=1
     frozen.race.totalTicks=300
     transport.AdvanceLive=function() return frozen end
-    local busy=true
+    local finishing,rematched=true,false
+    local results={session="AKTUI1",verified=false,complete=false,rows={
+        {name="You",localPlayer=true,status="finished",totalTicks=300},
+        {name="Amber Stone",localPlayer=false,status="pending"}}}
     transport.GetView=function()
-        return {session="AKTUI1",phase=busy and "finishing" or "closed",liveMode=true,
-            transportBusy=busy,live=frozen}
+        return {session=rematched and "AKTUI2" or "AKTUI1",
+            phase=rematched and "inviting" or (finishing and "finishing" or "postrace"),
+            liveMode=true,transportBusy=true,live=not rematched and frozen or nil,
+            role="host",peer="Amber Stone",results=results,canRematch=not finishing and not rematched,
+            canChangeMap=not finishing and not rematched,canLeave=true,
+            room=not finishing and {role="host",peer="Amber Stone",trackId="test_oval"} or nil}
     end
     UI.OnUpdate(0)
     assert(not UI.active and not UI.liveActive and UI.multiplayer and not UI.window.keyboard
         and calls.stop==0 and not UI.restartButton:IsEnabled() and not UI.startButton:IsEnabled(),
         "local finish releases capture while preserving terminal output drain")
-    assert(UI.summaryTitle.text:find("UNVERIFIED",1,true) and UI.result.resultVerified==false,
-        "finished UI never declares an agreed winner")
+    assert(UI.summaryHint.text:find("Unverified",1,true) and UI.result.resultVerified==false
+        and UI.summaryDetail.text:find("Waiting for finish",1,true),
+        "local finish shows the actual pending peer without declaring a winner")
     local race,state,clock=UI.race,UI.state,UI.clock
     UI.Start()
     assert(not UI.active and UI.race==race and UI.state==state and UI.clock==clock and calls.stop==0,
         "solo restart cannot replace a draining live run")
     assert(not UI.SelectTrack("mirage_raceway") and not UI.SelectKart("steam_tank"),
         "draining live result holds compatibility and presentation state")
-    busy=false; frozen.phase="closed"; UI.OnUpdate(0.1)
+    finishing=false; frozen.phase="closed"
+    results.complete=true
+    results.rows={{name="Amber Stone",status="finished",totalTicks=250,rank=1},
+        {name="You",localPlayer=true,status="finished",totalTicks=300,rank=2}}
+    UI.OnUpdate(0.1)
     assert(UI.race==race and UI.state==state and UI.clock==clock and UI.restartButton:IsEnabled(),
-        "terminal transport close preserves frozen result object and enables fresh solo restart")
+        "post-race room enables Play Again while preserving frozen race objects")
+    assert(UI.summaryTitle.text:find("UNVERIFIED",1,true)
+        and UI.summaryDetail.text:find("1. Amber Stone",1,true)
+        and UI.summaryDetail.text:find("2. You",1,true) and calls.stop==0,
+        "late peer finish updates observed placements without replacing the race or leaving")
+    UI.Start()
+    assert(not UI.active and not UI.SelectTrack("mirage_raceway") and not UI.SelectKart("steam_tank"),
+        "post-race canvas actions cannot fall through into solo selection or start")
+    assert(UI.MultiplayerAction("return_lobby") and UI.multiplayer and not UI.window.keyboard,
+        "returning to the room does not capture controls or mutate the ended race")
+    assert(UI.MultiplayerAction("leave") and not UI.multiplayer,
+        "explicit Leave clears multiplayer mode even after the local finish")
+    assert(UI.kartButton:IsEnabled(),"explicit Leave restores the independent kart chooser")
     assert(UI.SelectTrack("mirage_raceway") and not UI.multiplayer and not UI.liveView
-        and not UI.opponent:IsShown(),"fresh track selection clears old observational opponent")
+        and not UI.opponent:IsShown(),"only explicit Leave permits independent solo track selection")
 end)
 withMock(nil,false,function(env,UI)
     env.fire("ADDON_LOADED","AzerothKart"); UI.Toggle()

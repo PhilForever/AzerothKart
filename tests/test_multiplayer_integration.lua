@@ -258,3 +258,186 @@ for _,e in ipairs({h,g}) do
     assert(e.core.akNetworkOwner==nil and not e.core.events.CHAT_MSG_ADDON_LOGGED)
 end
 originalPrint("Multiplayer integration: actual Core/Menu/UI/Transport callbacks drive two delayed mocked peers, show observations and stop safely")
+
+-- A bounded position tape finishes actual Race/Checkpoints/Laps through the
+-- complete native/menu bridge. Handling was exercised above; only this tape's
+-- poses replace Physics.step so the lifecycle test does not need a racing AI.
+local function installFinishTape(e,delay)
+    local track=e.ns.UI.track
+    local goals={}
+    for _=1,3 do
+        for _,gate in ipairs(track.gates) do
+            local length=math.sqrt(gate.nx*gate.nx+gate.ny*gate.ny)
+            local nx,ny=gate.nx/length,gate.ny/length
+            local x,y=(gate.ax+gate.bx)/2,(gate.ay+gate.by)/2
+            goals[#goals+1]={x=x-nx*2,y=y-ny*2}
+            goals[#goals+1]={x=x+nx*2,y=y+ny*2}
+        end
+    end
+    local tape={goals=goals,index=1,delay=delay or 0}
+    e.finishTape=tape
+    if e.originalPhysicsStep then return end
+    e.originalPhysicsStep=e.ns.Physics.step
+    e.ns.Physics.step=function(previous,input,dt,geometry,kartId)
+        local active=e.finishTape
+        if not active then return e.originalPhysicsStep(previous,input,dt,geometry,kartId) end
+        local current={};for key,value in pairs(previous) do current[key]=value end
+        current.tick=previous.tick+1
+        if active.delay>0 then active.delay=active.delay-1;current.speed=0;return current end
+        local goal=active.goals[active.index]
+        if not goal then current.speed=0;return current end
+        local dx,dy=goal.x-previous.x,goal.y-previous.y
+        local distance=math.sqrt(dx*dx+dy*dy)
+        local step=math.min(4,distance)
+        assert(step<=geometry.checkpointMaxStep,"finish tape respects real gate movement bound")
+        if distance>0 then
+            current.x,current.y=previous.x+dx/distance*step,previous.y+dy/distance*step
+            current.heading=math.atan2(dy,dx)
+        end
+        current.speed=step/dt
+        if distance<=4 then active.index=active.index+1 end
+        return current
+    end
+end
+
+local function freshPair()
+    local q={host=client(HOST,0),guest=client(GUEST,5),now=0,queue={},step=p.step,untilTrue=p.untilTrue}
+    for _,role in ipairs({"host","guest"}) do
+        local e=q[role]
+        e.onSend=function(packet)
+            q.queue[#q.queue+1]={to=role=="host" and "guest" or "host",packet=packet,at=q.now+0.35}
+        end
+        e.finishSounds=0
+        e.globals.SOUNDKIT={LFG_REWARDS=999}
+        e.globals.PlaySound=function(kit) if kit==999 then e.finishSounds=e.finishSounds+1 end end
+    end
+    return q
+end
+
+local function readyAndLaunch(q)
+    local a,b=q.host,q.guest
+    q:untilTrue(function() return a:view().canSetReady and b:view().canSetReady
+        and a.ns.Menu.view.ready.enabled and b.ns.Menu.view.ready.enabled end)
+    a:click(a.ns.Menu.view.ready);b:click(b.ns.Menu.view.ready)
+    q:untilTrue(function() return a.ns.Menu.view.start.enabled end)
+    a:click(a.ns.Menu.view.start)
+    q:untilTrue(function() return a.ns.UI.liveActive and b.ns.UI.liveActive end)
+end
+
+local function assertBudget(e)
+    for index,packet in ipairs(e.sends) do
+        assert(#packet.prefix+#packet.payload<=158,"every round retains the native packet ceiling")
+        if index>1 then assert(packet.time-e.sends[index-1].time>=0.5,
+            "native cadence is persistent across results and a rematch") end
+        local calls,bytes=0,0
+        for prior=index,1,-1 do
+            local entry=e.sends[prior]
+            if packet.time-entry.time>=1 then break end
+            calls,bytes=calls+1,bytes+#entry.prefix+#entry.payload
+        end
+        assert(calls<=2 and bytes<=158,"rematch cannot reset the rolling native budget")
+    end
+end
+
+do
+    local q=freshPair()
+    local a,b=q.host,q.guest
+    for _,entry in ipairs({{a,GUEST},{b,HOST}}) do
+        entry[1]:run(function()
+            entry[1].ns.Menu.view.peerName:SetText(entry[2])
+            entry[1].ns.Menu.view.sessionCode:SetText("RMT001")
+        end)
+    end
+    b:click(b.ns.Menu.view.listen);a:click(a.ns.Menu.view.host)
+    q:untilTrue(function() return b.ns.Menu.view.join.enabled end)
+    b:click(b.ns.Menu.view.join)
+    readyAndLaunch(q)
+    local originalSession=a:view().session
+    local created={host=a.objects,guest=b.objects}
+    installFinishTape(a,0);installFinishTape(b,120)
+    q:untilTrue(function() return a.ns.UI.race.status=="finished" and b.ns.UI.race.status=="running" end)
+    local frozenRace=a.ns.UI.race
+    local pending=a:view().results
+    assert(pending and pending.verified==false and not pending.complete,
+        "a local finish retains a pending peer result, never an invented last place")
+    for _,row in ipairs(pending.rows) do assert(row.rank==nil,"no rank before both finish observations") end
+    assert(not a.ns.UI.window.keyboard and a.ns.UI.window.propagate==true,
+        "the first finisher releases keyboard capture while the friend keeps racing")
+    q:untilTrue(function() return a:view().phase=="postrace" and b:view().phase=="postrace" end)
+    for _,e in ipairs({a,b}) do
+        local view=e:view()
+        assert(view.room and view.room.peer==(e==a and GUEST or HOST) and view.results.complete
+            and view.results.verified==false,"both results retain the scoped roster and local observations")
+        assert(view.results.rows[1].rank==1 and view.results.rows[2].rank==2,
+            "completed observations produce local placements")
+        local localRank=e==a and 1 or 2
+        for _,row in ipairs(view.results.rows) do
+            if row.localPlayer then assert(row.rank==localRank and row.totalTicks==e.ns.UI.race.totalTicks) end
+        end
+        assert(e.ns.UI.summaryTitle.text:find("UNVERIFIED",1,true)
+            and e.ns.UI.summaryDetail.text:find("1.",1,true),"real results widgets show local placements")
+        assert(e.finishSounds==1,"late peer finish does not replay the local fanfare")
+    end
+    assert(a.ns.UI.race==frozenRace,"late peer finish preserves the completed local race identity")
+    a:run(a.ns.UI.Start)
+    assert(not a.ns.UI.active and a.ns.UI.race==frozenRace and a:view().room,
+        "direct Restart cannot silently turn retained multiplayer into solo")
+    b:click(b.ns.UI.dismissSummaryButton)
+    assert(not b.ns.UI.summary:IsShown() and b:view().room and b.core.akNetworkOwner,
+        "closing results keeps the same-player room")
+    b:click(b.ns.Menu.view.mainMenu)
+    assert(b.ns.Menu.screen=="multiplayer" and b:view().room,
+        "post-results navigation returns to the room rather than single-player menus")
+    a:click(a.ns.Menu.view.resultChangeTrack)
+    assert(a.ns.Menu.screen=="multiplayer" and a:view().room and not a.ns.UI.active)
+    a:click(a.ns.Menu.view.lobbyTrackChoice)
+    assert(a.ns.Menu.lobbyTrackId=="stormwind_city","the host stages the next multiplayer map")
+    local oldPacket
+    for _,packet in ipairs(a.sends) do if packet.prefix==a.ns.LiveProtocol.PREFIX then oldPacket=packet end end
+    assert(oldPacket)
+    for _,e in ipairs({a,b}) do
+        e.finishTape=nil;e.heldBeforeGO=nil;e.goPose=nil;e.stagedGrid=nil
+    end
+    a:click(a.ns.Menu.view.ready) -- Play Again in a post-race host lobby.
+    q:untilTrue(function() return b.ns.Menu.view.join.enabled end)
+    assert(a:view().session~=originalSession and b:view().session==a:view().session
+        and a:view().peer==GUEST and b:view().peer==HOST,"fresh rematch keeps both exact full-name peers")
+    assert(not a.ns.UI.active and not b.ns.UI.active and not a.ns.UI.window.keyboard
+        and not b.ns.UI.window.keyboard,"new offer alone cannot capture controls or start a race")
+    b:click(b.ns.Menu.view.join)
+    readyAndLaunch(q)
+    for _,e in ipairs({a,b}) do
+        assert(e.ns.UI.multiplayer and e.ns.UI.trackId=="stormwind_city" and e.ns.UI.race.startTick==0
+            and e.ns.UI.race.laps.completedLaps==0,"new shared GO resets rules and uses the chosen map")
+        assert(e.cues["3"]==2 and e.cues["2"]==2 and e.cues["1"]==2,
+            "the rematch gets a fresh full countdown")
+    end
+    local before=b:view().live.remoteSequence
+    b:run(b.core.scripts.OnEvent,b.core,"CHAT_MSG_ADDON_LOGGED",oldPacket.prefix,
+        oldPacket.payload,oldPacket.channel,oldPacket.sender)
+    assert(b:view().live.remoteSequence==before,"old-race telemetry cannot alter the new round")
+    installFinishTape(a,120);installFinishTape(b,0)
+    q:untilTrue(function() return a:view().phase=="postrace" and b:view().phase=="postrace" end)
+    for _,e in ipairs({a,b}) do
+        local view=e:view()
+        assert(view.results.complete and view.results.verified==false and view.room.trackId=="stormwind_city")
+        for _,row in ipairs(view.results.rows) do
+            if row.localPlayer then assert(row.rank==(e==b and 1 or 2),"next round ranks use fresh finish ticks") end
+        end
+        assert(e.finishSounds==2 and e.objects==created[e==a and "host" or "guest"],
+            "two races finish once each without allocating results or lobby widgets")
+        e:run(function()
+            assert(#e.ns.SoloRecords.GetView("mirage_raceway").rows==0
+                and #e.ns.SoloRecords.GetView("stormwind_city").rows==0,
+                "multiplayer finish never publishes a solo score")
+        end)
+        assertBudget(e)
+    end
+    a:click(a.ns.UI.restartButton)
+    assert(a.ns.Menu.screen=="multiplayer" and not a.ns.UI.active and a:view().room,
+        "Play Again from results queues another same-peer offer, never solo Start")
+    a:run(a.ns.UI.MultiplayerAction,"leave");b:run(b.ns.UI.MultiplayerAction,"leave")
+    q:untilTrue(function() return not a:view().transportBusy and not b:view().transportBusy end)
+    assert(not a.ns.UI.multiplayer and not b.ns.UI.multiplayer,"explicit Leave finally releases multiplayer mode")
+    originalPrint("Multiplayer rematch integration: two complete observed races, delayed peer results, same roster/new session/map, full countdown, persistent budget and no solo score PASS")
+end

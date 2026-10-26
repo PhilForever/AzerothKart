@@ -1,5 +1,11 @@
 # Experimental live-race backend
 
+The [postrace room extension](MULTIPLAYER_POSTRACE.md),2026-10-26, supersedes
+older completion cleanup notes below. Clean completion retains selected players
+and observed results for a bounded rematch interval; fresh sessions reuse the
+existing control/grid/clock packets. No trusted winner, higher traffic budget
+or native rematch acceptance is claimed.
+
 
 Current source follow-up,2026-10-25: the opponent display covers mapped packet
 age plus the next update interval, bounded to1250ms, and corrects the previous

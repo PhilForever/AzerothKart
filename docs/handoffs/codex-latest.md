@@ -1,5 +1,63 @@
 # Codex handoff — production maps and Claude course review
 
+## Multiplayer postrace/rematch source — 2026-10-26 16:33 CET
+
+Parallel-work update16:36: Claude has advanced to `claude/race-screens`8511d8c,
+carrying Scarlet-v3a4fe2d5 and presentation117e5c1. Read that new handoff: its
+arrangeResults/OnResults now overlap this task's already-reserved results scope.
+No further Menu edits after reading it; no integration/overwrite of that branch.
+Keep its art/HUD/celebration work for a separate reviewed merge. Its old solo
+Restart/ChangeTrack handlers must be adapted to the tested Rematch/ReturnLobby/
+Leave commands and pending/complete copied results documented here, preserving
+both sides' tests. This is a recorded coordination checkpoint, not a claimed
+Claude acknowledgment. Commit this concrete API so it is visible for review.
+
+Own `codex/multiplayer-rematch` from caab661. Retained300s two-peer room, copied
+unverified placements, host same-player/fresh-code rematch/map offer and explicit
+guest Join/both Ready/host Start. Results no longer fall through to solo; Close
+results retains room and explicit Leave restores all selectors. No new widgets,
+wire message/rate, trusted winner, solo score or8-player claim. Turning/physics/
+tracks/art unchanged. [API/flow](../MULTIPLAYER_POSTRACE.md), [ADR0021](../adr/0021-multiplayer-postrace-room.md).
+
+Actual combined Lua51 seven-module PASS/80parsed; final constructor-throw and
+two-race/map-change integration PASS. Persistent traffic/lease, old packets,
+timeout/exit, collision/capacity, pending/ties, no fanfare replay/input/solo-score
+leak and unchanged UI pool covered. Independent review findings fixed (Kart
+re-enable, dependency failure leaving busy) with passing regressions. Catalogue
+11boards/diffcheck PASS; structural only2historical broken links. Native/
+Lua54/full-suite-repeat/Python-repeat NOT RUN. No milestone acceptance changed.
+
+Next: commit, backed-up test install/friendZIP; no new push/release in this task.
+Source84paths/36modules unchanged, so reload suffices from installed da292f6.
+User will test turning later; no native input or new probe requested. Claude's
+ongoing Scarlet-v3 scope/worktree86efbca and canonical checkout remain untouched.
+
+## Active multiplayer slice — post-race room/rematch, 2026-10-26 15:50 CET
+
+Owner prioritizes multiplayer results, local placements and same-player rematch/
+map change. Own `codex/multiplayer-rematch` from clean caab661 (installed da292f6).
+Claude is independently reserving Scarlet-v3 data/Menu.TRACKS on86efbca; no
+integration of that branch is part of this task. Its planned later multiplayer
+presentation branch is not an acknowledgment of this reservation.
+
+Plan: retain a bounded post-race two-peer room and copied observed placements;
+reuse fresh-session INVITE/JOIN/READY/clock/grid flow for the next race with
+the same peer/roles. Preserve pacing/lease across transitions, reject old rounds,
+and require deliberate Ready/Start. Results and map actions must never silently
+start solo. Explicit Leave/combat/world exits clear the room. No new wire rate,
+trusted winner, solo score publication or eight-player claim.
+
+Reserve PeerSession post-race helpers, LiveRace copied results, SessionTransport
+retained room/rematch and their tests for backend work. Reserve Menu results
+arrangement/refresh/navigation and lobby presentation/actions (not TRACKS), and
+test_menu mode-specific results cases. Root owns UI refreshSummary, MultiplayerAction,
+finish/poll/start/stop and existing results callbacks, test_ui and the combined
+multiplayer integration test; shared API/SESSION_MENU_API/LIVE_RACE/PROGRESS
+and this handoff. Keep art, physics, track data and Claude's worktree untouched.
+Validate one coherent two-round flow with same-peer/map-change, terminal loss,
+late packets, explicit exits and unchanged native send budget using mocks;
+native friend verification remains pending.
+
 ## Installed/published Scarlet stats checkpoint — 2026-10-26 14:19 CET
 
 Runtime/source `da292f6` installed and published on `codex/scarlet-stats-review`.

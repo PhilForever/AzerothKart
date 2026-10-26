@@ -13,6 +13,8 @@ AK.SessionTransport = Transport
 local frame, control, lastView, lastError, lastNow, busy, drainDeadline
 local coordinated, clockState, raceGate, trackSet, lastClock
 local liveMode, liveRun, lastLive
+local room,lastResults
+local rematchIncoming={}
 local liveKartId,liveGrid,gridInfo
 local registered, sendAPI, sendSuccess, failedCodes, throttleCodes = {}
 local used, usedCount, attempts, lastAttempt = {}, 0, {}, nil
@@ -26,7 +28,7 @@ local stopReasons = {combat=true, world_leave=true, logout=true, local_drive=tru
     error=true, clock_error=true, chat_lock=true, lease_lost=true,
     capabilities=true, prefix_registration=true, event_registration=true,
     update_registration=true, controller_error=true, send_error=true,
-    send_failed=true, send_unknown=true, send_throttled=true, stopped=true, focus_lost=true}
+    send_failed=true, send_unknown=true, send_throttled=true, stopped=true, focus_lost=true, peer_flood=true}
 
 local function copy(value)
     if type(value)~="table" then return value end
@@ -61,10 +63,12 @@ local function hardStop(reason)
     if liveRun then
         pcall(Live.stop,liveRun,math.floor((lastNow or 0)*1000),reason=="clock_error" and "clock" or reason)
         lastLive=Live.view(liveRun)
+        lastResults=Live.results(liveRun)
         liveRun=nil
     end
     clockState, raceGate, trackSet = nil,nil,nil
     control, drainDeadline = nil, nil
+    room=nil
     lastError = reason
     release()
     return false, reason
@@ -128,6 +132,7 @@ local function finish(now)
         view.hasPendingOutput=false
     end
     lastView, control, drainDeadline, trackSet = view, nil, nil, nil
+    room=nil
     release()
 end
 local function readyToSend(now, bytes)
@@ -272,6 +277,21 @@ function Transport.Stop(reason)
     return active
 end
 
+-- Rebuilt for each round: geometry/version compatibility is never borrowed
+-- from a results screen, and the persistent native traffic window is separate.
+local function sessionOptions(role,peer,code,wantClock)
+    local versions,tracks={},wantClock and {} or nil
+    for _,course in ipairs(AK.Courses.LIST) do
+        if AK.Courses.multiplayer(course.id) then
+            local track=assert(AK.Courses.build(course.id,AK.Track.crossesGate))
+            versions[course.id]=track.version
+            if tracks then tracks[course.id]=copy(track) end
+        end
+    end
+    return {role=role,peer=peer,session=code,physicsVersion=AK.Physics.VERSION,
+        trackVersions=versions,laps=3},tracks
+end
+
 local function arm(role, peer, code, trackId, wantClock, wantLive, kartId)
     if busy or control or not frame or frame.akNetworkOwner or frame.akNetworkSending then
         return false,"busy"
@@ -292,20 +312,7 @@ local function arm(role, peer, code, trackId, wantClock, wantLive, kartId)
     end
     kartId=kartId or "goblin_mortar_trike"
     if wantLive and not Grid.encode({kind="PROFILE",session=code,kartId=kartId}) then return fail("invalid_options") end
-    local tracks
-    local ok, candidate = pcall(function()
-        local versions={}
-        tracks=wantClock and {} or nil
-        for _,course in ipairs(AK.Courses.LIST) do
-            if AK.Courses.multiplayer(course.id) then
-                local track=assert(AK.Courses.build(course.id,AK.Track.crossesGate))
-                versions[course.id]=track.version
-                if tracks then tracks[course.id]=copy(track) end
-            end
-        end
-        return {role=role,peer=peer,session=code,physicsVersion=AK.Physics.VERSION,
-            trackVersions=versions,laps=3}
-    end)
+    local ok,candidate,tracks=pcall(sessionOptions,role,peer,code,wantClock)
     if not ok then return fail("invalid_options") end
     -- A dummy explicit clock validates options before reserving native hooks.
     local state = Session.new(candidate,0,Protocol)
@@ -335,11 +342,77 @@ local function arm(role, peer, code, trackId, wantClock, wantLive, kartId)
     control, lastView, lastError, drainDeadline = state, nil, nil, nil
     coordinated, clockState, raceGate, lastClock, trackSet = wantClock==true,nil,nil,nil,tracks
     liveMode,liveRun,lastLive=wantLive==true,nil,nil
+    room,lastResults=nil,nil
     liveKartId,liveGrid,gridInfo=kartId,nil,nil
     used[code], usedCount=true,usedCount+1
     busy=false
     return true
 end
+-- Commit a validated fresh controller without releasing the Core lease or
+-- resetting its cross-phase native send accounting. No native call is made.
+local function nextRound(expected,state,tracks,code,now)
+    if control~=expected or not owns() then return false,"closed" end
+    local previous=Session.view(expected)
+    if liveRun then
+        lastResults=Live.results(liveRun)
+        Live.stop(liveRun,math.floor(now*1000),"stopped")
+    end
+    if liveGrid then Grid.stop(liveGrid,math.floor(now*1000),"stopped") end
+    if control~=expected or not owns() then return false,"closed" end
+    control,lastView,lastError,drainDeadline=state,nil,nil,nil
+    liveRun,lastLive,liveGrid,gridInfo=nil,nil,nil,nil
+    clockState,raceGate,lastClock,trackSet=nil,nil,nil,tracks
+    local offer=Session.view(state).offer
+    room={peer=previous.peer,role=previous.role,session=code,
+        nextSession=Session.nextSession(code),trackId=offer and offer.trackId}
+    used[code],usedCount=true,usedCount+1
+    return true
+end
+
+local function rematch(trackId)
+    if busy then return false,"busy" end
+    if not room or not control or not liveMode then return false,"postrace_required" end
+    local view=Session.view(control)
+    if view.phase~="postrace" or view.role~="host" then return false,"host_postrace_required" end
+    busy=true
+    local expected=control
+    local now,reason=checked()
+    if not now then hardStop(reason);busy=false;return false,reason end
+    if control~=expected or not owns() then busy=false;return false,"closed" end
+    if view.deadline and now>=view.deadline then
+        Session.cancel(expected,now,"timeout",false);finish(now)
+        busy=false;return false,"timeout"
+    end
+    local code,why=Session.nextSession(view.session)
+    if not code then busy=false;return false,why end
+    if used[code] then busy=false;return false,"reused_session" end
+    if usedCount>=64 then busy=false;return false,"session_limit" end
+    if trackId==nil then trackId=room.trackId end
+    local ok,options,tracks=pcall(sessionOptions,"host",view.peer,code,true)
+    if not ok then busy=false;return false,"invalid_options" end
+    if control~=expected or not owns() then busy=false;return false,"closed" end
+    if type(trackId)~="string" or not options.trackVersions[trackId] then busy=false;return false,"invalid_argument" end
+    local state=Session.new(options,now,Protocol)
+    if not state then busy=false;return false,"invalid_options" end
+    local invited,err=Session.invite(state,now,trackId)
+    if not invited then busy=false;return false,err end
+    local accepted,result=nextRound(expected,state,tracks,code,now)
+    busy=false
+    return accepted,result
+end
+
+function Transport.Rematch(trackId)
+    -- Candidate construction can invoke injected dependencies. A thrown
+    -- constructor must not strand the native owner with busy=true.
+    local ok,accepted,reason=pcall(rematch,trackId)
+    if not ok then
+        hardStop("controller_error")
+        busy=false
+        return false,"controller_error"
+    end
+    return accepted,reason
+end
+
 function Transport.Host(peer,code,trackId) return arm("host",peer,code,trackId) end
 function Transport.Listen(peer,code) return arm("guest",peer,code) end
 function Transport.HostCoordinated(peer,code,trackId) return arm("host",peer,code,trackId,true) end
@@ -378,6 +451,8 @@ function Transport.PrepareStart(seed)
     return action(Session.start,AK.Race.COUNTDOWN_TICKS,seed)
 end
 function Transport.Leave()
+    if busy then return false,"busy" end
+    room=nil -- an explicit departure is immediate, even while CANCEL drains
     if liveRun then
         -- Freeze first. The existing control cancellation then drains through
         -- the same owner and persistent native gate; no extra sender exists.
@@ -488,7 +563,7 @@ local function adoptLive(now,expected)
     if not Session.beginRace(expected,now) then
         Live.stop(token,math.floor(now*1000),"stopped"); hardStop("controller_error"); return false,"controller_error"
     end
-    liveRun,lastLive=token,nil
+    liveRun,lastLive,lastResults=token,nil,nil
     lastClock=Clock.view(clockState)
     clockState,raceGate,trackSet=nil,nil,nil
     return true
@@ -503,10 +578,22 @@ local function finishLive(now)
             hardStop(snapshot.reason); return
         end
         if snapshot.reason=="clock" then hardStop("clock_error"); return end
-        -- Completed poses are already repeated three times. Other local exits
-        -- receive at most the existing one-shot paced control cancellation.
-        Session.cancel(control,now,snapshot.reason=="peer_timeout" and "timeout" or "left",
-            snapshot.reason~="completed_unverified")
+        lastResults=Live.results(liveRun)
+        -- Keep the selected players together after a clean completion. A local
+        -- finish with missing terminal delivery may retain pending observations;
+        -- it never fabricates a peer finish or rank.
+        if snapshot.reason=="completed_unverified" or
+            (snapshot.reason=="peer_timeout" and snapshot.race.status=="finished") then
+            local view=Session.view(control)
+            if not Session.enterPostRace(control,now) then hardStop("controller_error");return end
+            if liveGrid then Grid.stop(liveGrid,math.floor(now*1000),"stopped");liveGrid=nil end
+            room={peer=view.peer,role=view.role,session=view.session,trackId=snapshot.trackId,
+                nextSession=Session.nextSession(view.session)}
+            liveRun=nil
+            return
+        end
+        -- Other local exits retain only the existing paced cancellation.
+        Session.cancel(control,now,snapshot.reason=="peer_timeout" and "timeout" or "left",true)
         finish(now)
     end
 end
@@ -586,7 +673,53 @@ function Transport.Update()
     busy=false
     return sent==true,why
 end
+-- A host may offer the next round while the guest is still draining its
+-- finished poses. Accept only its expected fresh session after local finish,
+-- or from postrace. Validate fully before consuming the id or replacing state.
+local function receiveRematch(prefix,payload,channel,nativeSender)
+    if not liveMode or not control or prefix~=Protocol.PREFIX then return nil end
+    local previous=Session.view(control)
+    if previous.role~="guest" then return nil end
+    local function key(value)
+        if type(value)~="string" or #value>96 or value:find("[%z\001-\031\127|]") then return nil end
+        return (value:gsub(" +"," "):match("^ *(.-) *$"):gsub("[A-Z]",function(c) return string.char(c:byte()+32) end))
+    end
+    if channel~="WHISPER" or key(nativeSender)~=key(previous.peer) then return false,"unrelated" end
+    local eligible=previous.phase=="postrace"
+    if not eligible and liveRun then eligible=Live.view(liveRun).race.status=="finished" end
+    if not eligible then return nil end
+    local message=Protocol.decode(payload)
+    local code=Session.nextSession(previous.session)
+    if not message or message.kind~="INVITE" or not code or message.session~=code then return nil end
+    local expected=control
+    local now,reason=checked()
+    if not now then hardStop(reason);return false,reason end
+    if control~=expected or not owns() then return false,"closed" end
+    if previous.deadline and now>=previous.deadline then
+        Session.cancel(expected,now,"timeout",false);finish(now)
+        return false,"timeout"
+    end
+    if used[code] then return false,"reused_session" end
+    if usedCount>=64 then return false,"session_limit" end
+    -- Candidate validation copies geometry. Bound scoped next-round attempts
+    -- before that work, including incompatible offers from the selected peer.
+    while rematchIncoming[1] and now-rematchIncoming[1]>=1 do table.remove(rematchIncoming,1) end
+    if #rematchIncoming>=8 then hardStop("peer_flood");return false,"peer_flood" end
+    rematchIncoming[#rematchIncoming+1]=now
+    local ok,options,tracks=pcall(sessionOptions,"guest",previous.peer,code,true)
+    if not ok then return false,"invalid_options" end
+    if control~=expected or not owns() then return false,"closed" end
+    local candidate=Session.new(options,now,Protocol)
+    if not candidate then return false,"invalid_options" end
+    local accepted,why=Session.receive(candidate,now,prefix,payload,channel,nativeSender)
+    if not accepted then return false,why end
+    return nextRound(expected,candidate,tracks,code,now)
+end
+
 function Transport.Message(prefix,payload,channel,nativeSender)
+    local rematchOK,rematched,rematchReason=pcall(receiveRematch,prefix,payload,channel,nativeSender)
+    if not rematchOK then return hardStop("controller_error") end
+    if rematched~=nil then return rematched,rematchReason end
     if liveMode and not liveRun and control and prefix==Grid.PREFIX then
         local now,reason=checked()
         if not now then return hardStop(reason) end
@@ -717,10 +850,24 @@ function Transport.GetView()
     if view.live then
         view.live.localKartId=gridInfo and gridInfo.localKartId
         view.live.peerKartId=gridInfo and gridInfo.peerKartId
-        view.phase=view.live.phase=="running" and "racing" or view.live.phase
-        view.reason=view.live.reason
+        if liveRun or not room then
+            view.phase=view.live.phase=="running" and "racing" or view.live.phase
+            view.reason=view.live.reason
+        end
         view.canJoin,view.canSetReady,view.canStart,view.canPrepareStart=false,false,false,false
         view.canLeave=control~=nil
+    end
+    view.room=copy(room)
+    view.results=liveRun and Live.results(liveRun) or copy(lastResults)
+    local nextCode,nextReason
+    if control then nextCode,nextReason=Session.nextSession(view.session) end
+    local canRematch=room~=nil and view.phase=="postrace" and view.role=="host" and
+        not busy and owns() and nextCode~=nil and not used[nextCode] and usedCount<64
+    view.canRematch,view.canChangeMap=canRematch==true,canRematch==true
+    if view.room then
+        view.room.canRematch,view.room.canChangeMap=view.canRematch,view.canChangeMap
+        view.room.rematchReason=not nextCode and nextReason or
+            (used[nextCode] and "reused_session" or (usedCount>=64 and "session_limit" or nil))
     end
     return view
 end

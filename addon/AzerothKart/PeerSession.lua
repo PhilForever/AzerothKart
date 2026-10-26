@@ -412,5 +412,37 @@ function Session.beginRace(state, now)
     return true
 end
 
+-- A completed race retains its selected peer and native lease for a bounded
+-- results/lobby interval. No readiness or start permission carries into a new
+-- race; a rematch always creates a fresh controller and session id.
+function Session.enterPostRace(state, now)
+    local ok,why=advance(state,now)
+    if not ok then return false,why end
+    if state.phase~="racing" or state.sending then return false,"invalid_phase" end
+    state.phase,state.deadline="postrace",now+300
+    state.localReady,state.peerReady,state.localReadyConfirmed=false,false,false
+    state.pending,state.proposal,state.start,state.startStatus=nil,nil,nil,nil
+    state.acks={}
+    return true
+end
+
+-- Deterministic next round identity shared by the already selected peers.
+-- Refuse wrap/collision rather than silently choosing different local skips.
+function Session.nextSession(code)
+    if type(code)~="string" or #code~=6 or code:find("[^A-Z0-9]") then return nil,"invalid_session" end
+    local alphabet="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    local value=0
+    for index=1,6 do value=value*36+assert(alphabet:find(code:sub(index,index),1,true))-1 end
+    if value==36^6-1 then return nil,"next_session_limit" end
+    value=value+1
+    local out={}
+    for index=6,1,-1 do
+        local digit=value%36
+        out[index]=alphabet:sub(digit+1,digit+1)
+        value=math.floor(value/36)
+    end
+    return table.concat(out)
+end
+
 if type(namespace)=="table" then namespace.PeerSession=Session end
 return Session
