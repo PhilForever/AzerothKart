@@ -1,4 +1,26 @@
-# Claude handoff — Scarlet Cathedral
+# Claude handoff — Scarlet fixes from the owner's client run (reserved)
+
+Reserved 2026-10-26 at about 11:00 CET (Europe/Oslo) by Claude (rendering/UI/sprites owner). **Work in progress; nothing below is done yet.**
+
+**Base:** Codex's `codex/scarlet-integration` `98f433e`, the installed combined build (runtime `9c80746`, with Codex's swept round-pool collision and the L/A/C score codes). **Branch:** `claude/scarlet-fixes`.
+
+## Owner instructions
+
+After driving the installed Scarlet Cup he sent five images (the Library's courtyard, the Armory's Training Grounds in the client, a World of Warcraft screenshot of the Training Grounds, the Cathedral's upper garden, a battle-map close-up of the Chapel Gardens' falls) and wrote:
+
+> "Grass needs to be drivable if it doesnt have a clear edge/fence + remove the guy standing in the road on image 1. Remove the gate at houndmaster locksley - fun, but counterintuitive, the room is nice but not part of the checkpoints. Make image 2(armory courtyard/training grounds) look more(exactly) like image 3. should be able to drive through this without being slowed. Remove slow from grass in cathedral as well. There are also seemingly some invisible walls. as you can see in image 5 - the stairs are the only path up to the cathedral"
+
+## Reserved scope
+
+- **Scripts:** `scripts/dungeon_layouts.py` (the Library, Armory and Cathedral sections only; the Graveyard stays byte for byte), `scripts/dungeon_paint.py` and `scripts/build_dungeon_tracks.py` (solids that block where their models are drawn, raised plinths, the yard's paving; checks).
+- **Generated:** `addon/AzerothKart/ScarletCrusade.lua` and the Library's, Armory's and Cathedral's `Background.tga`/`Preview.tga`, overviews, sources lists and review images; `services/leaderboard/catalog.json` (their new geometry versions).
+- **Shared data:** `addon/AzerothKart/Courses.lua` (the three courses' entries only) and `addon/AzerothKart/Menu.lua` (their `Menu.TRACKS` copy only).
+- **Tests:** the Library, Armory and Cathedral sections of `tests/test_dungeon.lua`; `tests/test_menu.lua` only if the copy is asserted.
+- **Docs:** the three track sheets, ADR 0020 (an addendum), `docs/TRACKS.md`, `docs/CHANGELOG.md`, `docs/TEST_PLAN.md`, `tests/MANUAL_CLIENT_CHECKLIST.md`, this handoff.
+
+`Dungeon.lua`, `UI.lua`, Physics, ScoreSync/ScoreSharing/SoloRecords/Highscores and every other Codex-owned file stay untouched. No install, push, main merge or client claim.
+
+# Previous: Scarlet Cathedral
 
 Prepared 2026-10-26 at about 09:40 CET (Europe/Oslo) by Claude (rendering/UI/sprites owner).
 
