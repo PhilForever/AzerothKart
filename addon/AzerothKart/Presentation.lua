@@ -301,13 +301,17 @@ end
 --   left to right and top to bottom. The nearest frame is shown unrotated; one
 --   frame covers quadWidth x quadHeight world units, and its centre sits
 --   (pivotX, pivotY) world units east/north of the kart's position on screen.
+-- * A sheet with `phases` holds that many poses of every heading, one after
+--   another: frame k of phase p is cell p * frames + k. Its `wings` say how
+--   the race plays them (Presentation.wingPhase); phase 0 is the rest pose.
 Presentation.KART_FOOTPRINT_WIDTH = 17
 Presentation.KART_FOOTPRINT_HEIGHT = 31
 Presentation.DEFAULT_KART = "goblin_mortar_trike"
 -- The optional line round the player's own kart (Settings: "Outline my
--- kart"). Each sheet's `outline` is a 512x512 sheet of the same 64 frames,
--- white, drawn over the kart with the kart's crop, quad and pivot, tinted
--- this colour (scripts/build_kart_outlines.py derives it from the sheet).
+-- kart"). Each sheet's `outline` is a 512x512 sheet of the same 64 frames
+-- (a sheet with phases: half its size, every phase), white, drawn over the
+-- kart with the kart's crop, quad and pivot, tinted this colour
+-- (scripts/build_kart_outlines.py derives it from the sheet).
 Presentation.KART_OUTLINE = {textureWidth = 512, textureHeight = 512, color = {1, 0.92, 0.16}}
 local OUTLINES = "Interface\\AddOns\\AzerothKart\\Assets\\Karts\\Outlines\\"
 -- Sheets rendered from Warcraft III and World of Warcraft models by
@@ -319,6 +323,14 @@ local function sheet(file, name, quad, pivotX, effects)
         textureWidth = 1024, textureHeight = 1024, quadWidth = quad, quadHeight = quad,
         frames = 64, columns = 8, pivotX = pivotX, pivotY = 0, effects = effects, outline = OUTLINES .. file,
     }
+end
+-- A sheet of four phases (2048x2048, 16 frames a row) whose `wings` play
+-- them: `cycle` lists the phases of one beat, which takes `beat` seconds;
+-- `glide` is the phase held while gliding.
+local function winged(entry, wings)
+    entry.textureWidth, entry.textureHeight, entry.columns, entry.phases = 2048, 2048, 16, 4
+    entry.wings = wings
+    return entry
 end
 Presentation.KART_SPRITES = {
     -- Rendered from World of Warcraft's goblin rocket car (Blizzard
@@ -362,11 +374,16 @@ Presentation.KART_SPRITES = {
         exhausts = {{-13.6, 5.4, 10.6}, {-14.4, -4.9, 10.5}},
         view = {0.8, 0.6},
     }),
-    gryphon_rider = sheet("GryphonRider.tga", "Gryphon Rider", 41, 2.6, {
+    -- Its wings beat while it flies and spread in a glide while it boosts
+    -- (the owner, 2026-10-26): four phases from the model's own flying
+    -- loops, the rest pose, the beat's top and bottom, and the glide. The
+    -- raised wings and their shadow need a larger frame window (58 units);
+    -- the wind trails leave the glide's wingtips.
+    gryphon_rider = winged(sheet("GryphonRider.tga", "Gryphon Rider", 58, 4.5, {
         wheels = {{-6, 3}, {-6, -3}}, exhausts = {},
-        trails = {{3.3, 16, 8.9}, {3.3, -16, 8.9}},             -- wingtips
+        trails = {{4, 20.2, 13.5}, {4, -20.2, 13.5}},           -- the glide's wingtips
         view = {0.8, 0.6},
-    }),
+    }), {cycle = {0, 1, 0, 2}, glide = 3, beat = 0.667}),
     gyrocopter = sheet("Gyrocopter.tga", "Gyrocopter", 58, 4, {
         wheels = {{-3.4, 6.5}, {-3.4, -6.5}},                  -- skids, 4 units up
         exhausts = {{-3.4, 8.6, 14.7}, {-3.4, -8.6, 14.7}},    -- the wing engines
@@ -418,12 +435,29 @@ function Presentation.kartFrame(sprite, heading)
     return math.floor((heading % tau) / tau * sprite.frames + 0.5) % sprite.frames
 end
 
--- Texture coordinates (left, right, top, bottom) of one frame of a sheet.
-function Presentation.kartFrameCoords(sprite, frame)
+-- Texture coordinates (left, right, top, bottom) of one frame of a sheet;
+-- `phase` (0-based, default 0) picks the pose of a sheet with phases.
+function Presentation.kartFrameCoords(sprite, frame, phase)
     local columns = sprite.columns
-    local rows = sprite.frames / columns
-    local column, row = frame % columns, math.floor(frame / columns)
+    local rows = sprite.frames * (sprite.phases or 1) / columns
+    local index = (phase or 0) * sprite.frames + frame
+    local column, row = index % columns, math.floor(index / columns)
     return column / columns, (column + 1) / columns, row / rows, (row + 1) / rows
+end
+
+-- The pose of a winged sheet at `time` seconds of a visual clock: its glide
+-- while `gliding`, otherwise the step of its beat (`wings.cycle`, one beat
+-- every `wings.beat` seconds). 0, the rest pose, for a sheet without wings or
+-- an unreadable time. Presentation only: the caller chooses the clock and
+-- what counts as gliding; nothing here reads or writes simulation state.
+function Presentation.wingPhase(sprite, time, gliding)
+    local wings = type(sprite) == "table" and sprite.wings
+    if type(wings) ~= "table" then return 0 end
+    if gliding then return wings.glide end
+    if not finite(time) then return 0 end
+    local cycle = wings.cycle
+    local step = math.floor(time % wings.beat / wings.beat * #cycle) % #cycle
+    return cycle[step + 1]
 end
 
 -- Drift and boost effects. Presentation-only particles: dust and sparks in the

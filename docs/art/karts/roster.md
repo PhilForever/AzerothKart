@@ -88,10 +88,10 @@ The Dwarven Biker shares its skeleton and effect emitters with the Goblin Mortar
 |---|---|---|---|---|
 | Steam Tank | Stand | 22 units wide | 45, (3.7, 0) | `e5ff5c65…184c` |
 | Dwarven Biker | Walk (it has no Stand) | 21 wide | 41, (3, 0) | `564d5256…0e38` |
-| Gryphon Rider | Stand, wings spread | 32 wingspan, hover 4 | 41, (2.6, 0) | `06d94738…e92b` |
+| Gryphon Rider | Walk and Walk - 2, four phases ([wingbeat](#the-gryphon-riders-wingbeat)); the scale and hover of Stand | 32 wingspan, hover 4 | 58, (4.5, 0) | `d8a1389f…454e` |
 | Gyrocopter | Stand | 28 long, hover 4 | 58, (4, 0) | `2f00ca98…f50d` |
 
-Each sheet is a 1024×1024 BGRA32 TGA of 64 frames (4 MiB raw), like the trike's. The frame windows fit the vehicle, its shadow and the gyrocopter's disc at every heading; the build checks this. Bytes are reproducible: the scripts use only exact arithmetic.
+Each sheet is a 1024×1024 BGRA32 TGA of 64 frames (4 MiB raw), like the trike's; the Gryphon Rider's holds four phases of 64 frames, 2048×2048 (16 MiB raw). The frame windows fit the vehicle, its shadow and the gyrocopter's disc at every heading; the build checks this. Bytes are reproducible: the scripts use only exact arithmetic.
 
 Build or verify every vehicle:
 
@@ -110,11 +110,32 @@ Drift and boost effects use per-kart anchors in `Presentation.KART_SPRITES`, tak
 | Steam Tank | Smoke-stack flames |
 | Dwarven Biker | The trike's two exhausts |
 | Gyrocopter | Its wing engines; dust from its skids |
-| Gryphon Rider | No flame: wingtip wind trails while boosting, and dust on the ground under it while drifting |
+| Gryphon Rider | No flame: wind trails from the glide's wingtips while boosting, and dust on the ground under it while drifting |
 
 See [the effects sheet](../effects/drift-boost.md).
 
 Loaded karts are never tinted: the effects show the drift and boost phase (owner direction, 2026-10-21). Only the plain fallback rectangle, used when no art loads, keeps its phase colours.
+
+## The Gryphon Rider's wingbeat
+
+The owner (2026-10-26), choosing which kart moves first: "Sure let's start with the griphon. I want flapping during normal speed and gliding during boost." Proposed on `claude/gryphon-wings`.
+
+![The four phases at eight headings over Mirage Raceway at about 1440p, then the beat as played and the glide at the garage's size](gryphon-rider-wings-review.png)
+
+- **From the model's own flying loops.** `Walk` (667 ms) beats the wings: the sheet keeps three of its moments, the rest pose with the wings level (its start), the top of the beat with the wings raised in a V (a quarter in) and the bottom with them swept down under the body (eleven sixteenths in). `Walk - 2`, the model's soaring loop, gives the glide: wings spread wide, legs trailing, its body kept at the rest pose's height. Every phase has Stand's scale, centre and hover, so the gryphon neither grows nor jumps between them, and each casts its own shadow.
+- **The sheet:** `GryphonRider.tga`, four phases of 64 headings, 2048×2048 (16 MiB raw, from 4): rest, top, bottom, glide, one after another, sixteen frames a row. The raised wings and their shadow need a larger frame window, 58 world units round (4.5, 0) instead of 41 round (2.6, 0): the frames keep 128 texels, so the gryphon is drawn from about 2.2 texels a world unit instead of 3.1, still more than a screen pixel at the race's camera. Its outline sheet is 1024×1024, every frame of every phase.
+- **In the race:** while the kart is not boosting, its wings beat rest, top, rest, bottom, one beat every 0.667 s (the model's own timing), on the run's clock: they start with the countdown and stop with the run. While it boosts, it glides, and the boost's wind trails leave the glide's wingtips. With no run (stopped, results, track view) it shows the rest pose, as before. The outline follows the pose. A friend's gryphon beats on the copied race clock, half a beat apart, and glides while their report says they boost.
+- **In the garage:** the turntable beats the wings for four seconds and glides for two, once round.
+- **Nothing else moves:** the physics body, handling, effects timing and the other karts are unchanged; the art never feeds the simulation.
+
+```
+python scripts/build_wc3_kart.py --source local-artifacts/third-party/gryphon-rider --vehicle gryphon_rider --preview
+python scripts/build_wc3_kart.py --source local-artifacts/third-party/gryphon-rider --vehicle gryphon_rider --check
+python scripts/build_wc3_kart.py --source local-artifacts/third-party/gryphon-rider --vehicle gryphon_rider --check --phase 3
+python scripts/build_kart_outlines.py --check
+```
+
+`--phase N` checks one phase's 64 frames against the shipped sheet (a quarter of the full check's time).
 
 ## Kart button
 

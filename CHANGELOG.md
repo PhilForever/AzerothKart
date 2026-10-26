@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — the Gryphon Rider's wingbeat (2026-10-26, `claude/gryphon-wings`)
+After a note on moving parts, the owner chose the gryphon first: "Sure let's start with the griphon. I want flapping during normal speed and gliding during boost." Based on `claude/race-screens`.
+- **Its wings beat while it flies:** rest, raised in a V, rest, swept down, one beat every two thirds of a second (the model's own timing), from the countdown until the run ends. Each pose casts its own shadow.
+- **It glides while boosting:** wings spread wide, legs trailing, from the model's own soaring loop; the boost's wind trails leave the glide's wingtips.
+- **Everywhere it shows:** the player's kart and its outline, a friend's gryphon in a two-player race (gliding on their reported boost), and the garage turntable, which beats for four seconds and glides for two. With no run, the rest pose, as before.
+- **The art:** `GryphonRider.tga` holds four poses of every heading (2048×2048, 16 MiB raw, from 4), rendered from the model's `Walk` and `Walk - 2` loops with its usual scale and hover; a larger frame window (58 units) fits the raised wings. Its outline sheet grows to 1024×1024. The builder can check one pose at a time (`--phase`).
+- **Presentation:** `kartFrameCoords` takes an optional pose; the new pure `wingPhase` picks it. Nothing reads or writes simulation state; the object counts are unchanged.
+- **Tests:** `test_presentation` validates the four-pose sheet and outline and the beat's timing; `test_menu` drives the turntable, a run (beat, glide, outline, rest) and a friend's gryphon. The look in the client is NOT RUN.
+
 ## Unreleased — race screens and score celebrations (2026-10-26, `claude/race-screens`)
 The owner, after the Scarlet v3 fixes: "feel free to start on screen side of multiplayer such as race positions, name tags, and results. I also want a bigger celebration when you get a top 10 and top 3 score, take a look at that whole window and flow." Based on `claude/scarlet-v3`.
 - **Top-ten celebrations:** a new personal best that ranks on the shared score board grows the results into a celebration: **NEW #1!** (or **FIRST ON THE BOARD!**) with a gold medal, **TOP 3!** with a silver or bronze medal, **TOP 10!** with a golden laurel wreath and the rank in it, and the place under it ("#2 of 14 on the shared board"). The medal pops in over the dialog's top edge on a slowly turning gold sunburst, the banner fades in and confetti falls for under three seconds. The epic-loot toast (#1, top three) or the quest-complete chime (top ten) plays in place of the finish fanfare. Reopening the results shows the celebration still, without the sound or the confetti. A best off the top ten, or on the local board only, keeps the plain window with its notice in gold.

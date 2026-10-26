@@ -939,7 +939,7 @@ end
 local function opponentSprite(id)
     id = type(id)=="string" and id or "basic"
     if UI.opponentAssetId==id then return UI.opponentSprite end
-    UI.opponentAssetId,UI.opponentFrame=id,nil
+    UI.opponentAssetId,UI.opponentFrame,UI.opponentPhase=id,nil,nil
     local sprite = Presentation.KART_SPRITES[id]
     if sprite and applyKartSprite(sprite,0,nil,UI.opponent) then
         UI.opponentSprite,UI.opponentFrame=sprite,sprite.frames and 0 or nil
@@ -1027,9 +1027,16 @@ local function renderOpponent()
         UI.opponent:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",cx,cy)
         if sprite and sprite.frames then
             local frame=Presentation.kartFrame(sprite,heading)
-            if frame~=UI.opponentFrame then
-                UI.opponentFrame=frame
-                UI.opponent:SetTexCoord(Presentation.kartFrameCoords(sprite,frame))
+            -- A winged friend beats its wings on the race's copied clock, half
+            -- a beat from the player's, and glides while their report says
+            -- they boost; on the starting grid, the rest pose.
+            local phase=0
+            if sprite.wings and not grid and type(view.elapsedMS)=="number" then
+                phase=Presentation.wingPhase(sprite,view.elapsedMS/1000+sprite.wings.beat/2,remote.boosting==true)
+            end
+            if frame~=UI.opponentFrame or phase~=(UI.opponentPhase or 0) then
+                UI.opponentFrame,UI.opponentPhase=frame,phase
+                UI.opponent:SetTexCoord(Presentation.kartFrameCoords(sprite,frame,phase))
             end
         elseif UI.opponentRotationReady then
             UI.opponentRotationReady = pcall(UI.opponent.SetRotation,UI.opponent,heading-math.pi/2)
@@ -1098,19 +1105,26 @@ render = function()
     local sprite = UI.kartSprite
     if sprite and sprite.frames then
         -- Directional sheet: show the nearest pre-rendered heading, unrotated,
-        -- and only touch its crop when the frame changes.
+        -- and only touch its crop when the frame changes. A winged sheet beats
+        -- its wings on the run's own clock and glides while boosting; with no
+        -- run it shows its rest pose (phase 0, as a freshly applied sheet).
         local frame = Presentation.kartFrame(sprite,heading)
-        if frame ~= UI.kartFrame then
-            UI.kartFrame = frame
-            UI.kart:SetTexCoord(Presentation.kartFrameCoords(sprite,frame))
+        local phase = 0
+        if sprite.wings and UI.active then
+            local state = UI.state
+            phase = Presentation.wingPhase(sprite,(state.tick + alpha)*Physics.FIXED_DT,(state.boostTicks or 0) > 0)
+        end
+        if frame ~= UI.kartFrame or phase ~= (UI.kartPhase or 0) then
+            UI.kartFrame,UI.kartPhase = frame,phase
+            UI.kart:SetTexCoord(Presentation.kartFrameCoords(sprite,frame,phase))
         end
         local scale = UI.view.scale
         UI.kart:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x + sprite.pivotX*scale,y + sprite.pivotY*scale)
-        if UI.outlineReady then -- the player's line: the same frame and place
+        if UI.outlineReady then -- the player's line: the same frame, pose and place
             local line = UI.kartOutline
-            if UI.outlineFrame ~= frame then
-                UI.outlineFrame = frame
-                line:SetTexCoord(Presentation.kartFrameCoords(sprite,frame))
+            if UI.outlineFrame ~= frame or UI.outlinePhase ~= phase then
+                UI.outlineFrame,UI.outlinePhase = frame,phase
+                line:SetTexCoord(Presentation.kartFrameCoords(sprite,frame,phase))
             end
             line:ClearAllPoints()
             line:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",x + sprite.pivotX*scale,y + sprite.pivotY*scale)

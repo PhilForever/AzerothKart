@@ -582,7 +582,8 @@ follow(view, x, y, heading, lookAhead?) -> sameView
 texCoords(view) -> left, right, top, bottom
 clipRect(view, x, y, width, height) -> canvasX, canvasY, width, height | nil
 kartFrame(sprite, heading) -> frame   -- nearest directional frame, 0-based
-kartFrameCoords(sprite, frame) -> left, right, top, bottom
+kartFrameCoords(sprite, frame, phase?) -> left, right, top, bottom   -- phase: proposed, claude/gryphon-wings
+wingPhase(sprite, time, gliding) -> phase                             -- proposed, claude/gryphon-wings
 ```
 
 `pose` linearly interpolates position and uses the shortest heading arc; an exact half-turn chooses the negative arc. Missing/NaN alpha uses current pose, alpha ≤0 previous, alpha ≥1 current. During active rendering alpha is `clock.accumulator/clock.dt`; this is up to one fixed step behind simulation. Start/Stop/inactive drawing uses the exact current pose. Presentation values must never affect Physics, gates or lap time.
@@ -703,6 +704,16 @@ Reviewed Claude UI `1b2d3d5` is integrated with the Codex backend by `6cd611a` o
   - No command is wired. Without a bridge, Host, Join, Ready, Start and Leave stay disabled and marked Coming soon.
 - **Sounds.** `PlaySound(SOUNDKIT[name])`, guarded and muted by a setting: menu open/click/check, 3-2-1-GO, and one fanfare per finished run.
 - **Counts.** The original solo Menu brought the pool to65/160/79; the integrated city screen/gates and staging background bring it to71frames/165textures/80fonts, and the four Warcraft III karts' list buttons (proposed on `claude/kart-roster-wc3`, 2026-10-22) to **75 frames**/165 textures/80 fonts, all created with the window.
+
+### Proposed: the Gryphon Rider's wingbeat (Claude, `claude/gryphon-wings`, 2026-10-26)
+
+The owner: "I want flapping during normal speed and gliding during boost." Presentation only; see [the roster](art/karts/roster.md#the-gryphon-riders-wingbeat). Additive: every other kart, the outline contract and the object counts (90/91/150) are unchanged.
+
+- **Sheets with phases.** A directional sheet may carry `phases` (here 4): every heading once per phase, phase after phase, `columns` frames a row; frame k of phase p is cell `p * frames + k`. `kartFrameCoords(sprite, frame, phase)` takes the phase (0-based, default 0, so every existing call keeps its crop). Phase 0 is the rest pose, the one a freshly applied sheet shows. The outline sheet of a phased sheet is half its size and holds every phase in the same layout.
+- **`wings`** on such a sheet: `cycle` (the phases of one beat, here rest, top, rest, bottom), `beat` (seconds a beat, 0.667, the model's own) and `glide` (the phase held while gliding, 3). `Presentation.wingPhase(sprite, time, gliding)` is pure: the glide while `gliding`, otherwise the beat's step at `time` seconds of the caller's clock; 0 for a sheet without wings or an unreadable time.
+- **The Gryphon Rider:** `GryphonRider.tga` becomes 2048×2048 (16 MiB raw, from 4) with quad 58 and pivot (4.5, 0) (from 41 and (2.6, 0)): the raised wings and their shadow need the window. Its boost `trails` move to the glide's wingtips, (4, ±20.2, 13.5).
+- **UI (visual body of `render`; `renderOpponent`/`opponentSprite`).** While a run is active, the player's gryphon beats on `(state.tick + alpha) * Physics.FIXED_DT` and glides while `state.boostTicks > 0`; with no run it shows phase 0. The crop is written only when the frame or the phase changes (six times a second while beating); the outline follows. A friend's gryphon beats on the live view's `elapsedMS`, half a beat apart, and glides while `remote.boosting`; on the starting grid, phase 0. Both read copied state only.
+- **Menu:** the garage turntable beats the wings for four seconds and glides for two (`Menu.STAGE_GLIDE`), once round.
 
 ### Proposed: race screens and score celebrations (Claude, `claude/race-screens`, 2026-10-26)
 

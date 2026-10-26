@@ -76,7 +76,7 @@ The first runtime vehicle, `addon/AzerothKart/Assets/Karts/GoblinDragCar.tga`, i
 Four more runtime karts were imported on 2026-10-21, chosen by the owner from the rows above: `SteamTank.tga`, `DwarvenBiker.tga`, `GryphonRider.tga` and `Gyrocopter.tga` under `addon/AzerothKart/Assets/Karts/`.
 
 - **Source:** each is rendered by `scripts/build_wc3_kart.py` from its archive's model and JPEG BLP texture, decoded by `scripts/wc3jpeg.py`. The archive and file hashes are in [the roster](karts/roster.md); the files are kept outside Git under `local-artifacts/third-party/`.
-- **Modifications:** none to meshes, UVs or shipped textures. Each sheet is posed, team-coloured, scaled, lit and shadowed, and flyers are lifted to a hover. On the Gyrocopter, the rotor blades are hidden behind an original translucent disc and the pilot's body, whose texture is not shipped, gets a flat leather tone.
+- **Modifications:** none to meshes, UVs or shipped textures. Each sheet is posed, team-coloured, scaled, lit and shadowed, and flyers are lifted to a hover. On the Gyrocopter, the rotor blades are hidden behind an original translucent disc and the pilot's body, whose texture is not shipped, gets a flat leather tone. Since 2026-10-26 (`claude/gryphon-wings`, proposed) the Gryphon Rider's sheet also holds its wingbeat and glide: the same model posed at moments of its own `Walk` and `Walk - 2` loops (four phases, [the roster](karts/roster.md#the-gryphon-riders-wingbeat)); no new source file.
 - **Terms:** no Read Me or license in any archive, and authors listed as unknown. Permission is not established; **redistribution is unresolved** for release review.
 - **Credits:** the addon README and the roster name the WC3C ITE project models via WC3Vault.
 

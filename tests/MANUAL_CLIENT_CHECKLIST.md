@@ -1,5 +1,17 @@
 # Manual client acceptance — F0/F1/F2/F5
 
+## Deferred Gryphon Rider wingbeat check (proposed, `claude/gryphon-wings`)
+
+**NOT RUN.** Run it after Codex's review and a coordinated install. **Fully restart the client:** `GryphonRider.tga` and its outline keep their paths but are larger. The owner runs these checks; Claude does not control the client.
+
+1. **The garage:** choose the Gryphon Rider. On the turntable its wings beat (raised, level, swept down) for four seconds, then it glides with its wings spread for two. Nothing reads "Lua error".
+2. **A run:** the wings beat from the countdown on, about one and a half beats a second. Fire a boost: it glides, wings spread, the wind trails leaving its wingtips; when the boost ends, the beat resumes. Record whether the beat reads as flapping at race size or as flicker, whether it is too fast or too slow, and whether the glide is clear enough.
+3. **Turning:** at every heading the gryphon faces its travel and its shadow moves with the wings; no neighbouring frame shows at a frame's edge.
+4. **Outline on** (Settings): the line follows the wings.
+5. **No run:** stop or finish: the gryphon rests with its wings level, as before.
+6. **Two players:** a friend on the gryphon beats its wings too and glides while they boost.
+7. **Memory:** choosing the gryphon loads a 16 MiB sheet: note any hitch when choosing it or starting a race with it.
+
 ## Deferred race screens and celebrations check (proposed, `claude/race-screens`)
 
 **NOT RUN.** Run it after Codex's review and a coordinated install. **Fully restart the client:** `Assets/UI/Celebration.tga` is a new file. The owner runs these checks; Claude does not control the client.

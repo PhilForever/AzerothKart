@@ -13,7 +13,8 @@ every texel outside the body within RING texels of it, fully opaque, fading
 over one more texel; then the frame is halved (exact 2x2 integer box filter).
 So an outline sheet is 512x512: the same 8x8 grid of frames, 64 texels each,
 covering the same quad as its kart's frames, so the kart's frame crop and
-quad place it exactly. Its colour is white, tinted by the UI; it is drawn
+quad place it exactly. A sheet with wing phases (2048x2048, 16x16 frames)
+gets a 1024x1024 outline of every frame of every phase. Its colour is white, tinted by the UI; it is drawn
 over the kart, which it never covers, and over its shadow, which would
 otherwise dim it.
 
@@ -97,16 +98,22 @@ def sheet_alpha(image):
     return width, height, plane
 
 
+def grid(width, height, name):
+    """Frame columns and rows of a kart sheet: 8x8, or 16x16 with four wing phases."""
+    assert (width, height) in ((kart.ATLAS, kart.ATLAS), (2 * kart.ATLAS, 2 * kart.ATLAS)), \
+        f"{name}: not a {kart.ATLAS}- or {2 * kart.ATLAS}-texel kart sheet"
+    return width // FRAME, height // FRAME
+
+
 def build(sheet_path):
     image = sheet_path.read_bytes()
     width, height, alpha = sheet_alpha(image)
-    assert (width, height) == (kart.ATLAS, kart.ATLAS), f"{sheet_path.name}: not a {kart.ATLAS}-texel kart sheet"
-    side = COLUMNS * HALF
-    pixels = [[[255, 255, 255, 0] for _ in range(side)] for _ in range(side)]
-    for k in range(FRAMES):
-        ox, oy = (k % COLUMNS) * FRAME, (k // COLUMNS) * FRAME
+    columns, rows_ = grid(width, height, sheet_path.name)
+    pixels = [[[255, 255, 255, 0] for _ in range(columns * HALF)] for _ in range(rows_ * HALF)]
+    for k in range(columns * rows_):
+        ox, oy = (k % columns) * FRAME, (k // columns) * FRAME
         rows = outline_frame(alpha, ox, oy, width)
-        hx, hy = (k % COLUMNS) * HALF, (k // COLUMNS) * HALF
+        hx, hy = (k % columns) * HALF, (k // columns) * HALF
         for j in range(HALF):
             line = pixels[hy + j]
             for i in range(HALF):
@@ -116,12 +123,13 @@ def build(sheet_path):
 
 def validate(pixels, alpha, name):
     """Every frame has a line; it keeps off the body and the frame border."""
-    side = COLUMNS * HALF
-    assert len(pixels) == side and all(len(row) == side for row in pixels), f"{name}: size"
+    columns, rows = len(pixels[0]) // HALF, len(pixels) // HALF
+    width = columns * FRAME
+    assert len(alpha) == width * rows * FRAME and all(len(row) == columns * HALF for row in pixels), f"{name}: size"
     fewest = None
-    for k in range(FRAMES):
-        hx, hy = (k % COLUMNS) * HALF, (k // COLUMNS) * HALF
-        ox, oy = (k % COLUMNS) * FRAME, (k // COLUMNS) * FRAME
+    for k in range(columns * rows):
+        hx, hy = (k % columns) * HALF, (k // columns) * HALF
+        ox, oy = (k % columns) * FRAME, (k // columns) * FRAME
         lit = 0
         for j in range(HALF):
             for i in range(HALF):
@@ -131,8 +139,8 @@ def validate(pixels, alpha, name):
                 if a == 0:
                     continue
                 lit += 1
-                base = (oy + 2 * j) * kart.ATLAS + ox + 2 * i
-                block = (alpha[base], alpha[base + 1], alpha[base + kart.ATLAS], alpha[base + kart.ATLAS + 1])
+                base = (oy + 2 * j) * width + ox + 2 * i
+                block = (alpha[base], alpha[base + 1], alpha[base + width], alpha[base + width + 1])
                 assert min(block) < BODY, f"{name}: frame {k} line covers the kart at ({i}, {j})"
         assert lit > 0, f"{name}: frame {k} has no outline"
         fewest = lit if fewest is None else min(fewest, lit)
@@ -149,10 +157,11 @@ def review(sheets):
     color = (1.0, 0.92, 0.16)                         # the UI's tint
     tiles = []
     for vehicle, sheet, outline in sheets:
+        columns = len(sheet[0]) // FRAME                  # the rest pose: the first FRAMES cells
         for heading in (pi / 2 + pi / 8, -pi / 4 + pi / 16):
             k = int(floor(heading / (2 * pi / FRAMES) + 0.5)) % FRAMES
-            fx, fy = (k % COLUMNS) * FRAME, (k // COLUMNS) * FRAME
-            hx, hy = (k % COLUMNS) * HALF, (k // COLUMNS) * HALF
+            fx, fy = (k % columns) * FRAME, (k // columns) * FRAME
+            hx, hy = (k % columns) * HALF, (k // columns) * HALF
             frame = [row[fx:fx + FRAME] for row in sheet[fy:fy + FRAME]]
             line = [row[hx:hx + HALF] for row in outline[hy:hy + HALF]]
             for lit in (False, True):
@@ -209,7 +218,7 @@ def main():
         else:
             output.parent.mkdir(parents=True, exist_ok=True)
             output.write_bytes(image)
-        print(f'{"CHECK PASS" if args.check else "GENERATED"}: {relative}; {COLUMNS * HALF}x{COLUMNS * HALF} '
+        print(f'{"CHECK PASS" if args.check else "GENERATED"}: {relative}; {len(pixels[0])}x{len(pixels)} '
               f"BGRA32 white, alpha line {RING}+1 kart texels wide; {len(image)} bytes; at least {fewest} lit "
               f"texels per frame; from {vehicle['output']}; sha256={hashlib.sha256(image).hexdigest()}")
         if args.preview and not args.check:

@@ -1517,5 +1517,102 @@ withMock({schemaVersion=1}, function(env, UI, Menu, AK)
     assert(not view.position.shown and not view.positionOf.shown, "no place outside a two-player race")
 end)
 
+-- The Gryphon Rider's wings -------------------------------------------------------
+-- The garage beats its wings and glides; a run beats them on its own clock and
+-- glides while boosting, the outline following; with no run, the rest pose; a
+-- winged friend beats on the copied race clock and glides on their report.
+withMock({schemaVersion=1}, function(env, UI, Menu, AK)
+    UI.Toggle()
+    local P = AK.Presentation
+    local gryphon = P.KART_SPRITES.gryphon_rider
+    local wings = gryphon.wings
+    -- The pose a crop shows: its cell's index over the frames of one phase.
+    local function poseOf(region)
+        local uv = region.texCoords
+        local column = math.floor(uv[1] * gryphon.columns + 0.5)
+        local row = math.floor(uv[3] * gryphon.frames * gryphon.phases / gryphon.columns + 0.5)
+        local index = row * gryphon.columns + column
+        return math.floor(index / gryphon.frames), index % gryphon.frames
+    end
+    local before = counts(env)
+    click(Menu.view.homeButtons[1]); click(Menu.view.trackNext)
+    click(Menu.view.kartButtons.gryphon_rider)
+    assert(UI.kartId == "gryphon_rider" and Menu.view.stage.texturePath == gryphon.path, "the gryphon is chosen")
+    local stage, turntable = Menu.view.stage, Menu.view.stageFrame0
+    assert(poseOf(stage) == 0, "the turntable starts at rest")
+    local garage = {}
+    for n = 1, 59 do
+        turntable.scripts.OnUpdate(turntable, 0.1)
+        local phase, frame = poseOf(stage)
+        assert(frame == P.kartFrame(gryphon, Menu.view.stageHeading), "the turntable keeps turning")
+        garage[n] = phase
+    end
+    -- 0.1 to 3.9 seconds: the beat (rest, top, rest, bottom, every 0.667s); 4 to 5.9: the glide.
+    local shown = table.concat(garage, "")
+    assert(shown:sub(1, 10) == "0110020011" and garage[39] ~= 3 and garage[40] == 3 and garage[59] == 3,
+        "the garage beats its wings for four seconds, then glides: " .. shown)
+    for n = 1, 39 do assert(garage[n] ~= 3, "no glide during the garage's beat") end
+
+    UI.SetKartOutline(true)
+    click(Menu.view.race)
+    assert(UI.active and UI.race.status == "countdown", "the gryphon races")
+    local line = UI.kartOutline
+    local function same(label)
+        local a, b = UI.kart.texCoords, line.texCoords
+        assert(line:IsShown() and a[1] == b[1] and a[2] == b[2] and a[3] == b[3] and a[4] == b[4],
+            label .. ": the outline shows the kart's frame and pose")
+    end
+    local run, steps = {}, {}
+    for _ = 1, 180 + 60 do
+        UI.OnUpdate(1 / 60)
+        local phase = poseOf(UI.kart)
+        if run[#run] ~= phase then run[#run + 1] = phase end
+        steps[#steps + 1] = phase
+        same("beating")
+    end
+    local order = table.concat(run, "")
+    assert(order:find("0102010", 1, true) and not order:find("3", 1, true),
+        "the countdown and the run beat the wings (rest, top, rest, bottom): " .. order)
+    -- A beat takes 0.667s: forty frames, ten a step.
+    local first = 1
+    while steps[first] == steps[1] do first = first + 1 end
+    local length = first
+    while steps[length] == steps[first] do length = length + 1 end
+    assert(length - first == 10, "a step of the beat lasts ten frames: " .. (length - first))
+    UI.state.boostTicks = 600                      -- as if a drift's boost had just fired
+    for _ = 1, 30 do
+        UI.OnUpdate(1 / 60)
+        assert(poseOf(UI.kart) == wings.glide and UI.state.boostTicks > 0, "boosting, the gryphon glides")
+        same("gliding")
+    end
+    UI.state.boostTicks = 0
+    UI.OnUpdate(1 / 60)
+    assert(poseOf(UI.kart) ~= wings.glide, "the boost over, the wings beat again")
+
+    -- A winged friend, beside the player in a two-player race.
+    local live = {phase="running", peer="Amber Stone", peerKartId="gryphon_rider", remoteSequence=1, elapsedMS=0,
+        remote={x=UI.state.x + 30, y=UI.state.y, heading=0, speed=0, status="running", sampleMS=0,
+            receivedAtMS=0, tick=10, completedLaps=0, passed=0, boosting=false}}
+    UI.multiplayer, UI.liveView = true, live
+    local friend = {}
+    for _, ms in ipairs({0, 200, 450, 520}) do
+        live.elapsedMS = ms
+        UI.OnUpdate(1 / 60)
+        assert(UI.opponent:IsShown() and UI.opponent.texturePath == gryphon.path, "the friend's gryphon shows")
+        friend[#friend + 1] = poseOf(UI.opponent)
+    end
+    -- Half a beat after the race clock: 0.33s rest, 0.53s bottom, 0.78s rest, 0.85s top.
+    assert(table.concat(friend, "") == "0201", "the friend beats on the copied clock: " .. table.concat(friend, ""))
+    live.remote.boosting = true
+    UI.OnUpdate(1 / 60)
+    assert(poseOf(UI.opponent) == wings.glide, "the friend glides while their report says they boost")
+    UI.multiplayer, UI.liveView = false, nil
+
+    click(UI.stopButton)
+    assert(not UI.active and poseOf(UI.kart) == 0 and poseOf(line) == 0, "with no run, the rest pose")
+    UI.SetKartOutline(false)
+    sameCounts(env, before, "the wings change crops only")
+end)
+
 print("mock menus: 8 screens, single-player flow, saved highscore pages, results paths, garage, settings, saved choices, " ..
     "explicit experimental lobby actions and fallbacks (client appearance still pending)")

@@ -874,17 +874,22 @@ local function buildTracks()
 end
 
 -- The garage turntable spins the chosen kart's sheet once every six seconds.
+-- A winged kart beats its wings for four of them and glides for two, so both
+-- of its race poses show.
 local SPIN = 2 * math.pi / 6
+Menu.STAGE_GLIDE = {from = 4, every = 6}
 local function spin(elapsed)
     local view = Menu.view
     local sprite = view.stageSprite
     if not sprite or not view.stageReady then return end
     view.stageHeading = (view.stageHeading + (elapsed or 0) * SPIN) % (2 * math.pi)
+    view.stageTime = ((view.stageTime or 0) + (elapsed or 0)) % Menu.STAGE_GLIDE.every
     if sprite.frames then
         local frame = Presentation.kartFrame(sprite, view.stageHeading)
-        if frame ~= view.stageFrame then
-            view.stageFrame = frame
-            view.stage:SetTexCoord(Presentation.kartFrameCoords(sprite, frame))
+        local phase = Presentation.wingPhase(sprite, view.stageTime, view.stageTime >= Menu.STAGE_GLIDE.from)
+        if frame ~= view.stageFrame or phase ~= view.stagePhase then
+            view.stageFrame, view.stagePhase = frame, phase
+            view.stage:SetTexCoord(Presentation.kartFrameCoords(sprite, frame, phase))
         end
     else view.stage:SetRotation(view.stageHeading - math.pi / 2) end
 end
@@ -892,7 +897,8 @@ end
 local function showStage(sprite)
     local view = Menu.view
     if view.stageSprite == sprite then return end
-    view.stageSprite, view.stageFrame, view.stageHeading = sprite, nil, -math.pi / 4
+    view.stageSprite, view.stageFrame, view.stagePhase, view.stageHeading = sprite, nil, nil, -math.pi / 4
+    view.stageTime = 0
     local ok, loaded = false, false
     if sprite then ok, loaded = call(view.stage, "SetTexture", sprite.path) end
     view.stageReady = ok and loaded == true
