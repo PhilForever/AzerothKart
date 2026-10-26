@@ -1,4 +1,29 @@
-# Claude handoff — race screens and score celebrations
+# Claude handoff — the Gryphon Rider's wingbeat (reservation, in progress)
+
+Reserved 2026-10-26 at about 17:00 CET by Claude (rendering/UI/sprites owner).
+
+**Base:** `claude/race-screens` `8511d8c` (on `claude/scarlet-v3` and Codex's installed `caab661`). **Branch:** `claude/gryphon-wings`. Nothing is installed.
+
+**Owner instructions:** after my note on moving parts he chose to start with the gryphon: "Sure let's start with the griphon. I want flapping during normal speed and gliding during boost."
+
+**Task:** presentation only. The Gryphon Rider's sheet gains wingbeat and glide frames rendered from its own model's flying loops (`Walk` beats its wings, `Walk - 2` soars); the race shows the beat while the kart is not boosting and the glide while it is, for the player's kart, the friend's (from their reported boost) and the garage turntable. No change to the physics body, handling, effects timing or any other kart.
+
+**Reserved files and regions:**
+
+- `scripts/build_wc3_kart.py`: posing at a time inside a loop; the gryphon's entry (its wing phases, frame window and coverage floor); multi-phase sheet layout in `build`, `validate`, `run` and the review picture; other vehicles' bytes unchanged;
+- `scripts/build_kart_outlines.py`: outline sheets for multi-phase sheets (half the kart sheet's size);
+- `addon/AzerothKart/Assets/Karts/GryphonRider.tga` and `Assets/Karts/Outlines/GryphonRider.tga` (same paths, larger);
+- `addon/AzerothKart/Presentation.lua`: the gryphon's `KART_SPRITES` entry (sheet size, quad, pivot, phases, wing timing, its boost-trail anchors), an optional phase argument to `kartFrameCoords`, a new pure `wingPhase`;
+- `addon/AzerothKart/UI.lua`: the visual body of `render` (the kart's and the outline's crop) and `renderOpponent`/`opponentSprite` (the friend's crop). `UI.SelectKart`, `step`, `UI.Start/Stop/OnUpdate/HandleEvent`, `pollLive`, `applyLiveView`, `finishLive`, `keyEvent`, `UI.MultiplayerAction` and `refreshSummary` stay untouched;
+- `addon/AzerothKart/Menu.lua`: the turntable (`spin`, `showStage`) only, nothing in the results or lobby sections Codex reserved for `codex/multiplayer-rematch`;
+- tests: `tests/test_presentation.lua` (sheet and outline validation with phases, `wingPhase`, crops), `tests/test_menu.lua` (a new block: the turntable, the race's beat and glide, the friend's kart); `tests/test_ui.lua` is left to Codex's rematch task;
+- docs: `docs/art/karts/roster.md` and a review picture, `docs/API_CONTRACTS.md` (a proposed note), `docs/ASSETS.md`, `docs/art/ASSET_SOURCES.md`, `docs/art/ui/front-end.md` (texture memory), `CHANGELOG.md`, `docs/TEST_PLAN.md`, `tests/MANUAL_CLIENT_CHECKLIST.md`, `scripts/validate_project.py` (new files), this handoff.
+
+No change to SessionTransport, LiveRace, LiveProtocol, PeerSession, Physics, Race or any other Codex-owned file: they are read through their copied views (`state.boostTicks`, the friend's reported `boosting`). `docs/PROGRESS.md` stays with the integrator.
+
+**Coordination:** Codex's `codex/multiplayer-rematch` `94d4d1e` (seen on the owner's machine) reserves the results/lobby sections of `Menu.lua`, `refreshSummary` and the live callbacks of `UI.lua`, and `tests/test_ui.lua`; this task touches none of them.
+
+# Previous: race screens and score celebrations
 
 Prepared 2026-10-26 at about 16:15 CET by Claude (rendering/UI/sprites owner).
 
