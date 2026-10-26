@@ -1,5 +1,23 @@
 # Codex handoff — production maps and Claude course review
 
+## Active review/integration — Scarlet v2 and stat bars, 2026-10-26 14:09 CET
+
+Owner authorizes review and conditional installation/publication of Claude's
+latest work. Own `codex/scarlet-stats-review` from clean `98f433e` (installed
+runtime9c80746). Review exact Claude tips `claude/scarlet-fixes`8889aa4 and
+`claude/kart-stat-bars`e122120. Preserve both original worktrees/untracked files.
+
+Plan: independently review geometry/gate fixes and stat-bar math/layout/fallback;
+combine the approved six-commit stack without replacing Codex systems; run
+focused Lua51 integration, atlas/catalogue and source/load checks. Reserve this
+handoff, PROGRESS, INTEGRATION_STATUS, PRODUCTION_MAPS, API_CONTRACTS/ADR20 shared
+review notes and a new review sheet. Source edits are limited to a concrete
+review finding if needed; no new gameplay work or automatic milestone closure.
+Review the +8texture/+4font budget explicitly (89/77/140 production). Only after
+checks pass: focused combined commit, normal publish of combined and two Claude
+branches, full prior-addon backup, verified install and matching friend ZIP.
+No main/force/release, save migration, native input or other-checkout changes.
+
 ## Installed combined Scarlet checkpoint — 2026-10-26 10:16 CET
 
 Owner-authorized installation complete: tested runtime `9c80746`, source/docs
