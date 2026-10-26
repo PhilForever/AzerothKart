@@ -1,29 +1,275 @@
-# Claude handoff — Scarlet Armory (in progress)
+# Claude handoff — Scarlet Armory
 
-## Active reservation — Scarlet Crusade Cup: Scarlet Armory (2026-10-26)
+Prepared 2026-10-26 at about 02:50 CET (Europe/Oslo) by Claude (rendering/UI/sprites owner).
 
-The owner sent the Armory's in-game map, a battle map of the wing (Sanctum of Maps), a screenshot of the Training Grounds and one of the Hall of Champions. He wrote: "Sweet. In the meantime let's get to work on Scarlet Armory. Image 3 is the training grounds area. Final room is the iconic round room with stairs leading down to herod (image 4). Same style. Free driving through the whole map. The Training grounds is the only outside you see on this map."
+**Base:** `claude/drive-fixes` `fb8b296`. Thunder Bluff and the Graveyard are integrated on Codex's `codex/claude-courses-integration` and installed. The Library and the drive fixes are not integrated yet, so this branch carries them. No Codex branch has moved since the drive fixes' handoff.
+
+**Branch:** `claude/scarlet-armory`, with these commits:
+
+- `0e35c44`: the reservation;
+- `7d297df`: Scarlet Armory;
+- this handoff.
+
+> **Do not install this branch on its own.** It descends from Claude's branches, not from Codex's integration, so its `ScoreSync` still expects seven courses and does not start with eleven selectable. Codex's integration already derives the counts and has the codes `T` and `G`; the Library needs `L` and the Armory `A`, as in [the patch below](#needs-codex-score-sync-learns-the-armory).
+
+## Owner instructions
+
+He sent four images:
+
+- the Armory's in-game map;
+- a battle map of the wing (Sanctum of Maps);
+- a screenshot of the Training Grounds: a grass yard with stepping stones, archery targets and training dummies inside an arcade;
+- a screenshot of the Hall of Champions: a round hall, statues round its upper floor, a ring of stairs down to a red arena with a gold diamond.
+
+He wrote: "Sweet. In the meantime let's get to work on Scarlet Armory. Image 3 is the training grounds area. Final room is the iconic round room with stairs leading down to herod (image 4). Same style. Free driving through the whole map. The Training grounds is the only outside you see on this map."
 
 Asked where the finish line goes, he chose **"Down at Herod"**: the karts come in at the top of the Hall of Champions, drive down its ring of stairs and finish on a line across the hall's middle, beside Herod.
 
-The way, from the maps: the entrance, the Training Grounds (the one open yard), the Footman's Armory, round by its east side rooms and stairs to the Crusader's Armory, out of its north-west corner to the long hall, and into the Hall of Champions.
+The standing instructions hold:
 
-**Branch:** `claude/scarlet-armory` from `claude/drive-fixes` `fb8b296`. Nothing of Claude's since Thunder Bluff and the Graveyard is integrated yet, so this branch carries the Library and the drive fixes. Reserved, until this handoff says otherwise:
+- no merge into `main`;
+- no claim of in-game verification without the actual client;
+- the simulation-control functions in `UI.lua` stay untouched;
+- the owner pushes and runs the client checks, and Codex prepares coordinated installs.
+
+## Scope (reserved and changed)
+
+The reservation (`0e35c44`) held, with one addition: the gate check in `scripts/build_dungeon_tracks.py`, Claude's generator, which the reservation did not list.
 
 - **Scripts:**
-  - `scripts/dungeon_layouts.py`: a new Armory section;
-  - `scripts/dungeon_paint.py`: the Armory's new layers (the Hall of Champions' ring of stairs and its arena floor, the training yard's stepping stones). The other dungeons' pictures stay byte for byte.
-- **Generated:** `ScarletCrusade.lua` gains the Armory's entry, the others unchanged; new `addon/AzerothKart/Assets/Tracks/ScarletArmory/`.
-- **Shared:**
-  - `Courses.lua`: Scarlet Armory becomes selectable;
-  - `services/leaderboard/catalog.json` (generated);
-  - `scripts/validate_project.py`.
-- **`Menu.lua`:** the Armory's track copy and preview cell.
-- **Tests:** `tests/test_dungeon.lua`, `tests/test_circuit.lua` and `tests/test_menu.lua`.
-- **Proposal only:** the score-sync patch gains the Armory's code.
-- **Docs:** a track sheet and the shared lists that name the tracks.
+  - `scripts/dungeon_layouts.py`: the Armory section (`SA_*`, `SCARLET_ARMORY`);
+  - `scripts/dungeon_paint.py`: stairs bands and a gold lozenge in `rings`, `stairs` as a list with an `axis`, `paint_stones`, and `paint_kerbs` taking the lawn's style name (`lawn`);
+  - `scripts/build_dungeon_tracks.py`: the floor just past a gate is checked all along it, not only at its middle.
 
-No change to `Dungeon.lua`, `Race`, `SoloRecords`, physics, input, timing, networking or `UI.lua`.
+  The Graveyard's and the Library's data and pictures are byte for byte unchanged.
+- **Generated:** `ScarletCrusade.lua` gains the Armory's entry, the others unchanged. New: `addon/AzerothKart/Assets/Tracks/ScarletArmory/Background.tga` (2048×2048, 16,777,234 bytes) and `Preview.tga` (512×512, 1,048,594 bytes).
+- **Shared:**
+  - `Courses.lua`: Scarlet Armory is selectable; only the Monastery stays `soon`;
+  - `services/leaderboard/catalog.json` (generated): eleven boards;
+  - `scripts/validate_project.py`: the Armory's required files.
+- **`Menu.lua`:** the Armory's track copy and its square preview cell.
+- **Tests:**
+  - `tests/test_dungeon.lua`: the cup's ready courses and Track cycle, and the Armory's catalogue entry, surfaces, round hall, finish, route walk, launch and solids;
+  - `tests/test_circuit.lua`: the coming-soon count and the Track cycle;
+  - `tests/test_menu.lua`: the Track cycle, the Scarlet cup's rows, the square preview, the Armory's sprint board.
+
+  `test_ui.lua` is unchanged: the counts stay 90/167/136.
+- **Docs:**
+  - new: the [track sheet](../art/tracks/scarlet-armory.md), with its overview, review image and sources list;
+  - updated: ADR 0020 (a third addendum), `API_CONTRACTS.md`, `TRACKS.md`, `README.md`, `ASSETS.md`, `INDEX.md`, `ASSET_SOURCES.md`, `CHANGELOG.md`, `TEST_PLAN.md` and `tests/MANUAL_CLIENT_CHECKLIST.md`.
+
+There is no change to `Dungeon.lua`, `Race`, `SoloRecords`, physics, input, timing, networking, `Circuit` or `UI.lua`. `ScoreSync` is changed only as a proposal. `docs/PROGRESS.md` was not edited; the entry is [below](#progress-ledger-entry-for-the-integrator-scarlet-armory).
+
+## Delivered
+
+![The way through and nine follow-camera views](../art/tracks/scarlet_armory-review.png)
+
+Scarlet Armory, the third dungeon sprint. The [track sheet](../art/tracks/scarlet-armory.md) has the full record.
+
+- **The way through**, from the wing's maps:
+  1. The grid stands at the portal, between two Scarlet guards, facing east along the entrance hall. A red runner leads east and north to the first gate, *Training Grounds*, in its door.
+  2. The Training Grounds: four roofed, kerbed stone walks round the one open yard. The yard has grass with stepping stones, the arcade's columns (open in the middle of each side), four archery targets, four training dummies, hay and a bush.
+  3. Stairs up from the north walk, with the second gate, *Footman's Armory*, on them.
+  4. The Footman's Armory, round its two great pillars, then out by its east side room. Stairs up from there, with the third gate, *Crusader's Armory*, on them, lead to the Crusader's side room.
+  5. West through the Crusader's Armory, out of its north-west corner, north, then east along the long hall to the fourth gate, *Hall of Champions*, in its door.
+  6. Down the round hall's ring of stairs to the finish, *Herod*: the chequered line across the hall's middle, through Herod in the arena. He blocks, so the karts cross either side of him.
+- **Size:**
+  - 2048 × 2048 world units;
+  - 26 rooms (the yard is grass; the Hall of Champions is round) and 38 solids;
+  - about 4,200 units from the portal to the finish along the reviewed route.
+- **Free driving:** every room on the way is open to the karts, the armories' aisles and side rooms, the long hall's east end and the round hall's upper floor included. None is a dead end the way must enter.
+- **The look:**
+  - the yard under the Library's green-tinged night sky;
+  - the armories: armour stands down the side walls, weapon racks face on along the north walls, a forge and an anvil, a table, a cart, crates, red mats and Scarlet footmen;
+  - the Hall of Champions: four champions' statues and a Scarlet banner round its north, the ring of stairs down to a red arena with a gold ring and a quartered gold lozenge, candles, and Reforged's Renault Mograine as Herod.
+
+## Decisions for review
+
+1. **The way, from the two maps.** He drew no route this time. The way follows the wing's own order on its maps: the Training Grounds, the Footman's Armory, the Crusader's Armory and the Hall of Champions. The maps' octagonal pillars are two great square pillars in each armory. Halls are 120 to 130 units wide, as in the Library.
+2. **The finish through Herod**, as he chose. Herod is solid on the line. The generator used to check the floor just past a gate only at its middle, which Herod covers; it now checks all along the gate (ADR 0020's third addendum). The runtime is unchanged.
+3. **The Hall of Champions: 175 in radius, low in the world.** The camera stops at the world's edge, so at the finish the hall's north wall is the top of the screen. At 190 units the wall's face and the north statues ran off the 2048-unit picture; at 175, with its centre 27 units lower, they are drawn whole. The door and the long hall are unchanged.
+4. **Herod's stand-in.** Reforged has no Herod. Renault Mograine's boss model, a crimson-armoured Scarlet hero, stands in for him.
+5. **The yard is all grass.** The stepping stones are paint; the whole yard inside the walks slows the karts. Making the stones stone would take a room per stone. The client check asks whether they read as paint.
+6. **Racks face on only against north walls.** Seen from above, a rack against a side wall is end on, a stick. So weapon racks stand face on along the north walls, and armour stands, whose armour shows in profile, line the side walls.
+7. **Statues round the north only**, as the Library's shelves: on the south wall they would lean out over the floor.
+8. **Flat stairs.** The stairs are painted on a flat floor, as in the Graveyard.
+
+## Needs Codex: score sync learns the Armory
+
+**Problem:** as for the Library, now with eleven courses. `Sync.new` returns `nil,"options"` and the sync never starts; `test_score_sharing` fails; local saving is unaffected.
+
+**Proposed patch** (Codex's decision; not applied; these are Codex's files). It supersedes [the Library's](#needs-codex-score-sync-learns-the-library):
+
+- codes `T` for `thunder_bluff_skyway`, `G` for `scarlet_graveyard`, `L` for `scarlet_library` and `A` for `scarlet_armory`;
+- `BOARDS = #courseIds` in place of the literal 7;
+- a HELLO with one board hash per course: thirteen fields, at most 146 bytes, under the 240-byte limit;
+- `test_score_sync`'s ids gain the four courses;
+- `test_score_sharing`'s module list gains `Dungeon` and `ScarletCrusade`.
+
+On Codex's integration, which already derives the counts and has `T` and `G`, the change is the codes `L` and `A`.
+
+**Tested:** `git apply --check` passes on `7d297df`. With the patch, the whole Lua 5.1 suite passes on a copy of `7d297df`, on both machines: 42 modules, `test_score_sync` and `test_score_sharing` included.
+
+```diff
+diff --git a/addon/AzerothKart/ScoreSync.lua b/addon/AzerothKart/ScoreSync.lua
+index 14107ae..330c758 100644
+--- a/addon/AzerothKart/ScoreSync.lua
++++ b/addon/AzerothKart/ScoreSync.lua
+@@ -6,8 +6,10 @@ local Sync = {PREFIX="AZKSCR1", MAX_BYTES=240, MAX_PEERS=32, SEND_INTERVAL=1,
+     HELLO_INTERVAL=60, REQUEST_TIMEOUT=120, MAX_ROWS=50}
+ AK.ScoreSync = Sync
+ local courseIds={"test_oval","mirage_raceway","stormwind_city","ironforge_gp",
+-    "darnassus_canopy","orgrimmar_canyon","undercity_slime"}
+-local courseCodes={"O","M","S","I","D","R","U"}
++    "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway","scarlet_graveyard",
++    "scarlet_library","scarlet_armory"}
++local courseCodes={"O","M","S","I","D","R","U","T","G","L","A"}
++local BOARDS=#courseIds
+ local courseToCode,codeToCourse={},{}
+ for i,id in ipairs(courseIds) do courseToCode[id],codeToCourse[courseCodes[i]]=courseCodes[i],id end
+ local kartIds={"goblin_mortar_trike","steam_tank","dwarven_biker","dwarf_car",
+@@ -59,7 +61,7 @@ function Sync.encode(message)
+         and integer(message.hash,0,4294967295) and integer(message.count,0,Sync.MAX_ROWS) then
+         text=table.concat({"1 E",message.code,decimal(message.hash),decimal(message.count)}," ")
+     elseif message.kind=="HELLO" and integer(message.physicsVersion,1,2147483647)
+-        and integer(message.catalogHash,0,4294967295) and dense(message.hashes,7)==7 then
++        and integer(message.catalogHash,0,4294967295) and dense(message.hashes,BOARDS)==BOARDS then
+         local parts={"1 H",decimal(message.physicsVersion),decimal(message.catalogHash)}
+         for _,value in ipairs(message.hashes) do
+             if not integer(value,0,4294967295) then return nil,"hash" end
+@@ -106,10 +108,10 @@ function Sync.decode(payload)
+         if codeToCourse[code] and stamp and n then return {kind="END",code=code,hash=stamp,count=n} end
+     elseif tag=="H" then
+         local p={};for field in rest:gmatch("[^ ]+") do p[#p+1]=field end
+-        if #p~=9 or table.concat(p," ")~=rest then return nil,"hello" end
++        if #p~=BOARDS+2 or table.concat(p," ")~=rest then return nil,"hello" end
+         local physics,catalog=number(p[1],1,2147483647),number(p[2],0,4294967295)
+         local hashes={}
+-        for i=1,7 do hashes[i]=number(p[i+2],0,4294967295);if not hashes[i] then return nil,"hello" end end
++        for i=1,BOARDS do hashes[i]=number(p[i+2],0,4294967295);if not hashes[i] then return nil,"hello" end end
+         if physics and catalog then return {kind="HELLO",physicsVersion=physics,catalogHash=catalog,hashes=hashes} end
+     end
+     return nil,"message"
+@@ -129,7 +131,7 @@ local function clock(s,now)
+     s.now=now;return true
+ end
+ function Sync.new(options,now)
+-    if not plain(options) or not H.NormalizeName(options.name) or dense(options.contexts,7)~=7 then return nil,"options" end
++    if not plain(options) or not H.NormalizeName(options.name) or dense(options.contexts,BOARDS)~=BOARDS then return nil,"options" end
+     local store,writable=H.Load(options.store)
+     if not writable then return nil,"store" end
+     local s={name=H.NormalizeName(options.name),key=identity(options.name),contexts={},store=store,
+diff --git a/tests/test_score_sharing.lua b/tests/test_score_sharing.lua
+index c3baf88..ead3b9c 100644
+--- a/tests/test_score_sharing.lua
++++ b/tests/test_score_sharing.lua
+@@ -102,7 +102,7 @@ local function bus()
+             return frame
+         end
+         using(client,function()
+-            for _,module in ipairs({"Track","MirageRaceway","Circuit","CapitalCities","Courses",
++            for _,module in ipairs({"Track","MirageRaceway","Circuit","CapitalCities","Dungeon","ScarletCrusade","Courses",
+                 "Physics","Highscores","SoloRecords","ScoreSync","ScoreDiscovery","ScoreSharing"}) do
+                 assert(loadfile("addon/AzerothKart/"..module..".lua"))("AzerothKart",client.namespace)
+             end
+diff --git a/tests/test_score_sync.lua b/tests/test_score_sync.lua
+index da12222..eccb958 100644
+--- a/tests/test_score_sync.lua
++++ b/tests/test_score_sync.lua
+@@ -3,7 +3,8 @@ local AK={}
+ local H=assert(loadfile("addon/AzerothKart/Highscores.lua"))("AzerothKart",AK)
+ local S=assert(loadfile("addon/AzerothKart/ScoreSync.lua"))("AzerothKart",AK)
+ local ids={"test_oval","mirage_raceway","stormwind_city","ironforge_gp",
+-    "darnassus_canopy","orgrimmar_canyon","undercity_slime"}
++    "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway","scarlet_graveyard",
++    "scarlet_library","scarlet_armory"}
+ local contexts={}
+ for i,id in ipairs(ids) do contexts[i]={trackId=id,trackVersion=1,physicsVersion=11,
+     lapCount=3,tickRate=60,rulesVersion=1} end
+```
+
+## Tests performed
+
+The cloud ran Python 3.13 and Lupa 2.8. The developer machine's Linux shell ran Python 3.10.12 (SQLite 3.37.2) and Lupa 2.8.
+
+| Command / check | Result |
+|---|---|
+| `python scripts/build_dungeon_tracks.py --wc3 … --check` at `7d297df` | **CHECK PASS** for `ScarletCrusade.lua` and all six pictures, byte-identical on both machines. Armory Background `6a2b0ced…a025`, Preview `9df589ba…d8cd`. The Graveyard's (`753cc171…40a9`, `61e8843e…9b08`) and the Library's (`028c17cb…fd84`, `3a17d94a…fa01`) are unchanged. |
+| The same, from the sheets' own rebuild commands | **CHECK PASS** on the developer machine for all three dungeons. A fresh folder was extracted with exactly the Graveyard's, the Library's and the Armory's `wc3casc.py` commands, read from their sheets, against the owner's install. The sprite cache started empty, so all 129 sprites were rendered there. |
+| `python scripts/test_lua.py --runtime lua51 --tests <the 41 other modules>` | **PASS** on both machines (`dungeon`, `circuit`, `menu`, `ui` included). |
+| `… --tests score_sharing` | **FAIL** on both machines, as expected: the score-sync blocker above. |
+| The whole Lua 5.1 suite with the score-sync patch | **PASS**, 42 modules, on both machines. |
+| `… --runtime lua54 --tests dungeon circuit menu ui presentation track checkpoints laps race solo_records highscores` | **PASS** on both machines. |
+| `python -m unittest discover -s tests -p "test_*.py"` | **24 OK** in the cloud. On the developer machine 23 pass; `test_failed_write_rolls_back_and_connection_remains_usable` errors with SQLite 3.37.2, as before. That store and its test are untouched by this branch. |
+| `python scripts/export_score_catalog.py --check` | **CHECK PASS**, eleven boards, on both machines. |
+| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in `PROGRESS.md` fail, on both machines. |
+| `git diff --check`; the docs' link anchors | Clean. |
+| Review | The whole floor with the way through, plus nine follow-camera views (533 × 320 world units): the portal, the Training Grounds, the stairs, both armories, the stairs between them, the long hall, the round hall's door and the finish ([image](../art/tracks/scarlet_armory-review.png)). |
+
+**NOT RUN:**
+
+- the client: the drive, the finish beside Herod, the walls and the round wall, the yard, the HUD, the look in the follow camera, loading the 2048 × 2048 picture, performance;
+- any install;
+- multiplayer;
+- score sync with real peers.
+
+## Client check (owner; NOT RUN; after Codex's review and a coordinated install)
+
+[The client checklist's new section](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-scarlet-armory-check-proposed-claudescarlet-armory) covers:
+
+- the cup's three ready sprints and the Track button's cycle;
+- loading the picture;
+- finding the way past the five gates;
+- the yard's grass and stepping stones;
+- the solids and the walls;
+- the Hall of Champions: its stairs, its wall and the finish beside Herod;
+- the sprint HUD, results and board;
+- the frame rate.
+
+**A full client restart is needed**, because the files are new.
+
+## PROGRESS ledger entry for the integrator (Scarlet Armory)
+
+> ### 2026-10-26 ~02:50 CET — Claude / `claude/scarlet-armory`, Scarlet Armory
+>
+> - The Scarlet Crusade Cup's third dungeon sprint, Scarlet Armory, is selectable, from the wing's maps:
+>   - the portal and the Training Grounds, the one open yard;
+>   - the Footman's and the Crusader's Armories;
+>   - the long hall;
+>   - the round Hall of Champions, down its stairs to the finish beside Herod, as the owner chose.
+>
+>   Five gates, 26 rooms (one round), 38 solids, one run of about 4,200 units.
+> - The generator checks the floor past a gate all along it, so Herod can stand on the finish; the painter adds round stairs, a lozenge, north-climbing stairs and stepping stones. The Graveyard's and the Library's outputs are byte-identical.
+> - `build_dungeon_tracks.py --check` PASS for all three dungeons, byte-identical in the cloud and on the developer machine, including from fresh extractions by the sheets' commands.
+> - The Lua 5.1 suite PASS except `test_score_sharing`: `ScoreSync` expects seven courses. Codex's patch, now with the Armory's code, is in the handoff, and the whole suite passes with it on both machines.
+> - Lua 5.4 subset PASS; catalogue check PASS (eleven boards); validator: only the 2 pre-existing `PROGRESS.md` links fail.
+> - **Blocker:** not installable until Codex's score-sync change lands. **NOT RUN:** the client; install.
+
+## Commits, push and workspace (Scarlet Armory)
+
+| Item | Value |
+|---|---|
+| Worktree / branch | `AzerothKart-Claude` / `claude/scarlet-armory`, from `claude/drive-fixes` `fb8b296`. |
+| Commits | `0e35c44` (the reservation), `7d297df` (Scarlet Armory: layout, painter, generator check, data, pictures, catalogue, menu, tests, docs), then this handoff. |
+| Push | Owner only. Push the three unpublished branches; each contains the one before: `git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/scarlet-library claude/drive-fixes claude/scarlet-armory` |
+| Not done | No merge into `main` or any Codex branch; no tag, release, install or client input. Codex's files and worktrees were only read. |
+
+**Workspace notes:**
+
+- As before, commits are made in a cloud clone and moved as git bundles (`local-artifacts/bundles/`), so the hashes are identical on the developer machine.
+- The developer machine's worktree moved from `claude/drive-fixes` to `claude/scarlet-armory` with a plain checkout; the fast-forward ran normally. No lock or temporary files were left.
+- The Armory's Warcraft III files were extracted on the developer machine into a check folder outside the repository, with the three sheets' commands. Extracted files stay outside Git.
+- The worktree is clean apart from the untracked `Claude outputs/` folder, where the review images are.
+
+## Next
+
+1. **The owner:**
+   - look at the review image;
+   - say whether the way through, the yard and the Hall of Champions feel right;
+   - push the three branches.
+2. **Codex:** review and integrate the Library, the drive fixes and the Armory, with the score codes `L` and `A`. Regenerate the catalogue on the integrated tree, then make a coordinated install with a full client restart.
+3. **The owner:** the client checks, above all the finish beside Herod and the round hall's stairs.
+4. **Claude:** the Scarlet Monastery (the Cathedral), the cup's last course. It needs the owner's map of the wing, or his route, and his choice of the finish.
 
 # Previous: fixes from the owner's client run
 
