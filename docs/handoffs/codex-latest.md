@@ -1,5 +1,24 @@
 # Codex handoff — production maps and Claude course review
 
+## Active review/integration — Claude visual stack, 2026-10-26 20:52 CET
+
+Owner authorizes reviewing and conditionally integrating Claude's latest work.
+Own `codex/claude-race-integration` from clean `7cd2aed` (installed94d4d1e).
+Review exact stack `claude/scarlet-v3`a4fe2d5, `claude/race-screens`8511d8c,
+`claude/gryphon-wings`e3c82ad. No other checkout changes or automatic main merge.
+
+Plan: separate read-only reviews of map changes, results/celebration semantics
+and animated sprites; then combine approved source, preserving all rematch/
+room controls, pending/tied observations, native pacing and handling. Resolve
+the one previewed Menu conflict using the current command APIs. Reserve Menu
+results/HUD/highscore integration and tests, UI/Presentation visual hooks and
+their tests, any needed SoloRecords/ScoreSharing detached finish-placement API
+and tests (avoid guessing an identity from matching times), shared contracts,
+production/version/budget docs, PROGRESS and this handoff. Claude owns originals.
+Run focused combined Lua51, catalogue/art checks and two-round rematch guards;
+record only executed results. New art/memory budget requires explicit review.
+No unreviewed physics/network changes, forced push, release or native automation.
+
 ## Installed rematch checkpoint — 2026-10-26 20:49 CET
 
 Tested local runtime `94d4d1e` is installed. Previous approval-service quota
