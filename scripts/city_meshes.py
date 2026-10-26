@@ -1,6 +1,7 @@
-"""Procedural scenery models for city tracks: what Warcraft III has no model
-for (the Great Forge's Great Anvil and its pumps), built from simple solids
-(boxes, prisms, cylinders) and painted with Warcraft III textures.
+"""Procedural scenery models for city and dungeon tracks: what Warcraft III
+has no model for (the Great Forge's Great Anvil and its pumps, the Scarlet
+Armory's training dummies), built from simple solids (boxes, prisms,
+cylinders) and painted with Warcraft III textures.
 
 A mesh is posed like a Warcraft III model for wc3render.render: world-unit
 triangles round its origin on the ground, a stand-in model whose materials
@@ -301,7 +302,41 @@ def pump(mesh):
     mesh.prism(-12, 0, 17, 29, 1.4, 1.4, 8, DARK_IRON)                # the beam's far post
 
 
-MESHES = {"great_anvil": great_anvil, "great_pump": great_pump, "pump": pump}
+# ---------------------------------------------------------------------------
+# The Scarlet Armory's Training Grounds: training dummies, which Warcraft III
+# has no model for, in the hitching post's weathered wood, iron and cloth.
+
+HITCH = "war3.w3mod:_de.w3mod:doodads/lordaeronsummer/props/hitchingpost/ls_props_posthitching_diffuse.dds"
+POST_WOOD = tex(HITCH, (330, 280, 430, 560))
+BEAM_WOOD = tex(HITCH, (40, 610, 760, 690))
+LOG_END = tex(HITCH, (150, 136, 250, 232))
+IRON = (60, 58, 62)
+CLOTH = (206, 198, 178)
+ROPE = (148, 116, 70)
+
+
+def training_dummy(mesh):
+    """A wooden training dummy: a stout post bound with two iron bands, a
+    beam through it for arms, its ends shod in iron."""
+    mesh.prism(0, 0, 0, 30, 3.6, 3.2, 10, POST_WOOD, LOG_END)
+    mesh.prism(0, 0, 7, 9, 3.9, 3.9, 10, IRON, IRON)
+    mesh.prism(0, 0, 16, 18, 3.7, 3.7, 10, IRON, IRON)
+    mesh.block(-13, -1.6, 13, 1.6, 20, 23.5, BEAM_WOOD)
+    mesh.block(-14.5, -2, -11, 2, 19.5, 24, IRON)
+    mesh.block(11, -2, 14.5, 2, 19.5, 24, IRON)
+
+
+def sack_dummy(mesh):
+    """A padded training dummy: a cloth sack bound with rope on a post, a
+    smaller sack for its head."""
+    mesh.prism(0, 0, 0, 12, 1.4, 1.4, 8, POST_WOOD)
+    mesh.prism(0, 0, 10, 24, 5.5, 4.6, 12, CLOTH, CLOTH)
+    mesh.prism(0, 0, 15, 16.5, 5.6, 5.6, 12, ROPE, ROPE)
+    mesh.prism(0, 0, 24, 31, 3.6, 2.4, 12, CLOTH, CLOTH)
+
+
+MESHES = {"great_anvil": great_anvil, "great_pump": great_pump, "pump": pump,
+          "training_dummy": training_dummy, "sack_dummy": sack_dummy}
 
 
 def build(name, yaw=270, scale=1.0, wc3=None):

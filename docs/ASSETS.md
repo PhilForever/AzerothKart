@@ -34,14 +34,14 @@ The same painter draws it, with Reforged's Scarlet huntsmen, cleric and invoker 
 - `Background.tga`, 2048×2048 (16 MiB raw pixels);
 - `Preview.tga`, 512×512.
 
-The same painter draws it, with Reforged's Scarlet footmen, Dagren the Orcslayer in crimson as Herod (Renault Mograine on `claude/scarlet-armory`), Lordaeron's scarecrows, smithy tools, furniture and statues, and the classic archery targets, armour stands and weapon racks. Loading it in the client is **NOT RUN**.
+The same painter draws it, with Reforged's Scarlet footmen, Dagren the Orcslayer in crimson as Herod (Renault Mograine on `claude/scarlet-armory`), Lordaeron's smithy tools, furniture and statues, and the classic archery targets, armour stands and weapon racks. Version 2 (`claude/scarlet-fixes`) paves the Training Grounds with octagonal flagstones and replaces version 1's scarecrows with procedural training dummies (`scripts/city_meshes.py`, painted with Reforged's hitching post wood), adding Reforged's plank boards, hay and flower beds. Loading it in the client is **NOT RUN**.
 
 [Scarlet Cathedral](art/tracks/scarlet-cathedral.md) (proposed on `claude/scarlet-cathedral`) adds `Assets/Tracks/ScarletCathedral/`:
 
 - `Background.tga`, 1024×2048 (8 MiB raw pixels, as the Graveyard);
 - `Preview.tga`, 256×512.
 
-The same painter draws it, with its new pools (Warcraft III's water, tinted), the falls and a wooden parquet, and Reforged's Renault Mograine, Sally Whitemane, Scarlet clerics, city fountain and Lordaeron lions, pillars, bookshelves and furniture. Loading it in the client is **NOT RUN**.
+The same painter draws it, with its new pools (Warcraft III's water, tinted), the falls and a wooden parquet, and Reforged's Renault Mograine, Sally Whitemane, Scarlet clerics, city fountain and Lordaeron lions, pillars, bookshelves and furniture. Version 2 (`claude/scarlet-fixes`) raises the statues' platforms as plinths, painted with cobbled tops, dressed rims and faces. Loading it in the client is **NOT RUN**.
 
 Menu art: [the front end](art/ui/front-end.md) adds one original atlas, `addon/AzerothKart/Assets/UI/TrackPreviews.tga` (1024×512, opaque, 2 MiB), loaded on the first visit to the track screen. Its Mirage cell is scenery v1 halved; its Test Oval cell is painted from `Track.lua` geometry by `scripts/build_ui_art.py`. The dialogs, buttons, fonts and sounds are the client's own (`BACKDROP_*_DIALOG_32_32`, `DialogHeaderTemplate`, `MainMenuFrameButtonTemplate`, `Fancy*Font`, `SOUNDKIT`), referenced by name and not shipped. The kart turntable reuses the race's kart sheets. Client appearance is NOT RUN.
 

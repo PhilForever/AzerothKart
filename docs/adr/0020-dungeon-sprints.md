@@ -141,3 +141,21 @@ Evidence, offline only:
 - `build_dungeon_tracks.py --check` passes for all four dungeons; the Graveyard's and the Library's outputs are byte for byte unchanged.
 
 **NOT RUN in the client:** the Cathedral's drive, the pools' feel, the 1024 × 2048 picture's load and performance.
+
+## Addendum: grass with a clear edge, models that block as drawn, plinths (proposed, `claude/scarlet-fixes`, 2026-10-26)
+
+After his first drive of the installed Scarlet Cup the owner wrote: "Grass needs to be drivable if it doesnt have a clear edge/fence", asked that the Armory's Training Grounds be driven "without being slowed" and that the Cathedral's grass no longer slow, reported "seemingly some invisible walls" there, and pointed out that "the stairs are the only path up to the cathedral". He also asked for the huntsman standing on the Library courtyard's path to go, and for Loksey's kennel gate to go: "the room is nice but not part of the checkpoints".
+
+Decisions, all data and generator; `Dungeon.lua` and every other runtime file are unchanged:
+
+1. **Grass slows only where a clear edge marks it.** A lawn stays `rough` where kerbed paths or walls edge it (the Graveyard's cloister, the Library's courtyard); otherwise its room is `road` and the grass is paint (the Armory's yard, the Cathedral's gardens).
+2. **A model may block where it is drawn** (`blocks` on a solid prop, measured by `build_dungeon_tracks.blocking` from the rendered sprite): `"drawn"` grows its box to its drawn body's, less a 2-unit margin; `"round"` makes it the disc in that box, a round solid (the integrated `shape="disc"`). The picture leans tall models north of their feet, so a box at a tree's trunk left a kart stopping on the drawn leaves, short of anything it could see. Trees, bushes, the Cathedral's great pillars and the Armory yard's dummies, targets and backstops now block as drawn. Slender models (columns, soldiers) keep a box at their feet, and a kart passing behind one is drawn over its top.
+3. **Plinths:** a layout's `plinths` are raised blocks that are not floor, so they stop the karts as walls do; the painter paves their tops in a floor style inside a dressed rim and raises their south faces `height` units in the walls' stones. The Cathedral's statue platforms are plinths, so the stairs beside the falls are the only way between its gardens; its *Upper Gardens* gate spans the band.
+4. **Versions:** the Library, the Armory and the Cathedral become geometry version 2; their score boards start fresh, version 1's records stay saved. The Library has four gates. The Graveyard is unchanged, byte for byte.
+
+Evidence, offline only:
+
+- `build_dungeon_tracks.py` validates all four dungeons (the invisible-wall rule, gates that cannot be passed round, the routes, nothing that is not solid on the floor); a solid's middle, or one side's, must be on the floor (a tree's crown may reach over a wall).
+- `tests/test_dungeon.lua`: the Library's four gates in order and its clear cross path; the Armory's and the Cathedral's rooms all `road`; a plinth's face stops a kart, the stairs run clean up; a kart stops at a tree's crown, not at its trunk; the routes never meet a wall or a solid.
+
+**NOT RUN in the client:** the three courses' version 2 drive, look and picture load.

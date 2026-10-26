@@ -65,21 +65,20 @@ Menu.TRACKS = {
         facts={"Sprint: one run through 3 gates", "Grass slows you; graves and tombs block",
             "The finish is Honor's Tomb"}},
     {id="scarlet_library", name="Scarlet Library", cell="scarletlibrary",
-        blurb="From the portal down the long hall to the Huntsman's Cloister, into Houndmaster Loksey's kennel "
-            .. "and back out, then up through the Gallery of Treasures and the Athenaeum to Arcanist Doan's "
-            .. "round library.",
-        facts={"Sprint: one run through 5 gates", "Loksey's kennel: in across his line, then back out",
+        blurb="From the portal down the long hall to the Huntsman's Cloister, past Houndmaster Loksey's kennel, "
+            .. "then up through the Gallery of Treasures and the Athenaeum to Arcanist Doan's round library.",
+        facts={"Sprint: one run through 4 gates", "The cloister's lawns slow you; its paths are stone",
             "The finish is the round library's door"}},
     {id="scarlet_armory", name="Scarlet Armory", cell="scarletarmory",
         blurb="From the portal across the Training Grounds, the one open sky, up into the Footman's and the "
             .. "Crusader's Armories, along the long hall into the round Hall of Champions and down its stairs "
             .. "to Herod.",
-        facts={"Sprint: one run through 5 gates", "Grass slows you in the Training Grounds",
+        facts={"Sprint: one run through 5 gates", "Full speed across the Training Grounds",
             "The finish is down the stairs, beside Herod"}},
     {id="scarlet_cathedral", name="Scarlet Cathedral", cell="scarletcathedral",
-        blurb="From the portal into the Chapel Gardens, round their pools and up beside the falls, through the "
-            .. "cathedral's door and up the nave to the altar, where Mograine and Whitemane stand.",
-        facts={"Sprint: one run through 4 gates", "The pools and the falls block; grass slows you",
+        blurb="From the portal into the Chapel Gardens, round their pools and up the stairs beside the falls, "
+            .. "through the cathedral's door and up the nave to the altar, where Mograine and Whitemane stand.",
+        facts={"Sprint: one run through 4 gates", "The pools block; only the stairs lead up",
             "The finish is before the altar"}},
 }
 

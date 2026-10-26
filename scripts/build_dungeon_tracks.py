@@ -13,8 +13,11 @@ Outputs, per dungeon in dungeon_layouts.DUNGEONS:
 - addon/AzerothKart/ScarletCrusade.lua: the dungeon geometry (rooms, gates,
   spawn, solid boxes, lap count, the reviewed route), generated from
   dungeon_layouts.py. Solid boxes of scenery models come from the models'
-  own footprints, or from the layout; a pool (`pools`) is a solid of its
-  own shape, a box or a disc, which the painter fills with water.
+  own footprints, or from the layout; a model marked `blocks` blocks where
+  the picture draws it (its drawn body's box, or for a round one, a tree's
+  crown, the disc in it), so no kart stops on open floor short of what it
+  sees; a pool (`pools`) is a solid of its own shape, a box or a disc,
+  which the painter fills with water.
 - addon/AzerothKart/Assets/Tracks/<Folder>/Background.tga (one texel per
   world unit) and Preview.tga (4x reduced), painted by dungeon_paint.py from
   the same rooms Dungeon.lua collides with.
@@ -29,6 +32,7 @@ from pathlib import Path
 import dungeon_layouts as L
 from build_city_tracks import number, prop_box, q
 from city_layouts import WALL_INSET, box
+from city_paint import sprite_for
 from wc3render import forget_textures
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -39,15 +43,50 @@ CHECKPOINT_MAX_STEP = 5
 # The picture's walls stand at the inset from the karts' floor; this much
 # more is allowed (a doorway's corner, a round wall's rounding).
 WALL_SLACK = 3
+# A model that blocks where it is drawn (`blocks`) blocks this much inside
+# its drawn body's outline: its outermost texels are leaf tips and edges.
+DRAWN_MARGIN = 2
 
 
 # ---------------------------------------------------------------------------
 # Geometry.
 
 
-def geometry(wc3, d):
-    """The runtime definition of one dungeon (plain Python values)."""
+def drawn_bounds(wc3, d, item, cache):
+    """(x0, y0, x1, y1): the world box of a model's body as the picture
+    draws it (its texels, not its shadow), leaning north with its height."""
+    sprite = sprite_for(wc3, d, item, cache)
+    forget_textures()
+    h = d["size"][1]
+    X, Y = int(round(item["x"])), int(round(item["y"]))
+    col0, row0 = X - sprite["ox"], h - Y - sprite["oy"]
+    xs = [col0 + i for i, _ in sprite["body_points"]]
+    ys = [h - 1 - (row0 + j) for _, j in sprite["body_points"]]
+    return min(xs), min(ys), max(xs) + 1, max(ys) + 1
+
+
+def blocking(wc3, d, item, found, cache):
+    """A solid model's collision where it `blocks` as drawn: "drawn" grows
+    its box to its drawn body's (less DRAWN_MARGIN); "round" makes it the
+    disc in its drawn body's box (a tree's crown, a bush), a round solid."""
+    x0, y0, x1, y1 = drawn_bounds(wc3, d, item, cache)
+    m = item.get("drawn_margin", DRAWN_MARGIN)
+    if item["blocks"] == "round":
+        r = int(min(x1 - x0, y1 - y0) / 2 - m)
+        assert r > 0, f"{item['name']} is drawn too small to block as a disc"
+        cx, cy = int(round((x0 + x1) / 2)), int(round((y0 + y1) / 2))
+        return {"id": item["name"], "x": cx - r, "y": cy - r, "width": 2 * r, "height": 2 * r, "shape": "disc"}
+    assert item["blocks"] == "drawn", f"{item['name']}: blocks is \"drawn\" or \"round\""
+    return box(item["name"], min(found["x"], x0 + m), min(found["y"], y0 + m),
+               max(found["x"] + found["width"], x1 - m), max(found["y"] + found["height"], y1 - m))
+
+
+def geometry(wc3, d, cache=None):
+    """The runtime definition of one dungeon (plain Python values). `cache`
+    keeps the sprites rendered for models that block as drawn, for the
+    painter."""
     width, height = d["size"]
+    cache = {} if cache is None else cache
     solids = []
     for item in d["props"]:
         solid = item["solid"]
@@ -59,6 +98,8 @@ def geometry(wc3, d):
         else:
             x0, y0, x1, y1 = solid
             found = box(item["name"], int(round(x0)), int(round(y0)), int(round(x1)), int(round(y1)))
+        if item.get("blocks"):
+            found = blocking(wc3, d, item, found, cache)
         solids.append(found)
     for pool in d.get("pools", ()):
         # Water the karts drive round: a round pool is a round solid.
@@ -294,8 +335,12 @@ def validate_geometry(g):
         assert s["width"] > 0 and s["height"] > 0, f"solid {s['id']} is empty"
         assert s.get("shape", "rect") in ("rect", "disc"), s["id"]
         assert s.get("shape") != "disc" or s["width"] == s["height"], f"round solid {s['id']} is square"
+        # On the floor: its middle, or (a tree's crown drawn over a wall
+        # beyond) the middle of one of its sides.
         cx, cy = s["x"] + s["width"] / 2, s["y"] + s["height"] / 2
-        assert floor.on_floor(cx, cy), f"solid {s['id']} stands off the floor"
+        assert any(floor.on_floor(px, py) for px, py in (
+            (cx, cy), (s["x"], cy), (s["x"] + s["width"], cy), (cx, s["y"]), (cx, s["y"] + s["height"]))), \
+            f"solid {s['id']} stands off the floor"
     # The route: clear of walls and solids, from the spawn through every gate.
     route = g["route"]
     assert route[0] == (sx, sy), "the route starts at the spawn"
@@ -407,7 +452,8 @@ def main():
     parser.add_argument("--dungeon", help="paint only this dungeon id (geometry is always complete)")
     parser.add_argument("--geometry-only", action="store_true", help="only the Lua dungeon data")
     args = parser.parse_args()
-    dungeons = [geometry(args.wc3, d) for d in L.DUNGEONS]
+    caches = {d["id"]: {} for d in L.DUNGEONS}        # each dungeon's sprites, for its painter
+    dungeons = [geometry(args.wc3, d, caches[d["id"]]) for d in L.DUNGEONS]
     for g in dungeons:
         validate_geometry(g)
     text = lua_data(dungeons)
@@ -423,9 +469,10 @@ def main():
         return
     import dungeon_paint
     for d, g in zip(L.DUNGEONS, dungeons):
+        cache = caches.pop(d["id"])
         if args.dungeon and d["id"] != args.dungeon:
             continue
-        dungeon_paint.build(args.wc3, d, g, check=args.check, preview=args.preview)
+        dungeon_paint.build(args.wc3, d, g, check=args.check, preview=args.preview, cache=cache)
 
 
 if __name__ == "__main__":

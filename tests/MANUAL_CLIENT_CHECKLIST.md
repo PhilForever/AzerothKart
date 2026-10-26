@@ -1,5 +1,15 @@
 # Manual client acceptance — F0/F1/F2/F5
 
+## Deferred Scarlet fixes check (proposed, `claude/scarlet-fixes`)
+
+**NOT RUN.** Run it after Codex's review and a coordinated install. **Fully restart the client:** the three pictures keep their paths but changed, and the client may keep the old ones until a restart. The owner runs these checks; Claude does not control the client.
+
+1. **Scarlet Library.** The HUD counts four gates (n/4): *Huntsman's Cloister*, *Gallery of Treasures*, *Athenaeum*, *Arcanist Doan*. Nobody stands on the courtyard's cross path. Loksey's kennel is still there off the south walk, and driving into it counts nothing. Record whether the courtyard's lawns slowing (their paths kerbed) feels fair.
+2. **Scarlet Armory, the Training Grounds.** Record whether the yard reads like his screenshot: pale octagonal flags in the grass, wooden dummies with arms and padded ones, targets before plank backstops with hay, flowers and bushes in two corners. The HUD shows "Road" anywhere in the yard: nothing slows. A kart stops at a dummy or a target where it is drawn, never short of it on open flags.
+3. **Scarlet Cathedral, the way up.** From the lower garden only the stairs beside the falls lead up: the plinths either side, with the statues, stop the kart at their faces. The lawns show "Road" and do not slow.
+4. **Scarlet Cathedral, invisible walls.** Drive at the trees and bushes in both gardens and at the nave's pillars from every side: the kart stops where the crown or the pillar is drawn, never on open grass or floor short of it, and never runs over leaves. Record any place the kart still stops at nothing it can see, with a screenshot.
+5. **Scores.** Each of the three courses shows a fresh board (version 2); version 1's times stay saved under the old version.
+
 ## Deferred Scarlet Cathedral check (proposed, `claude/scarlet-cathedral`)
 
 **NOT RUN.** Run it after Codex's review (round solids in ADR 0020's addendum, and the score-sync change with the Cathedral's code `C`) and a coordinated install. **Fully restart the client:** `Assets/Tracks/ScarletCathedral/` is new. The owner runs these checks; Claude does not control the client.

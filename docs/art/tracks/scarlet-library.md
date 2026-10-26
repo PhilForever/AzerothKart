@@ -12,10 +12,19 @@ He wrote: "Scarlet Library. Everything is inside except the first courtyard with
 
 ![Scarlet Library overview, 4x reduced](scarlet_library-overview.png)
 
-**Status:** proposed on `claude/scarlet-library` for Codex review and integration. The branch carries Thunder Bluff and Scarlet Graveyard too, since neither is integrated yet. The Library is selectable in this branch.
+**Status:** version 1 is integrated on Codex's `codex/scarlet-integration` and installed (runtime `9c80746`); the owner has driven it. **Version 2**, below, is proposed on `claude/scarlet-fixes` for Codex's review.
 
-- **Scores:** Library runs save locally, on their own one-run board. Community sharing needs Codex's score-sync change, described in [the handoff](../../handoffs/claude-latest.md#needs-codex-score-sync-learns-the-library). Without that change the sync does not start for any course, so this branch must not be installed on its own.
-- **NOT RUN in the client:** the drive, the look in the follow camera, loading the picture, performance. See [the client checklist](../../../tests/MANUAL_CLIENT_CHECKLIST.md).
+- **Scores:** Library runs save on their own one-run board, and Codex's score sync knows the Library (code `L`). Version 2 is a new geometry version, so its boards start fresh; version 1's records stay saved.
+- **NOT RUN in the client:** version 2's drive, look and picture load. See [the client checklist](../../../tests/MANUAL_CLIENT_CHECKLIST.md).
+
+## Version 2: after the owner's first drive
+
+He wrote: "remove the guy standing in the road on image 1. Remove the gate at houndmaster locksley - fun, but counterintuitive, the room is nice but not part of the checkpoints." He also asked that grass without a clear edge or fence no longer slow the karts.
+
+- **No gate in Loksey's kennel.** Four gates now: *Huntsman's Cloister*, *Gallery of Treasures*, *Athenaeum*, *Arcanist Doan*. The kennel stays as it was, a side room off the cloister's south walk, with Loksey, his hounds, the cages and the hay; the karts may drive in, and nothing there counts.
+- **Nobody on the paths.** The huntsman who stood at the west end of the courtyard's cross path is gone. The other huntsman and the hounds stand on the lawns.
+- **The courtyard's lawns still slow the karts.** Kerbed stone paths edge them, the clear edge he asked for; the Armory's yard and the Cathedral's gardens, which had none, no longer slow.
+- **Trees and bushes block where they are drawn.** The courtyard's four trees and eight bushes are round solids the size of their drawn crowns, so a kart never stops on the leaves short of an unseen trunk.
 
 ![The way through and nine follow-camera views](scarlet_library-review.png)
 
@@ -36,22 +45,22 @@ The rooms follow his map at karting scale. Halls are 120 to 140 units wide and d
 3. **The Huntsman's Cloister.** Four roofed walks surround the one open courtyard. The arcade's columns stand round the courtyard, with an opening in the middle of each side. In the courtyard:
    - a lawn with a cross of stone paths;
    - a statue in its fountain at the centre, on a round court;
-   - four trees;
-   - Scarlet huntsmen and their hounds.
-4. **Houndmaster Loksey's kennel**, south of the cloister. His route goes in and back out. The second gate, *Houndmaster Loksey*, is his red line across the kennel. Past it the karts turn round by the houndmaster, his hounds, the cages and the hay, and drive back out; crossing the line backwards counts nothing.
-5. **The east hall**, north from the cloister's east side, past a reading room, to the third gate, *Gallery of Treasures*, in the gallery's door.
+   - four trees and eight bushes;
+   - a Scarlet huntsman and the hounds, on the lawns.
+4. **Houndmaster Loksey's kennel**, south of the cloister: a side room, off the way since version 2. Loksey stands at its back with his hounds, the cages and the hay.
+5. **The east hall**, north from the cloister's east side, past a reading room, to the second gate, *Gallery of Treasures*, in the gallery's door.
 6. **The Gallery of Treasures**: a long hall north with treasure in its niches, chests, armour and shields, and statues in its two west alcoves.
-7. **Two columned halls** east, each a cross with two square pillars, the runner between them. The fourth gate, *Athenaeum*, is in the door beyond.
+7. **Two columned halls** east, each a cross with two square pillars, the runner between them. The third gate, *Athenaeum*, is in the door beyond.
 8. **The Athenaeum**: the long library hall south, lined with bookshelves, with reading tables in its niches.
 9. **The last hall**, with two pillars. Then the finish, *Arcanist Doan*, the chequered line in the door of the round library. Inside, Doan stands at his lectern in the middle of a gold-ringed red carpet, among bookshelves and banners.
 
 | Measure | Value |
 |---|---|
 | World | 2048 × 2048 units (one texel per unit) |
-| The way through | about 6,200 units from the portal to the finish line, along the reviewed route |
-| Gates | five: Huntsman's Cloister, Houndmaster Loksey, Gallery of Treasures, Athenaeum, Arcanist Doan (the finish) |
+| The way through | about 5,600 units from the portal to the finish line, along the reviewed route |
+| Gates | four: Huntsman's Cloister, Gallery of Treasures, Athenaeum, Arcanist Doan (the finish) |
 | Rooms | 41: 38 rectangles of stone, the courtyard's lawn, and two round rooms (the fountain's court and the round library) |
-| Solids | 65 boxes: 12 arcade columns, the fountain, 4 trees, 8 bushes, 6 square pillars, the houndmaster and the huntsmen, 6 hounds, 2 cages, a rib cage, a heap and two bales of hay, the guards, treasure, chests, statues and a shield, tables, the cleric, Doan, his lectern and 4 candle stands |
+| Solids | 64: 52 boxes (12 arcade columns, the fountain, 6 square pillars, the houndmaster and a huntsman, 6 hounds, 2 cages, a rib cage, a heap and two bales of hay, the guards, treasure, chests, statues and a shield, tables, the cleric, Doan, his lectern and 4 candle stands) and 12 round (the crowns of 4 trees and 8 bushes) |
 
 ## How it plays
 
@@ -60,8 +69,8 @@ The rooms follow his map at karting scale. Halls are 120 to 140 units wide and d
 - **A sprint:** one run, `laps=1`, on the Library's own board.
 - **Open floor, no road.** Stone everywhere but the courtyard's lawn, which slows the karts as the Graveyard's does. Walls slide the kart along them.
 - **Round rooms** (new, `shape="disc"`): the round library and the fountain's court are true circles. The kart centre stays inside a round wall by the kart's inset, and slides round it.
-- **Loksey's kennel** is the one dead end on the way: in across his line, a hairpin turn, and back out. Checkpoints count only the crossing inward.
-- **Solids** block as on the test oval. Scenery that stands on the floor is solid; the rest stands against the walls, out of the karts' way.
+- **Loksey's kennel** is a side room, off the way (version 1 had a gate in it, in and back out).
+- **Solids** block as on the test oval. Scenery that stands on the floor is solid; the rest stands against the walls, out of the karts' way. The courtyard's trees and bushes are round solids the size of their drawn crowns (`blocks`, version 2).
 - **The gates** span their doors or halls from wall to wall. The generator checks with a flood fill that none can be driven round.
 - **Collision** comes from the generated data, never a pixel.
 
@@ -86,7 +95,7 @@ The Scarlet Monastery at night, in Warcraft III's city, dungeon, Dalaran and Lor
   - bookshelves round the north of the wall, Scarlet banners, and candles round Doan;
   - the runner in through its door.
 - **Light:** torches along the halls, braziers in the kennel, gallery and halls, candles among the books.
-- **The Scarlet Crusade** (Reforged): standing banners, the guards at the portal, huntsmen in the cloister and as Houndmaster Loksey, a cleric in the Athenaeum, and an invoker hero as Arcanist Doan. Warcraft III's dark hounds, tinted red, are the Scarlet tracking hounds.
+- **The Scarlet Crusade** (Reforged): standing banners, the guards at the portal, a huntsman in the cloister and another as Houndmaster Loksey, a cleric in the Athenaeum, and an invoker hero as Arcanist Doan. Warcraft III's dark hounds, tinted red, are the Scarlet tracking hounds.
 
 ## Files
 
@@ -111,7 +120,7 @@ python scripts/build_dungeon_tracks.py --wc3 WC3 --preview
 python scripts/build_dungeon_tracks.py --wc3 WC3 --check
 ```
 
-The layout is `SCARLET_LIBRARY` in `scripts/dungeon_layouts.py`: its rooms (`disc_room` for the round ones), gates, spawn, reviewed route, props with their collision boxes, floors, carpets, the round library's `rings`, the courtyard's `moonlight` and `mist`. `scripts/build_dungeon_tracks.py` writes the data and validates the geometry as for the Graveyard, invisible walls included. It counts a route crossing a gate only across the gate's own segment, as the runtime does, since the Library's route passes beyond the ends of earlier gates. `scripts/dungeon_paint.py` paints the picture, and stops on a model that is not solid standing where the karts drive.
+The layout is `SCARLET_LIBRARY` in `scripts/dungeon_layouts.py`: its rooms (`disc_room` for the round ones), gates, spawn, reviewed route, props with their collision boxes (`blocks(..., "round")` for the courtyard's trees and bushes), floors, carpets, the round library's `rings`, the courtyard's `moonlight` and `mist`. `scripts/build_dungeon_tracks.py` writes the data and validates the geometry as for the Graveyard, invisible walls included. It counts a route crossing a gate only across the gate's own segment, as the runtime does, since the Library's route passes beyond the ends of earlier gates. `scripts/dungeon_paint.py` paints the picture, and stops on a model that is not solid standing where the karts drive.
 
 ## Provenance and rights
 
