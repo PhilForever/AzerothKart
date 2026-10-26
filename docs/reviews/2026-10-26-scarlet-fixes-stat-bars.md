@@ -1,5 +1,11 @@
 # Scarlet v2 and kart stat bars — reviewed integration
 
+**Published and installed:** runtime `da292f6`, `codex/scarlet-stats-review`.
+Both original Claude branches also published; exact remote tips verified.
+Deployment verifies84source/installed files and84complete prior backup files;
+the matching installed-file friend ZIP and receipts are recorded in PROGRESS.
+Native checks remain pending after full client restart.
+
 ## Source and disposition
 
 Approved for source integration, publication and the owner-requested install.

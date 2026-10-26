@@ -1,5 +1,35 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-26 14:19 +01:00 — Scarlet v2/stat bars published and installed
+
+Approved combined runtime `da292f6` is published and installed. Atomic dry-run
+and actual create-only push succeeded for `codex/scarlet-stats-review`da292f6,
+`claude/scarlet-fixes`8889aa4 and `claude/kart-stat-bars`e122120. Exact remote
+hashes read back; main remainsf923d15. Both original worktrees/untracked outputs
+are preserved. No force, author rewrite or release.
+
+Independent preflight confirmed the previous installed9c80746 tree and unchanged
+Codex systems. PowerShell7 WhatIf and actual backed-up copy/hash helper PASS.
+Separate Python readback verifies all84source/installed/manifest hashes, all84
+prior backup files and the unchanged legacy extra. Installed tree85files. No
+SavedVariables/WTF, other addon, client input, deletion or source change during
+deployment. Focused source tests remain the preceding entry; no redundant run.
+
+Ignored deployment root: `local-artifacts/deploy-20261026-scarlet-stats/`;
+backup manifest `backups/20261026-141854-261-1618a06611c94a1c99bb1834936918c8/install.json`.
+Receipt and reproducible audit/package script are in the same root. Matching
+friend ZIP from installed tested paths: `../AzerothKart-ScarletStats-da292f6.zip`,
+84entries/69,355,566bytes, SHA256
+`A1813106D2A986D317838ADBFA94D636B18E1822311BE2FDB21EA4F45A4ECE9F`.
+Every ZIP entry was read back and hashed. New path `Assets/UI/StatBars.tga`
+requires full client exit/relaunch for both users. Native checks NOT RUN.
+
+**Next exact task:** owner fully restarts, inspects the chooser/Garage stat bars
+and drives Library/Armory/Cathedral v2, especially full-grip yards and the two
+Cathedral stairs. Friend updates this matching ZIP/restarts before score catch-up.
+Version1 history stays saved separately; no milestone or multiplayer-scale
+acceptance is added by publication/installation.
+
 ## 2026-10-26 14:16 +01:00 — Scarlet v2 and stat bars approved in combined source
 
 Owner requests review and conditional install/push of Claude's latest work.

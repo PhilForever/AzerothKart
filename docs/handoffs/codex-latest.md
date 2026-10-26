@@ -1,5 +1,24 @@
 # Codex handoff — production maps and Claude course review
 
+## Installed/published Scarlet stats checkpoint — 2026-10-26 14:19 CET
+
+Runtime/source `da292f6` installed and published on `codex/scarlet-stats-review`.
+Claude branches8889aa4/e122120 also published with exact remote hashes verified;
+mainf923d15 and both original worktrees/untracked outputs unchanged. No release.
+
+All84source/installed hashes and84complete prior backup files independently
+verified, legacy extra preserved (85installedfiles). Manifest/receipt/audit in
+ignored `local-artifacts/deploy-20261026-scarlet-stats/`, backup ID
+`20261026-141854-261-1618a06611c94a1c99bb1834936918c8`. No playerdata/otheraddon
+changes or client input. Native checks NOT RUN.
+
+Friend ZIP `../AzerothKart-ScarletStats-da292f6.zip`:84entries/69,355,566bytes,
+SHA256 `A1813106D2A986D317838ADBFA94D636B18E1822311BE2FDB21EA4F45A4ECE9F`.
+All entries read-back verified against tested installed paths. New StatBars.tga
+means full exit/relaunch, not only reload. Focused source passes/review remain
+below. Next: owner checks bars and the three v2 courses; matching friend update/
+restart for score delivery. Old-version records remain separate and preserved.
+
 ## Reviewed Scarlet v2/stat bars — 2026-10-26 14:16 CET
 
 Approved combination on `codex/scarlet-stats-review`: Codex98f433e plus Claude

@@ -1,5 +1,16 @@
 # Shared integration and deployment status
 
+## Installed Scarlet v2/stat bars — 2026-10-26 14:19 CET
+
+Reviewed runtime `da292f6` is published on `codex/scarlet-stats-review` and
+installed with a complete prior-addon backup. All84source/installed hashes and
+84prior files independently verified; legacy extra preserved. Matching verified
+friend ZIP `AzerothKart-ScarletStats-da292f6.zip` has84entries. Both original
+Claude branches are published at unchanged tips8889aa4/e122120; main unchanged.
+[Review and executed checks](reviews/2026-10-26-scarlet-fixes-stat-bars.md),
+[deployment evidence/next native check](PROGRESS.md). New StatBars.tga path
+requires full client restart. No native appearance/feel or release claim.
+
 ## Reviewed Scarlet v2 and kart stat bars — 2026-10-26
 
 `codex/scarlet-stats-review` combines reviewed Claude e122120, including Scarlet
