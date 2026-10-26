@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — kart stat bars (2026-10-26, `claude/kart-stat-bars`)
+- **The kart screen shows handling as bars**, as the owner asked: "more mario kart/crash team racing way of seeing the different kart attributes ... in wow style obviously and use the actual ingame addon kart attributes as guidance for how much each bar should be filled". Asked which, he chose four: **Speed, Acceleration, Turning and Braking**, under the profile's name ("Handling: Heavy"), in the kart choice and the garage.
+- **WoW style:** gold-framed bars with six recessed windows and a glossy green fill, painted by `scripts/build_stat_bars.py` into `Assets/UI/StatBars.tga` (original art).
+- **Filled from the real values** (`Physics.GetHandling`, read only): the Balanced profile fills four windows of six, each 4% more or less one window more or fewer. Heavy shows 5, 2, 2, 6; Agile 3, 6, 6, 2. If the picture cannot load, the line tells the tradeoffs in words as before.
+- **Budget:** 8 textures and 4 font strings more, created once: 89/77/140. `test_menu` covers the scale, the four bars for each profile, the crops and the fallback; `test_ui`'s budget follows. Its look in the client is NOT RUN; the new picture needs a full client restart.
+
 ## Unreleased — Scarlet fixes from the owner's first drive (2026-10-26, `claude/scarlet-fixes`)
 After driving the installed Scarlet Cup the owner wrote: "Grass needs to be drivable if it doesnt have a clear edge/fence + remove the guy standing in the road on image 1. Remove the gate at houndmaster locksley - fun, but counterintuitive, the room is nice but not part of the checkpoints. Make image 2(armory courtyard/training grounds) look more(exactly) like image 3. should be able to drive through this without being slowed. Remove slow from grass in cathedral as well. There are also seemingly some invisible walls. as you can see in image 5 - the stairs are the only path up to the cathedral". Based on Codex's installed `codex/scarlet-integration`; the three courses become geometry version 2, so their score boards start fresh.
 - **Scarlet Library:** four gates; Loksey's kennel stays, a side room with no gate. The huntsman on the courtyard's cross path is gone. The courtyard's lawns keep slowing (kerbed paths edge them); its trees and bushes block where their crowns are drawn.

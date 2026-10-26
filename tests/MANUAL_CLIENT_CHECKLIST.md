@@ -1,5 +1,14 @@
 # Manual client acceptance — F0/F1/F2/F5
 
+## Deferred kart stat bars check (proposed, `claude/kart-stat-bars`)
+
+**NOT RUN.** Run it after Codex's review and a coordinated install. **Fully restart the client:** `Assets/UI/StatBars.tga` is a new file. The owner runs these checks; Claude does not control the client.
+
+1. **Single Player, then the kart choice** (and the Garage from the main menu): under the kart's credit, "Handling: Balanced" (or Heavy, or Agile) in gold, then four gold-framed bars labelled Speed, Acceleration, Turning and Braking, nothing reading "Lua error".
+2. **The fills:** the Goblin Mortar Trike four windows of six on every bar; the Steam Tank 5, 2, 2 and 6; the Dwarven Biker 3, 6, 6 and 2. Each window is green or dark, with no seam where a bar's green ends.
+3. **The look:** whether the bars read as part of the window (gold trim, green like a health bar), and whether the kart buttons below them still sit clear of the Race!/Done button.
+4. **Print Probe** (developer info): 89 frames, 77 textures and 140 font strings.
+
 ## Deferred Scarlet fixes check (proposed, `claude/scarlet-fixes`)
 
 **NOT RUN.** Run it after Codex's review and a coordinated install. **Fully restart the client:** the three pictures keep their paths but changed, and the client may keep the old ones until a restart. The owner runs these checks; Claude does not control the client.

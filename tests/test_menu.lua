@@ -255,8 +255,9 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu)
     -- The observational remote kart adds one texture and one font string.
     -- Saved highscores add six frames and 52 labels, including the results notice.
     -- The player's kart outline adds a texture, its Settings check a button and two labels.
-    assert(UI.objects.frames == 89 and UI.objects.textures == 69 and UI.objects.fontStrings == 136,
-        ("explicit budget 89/69/136, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
+    -- The kart screen's four handling bars add two textures (empty, full) and a label each.
+    assert(UI.objects.frames == 89 and UI.objects.textures == 77 and UI.objects.fontStrings == 140,
+        ("explicit budget 89/77/140, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
             UI.objects.fontStrings))
     assert(AzerothKartDB.preferences == nil, "creation saves nothing")
     local before = counts(env)
@@ -1158,6 +1159,59 @@ withMock(nil, function(env, UI, Menu)
     end
     sameCounts(env,before,"handling descriptions reuse existing text")
 end)
+
+-- The kart screen's handling bars: four windows of six at the Balanced
+-- kart's value, one more or fewer per 4%, from Physics' own profiles.
+withMock(nil, function(env, UI, Menu, AK)
+    local function near(a, b) return math.abs(a - b) < 1e-9 end
+    assert(near(Menu.statFill(200, 200), 4 / 6) and near(Menu.statFill(208, 200), 5 / 6)
+        and near(Menu.statFill(142.6, 155), 2 / 6) and near(Menu.statFill(2.808, 2.6), 1)
+        and near(Menu.statFill(400, 200), 1) and near(Menu.statFill(0, 200), 0.5 / 6),
+        "four windows at par, one per 4%, between half a window and the full bar")
+    assert(Menu.statFill(nil, 200) == nil and Menu.statFill(200, 0) == nil and Menu.statFill(0 / 0, 200) == nil
+        and Menu.statFill(200, nil) == nil, "a value that cannot be read fills nothing")
+    UI.Toggle(); Menu.Show("garage")
+    local before = counts(env)
+    local par = AK.Physics.GetHandling(nil)
+    local windows = {}
+    for _,id in ipairs({"steam_tank", "dwarven_biker", "goblin_mortar_trike"}) do
+        Menu.ChooseKart(id)
+        local profile = AK.Physics.GetHandling(id)
+        assert(Menu.view.kartHandling.text == "Handling: " .. profile.name, "the bars name the kart's profile")
+        local row = {}
+        for index,bar in ipairs(Menu.view.statBars) do
+            local share = Menu.statFill(profile[bar.stat.key], par[bar.stat.key])
+            assert(bar.label.text == Menu.KART_STATS[index].label and bar.label:IsShown()
+                and bar.empty:IsShown() and bar.fill:IsShown(), "label, empty bar and fill are shown")
+            assert(bar.empty.texturePath == Menu.STATS_PATH and bar.empty.texCoords[3] == 0
+                and bar.empty.texCoords[4] == 0.5 and bar.fill.texturePath == Menu.STATS_PATH
+                and bar.fill.texCoords[3] == 0.5 and bar.fill.texCoords[4] == 1, "the atlas' two rows")
+            assert(near(bar.fill.width, Menu.STAT_WIDTH * share) and near(bar.fill.texCoords[2], Menu.STAT_U * share)
+                and bar.fill.height == Menu.STAT_HEIGHT, "the full bar is cropped to the kart's share")
+            row[#row + 1] = math.floor(share * Menu.STAT_SEGMENTS + 0.5)
+        end
+        windows[id] = table.concat(row, ",")
+        assert(not UI.active, "browsing the bars never starts a race")
+    end
+    assert(windows.steam_tank == "5,2,2,6" and windows.dwarven_biker == "3,6,6,2"
+        and windows.goblin_mortar_trike == "4,4,4,4",
+        "Heavy, Agile and Balanced: speed, acceleration, turning, braking")
+    sameCounts(env, before, "the bars are created once and only refilled")
+end)
+
+-- If the bars' picture cannot load, the line tells the tradeoffs in words.
+withMock(nil, function(env, UI, Menu)
+    UI.Toggle(); Menu.Show("garage"); Menu.ChooseKart("steam_tank")
+    assert(Menu.view.statsReady == false and Menu.view.kartHandling.text:find("Heavy | Faster cruise", 1, true),
+        "the words stand in for the bars")
+    for _,bar in ipairs(Menu.view.statBars) do
+        assert(not bar.label:IsShown() and not bar.empty:IsShown() and not bar.fill:IsShown(), "no empty bars shown")
+    end
+    env.textureModes[Menu.STATS_PATH] = nil              -- it would load now
+    Menu.ChooseKart("dwarven_biker")
+    assert(Menu.view.statsReady == false and not Menu.view.statBars[1].fill:IsShown()
+        and Menu.view.kartHandling.text:find("Agile | Quicker launch", 1, true), "a failed load is not retried")
+end, function(env, namespace) env.textureModes[namespace.Menu.STATS_PATH] = "false" end)
 
 withMock(nil, function(env, UI, Menu, AK)
     local rows={{playerName="First Racer",totalTicks=2400,finishedAt=1792756800}}

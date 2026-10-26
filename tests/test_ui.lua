@@ -331,7 +331,8 @@ local EFFECT_TEXTURES=20+14+2*2
 -- results buttons once with the window; it replaced the old title line. The
 -- track list holds six finished courses and one coming-soon city under two
 -- cup headings; the injected geometry fixture has no player menu button.
-local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=73,9,120 -- ten pooled score rows and bounded navigation/result notice
+local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=73,17,124 -- ten pooled score rows and bounded navigation/result notice
+-- (the kart screen's four handling bars: two textures and a label each)
 -- City circuits have up to eight gates: the gate pool holds eight strips
 -- (the oval's four plus four kept hidden on the oval and Mirage Raceway).
 local GATE_STRIPS=8
@@ -3522,7 +3523,7 @@ withMock({schemaVersion=1,preferences={version=1,track="test_oval",futureField="
         UI.state.x==UI.track.spawn().x and UI.state.y==UI.track.spawn().y,
         "default Start uses the displayed Mirage spawn and no developer geometry")
     UI.Stop("production catalogue regression")
-    assert(UI.objects.frames==89 and UI.objects.textures==69 and UI.objects.fontStrings==136,
+    assert(UI.objects.frames==89 and UI.objects.textures==77 and UI.objects.fontStrings==140,
         "production pool excludes the 96 Oval bands and two fixture crates")
 end,nil,nil,true)
 
@@ -3551,4 +3552,4 @@ for _,failure in ipairs({"false","nil","throws","camera"}) do
     end,nil,nil,true)
 end
 
-originalPrint("test_ui production catalogue: eleven finished courses, real Mirage default/scenery, retired-save preservation, seven-map Ready/four solo sprints and asset-failure Start guard PASS (89/69/136 pool)")
+originalPrint("test_ui production catalogue: eleven finished courses, real Mirage default/scenery, retired-save preservation, seven-map Ready/four solo sprints and asset-failure Start guard PASS (89/77/140 pool)")

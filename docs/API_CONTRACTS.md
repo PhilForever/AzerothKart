@@ -182,6 +182,11 @@ ID remain balanced. UI.Start validates/captures the selected ID once and uses
 it throughout that solo run, including neutral countdown steps. A stopped
 selection changes only the next run. Menu reuses its existing kart-detail text
 to show the actual profile; no new UI objects or art behavior are introduced.
+Proposed on `claude/kart-stat-bars` (Claude, 2026-10-26, owner request): the
+kart screen also shows the profile as four bars (Speed, Acceleration, Turning,
+Braking) from this same read-only view, against the balanced profile's values
+(`GetHandling(nil)`); Menu adds 8 textures and 4 font strings for them, and
+nothing in Physics changes.
 
 `RaceStart.new(ticket,track,physicsVersion,kartId?)` captures an optional ID and
 adds it to the once-only launch bundle. Take validates known handling before
@@ -816,7 +821,7 @@ Proposed by Claude on `claude/scarlet-graveyard`, 2026-10-25, for Codex's review
   - the Highscores screen's rule line names a lap-count-1 board's times as sprints, reusing its label.
 
   The status line in `UI.Start` and `step` now says "Sprint" for this one-run course and retains "3 laps" for circuits.
-- **Counts:** the Scarlet cup's heading and four track buttons bring the pool to **89 frames, 69 textures and 136 font strings** after Oval retirement (Claude's original branch was90/167/136). They are created with the window.
+- **Counts:** the Scarlet cup's heading and four track buttons bring the pool to **89 frames, 69 textures and 136 font strings** after Oval retirement (Claude's original branch was90/167/136). They are created with the window. The kart screen's stat bars (proposed on `claude/kart-stat-bars`) add 8 textures and 4 font strings: **89/77/140**.
 - **Score sync:** Codex's combined adapter admits all eleven active contexts with stable codes and an extended bounded HELLO; the retired O digest remains zero. The original standalone Claude branch retains the documented sync dependency; use the combined build.
 - **Not claimed:** no client run, no multiplayer sprint, and no Physics change.
 
