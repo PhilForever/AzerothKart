@@ -33,7 +33,7 @@ open window ─► Main menu ─► Single Player ─► Choose a Track ─► C
 |---|---|
 | Main menu | The "Azeroth Kart" title, then **Single Player**, **Multiplayer (soon)**, **Garage**, **How to Play** and **Settings**, with the current track and kart named underneath |
 | Choose a Track | Mirage Raceway and Test Oval, each with a preview picture, a short description and its facts (3 laps, 4 gates, direction, off-road). Choosing one applies it at once; **Next: Choose Kart** continues |
-| Choose Your Kart | A turntable that spins the chosen kart's own 64-heading sheet, arrows and a grid of all ten karts (five rows of two), the kart's description and model credit, and the selected balanced/heavy/agile profile and its handling tradeoffs. **Race!** starts the countdown |
+| Choose Your Kart | A turntable that spins the chosen kart's own 64-heading sheet, arrows and a grid of all ten karts (five rows of two), the kart's description and model credit, its handling profile's name and four gold-framed **stat bars**, Speed, Acceleration, Turning and Braking, filled from the profile's actual values ([below](#new-art-kart-stat-bars); `claude/kart-stat-bars`). **Race!** starts the countdown |
 | Garage | The same kart choice from the main menu, with **Done** instead of Race! |
 | Multiplayer | **COMING SOON**. Disabled **Host a Race** and **Join a Race**, a disabled lobby preview (you, an open slot, track, Ready/Start/Leave), and how to help with today's connection test (`/akart net help`) |
 | How to Play | The controls and the racing rules, plus the model credits |
@@ -75,6 +75,30 @@ python scripts/build_ui_art.py            # write the TGA
 python scripts/build_ui_art.py --check    # verify the bytes
 python scripts/build_ui_art.py --preview  # also docs/art/ui/track-previews.png
 python scripts/preview_ui.py              # this page's layout picture (needs pinned Lupa and Pillow)
+```
+
+## New art: kart stat bars
+
+The owner (2026-10-26) sent a Crash Team Racing-style picture of three segmented green bars and asked for "more mario kart/crash team racing way of seeing the different kart attributes ... in wow style obviously and use the actual ingame addon kart attributes as guidance for how much each bar should be filled". Asked which bars, he chose four: **Speed, Acceleration, Turning and Braking**, every real difference between Physics' handling profiles (proposed on `claude/kart-stat-bars`).
+
+![The atlas' two rows, then Balanced, Heavy and Agile at the menu's size](stat-bars.png)
+
+- **Art:** `addon/AzerothKart/Assets/UI/StatBars.tga`, 512×64 BGRA32 with alpha (128 KiB), painted by `scripts/build_stat_bars.py`. Row 0 is the empty bar, row 1 the full one: a gold plate, bright along its top and bronze at its foot, with a dark outline and rounded ends, and six recessed windows, dark when empty and a glossy green when full, in the style of the client's gold-trimmed frames and green health bars. Each is 480×32 texels for a 240×16 bar. Original art: no picture from another game is an input, and the bytes are the same on every platform.
+- **Drawing:** each bar is two textures, the empty bar and the full bar over it, cropped from the left (`SetTexCoord`) to the kart's share, so it fills window by window and a share between two windows shows part of one. The plate is identical in both rows, so the crop never shows. The picture loads once, on the first visit to the kart screen; if it fails, the bars stay hidden and the profile line tells the tradeoffs in words, as before.
+- **The scale** (`Menu.statFill`): the values come from `Physics.GetHandling` (read only) against the Balanced profile's. Balanced fills four windows of six; each 4% more or less is one window more or fewer, never under half a window or over the bar. Physics12's profiles give:
+
+  | Profile | Speed (top speed) | Acceleration | Turning (steer rate) | Braking |
+  |---|---|---|---|---|
+  | Balanced (Goblin Mortar Trike, Dwarf Car, Glaive Thrower, Goblin Pod Racer) | 4 | 4 | 4 | 4 |
+  | Heavy (Steam Tank, Orc Demolisher, Meat Wagon): +4% speed, −8% acceleration and turning, +8% braking | 5 | 2 | 2 | 6 |
+  | Agile (Dwarven Biker, Gryphon Rider, Gyrocopter): −4% speed, +8% acceleration and turning, −8% braking | 3 | 6 | 6 | 2 |
+
+  If Codex retunes a profile, the bars follow it with no change here.
+
+```
+python scripts/build_stat_bars.py            # write the TGA
+python scripts/build_stat_bars.py --check    # verify the bytes
+python scripts/build_stat_bars.py --preview  # also docs/art/ui/stat-bars.png
 ```
 
 ## Saved preferences
@@ -122,7 +146,8 @@ Explicit UI counts were65/160/79 for the original Menu. Current integrated city 
 - **Font strings:** the old title line is replaced.
 - **Creation:** everything is created once with the window; nothing is created per tick or frame.
 - **Per frame:** the race HUD compares numbers and rewrites its text only when it can change, about ten times a second while the clock runs. The shown kart/garage turntable has its own visual spin callback while the race simulation is inactive; it never advances physics or the race clock.
-- **Texture memory:** the preview atlas adds 2 MiB when the track screen is first opened. The turntable reuses the kart sheets the race already loads. The two scenery slots can retain Mirage and Stormwind simultaneously; the latter adds16MiB raw pixels. Native memory/performance remains unmeasured.
+- **Stat bars** (`claude/kart-stat-bars`): the kart screen's four bars add **8 textures and 4 font strings**, created once with the window, bringing the integrated production pool from 89/69/136 to **89 frames, 77 textures and 140 font strings**. Choosing a kart only re-crops them.
+- **Texture memory:** the preview atlas adds 2 MiB when the track screen is first opened; the stat bars' atlas 128 KiB when the kart screen is first opened. The turntable reuses the kart sheets the race already loads. The two scenery slots can retain Mirage and Stormwind simultaneously; the latter adds16MiB raw pixels. Native memory/performance remains unmeasured.
 
 ## Tests (offline)
 
@@ -132,6 +157,7 @@ Explicit UI counts were65/160/79 for the original Menu. Current integrated city 
 - the full Single Player flow, including a refused start;
 - every results path, the track view and the lap list;
 - the garage and the turntable;
+- the stat bars: `Menu.statFill`'s scale, each profile's four bars from `Physics.GetHandling` (Heavy 5, 2, 2, 6; Agile 3, 6, 6, 2; Balanced 4 each), the atlas rows and crops, no new objects when choosing karts, and the words in their place when the picture cannot load (`claude/kart-stat-bars`);
 - settings and their effects, including no effects while switched off;
 - saving, restoring and failed restores; explicit already-current fallback choices after a deferred or failed restore; quick-bar precedence before restoration; unknown and newer records; sizes that do not fit;
 - a newer-version failed-load fixture: explicit fallback choices update in-memory preferences but preserve the original saved table/unknown field, stopped vehicle/race/clock/lap/checkpoint references, held input and inactive state;

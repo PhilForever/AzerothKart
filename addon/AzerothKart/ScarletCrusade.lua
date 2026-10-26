@@ -102,7 +102,7 @@ ScarletCrusade["scarlet_graveyard"] = {
 }
 
 ScarletCrusade["scarlet_library"] = {
-    id="scarlet_library", version=1, name="Scarlet Library", laps=1,
+    id="scarlet_library", version=2, name="Scarlet Library", laps=1,
     width=2048, height=2048, wallInset=18, checkpointMaxStep=5,
     spawn={x=80, y=1668, heading=math.pi/2},
     rooms={
@@ -150,7 +150,6 @@ ScarletCrusade["scarlet_library"] = {
     },
     gates={
         {name="Huntsman's Cloister", ax=230, ay=1700, bx=360, by=1700, nx=0, ny=-1},
-        {name="Houndmaster Loksey", ax=510, ay=400, bx=810, by=400, nx=0, ny=-1},
         {name="Gallery of Treasures", ax=1110, ay=1270, bx=1110, by=1380, nx=1, ny=0},
         {name="Athenaeum", ax=1800, ay=1760, bx=1800, by=1880, nx=1, ny=0},
         {name="Arcanist Doan", ax=1750, ay=800, bx=1870, by=800, nx=0, ny=-1},
@@ -171,20 +170,19 @@ ScarletCrusade["scarlet_library"] = {
         {id="arcade column_11", x=558, y=953, width=14, height=14},
         {id="arcade column_12", x=748, y=953, width=14, height=14},
         {id="cloister fountain", x=632, y=804, width=57, height=37},
-        {id="tree", x=583, y=743, width=14, height=14},
-        {id="tree_2", x=723, y=743, width=14, height=14},
-        {id="tree_3", x=583, y=883, width=14, height=14},
-        {id="tree_4", x=723, y=883, width=14, height=14},
-        {id="bush", x=536, y=758, width=25, height=24},
-        {id="bush_2", x=536, y=858, width=25, height=24},
-        {id="bush_3", x=760, y=758, width=25, height=24},
-        {id="bush_4", x=760, y=858, width=25, height=24},
-        {id="bush_5", x=598, y=696, width=25, height=24},
-        {id="bush_6", x=698, y=696, width=25, height=24},
-        {id="bush_7", x=598, y=920, width=25, height=24},
-        {id="bush_8", x=698, y=920, width=25, height=24},
-        {id="huntsman", x=542, y=824, width=12, height=12},
-        {id="huntsman_2", x=766, y=714, width=12, height=12},
+        {id="tree", x=558, y=737, width=52, height=52, shape="disc"},
+        {id="tree_2", x=707, y=749, width=52, height=52, shape="disc"},
+        {id="tree_3", x=561, y=889, width=52, height=52, shape="disc"},
+        {id="tree_4", x=709, y=892, width=40, height=40, shape="disc"},
+        {id="bush", x=539, y=771, width=18, height=18, shape="disc"},
+        {id="bush_2", x=539, y=871, width=18, height=18, shape="disc"},
+        {id="bush_3", x=763, y=771, width=18, height=18, shape="disc"},
+        {id="bush_4", x=763, y=871, width=18, height=18, shape="disc"},
+        {id="bush_5", x=601, y=709, width=18, height=18, shape="disc"},
+        {id="bush_6", x=701, y=709, width=18, height=18, shape="disc"},
+        {id="bush_7", x=601, y=933, width=18, height=18, shape="disc"},
+        {id="bush_8", x=701, y=933, width=18, height=18, shape="disc"},
+        {id="huntsman", x=766, y=714, width=12, height=12},
         {id="hound", x=609, y=909, width=12, height=12},
         {id="hound_2", x=699, y=719, width=12, height=12},
         {id="hound_3", x=559, y=714, width=12, height=12},
@@ -224,20 +222,19 @@ ScarletCrusade["scarlet_library"] = {
     },
     route={
         {x=80,y=1668}, {x=80,y=1865}, {x=295,y=1865}, {x=295,y=1020}, {x=460,y=1020}, {x=460,y=620},
-        {x=620,y=620}, {x=620,y=300}, {x=660,y=250}, {x=700,y=300}, {x=700,y=620}, {x=860,y=620},
-        {x=860,y=820}, {x=1025,y=820}, {x=1025,y=1325}, {x=1225,y=1325}, {x=1225,y=1820}, {x=1915,y=1820},
-        {x=1915,y=1160}, {x=1860,y=1030}, {x=1810,y=900}, {x=1810,y=700},
+        {x=860,y=620}, {x=860,y=820}, {x=1025,y=820}, {x=1025,y=1325}, {x=1225,y=1325}, {x=1225,y=1820},
+        {x=1915,y=1820}, {x=1915,y=1160}, {x=1860,y=1030}, {x=1810,y=900}, {x=1810,y=700},
     },
 }
 
 ScarletCrusade["scarlet_armory"] = {
-    id="scarlet_armory", version=1, name="Scarlet Armory", laps=1,
+    id="scarlet_armory", version=2, name="Scarlet Armory", laps=1,
     width=2048, height=2048, wallInset=18, checkpointMaxStep=5,
     spawn={x=500, y=105, heading=0},
     rooms={
         {x=350, y=40, width=660, height=130, surface="road"}, -- entrance hall
         {x=750, y=130, width=130, height=120, surface="road"}, -- training door
-        {x=670, y=210, width=580, height=420, surface="rough"}, -- training yard
+        {x=670, y=210, width=580, height=420, surface="road"}, -- training yard
         {x=670, y=210, width=580, height=90, surface="road"}, -- south walk
         {x=670, y=540, width=580, height=90, surface="road"}, -- north walk
         {x=670, y=210, width=90, height=420, surface="road"}, -- west walk
@@ -282,16 +279,22 @@ ScarletCrusade["scarlet_armory"] = {
         {id="arcade column_8", x=1153, y=533, width=14, height=14},
         {id="arcade column_9", x=753, y=413, width=14, height=14},
         {id="arcade column_10", x=1153, y=413, width=14, height=14},
-        {id="archery target", x=1099, y=330, width=39, height=39},
-        {id="archery target_2", x=1099, y=385, width=39, height=39},
-        {id="archery target_3", x=1099, y=440, width=39, height=39},
-        {id="archery target_4", x=1099, y=495, width=39, height=39},
-        {id="training dummy", x=844, y=364, width=12, height=12},
-        {id="training dummy_2", x=954, y=454, width=12, height=12},
-        {id="training dummy_3", x=1004, y=349, width=12, height=12},
-        {id="training dummy_4", x=874, y=484, width=12, height=12},
-        {id="hay", x=1047, y=493, width=25, height=26},
-        {id="bush", x=788, y=328, width=25, height=24},
+        {id="backstop", x=1083, y=341, width=56, height=45},
+        {id="backstop_2", x=1083, y=401, width=56, height=45},
+        {id="backstop_3", x=1083, y=461, width=56, height=45},
+        {id="archery target", x=1093, y=315, width=39, height=60},
+        {id="archery target_2", x=1093, y=375, width=39, height=60},
+        {id="archery target_3", x=1093, y=435, width=39, height=60},
+        {id="training dummy", x=830, y=362, width=40, height=36},
+        {id="training dummy_2", x=830, y=464, width=40, height=36},
+        {id="training dummy_3", x=949, y=414, width=32, height=43},
+        {id="training dummy_4", x=1010, y=344, width=40, height=36},
+        {id="training dummy_5", x=792, y=412, width=16, height=40},
+        {id="training dummy_6", x=1027, y=482, width=16, height=40},
+        {id="bush", x=773, y=328, width=24, height=24, shape="disc"},
+        {id="bush_2", x=1125, y=512, width=24, height=24, shape="disc"},
+        {id="flowers", x=793, y=314, width=38, height=18},
+        {id="flowers_2", x=1085, y=516, width=38, height=18},
         {id="crates", x=1202, y=228, width=36, height=21},
         {id="forge", x=786, y=962, width=68, height=26},
         {id="anvil", x=965, y=952, width=29, height=16},
@@ -310,7 +313,7 @@ ScarletCrusade["scarlet_armory"] = {
         {id="candles_4", x=1643, y=1745, width=10, height=10},
     },
     route={
-        {x=500,y=105}, {x=815,y=105}, {x=815,y=255}, {x=715,y=255}, {x=715,y=585}, {x=855,y=585},
+        {x=500,y=105}, {x=815,y=105}, {x=815,y=255}, {x=900,y=270}, {x=900,y=585}, {x=855,y=620},
         {x=855,y=700}, {x=1100,y=745}, {x=1160,y=800}, {x=1160,y=960}, {x=1250,y=960}, {x=1250,y=1130},
         {x=1160,y=1130}, {x=800,y=1130}, {x=800,y=1360}, {x=650,y=1360}, {x=650,y=1570}, {x=1570,y=1570},
         {x=1570,y=1690}, {x=1525,y=1770}, {x=1525,y=1880},
@@ -318,23 +321,21 @@ ScarletCrusade["scarlet_armory"] = {
 }
 
 ScarletCrusade["scarlet_cathedral"] = {
-    id="scarlet_cathedral", version=1, name="Scarlet Cathedral", laps=1,
+    id="scarlet_cathedral", version=2, name="Scarlet Cathedral", laps=1,
     width=1024, height=2048, wallInset=18, checkpointMaxStep=5,
     spawn={x=790, y=110, heading=math.pi},
     rooms={
         {x=440, y=50, width=460, height=120, surface="road"}, -- entrance hall
         {x=452, y=130, width=120, height=136, surface="road"}, -- garden gate
-        {x=205, y=230, width=614, height=370, surface="rough"}, -- lower garden
+        {x=205, y=230, width=614, height=330, surface="road"}, -- lower garden
         {x=205, y=230, width=614, height=90, surface="road"}, -- south walk
-        {x=205, y=230, width=100, height=370, surface="road"}, -- lower west walk
-        {x=719, y=230, width=100, height=370, surface="road"}, -- lower east walk
-        {x=105, y=600, width=814, height=440, surface="rough"}, -- upper garden
-        {x=105, y=600, width=100, height=440, surface="road"}, -- upper west walk
-        {x=819, y=600, width=100, height=440, surface="road"}, -- upper east walk
-        {x=205, y=560, width=167, height=100, surface="road"}, -- west platform
-        {x=336, y=560, width=116, height=140, surface="road"}, -- west stairs
-        {x=572, y=560, width=116, height=140, surface="road"}, -- east stairs
-        {x=652, y=560, width=167, height=100, surface="road"}, -- east platform
+        {x=205, y=230, width=100, height=330, surface="road"}, -- lower west walk
+        {x=719, y=230, width=100, height=330, surface="road"}, -- lower east walk
+        {x=105, y=660, width=814, height=380, surface="road"}, -- upper garden
+        {x=105, y=660, width=100, height=380, surface="road"}, -- upper west walk
+        {x=819, y=660, width=100, height=380, surface="road"}, -- upper east walk
+        {x=336, y=524, width=116, height=176, surface="road"}, -- west stairs
+        {x=572, y=524, width=116, height=176, surface="road"}, -- east stairs
         {x=265, y=1000, width=494, height=96, surface="road"}, -- cathedral terrace
         {x=412, y=1040, width=200, height=56, surface="road"}, -- door steps
         {x=452, y=1060, width=120, height=116, surface="road"}, -- cathedral door
@@ -356,36 +357,30 @@ ScarletCrusade["scarlet_cathedral"] = {
     solids={
         {id="Scarlet guard", x=845, y=145, width=10, height=10},
         {id="Scarlet guard_2", x=845, y=65, width=10, height=10},
-        {id="tree", x=353, y=365, width=14, height=14},
-        {id="tree_2", x=657, y=365, width=14, height=14},
-        {id="tree_3", x=353, y=513, width=14, height=14},
-        {id="tree_4", x=657, y=513, width=14, height=14},
-        {id="bush", x=318, y=438, width=25, height=24},
-        {id="bush_2", x=682, y=438, width=25, height=24},
-        {id="champion's statue", x=286, y=606, width=28, height=24},
-        {id="champion's statue_2", x=710, y=606, width=28, height=24},
-        {id="tree_5", x=255, y=723, width=14, height=14},
-        {id="tree_6", x=755, y=723, width=14, height=14},
-        {id="tree_7", x=255, y=978, width=14, height=14},
-        {id="tree_8", x=755, y=978, width=14, height=14},
-        {id="bush_3", x=298, y=848, width=25, height=24},
-        {id="bush_4", x=702, y=848, width=25, height=24},
-        {id="tree_9", x=293, y=1053, width=14, height=14},
-        {id="tree_10", x=717, y=1053, width=14, height=14},
-        {id="pillar", x=396, y=1204, width=32, height=32},
-        {id="pillar_2", x=396, y=1329, width=32, height=32},
-        {id="pillar_3", x=396, y=1472, width=32, height=32},
-        {id="pillar_4", x=596, y=1204, width=32, height=32},
-        {id="pillar_5", x=596, y=1329, width=32, height=32},
-        {id="pillar_6", x=596, y=1472, width=32, height=32},
+        {id="tree", x=328, y=347, width=52, height=52, shape="disc"},
+        {id="tree_2", x=641, y=359, width=52, height=52, shape="disc"},
+        {id="tree_3", x=239, y=729, width=52, height=52, shape="disc"},
+        {id="tree_4", x=733, y=729, width=52, height=52, shape="disc"},
+        {id="tree_5", x=241, y=988, width=40, height=40, shape="disc"},
+        {id="tree_6", x=739, y=987, width=48, height=48, shape="disc"},
+        {id="bush", x=231, y=861, width=18, height=18, shape="disc"},
+        {id="bush_2", x=775, y=861, width=18, height=18, shape="disc"},
+        {id="tree_7", x=271, y=1059, width=52, height=52, shape="disc"},
+        {id="tree_8", x=701, y=1062, width=48, height=48, shape="disc"},
+        {id="pillar", x=396, y=1204, width=32, height=71},
+        {id="pillar_2", x=396, y=1329, width=32, height=71},
+        {id="pillar_3", x=396, y=1472, width=32, height=71},
+        {id="pillar_4", x=596, y=1204, width=32, height=71},
+        {id="pillar_5", x=596, y=1329, width=32, height=71},
+        {id="pillar_6", x=596, y=1472, width=32, height=71},
         {id="Scarlet footman", x=434, y=1244, width=12, height=12},
         {id="Scarlet cleric", x=578, y=1244, width=12, height=12},
         {id="Scarlet footman_2", x=434, y=1369, width=12, height=12},
         {id="Scarlet cleric_2", x=578, y=1369, width=12, height=12},
-        {id="pillar_7", x=164, y=1559, width=32, height=32},
-        {id="pillar_8", x=828, y=1559, width=32, height=32},
-        {id="pillar_9", x=398, y=1648, width=24, height=24},
-        {id="pillar_10", x=602, y=1648, width=24, height=24},
+        {id="pillar_7", x=164, y=1559, width=32, height=71},
+        {id="pillar_8", x=828, y=1559, width=32, height=71},
+        {id="pillar_9", x=398, y=1648, width=24, height=51},
+        {id="pillar_10", x=602, y=1648, width=24, height=51},
         {id="altar", x=483, y=1738, width=58, height=28},
         {id="Scarlet Commander Mograine", x=459, y=1721, width=14, height=14},
         {id="High Inquisitor Whitemane", x=551, y=1721, width=14, height=14},
@@ -402,8 +397,9 @@ ScarletCrusade["scarlet_cathedral"] = {
         {id="round pool", x=372, y=690, width=280, height=280, shape="disc"},
     },
     route={
-        {x=790,y=110}, {x=512,y=110}, {x=512,y=280}, {x=255,y=280}, {x=255,y=625}, {x=155,y=640},
-        {x=155,y=1000}, {x=512,y=1050}, {x=512,y=1200}, {x=512,y=1640}, {x=512,y=1712},
+        {x=790,y=110}, {x=512,y=110}, {x=512,y=280}, {x=280,y=300}, {x=280,y=480}, {x=394,y=545},
+        {x=394,y=700}, {x=350,y=780}, {x=345,y=880}, {x=400,y=990}, {x=512,y=1050}, {x=512,y=1200},
+        {x=512,y=1640}, {x=512,y=1712},
     },
 }
 

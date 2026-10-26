@@ -1,5 +1,16 @@
 # Shared integration and deployment status
 
+## Reviewed Scarlet v2 and kart stat bars — 2026-10-26
+
+`codex/scarlet-stats-review` combines reviewed Claude e122120, including Scarlet
+fixes8889aa4, with installed Codex98f433e. No blocking review finding or conflict.
+Focused combined Lua51/atlas/catalogue checks pass; source remains eleven solo
+courses and seven existing two-peer circuits. Three Scarlet versions become2;
+the four read-only stat bars raise the pooled budget to89/77/140. Current Codex
+systems and saved history are preserved. [Review and pending native checks](reviews/2026-10-26-scarlet-fixes-stat-bars.md).
+Owner authorizes publication and backed-up installation; exact deployment
+receipt follows in PROGRESS. No main merge/release, force or other-worktree edit.
+
 ## Installed combined Scarlet build — 2026-10-26 10:16 CET
 
 Owner explicitly authorized installation. Tested runtime `9c80746` is installed

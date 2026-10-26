@@ -8,12 +8,14 @@ leans north by `lean`, as in the cities). Layers, bottom to top:
    courses, darkest far from any room.
 2. Floors: each room's Warcraft III tile in its style (a later room paints
    over an earlier: the cloister's path over its lawn; a round room is the
-   disc in its square), with the dungeon's carpets, a round room's rings,
-   stairs and the portal the karts arrive through; shade along the foot of
-   every wall; the chequered finish across the last gate.
+   disc in its square), with a lawn's kerbs and flagstones, the pools, the
+   plinths' tops (raised blocks, not floor), the dungeon's carpets, a round
+   room's rings, stairs and the portal the karts arrive through; shade along
+   the foot of every wall; the chequered finish across the last gate.
 3. Walls: the camera sees a room's north wall, so it rises `height` x lean
    rows over the masonry beyond, in a Warcraft III city wall's stones, its
-   coping lit along the top. Every other wall shows its coping edge.
+   coping lit along the top; a plinth's south face rises its own height.
+   Every other wall shows its coping edge.
 4. Lights, then the models, north to south so nearer things cover farther
    ones: banners, torches, braziers and lanterns, graves, tombs and trees,
    the dead and the living. Each model is rendered by wc3render.py with its
@@ -63,6 +65,12 @@ def _masks(d, w, h):
             base = (h - 1 - y) * w
             style[base + x0:base + x1] = bytes([k]) * (x1 - x0)
             sky[base + x0:base + x1] = bytes([open_]) * (x1 - x0)
+    for p in d.get("plinths", ()):
+        # A plinth in an open garden takes the moonlight too.
+        if p.get("open_sky", True):
+            for y in range(p["y0"], p["y1"]):
+                base = (h - 1 - y) * w
+                sky[base + p["x0"]:base + p["x1"]] = b"\x01" * (p["x1"] - p["x0"])
     return names, style, sky
 
 
@@ -283,11 +291,12 @@ STONE = (178, 172, 158)
 
 
 def paint_stones(pic, d, style, names):
-    """Stepping stones on a lawn (`stones` = {"floor": style, "step",
-    "radius", "density"?, "seed"?}): pale octagonal flags in staggered rows,
-    `density` per cent of the places taken, each stone a little off its
-    place and its own size, shape and shade, lit from the north-west, the
-    grass growing over its edge."""
+    """Flagstones on a lawn (`stones` = {"floor": style, "step", "radius",
+    "density"?, "seed"?}): pale octagonal flags in staggered rows, `density`
+    per cent of the places taken (all by default: a paved yard, the grass
+    between the flags), each a little off its place and its own size, shape
+    (its corners cut more or less) and shade, mottled, lit from the
+    north-west with its edges bevelled, the grass growing over them."""
     spec = d.get("stones")
     if not spec:
         return
@@ -312,8 +321,9 @@ def paint_stones(pic, d, style, names):
                 sy = cj * step + step // 2 + (hv >> 12) % (2 * room + 1) - room
                 rx = radius + (hv >> 17) % 7 - 3
                 ry = radius + (hv >> 21) % 7 - 3
+                cut = 0.64 + 0.02 * ((hv >> 3) % 9)          # the corners: 0.71 cuts a regular octagon
                 ax, ay = abs(x + 0.5 - sx) / rx, abs(y + 0.5 - sy) / ry
-                a = max(ax, ay, (ax + ay) * 0.7071)        # an octagon's measure: 1 at its edge
+                a = max(ax, ay, (ax + ay) * cut)            # an octagon's measure: 1 at its edge
                 if a <= 1.0:
                     depth = (1.0 - a) * min(rx, ry)        # units in from the edge
                     if best is None or depth > best[0]:
@@ -322,10 +332,13 @@ def paint_stones(pic, d, style, names):
             continue
         depth, hv, sx, sy, rx = best
         tone = (hv >> 25) % 21 - 10
-        v = hash32(x // 2, y // 2, 437) % 9 - 4
-        lit = 256 + int(28 * ((y + 0.5 - sy) - (x + 0.5 - sx)) / rx)    # lit from the north-west
+        v = hash32(x // 2, y // 2, 437) % 9 - 4 + hash32(x // 7, y // 5, 439) % 9 - 4    # speckled, mottled
+        toward = (y + 0.5 - sy) - (x + 0.5 - sx)            # positive toward the north-west
+        lit = 256 + int(28 * toward / rx)                  # lit from the north-west
+        if depth < 2.5:
+            lit = lit * (284 if toward > 0 else 196) >> 8  # the bevel: lit edge, shadowed edge
         r, g, b = ((c + tone + v) * lit >> 8 for c in STONE)
-        if depth < 2.0:                                    # the grass grows over the edge
+        if depth < 1.2:                                    # the grass grows over the edge
             r, g, b = (r + pic.r[i]) >> 1, (g + pic.g[i]) >> 1, (b + pic.b[i]) >> 1
         pic.r[i], pic.g[i], pic.b[i] = max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b))
 
@@ -451,6 +464,51 @@ def paint_pools(pic, d, tiles):
                 pic.b[i] = int(pic.b[i] + (244 - pic.b[i]) * foam)
 
 
+def plinth_mask(d, w, h):
+    """Per texel (row 0 north): the plinth's number from 1, or 0."""
+    mask = bytearray(w * h)
+    for k, p in enumerate(d.get("plinths", ()), 1):
+        for y in range(p["y0"], p["y1"]):
+            base = (h - 1 - y) * w
+            mask[base + p["x0"]:base + p["x1"]] = bytes([k]) * (p["x1"] - p["x0"])
+    return mask
+
+
+def paint_plinths(pic, d, tiles):
+    """Raised blocks the karts drive round, a statue's plinth (`plinths`:
+    {"x0", "y0", "x1", "y1", "height", "top", "rim"?}). Off the floor, as the
+    masonry is, so they stop the karts as walls do; their tops are paved in
+    the `top` floor style inside a rim of dressed stone `rim` texels wide,
+    its blocks jointed along it. paint_walls raises their south faces."""
+    plinths = d.get("plinths")
+    if not plinths:
+        return
+    w, h = pic.w, pic.h
+    rr, rg, rb = RIM
+    for p in plinths:
+        spec = d["floors"][p["top"]]
+        rim = p.get("rim", 6)
+        x0, y0, x1, y1 = p["x0"], p["y0"], p["x1"], p["y1"]
+        for y in range(y0, y1):
+            row = h - 1 - y
+            for x in range(x0, x1):
+                i = row * w + x
+                across = min(y - y0, y1 - 1 - y)                # from the north or south edge
+                along = min(x - x0, x1 - 1 - x)                 # from the east or west edge
+                e = min(across, along)
+                if e < rim:
+                    v = hash32(x // 8, y // 8, 461) % 13 - 6
+                    joint = (x - x0) % 14 == 0 if across < rim and across <= along else (y - y0) % 14 == 0
+                    k = 206 if joint or e == 0 else (238 if e == rim - 1 else 256)
+                    pic.r[i] = max(0, min(255, (rr + v) * k >> 8))
+                    pic.g[i] = max(0, min(255, (rg + v) * k >> 8))
+                    pic.b[i] = max(0, min(255, (rb + v) * k >> 8))
+                    continue
+                r, g, b, _ = tiles.whole(spec["tile"], x, y, seed=spec.get("seed", 3), shade=spec["shade"])
+                k = 214 if e == rim else 256                    # the rim's shadow on the paving
+                pic.r[i], pic.g[i], pic.b[i] = r * k >> 8, g * k >> 8, b * k >> 8
+
+
 def paint_room_lights(pic, lights, floor, faced):
     """Pools of light, (x, y, radius, (r, g, b)) each, added to the colour:
     full on the floor, less on the wall faces, a glimmer on the walls' tops."""
@@ -553,10 +611,14 @@ def paint_finish(pic, gate, floor, w, h, thickness=10, cells=5):
 def paint_walls(pic, d, tiles, floor):
     """A room's north wall rises over the masonry beyond: Warcraft III city
     wall stones, `height` x lean rows, shaded down to its foot, its coping lit
-    along the top. The other walls show their coping edge, two texels wide."""
+    along the top; a plinth's south face rises its own `height` so, in the
+    same stones at the same scale. The other walls show their coping edge,
+    two texels wide."""
     w, h = pic.w, pic.h
     spec = d["wall"]
     rise = int(spec["height"] * d["lean"] + 0.5)
+    rises = [rise] + [int(p["height"] * d["lean"] + 0.5) for p in d.get("plinths", ())]
+    plinth = plinth_mask(d, w, h)
     face = Strata(tiles, spec["face"])
     cr, cg, cb = spec["coping"]
     faced = bytearray(w * h)
@@ -566,14 +628,15 @@ def paint_walls(pic, d, tiles, floor):
             if not floor[i] or floor[i - w]:
                 continue
             # (x, row) is floor and the texel north of it masonry: the room's
-            # north wall, facing the camera.
-            for k in range(1, rise + 1):
+            # north wall (or a plinth's south face), facing the camera.
+            up = rises[plinth[i - w]]
+            for k in range(1, up + 1):
                 j = (row - k) * w + x
                 if row - k < 0 or floor[j]:
                     break
-                fr, fg, fb = face.sample(x, rise - k, rise)
-                s = 150 + 120 * k // rise                     # darker toward the foot
-                if k >= rise - 2:
+                fr, fg, fb = face.sample(x, up - k, rise)
+                s = 150 + 120 * k // up                       # darker toward the foot
+                if k >= up - 2:
                     fr, fg, fb, s = cr, cg, cb, 256              # the coping
                 pic.r[j] = min(255, fr * s >> 8)
                 pic.g[j] = min(255, fg * s >> 8)
@@ -653,7 +716,9 @@ def check_props(geometry, models):
                                  f"(its body at {x:.0f}, {y:.0f}): make it solid or move it off the floor")
 
 
-def build(wc3, d, geometry, check=False, preview=False, log=print):
+def build(wc3, d, geometry, check=False, preview=False, log=print, cache=None):
+    """Paint one dungeon; `cache` may hold sprites already rendered (the
+    models that block as drawn, rendered for the geometry)."""
     import time
     started = time.time()
     w, h = geometry["width"], geometry["height"]
@@ -661,11 +726,21 @@ def build(wc3, d, geometry, check=False, preview=False, log=print):
     pic = Picture(w, h)
     names, style, sky = _masks(d, w, h)
     floor = bytearray(1 if v else 0 for v in style)
+    if d.get("pools"):
+        # Water lies at the floor's level: no wall rises from its edge, and
+        # a pool beyond the rooms (the falls between the stairs) is lit as
+        # the open garden round it is.
+        water = pool_mask(d, w, h)
+        for i in range(w * h):
+            if water[i] and not floor[i]:
+                floor[i] = 1
+                sky[i] = 1
     paint_masonry(pic, d, floor)
     paint_floors(pic, d, tiles, names, style, floor)
     paint_kerbs(pic, d, style, names, floor)
     paint_stones(pic, d, style, names)
     paint_pools(pic, d, tiles)
+    paint_plinths(pic, d, tiles)
     paint_carpets(pic, d, floor)
     paint_rings(pic, d, floor)
     paint_stairs(pic, d)
@@ -674,7 +749,7 @@ def build(wc3, d, geometry, check=False, preview=False, log=print):
     log(f"  floors {time.time() - started:.0f}s")
     faced = paint_walls(pic, d, tiles, floor)
     log(f"  walls {time.time() - started:.0f}s")
-    cache = {}
+    cache = {} if cache is None else cache
     models = []
     for item in d["props"]:
         sprite = sprite_for(wc3, d, item, cache)

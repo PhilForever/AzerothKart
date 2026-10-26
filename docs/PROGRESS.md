@@ -1,5 +1,38 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-26 14:16 +01:00 — Scarlet v2 and stat bars approved in combined source
+
+Owner requests review and conditional install/push of Claude's latest work.
+Reviewed the six-commit stack through e122120 (Scarlet fixes8889aa4 plus kart
+bars), based on the installed Codex98f433e/runtime9c80746. Own
+`codex/scarlet-stats-review` from clean98f433e/reservation2a14f49; combination
+has no merge conflict. Two independent reviewers found no blocking issue.
+[Review, scope, executed checks and limits](reviews/2026-10-26-scarlet-fixes-stat-bars.md).
+
+Library/Armory/Cathedral become version2, with matching catalogue contexts.
+Library removes Loksey's checkpoint/path NPC; Armory yard and Cathedral gardens
+have full grip; Cathedral's plinths leave the two stairs as the way up. Explicit
+generated collision follows selected drawn props. Graveyard and all current
+Codex collision, input, handling, transport/score and remote-display runtime
+remain unchanged. Old version1 scores stay saved separately; no migration.
+
+Kart chooser/Garage add four read-only handling bars. Actual Balanced4/4/4/4,
+Heavy5/2/2/6 and Agile3/6/6/2 values use the documented4%-per-window scale.
+Guarded atlas load once, text fallback on refusal; reviewed production budget
+89frames/77textures/140fontStrings (+8textures/+4labels), all created once.
+
+Executed combined Lua51 dungeon/menu/ui/circuit/score_sharing/presentation:
+PASS all6modules/80parsedfiles. Catalogue check PASS11boards; original stat
+atlas byte-exact rebuild PASS (SHA256f1528efd…6131). Diff checks PASS. Structural
+validator still reports only2historical expired links; not a full pass. Full
+suite/Python-service repetition, Lua54, map image rebuild and native checks
+NOT RUN for this slice. No new milestone, global or multiplayer-scale claim.
+
+**Next exact task:** commit/publish the approved combination and both original
+Claude tips; back up/verify the existing installation and build a matching friend
+ZIP. New stat texture requires full client restart. Preserve both worktrees,
+legacy extra and player saves; no main update, force push or release.
+
 ## 2026-10-26 10:16 +01:00 — combined Scarlet build installed and packaged
 
 Owner explicitly requests the addon installation for testing. Installed tested

@@ -21,15 +21,25 @@ No eight-player implementation or capacity acceptance is claimed.
 | Undercity Slime Circuit (`undercity_slime`) | 2 | 6 |
 | Thunder Bluff Skyway (`thunder_bluff_skyway`) | 2 | 7 |
 | Scarlet Graveyard (`scarlet_graveyard`) | 2 | Solo sprint |
-| Scarlet Library (`scarlet_library`) | 1 | Solo sprint |
-| Scarlet Armory (`scarlet_armory`) | 1 | Solo sprint |
-| Scarlet Cathedral (`scarlet_cathedral`) | 1 | Solo sprint |
+| Scarlet Library (`scarlet_library`) | 2 | Solo sprint |
+| Scarlet Armory (`scarlet_armory`) | 2 | Solo sprint |
+| Scarlet Cathedral (`scarlet_cathedral`) | 2 | Solo sprint |
 
 All eleven courses are available in solo and Highscores. The seven three-lap
 circuits are available in the existing two-peer lobby. The four dungeon sprints
 are excluded from live admission until their multiplayer lifecycle is reviewed.
-There are no coming-soon entries. Mirage is the actual default geometry
-and scenery. A failed scenery load refuses Start until a valid map loads;
+There are no coming-soon entries. Mirage is the actual default geometry and scenery.
+
+Reviewed Scarlet v2 changes remove the Library's Loksey checkpoint/path NPC,
+make the Armory Training Grounds and Cathedral gardens full grip, and limit
+the Cathedral climb to its two stairs beside the falls. Library's kerbed lawns
+and Graveyard retain their rough surfaces. Version1 records remain saved in
+their old contexts; current boards use version2. Stat-bar integration changes
+the explicit production UI pool to89frames/77textures/140fontStrings, adding
+only eight creation-time textures and four labels. Native appearance/feel for
+these changes remains pending.
+
+A failed scenery load refuses Start until a valid map loads;
 there is no hidden Oval fallback. An obsolete saved Oval preference falls back
 in memory without rewriting the save on initial load.
 

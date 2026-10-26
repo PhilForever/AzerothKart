@@ -1,4 +1,196 @@
-# Claude handoff — Scarlet Cathedral
+# Claude handoff — kart stat bars
+
+Prepared 2026-10-26 by Claude (rendering/UI/sprites owner).
+
+**Base:** `claude/scarlet-fixes` `8889aa4` (on Codex's installed `codex/scarlet-integration` `98f433e`), so the two Claude branches stack and their handoff and changelog entries do not conflict. **Branch:** `claude/kart-stat-bars`, with these commits:
+
+- `d1eedae`: the reservation;
+- `dd6090d`: the stat bars;
+- this handoff.
+
+Integrating it brings the Scarlet fixes too; it descends from them. Nothing is installed.
+
+## Owner instructions
+
+He sent a Crash Team Racing-style picture of three segmented green bars (SPEED, ACCELERATION, TURN) and wrote: "I also want to introduce more mario kart/crash team racing way of seeing the different kart attributes. Currently it looks like image 1. Make the kart attributes look more like this but in wow style obviously and use the actual ingame addon kart attributes as guidance for how much each bar should be filled." Asked which bars, he chose **four: Speed, Acceleration, Turning and Braking**, every real difference between Physics' handling profiles (with three, Heavy would look strictly weaker).
+
+## Scope (reserved and changed)
+
+The reservation (`d1eedae`) held.
+
+- **`addon/AzerothKart/Menu.lua`:** new `Menu.STATS_PATH`, `Menu.KART_STATS`, `Menu.STAT_*` and the pure `Menu.statFill`; a `showStats` helper; in `buildKarts` the handling line becomes the profile's name in gold over four bars, and the kart buttons move from y −262 to −330. The unused `GREEN` colour is gone. No command, lifecycle, preference or session code changed.
+- **New art:** `scripts/build_stat_bars.py`, `addon/AzerothKart/Assets/UI/StatBars.tga` (512×64, 131,090 bytes, sha256 `f1528efd…6131`), `docs/art/ui/stat-bars.png`.
+- **Tests:** `tests/test_menu.lua` (two new blocks; the budget 89/77/140); `tests/test_ui.lua` (only `MENU_TEXTURES`/`MENU_FONTS`, 9/120 to 17/124, the production budget assertion and its printed line).
+- **Shared/docs:** `scripts/validate_project.py` (the three new files), `docs/API_CONTRACTS.md` (a proposed note under the kart-handling section, and the counts line), `docs/art/ui/front-end.md` (the kart screen row, a "New art: kart stat bars" section, the budget, the tests) and its regenerated review picture, `docs/ASSETS.md`, `docs/art/ASSET_SOURCES.md`, `CHANGELOG.md`, `docs/TEST_PLAN.md`, `tests/MANUAL_CLIENT_CHECKLIST.md`.
+
+Physics, `UI.lua` and every Codex-owned file are untouched; Physics is read only through `Physics.GetHandling`, as before.
+
+## Delivered
+
+![The atlas' two rows, then Balanced, Heavy and Agile at the menu's size](../art/ui/stat-bars.png)
+
+- **The look:** under the kart's credit, "Handling: Heavy" (Balanced, Agile) in gold, then four rows: a gold label and a 240×16 bar. Each bar is a gold plate, bright along its top and bronze at its foot, with a dark outline, rounded ends and six recessed windows, dark when empty and a glossy green when full: the client's gold trim and health-bar green, not the reference's art. Same in the kart choice and the garage.
+- **The values:** `Physics.GetHandling(kartId)` against `GetHandling(nil)` (the balanced profile, as the contract says). Balanced fills four windows of six; each 4% more or less is one window more or fewer, clamped between half a window and the full bar:
+
+  | Profile | Speed | Acceleration | Turning | Braking |
+  |---|---|---|---|---|
+  | Balanced | 4 | 4 | 4 | 4 |
+  | Heavy (+4% speed, −8% acceleration and turning, +8% braking) | 5 | 2 | 2 | 6 |
+  | Agile (−4% speed, +8% acceleration and turning, −8% braking) | 3 | 6 | 6 | 2 |
+
+  A retuned profile moves the bars with no Menu change.
+- **Drawing:** each bar is the empty row with the full row over it, cropped from the left (`SetTexCoord`) to the share, so part of a window can fill. The atlas loads once, on the first visit to the kart screen; if it fails, the bars stay hidden, the line shows the old tradeoff sentence, and the load is not retried.
+
+## Decisions for review
+
+1. **Four bars, not three** (the owner's choice): Braking is the fourth real difference, and with it Heavy and Agile trade evenly.
+2. **The scale.** 4% per window keeps the real proportions: speed differs half as much as the others, so its bar moves one window where the others move two. A scale stretching every stat to the full range would exaggerate speed's 4%.
+3. **Turning is `steerRate`.** The profiles' `steeringRiseRate`, `maxSlipAngle` and `slipRecoverRate` move with it or are drift details; they are not shown.
+4. **Original art,** painted from numbers; no Mario Kart or Crash Team Racing picture is an input (AGENTS forbids ripped art).
+
+## Needs Codex
+
+- **Review and integration** after the Scarlet fixes. The object budget rises by 8 textures and 4 font strings, all created once with the window: `test_menu` and `test_ui` assert **89/77/140**; please carry it into your production-maps and integration notes.
+- **Install:** `Assets/UI/StatBars.tga` is a new path: both clients need a full restart.
+
+## Tests
+
+| Command | Cloud | The owner's machine |
+|---|---|---|
+| `python scripts/test_lua.py --runtime lua51` | PASS, full suite | PASS, full suite (the pool line reads 89/77/140) |
+| `python scripts/test_lua.py --runtime lua54 --tests menu ui` | PASS | not run |
+| `python scripts/build_stat_bars.py --check` | PASS | PASS, the same sha256 |
+| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in `PROGRESS.md` fail | the same |
+| `python scripts/preview_ui.py` | Wrote the front end's review picture; the kart screen and garage show the bars (a layout picture with stand-in fonts, not a screenshot) | not run |
+| `git diff --check` | clean | |
+
+**NOT RUN in the client:** the bars' look, their load and the new layout. The owner runs [the checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-kart-stat-bars-check-proposed-claudekart-stat-bars).
+
+## PROGRESS ledger entry for the integrator (kart stat bars)
+
+> **2026-10-26 — Kart stat bars (Claude, `claude/kart-stat-bars` `dd6090d` on `claude/scarlet-fixes` `8889aa4`).** The kart screen and garage show the handling profile as four gold-framed bars (Speed, Acceleration, Turning, Braking) from `Physics.GetHandling`, four windows of six at the balanced profile, one per 4% (Heavy 5,2,2,6; Agile 3,6,6,2). New original atlas `Assets/UI/StatBars.tga` (`scripts/build_stat_bars.py`); text fallback if it cannot load. Pool 89/77/140 (+8 textures, +4 font strings). Lua 5.1 full suite PASS on both machines; Lua 5.4 menu/ui PASS (cloud); atlas check PASS on both; validator: only the 2 pre-existing `PROGRESS.md` links fail. NOT RUN: client.
+
+## Push (the owner's)
+
+```
+git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/scarlet-fixes claude/kart-stat-bars
+```
+
+## Next
+
+The owner looks at the bars after Codex's review and install, with [the checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-kart-stat-bars-check-proposed-claudekart-stat-bars).
+
+# Previous: Scarlet fixes from the owner's first drive
+
+Prepared 2026-10-26 at about 11:45 CET (Europe/Oslo) by Claude (rendering/UI/sprites owner).
+
+**Base:** Codex's `codex/scarlet-integration` `98f433e`, the installed combined build (runtime `9c80746`, with Codex's swept round-solid collision and the L/A/C score codes). `98f433e` is Codex's docs-only install record on top of the published `4d725a3`; it is on the owner's machine and not yet pushed.
+
+**Branch:** `claude/scarlet-fixes`, with these commits:
+
+- `9dd33d2`: the reservation;
+- `6311b45`: the fixes;
+- this handoff.
+
+It descends from Codex's integration branch, so it fast-forwards it. Nothing in it is installed.
+
+## Owner instructions
+
+After driving the installed Scarlet Cup he sent five images: the Library's courtyard in the client (a huntsman standing on the cross path's west end), the Armory's Training Grounds in the client (the HUD reading "Grass | Slowing on grass"), a World of Warcraft screenshot of the Training Grounds, the Cathedral's upper garden in the client, and a battle-map close-up of the Chapel Gardens' falls (the stairs beside them the only way up, the statues on raised platforms). He wrote:
+
+> "Grass needs to be drivable if it doesnt have a clear edge/fence + remove the guy standing in the road on image 1. Remove the gate at houndmaster locksley - fun, but counterintuitive, the room is nice but not part of the checkpoints. Make image 2(armory courtyard/training grounds) look more(exactly) like image 3. should be able to drive through this without being slowed. Remove slow from grass in cathedral as well. There are also seemingly some invisible walls. as you can see in image 5 - the stairs are the only path up to the cathedral"
+
+The standing instructions hold: no merge into `main`; no claim of in-game verification without the actual client; the simulation-control functions in `UI.lua` stay untouched; the owner pushes and runs the client checks, and Codex prepares coordinated installs.
+
+## Scope (reserved and changed)
+
+The reservation (`9dd33d2`) held, with three small additions in Claude's own art pipeline and provenance docs: `scripts/city_meshes.py` (two new procedural meshes; the Great Forge's are untouched), `docs/ASSETS.md` and `docs/art/ASSET_SOURCES.md`.
+
+- **Scripts:** `scripts/dungeon_layouts.py` (the Library, Armory and Cathedral sections; the Graveyard's is unchanged), `scripts/dungeon_paint.py` (plinths, flagstone paving, water at the floor's level), `scripts/build_dungeon_tracks.py` (models that block as drawn; a solid may stand on the floor by one side's middle), `scripts/city_meshes.py` (`training_dummy`, `sack_dummy`).
+- **Generated:** `addon/AzerothKart/ScarletCrusade.lua` (the three courses at version 2; the Graveyard's entry unchanged) and the Library's, Armory's and Cathedral's `Background.tga`/`Preview.tga`, overviews, sources lists and review images. The Graveyard's pictures are byte for byte unchanged. `services/leaderboard/catalog.json`: the three courses' `trackVersion` 2, still eleven boards.
+- **Shared data:** `Courses.lua` (the Library's and the Cathedral's status lines) and `Menu.lua` (the three courses' `Menu.TRACKS` copy).
+- **Tests:** the Library, Armory and Cathedral sections of `tests/test_dungeon.lua`.
+- **Docs:** the three track sheets, ADR 0020 (a fifth addendum), `TRACKS.md`, `TEST_PLAN.md`, `ASSETS.md`, `art/ASSET_SOURCES.md`, `CHANGELOG.md`, `tests/MANUAL_CLIENT_CHECKLIST.md`, this handoff.
+
+There is no change to `Dungeon.lua`, `UI.lua`, `Presentation.lua`, Physics, `Race`, `SoloRecords`, `Highscores`, `ScoreSync`, `ScoreSharing`, networking or any other Codex-owned file. `docs/PROGRESS.md` was not edited; the entry is [below](#progress-ledger-entry-for-the-integrator-scarlet-fixes).
+
+## Delivered
+
+![The Cathedral: the way through and nine follow-camera views](../art/tracks/scarlet_cathedral-review.png)
+
+- **Scarlet Library** ([sheet](../art/tracks/scarlet-library.md#version-2-after-the-owners-first-drive), [review image](../art/tracks/scarlet_library-review.png)), version 2:
+  - four gates: *Huntsman's Cloister*, *Gallery of Treasures*, *Athenaeum*, *Arcanist Doan*; Loksey's kennel stays as a side room with no gate, and the route no longer goes in;
+  - the huntsman on the courtyard's cross path is gone (the other huntsman and the hounds stand on the lawns);
+  - the courtyard's trees and bushes block where their crowns are drawn;
+  - its lawns keep slowing: kerbed paths edge them (see decision 1).
+- **Scarlet Armory** ([sheet](../art/tracks/scarlet-armory.md#version-2-the-training-grounds-as-the-owners-screenshot), [review image](../art/tracks/scarlet_armory-review.png)), version 2: the Training Grounds as his screenshot shows them, at full speed:
+  - the yard is `road`: nothing in the Armory slows the karts;
+  - large pale octagonal flags in staggered rows fill the yard, the grass between them, each flag its own size, cut and shade, bevelled;
+  - four wooden training dummies (a post bound with iron, a beam through it for arms) and two padded ones, procedural (Warcraft III has no dummy), in place of version 1's scarecrows;
+  - three archery targets down the east side, each before a plank backstop (Reforged's plank board), hay at their feet;
+  - a bush and a bed of flowers in the south-west and north-east corners;
+  - everything in the yard blocks where it is drawn; the reviewed route runs straight through it, between the dummies.
+- **Scarlet Cathedral** ([sheet](../art/tracks/scarlet-cathedral.md#version-2-after-the-owners-first-drive)), version 2:
+  - the gardens' lawns are `road`: nothing in the Cathedral slows the karts;
+  - the statue platforms are raised **plinths**, not floor: cobbled tops in a dressed rim, a face toward the lower garden, a champion's statue and a Scarlet standard on each. The lower garden ends at their faces and the upper garden starts behind them, so the two stairs beside the falls are the only way up;
+  - the invisible walls: version 1's trees stopped the karts at a 14-unit box round the trunk, hidden under a crown about 56 units across and drawn north of the trunk, so a kart drove onto the leaves and stopped at nothing it could see. The eight trees and two bushes are now round solids the size of their drawn crowns, and the nave's, transept's and chancel's pillars block where they are drawn. The lower garden keeps two trees, clear of the way to the stairs; the upper garden's bushes stand nearer its walks.
+
+## Decisions for review
+
+1. **"Grass ... without a clear edge/fence."** Read as a rule: a lawn slows only where a clear edge marks it. The Armory's yard and the Cathedral's gardens become `road` (he named both). The Library's courtyard lawns and the Graveyard's cloister keep slowing: their kerbed paths are the clear edge, and the paths run where the karts go. He did not name either, but if he wants them at full speed too it is a one-word change per room (and a version bump). The Graveyard is untouched, so its version-2 scores stand.
+2. **The stairs climb straight up.** The battle map shows each long flight rising to a landing and a short flight turning outward. In the world the round pool's rim comes close to where the landings would be, so the stairs run straight up into the upper garden. The plinths, not the turn, make them the only way up.
+3. **Blocking as drawn** (`blocks`, ADR 0020's fifth addendum) is applied where a model's drawn body spreads well past its base: trees and bushes (round), the Cathedral's great pillars and the Armory yard's props (boxes). Slender models (arcade columns, soldiers) keep a box at their feet, so a kart driving behind one is drawn over its top; boxing their whole drawn height would close the walks behind the columns. The Library's fountain statue keeps its basin's box. Those remaining overlaps are listed by the audit in the [prop audit notes](#where-a-kart-can-still-overlap-a-drawn-model).
+4. **Procedural dummies.** Warcraft III has no training dummy; the scarecrows did not read as one. They are built like the Great Forge's anvil and pumps, from prisms and blocks, painted with Reforged's hitching post wood and flat iron and cloth colours.
+5. **Targets face the camera.** The screenshot's targets face west across the yard; seen from above they would be thin edges, so they face south, each with its backstop behind it, as version 1's faced.
+6. **Water at the floor's level.** With the gardens no longer meeting, the falls lie beyond any room; the painter now treats a pool as floor for its walls and moonlight, so no wall face rises from the water's edge.
+7. **Versions.** The Library, Armory and Cathedral are geometry version 2: their score boards start fresh, and version 1's saved records stay as they are. The score catalogue carries the new versions.
+
+### Where a kart can still overlap a drawn model
+
+`blocks` covers the cases above. Measured with the audit (body texels within 6 units of where the kart centre can be), what remains is slender or off the way: in the Cathedral the soldiers along the nave, Mograine, Whitemane and Fairbanks beyond the finish, the side chapels' cleric, table and footman; in the Library the arcade columns, pillars, the fountain's statue, the gallery's statues, the hounds and Loksey; in the Armory the arcade columns, the forge, Herod and the footmen. If the owner meets one of these as an invisible wall, the same `blocks` mark fixes it.
+
+## Needs Codex
+
+- **Review and integration.** The branch fast-forwards `codex/scarlet-integration` (`98f433e`). Runtime changes are generated data (`ScarletCrusade.lua`), three pictures each, two status lines and menu copy. `Dungeon.lua` is unchanged; the Cathedral now has eleven round solids (the pool, eight trees, two bushes), the Library twelve and the Armory two, all through the integrated swept-disc path.
+- **Your docs:** `docs/PRODUCTION_MAPS.md` lists the three courses at geometry version 1; they become 2. `docs/INTEGRATION_STATUS.md` and the ledger entry below are yours to record.
+- **Install:** the three pictures keep their paths but changed, so a full client restart is the safe advice. Both peers need the same build for score catch-up on the three new contexts.
+
+## Tests
+
+| Command | Cloud | The owner's machine |
+|---|---|---|
+| `python scripts/build_dungeon_tracks.py --wc3 WC3 --check` | PASS, all four dungeons and the data | PASS, each dungeon in its own call; 147 sprites rendered fresh into an empty cache from the machine's own extraction, the Armory's models re-extracted by its sheet's updated command |
+| `python scripts/test_lua.py --runtime lua51` | PASS, full suite (43 modules, 80 files parsed) | PASS, full suite |
+| `python scripts/test_lua.py --runtime lua54 --tests dungeon menu circuit` | PASS | not run |
+| `python -m unittest discover -s tests -p "test_*.py"` | 24 OK | 23 OK, and the known SQLite 3.37.2 `not authorized` error in `test_leaderboard_store` |
+| `python scripts/export_score_catalog.py --check` | PASS, eleven boards | PASS, eleven boards |
+| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in `PROGRESS.md` fail | the same |
+| `git diff --check` | clean | |
+
+**NOT RUN in the client:** the three courses' version 2: the drive, the yard's look, the plinths and the stairs, the trees and pillars as obstacles, the pictures' load. The owner runs [the checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-scarlet-fixes-check-proposed-claudescarlet-fixes); Claude does not control the client.
+
+## PROGRESS ledger entry for the integrator (Scarlet fixes)
+
+> **2026-10-26 — Scarlet fixes from the owner's first drive (Claude, `claude/scarlet-fixes` `6311b45` on `codex/scarlet-integration` `98f433e`).** Library v2: four gates (no gate in Loksey's kennel, which stays a side room), the huntsman on the courtyard's path removed. Armory v2: the Training Grounds paved with octagonal flags, procedural training dummies, targets before plank backstops, flowers and bushes, no slowdown. Cathedral v2: no slowdown on the lawns, raised plinths so only the stairs lead up, trees and bushes as round solids the size of their crowns and pillars blocking as drawn (the invisible walls). Generator: `blocks`, `plinths`, flagstone paving. Graveyard and all Codex-owned runtime unchanged.
+> - Cloud and owner's machine: `build_dungeon_tracks.py --check` PASS (machine: 147 fresh sprites); Lua 5.1 full suite PASS on both; Lua 5.4 dungeon/menu/circuit PASS (cloud); Python 24 OK (cloud), 23 OK plus the known SQLite error (machine); catalogue PASS (eleven boards); validator: only the 2 pre-existing `PROGRESS.md` links fail.
+> - NOT RUN: the client checks.
+
+## Push (the owner's)
+
+Claude does not push. To publish the branch:
+
+```
+git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/scarlet-fixes
+```
+
+It carries Codex's unpublished `98f433e` with it.
+
+## Next
+
+1. The owner drives the three courses' version 2 after Codex's review and install, with [the checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-scarlet-fixes-check-proposed-claudescarlet-fixes).
+2. If he wants the Library's or the Graveyard's lawns at full speed too, or meets one of the remaining overlaps above as an invisible wall, both are small layout changes.
+
+# Previous: Scarlet Cathedral
 
 Prepared 2026-10-26 at about 09:40 CET (Europe/Oslo) by Claude (rendering/UI/sprites owner).
 

@@ -1,5 +1,24 @@
 # Codex handoff — production maps and Claude course review
 
+## Reviewed Scarlet v2/stat bars — 2026-10-26 14:16 CET
+
+Approved combination on `codex/scarlet-stats-review`: Codex98f433e plus Claude
+e122120 (Scarlet fixes8889aa4 and stat bars). Six reviewed commits, no merge
+conflicts or blocking findings. [Full review and scope](../reviews/2026-10-26-scarlet-fixes-stat-bars.md).
+Source keeps all Codex mechanical/network/score code unchanged; only generated
+map data, Courses/Menu and art/pipeline/tests/docs change. Three Scarlet courses
+are v2; old contexts remain saved. Four bars match real profiles with new pooled
+UI budget89/77/140. New StatBars.tga path requires full client restart.
+
+Actual focused Lua51 six-module integration PASS/80parsed, catalogue11boards
+and exact stat-atlas rebuild PASS; independent review clear. Diffcheck PASS;
+structural only2historical link failures. Native/full-suite-repeat/Lua54/map
+rebuild/Python-service-repeat NOT RUN this slice. No acceptance gate closed.
+
+Next: commit, regular publish combined plus Claude8889aa4/e122120 branches,
+verified prior-addon backup/install/friendZIP. Both original worktrees and
+untracked outputs stay unchanged; no main/force/release or playerdata changes.
+
 ## Active review/integration — Scarlet v2 and stat bars, 2026-10-26 14:09 CET
 
 Owner authorizes review and conditional installation/publication of Claude's

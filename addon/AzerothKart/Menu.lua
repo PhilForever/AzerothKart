@@ -65,21 +65,20 @@ Menu.TRACKS = {
         facts={"Sprint: one run through 3 gates", "Grass slows you; graves and tombs block",
             "The finish is Honor's Tomb"}},
     {id="scarlet_library", name="Scarlet Library", cell="scarletlibrary",
-        blurb="From the portal down the long hall to the Huntsman's Cloister, into Houndmaster Loksey's kennel "
-            .. "and back out, then up through the Gallery of Treasures and the Athenaeum to Arcanist Doan's "
-            .. "round library.",
-        facts={"Sprint: one run through 5 gates", "Loksey's kennel: in across his line, then back out",
+        blurb="From the portal down the long hall to the Huntsman's Cloister, past Houndmaster Loksey's kennel, "
+            .. "then up through the Gallery of Treasures and the Athenaeum to Arcanist Doan's round library.",
+        facts={"Sprint: one run through 4 gates", "The cloister's lawns slow you; its paths are stone",
             "The finish is the round library's door"}},
     {id="scarlet_armory", name="Scarlet Armory", cell="scarletarmory",
         blurb="From the portal across the Training Grounds, the one open sky, up into the Footman's and the "
             .. "Crusader's Armories, along the long hall into the round Hall of Champions and down its stairs "
             .. "to Herod.",
-        facts={"Sprint: one run through 5 gates", "Grass slows you in the Training Grounds",
+        facts={"Sprint: one run through 5 gates", "Full speed across the Training Grounds",
             "The finish is down the stairs, beside Herod"}},
     {id="scarlet_cathedral", name="Scarlet Cathedral", cell="scarletcathedral",
-        blurb="From the portal into the Chapel Gardens, round their pools and up beside the falls, through the "
-            .. "cathedral's door and up the nave to the altar, where Mograine and Whitemane stand.",
-        facts={"Sprint: one run through 4 gates", "The pools and the falls block; grass slows you",
+        blurb="From the portal into the Chapel Gardens, round their pools and up the stairs beside the falls, "
+            .. "through the cathedral's door and up the nave to the altar, where Mograine and Whitemane stand.",
+        facts={"Sprint: one run through 4 gates", "The pools block; only the stairs lead up",
             "The finish is before the altar"}},
 }
 
@@ -155,6 +154,34 @@ Menu.PREVIEW_CELLS = {
         left=0, right=1, top=0, bottom=1, width=160, height=320},
 }
 
+-- The kart screen's handling bars: Physics' handling profiles, read through
+-- Physics.GetHandling and never written. Each of a bar's six windows is 4%
+-- of the Balanced kart's value, which fills four: Heavy's 4% more speed
+-- fills five, Agile's 8% quicker acceleration all six. StatBars.tga
+-- (scripts/build_stat_bars.py) is 512x64: row 0 the empty bar, row 1 the
+-- full one, each 480x32 texels for a 240x16 bar; the full bar is drawn over
+-- the empty one, cropped from the left to the kart's value.
+Menu.STATS_PATH = "Interface\\AddOns\\AzerothKart\\Assets\\UI\\StatBars.tga"
+Menu.KART_STATS = {
+    {key="maxSpeed", label="Speed"},
+    {key="accel", label="Acceleration"},
+    {key="steerRate", label="Turning"},
+    {key="brake", label="Braking"},
+}
+Menu.STAT_SEGMENTS, Menu.STAT_PAR, Menu.STAT_STEP = 6, 4, 0.04
+Menu.STAT_WIDTH, Menu.STAT_HEIGHT, Menu.STAT_U = 240, 16, 480 / 512
+
+-- The share of a bar a handling value fills against the Balanced kart's
+-- (`par`): four windows of six at par, one more or fewer per 4%, never less
+-- than half a window nor more than the bar. nil for a value it cannot read.
+function Menu.statFill(value, par)
+    if type(value) ~= "number" or type(par) ~= "number" or value ~= value or par ~= par or par <= 0 then
+        return nil
+    end
+    local windows = Menu.STAT_PAR + (value / par - 1) / Menu.STAT_STEP
+    return math.max(0.5, math.min(Menu.STAT_SEGMENTS, windows)) / Menu.STAT_SEGMENTS
+end
+
 -- Fixed fonts; each falls back to GameFontNormal when the client lacks it.
 local FONT = {
     logo={"Fancy48Font", "GameFontNormalHuge3", "GameFontNormalHuge"},
@@ -172,7 +199,7 @@ local FONT = {
     countdown={"Game72Font", "Game48Font", "GameFontNormalHuge3", "GameFontNormalHuge"},
 }
 
-local GOLD, WHITE, RED, GREEN = {1, 0.82, 0}, {1, 1, 1}, {1, 0.35, 0.3}, {0.45, 1, 0.45}
+local GOLD, WHITE, RED = {1, 0.82, 0}, {1, 1, 1}, {1, 0.35, 0.3}
 local SOON = {1, 0.55, 0.15}
 
 -- Classic dialog backdrops, as defined by the client's Backdrop.lua presets.
@@ -777,6 +804,40 @@ local function showStage(sprite)
     spin(0)
 end
 
+-- The four handling bars for a profile: each loads the bars' picture once
+-- (a failed load is not retried), then shows the full bar over the empty one
+-- cropped to the kart's share. False when the bars cannot be shown.
+local function showStats(bars, profile)
+    local view = Menu.view
+    if view.statsReady == nil then
+        view.statsReady = true
+        for _,bar in ipairs(bars) do
+            for _,region in ipairs({bar.empty, bar.fill}) do
+                local ok, loaded = call(region, "SetTexture", Menu.STATS_PATH)
+                view.statsReady = view.statsReady and ok and loaded == true
+            end
+            call(bar.empty, "SetTexCoord", 0, Menu.STAT_U, 0, 0.5)
+        end
+    end
+    local par = Physics.GetHandling(nil)                     -- the Balanced profile
+    local shown = view.statsReady and profile ~= nil and par ~= nil
+    for _,bar in ipairs(bars) do
+        local share = shown and Menu.statFill(profile[bar.stat.key], par[bar.stat.key]) or nil
+        if shown and not share then shown = false end
+        bar.share = share
+    end
+    for _,bar in ipairs(bars) do
+        setShown(bar.label, shown)
+        setShown(bar.empty, shown)
+        setShown(bar.fill, shown)
+        if shown then
+            bar.fill:SetSize(Menu.STAT_WIDTH * bar.share, Menu.STAT_HEIGHT)
+            call(bar.fill, "SetTexCoord", 0, Menu.STAT_U * bar.share, 0.5, 1)
+        end
+    end
+    return shown
+end
+
 local function buildKarts()
     local box = screenBox("karts", "Choose Your Kart")
     Menu.screens.garage = box
@@ -800,21 +861,34 @@ local function buildKarts()
     local name = newText(box, FONT.huge, "TOPLEFT", 420, -84)
     local blurb = wrap(newText(box, FONT.white, "TOPLEFT", 420, -120), 330)
     local credit = wrap(newText(box, FONT.graySmall, "TOPLEFT", 420, -190), 330)
-    local handling = wrap(newText(box, FONT.small, "TOPLEFT", 420, -214, ""), 330)
+    -- The handling profile's name over its four bars; if the bars' picture
+    -- cannot load, the line tells the tradeoffs in words instead.
+    local handling = wrap(newText(box, FONT.normal, "TOPLEFT", 420, -210, ""), 330)
     Menu.view.kartHandling = handling
-    color(handling, GREEN)
     local handlingCopy = {
         balanced="Balanced | Even launch, braking and cornering.",
         heavy="Heavy | Faster cruise and stronger brakes; slower launch and wider turns.",
         agile="Agile | Quicker launch and turns; lower cruising speed and gentler brakes.",
     }
+    local bars = {}
+    for index,stat in ipairs(Menu.KART_STATS) do
+        local y = -230 - (index - 1) * 22
+        local empty = newTexture(box, "ARTWORK")
+        empty:SetSize(Menu.STAT_WIDTH, Menu.STAT_HEIGHT)
+        empty:SetPoint("TOPLEFT", box, "TOPLEFT", 750 - Menu.STAT_WIDTH, y)
+        local fill = newTexture(box, "OVERLAY")
+        fill:SetPoint("TOPLEFT", empty, "TOPLEFT", 0, 0)
+        bars[index] = {stat=stat, empty=empty, fill=fill,
+            label=newText(box, FONT.normal, "TOPLEFT", 420, y - 2, stat.label)}
+    end
+    Menu.view.statBars = bars
     local glow = newTexture(box, "ARTWORK")
     glow:SetColorTexture(1, 0.82, 0, 0.30)
     local buttons = {}
     for index,id in ipairs(order) do
         local column, row = (index - 1) % 2, math.floor((index - 1) / 2)
         buttons[id] = newButton(box, Presentation.KART_SPRITES[id].name, 160, 28, "TOPLEFT",
-            420 + column * 172, -262 - row * 38, function() Menu.ChooseKart(id) end)
+            420 + column * 172, -330 - row * 38, function() Menu.ChooseKart(id) end)
     end
     newButton(box, "Back", 150, 30, "BOTTOMLEFT", 30, 26, function()
         Menu.Show(Menu.screen == "garage" and "home" or "tracks")
@@ -837,7 +911,8 @@ local function buildKarts()
         blurb:SetText(copy and copy.blurb or "The kart art could not load, so a plain kart stands in.")
         credit:SetText(copy and copy.credit or "")
         local profile = Physics.GetHandling(UI.kartId)
-        handling:SetText(profile and handlingCopy[profile.id] or "Handling unavailable")
+        if showStats(bars, profile) then handling:SetText("Handling: " .. profile.name)
+        else handling:SetText(profile and handlingCopy[profile.id] or "Handling unavailable") end
         local index = 0
         for i,id in ipairs(order) do if id == UI.kartId then index = i end end
         counter:SetText(("%d / %d"):format(index, #order))

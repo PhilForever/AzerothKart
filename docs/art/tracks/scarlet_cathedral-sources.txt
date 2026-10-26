@@ -5,7 +5,7 @@
    1  war3.w3mod:_de.w3mod:doodads/cityscape/props/city_fountain/city_fountain.mdx
    4  war3.w3mod:_de.w3mod:doodads/cityscape/props/citywoodbench/citywoodbench.mdx
    3  war3.w3mod:_de.w3mod:doodads/cityscape/props/scarletcrusadestandingbanners/scarletcrusadestandingbanners0.mdx
-   3  war3.w3mod:_de.w3mod:doodads/cityscape/props/scarletcrusadestandingbanners/scarletcrusadestandingbanners1.mdx
+   5  war3.w3mod:_de.w3mod:doodads/cityscape/props/scarletcrusadestandingbanners/scarletcrusadestandingbanners1.mdx
    2  war3.w3mod:_de.w3mod:doodads/cityscape/props/scarletcrusadestandingbanners/scarletcrusadestandingbanners2.mdx
    2  war3.w3mod:_de.w3mod:doodads/lordaeroncapital/props/lordaeronbookshelf/lordaeronbookshelf0.mdx
    2  war3.w3mod:_de.w3mod:doodads/lordaeroncapital/props/lordaeronbookshelf/lordaeronbookshelf1.mdx
@@ -18,7 +18,7 @@
    1  war3.w3mod:_de.w3mod:units/human/herosallywhitemane/herosallywhitemane.mdx
    4  war3.w3mod:_de.w3mod:units/human/scarletcleric/scarletcleric.mdx
    5  war3.w3mod:_de.w3mod:units/human/scarletfootman/scarletfootman.mdx
-   4  war3.w3mod:doodads/cityscape/plants/citybush/citybush.mdx
+   2  war3.w3mod:doodads/cityscape/plants/citybush/citybush.mdx
    1  war3.w3mod:doodads/cityscape/props/emptycrates/emptycrates0.mdx
    1  war3.w3mod:doodads/cityscape/props/emptycrates/emptycrates1.mdx
   12  war3.w3mod:doodads/cityscape/props/lanternpost/lanternpost0.mdx
@@ -26,8 +26,8 @@
    8  war3.w3mod:doodads/lordaeronsummer/props/torchhuman/torchhuman.mdx
    1  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree0.mdx
    2  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree1.mdx
-   3  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree2.mdx
-   2  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree3.mdx
+   2  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree2.mdx
+   1  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree3.mdx
    2  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree4.mdx
 
 ## Textures
