@@ -1,5 +1,26 @@
 # Codex handoff — production maps and Claude course review
 
+## Active integration/registration/install — Warsong, 2026-10-27
+
+Owner authorizes Warsong registration, mixed-version scores, approved Claude
+integration and installation. Clean4a573cc, installed736ac2f; own new branch
+`codex/warsong-registration`. Merge reviewed Claude79792cd, preserving both
+histories and every original worktree/untracked output.
+
+Reserve course/race/peer IDs and relevant tests, ScoreSync mixed12/13 bounded
+catalogue/codec plus tests, native ScoreSharing prefix/delivery/tests, actual
+Warsong menu/session/rematch integration regressions; minimal UI/Menu test
+catalogue adaptation; optional LayeredTrack defensive rule review; server
+example catalogue/export, shared API/score/progress/handoff/deployment docs.
+Claude owns art/rendering and approved roof/layer fixes, retained unchanged.
+
+Plan: Warsong inviteC/scoreW, current11Physics12 and Warsong13 contexts kept
+separate. Versioned compact HELLO with per-context catalogue hash removes the
+single-global-physics assumption and stays within158B including prefix; no
+traffic-rate increase. Keep all saved/retired histories. Run focused combined
+checks; complete backed-up/hash-verified AddOns install and matching friendZIP.
+Actual client feel/networking remains pending; no new push/release/main merge.
+
 ## Fixes approved — Claude79792cd, 2026-10-27 18:19 CET
 
 Owner asks review latest fixes. Continue documentation-only review on clean
