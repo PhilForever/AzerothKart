@@ -10,6 +10,7 @@ On Codex's floors and Boots pads (`5c481d4`), after the owner's choices: a fixed
 - **Menu:** the Battlegrounds Cup with "Warsong Gulch (soon)"; its copy and tall preview are ready for when it unlocks.
 - **Budget:** 91 frames, 96 textures, 151 font strings (four roofs, the arrow, a heading and a button).
 - **Tests:** `test_warsong` (the contract's constructor, both floors, the route through the seven gates, the flag only on the ground, the ramps, the Boots, the grid, coming soon), `test_presentation` (draw order, fades, crops, the arrow), `test_ui` (the roofs, the draw sets and the arrow, unlocked in that test only), `test_menu`. The look, the roofs, the arrow and the drive in the client are NOT RUN.
+- **After Codex's review of `bf94d2b`:** a roof picture that does not load now refuses the course ("roofs unavailable", the previous course stays) and Start, since the upper floor is drawn only there; the friend's kart goes back to its flat layer when a flat course follows Warsong. Also: the kart's dust and wind puffs draw over the roofs on floor 1, where they were hidden.
 
 ## Unreleased — all-course multiplayer and position smoothing (2026-10-27)
 

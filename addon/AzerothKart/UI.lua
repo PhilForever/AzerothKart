@@ -607,11 +607,15 @@ local OVAL_DUST, MIRAGE_DUST = {0.86,0.86,0.84}, {0.95,0.90,0.81}
 -- original set. A two-floor course's roofs sit at ROOF_SUBLEVEL: a kart on
 -- the ground draws below them (`low`), on floor 1 or a ramp above (`high`),
 -- each set in the same order (flames behind, sparks, kart, outline, flames
--- in front; an inner flame one sublevel over its outer).
+-- in front; an inner flame one sublevel over its outer). Dust and wind
+-- puffs (`smoke`, a layer and sublevel) stay under every OVERLAY texture,
+-- as created, except over the roofs, where they share the outer back
+-- flame's sublevel.
+local SMOKE_GROUND = {"ARTWORK", 6}
 local KART_LAYERS = {
-    flat={behind=FLAME_BEHIND, sparks=-2, kart=0, outline=1, front=FLAME_FRONT},
-    low={behind=-8, sparks=-6, kart=-5, outline=-4, front=-3},
-    high={behind=0, sparks=2, kart=3, outline=4, front=5},
+    flat={behind=FLAME_BEHIND, sparks=-2, kart=0, outline=1, front=FLAME_FRONT, smoke=SMOKE_GROUND},
+    low={behind=-8, sparks=-6, kart=-5, outline=-4, front=-3, smoke=SMOKE_GROUND},
+    high={behind=0, sparks=2, kart=3, outline=4, front=5, smoke={"OVERLAY", 0}},
 }
 local ROOF_SUBLEVEL, MAX_ROOFS = -1, 4
 
@@ -632,13 +636,19 @@ local function setKartLayers(set)
             UI.fxLayers[piece] = set.sparks
         end
     end
+    for _,piece in ipairs(UI.fxSmoke or {}) do
+        if UI.fxLayers[piece] ~= set.smoke and type(piece.SetDrawLayer) == "function"
+            and pcall(piece.SetDrawLayer,piece,set.smoke[1],set.smoke[2]) then
+            UI.fxLayers[piece] = set.smoke
+        end
+    end
 end
 
 local function createEffects(canvas)
     local E = Presentation.EFFECTS
     UI.fx,UI.fxShown,UI.fxCells,UI.fxLayers = nil,{},{},{}
     local pools = {
-        {count=E.smokeCount, layer="ARTWORK", sublevel=6, path=E.particlesPath},
+        {count=E.smokeCount, layer=SMOKE_GROUND[1], sublevel=SMOKE_GROUND[2], path=E.particlesPath},
         {count=E.sparkCount, layer="OVERLAY", sublevel=-2, path=E.particlesPath},
         {count=2*E.flameCount, layer="OVERLAY", sublevel=FLAME_FRONT, path=E.flamePath},
     }
@@ -658,6 +668,7 @@ local function createEffects(canvas)
         end
     end
     UI.fxSmoke,UI.fxSparks,UI.fxFlames = pools[1].list,pools[2].list,pools[3].list
+    for _,piece in ipairs(UI.fxSmoke) do UI.fxLayers[piece] = SMOKE_GROUND end -- a layer and sublevel
     -- All or nothing: a refused load, crop or tint leaves every effect
     -- hidden; the kart and race are unaffected.
     for _,pool in ipairs(pools) do
@@ -780,32 +791,38 @@ local function sizeKart()
     end
 end
 
--- A two-floor course's roofs and guiding arrow. The roof picture loads into
--- the pooled textures once per picture (guarded: a refusal leaves the course
--- roofless, every kart still drawn); each texture keeps one roof's box.
--- Other courses hide them and keep the flat draw layers.
+-- A two-floor course's roof picture, loaded into the pooled roof textures
+-- once per picture: true when the course has none or it is loaded. Its
+-- upper floor is drawn only there, so a refusal leaves the pool unready
+-- (UI.roofsPath nil) and SelectTrack and Start refuse the course, as they
+-- refuse a missing background.
+local function loadRoofs(course)
+    if not (course and course.roofs) then return true end
+    if UI.roofsPath == course.roofs then return true end
+    UI.roofsPath = nil
+    local roofs = Courses.roofs and Courses.roofs(course.id)
+    if not roofs or not UI.roofTextures or #roofs > #UI.roofTextures then return false end
+    for index=1,#roofs do
+        local piece = UI.roofTextures[index]
+        if type(piece.SetTexture) ~= "function" or type(piece.SetTexCoord) ~= "function"
+            or type(piece.SetAlpha) ~= "function" then return false end
+        local ok,loaded = pcall(piece.SetTexture,piece,course.roofs)
+        if not ok or loaded ~= true then return false end
+    end
+    UI.roofsPath = course.roofs
+    return true
+end
+
+-- A two-floor course's roofs and guiding arrow; each roof texture keeps one
+-- roof's box. Other courses hide them and keep the flat draw layers, the
+-- friend's kart included.
 local function layoutRoofs(course)
-    local roofs = course and Courses.roofs and Courses.roofs(course.id)
     UI.roofs,UI.roofCropX,UI.roofCropY = nil,nil,nil
     for index,piece in ipairs(UI.roofTextures or {}) do
         piece:Hide()
         UI.roofAlphas[index] = nil
     end
-    if roofs and course.roofs and UI.roofTextures and #roofs <= #UI.roofTextures then
-        local ready = UI.roofsPath == course.roofs
-        if not ready then
-            ready = true
-            for index=1,#roofs do
-                local piece = UI.roofTextures[index]
-                if type(piece.SetTexture) ~= "function" or type(piece.SetTexCoord) ~= "function"
-                    or type(piece.SetAlpha) ~= "function" then ready = false; break end
-                local ok,loaded = pcall(piece.SetTexture,piece,course.roofs)
-                if not ok or loaded ~= true then ready = false; break end
-            end
-            UI.roofsPath = ready and course.roofs or nil
-        end
-        if ready then UI.roofs = roofs end
-    end
+    if course and course.roofs and loadRoofs(course) then UI.roofs = Courses.roofs(course.id) end
     UI.guideReady,UI.guideFrame = false,nil
     if UI.guideArrow then
         UI.guideArrow:Hide()
@@ -817,7 +834,25 @@ local function layoutRoofs(course)
         end
     end
     setKartLayers(Track.layered and KART_LAYERS.low or KART_LAYERS.flat)
-    UI.opponentSublevel = nil
+    -- The friend's kart: a two-floor course sets its sublevel as it draws
+    -- (renderOpponent); any other course has it back at 0, as created.
+    if not Track.layered and UI.opponentSublevel ~= nil and UI.opponentSublevel ~= 0 and UI.opponent
+        and type(UI.opponent.SetDrawLayer) == "function"
+        and pcall(UI.opponent.SetDrawLayer,UI.opponent,"OVERLAY",0) then
+        UI.opponentSublevel = 0
+    end
+end
+
+-- SelectTrack's roof check, before anything of the course shows: refused,
+-- the course is refused as for a missing background. The pool may hold a
+-- part load: another current course lays its own roofs out again; this
+-- course, already current, stays roofless until a retry loads them.
+local function roofsLoaded(course)
+    if loadRoofs(course) then return true end
+    refuseStart(course.name .. " roofs unavailable | Choose another track; previous selection retained")
+    local current = Courses.get(UI.trackId)
+    layoutRoofs(current ~= course and current or nil)
+    return false
 end
 
 -- Each roof over its box, cropped as the camera moves, at its opacity for
@@ -1035,7 +1070,8 @@ function UI.SelectTrack(id)
     local course = Courses and Courses.get(id)
     if not course or course.soon then return false end
     local background = course.background
-    if id == UI.trackId and (not background or UI.backgroundPath == background) then return true end
+    if id == UI.trackId and (not background or UI.backgroundPath == background)
+        and (not course.roofs or UI.roofsPath == course.roofs) then return true end
     local staging = UI.backgroundStaging
     local backgroundTarget = UI.backgroundPath == background and UI.mirageBackground or staging
     if background and type(backgroundTarget.SetTexCoord) ~= "function" then
@@ -1066,12 +1102,14 @@ function UI.SelectTrack(id)
             refuseStart(course.name .. " background unavailable | Choose another track; previous selection retained")
             return false
         end
+        -- A two-floor course's roof picture is scenery too (its upper floor).
+        if not roofsLoaded(course) then return false end
         UI.mirageBackground:Hide()
         UI.mirageBackground,UI.backgroundStaging = staging,UI.mirageBackground
         UI.backgroundPath = background
         UI.cameraApiReady = true
         UI.mirageTextureReady = id == "mirage_raceway"
-    end
+    elseif not roofsLoaded(course) then return false end
     if id == UI.trackId then
         -- Loading the default's picture changes presentation only. Keep the
         -- already constructed pose and timing references on first open.
@@ -1799,7 +1837,8 @@ function UI.Start()
     if inCombat() then refuseStart("Cannot start while in combat"); return end
     local course = Courses.get(UI.trackId)
     if not course or course.soon or (course.background and
-        (UI.backgroundPath ~= course.background or not UI.cameraApiReady)) then
+        (UI.backgroundPath ~= course.background or not UI.cameraApiReady))
+        or (course.roofs and UI.roofsPath ~= course.roofs) then
         refuseStart("Track scenery unavailable; choose another track or reopen to retry"); return
     end
     if type(GetCurrentKeyBoardFocus) ~= "function"

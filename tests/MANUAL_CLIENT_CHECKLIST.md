@@ -19,7 +19,8 @@ Once Codex registers it and `soon` is removed:
 8. **The optional way in:** the tunnel's side door, up the banana to the terrace, down the connector into the hall. The roof walk ends where drawn.
 9. **The Lumber Mill:** the same, its roof and hill fading; the finish at mid; three laps, the arrow always pointing at the next gate.
 10. **Seams:** any misalignment between the roofs and the ground, a visible edge where a roof's box ends, or a place where the kart stops at nothing it can see: a screenshot of each.
-11. **Two players:** a friend below a roof the player is not under is hidden by it; on the plateau or a ramp they draw over it.
+11. **Two players:** a friend below a roof the player is not under is hidden by it; on the plateau or a ramp they draw over it. After the race, choose a flat course together: where the two karts meet, the friend's kart draws as before Warsong, not over your kart, its outline or its flames.
+12. **Dust:** drift on the plateau or the terrace: the dust shows over the hill and the roof, under the kart.
 
 ## Deferred Gryphon Rider wingbeat check (proposed, `claude/gryphon-wings`)
 

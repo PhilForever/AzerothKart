@@ -3832,14 +3832,32 @@ withMock(nil,false,function(env,UI)
     drawAt(400,1560,0)
     assert(UI.kart.sublevel==-5 and math.abs(hill.alpha-0.25)<1e-9 and roof.alpha==1,
         "in the tunnel the hill over it fades; the base's roof does not")
+    local smoke=UI.fxSmoke[1]
+    assert(smoke.layer=="ARTWORK" and smoke.sublevel==6,"on the ground the kart's dust stays under every overlay")
     drawAt(400,1560,1)
     assert(UI.kart.sublevel==3 and UI.kartOutline.sublevel==4 and hill.alpha==1,
         "on the plateau, the same place a floor up, the kart draws over the hill")
+    assert(smoke.layer=="OVERLAY" and smoke.sublevel==0,"and its dust over the hill too, under the kart")
     drawAt(824,1460,0)
-    assert(UI.kart.sublevel==3 and hill.alpha==1,"climbing a ramp the kart draws over the roofs")
+    assert(UI.kart.sublevel==3 and hill.alpha==1 and smoke.layer=="OVERLAY",
+        "climbing a ramp the kart and its dust draw over the roofs")
     drawAt(440,1925,0)
     assert(UI.kart.sublevel==-5 and math.abs(roof.alpha-0.25)<1e-9 and hill.alpha==1,
         "in the flag room Silverwing Hold's roof fades over it")
+    assert(smoke.layer=="ARTWORK" and smoke.sublevel==6,"back on the ground, the dust under the roofs again")
+    -- A friend (a copied grid pose, no transport) draws by their reported
+    -- floor: over the hill on the plateau, under it in the tunnel below.
+    drawAt(400,1560,0)
+    local function friendAt(level)
+        UI.multiplayer,UI.gridStaged=true,true
+        UI.gridView={peerPose={x=420,y=1560,heading=math.pi/2,level=level}}
+        UI.SetKartOutline(not UI.outlineOn); UI.SetKartOutline(not UI.outlineOn) -- each redraws
+    end
+    friendAt(1)
+    assert(UI.opponent:IsShown() and UI.opponent.sublevel==3,"a friend on the plateau draws over the hill")
+    friendAt(0)
+    assert(UI.opponent:IsShown() and UI.opponent.sublevel==-5,"a friend in the tunnel draws under it")
+    UI.multiplayer,UI.gridStaged,UI.gridView=false,false,nil
     drawAt(300,984,0)
     local frame=AK.Presentation.arrowFrame((math.atan2 or math.atan)(1380-984,400-300))
     assert(UI.guideArrow.shown and UI.guideArrow.sublevel==7 and frame==3
@@ -3847,7 +3865,49 @@ withMock(nil,false,function(env,UI)
         "the arrow points from mid toward the Alliance tunnel")
     UI.Stop("rendering checked")
     assert(UI.SelectTrack("mirage_raceway") and not UI.roofs and not hill.shown and not UI.guideReady
-        and UI.kart.sublevel==0 and UI.kartOutline.sublevel==1,
+        and UI.kart.sublevel==0 and UI.kartOutline.sublevel==1 and smoke.layer=="ARTWORK" and smoke.sublevel==6,
         "a flat course hides the roofs and the arrow and restores the flat draw set")
+    assert(UI.opponent.sublevel==0 and UI.opponentSublevel==0,
+        "and the friend's kart goes back to sublevel 0, level with the player's, as created (Codex review)")
 end,nil,nil,true)
-originalPrint("test_ui Warsong rendering: roof crops and fades, floor draw sets, guiding arrow PASS (offline mock)")
+
+-- Warsong's upper floor is drawn only in its roof picture: refused, the
+-- course is refused like a missing background (the shown course and its
+-- picture stay), and Start refuses it while its roofs are not loaded.
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    local AK=env.namespace
+    local course=AK.Courses.get("warsong_gulch")
+    local mirage=AK.Courses.get("mirage_raceway")
+    UI.Toggle()
+    course.soon=nil -- this test only
+    for _,failure in ipairs({"false","nil","throws"}) do
+        env.textureModes={[course.roofs]=failure}
+        local track,state,shown=UI.track,UI.state,UI.mirageBackground
+        assert(not UI.SelectTrack("warsong_gulch") and UI.trackId=="mirage_raceway" and UI.track==track
+            and UI.state==state and UI.mirageBackground==shown and UI.backgroundPath==mirage.background
+            and not UI.roofs and not UI.roofsPath and UI.status.text:find("roofs unavailable",1,true),
+            "a refused roof picture refuses Warsong; Mirage stays shown and selected: "..failure)
+        for _,piece in ipairs(UI.roofTextures) do assert(not piece:IsShown(),"no roof shows on Mirage: "..failure) end
+    end
+    env.textureModes={}
+    assert(UI.SelectTrack("warsong_gulch") and UI.roofs and UI.roofsPath==course.roofs,
+        "with its roof picture loading, Warsong is chosen")
+    UI.roofsPath=nil -- as though its roof picture had not loaded
+    UI.Start()
+    assert(not UI.active and UI.race==nil and UI.status.text:find("scenery unavailable",1,true),
+        "Start refuses a two-floor course whose roofs are not loaded (Codex review)")
+    env.textureModes={[course.roofs]="false"}
+    assert(not UI.SelectTrack("warsong_gulch") and UI.trackId=="warsong_gulch" and not UI.roofs
+        and UI.status.text:find("roofs unavailable",1,true),
+        "choosing it again retries the roofs; refused, it stays selected and roofless")
+    UI.Start()
+    assert(not UI.active,"and still cannot start")
+    env.textureModes={}
+    assert(UI.SelectTrack("warsong_gulch") and UI.roofs and UI.roofsPath==course.roofs,
+        "a retry that loads them restores the roofs")
+    UI.Start()
+    assert(UI.active,"and the course starts")
+    UI.Stop("roofs checked")
+end,nil,nil,true)
+originalPrint("test_ui Warsong rendering: roof crops and fades, floor draw sets, dust and the friend by floor, guiding arrow, roof refusal guard PASS (offline mock)")
