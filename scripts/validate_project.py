@@ -78,6 +78,12 @@ REQUIRED=[
  'docs/art/tracks/scarlet_cathedral-overview.png','docs/art/tracks/scarlet_cathedral-review.png',
  'addon/AzerothKart/Assets/Tracks/ScarletCathedral/Background.tga',
  'addon/AzerothKart/Assets/Tracks/ScarletCathedral/Preview.tga',
+ 'addon/AzerothKart/Battlegrounds.lua','scripts/battleground_layouts.py','scripts/build_battlegrounds.py',
+ 'scripts/battleground_paint.py','tests/test_warsong.lua',
+ 'addon/AzerothKart/Assets/Tracks/WarsongGulch/Background.tga',
+ 'addon/AzerothKart/Assets/Tracks/WarsongGulch/Roofs.tga',
+ 'addon/AzerothKart/Assets/Tracks/WarsongGulch/Preview.tga',
+ 'addon/AzerothKart/Assets/UI/GuideArrow.tga',
  'tests/test_circuit.lua','scripts/build_city_tracks.py','scripts/city_layouts.py','scripts/wc3render.py','scripts/wc3casc.py',
  'addon/AzerothKart/Assets/UI/TrackPreviews.tga','docs/art/ui/front-end.md',
  'addon/AzerothKart/Assets/UI/StatBars.tga','scripts/build_stat_bars.py','docs/art/ui/stat-bars.png',
@@ -122,7 +128,7 @@ for tocname in ('AzerothKart.toc','AzerothKart_Camelot.toc'):
  if '## Interface: 16001' not in lines: errors.append(f'{tocname}: unexpected interface')
  if '## SavedVariables: AzerothKartDB' not in lines: errors.append(f'{tocname}: missing SavedVariables')
  loads=[x.strip() for x in lines if x.strip() and not x.startswith('##')]
- if loads!=['Track.lua','MirageRaceway.lua','Circuit.lua','CapitalCities.lua','Dungeon.lua','LayeredTrack.lua','ScarletCrusade.lua','Courses.lua','Physics.lua','Input.lua','Loop.lua','Performance.lua','Presentation.lua','Checkpoints.lua','Laps.lua','Race.lua','Highscores.lua','SoloRecords.lua','ScoreSync.lua','ScoreDiscovery.lua','ScoreSharing.lua','UI.lua','Menu.lua','RaceProtocol.lua','PeerSession.lua','ClockProtocol.lua','StartClock.lua','RaceStart.lua','LiveProtocol.lua','LiveRace.lua','RaceGrid.lua','NetworkProbe.lua','TransportProbe.lua','SessionTransport.lua','GroupProbe.lua','ScoreChannelProbe.lua','Core.lua']:
+ if loads!=['Track.lua','MirageRaceway.lua','Circuit.lua','CapitalCities.lua','Dungeon.lua','LayeredTrack.lua','ScarletCrusade.lua','Battlegrounds.lua','Courses.lua','Physics.lua','Input.lua','Loop.lua','Performance.lua','Presentation.lua','Checkpoints.lua','Laps.lua','Race.lua','Highscores.lua','SoloRecords.lua','ScoreSync.lua','ScoreDiscovery.lua','ScoreSharing.lua','UI.lua','Menu.lua','RaceProtocol.lua','PeerSession.lua','ClockProtocol.lua','StartClock.lua','RaceStart.lua','LiveProtocol.lua','LiveRace.lua','RaceGrid.lua','NetworkProbe.lua','TransportProbe.lua','SessionTransport.lua','GroupProbe.lua','ScoreChannelProbe.lua','Core.lua']:
   errors.append(f'{tocname}: unexpected source load order: {loads}')
  for f in loads:
   if not (ADDON/f).is_file():errors.append(f'{tocname}: missing {f}')

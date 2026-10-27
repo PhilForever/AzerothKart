@@ -262,8 +262,11 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu)
     -- (one label), and to the results a Highscores button, a sunburst, a medal
     -- and twelve confetti pieces (14 textures), a banner, its line, the wreath's
     -- rank and the two racers' rows (two labels each).
-    assert(UI.objects.frames == 90 and UI.objects.textures == 91 and UI.objects.fontStrings == 150,
-        ("explicit budget 90/91/150, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
+    -- The Battlegrounds Cup adds its heading and Warsong Gulch's coming-soon
+    -- button; a two-floor course's four pooled roofs and its guiding arrow
+    -- are created with the window (hidden on every other course).
+    assert(UI.objects.frames == 91 and UI.objects.textures == 96 and UI.objects.fontStrings == 151,
+        ("explicit budget 91/96/151, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
             UI.objects.fontStrings))
     assert(AzerothKartDB.preferences == nil, "creation saves nothing")
     local before = counts(env)
@@ -1331,11 +1334,30 @@ withMock(nil, function(env, UI, Menu, AK)
     UI.Toggle(); click(Menu.view.homeButtons[1])
     local buttons, soon = Menu.view.trackButtons, Menu.view.soonButtons
     assert(buttons.scarlet_graveyard and buttons.scarlet_library and buttons.scarlet_armory and buttons.scarlet_cathedral
-        and next(soon) == nil, "the cup lists its four sprints, and nothing is coming soon")
+        and not soon.scarlet_graveyard and not soon.scarlet_cathedral,
+        "the cup lists its four sprints, none of them coming soon")
     local rows = Menu.trackRows()
-    assert(rows[#rows - 4].heading == "Scarlet Crusade Cup" and rows[#rows - 3].track.id == "scarlet_graveyard"
-        and rows[#rows - 2].track.id == "scarlet_library" and rows[#rows - 1].track.id == "scarlet_armory"
-        and rows[#rows].track.id == "scarlet_cathedral", "the third cup's heading, then its four sprints")
+    assert(rows[#rows - 6].heading == "Scarlet Crusade Cup" and rows[#rows - 5].track.id == "scarlet_graveyard"
+        and rows[#rows - 4].track.id == "scarlet_library" and rows[#rows - 3].track.id == "scarlet_armory"
+        and rows[#rows - 2].track.id == "scarlet_cathedral", "the third cup's heading, then its four sprints")
+    -- The Battlegrounds Cup, last: Warsong Gulch, listed, coming soon, disabled.
+    assert(rows[#rows - 1].heading == "Battlegrounds Cup" and rows[#rows].soon.id == "warsong_gulch"
+        and soon.warsong_gulch and not soon.warsong_gulch:IsEnabled() and not soon.warsong_gulch.scripts.OnClick
+        and soon.warsong_gulch.text:find("Warsong Gulch", 1, true) and soon.warsong_gulch.text:find("(soon)", 1, true)
+        and not buttons.warsong_gulch, "the fourth cup lists Warsong Gulch as coming soon")
+    -- Its track-screen copy and tall preview are ready for when Codex
+    -- registers it: unlocked (in this test only), it lists as a track, once.
+    local warsong = Menu.TRACKS[#Menu.TRACKS]
+    assert(warsong.id == "warsong_gulch" and #warsong.facts == 3 and warsong.blurb:find("Silverwing Hold", 1, true)
+        and Menu.PREVIEW_CELLS[warsong.cell].path:find("WarsongGulch\\Preview.tga", 1, true)
+        and Menu.PREVIEW_CELLS[warsong.cell].width == 160 and Menu.PREVIEW_CELLS[warsong.cell].height == 320,
+        "Warsong's copy and its twice-as-tall preview")
+    local course = AK.Courses.get("warsong_gulch")
+    course.soon = nil
+    local unlocked = Menu.trackRows()
+    course.soon = true
+    assert(#unlocked == #rows and unlocked[#unlocked - 1].heading == "Battlegrounds Cup"
+        and unlocked[#unlocked].track == warsong, "unlocked, it takes its coming-soon row's place as a track")
     click(buttons.scarlet_cathedral)
     assert(UI.trackId == "scarlet_cathedral" and Menu.previewReady
         and Menu.view.trackPreview.width == 160 and Menu.view.trackPreview.height == 320,
@@ -1382,8 +1404,13 @@ withMock(nil, function(env, UI, Menu, AK)
         and Menu.view.highscoreRule.text == "Fastest completed sprints, one run each, for the current rules",
         "and the Cathedral's")
     click(Menu.view.highscoreTrack)
-    assert(Menu.view.highscoreRule.text == "Fastest completed three-lap totals for the current rules",
-        "the next board holds three-lap totals again")
+    assert(Menu.view.highscoreTrack.text == "Track: Mirage Raceway"
+        and Menu.view.highscoreRule.text == "Fastest completed three-lap totals for the current rules",
+        "past Warsong Gulch, coming soon with no board, back to the first board's three-lap totals")
+    for _=1,#Menu.TRACKS do
+        click(Menu.view.highscoreTrack)
+        assert(Menu.view.highscoreTrack.text ~= "Track: Warsong Gulch", "no board for a course coming soon")
+    end
     sameCounts(env, before, "the board's rule line reuses its label")
 end)
 

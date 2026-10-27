@@ -1098,6 +1098,40 @@ do
     print("offline presentation: race progress, placing (finished, racing, out) and ordinals")
 end
 
+-- Two-floor courses (Warsong Gulch): which karts draw over the roofs, each
+-- roof's fade, its crop of the world-aligned roof picture, and the guiding arrow.
+do
+    local track = {ramps={{x=100, y=100, width=40, height=80}},
+        gates={{name="A", ax=0, ay=200, bx=100, by=200}, {name="B", ax=300, ay=0, bx=300, by=100}}}
+    assert(P.drawnHigh(track, 10, 10, 1) and P.drawnHigh(track, 120, 140, 0) and not P.drawnHigh(track, 10, 10, 0)
+        and not P.drawnHigh({}, 120, 140, 0) and not P.drawnHigh(track, 0/0, 140, 0),
+        "over the roofs: floor 1, or anywhere on a ramp")
+    local roof = {x0=0, y0=0, x1=400, y1=400, under={{x0=100, y0=100, x1=200, y1=300}}}
+    assert(P.roofAlpha(roof, 50, 50, false) == 1 and P.roofAlpha(roof, 150, 200, true) == 1,
+        "a roof stands whole unless the player is on the ground under it")
+    assert(math.abs(P.roofAlpha(roof, 150, 200, false) - P.ROOF_FADED) < 1e-12
+        and math.abs(P.roofAlpha(roof, 112, 200, false) - (1 - 0.75 * 12 / 24)) < 1e-12,
+        "it fades over its first 24 units in, to a quarter")
+    local view = P.cameraViewport(1024, 2048, 800, 480, 1.5)
+    P.follow(view, 200, 200, 0, 0)
+    local px, py, pw, ph, l, r, t, b = P.roofCrop(view, roof)
+    -- The camera shows x 0..533, y 40..360: the roof's part in it.
+    assert(px == 0 and py == 0 and math.abs(pw - 600) < 1e-9 and math.abs(ph - 480) < 1e-9,
+        "the crop is placed on the canvas: " .. tostring(pw) .. "x" .. tostring(ph))
+    assert(l == 0 and math.abs(r - 400 / 1024) < 1e-12 and math.abs(t - (1 - 360 / 2048)) < 1e-12
+        and math.abs(b - (1 - 40 / 2048)) < 1e-12, "and cuts the matching part of the world-aligned picture")
+    assert(P.roofCrop(view, {x0=900, y0=1900, x1=1000, y1=2000, under={}}) == nil, "a roof off the camera is not drawn")
+    local heading, distance = P.guideHeading(track, {nextGate=2, passed=1, complete=false}, 300, 250)
+    assert(math.abs(heading + math.pi / 2) < 1e-12 and math.abs(distance - 200) < 1e-12,
+        "the arrow points at the middle of the next gate")
+    assert(P.guideHeading(track, {nextGate=3, passed=2, complete=true}, 0, 0) == nil, "none once the lap is done")
+    assert(P.arrowFrame(0) == 0 and P.arrowFrame(math.pi / 2) == 4 and P.arrowFrame(-math.pi / 2) == 12
+        and P.arrowFrame(2 * math.pi - 0.01) == 0, "sixteen headings counter-clockwise from east")
+    local c1, c2, c3, c4 = P.arrowCoords(6)
+    assert(c1 == 0.5 and c2 == 0.75 and c3 == 0.25 and c4 == 0.5, "frame 6: third column, second row")
+    print("offline presentation: two floors' draw order, roof fades and crops, guiding arrow")
+end
+
 assert(_G.AzerothKart == beforeGlobal, "offline import must not create or replace an addon global")
 local namespace = {sentinel=marker}
 local loaded = assert(loadfile("addon/AzerothKart/Presentation.lua"))("AzerothKart", namespace)

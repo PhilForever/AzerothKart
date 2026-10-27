@@ -1,5 +1,26 @@
 # Manual client acceptance — F0/F1/F2/F5
 
+## Deferred Warsong Gulch check (proposed, `claude/warsong-layout`)
+
+**NOT RUN.** The owner runs these checks; Claude does not control the client. Two stages. **Fully restart the client** after each install: `Battlegrounds.lua`, `Assets/Tracks/WarsongGulch/` and `Assets/UI/GuideArrow.tga` are new.
+
+While Warsong is coming soon (after Codex's review and a coordinated install):
+
+1. **Track screen.** After the Scarlet Crusade Cup, the *Battlegrounds Cup* heading and "Warsong Gulch (soon)", disabled. The four cups' list ends above the Back button with no overlap.
+2. **Other courses.** No roof or arrow anywhere; the kart, its outline and flames draw as before. Highscores' Track button passes over Warsong.
+
+Once Codex registers it and `soon` is removed:
+
+3. **Choose Warsong Gulch:** its tall preview and three facts. Note any hitch: it loads two 8 MiB pictures (the ground and the roofs) and the arrow.
+4. **The grid** at mid, facing north. No arrow until GO; then it points at the Alliance tunnel.
+5. **The Alliance tunnel:** entering, the hill's picture fades to show the kart below; the Boots near the end boost once; the hill stands whole again outside.
+6. **Silverwing Hold:** the roof fades over the halls and the flag room. The flag blocks where it is drawn; crossing the room west takes the gate.
+7. **Up the front ramp** onto the plateau: from the ramp on, the kart draws over the hill and the roof, with no flicker at either end of the ramp. Along the plateau and down the ramp to the gully, then the gate.
+8. **The optional way in:** the tunnel's side door, up the banana to the terrace, down the connector into the hall. The roof walk ends where drawn.
+9. **The Lumber Mill:** the same, its roof and hill fading; the finish at mid; three laps, the arrow always pointing at the next gate.
+10. **Seams:** any misalignment between the roofs and the ground, a visible edge where a roof's box ends, or a place where the kart stops at nothing it can see: a screenshot of each.
+11. **Two players:** a friend below a roof the player is not under is hidden by it; on the plateau or a ramp they draw over it.
+
 ## Deferred Gryphon Rider wingbeat check (proposed, `claude/gryphon-wings`)
 
 **NOT RUN.** Run it after Codex's review and a coordinated install. **Fully restart the client:** `GryphonRider.tga` and its outline keep their paths but are larger. The owner runs these checks; Claude does not control the client.

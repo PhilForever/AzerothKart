@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — Warsong Gulch, the first course on two floors (2026-10-27, `claude/warsong-layout`)
+On Codex's floors and Boots pads (`5c481d4`), after the owner's choices: a fixed three-lap loop, two doors in each flag room, the banana and the roof as an optional way in, the grid at mid. Listed as coming soon; Codex registers it.
+- **The course:** 1024 × 2048, point-symmetric. From mid into Silverwing Hold by its tunnel, through the flag room past the Alliance flag, up the front ramp onto the plateau over the tunnel and down the ramp to the field; then the same through the Warsong Lumber Mill. Seven gates (both tunnels, both flags, both ramps, mid), all on the ground; 25 rooms on two floors, 8 ramps, a Boots pad in each tunnel, 15 solids. At each base the tunnel's side door, the banana and the terrace are an optional way in. About 5,700 units a lap.
+- **Two pictures:** the ground (`Background.tga`) and the roofs (`Roofs.tga`, with alpha): Ashenvale and the night elves' Silverwing Hold in the north, the Barrens and the orcs' Lumber Mill in the south, from the owner's Warcraft III install.
+- **Roofs over the karts:** each base's hill and roof is a pooled texture drawn over karts on the ground and under karts on floor 1, fading to a quarter while the player's kart is below it. The friend's kart draws by its reported floor.
+- **The guiding arrow** (Warsong only) points from the kart at the lap's next gate; `Assets/UI/GuideArrow.tga`, original.
+- **The generator:** `scripts/build_battlegrounds.py` validates the floors (LayeredTrack's rules, no invisible wall on either floor, and a new rule proposed to Codex: a room may meet a ramp only where its own floor leaves it), walks the route and writes `Battlegrounds.lua`; `scripts/battleground_paint.py` paints the pictures.
+- **Menu:** the Battlegrounds Cup with "Warsong Gulch (soon)"; its copy and tall preview are ready for when it unlocks.
+- **Budget:** 91 frames, 96 textures, 151 font strings (four roofs, the arrow, a heading and a button).
+- **Tests:** `test_warsong` (the contract's constructor, both floors, the route through the seven gates, the flag only on the ground, the ramps, the Boots, the grid, coming soon), `test_presentation` (draw order, fades, crops, the arrow), `test_ui` (the roofs, the draw sets and the arrow, unlocked in that test only), `test_menu`. The look, the roofs, the arrow and the drive in the client are NOT RUN.
+
 ## Unreleased — all-course multiplayer and position smoothing (2026-10-27)
 
 - Open Graveyard, Library, Armory and Cathedral to the existing two-player

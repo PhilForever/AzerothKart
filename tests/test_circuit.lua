@@ -186,19 +186,21 @@ for _,bad in ipairs({{first=0,last=1,wallRadius=15}, {first=2,last=1,wallRadius=
     assert(not pcall(Circuit.new, definition, Track.crossesGate), "an invalid narrows is refused")
 end
 
--- The catalog: cups in order, every course ready (the Scarlet Crusade
--- Cup's four dungeons too, tests/test_dungeon.lua); a coming-soon course
--- would be listed but not selectable (below).
-assert(#Courses.CUPS == 3 and Courses.CUPS[2].name == "Capital Cities Cup", "three cups")
+-- The catalog: cups in order, every city and dungeon ready (the Scarlet
+-- Crusade Cup's four dungeons too, tests/test_dungeon.lua); the Battlegrounds
+-- Cup's Warsong Gulch is listed, coming soon, not selectable
+-- (tests/test_warsong.lua).
+assert(#Courses.CUPS == 4 and Courses.CUPS[2].name == "Capital Cities Cup"
+    and Courses.CUPS[4].name == "Battlegrounds Cup", "four cups")
 local soon = 0
 for _,course in ipairs(Courses.LIST) do
     if course.soon then
         soon = soon + 1
-        assert(course.cup == "scarlet" and not Courses.available(course.id) and
+        assert(course.cup == "battlegrounds" and not Courses.available(course.id) and
             Courses.build(course.id, Track.crossesGate) == nil, "a coming-soon course cannot be built")
     end
 end
-assert(soon == 0 and Courses.available("stormwind_city") and Courses.available("ironforge_gp")
+assert(soon == 1 and Courses.available("stormwind_city") and Courses.available("ironforge_gp")
     and Courses.available("darnassus_canopy") and Courses.available("orgrimmar_canyon")
     and Courses.available("thunder_bluff_skyway") and Courses.available("undercity_slime"),
     "all six cities are ready")
