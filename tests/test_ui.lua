@@ -3848,16 +3848,17 @@ withMock(nil,false,function(env,UI)
     -- A friend (a copied grid pose, no transport) draws by their reported
     -- floor: over the hill on the plateau, under it in the tunnel below.
     drawAt(400,1560,0)
-    local function friendAt(level)
+    local function friendAt(x,y,level)
         UI.multiplayer,UI.gridStaged=true,true
-        UI.gridView={peerPose={x=420,y=1560,heading=math.pi/2,level=level}}
+        UI.gridView={peerPose={x=x,y=y,heading=math.pi/2,level=level}}
         UI.SetKartOutline(not UI.outlineOn); UI.SetKartOutline(not UI.outlineOn) -- each redraws
     end
-    friendAt(1)
+    local function noFriend() UI.multiplayer,UI.gridStaged,UI.gridView=false,false,nil end
+    friendAt(420,1560,1)
     assert(UI.opponent:IsShown() and UI.opponent.sublevel==3,"a friend on the plateau draws over the hill")
-    friendAt(0)
+    friendAt(420,1560,0)
     assert(UI.opponent:IsShown() and UI.opponent.sublevel==-5,"a friend in the tunnel draws under it")
-    UI.multiplayer,UI.gridStaged,UI.gridView=false,false,nil
+    noFriend()
     drawAt(300,984,0)
     local frame=AK.Presentation.arrowFrame((math.atan2 or math.atan)(1380-984,400-300))
     assert(UI.guideArrow.shown and UI.guideArrow.sublevel==7 and frame==3
@@ -3869,6 +3870,23 @@ withMock(nil,false,function(env,UI)
         "a flat course hides the roofs and the arrow and restores the flat draw set")
     assert(UI.opponent.sublevel==0 and UI.opponentSublevel==0,
         "and the friend's kart goes back to sublevel 0, level with the player's, as created (Codex review)")
+    -- Codex's review: from either floor to a flat course, the friend's kart
+    -- is at 0 there, and stays there when it shows on the flat course.
+    for _,level in ipairs({1,0}) do
+        assert(UI.SelectTrack("warsong_gulch"),"back to Warsong")
+        UI.Start()
+        finishCountdown(UI)
+        drawAt(400,1560,0)
+        friendAt(420,1560,level)
+        assert(UI.opponent.sublevel==(level==1 and 3 or -5),"the friend on floor "..level)
+        noFriend()
+        UI.Stop("floor "..level)
+        assert(UI.SelectTrack("mirage_raceway") and UI.opponent.sublevel==0,
+            "a flat course puts a friend last seen on floor "..level.." back at 0")
+        friendAt(UI.state.x+30,UI.state.y,0)
+        assert(UI.opponent:IsShown() and UI.opponent.sublevel==0,"and the friend shows there at 0: "..level)
+        noFriend()
+    end
 end,nil,nil,true)
 
 -- Warsong's upper floor is drawn only in its roof picture: refused, the
@@ -3903,11 +3921,27 @@ withMock(nil,false,function(env,UI)
         "choosing it again retries the roofs; refused, it stays selected and roofless")
     UI.Start()
     assert(not UI.active,"and still cannot start")
+    UI.Toggle(); UI.Toggle()
+    assert(not UI.roofs and not UI.roofsPath and UI.trackId=="warsong_gulch",
+        "reopening the window retries them; still refused, still roofless")
     env.textureModes={}
-    assert(UI.SelectTrack("warsong_gulch") and UI.roofs and UI.roofsPath==course.roofs,
-        "a retry that loads them restores the roofs")
+    UI.Toggle(); UI.Toggle()
+    assert(UI.roofs and UI.roofsPath==course.roofs and UI.roofTextures[1].texturePath==course.roofs,
+        "reopening once they load restores the roofs")
     UI.Start()
     assert(UI.active,"and the course starts")
     UI.Stop("roofs checked")
+    assert(UI.SelectTrack("mirage_raceway"),"back to Mirage")
+    -- The multiplayer Ready selects the offered course the same way.
+    env.textureModes={[course.roofs]="false"}
+    UI.roofsPath=nil
+    local _,transport=liveFixture(env,UI,"warsong_gulch")
+    local accepted,reason=UI.MultiplayerAction("ready",true)
+    assert(not accepted and reason=="track_unavailable" and UI.trackId=="mirage_raceway" and not UI.liveArmed,
+        "Ready refuses an offered Warsong whose roofs do not load; Mirage stays")
+    env.textureModes={}
+    assert(UI.MultiplayerAction("ready",true) and UI.trackId=="warsong_gulch" and UI.roofs and UI.liveArmed,
+        "with them loading, Ready selects Warsong with its roofs")
+    transport.Stop("roofs checked")
 end,nil,nil,true)
 originalPrint("test_ui Warsong rendering: roof crops and fades, floor draw sets, dust and the friend by floor, guiding arrow, roof refusal guard PASS (offline mock)")
