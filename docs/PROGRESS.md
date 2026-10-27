@@ -1,5 +1,35 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-27 16:10 +01:00 — Claude Warsong review; two renderer corrections
+
+Owner requests review. Clean5c481d4; own documentation-only
+`codex/warsong-review`. Reviewed Claude bf94d2b/51304df on the same floor
+foundation, preserving its checkout/untracked outputs. [Detailed review](reviews/2026-10-27-warsong-layout.md).
+No integration, enabling, push or install. Installed736ac2f remains current.
+
+Two P2 findings reproduced in memory with actual Lua51 UI mocks: a false roof
+texture load leaves roofs nil but SelectTrack/Start succeed on layered geometry;
+and layout clears opponentSublevel before restoring the texture, leaving -5/3
+on a later flat map. Correct essential-art readiness/rollback and actual-layer
+restoration with regressions before enabling. Geometry/content is otherwise
+sound at this review scope: main loop, both optional369step approaches/floor010
+and both shared-grid physical clearances pass. No new geometry blocker found.
+
+Actual focused Lua51 warsong/presentation/menu/ui/circuit/dungeon PASS6modules,
+85sources/tests parse. Export PASS11boards, diffcheck clean, validator only2old
+expired links. Native, Lua54/full46suite and art rebuild NOT RUN by this review.
+Mockpool91/96/151; rights/native/performance acceptance not newly inferred.
+
+Coming-soon isolation/TOC order/old11boards are correct. Planned Codex work
+still includes identifiers and mixed Physics12/13 scores; appending a digest
+without bounding/versioning can grow full-range HELLO155→166bytes (>158limit),
+although literal13wouldfit158exactly. No silent budget change is authorized.
+
+**Next exact task:** fix the two renderer failures with focused regressions,
+then perform reviewed Warsong registration/mixed-score compatibility before
+enabling and coordinating a test installation. No user manual test requested
+for this deliberately unselectable candidate.
+
 ## 2026-10-27 — foundation committed and handed to Claude
 
 Tested source `60a9d77` on `codex/layered-track-foundation` commits the opt-in

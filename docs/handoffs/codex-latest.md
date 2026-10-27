@@ -1,5 +1,40 @@
 # Codex handoff — production maps and Claude course review
 
+## Review complete — Claude Warsong bf94d2b, 2026-10-27
+
+Owner asked review only. [Findings/evidence](../reviews/2026-10-27-warsong-layout.md).
+Two concrete P2 corrections before enabling: essential Roofs.tga load failure
+currently still allows layered Start, and clearing opponentSublevel prevents
+restoring its actual draw layer on flat-map return. Reproduced using existing
+UI mock in-memory, no Claude file changes. Main/optional routes, grids and
+coming-soon/menu isolation show no blocking defect. Lua51focused6modules PASS,
+85parsedfiles; catalogue11PASS; validator only2oldlinks, no full pass claimed.
+No source merge, register, push/install or native claims; installed736ac2f.
+
+Next exact task: coordinate the narrow roof readiness/rollback and opponent
+layer fixes in UI/layoutTrack/SelectTrack scopes plus tests, then integrate.
+Native/current code budgets are91/96/151. Planned registry work needs new IDs,
+mixed12/13ScoreSync and a deliberately bounded digest contract (full-range
+appendwould166Bvs158ceiling; literal13is158exactly). Keep existing11boards,
+Physics12 behavior, frame lease and traffic history. Generator's proposed
+own-floor/end-only room adjacency check is optional defensive follow-up;
+current Warsong already follows it.
+
+Do not edit/repoint Claude's owned worktree. Its branch remainsbf94d2b with
+only its existing untracked outputs. Native course/roof/arrow/feel/memory checks
+and full46/Lua54/art rebuild were NOT RUN in this review.
+
+## Active review — Claude Warsong layout, 2026-10-27
+
+Owner asks review only. Clean5c481d4, own branch `codex/warsong-review`;
+inspect Claude bf94d2b (51304df/28c86bc), a direct descendant of this foundation.
+Read its latest canonical handoff and inspect isolated geometry/route/pads,
+roof/floor/arrow presentation and coming-soon/catalogue separation. Run focused
+Lua51 against Claude's exact source without editing its tracked/untracked files.
+Reserve only this handoff, a dated review and PROGRESS for findings/evidence.
+No source integration, enabling, registration, push or deployment inferred from
+this review request. Installed runtime remains736ac2f. Preserve all worktrees.
+
 ## Ready for Claude: Warsong foundation — 2026-10-27
 
 Tested feature/merge commit `60a9d77` on `codex/layered-track-foundation`
