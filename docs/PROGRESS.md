@@ -1,5 +1,22 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-27 — foundation committed and handed to Claude
+
+Tested source `60a9d77` on `codex/layered-track-foundation` commits the opt-in
+floor/pad primitives and reviewed Claude1d776cb plan with both histories intact.
+[Authoring contract](LAYERED_TRACKS.md), accepted ADR0022 and the current
+[Codex handoff](handoffs/codex-latest.md) give exact fields, restrictions, tested
+evidence and clean-worktree merge commands for Claude's next layout branch.
+Those commands were not run in its checkout. No overwrite/reset/push or main/
+release. Runtime/installation736ac2f and its ZIP stay current: this source adds
+no playable course and was deliberately not deployed.
+
+Tests/results below are final; no redundant repetition after documentation-only
+edits. Native floor/roof/map checks remain NOT RUN and release gates stay open.
+Next exact task: Claude's Warsong layout/art against the bounded floor contract;
+Codex reviews actual course IDs, route/grid and mixed-version score catalogue
+before registration/installation. No new user manual test is required now.
+
 ## 2026-10-27 12:06 +01:00 — opt-in floors/pads foundation for Claude's Warsong
 
 Owner explicitly forwards Claude's floor/pad request. Cleana1b1d84,

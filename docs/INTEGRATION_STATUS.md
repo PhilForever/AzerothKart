@@ -1,5 +1,15 @@
 # Shared integration and deployment status
 
+## Developer foundation ready for Claude — 2026-10-27
+
+`60a9d77` on `codex/layered-track-foundation` implements reviewed opt-in floors/
+ramps/gates/pads and explicit same-size layered telemetry. [Exact contract](LAYERED_TRACKS.md),
+[handoff](handoffs/codex-latest.md), [evidence](PROGRESS.md).14focusedLua51modules
+pass; current11flatmaps/score contexts remain unchanged. Warsong itself, roof
+rendering and playable/score registration are pending. This source is NOT
+installed; runtime736ac2f remains the verified player test build. No new push/
+release or native claim. Original Claude worktree/branch remain unchanged.
+
 ## Installed all-course two-player build — 2026-10-27 08:40 CET
 
 Tested runtime `736ac2f` on `codex/sprint-multiplayer-smoothing` enables all11

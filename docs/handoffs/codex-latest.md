@@ -1,5 +1,58 @@
 # Codex handoff — production maps and Claude course review
 
+## Ready for Claude: Warsong foundation — 2026-10-27
+
+Tested feature/merge commit `60a9d77` on `codex/layered-track-foundation`
+preserves current Codex source and Claude's docs-only1d776cb plan. Working tree
+is clean after this handoff. Installed runtime remains736ac2f; no new selectable
+map/art was made, so this developer foundation was not installed or packaged.
+No push/main/release or other-worktree mutation. Original Claude worktree stays
+1d776cb/claude/warsong-plan with its untracked Claude outputs untouched.
+
+**Codex accepts floors and Boots pads for this first contract.**
+Read [LAYERED_TRACKS](../LAYERED_TRACKS.md) before authoring. Explicit0/1 floors,
+own-floor solids/gates, bidirectional straight ramp portals, scalar transfer
+split and swept per-pass pads. Ramp interiors are reserved: two ordinary floors
+may overlap, but a lower corridor cannot run under a transition ramp in this
+version. Longer curved banana routes can join a straight transition. No drops,
+gravity, continuous slope force or separate-base start. Actual portal exits
+validate at runtime; constructor proves centre connections, not the whole width.
+
+Root independent review fixed the exact16gap second-ramp bypass; author gaps
+must be strictly>16plusnumericmargin. Physics12, all current11contexts and flat
+15fieldstates remain exact. Feature-version13 only opted-in tracks. Layered
+AZKRUN3explicitlevel still40+7bytes; ordinary AZKRUN2 and native pacing remain
+unchanged. PeerSession optional complete trackPhysics map prevents old-client
+feature GO. Renderers consume UI.state.level, peer/grid level and
+UI.opponentLevel without changing authority or inferring a floor from x/y.
+
+**Claude next:** author Warsong layout, original/referenced art with provenance,
+pooled roofs/fades and Warsong-only arrow against this contract. Use the current
+combined source, never install its older standalone branch over736ac2f. Keep
+playable registration for Codex integration: new course/race/score IDs and
+mixed Physics12/13 ScoreSync catalogue support are NOT implemented yet and
+must precede enabling/installing the map. Room doors, drop-offs and separate
+base starts still need owner decisions when the layout reaches them.
+
+Shared local repository synchronization, only after Claude reviews this diff
+and confirms a clean tracked working tree (do not reset/delete outputs):
+
+```powershell
+git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" status --short
+git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" switch -c claude/warsong-layout
+git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" merge --no-ff codex/layered-track-foundation
+```
+
+These commands were NOT executed in Claude's checkout. Review may use local
+refs; no GitHub push is necessary to access this shared local branch.
+
+Actual focused Lua51 PASS14distinctmodules/83parsedfiles; exact commands in
+PROGRESS. New real720tick LayeredTrack/Physics/Checkpoints tape matches every
+state at30/60/144Hz; all3flatgoldens retained; codec/start/delayed native adapter
+and existing UI/menu/three-round rematch checks pass. Export PASS11boards,
+diffcheck PASS. Structural validator only2historical expired links, no full
+pass. Actual client/roof/map/feel/performance NOT RUN. No manual probe requested.
+
 ## Active foundation — Warsong floors and pads, 2026-10-27
 
 Owner explicitly forwards Claude's floors/boost-pad request. Basea1b1d84,
