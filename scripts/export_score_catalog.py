@@ -26,7 +26,7 @@ def export():
     lua = LuaRuntime(unpack_returned_tuples=True)
     namespace = lua.table()
     loader = lua.eval("function(source, label, ns) assert(loadstring(source, label))('AzerothKart', ns) end")
-    for name in ("Track", "MirageRaceway", "Circuit", "CapitalCities", "Dungeon", "ScarletCrusade", "Courses",
+    for name in ("Track", "MirageRaceway", "Circuit", "CapitalCities", "Dungeon", "LayeredTrack", "ScarletCrusade", "Battlegrounds", "Courses",
                  "Physics", "Highscores", "SoloRecords"):
         path = ROOT / "addon" / "AzerothKart" / (name + ".lua")
         loader(path.read_text(encoding="utf-8-sig"), "@" + name + ".lua", namespace)

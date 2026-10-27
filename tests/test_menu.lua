@@ -262,8 +262,11 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu)
     -- (one label), and to the results a Highscores button, a sunburst, a medal
     -- and twelve confetti pieces (14 textures), a banner, its line, the wreath's
     -- rank and the two racers' rows (two labels each).
-    assert(UI.objects.frames == 90 and UI.objects.textures == 91 and UI.objects.fontStrings == 150,
-        ("explicit budget 90/91/150, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
+    -- The Battlegrounds Cup adds its heading and Warsong Gulch's track
+    -- button; a two-floor course's four pooled roofs and its guiding arrow
+    -- are created with the window (hidden on every other course).
+    assert(UI.objects.frames == 91 and UI.objects.textures == 96 and UI.objects.fontStrings == 151,
+        ("explicit budget 91/96/151, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
             UI.objects.fontStrings))
     assert(AzerothKartDB.preferences == nil, "creation saves nothing")
     local before = counts(env)
@@ -670,6 +673,9 @@ withMock({schemaVersion=1, preferences={version=1, kart="gyrocopter", track="mir
     assert(UI.trackId == "scarlet_cathedral" and AzerothKartDB.preferences.track == "scarlet_cathedral",
         "and on to the Scarlet Cathedral sprint")
     click(UI.trackButton)
+    assert(UI.trackId == "warsong_gulch" and AzerothKartDB.preferences.track == "warsong_gulch",
+        "and on to Warsong's two-floor circuit")
+    click(UI.trackButton)
     assert(UI.trackId == "mirage_raceway" and AzerothKartDB.preferences.track == "mirage_raceway",
         "switching back is remembered too")
 end, function(env, AK)
@@ -708,15 +714,20 @@ end)
 
 -- Every city is ready: Thunder Bluff is an ordinary choice now. A course
 -- still marked coming soon (a fixture) is listed, disabled and inert.
-withMock(nil, function(env, UI, Menu)
+withMock(nil, function(env, UI, Menu, AK)
     UI.Toggle(); click(Menu.view.homeButtons[1])
     assert(Menu.view.trackButtons.thunder_bluff_skyway and Menu.view.soonButtons.thunder_bluff_skyway == nil,
         "Thunder Bluff is listed as a ready track")
     local soon = Menu.view.soonButtons.soon_fixture
     assert(soon and not soon:IsEnabled() and not soon.scripts.OnClick and soon.text:find("(soon)", 1, true),
         "a coming-soon city is listed, disabled and inert")
+    local warsong = Menu.view.soonButtons.warsong_gulch
+    assert(warsong and not warsong:IsEnabled() and not warsong.scripts.OnClick and not Menu.view.trackButtons.warsong_gulch,
+        "an explicitly gated future layered course stays disabled too")
+    AK.Courses.get("warsong_gulch").soon = nil
 end, function(env, AK)
     table.insert(AK.Courses.LIST, {id="soon_fixture", name="Coming Course", cup="capital", soon=true})
+    AK.Courses.get("warsong_gulch").soon = true
 end)
 
 -- A deliberate choice is remembered even when it was already current, and it
@@ -988,7 +999,7 @@ withMock(nil, function(env, UI, Menu)
     Menu.Show("multiplayer")
     for _,id in ipairs({"stormwind_city","ironforge_gp","darnassus_canopy",
         "orgrimmar_canyon","thunder_bluff_skyway","undercity_slime","scarlet_graveyard",
-        "scarlet_library","scarlet_armory","scarlet_cathedral","mirage_raceway"}) do
+        "scarlet_library","scarlet_armory","scarlet_cathedral","warsong_gulch","mirage_raceway"}) do
         click(view.lobbyTrackChoice)
         assert(Menu.lobbyTrackId == id and UI.trackId == track,
             "host chooser cycles every finished course without changing local geometry: " .. id)
@@ -1331,11 +1342,31 @@ withMock(nil, function(env, UI, Menu, AK)
     UI.Toggle(); click(Menu.view.homeButtons[1])
     local buttons, soon = Menu.view.trackButtons, Menu.view.soonButtons
     assert(buttons.scarlet_graveyard and buttons.scarlet_library and buttons.scarlet_armory and buttons.scarlet_cathedral
-        and next(soon) == nil, "the cup lists its four sprints, and nothing is coming soon")
+        and not soon.scarlet_graveyard and not soon.scarlet_cathedral,
+        "the cup lists its four sprints, none of them coming soon")
     local rows = Menu.trackRows()
-    assert(rows[#rows - 4].heading == "Scarlet Crusade Cup" and rows[#rows - 3].track.id == "scarlet_graveyard"
-        and rows[#rows - 2].track.id == "scarlet_library" and rows[#rows - 1].track.id == "scarlet_armory"
-        and rows[#rows].track.id == "scarlet_cathedral", "the third cup's heading, then its four sprints")
+    assert(rows[#rows - 6].heading == "Scarlet Crusade Cup" and rows[#rows - 5].track.id == "scarlet_graveyard"
+        and rows[#rows - 4].track.id == "scarlet_library" and rows[#rows - 3].track.id == "scarlet_armory"
+        and rows[#rows - 2].track.id == "scarlet_cathedral", "the third cup's heading, then its four sprints")
+    -- The Battlegrounds Cup, last: its reviewed course is selectable.
+    assert(rows[#rows - 1].heading == "Battlegrounds Cup" and rows[#rows].track.id == "warsong_gulch"
+        and buttons.warsong_gulch and buttons.warsong_gulch:IsEnabled() and buttons.warsong_gulch.scripts.OnClick
+        and not soon.warsong_gulch, "the fourth cup lists Warsong Gulch as a ready track")
+    local warsong = Menu.TRACKS[#Menu.TRACKS]
+    assert(warsong.id == "warsong_gulch" and #warsong.facts == 3 and warsong.blurb:find("Silverwing Hold", 1, true)
+        and Menu.PREVIEW_CELLS[warsong.cell].path:find("WarsongGulch\\Preview.tga", 1, true)
+        and Menu.PREVIEW_CELLS[warsong.cell].width == 160 and Menu.PREVIEW_CELLS[warsong.cell].height == 320,
+        "Warsong's copy and its twice-as-tall preview")
+    local course = AK.Courses.get("warsong_gulch")
+    course.soon = true
+    local gated = Menu.trackRows()
+    course.soon = nil
+    assert(#gated == #rows and gated[#gated - 1].heading == "Battlegrounds Cup"
+        and gated[#gated].soon == course, "an explicitly gated course takes its ready row's place, once")
+    click(buttons.warsong_gulch)
+    assert(UI.trackId == "warsong_gulch" and Menu.previewReady and UI.track.layered
+        and Menu.view.trackPreview.width == 160 and Menu.view.trackPreview.height == 320,
+        "selecting Warsong builds its floor-aware geometry and displays the tall preview")
     click(buttons.scarlet_cathedral)
     assert(UI.trackId == "scarlet_cathedral" and Menu.previewReady
         and Menu.view.trackPreview.width == 160 and Menu.view.trackPreview.height == 320,
@@ -1382,8 +1413,19 @@ withMock(nil, function(env, UI, Menu, AK)
         and Menu.view.highscoreRule.text == "Fastest completed sprints, one run each, for the current rules",
         "and the Cathedral's")
     click(Menu.view.highscoreTrack)
-    assert(Menu.view.highscoreRule.text == "Fastest completed three-lap totals for the current rules",
-        "the next board holds three-lap totals again")
+    assert(Menu.view.highscoreTrack.text == "Track: Warsong Gulch"
+        and Menu.view.highscoreRule.text == "Fastest completed three-lap totals for the current rules",
+        "Warsong's board displays three-lap totals")
+    click(Menu.view.highscoreTrack)
+    assert(Menu.view.highscoreTrack.text == "Track: Mirage Raceway"
+        and Menu.view.highscoreRule.text == "Fastest completed three-lap totals for the current rules",
+        "past Warsong Gulch back to the first board's three-lap totals")
+    course.soon = true
+    for _=1,#Menu.TRACKS do
+        click(Menu.view.highscoreTrack)
+        assert(Menu.view.highscoreTrack.text ~= "Track: Warsong Gulch", "an explicitly gated course has no board")
+    end
+    course.soon = nil
     sameCounts(env, before, "the board's rule line reuses its label")
 end)
 

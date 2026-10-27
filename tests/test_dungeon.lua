@@ -336,10 +336,10 @@ local context = Records.Context(crypt)
 assert(context == nil and Records.Context(Track) == nil, "developer fixtures cannot create production score contexts")
 assert(Records.Context(Courses.build("mirage_raceway",Track.crossesGate)).lapCount == 3, "existing production circuits keep three laps")
 
--- The Scarlet Crusade Cup: the catalogue's third cup, its four dungeons
--- ready: Scarlet Graveyard, Library, Armory and Cathedral. None is coming
--- soon.
-assert(#Courses.CUPS == 3 and Courses.CUPS[3].id == "scarlet" and Courses.CUPS[3].name == "Scarlet Crusade Cup",
+-- The Scarlet Crusade Cup: the catalogue's third cup (of four: the
+-- Battlegrounds Cup follows), its four dungeons ready: Scarlet Graveyard,
+-- Library, Armory and Cathedral. None is coming soon.
+assert(#Courses.CUPS == 4 and Courses.CUPS[3].id == "scarlet" and Courses.CUPS[3].name == "Scarlet Crusade Cup",
     "the Scarlet Crusade Cup")
 local scarlet = 0
 for _,course in ipairs(Courses.LIST) do
@@ -353,8 +353,9 @@ assert(scarlet == 4 and Courses.get("scarlet_cathedral") and not Courses.get("sc
     "four dungeons, the last the Cathedral")
 assert(Courses.next("undercity_slime") == "scarlet_graveyard" and Courses.next("scarlet_graveyard") == "scarlet_library"
     and Courses.next("scarlet_library") == "scarlet_armory" and Courses.next("scarlet_armory") == "scarlet_cathedral"
-    and Courses.next("scarlet_cathedral") == "mirage_raceway",
-    "the Track button steps on through the four dungeons, then round to Mirage")
+    and Courses.next("scarlet_cathedral") == "warsong_gulch"
+    and Courses.next("warsong_gulch") == "mirage_raceway",
+    "the Track button steps on through the four dungeons and Warsong, then round to Mirage")
 
 -- Scarlet Graveyard: one run from the entrance to Honor's Tomb. The spawn
 -- stands on stone; the reviewed route crosses the three gates in order and

@@ -2,15 +2,15 @@
 -- Native identity/lease checks, persistence and UI notifications belong to ScoreSharing.
 local _, AK = ...
 local H = assert(AK and AK.Highscores, "Highscores required")
-local Sync = {PREFIX="AZKSCR1", MAX_BYTES=240, MAX_PEERS=32, SEND_INTERVAL=1,
+local Sync = {PREFIX="AZKSCR2", MAX_BYTES=151, MAX_PEERS=32, SEND_INTERVAL=1,
     HELLO_INTERVAL=60, REQUEST_TIMEOUT=120, MAX_ROWS=50}
 AK.ScoreSync = Sync
 local courseIds={"mirage_raceway","stormwind_city","ironforge_gp",
     "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway","scarlet_graveyard",
-    "scarlet_library","scarlet_armory","scarlet_cathedral"}
+    "scarlet_library","scarlet_armory","scarlet_cathedral","warsong_gulch"}
 -- O remains a zero-digest placeholder, never an admitted course. Active
 -- production codes stay stable; new courses append their own digest slots.
-local courseCodes={"O","M","S","I","D","R","U","T","G","L","A","C"}
+local courseCodes={"O","M","S","I","D","R","U","T","G","L","A","C","W"}
 local ACTIVE_BOARDS,HELLO_SLOTS=#courseIds,#courseCodes
 local courseToCode,codeToCourse={},{}
 for i,id in ipairs(courseIds) do courseToCode[id],codeToCourse[courseCodes[i+1]]=courseCodes[i+1],id end
@@ -27,6 +27,14 @@ local function identity(name)
     if name then return (name:gsub("[A-Z]",function(c) return string.char(c:byte()+32) end)) end
 end
 local function decimal(v) return ("%.0f"):format(v) end
+local function hexadecimal(v) return ("%08X"):format(v) end
+local function validContext(context)
+    -- Match the native context bounds so every admitted row, including a
+    -- 96-byte name, fits the unchanged prefix-plus-payload ceiling of 158.
+    return plain(context) and H.BoardKey(context)
+        and integer(context.trackVersion,1,1295) and integer(context.physicsVersion,1,1295)
+        and integer(context.rulesVersion,1,1295) and integer(context.lapCount,1,9) and context.tickRate==60
+end
 local function hash(text)
     local a,b=1,0
     for i=1,#text do a=(a+text:byte(i))%65521;b=(b+a)%65521 end
@@ -41,7 +49,7 @@ local function dense(t,limit)
     return n
 end
 local function validRecord(record)
-    if not plain(record) or not courseToCode[record.trackId] or not kartToCode[record.kartId] then return nil end
+    if not validContext(record) or not courseToCode[record.trackId] or not kartToCode[record.kartId] then return nil end
     local empty=H.Load(nil)
     local result,changed=H.Merge(empty,record,{record})
     return changed and H.View(result,record)[1] or nil
@@ -49,7 +57,7 @@ end
 local function recordText(record,tag)
     local r=validRecord(record)
     if not r then return nil,"record" end
-    return table.concat({"1",tag,courseToCode[r.trackId],decimal(r.trackVersion),decimal(r.physicsVersion),
+    return table.concat({"2",tag,courseToCode[r.trackId],decimal(r.trackVersion),decimal(r.physicsVersion),
         decimal(r.lapCount),decimal(r.tickRate),decimal(r.rulesVersion),decimal(r.totalTicks),
         decimal(r.finishedAt),kartToCode[r.kartId],r.playerName}," ")
 end
@@ -58,20 +66,20 @@ function Sync.encode(message)
     local text
     if message.kind=="ROW" or message.kind=="NEW" then
         text=recordText(message.record,message.kind=="ROW" and "R" or "N")
-    elseif message.kind=="REQUEST" and codeToCourse[message.code] then text="1 Q "..message.code
+    elseif message.kind=="REQUEST" and codeToCourse[message.code] then text="2 Q "..message.code
     elseif message.kind=="END" and codeToCourse[message.code]
         and integer(message.hash,0,4294967295) and integer(message.count,0,Sync.MAX_ROWS) then
-        text=table.concat({"1 E",message.code,decimal(message.hash),decimal(message.count)}," ")
-    elseif message.kind=="HELLO" and integer(message.physicsVersion,1,2147483647)
-        and integer(message.catalogHash,0,4294967295) and dense(message.hashes,HELLO_SLOTS)==HELLO_SLOTS
+        text=table.concat({"2 E",message.code,decimal(message.hash),decimal(message.count)}," ")
+    elseif message.kind=="HELLO" and integer(message.catalogHash,0,4294967295)
+        and dense(message.hashes,HELLO_SLOTS)==HELLO_SLOTS
         and message.hashes[1]==0 then
-        -- Retired O has no board: its zero digest is mandatory, not a peer
-        -- claim. Keeping it zero also bounds a full-range HELLO to155 bytes
-        -- including the prefix, below the native158-byte send ceiling.
-        local parts={"1 H",decimal(message.physicsVersion),decimal(message.catalogHash)}
+        -- The catalogue binds each board's exact context, including physics.
+        -- Fixed-width digests fit all thirteen slots in 136 native bytes.
+        -- Retired O remains a mandatory zero, never a peer's active board.
+        local parts={"2 H",hexadecimal(message.catalogHash)}
         for _,value in ipairs(message.hashes) do
             if not integer(value,0,4294967295) then return nil,"hash" end
-            parts[#parts+1]=decimal(value)
+            parts[#parts+1]=hexadecimal(value)
         end
         text=table.concat(parts," ")
     end
@@ -82,6 +90,10 @@ local function number(text,low,high)
     if type(text)~="string" or not text:match("^%d+$") or (#text>1 and text:sub(1,1)=="0") then return nil end
     local value=tonumber(text)
     return integer(value,low,high) and value or nil
+end
+local function hexNumber(text)
+    if type(text)~="string" or #text~=8 or not text:match("^[0-9A-F]+$") then return nil end
+    return tonumber(text,16)
 end
 local function tokens(text,n)
     local out,pos={},1
@@ -95,13 +107,13 @@ local function tokens(text,n)
 end
 function Sync.decode(payload)
     if type(payload)~="string" or #payload>Sync.MAX_BYTES or payload:find("[%z\001-\031\127|]") then return nil,"payload" end
-    local tag,rest=payload:match("^1 ([A-Z]) (.+)$")
+    local tag,rest=payload:match("^2 ([A-Z]) (.+)$")
     if tag=="R" or tag=="N" then
         local p=tokens(rest,9)
         if not p or not codeToCourse[p[1]] or not codeToKart[p[9]] then return nil,"record" end
-        local r={trackId=codeToCourse[p[1]],trackVersion=number(p[2],1,2147483647),
-            physicsVersion=number(p[3],1,2147483647),lapCount=number(p[4],1,2147483647),
-            tickRate=number(p[5],1,2147483647),rulesVersion=number(p[6],1,2147483647),
+        local r={trackId=codeToCourse[p[1]],trackVersion=number(p[2],1,1295),
+            physicsVersion=number(p[3],1,1295),lapCount=number(p[4],1,9),
+            tickRate=number(p[5],60,60),rulesVersion=number(p[6],1,1295),
             totalTicks=number(p[7],1,H.MAX_TICKS),finishedAt=number(p[8],1,H.MAX_TIMESTAMP),
             kartId=codeToKart[p[9]],playerName=p[10]}
         r=validRecord(r)
@@ -114,12 +126,12 @@ function Sync.decode(payload)
         if codeToCourse[code] and stamp and n then return {kind="END",code=code,hash=stamp,count=n} end
     elseif tag=="H" then
         local p={};for field in rest:gmatch("[^ ]+") do p[#p+1]=field end
-        if #p~=HELLO_SLOTS+2 or table.concat(p," ")~=rest then return nil,"hello" end
-        local physics,catalog=number(p[1],1,2147483647),number(p[2],0,4294967295)
+        if #p~=HELLO_SLOTS+1 or table.concat(p," ")~=rest then return nil,"hello" end
+        local catalog=hexNumber(p[1])
         local hashes={}
-        for i=1,HELLO_SLOTS do hashes[i]=number(p[i+2],0,4294967295);if not hashes[i] then return nil,"hello" end end
-        if physics and catalog and hashes[1]==0 then
-            return {kind="HELLO",physicsVersion=physics,catalogHash=catalog,hashes=hashes}
+        for i=1,HELLO_SLOTS do hashes[i]=hexNumber(p[i+1]);if not hashes[i] then return nil,"hello" end end
+        if catalog and hashes[1]==0 then
+            return {kind="HELLO",catalogHash=catalog,hashes=hashes}
         end
     end
     return nil,"message"
@@ -150,11 +162,9 @@ function Sync.new(options,now)
     local catalogue={}
     for _,context in ipairs(options.contexts) do
         local code=plain(context) and courseToCode[context.trackId]
-        if not code or s.contexts[code] or not H.BoardKey(context) then return nil,"contexts" end
+        if not code or s.contexts[code] or not validContext(context) then return nil,"contexts" end
         local copied={};for _,field in ipairs(contextFields) do copied[field]=context[field] end
         s.contexts[code]=copied
-        s.physicsVersion=s.physicsVersion or copied.physicsVersion
-        if copied.physicsVersion~=s.physicsVersion then return nil,"contexts" end
     end
     for _,code in ipairs(courseCodes) do
         local context=s.contexts[code]
@@ -222,7 +232,7 @@ function Sync.receive(token,name,payload,now)
     if s.rxCount>128 or peer.rxCount>8 then return false,"rate" end
     local m,problem=Sync.decode(payload);if not m then return false,problem end
     if m.kind=="HELLO" then
-        if m.physicsVersion~=s.physicsVersion or m.catalogHash~=s.catalogHash then
+        if m.catalogHash~=s.catalogHash then
             peer.compatible=false;return false,"incompatible"
         end
         peer.compatible=true
@@ -267,7 +277,7 @@ local function candidate(s,peer,priority,now)
         local code=nextCode(peer.urgent)
         if code then return {kind="NEW",code=code,record=peer.urgent[code]} end
     elseif priority==2 and (peer.hello or now>=peer.nextHello) then
-        return {kind="HELLO",physicsVersion=s.physicsVersion,catalogHash=s.catalogHash,hashes=hashes(s)}
+        return {kind="HELLO",catalogHash=s.catalogHash,hashes=hashes(s)}
     elseif priority==3 and peer.compatible and not peer.waiting then
         local code=nextCode(peer.want);if code then return {kind="REQUEST",code=code} end
     elseif priority==4 and peer.compatible then

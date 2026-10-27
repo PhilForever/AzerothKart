@@ -201,3 +201,17 @@ Mirage scenery v1 imports no Warcraft III file; it was painted procedurally so e
   - as for the Graveyard, in a crimson team colour, with the champions' statues tinted pale green-grey;
   - painted by the generator: the pools' tinted water and stone rims, the falls and the jets, the wooden parquet, the runners, kerbs and steps, the plinths' cobbled tops, dressed rims and faces (version 2), and the gardens' green-tinged moonlight and mist.
 - **Terms and credits:** as for Stormwind: [ADR 0009](../adr/0009-warcraft-iii-asset-reuse.md); redistribution **unresolved** for release review; Blizzard Entertainment. The rooms follow the wing's in-game map and the Sanctum of Maps battle map, which the owner sent; his screenshots of the Chapel Gardens and of the nave guided the look. None of them is stored. See [the Scarlet Cathedral sheet](tracks/scarlet-cathedral.md).
+
+**Battlegrounds Cup, Warsong Gulch (2026-10-27, `claude/warsong-layout`, proposed; listed as coming soon).** `addon/AzerothKart/Assets/Tracks/WarsongGulch/Background.tga` (1024×2048, the ground), `Roofs.tga` (1024×2048 with alpha, the roof overlays) and `Preview.tga` (256×512, both composited) are painted by `scripts/build_battlegrounds.py` and `scripts/battleground_paint.py` from the same Warcraft III Reforged install (build 3.0.1.24371). The sources are:
+
+- **Terrain:** Ashenvale's dirt, grass, lumpy grass, rock and cliff; the Barrens' dirt, rough dirt and cliff; the ruins' large bricks and cliff; the Ashenvale and Barrens tree textures.
+- **The field and the woods:** Ashenvale and Barrens trees, rocks and an Ashenvale bush; Ashenvale's hollow stump at mid; furbolg huts and troll burrows as the leaf and zerker huts; Ashenvale and Lordaeron braziers.
+- **The bases:** Lordaeron's Human and Orc banners as the flags; Lordaeron graves, Northrend tombstones, an Ashenvale sentinel statue, Barrens bones and a tauren totem in the graveyards; a village fence and, from Reforged's own `_de.w3mod` set, palisade stakes; Silvermoon towers, orc watchtowers and the orc war mill.
+
+- **Files:** 51 models, 153 placements, 33 textures; [the generated sources list](tracks/warsong_gulch-sources.txt) names them. Extracted files stay outside Git.
+- **Modifications:**
+  - models posed and rendered with the project's light, shadows and camera lean: the huts and banners in Alliance blue and Horde red, the Silvermoon towers' teal and gold recoloured violet and silver;
+  - terrain atlases halved and shaded;
+  - painted by the generator: the hills' and walls' faces from the cliff textures, the parquets, runners, plank walks, shingled roofs, parapets and wall tops, the tunnels' timber frames, the ramps' treads and rails, the Boots' marks, the flags' rings, the chequered finish and the shadows of the hills and roofs.
+- **Original:** `addon/AzerothKart/Assets/UI/GuideArrow.tga` (128×128 with alpha), the guiding arrow at 16 headings, drawn by `battleground_paint.py`.
+- **Terms and credits:** as for Stormwind: [ADR 0009](../adr/0009-warcraft-iii-asset-reuse.md); redistribution **unresolved** for release review; Blizzard Entertainment. The layout follows the owner's world-map screenshot of Warsong Gulch and his eleven screenshots of the bases, which guided the look. None of them is stored. See [the Warsong Gulch sheet](tracks/warsong-gulch.md).

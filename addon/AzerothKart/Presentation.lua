@@ -808,5 +808,83 @@ function Presentation.ordinal(n)
     return n .. suffix
 end
 
+-- Two-floor courses (LayeredTrack.lua): what the renderer reads, never
+-- writes. A course's roofs are boxes of its roof picture (world-aligned, the
+-- world's size) drawn over the karts on the ground and under those on floor
+-- 1; each fades while the player's kart is on the ground in one of its
+-- `under` boxes (the rooms below it).
+
+-- Drawn over the roofs: a kart on floor 1, or anywhere on a ramp (no roof
+-- stands over a ramp, and a kart climbing one passes its top's edge).
+function Presentation.drawnHigh(track, x, y, level)
+    if level == 1 then return true end
+    local ramps = type(track) == "table" and track.ramps
+    if type(ramps) ~= "table" or not finite(x) or not finite(y) then return false end
+    for i = 1, #ramps do
+        local r = ramps[i]
+        if x >= r.x and x <= r.x + r.width and y >= r.y and y <= r.y + r.height then return true end
+    end
+    return false
+end
+
+Presentation.ROOF_FADED, Presentation.ROOF_FADE_DEPTH = 0.25, 24
+
+-- A roof's opacity: whole, unless the player's kart is on the ground under
+-- it, fading to ROOF_FADED over its first ROOF_FADE_DEPTH units in.
+function Presentation.roofAlpha(roof, x, y, high)
+    if high or type(roof) ~= "table" or type(roof.under) ~= "table" or not finite(x) or not finite(y) then
+        return 1
+    end
+    local depth = 0
+    for i = 1, #roof.under do
+        local b = roof.under[i]
+        local d = math.min(x - b.x0, b.x1 - x, y - b.y0, b.y1 - y)
+        if d > depth then depth = d end
+    end
+    local t = math.min(1, depth / Presentation.ROOF_FADE_DEPTH)
+    return 1 - (1 - Presentation.ROOF_FADED) * t
+end
+
+-- Where a roof's box shows on the canvas and its crop of the roof picture:
+-- left, bottom, width, height, then left/right/top/bottom texture
+-- coordinates; nil when none of it shows.
+function Presentation.roofCrop(view, roof)
+    local px,py,pw,ph = Presentation.clipRect(view, roof.x0, roof.y0, roof.x1 - roof.x0, roof.y1 - roof.y0)
+    if not px then return nil end
+    local x0,y0 = Presentation.unproject(view, px, py)
+    local x1,y1 = Presentation.unproject(view, px + pw, py + ph)
+    local W,H = view.worldWidth, view.worldHeight
+    return px, py, pw, ph, x0 / W, x1 / W, 1 - y1 / H, 1 - y0 / H
+end
+
+-- The guiding arrow (a course's `guideArrow`): from (x, y) toward the middle
+-- of the lap's next gate, as a heading and a distance; nil when the lap's
+-- progress names no next gate. Reads the race's copied checkpoint progress.
+Presentation.GUIDE_ARROW = {path="Interface\\AddOns\\AzerothKart\\Assets\\UI\\GuideArrow.tga",
+    frames=16, columns=4, size=26, reach=46}
+
+function Presentation.guideHeading(track, progress, x, y)
+    if type(track) ~= "table" or type(track.gates) ~= "table" or type(progress) ~= "table"
+        or progress.complete or not finite(x) or not finite(y) then return nil end
+    local gate = track.gates[progress.nextGate]
+    if type(gate) ~= "table" then return nil end
+    local dx,dy = (gate.ax + gate.bx) / 2 - x, (gate.ay + gate.by) / 2 - y
+    return atan2(dy, dx), math.sqrt(dx * dx + dy * dy)
+end
+
+-- The arrow sheet: 16 headings, frame k pointing at k/16 of a turn from
+-- east, counter-clockwise, in a 4 x 4 grid (left to right, top to bottom).
+function Presentation.arrowFrame(heading)
+    local n = Presentation.GUIDE_ARROW.frames
+    return math.floor((heading % tau) / tau * n + 0.5) % n
+end
+
+function Presentation.arrowCoords(frame)
+    local columns = Presentation.GUIDE_ARROW.columns
+    local column = frame % columns
+    local row = (frame - column) / columns
+    return column / columns, (column + 1) / columns, row / columns, (row + 1) / columns
+end
+
 if type(namespace) == "table" then namespace.Presentation = Presentation end
 return Presentation

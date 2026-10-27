@@ -88,6 +88,14 @@
       "lapCount": 1,
       "tickRate": 60,
       "rulesVersion": 1
+    },
+    {
+      "trackId": "warsong_gulch",
+      "trackVersion": 1,
+      "physicsVersion": 13,
+      "lapCount": 3,
+      "tickRate": 60,
+      "rulesVersion": 1
     }
   ]
 }

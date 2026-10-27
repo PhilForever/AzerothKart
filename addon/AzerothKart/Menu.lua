@@ -24,7 +24,8 @@ local UI
 -- Copy and data. Karts share a 17x31 body; Physics owns their handling profiles.
 
 -- The track list's copy, in display order within each cup (Courses.CUPS).
--- Courses marked `soon` in Courses.LIST are listed after these, disabled.
+-- Courses marked `soon` in Courses.LIST are listed after these, disabled,
+-- even when their copy is ready here.
 Menu.TRACKS = {
     {id="mirage_raceway", name="Mirage Raceway", cell=0,
         blurb="A sun-baked salt circuit on the dry Shimmering Flats, run between the rival goblin and gnome camps.",
@@ -81,6 +82,13 @@ Menu.TRACKS = {
             .. "Whitemane stand.",
         facts={"Sprint: one run through 4 gates", "The pools block; the stairs turn at a landing",
             "The finish is before the altar"}},
+    -- Ready for when Codex registers it; until then it is listed as coming
+    -- soon (trackRows) and has no board (the Highscores cycle skips it).
+    {id="warsong_gulch", name="Warsong Gulch", cell="warsonggulch",
+        blurb="From mid into Silverwing Hold by its tunnel, through the flag room past the Alliance flag, out "
+            .. "onto the plateau and down its ramp; then the same through the Warsong Lumber Mill, every lap.",
+        facts={"3 laps, 7 gates: both flags every lap", "Two floors: under the hills and over them",
+            "Boots in each tunnel; the arrow shows the way"}},
 }
 
 local WC3C = "Model: ITE project (wc3c), author unknown"
@@ -152,6 +160,9 @@ Menu.PREVIEW_CELLS = {
     scarletarmory={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\ScarletArmory\\Preview.tga",
         left=0, right=1, top=0, bottom=1, width=320, height=320},
     scarletcathedral={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\ScarletCathedral\\Preview.tga",
+        left=0, right=1, top=0, bottom=1, width=160, height=320},
+    -- Warsong Gulch's preview shows the ground with its roofs (1024 x 2048).
+    warsonggulch={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\WarsongGulch\\Preview.tga",
         left=0, right=1, top=0, bottom=1, width=160, height=320},
 }
 
@@ -667,7 +678,14 @@ local function buildHighscores()
     local view = Menu.view
     view.highscoreScope = newText(box, FONT.gray, "TOP", 0, -65, "Local cache | Global publishing pending")
     view.highscoreTrack = newButton(box, "Track", 420, 30, "TOP", 0, -91, function()
-        Menu.highscoreTrackIndex = (Menu.highscoreTrackIndex or 1) % #Menu.TRACKS + 1
+        -- The next board, past any course still coming soon (it has none).
+        local index = Menu.highscoreTrackIndex or 1
+        for _=1,#Menu.TRACKS do
+            index = index % #Menu.TRACKS + 1
+            local course = Courses and Courses.get(Menu.TRACKS[index].id)
+            if not (course and course.soon) then break end
+        end
+        Menu.highscoreTrackIndex = index
         Menu.highscorePage = 1
         refresh.highscores()
     end)
@@ -798,7 +816,9 @@ function Menu.trackRows()
         rows[#rows + 1] = {heading=cup.name}
         for _,track in ipairs(Menu.TRACKS) do
             local course = Courses and Courses.get(track.id)
-            if (course and course.cup or "proving") == cup.id then rows[#rows + 1] = {track=track} end
+            if (course and course.cup or "proving") == cup.id and not (course and course.soon) then
+                rows[#rows + 1] = {track=track}
+            end
         end
         for _,course in ipairs(Courses and Courses.LIST or {}) do
             if course.cup == cup.id and course.soon then rows[#rows + 1] = {soon=course} end
@@ -813,11 +833,13 @@ local function buildTracks()
     local glow = newTexture(box, "ARTWORK")
     glow:SetColorTexture(1, 0.82, 0, 0.30)
     local buttons, soon = {}, {}
+    -- Four cups: a 24-unit heading and a 32-unit row step keep the list
+    -- clear of the Back button.
     local y = -78
     for _,row in ipairs(Menu.trackRows()) do
         if row.heading then
-            color(newText(box, FONT.normal, "TOPLEFT", 38, y - 6, row.heading), GOLD)
-            y = y - 26
+            color(newText(box, FONT.normal, "TOPLEFT", 38, y - 5, row.heading), GOLD)
+            y = y - 24
         else
             local track, course = row.track, row.soon
             local label = track and track.name or (course.name .. "  |cffff8c26(soon)|r")
@@ -832,7 +854,7 @@ local function buildTracks()
             fonts(button, "GameFontNormal", "GameFontHighlight", "GameFontDisable")
             if track then buttons[track.id] = button
             else button:Disable(); soon[course.id] = button end
-            y = y - 34
+            y = y - 32
         end
     end
     local card = panel(box, CARD, 340, 340, "TOPRIGHT", -32, -72, 0.05, 0.05, 0.06, 1)

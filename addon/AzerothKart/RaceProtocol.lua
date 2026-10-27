@@ -8,10 +8,10 @@ local lengths = {INVITE=17, JOIN=11, READY=12, START=23, CANCEL=12, ACK=15}
 -- Code 0 is retired. Preserve Mirage's existing wire code and packet layout.
 local trackCodes = {mirage_raceway="1", stormwind_city="2", ironforge_gp="3",
     darnassus_canopy="4", orgrimmar_canyon="5", undercity_slime="6", thunder_bluff_skyway="7",
-    scarlet_graveyard="8", scarlet_library="9", scarlet_armory="A", scarlet_cathedral="B"}
+    scarlet_graveyard="8", scarlet_library="9", scarlet_armory="A", scarlet_cathedral="B", warsong_gulch="C"}
 local trackIds = {["1"]="mirage_raceway", ["2"]="stormwind_city", ["3"]="ironforge_gp",
     ["4"]="darnassus_canopy", ["5"]="orgrimmar_canyon", ["6"]="undercity_slime", ["7"]="thunder_bluff_skyway",
-    ["8"]="scarlet_graveyard", ["9"]="scarlet_library", A="scarlet_armory", B="scarlet_cathedral"}
+    ["8"]="scarlet_graveyard", ["9"]="scarlet_library", A="scarlet_armory", B="scarlet_cathedral", C="warsong_gulch"}
 local reasonCodes = {left="0", timeout="1", incompatible="2", combat="3", world_leave="4", error="5"}
 local reasons = {["0"]="left", ["1"]="timeout", ["2"]="incompatible", ["3"]="combat",
     ["4"]="world_leave", ["5"]="error"}

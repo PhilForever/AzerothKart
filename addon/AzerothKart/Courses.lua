@@ -2,7 +2,8 @@
 -- scenery picture, off-road wording, dust colour) plus which pure geometry
 -- builds each one. Independent of WoW APIs; UI and the menus read it.
 -- A Scarlet Crusade Cup course is a dungeon sprint: one run from the start
--- to the last gate (its geometry sets `laps`).
+-- to the last gate (its geometry sets `laps`). A Battlegrounds Cup course is
+-- a course on two floors (LayeredTrack.lua): Warsong Gulch.
 local _, namespace = ...
 local Courses = {DEFAULT_ID="mirage_raceway"}
 
@@ -12,6 +13,7 @@ Courses.CUPS = {
     {id="proving", name="Proving Grounds"},
     {id="capital", name="Capital Cities Cup"},
     {id="scarlet", name="Scarlet Crusade Cup"},
+    {id="battlegrounds", name="Battlegrounds Cup"},
 }
 
 -- Display order. A course marked `soon` is listed but cannot be selected.
@@ -65,6 +67,13 @@ Courses.LIST = {
         background=TRACKS .. "ScarletCathedral\\Background.tga",
         dust={0.78,0.74,0.68}, ground={0.05,0.05,0.05},
         status="Scarlet Cathedral | Sprint to the altar | Up the stairs and turn at the landing"},
+    -- Two floors: in by each base's tunnel, round its flag, out by its ramp.
+    -- Its floor-aware physics and protocol context are separate from flat courses.
+    {id="warsong_gulch", name="Warsong Gulch", short="Warsong", cup="battlegrounds", geometry="layered",
+        guideArrow=true,
+        background=TRACKS .. "WarsongGulch\\Background.tga", roofs=TRACKS .. "WarsongGulch\\Roofs.tga",
+        dust={0.80,0.74,0.60}, ground={0.14,0.17,0.10},
+        status="Warsong Gulch | Start for 3 laps | In by each tunnel, round the flag, out by the ramp"},
 }
 
 local byId = {}
@@ -99,6 +108,16 @@ function Courses.next(id, multiplayerOnly)
     return id
 end
 
+-- A two-floor course's roofs (presentation data beside its geometry): boxes
+-- of its roof picture drawn over the ground, each with the boxes under it
+-- that fade it (Presentation.roofAlpha). nil for every other course.
+function Courses.roofs(id)
+    local course = byId[id]
+    if not course or course.geometry ~= "layered" then return nil end
+    local definition = namespace.Battlegrounds and namespace.Battlegrounds[id]
+    return definition and definition.overlays
+end
+
 -- The pure track for a course; crossesGate is the shared gate predicate.
 -- Built tracks are kept: geometry never changes after load.
 local built = {}
@@ -115,6 +134,9 @@ function Courses.build(id, crossesGate)
     elseif course.geometry == "dungeon" then
         local definition = namespace.ScarletCrusade and namespace.ScarletCrusade[id]
         track = definition and namespace.Dungeon and namespace.Dungeon.new(definition, crossesGate)
+    elseif course.geometry == "layered" then
+        local definition = namespace.Battlegrounds and namespace.Battlegrounds[id]
+        track = definition and namespace.LayeredTrack and namespace.LayeredTrack.new(definition, crossesGate)
     end
     built[id] = track
     return track

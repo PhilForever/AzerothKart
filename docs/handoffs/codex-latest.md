@@ -1,5 +1,28 @@
 # Codex handoff — production maps and Claude course review
 
+## Combined Warsong candidate ready for install — 2026-10-27
+
+`codex/warsong-registration` preserves base4a573cc and reviewed Claude79792cd
+in one merge. Registration raceC/scoreW enables Warsong three-lap solo/two-peer
+flow on Physics13; old11boards remain12. AZKSCR2/schema2 uses13fixed hexdigest
+slots/exactcontext hash,136BHELLO/150BmaxROW; native158ceiling unchanged. Both
+peers update; saved histories/Oval remain intact. [Contract](../API_CONTRACTS.md),
+[ADR0023](../adr/0023-mixed-version-score-sync.md), [executed evidence](../PROGRESS.md).
+
+All46Lua51modules/85files PASS; focused9plus delegated2PASS, catalogue12PASS,
+13PythonstoretestsPASS, diffcheckclean. Validator retains only2oldexpiredlinks;
+Lua54/native/artrebuild NOT RUN. Real Physics under heading-assisted delayed
+Core/Menu doubles completes3laps/12floorchanges/6pads then same-peer Mirage
+rematch restoring flat draw order without solo scores or budget change.
+Productionpool91/96/151 offline. No product bug found in the rematch; fixture
+needed the real guest results Play Again action before joining next round.
+
+Preflightinstalled736ac2f matches85priorhashes,86totalfiles including legacy
+extra. Newsource91files includes6newpaths; authorized install/package is next,
+with fullrestartrequired. Exact runtime/backup/ZIP receipt follows. Original
+Claude checkout stays79792cd with existing outputs; no push/main/release.
+
+
 ## Active integration/registration/install — Warsong, 2026-10-27
 
 Owner authorizes Warsong registration, mixed-version scores, approved Claude

@@ -10,7 +10,10 @@ You are a development agent for **Azeroth Kart**, a top-down 2D WoW Forever arca
 
 ## Current owner priority
 
-Latest owner direction, 2026-10-27: all eleven finished courses must be available
+Latest owner direction, 2026-10-27: register reviewed Warsong as the twelfth
+course, preserve mixed Physics12/13 score boards, integrate and install.
+Score sync uses bounded AZKSCR2; both peers update. No push/release inferred.
+All twelve finished courses must be available
 in the existing two-peer multiplayer flow, including the four one-run Scarlet
 sprints. Preserve per-course targets through invite/start/live/finish/rematch.
 Owner identifies remaining stutter as the friend's kart jumping; position

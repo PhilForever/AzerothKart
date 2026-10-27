@@ -1,4 +1,146 @@
-# Claude handoff — Warsong Gulch plan and the floors request
+# Claude handoff — Warsong Gulch: Codex's review fixes
+
+Prepared 2026-10-27 at about 17:50 CET by Claude (rendering/UI/sprites owner).
+
+**Base:** `claude/warsong-layout` `bf94d2b` (below). **Branch:** the same, with these commits:
+
+- `d832966`: the two fixes, the dust's layer, tests and docs;
+- `8e2cee1`: the checks the review asked for (reopening, Ready, both floors);
+- this handoff.
+
+Nothing is installed; Warsong stays listed as coming soon. The developer machine's checkout has `claude/warsong-layout` at this handoff.
+
+## Owner instructions
+
+The owner relayed Codex's review of `bf94d2b` (`docs/reviews/2026-10-27-warsong-layout.md` on `codex/warsong-review` `2c32f13`, not on this branch): the layout is sound, but two bugs need fixing before enabling Warsong:
+
+1. "Missing roof textures don't prevent starting. Players could encounter upper-floor collision without visible floor artwork."
+2. "Opponent draw layers aren't restored after leaving Warsong. Switching to a flat map can leave the friend's kart incorrectly ordered against other sprites and effects."
+
+After those, Warsong needs Codex's registration and mixed-version leaderboard support within the existing packet budget.
+
+## Fixed
+
+- **The roof picture is required scenery.** `loadRoofs` (taken out of `layoutRoofs`) loads it once per picture. `UI.SelectTrack` now checks it after the background's staging load and before anything of the course shows: refused, the course is refused like a missing background ("Warsong Gulch roofs unavailable | Choose another track; previous selection retained"), the shown course and picture untouched; the multiplayer Ready, which selects through `SelectTrack`, refuses with "track_unavailable". `UI.Start` also refuses a course whose `roofs` are not loaded ("Track scenery unavailable…"). Choosing the course again or reopening the window retries the load. The arrow stays optional.
+- **The friend's kart's layer.** `layoutRoofs` no longer clears the friend's recorded sublevel: on a flat course it sets the texture back to `OVERLAY` 0, as created, and keeps the record true. A two-floor course still sets it as the friend draws.
+- **Found while fixing: the dust.** The kart's dust and wind puffs (`ARTWORK` 6) were hidden under the roofs on floor 1. They now follow the kart's draw set: `OVERLAY` 0 on floor 1 or a ramp (sharing the outer back flame's sublevel), `ARTWORK` 6 everywhere else, as before. Puffs already in the air switch with the kart when it changes floor.
+
+## Scope (changed)
+
+- `addon/AzerothKart/UI.lua`: `SMOKE_GROUND` and the `smoke` field of `KART_LAYERS`, `setKartLayers`, `createEffects` (the smoke pool's record), new `loadRoofs` and `roofsLoaded`, `layoutRoofs`. **In shared or Codex-owned functions, at the review's request:** `UI.SelectTrack`'s loading hook (the early return also requires loaded roofs; `roofsLoaded` after the background's staging load and, when the background is already shown, in its place) and one condition in `UI.Start`'s scenery refusal. Nothing else in `SelectTrack`'s transaction or in `UI.Start` changed.
+- `tests/test_ui.lua`, and the docs: the Warsong sheet, `API_CONTRACTS.md`'s proposed section, `TEST_PLAN.md`, `CHANGELOG.md`, the client checklist, this handoff.
+
+## Tests
+
+| Command | Cloud | Developer machine |
+|---|---|---|
+| `python scripts/test_lua.py --runtime lua51` | PASS, 46 modules | PASS, 46 modules (107 s) |
+| `python scripts/test_lua.py --runtime lua54 --tests ui menu warsong presentation` | PASS | — |
+| `python scripts/validate_project.py` | only the 2 pre-existing `PROGRESS.md` links | — |
+| `git diff --check` | clean | — |
+
+New in `test_ui`: a refused roof picture (false, nil, a throw) refuses Warsong with Mirage still shown and selected; Start refuses while the roofs are not loaded; choosing again or reopening retries, and once they load Warsong starts; Ready refuses an offered Warsong whose roofs do not load and selects it once they do; a friend on floor 1 draws at 3 and on the ground at -5, and from either, Mirage puts it back at 0, where it stays when shown again; the dust's layers on the ground, the plateau, a ramp and Mirage. Each check fails with its fix reverted (five reversions tried in the cloud). The pictures and data did not change; their byte check stands from `bf94d2b`. Client: NOT RUN ([the checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-warsong-gulch-check-proposed-claudewarsong-layout) gains the friend after Warsong and the dust on the plateau).
+
+## PROGRESS ledger entry for the integrator (Warsong review fixes)
+
+> **2026-10-27 — Warsong review fixes (Claude, `claude/warsong-layout` `8e2cee1`, after Codex's review of `bf94d2b`).** A roof picture that does not load now refuses Warsong at selection (rollback kept; the multiplayer Ready refuses with "track_unavailable") and at Start; the friend's kart returns to sublevel 0 on a flat course after Warsong; the kart's dust and wind puffs draw over the roofs on floor 1. One-condition additions to `UI.SelectTrack`'s loading hook and `UI.Start`'s scenery refusal. `test_ui` covers refused/throwing loads, retry, reopening, Ready and both floors' friend; each check fails with its fix reverted. Lua 5.1 suite PASS on both machines; Lua 5.4 focused PASS. Client: NOT RUN.
+
+## Needs Codex
+
+Review these fixes, then the registration the review describes (IDs, mixed Physics 12/13 scores within the 158-byte budget). Everything under "Needs Codex" below still holds, the ramp rule included.
+
+## Push (the owner's)
+
+```
+git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/scarlet-v3 claude/race-screens claude/gryphon-wings claude/warsong-plan claude/warsong-layout
+```
+
+# Previous: Warsong Gulch: layout, art and rendering
+
+Prepared 2026-10-27 at about 15:40 CET by Claude (rendering/UI/sprites owner).
+
+**Base:** Codex's `codex/layered-track-foundation` `5c481d4` (floors and Boots pads, `60a9d77`; it carries every Claude branch to `claude/warsong-plan`). **Branch:** `claude/warsong-layout`, the name Codex's handoff proposed (branched from `5c481d4` rather than merged into `1d776cb`: the same content, no merge commit), with these commits:
+
+- `28c86bc`: the reservation;
+- `51304df`: Warsong Gulch: the layout and its generator, the pictures, the roofs, the arrow, the menu, tests and docs;
+- this handoff.
+
+Nothing is installed. Warsong is listed as coming soon: it cannot be selected, raced or scored until Codex registers it. On the developer machine, Claude's checkout (`AzerothKart-Claude`) now has `claude/warsong-layout` checked out (it had `claude/warsong-plan`); its untracked `Claude outputs/` is untouched.
+
+## Owner instructions
+
+Codex reported the floors and pads done: "Claude can now begin Warsong's layout and rendering". Asked, the owner chose: **two doors** in each flag room ("Two doors: drive through"); the banana and the roof as an **"Optional way in"**; the grid **"Mid (Recommended)"**, facing the Alliance base. Earlier: a fixed three-lap loop (in by each tunnel, round the flag, out by the ramp), the guiding arrow on Warsong only, a Boots pad in each tunnel. Drop-downs and a start in each base are outside the contract and not built.
+
+The standing instructions hold: no merge into `main`; no claim of in-game verification without the actual client; the owner pushes and runs the client checks; Codex prepares coordinated installs and registers the course.
+
+## Scope (reserved and changed)
+
+The reservation (`28c86bc`) held, with the additions marked below.
+
+- **New:** `scripts/battleground_layouts.py`, `scripts/build_battlegrounds.py`, `scripts/battleground_paint.py`; the generated `addon/AzerothKart/Battlegrounds.lua`; `Assets/Tracks/WarsongGulch/{Background,Roofs,Preview}.tga`; `Assets/UI/GuideArrow.tga`; `tests/test_warsong.lua`; `docs/art/tracks/warsong_gulch-{overview.png,review.png,sources.txt}`.
+- **`Courses.lua`:** the Battlegrounds Cup; Warsong (`soon=true`, `geometry="layered"`, `roofs`, `guideArrow`); the `layered` case in `Courses.build`; `Courses.roofs`.
+- **`Presentation.lua` (additive):** `drawnHigh`, `ROOF_FADED`, `ROOF_FADE_DEPTH`, `roofAlpha`, `roofCrop`, `GUIDE_ARROW`, `guideHeading`, `arrowFrame`, `arrowCoords`.
+- **`UI.lua`, Claude's regions only:** new locals `KART_LAYERS`, `ROOF_SUBLEVEL`, `MAX_ROOFS`, `setKartLayers`, `layoutRoofs`, `placeRoofs`, `placeGuide`; `renderEffects` (the flames' sublevels from the draw set); `layoutTrack` (calls `layoutRoofs`); the visual body of `render`; `renderOpponent` (the friend's sublevel by floor, after Codex's level code); `UI.Create`'s visual part (four roof textures after the background staging, the kart's first draw set, the arrow after the friend's kart). `step`, `UI.Start/Stop/OnUpdate/HandleEvent`, `UI.SelectTrack`'s transaction, `pollLive`, `applyLiveView`, `finishLive`, `keyEvent`, `UI.MultiplayerAction` and `refreshSummary` are untouched.
+- **`Menu.lua`:** the track list's spacing for four cups (headings 24, rows 32); Warsong's copy in `Menu.TRACKS` and its preview cell; `Menu.trackRows` lists a course still `soon` only as coming soon. *Addition:* the Highscores Track button skips a course still `soon`, so the ready copy shows no empty board.
+- **Both TOCs:** `Battlegrounds.lua` after `ScarletCrusade.lua`, before `Courses.lua`. **`tests/run.lua`:** `test_warsong`. **`scripts/validate_project.py`:** the load order and the new files.
+- **Tests:** `test_ui` (the harness loads LayeredTrack and Battlegrounds; the budget and draw-layer counts; *addition:* a Warsong rendering test) and `test_menu` (the budget, the fourth cup; *addition:* the copy and the Highscores cycle). *Additions:* a block in `test_presentation`; four cups in `test_circuit` and `test_dungeon`.
+- **Docs:** `docs/art/tracks/warsong-gulch.md` (the plan rewritten as the track sheet), `docs/TRACKS.md`, `docs/API_CONTRACTS.md` (a proposed section after the floors proposal), `docs/ASSETS.md`, `docs/art/ASSET_SOURCES.md`, `CHANGELOG.md`, `docs/TEST_PLAN.md`, `tests/MANUAL_CLIENT_CHECKLIST.md`, this handoff; *addition:* the Battlegrounds line in `docs/INDEX.md`.
+
+No change to LayeredTrack, Dungeon, Physics, Checkpoints, RaceGrid, the protocols, sessions, scores or any other Codex-owned file. `docs/PROGRESS.md` stays with the integrator (entry below).
+
+## Delivered
+
+[The Warsong Gulch sheet](../art/tracks/warsong-gulch.md) has it all; [the proposed contract](../API_CONTRACTS.md#two-floor-presentation-warsong-gulch) has the interfaces.
+
+- **The course:** 1024 × 2048, point-symmetric. From mid into Silverwing Hold by its tunnel (the Boots near its end), through the flag room past the flag (in by the east door, out by the west), up the front ramp onto the plateau over the tunnel, down the ramp to the gully; then the same through the Warsong Lumber Mill; the finish at mid. 25 rooms (19 on the ground, 6 on floor 1), 8 ramps, 7 gates on the ground, 2 Boots pads, 15 solids, about 5,700 units a lap. At each base the tunnel's side door, the banana, the terrace and the connector are the optional way in.
+- **The pictures:** the ground and a world-aligned roof picture with alpha, from the owner's Warcraft III install (Ashenvale and the night elves north, the Barrens and the orcs south), and the arrow sheet (original).
+- **Rendering:** four pooled roof overlays (each base's hill and roof) cropped as the camera moves, over karts on the ground and under karts on floor 1 or a ramp, fading to a quarter over the player below; the friend drawn by reported floor; the Warsong-only arrow toward the next gate. Budget 91/96/151.
+- **The generator** checks LayeredTrack's authoring rules, the dungeon rules on each floor, a new ramp rule, the props, and walks the route through the gates on the right floors.
+
+## Needs Codex
+
+1. **Review** the geometry, the route and the shared grid at mid (`Battlegrounds.lua`, `validate` in `build_battlegrounds.py`, `tests/test_warsong.lua`). One choice to look at: the *Mid* finish spans the field's west half, from the west wall to the stumps; the run back from the Horde ramp comes up that side, and a kart passing east of the stumps must turn back to it (the arrow shows it).
+2. **Registration**, per [LAYERED_TRACKS](../LAYERED_TRACKS.md#remaining-warsong-integration): course, invite and score IDs; score sharing and saved boards for a Physics 13 course beside the Physics 12 ones; the session's `trackPhysics`; then `soon=true` removed from Warsong's `Courses.lua` entry. The menu's copy and preview are ready and the track list keeps its rows.
+3. **The proposed LayeredTrack rule** ([API_CONTRACTS](../API_CONTRACTS.md#two-floor-presentation-warsong-gulch)): a room may meet a ramp's corridor only at the end its own floor leaves by. `LayeredTrack.new` accepts a wrong-floor room at a ramp's end today; Claude's generator refuses it.
+4. **Pre-existing, not from this branch** (found on `5c481d4` as well): under Lua 5.4 the full runner stops at `tests/test_score_sharing.lua:16` (global `unpack`), and `test_multiplayer_integration` fails under 5.4; `validate_project.py` reports the 2 historical Windows-path links in `PROGRESS.md`.
+
+## Tests
+
+| Command | Cloud | Developer machine |
+|---|---|---|
+| `python scripts/test_lua.py --runtime lua51` | PASS, 46 modules, 85 files parsed | PASS, 46 modules (97 s) |
+| `python scripts/test_lua.py --runtime lua51 --tests warsong presentation menu ui circuit dungeon` | PASS | PASS |
+| `python scripts/test_lua.py --runtime lua54 --tests warsong presentation menu ui circuit dungeon` | PASS | — |
+| `python scripts/test_lua.py --runtime lua54` | stops at the pre-existing `test_score_sharing` failure | — |
+| `python scripts/build_battlegrounds.py --wc3 WC3 --check` | CHECK PASS: the Lua, the three pictures, the arrow | CHECK PASS, the same hashes, from a fresh extraction with the sheet's commands and no sprite cache to start (120 s) |
+| `python scripts/validate_project.py` | only the 2 pre-existing `PROGRESS.md` links | the same |
+| `git diff --check` | clean | — |
+
+Hashes (sha256): `Background.tga` `b0004a34…aa28b`, `Roofs.tga` `de96d90a…755d9`, `Preview.tga` `5b2330f6…09119`, `GuideArrow.tga` `d1e82f1a…cc8e`. A crude offline autopilot (not in the suite) drove three laps on Codex's Physics in about 36 s each.
+
+## Client checks: NOT RUN
+
+[The Warsong checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-warsong-gulch-check-proposed-claudewarsong-layout): the track list's fourth cup after an install now; the roofs, fades, arrow, floors and drive once Codex registers it.
+
+## PROGRESS ledger entry for the integrator (Warsong layout)
+
+> **2026-10-27 — Warsong Gulch built on two floors, listed as coming soon (Claude, `claude/warsong-layout` `51304df` on Codex's `5c481d4`).** The Battlegrounds Cup's first course on LayeredTrack: a three-lap loop from mid through both bases (in by each tunnel, through the flag room by two doors, up onto the plateau and down the ramp), the banana and terrace as an optional way in, a Boots pad in each tunnel; 25 rooms on two floors, 8 ramps, 7 ground gates, 15 solids. Ground and roof pictures from the owner's Warcraft III install; four pooled roof overlays over karts below and under karts above, fading over the player below; the friend drawn by reported floor; a Warsong-only guiding arrow. Listed as coming soon until Codex's review and registration (IDs, Physics 12/13 boards). A ramp-adjacency rule proposed for `LayeredTrack.new`. Lua 5.1 suite PASS (cloud and developer machine); `build_battlegrounds.py --check` PASS on both with identical hashes; Lua 5.4 focused PASS; validator: only the 2 historical `PROGRESS.md` links. Client: NOT RUN.
+
+## Push (the owner's)
+
+```
+git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/scarlet-v3 claude/race-screens claude/gryphon-wings claude/warsong-plan claude/warsong-layout
+```
+
+## Next
+
+Codex's review and registration; then a coordinated install, the owner's drive, and tuning from it (the flag rooms' doors, the roofs' fade, the arrow's size and reach). Other battlegrounds wait for his word.
+
+# Previous: Warsong Gulch layout reservation
+
+Reserved 2026-10-27 by Claude as `28c86bc`, on Codex's `5c481d4`: the scope above, before the additions marked there.
+
+# Previous: Warsong Gulch plan and the floors request
 
 Prepared 2026-10-27 by Claude (rendering/UI/sprites owner).
 

@@ -3,10 +3,13 @@
 **Warsong prerequisite,2026-10-27:** opt-in two-floor/ramp driving, floor-aware
 collision/checkpoints and once-per-pass boost pads are implemented/offline-tested.
 Current eleven maps and their Physics12 score contexts remain unchanged.
-Claude's Warsong layout/art/roofs and reviewed registration are still pending;
-there is no new selectable map. [Authoring contract](docs/LAYERED_TRACKS.md).
+Claude's reviewed Warsong layout/art/roofs are integrated: a three-lap
+two-floor course, available solo and in the two-peer lobby. Warsong uses
+Physics13; existing boards remain Physics12. Automatic score sharing uses
+AZKSCR2; both players must update. Full restart required for new files.
+[Authoring contract](docs/LAYERED_TRACKS.md), [score compatibility](docs/AUTOMATIC_SCORES.md).
 
-**Current multiplayer source,2026-10-27:** all eleven finished courses enter
+**Current multiplayer source,2026-10-27:** all twelve finished courses enter
 the two-peer lobby, including four one-run Scarlet sprints. Invite/clock/live
 finish/rematch validation preserves each course's actual target; Test Oval
 stays retired. Remote x/y correction now reconciles packet changes using the

@@ -1,5 +1,48 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-27 18:41 +0100 — Warsong registered; mixed-version score integration ready
+
+Owner authorizes registration, integration and installation. New branch
+`codex/warsong-registration` from clean4a573cc/reservation045be3d; reviewed
+Claude79792cd is merged without rewriting its history or touching its checkout.
+Its existing untracked outputs remain intact. No GitHub push/main/release.
+
+Warsong geometry1/inviteC/scoreW is available solo, Highscores and current
+two-peer lobby:3laps, explicit0/1floors,8ramps,2pads, four pooled roof overlays
+and Warsong-only guide arrow. Essential-roof readiness and floor/VFX restoration
+fixes retained. Existing eleven contexts remain Physics12; only Warsong uses13.
+Test Oval remains retired and its historical data/fixtures are preserved.
+
+AZKSCR2/schema2 replaces the single-physics score handshake. Exact six-field
+per-course catalogue hash, thirteen fixed hex digests including retiredO=0:
+HELLO136B including prefix, maximal NEW/ROW150B including96-byte name. All
+families cap151payload; native158ceiling/1scoreattempt persecond/lease guards
+unchanged. Current wire versions1..1295/laps1..9/tickRate60. Old-prefix peers
+must update; stored scores have no schema migration/reset. Unsupported current
+stored rows safely refuse sharing without mutation. [ADR0023](adr/0023-mixed-version-score-sync.md).
+
+Executed with C:/Python314/python.exe, existing pinned local Lupa on PYTHONPATH
+and PYTHONDONTWRITEBYTECODE=1:
+- `scripts/test_lua.py --runtime lua51 --tests score_sync score_sharing ui menu warsong race_protocol peer_session race_grid solo_records`: PASS9modules after correcting a stale schema1 expectation in the score-sharing test (first run stopped there). All85Lua sources/tests parsed.
+- `scripts/test_lua.py --runtime lua51 --tests multiplayer_integration session_transport`: delegated focused PASS2. Actual Core/Menu/Physics/Checkpoints/Laps under delayed native doubles:3Warsonglaps,12floortransitions,6padactivations perdriver, fullgrid/countdown, pending/late results once, observed upper/ground peer draw order, same-peer Mirage Physics12 rematch/draw-layer restoration, no solo score and persistent2call/158Bbudget. Heading-assisted offline driver, not native handling/AI evidence. Initial guest still on results was a fixture navigation omission, corrected via actual Play Again; no production change needed.
+- `scripts/test_lua.py --runtime lua51`: PASS46modules,85files parsed; log `local-artifacts/deploy-20261027-warsong/lua51-suite.log`.
+- `scripts/export_score_catalog.py` then `--check`: PASS12canonical boards, old11contexts unchanged and Warsong13 appended.
+- `-m unittest discover -s tests -p test_leaderboard_store.py`: PASS13Python tests; the example remains disconnected from native addon.
+- `scripts/validate_project.py`: FAIL only2historical expired computer-use SKILL links in PROGRESS, unchanged from prior review; no full structural pass claimed.
+- `git diff --check`: PASS. Installer `-WhatIf`: PASS. Preflight85prior source hashes match installed736ac2f;86installedfiles total;91newsourcefiles and6newpaths. Legacy extra preserved.
+
+NOT RUN: native Warsong driving/roof/arrow/peer feel/performance or actual new
+score-prefix delivery; Lua54, native8-player/scale tests and art rebuild by
+this integrator. Claude's previously recorded rebuilds remain its evidence.
+Native/global/release milestone gates remain open. Candidate awaits the
+requested backed-up/hash-verified install and matching friend ZIP; exact runtime
+commit/deployment evidence follow in the next entry. Full restart required.
+
+**Next exact task:** finish authorized installation/package, then both updated
+clients try Warsong grid→3laps→Play Again→host Change Map to Mirage→guest Join/
+Ready→Start; check score boards remain separate and update when connected.
+
+
 ## 2026-10-27 18:19 +01:00 — Claude Warsong fixes approved
 
 Owner requests latest-fix review. Clean2c32f13/codex/warsong-review; reviewed

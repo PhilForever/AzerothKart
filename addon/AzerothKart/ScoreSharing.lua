@@ -2,7 +2,7 @@
 -- One pooled receiver frame; sends cooperate with the existing Core lease.
 local _, AK = ...
 local H, Sync = AK.Highscores, AK.ScoreSync
-local Sharing = {PREFIX="AZKSCR1", CHANNEL="AzerothKartScores"}
+local Sharing = {PREFIX=Sync.PREFIX, CHANNEL="AzerothKartScores"}
 AK.ScoreSharing = Sharing
 local frame, core, root, source, expected, engine, contexts, byTrack
 local writable, problem, world, registered = false, nil, false, false
@@ -291,7 +291,7 @@ end
 function Sharing.Message(prefix,payload,route,sender)
     if not engine or not world or not writable then return end
     if not plain(prefix) or not plain(payload) or not plain(route) or not plain(sender) then return end
-    if prefix~=Sharing.PREFIX or route~="WHISPER" or type(payload)~="string" or #payload>240 then return end
+    if prefix~=Sharing.PREFIX or route~="WHISPER" or type(payload)~="string" or #payload>Sync.MAX_BYTES then return end
     local name=H.NormalizeName(sender)
     if not name or not allowed[key(name)] then return end
     if not unchanged(true) then

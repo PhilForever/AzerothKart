@@ -603,12 +603,52 @@ end
 -- just behind or just in front of the kart, as its pipe faces the camera.
 local FLAME_FRONT, FLAME_BEHIND = 2, -4
 local OVAL_DUST, MIRAGE_DUST = {0.86,0.86,0.84}, {0.95,0.90,0.81}
+-- Draw sublevels (OVERLAY) of a kart and its effects. Flat courses keep the
+-- original set. A two-floor course's roofs sit at ROOF_SUBLEVEL: a kart on
+-- the ground draws below them (`low`), on floor 1 or a ramp above (`high`),
+-- each set in the same order (flames behind, sparks, kart, outline, flames
+-- in front; an inner flame one sublevel over its outer). Dust and wind
+-- puffs (`smoke`, a layer and sublevel) stay under every OVERLAY texture,
+-- as created, except over the roofs, where they share the outer back
+-- flame's sublevel.
+local SMOKE_GROUND = {"ARTWORK", 6}
+local KART_LAYERS = {
+    flat={behind=FLAME_BEHIND, sparks=-2, kart=0, outline=1, front=FLAME_FRONT, smoke=SMOKE_GROUND},
+    low={behind=-8, sparks=-6, kart=-5, outline=-4, front=-3, smoke=SMOKE_GROUND},
+    high={behind=0, sparks=2, kart=3, outline=4, front=5, smoke={"OVERLAY", 0}},
+}
+local ROOF_SUBLEVEL, MAX_ROOFS = -1, 4
+
+-- The player's kart and its effects to one set; the flames take theirs
+-- each frame (renderEffects). Guarded: a refused call keeps the old layer.
+local function setKartLayers(set)
+    if UI.kartLayers == set then return end
+    UI.kartLayers = set
+    if UI.kart and type(UI.kart.SetDrawLayer) == "function" then
+        pcall(UI.kart.SetDrawLayer,UI.kart,"OVERLAY",set.kart)
+    end
+    if UI.kartOutline and type(UI.kartOutline.SetDrawLayer) == "function" then
+        pcall(UI.kartOutline.SetDrawLayer,UI.kartOutline,"OVERLAY",set.outline)
+    end
+    for _,piece in ipairs(UI.fxSparks or {}) do
+        if UI.fxLayers[piece] ~= set.sparks and type(piece.SetDrawLayer) == "function"
+            and pcall(piece.SetDrawLayer,piece,"OVERLAY",set.sparks) then
+            UI.fxLayers[piece] = set.sparks
+        end
+    end
+    for _,piece in ipairs(UI.fxSmoke or {}) do
+        if UI.fxLayers[piece] ~= set.smoke and type(piece.SetDrawLayer) == "function"
+            and pcall(piece.SetDrawLayer,piece,set.smoke[1],set.smoke[2]) then
+            UI.fxLayers[piece] = set.smoke
+        end
+    end
+end
 
 local function createEffects(canvas)
     local E = Presentation.EFFECTS
     UI.fx,UI.fxShown,UI.fxCells,UI.fxLayers = nil,{},{},{}
     local pools = {
-        {count=E.smokeCount, layer="ARTWORK", sublevel=6, path=E.particlesPath},
+        {count=E.smokeCount, layer=SMOKE_GROUND[1], sublevel=SMOKE_GROUND[2], path=E.particlesPath},
         {count=E.sparkCount, layer="OVERLAY", sublevel=-2, path=E.particlesPath},
         {count=2*E.flameCount, layer="OVERLAY", sublevel=FLAME_FRONT, path=E.flamePath},
     }
@@ -628,6 +668,7 @@ local function createEffects(canvas)
         end
     end
     UI.fxSmoke,UI.fxSparks,UI.fxFlames = pools[1].list,pools[2].list,pools[3].list
+    for _,piece in ipairs(UI.fxSmoke) do UI.fxLayers[piece] = SMOKE_GROUND end -- a layer and sublevel
     -- All or nothing: a refused load, crop or tint leaves every effect
     -- hidden; the kart and race are unaffected.
     for _,pool in ipairs(pools) do
@@ -720,7 +761,8 @@ local function renderEffects(kartX, kartY, alpha)
     for i,flame in ipairs(fx.flames) do
         local outer,inner = UI.fxFlames[2*i-1],UI.fxFlames[2*i]
         if flame.on then
-            local layer = flame.front and FLAME_FRONT or FLAME_BEHIND
+            local set = UI.kartLayers or KART_LAYERS.flat
+            local layer = flame.front and set.front or set.behind
             if UI.fxLayers[outer] ~= layer then
                 outer:SetDrawLayer("OVERLAY",layer)
                 inner:SetDrawLayer("OVERLAY",layer+1)
@@ -749,6 +791,123 @@ local function sizeKart()
     end
 end
 
+-- A two-floor course's roof picture, loaded into the pooled roof textures
+-- once per picture: true when the course has none or it is loaded. Its
+-- upper floor is drawn only there, so a refusal leaves the pool unready
+-- (UI.roofsPath nil) and SelectTrack and Start refuse the course, as they
+-- refuse a missing background.
+local function loadRoofs(course)
+    if not (course and course.roofs) then return true end
+    if UI.roofsPath == course.roofs then return true end
+    UI.roofsPath = nil
+    local roofs = Courses.roofs and Courses.roofs(course.id)
+    if not roofs or not UI.roofTextures or #roofs > #UI.roofTextures then return false end
+    for index=1,#roofs do
+        local piece = UI.roofTextures[index]
+        if type(piece.SetTexture) ~= "function" or type(piece.SetTexCoord) ~= "function"
+            or type(piece.SetAlpha) ~= "function" then return false end
+        local ok,loaded = pcall(piece.SetTexture,piece,course.roofs)
+        if not ok or loaded ~= true then return false end
+    end
+    UI.roofsPath = course.roofs
+    return true
+end
+
+-- A two-floor course's roofs and guiding arrow; each roof texture keeps one
+-- roof's box. Other courses hide them and keep the flat draw layers, the
+-- friend's kart included.
+local function layoutRoofs(course)
+    UI.roofs,UI.roofCropX,UI.roofCropY = nil,nil,nil
+    for index,piece in ipairs(UI.roofTextures or {}) do
+        piece:Hide()
+        UI.roofAlphas[index] = nil
+    end
+    if course and course.roofs and loadRoofs(course) then UI.roofs = Courses.roofs(course.id) end
+    UI.guideReady,UI.guideFrame = false,nil
+    if UI.guideArrow then
+        UI.guideArrow:Hide()
+        local arrow = UI.guideArrow
+        if course and course.guideArrow and type(arrow.SetTexture) == "function"
+            and type(arrow.SetTexCoord) == "function" then
+            local ok,loaded = pcall(arrow.SetTexture,arrow,Presentation.GUIDE_ARROW.path)
+            UI.guideReady = ok and loaded == true
+        end
+    end
+    setKartLayers(Track.layered and KART_LAYERS.low or KART_LAYERS.flat)
+    -- The friend's kart: a two-floor course sets its sublevel as it draws
+    -- (renderOpponent); any other course has it back at 0, as created.
+    if not Track.layered and UI.opponentSublevel ~= nil and UI.opponentSublevel ~= 0 and UI.opponent
+        and type(UI.opponent.SetDrawLayer) == "function"
+        and pcall(UI.opponent.SetDrawLayer,UI.opponent,"OVERLAY",0) then
+        UI.opponentSublevel = 0
+    end
+end
+
+-- SelectTrack's roof check, before anything of the course shows: refused,
+-- the course is refused as for a missing background. The pool may hold a
+-- part load: another current course lays its own roofs out again; this
+-- course, already current, stays roofless until a retry loads them.
+local function roofsLoaded(course)
+    if loadRoofs(course) then return true end
+    refuseStart(course.name .. " roofs unavailable | Choose another track; previous selection retained")
+    local current = Courses.get(UI.trackId)
+    layoutRoofs(current ~= course and current or nil)
+    return false
+end
+
+-- Each roof over its box, cropped as the camera moves, at its opacity for
+-- the player's kart (whole unless it is on the ground under the roof).
+local function placeRoofs(wx, wy, high)
+    local view = UI.view
+    local moved = UI.roofCropX ~= view.offsetX or UI.roofCropY ~= view.offsetY
+    for index,roof in ipairs(UI.roofs) do
+        local piece = UI.roofTextures[index]
+        if moved then
+            local px,py,pw,ph,left,right,top,bottom = Presentation.roofCrop(view,roof)
+            if px then
+                piece:ClearAllPoints()
+                piece:SetPoint("BOTTOMLEFT",UI.canvas,"BOTTOMLEFT",px,py)
+                piece:SetSize(pw,ph)
+                piece:SetTexCoord(left,right,top,bottom)
+                piece:Show()
+            else piece:Hide() end
+        end
+        local alpha = Presentation.roofAlpha(roof,wx,wy,high)
+        if UI.roofAlphas[index] ~= alpha then
+            UI.roofAlphas[index] = alpha
+            piece:SetAlpha(alpha)
+        end
+    end
+    UI.roofCropX,UI.roofCropY = view.offsetX,view.offsetY
+end
+
+-- The guiding arrow beside the player's kart, toward the lap's next gate,
+-- while a run is on; hidden at the gate and wherever it would leave the canvas.
+local function placeGuide(wx, wy)
+    local arrow = UI.guideArrow
+    local heading,distance
+    if UI.active and not UI.gridStaged then heading,distance = Presentation.guideHeading(Track,UI.checkpoints,wx,wy) end
+    local G = Presentation.GUIDE_ARROW
+    if heading and distance > G.reach then
+        local scale = UI.view.scale
+        local ax,ay = Presentation.project(UI.view,wx+math.cos(heading)*G.reach,wy+math.sin(heading)*G.reach)
+        local half = G.size*scale/2
+        if ax-half >= 0 and ay-half >= 0 and ax+half <= 800 and ay+half <= 480 then
+            local frame = Presentation.arrowFrame(heading)
+            if frame ~= UI.guideFrame then
+                UI.guideFrame = frame
+                arrow:SetTexCoord(Presentation.arrowCoords(frame))
+            end
+            arrow:ClearAllPoints()
+            arrow:SetPoint("CENTER",UI.canvas,"BOTTOMLEFT",ax,ay)
+            arrow:SetSize(2*half,2*half)
+            arrow:Show()
+            return
+        end
+    end
+    arrow:Hide()
+end
+
 local function layoutTrack()
     -- Shipped courses use the follow camera over their scenery picture.
     local course = Courses and Courses.get(UI.trackId)
@@ -766,6 +925,7 @@ local function layoutTrack()
     UI.mirageBackground:SetPoint("BOTTOMLEFT",UI.canvas,"BOTTOMLEFT",0,0)
     UI.mirageBackground:SetSize(800,480)
     placeTrackMarkers()
+    layoutRoofs(course)
     for index,piece in ipairs(UI.obstacleTextures) do
         if Track ~= GateGeometry then piece:Hide()
         else
@@ -910,7 +1070,8 @@ function UI.SelectTrack(id)
     local course = Courses and Courses.get(id)
     if not course or course.soon then return false end
     local background = course.background
-    if id == UI.trackId and (not background or UI.backgroundPath == background) then return true end
+    if id == UI.trackId and (not background or UI.backgroundPath == background)
+        and (not course.roofs or UI.roofsPath == course.roofs) then return true end
     local staging = UI.backgroundStaging
     local backgroundTarget = UI.backgroundPath == background and UI.mirageBackground or staging
     if background and type(backgroundTarget.SetTexCoord) ~= "function" then
@@ -941,12 +1102,14 @@ function UI.SelectTrack(id)
             refuseStart(course.name .. " background unavailable | Choose another track; previous selection retained")
             return false
         end
+        -- A two-floor course's roof picture is scenery too (its upper floor).
+        if not roofsLoaded(course) then return false end
         UI.mirageBackground:Hide()
         UI.mirageBackground,UI.backgroundStaging = staging,UI.mirageBackground
         UI.backgroundPath = background
         UI.cameraApiReady = true
         UI.mirageTextureReady = id == "mirage_raceway"
-    end
+    elseif not roofsLoaded(course) then return false end
     if id == UI.trackId then
         -- Loading the default's picture changes presentation only. Keep the
         -- already constructed pose and timing references on first open.
@@ -1142,6 +1305,18 @@ local function renderOpponent()
         elseif UI.opponentRotationReady then
             UI.opponentRotationReady = pcall(UI.opponent.SetRotation,UI.opponent,heading-math.pi/2)
         end
+        if Track.layered then
+            -- Under the roofs on the ground, over them on floor 1 or a ramp:
+            -- a friend under a roof the player is not under is hidden by it.
+            local sublevel = (Presentation.drawnHigh(Track,wx,wy,level) and KART_LAYERS.high or KART_LAYERS.low).kart
+            if UI.opponentSublevel ~= sublevel and type(UI.opponent.SetDrawLayer) == "function"
+                and pcall(UI.opponent.SetDrawLayer,UI.opponent,"OVERLAY",sublevel) then
+                UI.opponentSublevel = sublevel
+            end
+        elseif UI.opponentSublevel ~= nil and UI.opponentSublevel ~= 0 and type(UI.opponent.SetDrawLayer) == "function"
+            and pcall(UI.opponent.SetDrawLayer,UI.opponent,"OVERLAY",0) then
+            UI.opponentSublevel = 0
+        end
         UI.opponent:SetAlpha(view and view.remoteStale and 0.35 or 1)
         UI.opponent:Show()
     else UI.opponent:Hide() end
@@ -1201,6 +1376,15 @@ render = function()
             UI.cameraCropReady = true
         end
     end
+    if Track.layered then
+        -- Two floors: the kart draws under the roofs on the ground, over them
+        -- on floor 1 or a ramp; a roof fades while the kart is under it.
+        local level = gridPose and gridPose.level or UI.state.level or 0
+        local high = Presentation.drawnHigh(Track,x,y,level)
+        setKartLayers(high and KART_LAYERS.high or KART_LAYERS.low)
+        if UI.roofs then placeRoofs(x,y,high) end
+    end
+    if UI.guideReady then placeGuide(x,y) end
     x,y = Presentation.project(UI.view,x,y)
     UI.kart:ClearAllPoints()
     local sprite = UI.kartSprite
@@ -1302,6 +1486,17 @@ function UI.Create()
     UI.mirageBackground:Hide()
     UI.backgroundStaging = texture(UI.canvas,"BACKGROUND")
     UI.backgroundStaging:Hide()
+    -- A two-floor course's roofs: pooled textures, one per roof box, cropped
+    -- from its roof picture as the camera moves; hidden on other courses.
+    UI.roofTextures,UI.roofAlphas = {},{}
+    for index=1,MAX_ROOFS do
+        local piece = texture(UI.canvas,"OVERLAY")
+        if type(piece.SetDrawLayer) == "function" then
+            pcall(piece.SetDrawLayer,piece,"OVERLAY",ROOF_SUBLEVEL)
+        end
+        piece:Hide()
+        UI.roofTextures[index] = piece
+    end
     UI.kart = texture(UI.canvas,"OVERLAY")
     -- The player's optional outline: just over the kart, under its front flames.
     UI.kartOutline = texture(UI.canvas,"OVERLAY")
@@ -1309,12 +1504,19 @@ function UI.Create()
         pcall(UI.kartOutline.SetDrawLayer,UI.kartOutline,"OVERLAY",1)
     end
     UI.kartOutline:Hide()
+    UI.kartLayers = KART_LAYERS.flat -- as created: the kart at 0, its outline at 1
     loadKartSprite()
     UI.opponent = texture(UI.canvas,"OVERLAY")
     UI.opponent:SetColorTexture(0.18,0.85,1,1)
     UI.opponentRotationReady = type(UI.opponent.SetRotation)=="function"
         and pcall(UI.opponent.SetRotation,UI.opponent,0)
     UI.opponent:Hide()
+    -- The guiding arrow (a course's `guideArrow`), over every kart and roof.
+    UI.guideArrow = texture(UI.canvas,"OVERLAY")
+    if type(UI.guideArrow.SetDrawLayer) == "function" then
+        pcall(UI.guideArrow.SetDrawLayer,UI.guideArrow,"OVERLAY",7)
+    end
+    UI.guideArrow:Hide()
     UI.opponentLabel = text(UI.canvas,"BOTTOMLEFT",12,12,"")
     UI.opponentLabel:Hide()
     -- The friend's name tag: over their kart, or along the canvas edge toward it.
@@ -1635,7 +1837,8 @@ function UI.Start()
     if inCombat() then refuseStart("Cannot start while in combat"); return end
     local course = Courses.get(UI.trackId)
     if not course or course.soon or (course.background and
-        (UI.backgroundPath ~= course.background or not UI.cameraApiReady)) then
+        (UI.backgroundPath ~= course.background or not UI.cameraApiReady))
+        or (course.roofs and UI.roofsPath ~= course.roofs) then
         refuseStart("Track scenery unavailable; choose another track or reopen to retry"); return
     end
     if type(GetCurrentKeyBoardFocus) ~= "function"

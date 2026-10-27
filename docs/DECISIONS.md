@@ -41,3 +41,9 @@ New decisions enter `docs/adr/NNNN-...md` when architecture or product feasibili
 ## Implemented candidate awaiting shared/client review
 
 [ADR 0014](adr/0014-experimental-start-clock.md) records the opt-in bounded clock/epoch and one-shot Physics/Race initialization foundation under ADR 0013. It is not a production replication or release decision. Actual start skew/drift/feel and live movement/finish remain open.
+
+## Mixed-version score compatibility
+
+[ADR0023](adr/0023-mixed-version-score-sync.md) accepts bounded AZKSCR2/schema2
+for Warsong Physics13 alongside the existing Physics12 boards. Native delivery
+acceptance remains pending; stored contexts/schemas and traffic budgets stay intact.

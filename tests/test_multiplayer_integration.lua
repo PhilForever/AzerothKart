@@ -11,6 +11,7 @@ for line in io.lines("addon/AzerothKart/AzerothKart_Camelot.toc") do
     local name=line:match("^%s*([%w_]+)%.lua%s*$")
     if name then modules[#modules+1]=name end
 end
+
 assert(modules[#modules]=="Core")
 local HOST,GUEST="Amber Stone","Birch Vale"
 local function visible(item)
@@ -59,6 +60,7 @@ local function client(identity,offset)
     function methods:SetTexture(path) self.path=path; return true end
     function methods:SetTexCoord(...) self.uv={...} end
     function methods:SetRotation(v) self.rotation=v end
+    function methods:SetDrawLayer(layer,sublevel) self.drawLayer,self.sublevel=layer,sublevel or 0 end
     function methods:SetAlpha(v) self.alpha=v end
     function methods:SetChecked(v) self.checked=v end
     function methods:GetChecked() return rawget(self,"checked") end
@@ -89,7 +91,7 @@ local function client(identity,offset)
         return frame
     end
     e.globals.C_ChatInfo={RegisterAddonMessagePrefix=function(prefix)
-        assert(prefix=="AZKART2" or prefix=="AZKCLK1" or prefix=="AZKRUN2" or prefix=="AZKGRD1")
+        assert(prefix=="AZKART2" or prefix=="AZKCLK1" or prefix=="AZKRUN2" or prefix=="AZKRUN3" or prefix=="AZKGRD1")
         return 0
     end,InChatMessagingLockdown=function() return false end,
     SendAddonMessageLogged=function(prefix,payload,channel,target)
@@ -192,14 +194,16 @@ function p:step()
         end
     end
 end
-function p:untilTrue(predicate)
-    for _=1,3600 do if predicate() then return end; self:step() end
+function p:untilTrue(predicate,maxTicks)
+    for _=1,maxTicks or 3600 do if predicate() then return end; self:step() end
     local detail={}
     for _,role in ipairs({"host","guest"}) do
         local e=self[role]
         local view=e:view()
         detail[#detail+1]=role..":"..tostring(view.phase)..":"..tostring(view.reason)
             ..":"..tostring(view.lastError)..":"..tostring(e.ns.Menu.messages.multiplayer.text)
+            ..":session="..tostring(view.session)..":last="
+            ..tostring(e.sends[#e.sends] and e.sends[#e.sends].payload)
     end
     error("fully loaded clients did not reach expected menu/race state | "..table.concat(detail," | "))
 end
@@ -499,4 +503,161 @@ do
     q:untilTrue(function() return not a:view().transportBusy and not b:view().transportBusy end)
     assert(not a.ns.UI.multiplayer and not b.ns.UI.multiplayer,"explicit Leave finally releases multiplayer mode")
     originalPrint("Multiplayer rematch integration: three complete observed races including one-run sprint, delayed peer results, same roster/new sessions/maps, full countdowns, persistent budget and no solo score PASS")
+end
+
+-- Offline assisted driving, not a racing AI or native gameplay evidence. Only
+-- heading is aimed at the reviewed centre line; the real Physics step owns
+-- position, speed, collisions, floor changes and pad rewards on every tick.
+local function installWarsongDriver(e,delay)
+    local goals={}
+    for _=1,3 do
+        for index=2,#e.ns.Battlegrounds.warsong_gulch.route do
+            goals[#goals+1]=e.ns.Battlegrounds.warsong_gulch.route[index]
+        end
+    end
+    local driver={goals=goals,index=1,delay=delay,levels={0},pads=0,steps=0}
+    e.routeDriver=driver
+    local physics=e.ns.Physics.step
+    e.ns.Physics.step=function(previous,input,dt,track,kartId)
+        local active=e.routeDriver
+        if not active then return physics(previous,input,dt,track,kartId) end
+        local aimed={};for key,value in pairs(previous) do aimed[key]=value end
+        local controls={accelerate=true}
+        if active.delay>0 then
+            active.delay=active.delay-1;controls={}
+        else
+            local goal=active.goals[active.index]
+            if goal and (goal.x-previous.x)^2+(goal.y-previous.y)^2<20.25 then
+                active.index=active.index+1;goal=active.goals[active.index]
+            end
+            if goal then aimed.heading=math.atan2(goal.y-previous.y,goal.x-previous.x) end
+        end
+        local current=physics(aimed,controls,dt,track,kartId)
+        assert(current.impacts==0,"the authored Warsong driving route must stay collision-free")
+        assert((current.x-previous.x)^2+(current.y-previous.y)^2<=track.checkpointMaxStep^2,
+            "actual boosted Physics steps stay inside the checkpoint movement bound")
+        if current.level~=previous.level then active.levels[#active.levels+1]=current.level end
+        if current.boostTicks>previous.boostTicks then active.pads=active.pads+1 end
+        active.steps=active.steps+1
+        return current
+    end
+    return driver
+end
+
+do
+    local q=freshPair()
+    local a,b=q.host,q.guest
+    for _,entry in ipairs({{a,GUEST},{b,HOST}}) do
+        entry[1]:run(function()
+            entry[1].ns.Menu.view.peerName:SetText(entry[2])
+            entry[1].ns.Menu.view.sessionCode:SetText("WSG001")
+        end)
+    end
+    for _=1,#a.ns.Courses.LIST do
+        if a.ns.Menu.lobbyTrackId=="warsong_gulch" then break end
+        a:click(a.ns.Menu.view.lobbyTrackChoice)
+    end
+    assert(a.ns.Menu.lobbyTrackId=="warsong_gulch","Warsong is selectable in the real multiplayer menu")
+    b:click(b.ns.Menu.view.listen);a:click(a.ns.Menu.view.host)
+    q:untilTrue(function() return b.ns.Menu.view.join.enabled end)
+    b:click(b.ns.Menu.view.join)
+    readyAndLaunch(q)
+    local created={a.objects,b.objects}
+    local drivers={installWarsongDriver(a,0),installWarsongDriver(b,60)}
+    for _,e in ipairs({a,b}) do
+        local ui=e.ns.UI
+        assert(e:view().offer.trackId=="warsong_gulch" and e:view().offer.physicsVersion==13
+            and ui.track.layered and ui.state.level==0 and ui.race.targetLaps==3,
+            "full native/menu negotiation selects the actual three-lap layered course")
+        assert(e.stagedGrid.localPose.level==0 and e.stagedGrid.peerPose.level==0
+            and e.cues["3"]==1 and e.cues["2"]==1 and e.cues["1"]==1,
+            "both karts are staged on ground before the complete shared countdown")
+    end
+    local function observe()
+        for _,e in ipairs({a,b}) do
+            local ui=e.ns.UI
+            e.sawLocalHigh=e.sawLocalHigh or ui.kart.sublevel==3
+            e.sawRemoteHigh=e.sawRemoteHigh or ui.opponent.sublevel==3
+            e.sawRemoteGround=e.sawRemoteGround or ui.opponent.sublevel==-5
+        end
+    end
+    q:untilTrue(function()
+        observe()
+        return a.ns.UI.race.status=="finished" and b.ns.UI.race.status=="running"
+    end,12000)
+    assert(not a:view().results.complete,"Warsong keeps local placements pending while its peer still races")
+    local finishedRace=a.ns.UI.race
+    q:untilTrue(function()
+        observe()
+        return a:view().phase=="postrace" and b:view().phase=="postrace"
+    end)
+    local previousSession=a:view().session
+    for index,e in ipairs({a,b}) do
+        local driver,ui=drivers[index],e.ns.UI
+        assert(ui.race.laps.completedLaps==3 and e:view().results.complete
+            and not e:view().results.verified and e.finishSounds==1,
+            "actual layered Physics/Checkpoints/Laps finish three laps exactly once")
+        assert(table.concat(driver.levels,"")=="0101010101010" and driver.pads==6,
+            "each actual lap uses both bases' ramps and both boost pads")
+        assert(e.sawLocalHigh and e.sawRemoteHigh and e.sawRemoteGround,
+            "real floor telemetry drives pooled local/remote layers above and below the roofs: "
+                ..index..":"..tostring(e.sawLocalHigh)..":"..tostring(e.sawRemoteHigh)..":"..tostring(e.sawRemoteGround))
+        assert(e.objects==created[index],"layer transitions and results allocate no UI objects")
+        local layeredPackets=0
+        for _,packet in ipairs(e.sends) do
+            if packet.prefix=="AZKRUN3" then
+                layeredPackets=layeredPackets+1
+                assert(#packet.payload==40 and e.ns.LiveProtocol.Layered.decode(packet.payload),
+                    "actual Warsong telemetry uses the bounded floor-aware codec")
+            end
+        end
+        assert(layeredPackets>0)
+        assertBudget(e)
+        e.routeDriver=nil;e.heldBeforeGO=nil;e.goPose=nil;e.stagedGrid=nil
+    end
+    assert(a.ns.UI.race==finishedRace,"delayed final telemetry does not restart the local race")
+    a:click(a.ns.Menu.view.resultChangeTrack)
+    for _=1,#a.ns.Courses.LIST do
+        if a.ns.Menu.lobbyTrackId=="mirage_raceway" then break end
+        a:click(a.ns.Menu.view.lobbyTrackChoice)
+    end
+    assert(a.ns.Menu.lobbyTrackId=="mirage_raceway")
+    b:click(b.ns.UI.restartButton) -- Guest Play Again opens the retained lobby.
+    assert(b.ns.Menu.screen=="multiplayer" and b:view().room,
+        "guest explicitly returns from Warsong results to the same room")
+    local receive=b.ns.SessionTransport.Message
+    b.ns.SessionTransport.Message=function(prefix,payload,...)
+        local accepted,reason=receive(prefix,payload,...)
+        local message=prefix==b.ns.RaceProtocol.PREFIX and b.ns.RaceProtocol.decode(payload)
+        if message and message.kind=="INVITE" and message.session~=previousSession then
+            assert(accepted,"guest accepts the real layered-to-flat rematch: "..tostring(reason))
+        end
+        return accepted,reason
+    end
+    a:click(a.ns.Menu.view.ready)
+    assert(a:view().phase=="inviting" and a:view().offer.trackId=="mirage_raceway"
+        and a:view().offer.physicsVersion==12,"host offers the flat rematch with its own physics context")
+    q:untilTrue(function() return b.ns.Menu.view.join.enabled end)
+    assert(a:view().session~=previousSession and a:view().peer==GUEST and b:view().peer==HOST,
+        "Warsong results retain the same roster for a fresh flat-course session")
+    b:click(b.ns.Menu.view.join);readyAndLaunch(q)
+    for _=1,90 do q:step() end
+    for index,e in ipairs({a,b}) do
+        local ui=e.ns.UI
+        assert(e:view().offer.physicsVersion==12 and ui.trackId=="mirage_raceway"
+            and ui.state.level==nil and e.cues["3"]==2 and e.cues["2"]==2 and e.cues["1"]==2,
+            "flat rematch restores its original physics/state and full countdown")
+        assert(ui.kart.sublevel==0 and ui.opponent.sublevel==0 and ui.opponentSublevel==0,
+            "actual kart and cached opponent draw layers return to flat ordering")
+        assert(e.objects==created[index])
+        e:run(function()
+            for _,course in ipairs(e.ns.Courses.LIST) do
+                assert(#e.ns.SoloRecords.GetView(course.id).rows==0,"multiplayer cannot enter a solo leaderboard")
+            end
+        end)
+        assertBudget(e)
+    end
+    a:run(a.ns.UI.MultiplayerAction,"leave");b:run(b.ns.UI.MultiplayerAction,"leave")
+    q:untilTrue(function() return not a:view().transportBusy and not b:view().transportBusy end)
+    originalPrint("Warsong multiplayer integration: real assisted Physics, 3 laps, ramps/pads/floor codec, delayed results and same-peer flat rematch PASS (offline mocks)")
 end

@@ -46,6 +46,8 @@ for index,id in ipairs({"scarlet_graveyard","scarlet_library","scarlet_armory","
     roundtrip(message("INVITE",{physicsVersion=12,trackId=id,trackVersion=3,laps=1}),
         "2IABC1230010C"..code.."031")
 end
+roundtrip(message("INVITE",{physicsVersion=13,trackId="warsong_gulch",trackVersion=1,laps=3}),
+    "2IABC1230010DC013")
 roundtrip(message("INVITE",{physicsVersion=1,trackId="mirage_raceway",trackVersion=1,laps=1}),
     "2IABC123001011011")
 local maximum = message("INVITE",{physicsVersion=1295,trackId="mirage_raceway",trackVersion=1295,laps=9})
@@ -134,7 +136,7 @@ refusedDecode(nil); refusedDecode(true); refusedDecode(2); refusedDecode({})
 for _,payload in ipairs({"",string.rep("Z",129),"1JABC123001","3JABC123001","2BABC123001",
     "2Jabc123001","2JABC123000","2JABC12300a","2JABC12300|","2JABC12300 ",
     "2JABC12300\000","2JABC12300\127","2JABC12300\n","2JABC12300\195\184",
-    "2IABC123001000023","2IABC12300107C023","2IABC123001070003",
+    "2IABC123001000023","2IABC12300107D023","2IABC123001070003",
     "2IABC123001070020","2IABC12300107002A","2RABC1230012",
     "2SABC123001000000ZIK0ZK","2XABC1230016","2XABC123001Z",
     "2AABC123001A001","2AABC123001B001","2AABC123001J000"}) do

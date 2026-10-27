@@ -4,10 +4,11 @@ local H=assert(loadfile("addon/AzerothKart/Highscores.lua"))("AzerothKart",AK)
 local S=assert(loadfile("addon/AzerothKart/ScoreSync.lua"))("AzerothKart",AK)
 local ids={"mirage_raceway","stormwind_city","ironforge_gp",
     "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway","scarlet_graveyard",
-    "scarlet_library","scarlet_armory","scarlet_cathedral"}
+    "scarlet_library","scarlet_armory","scarlet_cathedral","warsong_gulch"}
 local contexts={}
 for i,id in ipairs(ids) do contexts[i]={trackId=id,
-    trackVersion=(id=="scarlet_graveyard" or id=="thunder_bluff_skyway") and 2 or 1,physicsVersion=11,
+    trackVersion=(id=="scarlet_graveyard" or id=="thunder_bluff_skyway") and 2 or 1,
+    physicsVersion=id=="warsong_gulch" and 13 or 12,
     lapCount=id:match("^scarlet_") and 1 or 3,tickRate=60,rulesVersion=1} end
 local function copy(t)
     if type(t)~="table" then return t end
@@ -65,11 +66,13 @@ for _,name in ipairs({"Lene Conradi","  AMBER   STONE  ",utfName,string.rep("A",
     assert(decoded.record.playerName==H.NormalizeName(name) and decoded.record.totalTicks==H.MAX_TICKS)
     assert(decoded.record.finishedAt==H.MAX_TIMESTAMP and not payload:find("[|\n\t]"))
 end
-for _,bad in ipairs({"","1 R O","2 Q O","1 Q X","1 Q O extra","1\tQ O",string.rep("X",241),
-    "1 N O 1 11 3 60 1 0 1792750000 0 Amber Stone","1 E O 1 51","1 E O 01 0",
-    "1 N O 1 11 3 60 1 1000 1792750000 0 |Hbad|h","1 H 11 1 1 1 1 1 1 1",
-    "1 N M 1 11 3 60 1 0 1792750000 0 Amber Stone","1 E M 1 51","1 E M 01 0",
-    "1 N M 1 11 3 60 1 1000 1792750000 0 |Hbad|h"}) do
+assert(S.PREFIX=="AZKSCR2" and S.MAX_BYTES==151,"schema 2 uses a separate bounded native prefix family")
+for _,bad in ipairs({"","2 R O","2 Q O","2 Q X","2 Q O extra","2\tQ O",string.rep("X",152),
+    "2 N O 1 12 3 60 1 0 1792750000 0 Amber Stone","2 E O 1 51","2 E O 01 0",
+    "2 N O 1 12 3 60 1 1000 1792750000 0 |Hbad|h","2 H 12 1 1 1 1 1 1 1",
+    "2 N M 1 12 3 60 1 0 1792750000 0 Amber Stone","2 E M 1 51","2 E M 01 0",
+    "2 N M 1 12 3 60 1 1000 1792750000 0 |Hbad|h",
+    "1 Q M","1 E M 0 0","1 N M 1 12 3 60 1 1000 1792750000 0 Amber Stone"}) do
     assert(S.decode(bad)==nil,"malformed packets refuse before data merge")
 end
 assert(S.new({name="Amber Stone",contexts=contexts,store={version=999,boards={},keep=true}},0)==nil)
@@ -92,8 +95,8 @@ do
     assert(S.encode({kind="REQUEST",code="O"})==nil
         and S.encode({kind="END",code="O",hash=0,count=0})==nil,
         "retired score records, requests and replies have no public encoding")
-    for _,payload in ipairs({"1 Q O","1 E O 0 0",
-        "1 N O 1 11 3 60 1 1000 1792750000 0 Amber Stone"}) do
+    for _,payload in ipairs({"2 Q O","2 E O 0 0",
+        "2 N O 1 12 3 60 1 1000 1792750000 0 Amber Stone"}) do
         assert(S.decode(payload)==nil,"retired wire records cannot re-enter the active board")
     end
     local _,published,reason=S.publish(token,retired,0)
@@ -114,9 +117,9 @@ end
 do
     -- Every active board has its own stable wire code, including all four
     -- one-run sprints. Expanded HELLOs fit the unchanged native byte budget.
-    assert(#contexts==11,"only eleven active production boards, with no Test Oval")
-    local codes={"M","S","I","D","R","U","T","G","L","A","C"}
-    local rows={}
+    assert(#contexts==12,"twelve active production boards, with no Test Oval")
+    local codes={"M","S","I","D","R","U","T","G","L","A","C","W"}
+    local rows,otherRows={},{}
     for index,context in ipairs(contexts) do
         local row=record("Amber Stone",1000+index,index)
         local payload=assert(S.encode({kind="NEW",record=row}))
@@ -124,47 +127,128 @@ do
         assert(decoded.code==codes[index] and decoded.record.trackId==context.trackId
             and decoded.record.lapCount==context.lapCount,"stable course code and lap count")
         rows[#rows+1]=row
+        otherRows[#otherRows+1]=record("Birch Vale",2000+index,index)
     end
     for index=8,11 do assert(rows[index].lapCount==1,"each Scarlet course shares a one-run score") end
-    local a,b=pair(rows,{})
-    drive(a,b,0,55)
-    assert(signature(a)==signature(b),"all active boards converge through automatic catch-up")
-    for _,context in ipairs(contexts) do assert(#H.View(S.snapshot(b),context)==1) end
+    local a,b=pair(rows,otherRows)
+    drive(a,b,0,89) -- One packet/second per peer; both ends start with distinct scores on every board.
+    assert(signature(a)==signature(b),"all twelve mixed-physics boards converge through automatic catch-up")
+    for _,context in ipairs(contexts) do assert(#H.View(S.snapshot(b),context)==2) end
     local maximum={}
     for index=1,#contexts+1 do maximum[index]=4294967295 end
     maximum[1]=0 -- retired O is never a legal nonzero digest
-    local payload=assert(S.encode({kind="HELLO",physicsVersion=2147483647,
-        catalogHash=4294967295,hashes=maximum}))
-    assert(#payload+#S.PREFIX==155 and #payload+#S.PREFIX<=158
-        and #assert(S.decode(payload)).hashes==12,
-        "expanded maximum HELLO fits the existing native byte ceiling")
+    local payload=assert(S.encode({kind="HELLO",catalogHash=4294967295,hashes=maximum}))
+    local hello=assert(S.decode(payload))
+    assert(#payload+#S.PREFIX==136 and #payload<=S.MAX_BYTES and #hello.hashes==13
+        and hello.catalogHash==4294967295 and hello.hashes[13]==4294967295,
+        "fixed hexadecimal HELLO fits every full-range digest under the existing native byte ceiling")
     local nonzeroRetired=copy(maximum);nonzeroRetired[1]=4294967295
-    assert(S.encode({kind="HELLO",physicsVersion=2147483647,
-        catalogHash=4294967295,hashes=nonzeroRetired})==nil,
-        "a retired digest cannot expand outgoing packets beyond the native ceiling")
-    local invalidPayload=payload:gsub("^(1 H %d+ %d+) 0 ","%1 4294967295 ",1)
-    assert(#invalidPayload+#S.PREFIX==164 and S.decode(invalidPayload)==nil,
-        "incoming nonzero retired digests are rejected before a handshake")
-    local smallInvalid=payload:gsub("^(1 H %d+ %d+) 0 ","%1 1 ",1)
-    assert(#smallInvalid+#S.PREFIX==155 and S.decode(smallInvalid)==nil,
-        "a nonzero retired digest is rejected even when it fits the native byte ceiling")
-    local normalPayload=assert(S.encode({kind="HELLO",physicsVersion=12,
-        catalogHash=4294967295,hashes=maximum}))
-    assert(#normalPayload+#S.PREFIX==147,"Physics12 retains spare capacity at maximum board hashes")
+    assert(S.encode({kind="HELLO",catalogHash=4294967295,hashes=nonzeroRetired})==nil,
+        "a retired digest cannot be advertised as an active board")
+    for _,replacement in ipairs({"00000001","FFFFFFFF","0","000000000","0000000g","ffffffff"}) do
+        local invalidPayload=payload:gsub("^(2 H %x+) 00000000 ","%1 "..replacement.." ",1)
+        assert(S.decode(invalidPayload)==nil,"nonzero, noncanonical or malformed retired digests are rejected")
+    end
+    assert(S.decode(payload:gsub("FFFFFFFF","ffffffff",1))==nil,"hexadecimal fields are canonical uppercase")
+    assert(S.decode(payload:gsub("2 H ","2 H  ",1))==nil,"extra HELLO whitespace is rejected")
+    assert(S.decode(payload.." 00000000")==nil,"extra digest slots cannot change the catalogue shape")
+    assert(S.decode(payload:sub(1,-10))==nil,"a missing Warsong digest cannot handshake")
     assert(S.decode("1 H 11 1 0 0 0 0 0 0 0")==nil,
         "older seven-slot catalogues cannot silently handshake with new boards")
     assert(S.decode("1 H 11 1 0 0 0 0 0 0 0 0 0")==nil,
         "the previous nine-slot catalogue cannot silently omit Library, Armory or Cathedral")
-    print("score sync catalogue: 11 active boards/12 slots, O=0, maximum HELLO155B/Physics12 147B including prefix")
+    assert(S.decode("1 H 12 1 0 0 0 0 0 0 0 0 0 0 0 0")==nil,
+        "the former decimal single-physics family cannot silently handshake")
+    print("score sync catalogue: 12 active mixed-physics boards/13 slots, O=0, maximum HELLO136B including prefix")
+end
+do
+    local largest=record(string.rep("A",96),H.MAX_TICKS,12,H.MAX_TIMESTAMP)
+    largest.trackVersion,largest.physicsVersion,largest.rulesVersion,largest.lapCount=1295,1295,1295,9
+    for _,kind in ipairs({"NEW","ROW"}) do
+        local payload=assert(S.encode({kind=kind,record=largest}))
+        assert(#payload+#S.PREFIX==150 and #payload<=S.MAX_BYTES,
+            "every legal context field, timestamp, tick count and 96-byte name fits the native ceiling")
+        local parsed=assert(S.decode(payload)).record
+        assert(H.BoardKey(parsed)==H.BoardKey(largest) and parsed.playerName==largest.playerName)
+    end
+    for _,code in ipairs({"M","S","I","D","R","U","T","G","L","A","C","W"}) do
+        for _,message in ipairs({{kind="REQUEST",code=code},
+            {kind="END",code=code,hash=4294967295,count=S.MAX_ROWS}}) do
+            local payload=assert(S.encode(message))
+            assert(#payload<=S.MAX_BYTES and #payload+#S.PREFIX<=158 and S.decode(payload))
+        end
+    end
+    local maximumContexts=copy(contexts)
+    for _,context in ipairs(maximumContexts) do
+        context.trackVersion,context.physicsVersion,context.rulesVersion,context.lapCount=1295,1295,1295,9
+    end
+    local high=assert(S.new({name=largest.playerName,contexts=maximumContexts,store=store({largest})},0))
+    assert(S.discover(high,{"Birch Vale"},0))
+    assert(S.update(high,0,function(_,payload)
+        assert(#payload<=S.MAX_BYTES and #payload+#S.PREFIX==136 and S.decode(payload).kind=="HELLO")
+        return true
+    end),"maximum legal saved records must not fail while making the first digest")
+    local bounds={{"trackVersion",0},{"trackVersion",1296},{"physicsVersion",1296},
+        {"rulesVersion",1296},{"lapCount",10},{"tickRate",59},{"tickRate",61}}
+    for _,invalid in ipairs(bounds) do
+        local row=copy(largest);row[invalid[1]]=invalid[2]
+        assert(S.encode({kind="NEW",record=row})==nil,"unencodable wire contexts are rejected explicitly")
+        local selected=copy(contexts);selected[1][invalid[1]]=invalid[2]
+        assert(S.new({name="Amber Stone",contexts=selected},0)==nil,
+            "a current catalogue cannot admit contexts beyond its native wire bounds")
+    end
+    for _,payload in ipairs({"2 N W 1296 13 3 60 1 1000 1792750000 0 Amber Stone",
+        "2 N W 1 1296 3 60 1 1000 1792750000 0 Amber Stone",
+        "2 N W 1 13 10 60 1 1000 1792750000 0 Amber Stone",
+        "2 N W 1 13 3 61 1 1000 1792750000 0 Amber Stone",
+        "2 N W 1 13 3 60 1296 1000 1792750000 0 Amber Stone"}) do
+        assert(S.decode(payload)==nil,"incoming contexts obey the same finite wire bounds")
+    end
+    local historical=copy(largest);historical.playerName="Old Racer";historical.physicsVersion=2147483647
+    local saved=store({historical,record("Amber Stone",1000)})
+    local token=assert(S.new({name="Amber Stone",contexts=contexts,store=saved},0))
+    assert(H.View(S.snapshot(token),historical)[1].totalTicks==H.MAX_TICKS
+        and H.View(saved,historical)[1].physicsVersion==2147483647,
+        "older unsupported board contexts remain saved without being advertised")
 end
 local early=new("Amber Stone");assert(S.discover(early,{"Birch Vale"},0))
 assert(S.receive(early,"Birch Vale",assert(S.encode({kind="NEW",record=record("Birch Vale",900)})),0),
     "a validated direct update may arrive before HELLO without losing the new score")
 assert(H.Rank(S.snapshot(early),contexts[1],"Birch Vale")==1)
-for index=9,11 do
+for index=9,12 do
     assert(S.receive(early,"Birch Vale",assert(S.encode({kind="NEW",record=record("Birch Vale",900,index)})),index-8),
         "compatible direct new-course scores remain admissible before HELLO")
     assert(H.Rank(S.snapshot(early),contexts[index],"Birch Vale")==1)
+end
+do
+    local localToken=new("Amber Stone")
+    assert(S.discover(localToken,{"Birch Vale"},0))
+    local swapped=copy(contexts)
+    swapped[1].physicsVersion,swapped[12].physicsVersion=13,12
+    local foreign=assert(S.new({name="Birch Vale",contexts=swapped},0))
+    assert(S.discover(foreign,{"Amber Stone"},0))
+    assert(S.update(foreign,0,function(_,payload)
+        local accepted,why=S.receive(localToken,"Birch Vale",payload,0)
+        assert(not accepted and why=="incompatible",
+            "a catalogue with the same versions assigned to the wrong boards cannot handshake")
+        return true
+    end))
+    assert(S.view(localToken).connected==0 and S.view(localToken).received==0)
+    for _,index in ipairs({1,12}) do
+        local wrong=record("Birch Vale",1,index)
+        wrong.physicsVersion=index==12 and 12 or 13
+        local accepted,why=S.receive(localToken,"Birch Vale",assert(S.encode({kind="NEW",record=wrong})),index)
+        assert(not accepted and why=="context" and #H.View(S.snapshot(localToken),contexts[index])==0,
+            "exact board physics remains mandatory for pre-handshake announcements")
+    end
+    local changed=copy(contexts);changed[12].rulesVersion=2
+    local rulePeer=assert(S.new({name="Birch Vale",contexts=changed},0))
+    assert(S.discover(rulePeer,{"Amber Stone"},0))
+    assert(S.update(rulePeer,0,function(_,payload)
+        local accepted,why=S.receive(localToken,"Birch Vale",payload,13)
+        assert(not accepted and why=="incompatible","the catalogue also binds each board's lap/rule context")
+        return true
+    end))
 end
 
 -- A local PB between outgoing and incoming HELLO must survive that handshake.
@@ -209,7 +293,7 @@ assert(not S.receive(a,"Unknown Player",nextPayload,31),"only discovered partici
 assert(not S.receive(a,"Birch Vale",nextPayload,31),"direct announcement must match native sender")
 assert(not S.receive(a,"Birch Vale",assert(S.encode({kind="ROW",record=record("Birch Vale",1)})),31),
     "unsolicited catchup data is rejected")
-local wrong=record("Birch Vale",1);wrong.physicsVersion=12
+local wrong=record("Birch Vale",1);wrong.physicsVersion=13
 assert(not S.receive(a,"Birch Vale",assert(S.encode({kind="NEW",record=wrong})),31),"wrong rules do not merge")
 
 -- Tier crossings happen only through publish, not through catch-up reception.

@@ -1,8 +1,9 @@
 # Two-floor driving and boost pads: implemented authoring contract
 
 2026-10-27. Codex's answer to Claude's [Warsong request](adr/0022-floors-and-boost-pads.md).
-This is a tested engine foundation, not a built/selectable Warsong map. The
-installed game remains736ac2f. Claude owns the layout/art/roof overlays/arrow.
+This tested engine foundation now supports the reviewed, registered Warsong
+course. Claude owns layout/art/roof overlays/arrow; Codex owns admission,
+collision, race and score compatibility. [Current install](INTEGRATION_STATUS.md).
 
 ## Geometry
 
@@ -123,17 +124,19 @@ duration; a pad adds no new force/speed profile or telemetry boost field.
   `UI.liveView.remote.level` and drawn `UI.opponentLevel` (nil when hidden).
   Implement roof sorting/fades with pooled overlays; no Physics writes.
 
-## Remaining Warsong integration
+## Warsong registration and integration
 
-Claude can build layout/art against this contract. Keep it off the playable
-catalogue until Codex reviews actual route/grid geometry, assigns course/wire/
-score IDs and updates score sharing for mixed Physics12/13 contexts (its
-current catalogue assumes one physics version). The current eleven boards must
-not disappear when adding Warsong. These admission changes need the actual map.
+Reviewed Claude79792cd is integrated. Warsong geometry1, inviteC/scoreW,
+three laps and Physics13 are enabled solo and in the existing two-peer flow.
+All eleven old boards remain Physics12; bounded AZKSCR2 supports the mixed
+catalogue without changing saved schemas. [Exact score contract](AUTOMATIC_SCORES.md).
 
-The owner has not settled flag-room door/route details, roof drop-offs or
-separate base starts. The foundation supports the existing shared grid and
-ramps only; it does not decide those product questions. Arrow stays Warsong-only.
+The owner-approved route passes through both bases per lap, uses shared
+midfield grid starts and both ground flag rooms; optional banana/terrace
+routes connect via ramps. No drops or separate base starts. Arrow remains
+Warsong-only. Four pooled roofs fade/order around copied explicit floor state;
+required roof-load failures block selection/Start/Ready safely. Native course,
+roof, performance and peer-delivery acceptance remains NOT RUN.
 
 ## Evidence
 
@@ -143,4 +146,5 @@ legacy720-tick goldens for all3profiles, and a real LayeredTrack/Physics/
 Checkpoints720-tick tape identical at30/60/144renderHz. Layered codec/start/live
 and delayed two-native-client mocks preserve the traffic budget. These are
 offline checks. Actual Warsong, roof rendering, client feel/performance and
-new map-native networking: NOT RUN. No map/install/release claim.
+new map-native networking: NOT RUN. Installation evidence is tracked separately;
+no release or eight-player claim.

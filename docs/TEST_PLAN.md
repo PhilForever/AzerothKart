@@ -1,5 +1,13 @@
 # Verification and QA plan
 
+Warsong registration integration: Lua51 score_sync/score_sharing, catalogue/
+menu/UI/grids and actual layered Physics under delayed two-peer Core/Menu
+fixtures. Verify3laps, both floors/pads, AZKRUN3, same-roster Physics12 rematch,
+no solo record and persistent traffic bounds. Score tests cover all12exact
+contexts, max136BHELLO/150BROW, old-family refusal, unchanged saved history and
+PB notices. The full Lua51 suite is appropriate at this integration checkpoint;
+[executed results](PROGRESS.md), [native follow-up](../tests/MANUAL_CLIENT_CHECKLIST.md).
+
 Latest solo finish-record slice: run the focused Lua5.1 modules `highscores
 solo_records ui menu race loop multiplayer_integration` using scripts/test_lua.py.
 They cover exact total ticks, once-only finish, dropped-time eligibility versus
@@ -132,6 +140,16 @@ On `claude/race-screens` (focused: `python scripts/test_lua.py --runtime lua51 -
 - `tests/test_ui.lua`: the name tag over the observed kart, its stale fade, and off screen held at the canvas edge with the distance; the budget, 90/91/150. Codex's assertions stay unchanged and pass: the plain results' 460×336, one name read per finish, the finish fanfare last, the live results' "No agreed winner" hint.
 
 The look, the sounds, the medal's motion and a two-player race in the client are NOT RUN.
+
+On `claude/warsong-layout` (Warsong Gulch, listed as coming soon; focused: `python scripts/test_lua.py --runtime lua51 --tests warsong presentation menu ui circuit dungeon`; data and picture bytes: `python scripts/build_battlegrounds.py --wc3 WC3 --check`, the extraction in [the sheet](art/tracks/warsong-gulch.md#rebuilding)):
+
+- `tests/test_warsong.lua` (new) on Codex's real LayeredTrack, Physics, Checkpoints and RaceGrid: `LayeredTrack.new` accepts the course (1024 × 2048, two floors, 8 ramps, 7 gates, 2 Boots, 3 laps, both flags solid); the Boots are valid pads and the course takes Physics' feature version; the grid on the ground at mid facing north; every room `road`; the tunnel under the plateau and the flag room under the roof walk at the same x/y; the halves point-symmetric on both floors; the reviewed route in steps of at most 4 units never meets a wall, changes floor only on ramps (0, 1, 0, 1, 0) and passes the seven gates in order; a kart on the roof over a flag room does not take the flag, one on the ground does; up a ramp from the gully onto the plateau, a ramp's side a wall, the plateau's edge over the banana's foot, the banana from its foot, the connector to the terrace; the Boots boost a kart driving through the tunnel; both grid poses on floor 0; listed in the Battlegrounds Cup as coming soon, not available, multiplayer or buildable.
+- `tests/test_presentation.lua`: `drawnHigh` (floor 1, a ramp, unreadable input), `roofAlpha` (whole outside or above, a quarter inside, the fade over 24 units), `roofCrop` (the exact canvas rectangle and texture coordinates of a roof under a moved camera, nil off camera), `guideHeading` (toward the next gate's middle, nil once the lap is done), `arrowFrame` and `arrowCoords`.
+- `tests/test_ui.lua`: the real catalogue refuses Warsong; unlocked in that test only, it selects with its ground picture, its four roofs crop the one roof picture at sublevel -1, the kart draws under them at the grid and on the field, the hill fades over the tunnel while the base's roof stays whole, the same x/y on the plateau draws the kart and its dust over the roofs, a ramp too, the flag room fades the base's roof, a friend (a copied grid pose) draws over the hill on the plateau and under it in the tunnel, the arrow points from mid toward the Alliance tunnel, and a flat course hides the roofs and the arrow and restores the flat draw set, the dust's and the friend's kart's included. After Codex's review of `bf94d2b`: a refused roof picture (false, nil, a throw) refuses Warsong with Mirage still shown and selected; Start refuses Warsong while its roofs are not loaded; choosing it again, or reopening the window, retries them, and once they load it starts; the multiplayer Ready refuses an offered Warsong whose roofs do not load ("track_unavailable", Mirage stays) and selects it once they do; a friend last seen on either floor is back at sublevel 0 on Mirage, and stays there when shown again. Each of these fails with its fix reverted. The budget, 91/96/151.
+- `tests/test_menu.lua`: the fourth cup's heading and the disabled "Warsong Gulch (soon)" button; Warsong's copy and its 160 × 320 preview cell; unlocked (in the test only) it lists once, as a track; the Highscores cycle passes over it; the budget.
+- `tests/test_circuit.lua` and `tests/test_dungeon.lua`: four cups, one of them coming soon.
+
+`build_battlegrounds.py` also checks what `LayeredTrack.new` checks at load, the dungeons' rules on each floor (no invisible wall, rooms that do not meet stay apart, gates from wall to wall), the new ramp rule (a room meets a ramp only where its own floor leaves it), and that no model that is not solid stands where the karts drive. The look, the roofs and their fades, the arrow, the drive and a two-player race on Warsong in the client are NOT RUN; Warsong cannot be selected in the client until Codex registers it.
 
 ## Current front-end slice (proposed, `claude/ui-flow`)
 

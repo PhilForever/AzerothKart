@@ -1,5 +1,16 @@
 # Shared integration and deployment status
 
+## Warsong integrated candidate — 2026-10-27
+
+`codex/warsong-registration` merges reviewed Claude79792cd and registers
+Warsong solo/two-peer/Highscores. Old11Physics12boards remain; Warsong13 is
+separate. AZKSCR2 requires both players update, without saved-data migration.
+All46Lua51modules and13Pythonstoretests PASS; catalogue12PASS; structural
+validator retains only2historical expiredlinks. Native NOT RUN. Installation
+preflight passed; exact committed runtime/backup/package receipt follows.
+Fullrestart is required for6newpaths. [Evidence](PROGRESS.md).
+
+
 ## Developer foundation ready for Claude — 2026-10-27
 
 `60a9d77` on `codex/layered-track-foundation` implements reviewed opt-in floors/

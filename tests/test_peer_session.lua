@@ -55,10 +55,53 @@ do
     end
 end
 
+-- Real catalogue admission: the new layered track advertises Physics13 while
+-- each existing flat course keeps its captured Physics12 compatibility.
+do
+    local AK={}
+    for _,module in ipairs({"Track","MirageRaceway","Circuit","CapitalCities","Dungeon","ScarletCrusade",
+        "LayeredTrack","Battlegrounds","Courses","Physics"}) do
+        assert(loadfile("addon/AzerothKart/"..module..".lua"))("AzerothKart",AK)
+    end
+    local versions,targets,mechanics,count={},{},{},0
+    for _,course in ipairs(AK.Courses.LIST) do
+        assert(AK.Courses.multiplayer(course.id))
+        local track=assert(AK.Courses.build(course.id,AK.Track.crossesGate))
+        versions[course.id],targets[course.id]=track.version,track.laps or 3
+        mechanics[course.id]=AK.Physics.versionForTrack(track)
+        assert(mechanics[course.id]==(course.id=="warsong_gulch" and 13 or 12))
+        count=count+1
+    end
+    assert(count==12 and not versions.test_oval and targets.warsong_gulch==3)
+    local captured={physicsVersion=12,trackVersions=versions,trackLaps=targets,trackPhysics=mechanics}
+    for id in pairs(versions) do
+        local host,guest=fresh("host",captured),fresh("guest",captured)
+        assert(Session.invite(host,0,id))
+        assert(Session.update(host,0,function(payload)
+            local invite=assert(Protocol.decode(payload))
+            assert(invite.physicsVersion==mechanics[id] and invite.trackVersion==versions[id]
+                and invite.laps==targets[id] and invite.trackId==id)
+            assert(deliver(guest,0,payload))
+            return "accepted"
+        end))
+        assert(view(guest).canJoin)
+    end
+    for _,change in ipairs({{physicsVersion=12},{trackVersion=2},{laps=1}}) do
+        local message={physicsVersion=13,trackId="warsong_gulch",trackVersion=1,laps=3}
+        for field,value in pairs(change) do message[field]=value end
+        local guest=fresh("guest",captured)
+        assert(not deliver(guest,0,wire("INVITE",1,message)))
+        closed(guest,"incompatible")
+    end
+    local prior=fresh("guest",{physicsVersion=12})
+    assert(not deliver(prior,0,wire("INVITE",1,{physicsVersion=13,trackId="warsong_gulch",trackVersion=1,laps=3})))
+    closed(prior,"incompatible")
+end
+
 -- Every production map can be offered without admitting the retired fixture.
 for _,id in ipairs({"mirage_raceway","stormwind_city","ironforge_gp",
     "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway",
-    "scarlet_graveyard","scarlet_library","scarlet_armory","scarlet_cathedral"}) do
+    "scarlet_graveyard","scarlet_library","scarlet_armory","scarlet_cathedral","warsong_gulch"}) do
     local versions={[id]=3}
     local target=id:find("scarlet_",1,true)==1 and 1 or 3
     local targets={[id]=target}

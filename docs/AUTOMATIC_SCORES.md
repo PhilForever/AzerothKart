@@ -68,15 +68,18 @@ cached-channel/native-group/confirmed-racer discovery plus the separately verifi
 
 ## Implementation
 
-Current catalogue: eleven finished courses. HELLO has twelve fixed digest slots;
-retired `O` must be zero in encode/decode and has no record/request admission.
-Stable M/S/I/D/R/U/T/G codes retain their meanings; L/A/C identify Library,
-Armory and Cathedral. A full-bound legal HELLO is155bytes including its prefix,
-within the unchanged158-byte native ceiling. The `retired:O` catalogue marker
-still separates older peers. Old nine-slot HELLOs cannot perform catch-up with
-this build; both participants should update. Exact-context direct NEW admission
-before HELLO is preserved. Historical Oval saves and old geometry-version
-records remain saved and separate from current publication. [Map scope](PRODUCTION_MAPS.md).
+Current catalogue: twelve courses, with Warsong on Physics13 and the eleven
+existing maps on Physics12. AZKSCR2/schema2 HELLO uses13 fixed eight-hex-digit
+slots, including retired O=0, and an exact-context catalogue hash. It costs136
+bytes including prefix at every legal digest value. M/S/I/D/R/U/T/G/L/A/C stay
+stable; W identifies Warsong. Maximum legal NEW/ROW costs150 bytes, including
+a96-byte name; every payload is capped151, native prefix-plus-payload158.
+Wire contexts allow track/physics/rules versions1..1295, laps1..9 and tickRate60.
+Unsupported current rows disable sharing safely without modifying them;
+historical contexts and Test Oval remain saved. Both players must update:
+AZKSCR1/schema1 cannot catch up or publish into this protocol family. No save
+schema migration or board reset. [Contract](API_CONTRACTS.md#registered-warsong-and-mixed-version-scores--2026-10-27),
+[decision](adr/0023-mixed-version-score-sync.md), [map scope](PRODUCTION_MAPS.md).
 
 - `ScoreDiscovery.Read` validates an entire bounded cached roster using display
   indices, not local send-channel IDs. Missing/secret/partial data stays pending.
@@ -109,7 +112,7 @@ records remain saved and separate from current publication. [Map scope](PRODUCTI
   emit a local achievement. UI rows and result text are reused; no per-tick UI
   allocation or message stream is added.
 
-The combined map/retirement UI pool is89frames/69textures/136fonts. Core and the score receiver
+The integrated Warsong production UI pool is91frames/96textures/151fonts. Core and the score receiver
 add two fixed frames outside that pool. Normal WoW SavedVariables saving remains
 responsible for disk persistence; development/install scripts never read player
 WTF data. No external service or Python database is contacted.

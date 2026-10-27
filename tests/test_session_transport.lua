@@ -90,7 +90,7 @@ local function client(identity,clockTest)
         local ns={UI={active=false},Race=setmetatable({}, {__index=function()
             return function() e.raceCalls=e.raceCalls+1; error("session control must not start Race") end
         end})}
-        for _,module in ipairs({"Physics","Track","MirageRaceway","Circuit","CapitalCities","Dungeon","ScarletCrusade","Courses","RaceProtocol","PeerSession",
+        for _,module in ipairs({"Physics","Track","MirageRaceway","Circuit","CapitalCities","Dungeon","ScarletCrusade","LayeredTrack","Battlegrounds","Courses","RaceProtocol","PeerSession",
             "ClockProtocol","StartClock","RaceStart","NetworkProbe","TransportProbe"}) do
             assert(loadfile("addon/AzerothKart/"..module..".lua"))("AzerothKart",ns)
         end
@@ -775,7 +775,7 @@ end
 -- The real course catalogue, geometry snapshots and native lease are shared
 -- by every available map; a city offer must not fall back to Mirage or Oval.
 for _,id in ipairs({"mirage_raceway","stormwind_city","ironforge_gp",
-    "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway"}) do
+    "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway","warsong_gulch"}) do
     local p=livePair(id)
     for _,role in ipairs({"host","guest"}) do
         local e=p[role]
@@ -785,7 +785,16 @@ for _,id in ipairs({"mirage_raceway","stormwind_city","ironforge_gp",
             and view.live.trackId==id and view.live.trackVersion==track.version,
             "GO preserves the negotiated production map and version: "..id)
         assert(view.live.vehicle.x==view.grid.localPose.x
-            and track.isDrivable(view.live.vehicle.x,view.live.vehicle.y))
+            and track.isDrivable(view.live.vehicle.x,view.live.vehicle.y,view.live.vehicle.level))
+        assert(view.offer.physicsVersion==e.namespace.Physics.versionForTrack(track),
+            "each native offer uses the production course's own physics context")
+        if id=="warsong_gulch" then
+            assert(e.registeredPrefixes.AZKRUN3 and view.live.vehicle.level==0
+                and view.grid.localPose.level==0 and view.grid.peerPose.level==0,
+                "real Warsong negotiation registers the floor codec and stages both ground slots")
+        else
+            assert(view.live.vehicle.level==nil,"flat production states keep their original shape")
+        end
         assertPacing(e)
         e:call("Stop","left"); detached(e)
     end
@@ -1448,8 +1457,9 @@ do
     e.onSend=nil;p.host:call("Stop","stopped")
 end
 
--- A synthetic stacked course exercises native selection/registration without
--- registering an unfinished Warsong map. Production flat metadata stays12.
+-- A synthetic stacked spawn complements the real Warsong catalogue case:
+-- start directly upstairs to exercise non-default initial floor negotiation.
+-- Production flat metadata stays12.
 do
     local p=livePair("mirage_raceway",true,function(pair)
         for _,role in ipairs({"host","guest"}) do

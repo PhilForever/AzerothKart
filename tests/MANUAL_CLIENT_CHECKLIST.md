@@ -1,5 +1,28 @@
 # Manual client acceptance — F0/F1/F2/F5
 
+## Deferred Warsong Gulch check (integrated, `codex/warsong-registration`)
+
+**NOT RUN.** The owner runs these checks; Claude does not control the client. Two stages. **Fully restart the client** after each install: `Battlegrounds.lua`, `Assets/Tracks/WarsongGulch/` and `Assets/UI/GuideArrow.tga` are new.
+
+Warsong is now registered; earlier coming-soon checks are superseded. Both
+players install the same build and fully restart WoW; no old-prefix fallback.
+
+1. **Track screen.** Warsong Gulch is selectable under Battlegrounds Cup; no
+   overlap with Back. Highscores cycles all12 current courses.
+2. **Existing courses.** No roof or arrow elsewhere; current personal records
+   remain visible in their original boards. No Test Oval entry.
+
+3. **Choose Warsong Gulch:**3. **Choose Warsong Gulch:** its tall preview and three facts. Note any hitch: it loads two 8 MiB pictures (the ground and the roofs) and the arrow.
+4. **The grid** at mid, facing north. No arrow until GO; then it points at the Alliance tunnel.
+5. **The Alliance tunnel:** entering, the hill's picture fades to show the kart below; the Boots near the end boost once; the hill stands whole again outside.
+6. **Silverwing Hold:** the roof fades over the halls and the flag room. The flag blocks where it is drawn; crossing the room west takes the gate.
+7. **Up the front ramp** onto the plateau: from the ramp on, the kart draws over the hill and the roof, with no flicker at either end of the ramp. Along the plateau and down the ramp to the gully, then the gate.
+8. **The optional way in:** the tunnel's side door, up the banana to the terrace, down the connector into the hall. The roof walk ends where drawn.
+9. **The Lumber Mill:** the same, its roof and hill fading; the finish at mid; three laps, the arrow always pointing at the next gate.
+10. **Seams:** any misalignment between the roofs and the ground, a visible edge where a roof's box ends, or a place where the kart stops at nothing it can see: a screenshot of each.
+11. **Two players:** a friend below a roof the player is not under is hidden by it; on the plateau or a ramp they draw over it. After the race, choose a flat course together: where the two karts meet, the friend's kart draws as before Warsong, not over your kart, its outline or its flames.
+12. **Dust:** drift on the plateau or the terrace: the dust shows over the hill and the roof, under the kart.
+
 ## Deferred Gryphon Rider wingbeat check (proposed, `claude/gryphon-wings`)
 
 **NOT RUN.** Run it after Codex's review and a coordinated install. **Fully restart the client:** `GryphonRider.tga` and its outline keep their paths but are larger. The owner runs these checks; Claude does not control the client.

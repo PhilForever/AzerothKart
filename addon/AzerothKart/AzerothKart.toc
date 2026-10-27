@@ -12,6 +12,7 @@ CapitalCities.lua
 Dungeon.lua
 LayeredTrack.lua
 ScarletCrusade.lua
+Battlegrounds.lua
 Courses.lua
 Physics.lua
 Input.lua

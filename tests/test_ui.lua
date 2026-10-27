@@ -190,7 +190,8 @@ local function withMock(savedDB, initialCombat, test, unsupportedEvent, snapping
     end
     local ok, err=pcall(function()
         local namespace={}
-        for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Dungeon", "ScarletCrusade", "Courses", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "Highscores", "SoloRecords", "UI", "Menu", "RaceProtocol", "PeerSession", "ClockProtocol", "StartClock", "RaceStart", "LiveProtocol", "LiveRace", "RaceGrid", "NetworkProbe", "TransportProbe", "SessionTransport", "ScoreChannelProbe", "Core"}) do
+        for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Dungeon", "LayeredTrack",
+                "ScarletCrusade", "Battlegrounds", "Courses", "Physics", "Input", "Loop", "Performance", "Presentation", "Checkpoints", "Laps", "Race", "Highscores", "SoloRecords", "UI", "Menu", "RaceProtocol", "PeerSession", "ClockProtocol", "StartClock", "RaceStart", "LiveProtocol", "LiveRace", "RaceGrid", "NetworkProbe", "TransportProbe", "SessionTransport", "ScoreChannelProbe", "Core"}) do
             assert(loadfile("addon/AzerothKart/"..name..".lua"))("AzerothKart",namespace)
             if name=="Courses" and not productionCatalogue then
                 -- Existing mechanical/UI regressions deliberately exercise
@@ -342,16 +343,21 @@ local GATE_STRIPS=8
 -- One additional hidden staging texture preserves the visible background on
 -- failed city/Mirage picture loads without relying on a second load to undo it.
 -- One more is the player's optional kart outline, hidden until switched on.
-local UI_TEXTURES=112+GATE_STRIPS+EFFECT_TEXTURES+MENU_TEXTURES
+-- A two-floor course's four pooled roofs and the guiding arrow are created
+-- with the window, hidden on every other course; each sets its sublevel once.
+local ROOF_PIECES=4+1
+local UI_TEXTURES=112+GATE_STRIPS+EFFECT_TEXTURES+MENU_TEXTURES+ROOF_PIECES
 -- The Close results and Kart buttons add two Frames to the earlier nine; the
 -- Settings check "Outline my kart" adds a button and its two lines of text.
 local OUTLINE_CHECK_FRAMES,OUTLINE_CHECK_FONTS=1,2
 -- The Scarlet Crusade Cup adds its heading and four track buttons (Scarlet
 -- Graveyard and three coming-soon dungeons) to the track list.
 local SCARLET_CUP_FRAMES,SCARLET_CUP_FONTS=4,1
-local UI_FRAMES=11+MENU_FRAMES+OUTLINE_CHECK_FRAMES+SCARLET_CUP_FRAMES
+-- The Battlegrounds Cup adds its heading and Warsong Gulch's coming-soon button.
+local BATTLEGROUNDS_CUP_FRAMES,BATTLEGROUNDS_CUP_FONTS=1,1
+local UI_FRAMES=11+MENU_FRAMES+OUTLINE_CHECK_FRAMES+SCARLET_CUP_FRAMES+BATTLEGROUNDS_CUP_FRAMES
 -- (UI's own 14 font strings include the friend's name tag.)
-local UI_FONTS=14+MENU_FONTS+OUTLINE_CHECK_FONTS+SCARLET_CUP_FONTS
+local UI_FONTS=14+MENU_FONTS+OUTLINE_CHECK_FONTS+SCARLET_CUP_FONTS+BATTLEGROUNDS_CUP_FONTS
 local PARTICLES_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Effects\\Particles.tga"
 local FLAME_PATH="Interface\\AddOns\\AzerothKart\\Assets\\Effects\\Flame.tga"
 local function effectPieces(UI)
@@ -442,9 +448,10 @@ withMock(nil, false, function(env,UI)
         "full-canvas grass must be explicitly below the outer bands")
     assert(rawget(grass,"snappingBias")==nil and rawget(grass,"snapToGrid")==nil,
         "grass snapping stays unchanged; explicit draw priority separates it from the road")
-    assert(sceneLayerCalls(env,UI)==2 and env.drawLayerCalls==2+EFFECT_TEXTURES and
+    assert(sceneLayerCalls(env,UI)==2+ROOF_PIECES and env.drawLayerCalls==2+EFFECT_TEXTURES+ROOF_PIECES and
            UI.kartOutline.layer=="OVERLAY" and UI.kartOutline.sublevel==1,
-        "only the grass, the kart outline (over the kart) and the effect pools set explicit draw sublevels")
+        "only the grass, the kart outline (over the kart), the effect pools and the pooled roofs and arrow"
+            .." set explicit draw sublevels")
     assert(env.snappingCalls==192,"only the 96 road bands configure snapping once")
     assert(#walls==4,"four preallocated wall strips mark the play boundary")
     local thickness=4
@@ -1819,8 +1826,8 @@ for _,mode in ipairs({"missing", "throws"}) do
         assert(UI.active and UI.state.tick==1,"optional snapping APIs cannot block driving: "..mode)
         assert(UI.objects.frames==UI_FRAMES and UI.objects.textures==UI_TEXTURES and UI.objects.fontStrings==UI_FONTS,
             "snapping fallback preserves UI object budget: "..mode)
-        assert(sceneLayerCalls(env,UI)==2,
-            "grass and kart outline priorities remain explicit when snapping is unavailable: "..mode)
+        assert(sceneLayerCalls(env,UI)==2+ROOF_PIECES,
+            "grass, kart outline, roof and arrow priorities remain explicit when snapping is unavailable: "..mode)
     end,nil,mode)
 end
 
@@ -3711,7 +3718,7 @@ withMock({schemaVersion=1,preferences={version=1,track="test_oval",futureField="
     for _,track in ipairs(AK.Menu.TRACKS) do assert(track.id~="test_oval") end
     local ids={"mirage_raceway","stormwind_city","ironforge_gp","darnassus_canopy",
         "orgrimmar_canyon","thunder_bluff_skyway","undercity_slime","scarlet_graveyard",
-        "scarlet_library","scarlet_armory","scarlet_cathedral"}
+        "scarlet_library","scarlet_armory","scarlet_cathedral","warsong_gulch"}
     local offered,readyCalls="test_oval",0
     AK.SessionTransport={GetView=function()
         return {liveMode=true,canSetReady=true,transportBusy=false,offer={trackId=offered},session="MAP001"}
@@ -3749,7 +3756,9 @@ withMock({schemaVersion=1,preferences={version=1,track="test_oval",futureField="
         UI.state.x==UI.track.spawn().x and UI.state.y==UI.track.spawn().y,
         "default Start uses the displayed Mirage spawn and no developer geometry")
     UI.Stop("production catalogue regression")
-    assert(UI.objects.frames==90 and UI.objects.textures==91 and UI.objects.fontStrings==150,
+    -- (The Battlegrounds Cup's heading and coming-soon button, the four pooled
+    -- roofs and the guiding arrow are part of the production pool.)
+    assert(UI.objects.frames==91 and UI.objects.textures==96 and UI.objects.fontStrings==151,
         "production pool excludes the 96 Oval bands and two fixture crates")
 end,nil,nil,true)
 
@@ -3778,4 +3787,158 @@ for _,failure in ipairs({"false","nil","throws","camera"}) do
     end,nil,nil,true)
 end
 
-originalPrint("test_ui production catalogue: eleven multiplayer courses, real Mirage default/scenery, retired-save preservation, sprint Ready and asset-failure Start guard PASS (90/91/150 pool)")
+originalPrint("test_ui production catalogue: twelve multiplayer courses, real Mirage default/scenery, retired-save preservation, layered/sprint Ready and asset-failure Start guard PASS (91/96/151 pool)")
+
+-- Registered Warsong rendering. Its four roofs crop from Roofs.tga as the
+-- camera moves and fade under the player's kart on the ground; the kart draws
+-- under them on the ground and over them on floor 1 or a ramp; the guiding
+-- arrow beside it points at the lap's next gate. No physics or race state is
+-- written: the poses below are placed only to be drawn.
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    local AK=env.namespace
+    local course=AK.Courses.get("warsong_gulch")
+    UI.Toggle()
+    assert(not course.soon and AK.Courses.multiplayer("warsong_gulch"),
+        "the registered layered course is available in the real multiplayer catalogue")
+    assert(UI.SelectTrack("warsong_gulch") and UI.track.layered and UI.backgroundPath==course.background,
+        "the two-floor course selects with its ground picture")
+    assert(UI.roofs and #UI.roofs==4 and UI.roofsPath==course.roofs and UI.guideReady,
+        "its four roofs and the arrow load")
+    for index=1,4 do
+        local piece=UI.roofTextures[index]
+        assert(piece.texturePath==course.roofs and piece.layer=="OVERLAY" and piece.sublevel==-1,
+            "each roof crops the one roof picture, between the floors' draw sets")
+    end
+    assert(UI.kart.sublevel==-5 and UI.kartOutline.sublevel==-4,"at the grid the kart draws under the roofs")
+    UI.Start()
+    finishCountdown(UI)
+    local function drawAt(x,y,level)
+        local pose={}
+        for key,value in pairs(UI.state) do pose[key]=value end
+        pose.x,pose.y,pose.level=x,y,level
+        UI.state,UI.previousState=pose,pose
+        UI.OnUpdate(0)
+    end
+    local hill,roof=UI.roofTextures[1],UI.roofTextures[3]
+    drawAt(300,1300,0)
+    assert(UI.kart.sublevel==-5 and hill.shown and hill.alpha==1 and roof.alpha==1,
+        "on the field the kart is below the hill, which stands whole")
+    local l,r,t,b=(table.unpack or unpack)(hill.texCoords)
+    assert(l>=0 and r<=1 and t>=0 and b<=1 and l<r and t<b and hill.width>0 and hill.height>0,
+        "the hill's crop lies in the picture")
+    drawAt(400,1560,0)
+    assert(UI.kart.sublevel==-5 and math.abs(hill.alpha-0.25)<1e-9 and roof.alpha==1,
+        "in the tunnel the hill over it fades; the base's roof does not")
+    local smoke=UI.fxSmoke[1]
+    assert(smoke.layer=="ARTWORK" and smoke.sublevel==6,"on the ground the kart's dust stays under every overlay")
+    drawAt(400,1560,1)
+    assert(UI.kart.sublevel==3 and UI.kartOutline.sublevel==4 and hill.alpha==1,
+        "on the plateau, the same place a floor up, the kart draws over the hill")
+    assert(smoke.layer=="OVERLAY" and smoke.sublevel==0,"and its dust over the hill too, under the kart")
+    drawAt(824,1460,0)
+    assert(UI.kart.sublevel==3 and hill.alpha==1 and smoke.layer=="OVERLAY",
+        "climbing a ramp the kart and its dust draw over the roofs")
+    drawAt(440,1925,0)
+    assert(UI.kart.sublevel==-5 and math.abs(roof.alpha-0.25)<1e-9 and hill.alpha==1,
+        "in the flag room Silverwing Hold's roof fades over it")
+    assert(smoke.layer=="ARTWORK" and smoke.sublevel==6,"back on the ground, the dust under the roofs again")
+    -- A friend (a copied grid pose, no transport) draws by their reported
+    -- floor: over the hill on the plateau, under it in the tunnel below.
+    drawAt(400,1560,0)
+    local function friendAt(x,y,level)
+        UI.multiplayer,UI.gridStaged=true,true
+        UI.gridView={peerPose={x=x,y=y,heading=math.pi/2,level=level}}
+        UI.SetKartOutline(not UI.outlineOn); UI.SetKartOutline(not UI.outlineOn) -- each redraws
+    end
+    local function noFriend() UI.multiplayer,UI.gridStaged,UI.gridView=false,false,nil end
+    friendAt(420,1560,1)
+    assert(UI.opponent:IsShown() and UI.opponent.sublevel==3,"a friend on the plateau draws over the hill")
+    friendAt(420,1560,0)
+    assert(UI.opponent:IsShown() and UI.opponent.sublevel==-5,"a friend in the tunnel draws under it")
+    noFriend()
+    drawAt(300,984,0)
+    local frame=AK.Presentation.arrowFrame((math.atan2 or math.atan)(1380-984,400-300))
+    assert(UI.guideArrow.shown and UI.guideArrow.sublevel==7 and frame==3
+        and UI.guideArrow.texCoords[1]==0.75 and UI.guideArrow.texCoords[3]==0,
+        "the arrow points from mid toward the Alliance tunnel")
+    UI.Stop("rendering checked")
+    assert(UI.SelectTrack("mirage_raceway") and not UI.roofs and not hill.shown and not UI.guideReady
+        and UI.kart.sublevel==0 and UI.kartOutline.sublevel==1 and smoke.layer=="ARTWORK" and smoke.sublevel==6,
+        "a flat course hides the roofs and the arrow and restores the flat draw set")
+    assert(UI.opponent.sublevel==0 and UI.opponentSublevel==0,
+        "and the friend's kart goes back to sublevel 0, level with the player's, as created (Codex review)")
+    -- Codex's review: from either floor to a flat course, the friend's kart
+    -- is at 0 there, and stays there when it shows on the flat course.
+    for _,level in ipairs({1,0}) do
+        assert(UI.SelectTrack("warsong_gulch"),"back to Warsong")
+        UI.Start()
+        finishCountdown(UI)
+        drawAt(400,1560,0)
+        friendAt(420,1560,level)
+        assert(UI.opponent.sublevel==(level==1 and 3 or -5),"the friend on floor "..level)
+        noFriend()
+        UI.Stop("floor "..level)
+        assert(UI.SelectTrack("mirage_raceway") and UI.opponent.sublevel==0,
+            "a flat course puts a friend last seen on floor "..level.." back at 0")
+        friendAt(UI.state.x+30,UI.state.y,0)
+        assert(UI.opponent:IsShown() and UI.opponent.sublevel==0,"and the friend shows there at 0: "..level)
+        noFriend()
+    end
+end,nil,nil,true)
+
+-- Warsong's upper floor is drawn only in its roof picture: refused, the
+-- course is refused like a missing background (the shown course and its
+-- picture stay), and Start refuses it while its roofs are not loaded.
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    local AK=env.namespace
+    local course=AK.Courses.get("warsong_gulch")
+    local mirage=AK.Courses.get("mirage_raceway")
+    UI.Toggle()
+    for _,failure in ipairs({"false","nil","throws"}) do
+        env.textureModes={[course.roofs]=failure}
+        local track,state,shown=UI.track,UI.state,UI.mirageBackground
+        assert(not UI.SelectTrack("warsong_gulch") and UI.trackId=="mirage_raceway" and UI.track==track
+            and UI.state==state and UI.mirageBackground==shown and UI.backgroundPath==mirage.background
+            and not UI.roofs and not UI.roofsPath and UI.status.text:find("roofs unavailable",1,true),
+            "a refused roof picture refuses Warsong; Mirage stays shown and selected: "..failure)
+        for _,piece in ipairs(UI.roofTextures) do assert(not piece:IsShown(),"no roof shows on Mirage: "..failure) end
+    end
+    env.textureModes={}
+    assert(UI.SelectTrack("warsong_gulch") and UI.roofs and UI.roofsPath==course.roofs,
+        "with its roof picture loading, Warsong is chosen")
+    UI.roofsPath=nil -- as though its roof picture had not loaded
+    UI.Start()
+    assert(not UI.active and UI.race==nil and UI.status.text:find("scenery unavailable",1,true),
+        "Start refuses a two-floor course whose roofs are not loaded (Codex review)")
+    env.textureModes={[course.roofs]="false"}
+    assert(not UI.SelectTrack("warsong_gulch") and UI.trackId=="warsong_gulch" and not UI.roofs
+        and UI.status.text:find("roofs unavailable",1,true),
+        "choosing it again retries the roofs; refused, it stays selected and roofless")
+    UI.Start()
+    assert(not UI.active,"and still cannot start")
+    UI.Toggle(); UI.Toggle()
+    assert(not UI.roofs and not UI.roofsPath and UI.trackId=="warsong_gulch",
+        "reopening the window retries them; still refused, still roofless")
+    env.textureModes={}
+    UI.Toggle(); UI.Toggle()
+    assert(UI.roofs and UI.roofsPath==course.roofs and UI.roofTextures[1].texturePath==course.roofs,
+        "reopening once they load restores the roofs")
+    UI.Start()
+    assert(UI.active,"and the course starts")
+    UI.Stop("roofs checked")
+    assert(UI.SelectTrack("mirage_raceway"),"back to Mirage")
+    -- The multiplayer Ready selects the offered course the same way.
+    env.textureModes={[course.roofs]="false"}
+    UI.roofsPath=nil
+    local _,transport=liveFixture(env,UI,"warsong_gulch")
+    local accepted,reason=UI.MultiplayerAction("ready",true)
+    assert(not accepted and reason=="track_unavailable" and UI.trackId=="mirage_raceway" and not UI.liveArmed,
+        "Ready refuses an offered Warsong whose roofs do not load; Mirage stays")
+    env.textureModes={}
+    assert(UI.MultiplayerAction("ready",true) and UI.trackId=="warsong_gulch" and UI.roofs and UI.liveArmed,
+        "with them loading, Ready selects Warsong with its roofs")
+    transport.Stop("roofs checked")
+end,nil,nil,true)
+originalPrint("test_ui Warsong rendering: roof crops and fades, floor draw sets, dust and the friend by floor, guiding arrow, roof refusal guard PASS (offline mock)")

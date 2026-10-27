@@ -5,10 +5,12 @@ existing Dungeon solver per floor, with authored ramp portals and scalar
 transition coordinates. Physics stores level only on layered tracks; pads use
 resolved own-floor entry. Flat state/handling/score version12 remains exact,
 feature tracks use13. Layered telemetry carries explicit floors at40bytes,
-not inferred elevation. No new production map or roof renderer is enabled.
+not inferred elevation. Reviewed Warsong is registered as the twelfth course,
+with pooled roof sorting/fades and a Warsong-only arrow. ScoreSync uses bounded
+AZKSCR2/schema2 with exact mixed12/13contexts; old saved boards stay intact.
 
 All-course multiplayer,2026-10-27: actual geometry supplies the round's target
-through native invite/start/live admission: circuits3, Scarlet sprints1. All11
+through native invite/start/live admission: circuits3, Scarlet sprints1. All12
 production courses retain one two-peer state machine and persistent budget.
 Remote presentation reconciles x/y revisions from old to new forecast on copied
 time, using scalar decay and collision sweeps; only blocked geometry recovery

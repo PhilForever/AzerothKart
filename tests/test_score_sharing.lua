@@ -92,7 +92,7 @@ local function bus()
                 return network:roster()[index],false,false,"unused-guid"
             end,
             SendAddonMessageLogged=function(prefix,payload,route,target)
-                assert(prefix=="AZKSCR1" and route=="WHISPER","only the supported logged whisper route")
+                assert(prefix=="AZKSCR2" and route=="WHISPER","only the current bounded logged whisper route")
                 assert(#prefix+#payload<=158,"every attempt respects the shared byte ceiling")
                 local previous=client.sends[#client.sends]
                 assert(not previous or network.now-previous.at>=1,"one send per client per second maximum")
@@ -116,7 +116,7 @@ local function bus()
             return frame
         end
         using(client,function()
-            for _,module in ipairs({"Track","MirageRaceway","Circuit","CapitalCities","Dungeon","ScarletCrusade","Courses",
+            for _,module in ipairs({"Track","MirageRaceway","Circuit","CapitalCities","Dungeon","LayeredTrack","ScarletCrusade","Battlegrounds","Courses",
                 "Physics","Highscores","SoloRecords","ScoreSync","ScoreDiscovery","ScoreSharing"}) do
                 assert(loadfile("addon/AzerothKart/"..module..".lua"))("AzerothKart",client.namespace)
             end
@@ -202,11 +202,16 @@ end
 do
     local allMaps=bus()
     local owner,learner=allMaps:client("Course Keeper"),allMaps:client("Course Learner")
+    local historical=owner.namespace.SoloRecords.Context(owner.namespace.Courses.build("mirage_raceway",owner.namespace.Track.crossesGate))
+    historical.physicsVersion,historical.playerName,historical.totalTicks=11,owner.name,9999
+    historical.finishedAt,historical.kartId=1792750000,"goblin_mortar_trike"
+    owner.db.highscores=owner.namespace.Highscores.Submit(owner.namespace.Highscores.Load(nil),historical)
+    using(owner,function() owner.namespace.SoloRecords.Init() end)
     local ids={}
     for _,course in ipairs(owner.namespace.Courses.LIST) do
         if owner.namespace.Courses.available(course.id) then ids[#ids+1]=course.id end
     end
-    assert(#ids==11,"eleven finished production courses, including all four Scarlet sprints")
+    assert(#ids==12,"twelve finished courses, including all Scarlet sprints and layered Warsong")
     for index,id in ipairs(ids) do
         local saved=owner:finish(2000+index,id)
         assert(saved.saved,"eligible current board saves: "..id)
@@ -223,9 +228,14 @@ do
         local row=learner:view(id).rows[1]
         assert(row.playerName==owner.name and row.totalTicks==2000+index,
             "automatic login catch-up retains the correct production board: "..id)
+        assert(row.physicsVersion==(id=="warsong_gulch" and 13 or 12),
+            "mixed Physics versions retain the exact per-map board: "..id)
     end
     assert(learner:view("scarlet_graveyard").rows[1].lapCount==1)
     assert(learner:view("thunder_bluff_skyway").rows[1].lapCount==3)
+    assert(learner:view("warsong_gulch").rows[1].lapCount==3)
+    assert(owner.namespace.Highscores.View(owner.db.highscores,historical)[1].totalTicks==9999,
+        "adding Physics13 sharing never migrates/deletes historical Physics11 records")
     assert(learner:view("scarlet_graveyard").rows[1].trackVersion==3
         and learner:view("thunder_bluff_skyway").rows[1].trackVersion==2,
         "catch-up uses the reviewed drive-fix geometry versions")
@@ -239,6 +249,11 @@ do
         assert(owner:finish(1700,id).saved,"new dungeon finish saves: "..id)
         allMaps:untilTrue(function() return learner:view(id).rows[1].totalTicks==1700 end,5)
     end
+    local warsong=owner:finish(1600,"warsong_gulch")
+    assert(warsong.saved and warsong.placement and owner:view("warsong_gulch").context.physicsVersion==13)
+    allMaps:untilTrue(function() return learner:view("warsong_gulch").rows[1].totalTicks==1600 end,5)
+    assert(learner:view("mirage_raceway").rows[1].physicsVersion==12,
+        "new layered finish notification does not merge into an existing flat board")
 end
 
 -- Only native world/roster events start discovery and handshake; finishing a
@@ -254,8 +269,9 @@ a.namespace.Highscores.Load=function(...)
     loadCount=loadCount+1;return originalLoad(...)
 end
 a:fire("CHAT_MSG_ADDON_LOGGED","UNRELATED","other addon data","WHISPER",b.name)
-a:fire("CHAT_MSG_ADDON_LOGGED","AZKSCR1","other route","PARTY",b.name)
-a:fire("CHAT_MSG_ADDON_LOGGED","AZKSCR1","unknown sender","WHISPER","Unlisted Racer")
+a:fire("CHAT_MSG_ADDON_LOGGED","AZKSCR1","1 H old build","WHISPER",b.name)
+a:fire("CHAT_MSG_ADDON_LOGGED","AZKSCR2","other route","PARTY",b.name)
+a:fire("CHAT_MSG_ADDON_LOGGED","AZKSCR2","unknown sender","WHISPER","Unlisted Racer")
 a.namespace.Highscores.Load=originalLoad
 assert(loadCount==0,"unrelated prefix/route/unlisted sender is rejected before parsing the whole cache")
 local beforeRefresh=b.refreshes
@@ -269,7 +285,7 @@ assert(b:view().rows[1].playerName==a.name and b:view().rows[1].totalTicks==1800
     and b.refreshes>beforeRefresh,"peer board updates automatically and refreshes the visible menu")
 local record=a:view().rows[1]
 local lastNew
-for _,packet in ipairs(a.sends) do if packet.payload:find("^1 N ") then lastNew=packet end end
+for _,packet in ipairs(a.sends) do if packet.payload:find("^2 N ") then lastNew=packet end end
 assert(lastNew,"a completed best generated an automatic result packet")
 b:fire("CHAT_MSG_ADDON_LOGGED",lastNew.prefix,lastNew.payload,lastNew.route,lastNew.sender)
 b:fire("CHAT_MSG_ADDON_LOGGED",lastNew.prefix,lastNew.payload,lastNew.route,lastNew.sender)

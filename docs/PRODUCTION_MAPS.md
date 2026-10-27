@@ -7,6 +7,8 @@ This page supersedes older playable-Oval and Mirage-only catalogue statements.
 Reviewed Claude ea4425d adds the complete four-course Scarlet sprint cup and
 the Thunder Bluff/Graveyard version2 drive corrections. Codex integrates the
 swept round-pool fix and bounded L/A/C score sharing on `codex/scarlet-integration`.
+Reviewed Claude79792cd additionally supplies Warsong's two-floor route, roofs
+and guide arrow; Codex registers its Physics13/raceC/scoreW context.
 No eight-player implementation or capacity acceptance is claimed.
 
 ## Implemented map catalogue
@@ -24,8 +26,9 @@ No eight-player implementation or capacity acceptance is claimed.
 | Scarlet Library (`scarlet_library`) | 3 | 9 |
 | Scarlet Armory (`scarlet_armory`) | 2 | A |
 | Scarlet Cathedral (`scarlet_cathedral`) | 3 | B |
+| Warsong Gulch (`warsong_gulch`) | 1 | C |
 
-All eleven courses are available in solo, Highscores and the two-peer lobby
+All twelve courses are available in solo, Highscores and the two-peer lobby
 (owner direction,2026-10-27). Circuits use three laps; the four Scarlet dungeons
 use one ordered run. Target count is validated at invite, clock handoff and live
 terminal receipt; no sprint can advertise three laps or finish prematurely.
@@ -38,9 +41,9 @@ makes all four Scarlet courses full grip, and gives the Cathedral staircases
 their turning landings. Graveyard, Library and Cathedral now use version3;
 Armory remains2. Graveyard's handling change requires a new board even though
 its scenery is unchanged. All older version1/2 records remain saved in their
-original contexts. Current score catalogue/export has eleven boards, still
+original contexts. Current score catalogue/export has twelve boards, still
 within the unchanged packet limit. The integrated race screens bring the
-explicit production pool to90frames/91textures/150fontStrings, created once.
+explicit production pool to91frames/96textures/151fontStrings with Warsong, created once.
 Native appearance/feel for these changes remains pending.
 
 A failed scenery load refuses Start until a valid map loads;
@@ -50,8 +53,8 @@ in memory without rewriting the save on initial load.
 `Courses.get/available/build/next`, menu cards, lobby cycling and session offers
 exclude Oval. Control wire code0 is retired; Mirage1 remains stable. Both racers
 must update for new sprint offers. `Courses.multiplayer(id)` admits all current
-available production courses; `Courses.next(id,true)` filters the lobby. Packet sizes, Physics12, race timing, handling,
-geometry and the existing logged-whisper budgets are unchanged.
+available production courses; `Courses.next(id,true)` filters the lobby. The eleven flat courses retain Physics12; Warsong uses Physics13 and layered
+AZKRUN3. Existing live packet sizes and logged-whisper budgets are unchanged.
 
 `Track.lua` remains a developer-only analytical fixture and the shared gate
 predicate provider. Existing deterministic collision/handling tests may load it
@@ -60,15 +63,17 @@ be selected, started or negotiated through the player APIs. Old saved scores
 are preserved but excluded from current boards/publication. No player data is
 deleted or migrated.
 
-ScoreSync admits eleven current contexts, derived from its supported-course
-array. Its twelve-slot HELLO requires the retired `O` slot to be zero; active
-`M/S/I/D/R/U/T/G` codes do not move, with `L/A/C` appended for the three new
-sprints. A `retired:O` catalogue marker and exact HELLO length separate older
-catch-up layouts; old caches stay saved, while
-updated players exchange only current production boards. The disconnected
-server-store example/catalogue also uses production maps only.
+ScoreSync admits twelve exact current contexts: eleven Physics12 boards and
+Warsong Physics13. AZKSCR2/schema2 has thirteen fixed hexadecimal digest slots,
+including retired O=0, and binds per-context physics in the catalogue hash.
+Existing score codes stay stable; Warsong appends W. HELLO is136 native counted
+bytes and maximum legal NEW/ROW150; native158-byte ceiling remains. Old-prefix
+clients must update; stored historical boards are retained without migration.
+[Exact bounds and compatibility](AUTOMATIC_SCORES.md#implementation). The
+separate server-store example exports the same twelve contexts; no external
+service is contacted by the addon.
 
-## Why eight racers need a transport decision
+## Why eight racers## Why eight racers need a transport decision
 
 There is no WoW party/raid requirement for the current two-peer whisper flow;
 the recorded AKT723 window worked across different zones while ungrouped.

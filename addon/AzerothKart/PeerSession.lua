@@ -6,7 +6,7 @@ local reasons = {left=true, timeout=true, incompatible=true, combat=true,
     world_leave=true, error=true}
 local tracks = {mirage_raceway=true, stormwind_city=true, ironforge_gp=true,
     darnassus_canopy=true, orgrimmar_canyon=true, undercity_slime=true, thunder_bluff_skyway=true,
-    scarlet_graveyard=true,scarlet_library=true,scarlet_armory=true,scarlet_cathedral=true}
+    scarlet_graveyard=true,scarlet_library=true,scarlet_armory=true,scarlet_cathedral=true,warsong_gulch=true}
 
 local function finite(value)
     return type(value)=="number" and value==value and value~=math.huge and value~=-math.huge
