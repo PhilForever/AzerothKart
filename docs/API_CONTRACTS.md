@@ -773,6 +773,28 @@ The owner asked for a way "to add elevation to maps, as some of our maps clearly
 - **Multiplayer:** SessionTransport's supported track list is Codex's; neither city is in its compatibility list; city multiplayer is not wired.
 - **Current integrated counts:** 79 frames, 166 textures and 81 font strings; eight pooled track buttons now show seven available tracks and Thunder Bluff coming soon. On `claude/thunder-bluff` (proposed) the same eight buttons show eight available tracks. No per-city or per-frame widget allocation; native cost remains unmeasured.
 
+### Proposed: floors and boost pads (Claude, `claude/warsong-plan`, 2026-10-27, for Codex)
+
+The owner wants Warsong Gulch, the first map of a Battlegrounds Cup, with its tunnels and its bases' upper floors drivable, and asked Codex for two-level driving first. [ADR 0022](adr/0022-floors-and-boost-pads.md) has the context and the decisions; [the Warsong plan](art/tracks/warsong-gulch.md) the route. Nothing is implemented. Everything below is a proposal for Codex to accept, change or refuse.
+
+- **Levels (track data).** A floor area (room, corridor, path), wall or solid may carry `level`, a small integer (absent: 0). Areas on different levels may overlap.
+- **Ramps.** `{level={low, high}, lowEnd=edge, highEnd=edge, ...area}`: drivable from both levels; leaving through `highEnd` puts a kart on `high`, through `lowEnd` on `low`; staying keeps the level.
+- **Kart state (Physics).** A new `level` field, set by the spawn (`track.spawn()` may return `level`) and changed only by ramps. Deterministic from the previous state and the step.
+- **Track interface.** Optional last arguments, ignored by flat tracks:
+
+  ```lua
+  track.isDrivable(x, y, level?) -> boolean
+  track.surfaceAt(x, y, level?) -> "road" | "grass" | "wall"
+  track.resolveMovement(previousX, previousY, targetX, targetY, level?) -> x, y, hit, level
+  ```
+
+  `resolveMovement` returns the level after the move (a ramp's rule); a kart meets only its level's walls and solids, and a ramp belongs to both of its levels.
+- **Gates.** An optional `level`; `crossesGate` awards only to a kart on that level. Order and laps unchanged.
+- **Drop-downs (optional, later).** One-way edges from a higher level to a lower one.
+- **Multiplayer.** The friend's level, sent in the live state (a protocol version change) or inferred by the receiver. Codex's call.
+- **Boost pads.** `track.pads = {{id, x, y, radius, level?, boostTicks}}`. Entering a pad's disc on its level sets `boostTicks = max(boostTicks, pad.boostTicks)`; leaving re-arms it for that kart. Proposed strength: a tier-2 drift boost. No new live field (`boosting` exists).
+- **Claude's side, after acceptance:** roof overlays drawn over karts below them and fading while the player is under one; karts drawn by level; the pads' boots marks; the guiding arrow (`course.guideArrow`, Warsong only), which needs nothing from Codex.
+
 <a id="proposed-dungeon-sprints-the-scarlet-crusade-cup"></a>
 
 ### Implemented: dungeon sprints (the Scarlet Crusade Cup)
