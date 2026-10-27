@@ -1,4 +1,26 @@
-# Claude handoff — Warsong Gulch plan and the floors request
+# Claude handoff — Warsong Gulch: layout, art and rendering (reservation, in progress)
+
+Reserved 2026-10-27 by Claude (rendering/UI/sprites owner).
+
+**Base:** Codex's `codex/layered-track-foundation` `5c481d4` (floors and Boots pads, `60a9d77`; it carries every Claude branch to `claude/warsong-plan`). **Branch:** `claude/warsong-layout`, the name Codex's handoff proposed (branched from `5c481d4` rather than merged into `1d776cb`: the same content, no merge commit). Nothing is installed.
+
+**Owner instructions:** Codex reported the floors and pads done: "Claude can now begin Warsong's layout and rendering". Asked, the owner chose: **two doors** in each flag room (in one, past the flag, out the other); the banana and the roof as an **optional way in** (straight through the tunnel to the lobby, or up the banana and over the roof); the grid **at mid**, facing the Alliance base. Earlier: a fixed three-lap loop (in by each tunnel, round the flag, out by the ramp), the guiding arrow on Warsong only, a Boots pad in each tunnel.
+
+**Task:** Warsong Gulch against [LAYERED_TRACKS](../LAYERED_TRACKS.md): the two-floor layout, its pictures (the ground and the roof overlays), the roofs that fade over the player, karts drawn by floor, the Warsong-only arrow; listed as coming soon, not playable, until Codex assigns its course, wire and score IDs.
+
+**Reserved files and regions:**
+
+- new: `scripts/battleground_layouts.py`, `scripts/build_battlegrounds.py`, `scripts/battleground_paint.py`, the generated `addon/AzerothKart/Battlegrounds.lua`, `addon/AzerothKart/Assets/Tracks/WarsongGulch/`, `docs/art/tracks/warsong_gulch-*` pictures and sources, `tests/test_warsong.lua`;
+- `addon/AzerothKart/Courses.lua`: a Battlegrounds Cup and a coming-soon Warsong entry, and a `layered` geometry case in `Courses.build`;
+- `addon/AzerothKart/Presentation.lua`: pure roof and arrow helpers (additive);
+- `addon/AzerothKart/UI.lua`: the roof overlays' and the arrow's textures in `UI.Create`'s visual part, `layoutTrack`, the visual body of `render`, `renderOpponent` (draw layer by floor). `step`, `UI.Start/Stop/OnUpdate/HandleEvent`, `UI.SelectTrack`'s transaction, `pollLive`, `applyLiveView`, `finishLive`, `keyEvent`, `UI.MultiplayerAction` and `refreshSummary` stay untouched;
+- `addon/AzerothKart/Menu.lua`: the track list's new cup and Warsong's track-screen copy;
+- both TOCs (load `Battlegrounds.lua`), `tests/run.lua` (`test_warsong`), the budget lines of `tests/test_menu.lua` and `tests/test_ui.lua`, `scripts/validate_project.py`;
+- docs: `docs/art/tracks/warsong-gulch.md`, `docs/TRACKS.md`, `docs/API_CONTRACTS.md` (roofs and the arrow), `docs/ASSETS.md`, `docs/art/ASSET_SOURCES.md`, `CHANGELOG.md`, `docs/TEST_PLAN.md`, `tests/MANUAL_CLIENT_CHECKLIST.md`, this handoff.
+
+No change to LayeredTrack, Dungeon, Physics, Checkpoints, the protocols, sessions, scores or any other Codex-owned file. `docs/PROGRESS.md` stays with the integrator.
+
+# Previous: Warsong Gulch plan and the floors request
 
 Prepared 2026-10-27 by Claude (rendering/UI/sprites owner).
 
