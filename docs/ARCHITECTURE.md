@@ -1,5 +1,13 @@
 # Technical architecture
 
+All-course multiplayer,2026-10-27: actual geometry supplies the round's target
+through native invite/start/live admission: circuits3, Scarlet sprints1. All11
+production courses retain one two-peer state machine and persistent budget.
+Remote presentation reconciles x/y revisions from old to new forecast on copied
+time, using scalar decay and collision sweeps; only blocked geometry recovery
+expires after600ms. No simulation, transport-rate or render-pool growth. See
+[implemented contract](API_CONTRACTS.md); native smoothness/sprint checks pending.
+
 Reviewed visual integration,2026-10-26: estimated HUD placing is presentation
 only; final MP rows use retained LiveRace.results with pending/tied semantics.
 Score celebrations consume detached exact finish identity/placement rather

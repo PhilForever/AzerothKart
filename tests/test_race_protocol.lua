@@ -41,8 +41,11 @@ end
 assert(P.encode(message("INVITE",{physicsVersion=7,trackId="test_oval",trackVersion=2,laps=3}))==nil,
     "the retired development fixture has no network encoding")
 assert(P.decode("2IABC123001070023")==nil,"the retired wire code is never reused")
-assert(P.encode(message("INVITE",{physicsVersion=12,trackId="scarlet_graveyard",trackVersion=1,laps=1}))==nil,
-    "a solo sprint is not accidentally admitted into the current three-lap live controller")
+for index,id in ipairs({"scarlet_graveyard","scarlet_library","scarlet_armory","scarlet_cathedral"}) do
+    local code=({"8","9","A","B"})[index]
+    roundtrip(message("INVITE",{physicsVersion=12,trackId=id,trackVersion=3,laps=1}),
+        "2IABC1230010C"..code.."031")
+end
 roundtrip(message("INVITE",{physicsVersion=1,trackId="mirage_raceway",trackVersion=1,laps=1}),
     "2IABC123001011011")
 local maximum = message("INVITE",{physicsVersion=1295,trackId="mirage_raceway",trackVersion=1295,laps=9})
@@ -131,7 +134,7 @@ refusedDecode(nil); refusedDecode(true); refusedDecode(2); refusedDecode({})
 for _,payload in ipairs({"",string.rep("Z",129),"1JABC123001","3JABC123001","2BABC123001",
     "2Jabc123001","2JABC123000","2JABC12300a","2JABC12300|","2JABC12300 ",
     "2JABC12300\000","2JABC12300\127","2JABC12300\n","2JABC12300\195\184",
-    "2IABC123001000023","2IABC123001078023","2IABC123001070003",
+    "2IABC123001000023","2IABC12300107C023","2IABC123001070003",
     "2IABC123001070020","2IABC12300107002A","2RABC1230012",
     "2SABC123001000000ZIK0ZK","2XABC1230016","2XABC123001Z",
     "2AABC123001A001","2AABC123001B001","2AABC123001J000"}) do

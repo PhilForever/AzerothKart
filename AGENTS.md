@@ -10,6 +10,14 @@ You are a development agent for **Azeroth Kart**, a top-down 2D WoW Forever arca
 
 ## Current owner priority
 
+Latest owner direction, 2026-10-27: all eleven finished courses must be available
+in the existing two-peer multiplayer flow, including the four one-run Scarlet
+sprints. Preserve per-course targets through invite/start/live/finish/rematch.
+Owner identifies remaining stutter as the friend's kart jumping; position
+reconciliation is display-only, with no traffic-rate or local handling change.
+This supersedes the solo-only Scarlet restrictions below. Eight-player capacity
+and public release acceptance remain separate, unverified gates.
+
 Latest owner direction, 2026-10-25: the owner reports Physics12 feels good. Retire Test Oval from player-facing selection/defaults/scores/network admission; preserve developer fixtures and saved history. The seven finished lap maps may use the existing two-peer flow; Graveyard is a solo sprint. Work toward eight racers, but do not assume a raid-group requirement: the owner reconsidered it. No eight-player claim, silent traffic-budget increase or unverified multicast fallback. [Current catalogue and capacity boundary](docs/PRODUCTION_MAPS.md) supersedes older playable-Oval/Mirage-only statements below.
 
 Latest direction, 2026-10-23: **finish single player before further multiplayer

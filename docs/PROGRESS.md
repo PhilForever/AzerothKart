@@ -1,5 +1,55 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-27 08:37 +01:00 — all-course multiplayer and remote position continuity
+
+Owner requests all new maps in multiplayer and confirms remaining stutter is
+the friend's kart jumping. Clean4d9f7a8/installed3f1b3fe; own branch
+`codex/sprint-multiplayer-smoothing`, reservation5e3902c. Original worktrees,
+Claude tips and untracked outputs remain unchanged. No art or handling edits.
+
+All eleven production courses now enter the two-peer chooser. Scarlet G/L/A/C
+invite codes8/9/A/B extend the existing1–7 layout;0 stays retired. Native adapter
+captures geometry-derived per-course targets. Optional copied PeerSession
+trackLaps validates invites; clock handoff and LiveRace construction/terminal
+receipt enforce actual target1 vs3. Sprint grids have physical clearance, and
+one ordered run finishes without extra laps. Lobby says Sprint:1run. Results,
+same-player Play Again/map flow and no multiplayer solo-score submission remain.
+No new packet/prefix, send-rate/budget increase, grouping policy or8-player claim.
+
+Found root display cause: x/y replaced on each low-rate packet while only yaw
+was reconciled. UI now continues the old path at the incoming packet's current
+copied timestamp, then decays a scalar offset toward the new path (80ms time
+constant,400units/s correction ceiling,100ms elapsed cap). Corrected segments
+use existing geometry and reject oversized recovery. Stale/terminal/grid/exit
+clear history. Blocked geometry alone has a600ms episode limit, not renewed by
+new packets; impossible smooth connections reseed the latest estimate rather
+than stick forever. Review caught that a universal expiry would also reseed
+healthy ongoing steering; limited it to actual clipping and added regression.
+No authoritative writes, receive-delay interpolation, per-frame UI allocations
+or pool change (production90/91/150). Local Physics12/turning/score contexts stay.
+
+Executed final command: Lua51 `race_protocol peer_session race_grid live_race
+session_transport presentation ui menu multiplayer_integration dungeon
+score_sharing` PASS11modules, all80Lua source/test files parse. Covers all11
+physical grids, each Scarlet live sprint/rematch, bad lap/terminal rejection,
+three actual-Core/Menu observed rounds (circuit→city→sprint), full countdowns,
+fresh sessions/same players, delayed placements and persistent158-byte/2-send
+budget/no solo scores. Actual UI mock braking replay at2Hz/350ms transit/60Hz
+draw measures maxstep66.667→6.667units, packet-frame3.333. Healthy straight,
+continuous unblocked revisions, geometry expiry/invalid recovery, repeated
+clock and history reset guards pass. These are offline metrics, not nativeFPS,
+latency or a guarantee of all stutter eliminated.
+
+Score export check PASS11canonical boards; diffcheck PASS. Structural validator
+still fails only2pre-existing expired skill links in historical PROGRESS; no
+full pass claimed. Broad suite, Lua54, native sprint play/remote feel NOT RUN.
+No roadmap acceptance boxes changed. Prepare focused commit and backed-up
+install/matching ZIP next; no new push/release authorized by this task.
+
+**Next exact task:** install the tested candidate, then both matching clients
+reload and race a Scarlet sprint, watching peer turns/braking/walls, one-run
+finish and same-player Play Again/Change Map. No standalone network probe.
+
 ## 2026-10-26 21:14 +01:00 — combined Claude visuals installed and packaged
 
 Reviewed merge/runtime `3f1b3fe` on `codex/claude-race-integration` is committed

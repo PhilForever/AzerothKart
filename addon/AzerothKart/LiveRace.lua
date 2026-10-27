@@ -76,7 +76,8 @@ function Live.new(bundle, peer, nowMS, modules)
         or b.vehicle.x<0 or b.vehicle.x>b.track.width or b.vehicle.y<0 or b.vehicle.y>b.track.height
         or not finite(b.vehicle.heading) or not finite(b.vehicle.speed)
         or not plain(b.race) or b.race.status~="running" or b.race.startTick~=0
-        or b.race.lastTick~=0 or b.race.totalTicks~=0 or b.race.targetLaps~=3
+        or b.race.lastTick~=0 or b.race.totalTicks~=0
+        or not integer(b.track.laps or 3,1,3) or b.race.targetLaps~=(b.track.laps or 3)
         or b.race.countdownTicks~=0 or not plain(b.race.laps) or b.race.laps.completedLaps~=0
         or b.race.laps.lastTick~=0 or b.race.laps.lapStartTick~=0 or b.race.laps.currentLapTicks~=0
         or not plain(b.race.laps.checkpoints) or b.race.laps.checkpoints.lastTick~=0
@@ -206,7 +207,8 @@ function Live.receive(token, nowMS, prefix, payload, channel, sender)
     if message.session~=s.bundle.session then return reject("session") end
     if message.sequence<=s.remoteSequence then s.counters.stale=s.counters.stale+1; return false,"stale" end
     if message.x>s.track.width or message.y>s.track.height or message.passed>=#s.track.gates
-        or (message.completedLaps==3)~=(message.status=="finished")
+        or message.completedLaps>s.race.targetLaps
+        or (message.completedLaps==s.race.targetLaps)~=(message.status=="finished")
         or (message.status=="finished" and message.passed~=0) then return reject("bounds") end
     if s.remote and message.tick<s.remote.tick then return reject("tick") end
     if s.remote and message.sampleMS<s.remote.sampleMS then return reject("stamp") end

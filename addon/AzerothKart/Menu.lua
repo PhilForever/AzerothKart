@@ -1243,8 +1243,13 @@ local function buildMultiplayer()
         local offered = session and type(session.offer) == "table" and session.offer.trackId
         local staged = session and session.phase == "postrace" and session.canChangeMap == true
         local chosen = trackInfo(staged and Menu.lobbyTrackId or offered or (room and room.trackId) or Menu.lobbyTrackId)
-        view.lobbyTrack:SetText((staged and "Next choice: %s    Laps: 3" or "Track: %s    Laps: 3"):
-            format(chosen and chosen.name or "Unavailable"))
+        local course = chosen and Courses.get(chosen.id)
+        local sprint = course and course.geometry == "dungeon"
+        -- Read catalogue/offer metadata only; a lobby refresh never selects
+        -- or constructs geometry. A sprint is one ordered run, not three laps.
+        if offered and not staged and session.offer.laps then sprint = session.offer.laps == 1 end
+        view.lobbyTrack:SetText((staged and "Next choice: %s    %s" or "Track: %s    %s"):
+            format(chosen and chosen.name or "Unavailable", sprint and "Sprint: 1 run" or "Laps: 3"))
         view.lobbyTrackChoice:SetText("Track: " .. (trackInfo(Menu.lobbyTrackId) or Menu.TRACKS[1]).name)
         view.lobbyStatus:SetText(copy.available and copy.status or "Not connected. Hosting and joining are unavailable.")
         view.ready:SetText(copy.readyLabel)

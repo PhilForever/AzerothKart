@@ -288,4 +288,30 @@ assert(not stoppedResults.complete and stoppedResults.rows[1].rank==nil
     and stoppedResults.rows[2].status=="stopped" and stoppedResults.rows[2].totalTicks==nil,
     "a stopped peer is not assigned an invented completed time")
 
+-- Sprint geometry carries its one-run target through the actual GO and race
+-- rules. Stop on the first completed ordered traversal, including catch-up.
+do
+    local sprint=shallow(finishTrack); sprint.laps=1
+    local invalid=bundle("host",sprint); invalid.race.targetLaps=3
+    assert(not Live.new(invalid,"Birch Vale",10000,modules),"sprint launch refuses a three-lap race")
+    invalid=bundle();invalid.race.targetLaps=1
+    assert(not Live.new(invalid,"Birch Vale",10000,modules),"circuit launch refuses a one-run race")
+    local run=new(sprint)
+    assert(Live.advance(run,10100,{accelerate=true})==1,"the first completed run ends fixed-step catch-up")
+    local view=Live.view(run)
+    assert(view.race.status=="finished" and view.race.targetLaps==1 and view.race.totalTicks==1
+        and view.race.laps.completedLaps==1 and view.vehicle.tick==1)
+    assert(not receive(run,10100,1,1,{completedLaps=3,status="finished"}),"circuit-sized terminal claim cannot enter a sprint")
+    assert(not receive(run,10100,2,1,{completedLaps=1,status="running"}),"completed sprint cannot claim to still run")
+    assert(not receive(run,10100,3,1,{completedLaps=0,status="finished"}),"unfinished traversal cannot claim a sprint finish")
+    assert(receive(run,10100,4,1,{completedLaps=1,status="finished"}))
+    local result=Live.results(run)
+    assert(result.complete and not result.verified and result.rows[1].tie and result.rows[2].tie
+        and result.rows[1].totalTicks==1,"one-run results retain the same copied tie policy")
+    local packet
+    assert(Live.update(run,10100,function(payload) packet=assert(Protocol.decode(payload)); return "accepted" end))
+    assert(packet.completedLaps==1 and packet.status=="finished" and #assert(Protocol.encode(packet))==40,
+        "sprint terminal uses the existing forty-byte codec")
+end
+
 print("live_race: actual GO/physics/laps, 1200-tick two-peer tape, 700ms synthetic RTT, bounded telemetry and frozen cleanup")

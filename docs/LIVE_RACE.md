@@ -1,5 +1,12 @@
 # Experimental live-race backend
 
+2026-10-27: all eleven courses now enter the same two-peer flow, including
+one-run Scarlet sprints. Live construction and received terminal progress use
+the actual `track.laps or3`, not a fixed3; exact geometry-derived target is
+checked throughout invite/start. Remote x/y corrections are display-only,
+geometry-aware and bounded; wire traffic unchanged. [Current contracts](API_CONTRACTS.md)
+supersede older three-lap-only notes below. Native new-course/feel checks pending.
+
 The [postrace room extension](MULTIPLAYER_POSTRACE.md),2026-10-26, supersedes
 older completion cleanup notes below. Clean completion retains selected players
 and observed results for a bounded rematch interval; fresh sessions reuse the

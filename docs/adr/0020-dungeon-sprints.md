@@ -1,5 +1,13 @@
 # ADR 0020 — Dungeon sprints (the Scarlet Crusade Cup)
 
+Codex source update,2026-10-27, following the owner's all-maps request: all four
+Scarlet sprints enter the existing two-peer flow, with geometry-derived target1
+validated throughout invite/start/live finish. Grids, ordered one-run completion,
+delayed peer results and same-player rematches pass offline; native new-course
+play/smoothness remain NOT RUN. This supersedes the solo-only restrictions below
+and does not close a production multiplayer/eight-racer/release acceptance gate.
+No score, geometry, physics or packet-budget change. [Current API](../API_CONTRACTS.md).
+
 Codex integration update,2026-10-26: the Library, Armory and Cathedral source
 from Claude ea4425d is accepted with the swept-circle correction below and
 eleven-course bounded score sync. All four sprints remain solo. Old geometry

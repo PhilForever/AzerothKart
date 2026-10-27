@@ -365,7 +365,7 @@ assert(Courses.next("undercity_slime") == "scarlet_graveyard" and Courses.next("
 local graveyard = Courses.build("scarlet_graveyard", Track.crossesGate)
 local data = namespace.ScarletCrusade.scarlet_graveyard
 assert(Records.Context(graveyard).lapCount==1 and Records.Context(graveyard).trackId=="scarlet_graveyard", "the production sprint has its own one-run score context")
-assert(not Courses.multiplayer("scarlet_graveyard") and Courses.next("undercity_slime",true)=="mirage_raceway", "solo sprint does not create an unsupported multiplayer offer")
+assert(Courses.multiplayer("scarlet_graveyard") and Courses.next("undercity_slime",true)=="scarlet_graveyard", "reviewed one-run sprints enter the multiplayer catalogue")
 assert(graveyard and graveyard.laps == 1 and graveyard.width == 2048 and graveyard.height == 1024
     and #graveyard.gates == 3 and graveyard.version == 3,
     "the Graveyard: a 2048 x 1024 sprint with three gates, version 3")

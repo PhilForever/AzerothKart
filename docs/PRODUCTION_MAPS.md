@@ -20,14 +20,17 @@ No eight-player implementation or capacity acceptance is claimed.
 | Orgrimmar Canyon Rush (`orgrimmar_canyon`) | 1 | 5 |
 | Undercity Slime Circuit (`undercity_slime`) | 2 | 6 |
 | Thunder Bluff Skyway (`thunder_bluff_skyway`) | 2 | 7 |
-| Scarlet Graveyard (`scarlet_graveyard`) | 3 | Solo sprint |
-| Scarlet Library (`scarlet_library`) | 3 | Solo sprint |
-| Scarlet Armory (`scarlet_armory`) | 2 | Solo sprint |
-| Scarlet Cathedral (`scarlet_cathedral`) | 3 | Solo sprint |
+| Scarlet Graveyard (`scarlet_graveyard`) | 3 | 8 |
+| Scarlet Library (`scarlet_library`) | 3 | 9 |
+| Scarlet Armory (`scarlet_armory`) | 2 | A |
+| Scarlet Cathedral (`scarlet_cathedral`) | 3 | B |
 
-All eleven courses are available in solo and Highscores. The seven three-lap
-circuits are available in the existing two-peer lobby. The four dungeon sprints
-are excluded from live admission until their multiplayer lifecycle is reviewed.
+All eleven courses are available in solo, Highscores and the two-peer lobby
+(owner direction,2026-10-27). Circuits use three laps; the four Scarlet dungeons
+use one ordered run. Target count is validated at invite, clock handoff and live
+terminal receipt; no sprint can advertise three laps or finish prematurely.
+Full countdown/grid, observed results and same-player rematches use existing
+APIs. Native sprint play/smoothness are NOT RUN; this is no eight-racer claim.
 There are no coming-soon entries. Mirage is the actual default geometry and scenery.
 
 Reviewed Scarlet v3 opens the Library courtyard and the ring around its pool,
@@ -46,8 +49,8 @@ in memory without rewriting the save on initial load.
 
 `Courses.get/available/build/next`, menu cards, lobby cycling and session offers
 exclude Oval. Control wire code0 is retired; Mirage1 remains stable. Both racers
-must update for city offers. `Courses.multiplayer(id)` separates current live
-eligibility from solo availability; `Courses.next(id,true)` filters the lobby. Packet sizes, Physics12, race timing, handling,
+must update for new sprint offers. `Courses.multiplayer(id)` admits all current
+available production courses; `Courses.next(id,true)` filters the lobby. Packet sizes, Physics12, race timing, handling,
 geometry and the existing logged-whisper budgets are unchanged.
 
 `Track.lua` remains a developer-only analytical fixture and the shared gate

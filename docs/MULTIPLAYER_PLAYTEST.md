@@ -1,5 +1,26 @@
 # First two-player race test
 
+## All-course/position check — 2026-10-27 (NOT RUN in WoW)
+
+Both clients install the matching update. From runtime3f1b3fe this changes Lua
+only, so `/reload` is sufficient; older builds missing its new textures need a
+full restart. All eleven tracks are in the multiplayer chooser, still two peers.
+
+1. Use the normal lobby steps below. Host chooses Scarlet Library (or any of
+   the four Scarlet courses). Confirm "Sprint: 1 run", both Ready, host Start.
+2. Check both karts on the grid and full3–2–1–GO. While driving together, turn,
+   brake and brush a wall; check whether the friend's packet jumps are reduced.
+3. Finish once through the gates. Confirm one-run results, late peer update,
+   Play Again and host Change Map keep the same players. Solo Highscores must
+   not receive this multiplayer run.
+
+Offline actual-UI brake replay (2Hz/350ms/60Hz) max step66.667→6.667units,
+packet boundary3.333. This is no native smoothness/latency guarantee. Collision
+can make a seamless correction impossible: only blocked correction expires
+after600ms and reseeds rather than sticking indefinitely. Continuous legal
+steering corrections never receive a forced periodic reseed. No standalone
+probe or raised traffic budget is required for this check.
+
 ## Current postrace check — 2026-10-26
 
 The [same-player room flow](MULTIPLAYER_POSTRACE.md) adds pending/observed
@@ -10,7 +31,7 @@ restart. No new standalone net probe is required.
 
 After the first normal race below, wait for both observed finish rows. Close
 results once to confirm the room remains. Use Play Again, or host Change Map
-→ choose a lap map → Play Again. Guest Join, both Ready, host Start. No retyped
+→ choose a map → Play Again. Guest Join, both Ready, host Start. No retyped
 name/code. Leave Multiplayer explicitly restores solo navigation. Current
 postrace native results are NOT RUN; the mock two-race flow passes.
 

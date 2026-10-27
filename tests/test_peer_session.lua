@@ -39,16 +39,31 @@ end
 
 -- Every production map can be offered without admitting the retired fixture.
 for _,id in ipairs({"mirage_raceway","stormwind_city","ironforge_gp",
-    "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway"}) do
+    "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway",
+    "scarlet_graveyard","scarlet_library","scarlet_armory","scarlet_cathedral"}) do
     local versions={[id]=3}
-    local host=fresh("host",{trackVersions=versions})
-    local guest=fresh("guest",{trackVersions=versions})
+    local target=id:find("scarlet_",1,true)==1 and 1 or 3
+    local targets={[id]=target}
+    local host=fresh("host",{trackVersions=versions,trackLaps=targets})
+    local guest=fresh("guest",{trackVersions=versions,trackLaps=targets})
+    targets[id]=9 -- configuration is captured, not borrowed
     assert(Session.invite(host,0,id))
     assert(Session.update(host,0,function(payload)
         assert(deliver(guest,0,payload))
         return "accepted"
     end))
-    assert(view(guest).offer.trackId==id and view(guest).canJoin)
+    assert(view(guest).offer.trackId==id and view(guest).offer.laps==target and view(guest).canJoin)
+end
+for _,id in ipairs({"mirage_raceway","scarlet_graveyard"}) do
+    local target=id=="mirage_raceway" and 3 or 1
+    local guest=fresh("guest",{trackVersions={[id]=3},trackLaps={[id]=target}})
+    local mismatched=wire("INVITE",1,{physicsVersion=7,trackId=id,trackVersion=3,laps=target==1 and 3 or 1})
+    assert(not deliver(guest,0,mismatched) and view(guest).reason=="incompatible"
+        and not view(guest).canJoin,"course target must match the captured native catalogue")
+end
+for _,targets in ipairs({false,{mirage_raceway=0},{mirage_raceway=1.5},
+    {mirage_raceway=3},{mirage_raceway=3,stormwind_city=3,test_oval=3}}) do
+    assert(not Session.new(options("host",{trackLaps=targets}),0,Protocol),"invalid/incomplete/foreign target catalogue")
 end
 assert(Session.new(options("host",{trackVersions={test_oval=2}}),0,Protocol)==nil,
     "retired course metadata cannot arm a controller")

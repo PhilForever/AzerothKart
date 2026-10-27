@@ -194,7 +194,14 @@ function p:step()
 end
 function p:untilTrue(predicate)
     for _=1,3600 do if predicate() then return end; self:step() end
-    error("fully loaded clients did not reach expected menu/race state")
+    local detail={}
+    for _,role in ipairs({"host","guest"}) do
+        local e=self[role]
+        local view=e:view()
+        detail[#detail+1]=role..":"..tostring(view.phase)..":"..tostring(view.reason)
+            ..":"..tostring(view.lastError)..":"..tostring(e.ns.Menu.messages.multiplayer.text)
+    end
+    error("fully loaded clients did not reach expected menu/race state | "..table.concat(detail," | "))
 end
 
 local h,g=p.host,p.guest
@@ -265,7 +272,7 @@ originalPrint("Multiplayer integration: actual Core/Menu/UI/Transport callbacks 
 local function installFinishTape(e,delay)
     local track=e.ns.UI.track
     local goals={}
-    for _=1,3 do
+    for _=1,track.laps or 3 do
         for _,gate in ipairs(track.gates) do
             local length=math.sqrt(gate.nx*gate.nx+gate.ny*gate.ny)
             local nx,ny=gate.nx/length,gate.ny/length
@@ -433,11 +440,63 @@ do
         end)
         assertBudget(e)
     end
+    -- A third round changes from a circuit to a new one-run dungeon through
+    -- the same actual room/menu flow. No retyped peer/code or solo fallback.
+    local secondSession=a:view().session
+    a:click(a.ns.Menu.view.resultChangeTrack)
+    for _=1,#a.ns.Courses.LIST do
+        if a.ns.Menu.lobbyTrackId=="scarlet_graveyard" then break end
+        a:click(a.ns.Menu.view.lobbyTrackChoice)
+    end
+    assert(a.ns.Menu.lobbyTrackId=="scarlet_graveyard"
+        and a.ns.Menu.view.lobbyTrack.text=="Next choice: Scarlet Graveyard    Sprint: 1 run"
+        and a.ns.UI.trackId=="stormwind_city",
+        "host stages the sprint and its one-run rule without replacing finished geometry")
+    for _,e in ipairs({a,b}) do
+        e.finishTape=nil;e.heldBeforeGO=nil;e.goPose=nil;e.stagedGrid=nil
+    end
+    b:click(b.ns.UI.restartButton) -- Guest Play Again returns to the retained room.
+    a:click(a.ns.Menu.view.ready)
+    q:untilTrue(function() return b.ns.Menu.view.join.enabled end)
+    assert(a:view().session~=secondSession and a:view().session==b:view().session
+        and a:view().peer==GUEST and b:view().peer==HOST
+        and a:view().offer.laps==1 and b:view().offer.laps==1,
+        "one-run rematch offers a fresh session with the same full-name peers")
+    b:click(b.ns.Menu.view.join)
+    readyAndLaunch(q)
+    for _,e in ipairs({a,b}) do
+        assert(e.ns.UI.trackId=="scarlet_graveyard" and e.ns.UI.race.targetLaps==1
+            and e.ns.UI.race.laps.completedLaps==0 and e.ns.UI.race.startTick==0,
+            "shared sprint GO adopts the actual one-run race target")
+        assert(e.cues["3"]==3 and e.cues["2"]==3 and e.cues["1"]==3,
+            "sprints retain the complete shared countdown")
+        assert(e.ns.Menu.view.lap.text=="SPRINT","live dungeon HUD shows sprint instead of lap1/3")
+    end
+    installFinishTape(a,0);installFinishTape(b,120)
+    q:untilTrue(function() return a.ns.UI.race.status=="finished" and b.ns.UI.race.status=="running" end)
+    assert(not a:view().results.complete and a:view().results.rows[1].rank==nil,
+        "one-run local finish also waits for the peer before assigning places")
+    q:untilTrue(function() return a:view().phase=="postrace" and b:view().phase=="postrace" end)
+    for _,e in ipairs({a,b}) do
+        local view=e:view()
+        assert(view.results.complete and not view.results.verified and view.room.trackId=="scarlet_graveyard"
+            and e.ns.UI.race.laps.completedLaps==1,
+            "both racers finish one ordered run and return to the retained sprint room")
+        assert(e.finishSounds==3 and e.objects==created[e==a and "host" or "guest"],
+            "sprint result/room refreshes allocate nothing and finish only once")
+        e:run(function()
+            for _,course in ipairs(e.ns.Courses.LIST) do
+                assert(#e.ns.SoloRecords.GetView(course.id).rows==0,
+                    "multiplayer sprint/circuit results cannot enter any solo board")
+            end
+        end)
+        assertBudget(e)
+    end
     a:click(a.ns.UI.restartButton)
     assert(a.ns.Menu.screen=="multiplayer" and not a.ns.UI.active and a:view().room,
         "Play Again from results queues another same-peer offer, never solo Start")
     a:run(a.ns.UI.MultiplayerAction,"leave");b:run(b.ns.UI.MultiplayerAction,"leave")
     q:untilTrue(function() return not a:view().transportBusy and not b:view().transportBusy end)
     assert(not a.ns.UI.multiplayer and not b.ns.UI.multiplayer,"explicit Leave finally releases multiplayer mode")
-    originalPrint("Multiplayer rematch integration: two complete observed races, delayed peer results, same roster/new session/map, full countdown, persistent budget and no solo score PASS")
+    originalPrint("Multiplayer rematch integration: three complete observed races including one-run sprint, delayed peer results, same roster/new sessions/maps, full countdowns, persistent budget and no solo score PASS")
 end

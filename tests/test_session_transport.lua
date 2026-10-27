@@ -90,7 +90,7 @@ local function client(identity,clockTest)
         local ns={UI={active=false},Race=setmetatable({}, {__index=function()
             return function() e.raceCalls=e.raceCalls+1; error("session control must not start Race") end
         end})}
-        for _,module in ipairs({"Physics","Track","MirageRaceway","Circuit","CapitalCities","Courses","RaceProtocol","PeerSession",
+        for _,module in ipairs({"Physics","Track","MirageRaceway","Circuit","CapitalCities","Dungeon","ScarletCrusade","Courses","RaceProtocol","PeerSession",
             "ClockProtocol","StartClock","RaceStart","NetworkProbe","TransportProbe"}) do
             assert(loadfile("addon/AzerothKart/"..module..".lua"))("AzerothKart",ns)
         end
@@ -207,7 +207,7 @@ do
     assert(#e.sends==0 and e.registerCalls==0 and e.raceCalls==0)
     assert(e:call("TakeStartProposal")==nil)
     for _,args in ipairs({{"","ABC123","mirage_raceway"},{GUEST,"bad","mirage_raceway"},
-        {GUEST,CODE,"unknown"},{GUEST,CODE,"test_oval"},{GUEST,CODE,"scarlet_graveyard"},
+        {GUEST,CODE,"unknown"},{GUEST,CODE,"test_oval"},
         {"Bad|Name",CODE,"mirage_raceway"}}) do refusal(e,"Host",unpack(args)) end
     assert(e.registerCalls==0,"invalid commands do not touch native APIs")
     assert(e:call("Host",GUEST,CODE,"mirage_raceway"))
@@ -1149,7 +1149,7 @@ local function finishAt(e,ticks)
         local nextRace=step(race,previous,current,...)
         if nextRace.status=="running" and current.tick>=e.finishTick then
             nextRace.status,nextRace.finishTick,nextRace.totalTicks="finished",current.tick,current.tick
-            nextRace.laps.completedLaps,nextRace.laps.checkpoints.passed=3,0
+            nextRace.laps.completedLaps,nextRace.laps.checkpoints.passed=nextRace.targetLaps,0
         end
         return nextRace
     end
@@ -1187,6 +1187,36 @@ local function nextGo(p)
     error("next shared round did not reach GO")
 end
 
+-- Every dungeon sprint follows the same native adapter/grid/clock/live/result
+-- lifecycle, with one-run metadata rather than a forged three-lap offer.
+-- Race completion is the bounded fixture above; actual gate traversal is
+-- independently checked by the dungeon and LiveRace tests.
+for _,id in ipairs({"scarlet_graveyard","scarlet_library","scarlet_armory","scarlet_cathedral"}) do
+    local p=livePair(id,true)
+    for _,role in ipairs({"host","guest"}) do
+        local e=p[role]
+        local view=e:view()
+        assert(view.offer.trackId==id and view.offer.laps==1 and view.live.race.targetLaps==1
+            and view.live.trackVersion==e.namespace.Courses.build(id,e.namespace.Track.crossesGate).version,
+            "sprint geometry/version/target survives native GO: "..id)
+        finishAt(e,role=="host" and 20 or 65)
+    end
+    assert(finishRound(p),"one sprint finisher remains pending until its peer reports: "..id)
+    assert(p.host:view().results.complete and p.host:view().results.rows[1].completedLaps==1
+        and p.host:view().room.peer==GUEST and p.guest:view().room.peer==HOST)
+    assert(p.host:call("Rematch"),"sprint keeps the same-player rematch room")
+    nextGo(p)
+    assert(p.host:view().offer.laps==1 and p.guest:view().offer.laps==1
+        and p.host:view().live.race.targetLaps==1 and p.host:view().session=="ABC124")
+    finishAt(p.host,45);finishAt(p.guest,15)
+    assert(finishRound(p))
+    assert(p.host:view().results.complete and p.host:view().results.rows[1].name==GUEST,
+        "sprint rematch produces fresh reported results")
+    for _,e in ipairs({p.host,p.guest}) do assertPacing(e) end
+    assert(p.host:call("Leave"));p:step(0.5);p:step(0.5);p:step(1)
+    detached(p.host);detached(p.guest)
+end
+
 do
     local p=livePair()
     local leases={}
@@ -1207,7 +1237,7 @@ do
     assert(oldPacket)
     local attempts=h.traffic.attempts
     refusal(p.guest,"Rematch","stormwind_city")
-    refusal(p.host,"Rematch","scarlet_graveyard")
+    refusal(p.host,"Rematch","test_oval")
     assert(p.host:view().room and p.host:view().traffic.attempts==attempts,
         "a refused rematch cannot send, leave the room or switch to solo")
     h.room.peer,h.results.rows[1].totalTicks="Mutated",999

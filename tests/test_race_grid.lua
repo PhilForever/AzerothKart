@@ -171,7 +171,7 @@ end
 -- Every production course provides the same immutable 36-unit two-peer grid.
 do
     local AK={}
-    for _,module in ipairs({"Track","MirageRaceway","Circuit","CapitalCities","Courses"}) do
+    for _,module in ipairs({"Track","MirageRaceway","Circuit","CapitalCities","Dungeon","ScarletCrusade","Courses"}) do
         assert(loadfile("addon/AzerothKart/"..module..".lua"))("AzerothKart",AK)
     end
     local ready=0
@@ -187,11 +187,17 @@ do
         assert(host.x==hostRemote.x and host.y==hostRemote.y
             and guest.x==guestLocal.x and guest.y==guestLocal.y)
         assert(track.isDrivable(host.x,host.y) and track.isDrivable(guest.x,guest.y))
+        for _,pose in ipairs({host,guest}) do
+            local x,y,hit
+            if track.resolveMovement then x,y,hit=track.resolveMovement(pose.x,pose.y,pose.x,pose.y)
+            else x,y,hit=track.constrainPosition(pose.x,pose.y) end
+            assert(not hit and x==pose.x and y==pose.y,"grid includes the kart's physical wall clearance: "..course.id)
+        end
         assert(host.heading==original.heading and guest.heading==original.heading)
         assert(track.spawn().x==original.x and track.spawn().y==original.y)
       end
     end
-    assert(ready==7,"all seven finished circuits, with no development fixture, were checked")
+    assert(ready==11,"all eleven finished courses, including four sprints and no development fixture, were checked")
     local bad={width=10,height=10,spawn=function() return {x=5,y=5,heading=0} end,
         isDrivable=function() return true end}
     assert(G.pose(bad,"host")==nil)
@@ -203,4 +209,4 @@ do
 end
 assert(G.view({})==nil and not G.update({},0,accept) and not G.receive({},0,"")
     and not G.stop({},0,"left"))
-print("RaceGrid: strict 12-byte profiles, bounded agreement/retries/reentry and seven-circuit two-peer grids PASS")
+print("RaceGrid: strict 12-byte profiles, bounded agreement/retries/reentry and eleven-course two-peer grids PASS")

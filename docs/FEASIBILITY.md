@@ -1,5 +1,15 @@
 # M0–M2 feasibility — evidence gates
 
+**2026-10-27 remote position finding:** owner confirms the friend's kart jumps.
+Heading was reconciled but packet x/y replaced the forecast immediately. Actual
+UI mock replay at2Hz snapshots/350ms transit/60Hz draw measures braking max step
+66.667→6.667world units; packet-boundary step3.333, normal straight motion has
+no held frame/extra interpolation delay. Geometry recovery/blocked timeout,
+continuous revisions, repeated clock, stale/terminal/exit and read-only state
+regressions pass. These are offline measurements, not native latency/FPS/feel.
+All11course grids and one-run finish/rematch are offline-tested; native new
+sprint play remains NOT RUN. No send-rate increase or eight-player gate pass.
+
 
 **2026-10-26 score-discovery finding:** owner screenshots show separate own-only
 Graveyard boards, channel member list pending and0connected. Pinned70450source

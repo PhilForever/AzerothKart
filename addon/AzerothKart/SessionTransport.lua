@@ -280,16 +280,17 @@ end
 -- Rebuilt for each round: geometry/version compatibility is never borrowed
 -- from a results screen, and the persistent native traffic window is separate.
 local function sessionOptions(role,peer,code,wantClock)
-    local versions,tracks={},wantClock and {} or nil
+    local versions,targets,tracks={},{},wantClock and {} or nil
     for _,course in ipairs(AK.Courses.LIST) do
         if AK.Courses.multiplayer(course.id) then
             local track=assert(AK.Courses.build(course.id,AK.Track.crossesGate))
             versions[course.id]=track.version
+            targets[course.id]=track.laps or 3
             if tracks then tracks[course.id]=copy(track) end
         end
     end
     return {role=role,peer=peer,session=code,physicsVersion=AK.Physics.VERSION,
-        trackVersions=versions,laps=3},tracks
+        trackVersions=versions,trackLaps=targets,laps=3},tracks
 end
 
 local function arm(role, peer, code, trackId, wantClock, wantLive, kartId)
@@ -503,9 +504,10 @@ local function handoff(now)
     if view.phase~="starting" then return end
     local proposal=Session.handoffStart(control,now)
     if not proposal then return end -- Host still waits for the control ACK.
-    if proposal.startTick~=AK.Race.COUNTDOWN_TICKS or not view.offer or view.offer.laps~=3
+    if proposal.startTick~=AK.Race.COUNTDOWN_TICKS or not view.offer
         or not trackSet[view.offer.trackId]
-        or trackSet[view.offer.trackId].version~=view.offer.trackVersion then
+        or trackSet[view.offer.trackId].version~=view.offer.trackVersion
+        or view.offer.laps~=(trackSet[view.offer.trackId].laps or 3) then
         hardStop("controller_error"); return
     end
     if liveMode and (not gridInfo or not gridInfo.ready) then hardStop("controller_error"); return end

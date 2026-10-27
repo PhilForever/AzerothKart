@@ -964,6 +964,11 @@ withMock(nil, function(env, UI, Menu)
         "a received offer becomes actionable through the bounded 5Hz display refresh")
     assert(view.lobbyTrack.text == "Track: Ironforge Grand Prix    Laps: 3" and UI.trackId == track,
         "offered track is shown without selecting geometry from a display update")
+    session.offer = {trackId="scarlet_library", laps=1}
+    Menu.screens.multiplayer.scripts.OnUpdate(Menu.screens.multiplayer, 0.2)
+    assert(view.lobbyTrack.text == "Track: Scarlet Library    Sprint: 1 run" and UI.trackId == track,
+        "a copied one-run offer shows sprint rules without changing local geometry")
+    session.offer = {trackId="ironforge_gp", laps=3}
     click(view.join)
     assert(commands[2][1] == "join" and #commands[2] == 1 and view.ready:IsEnabled() and
            session.localReady == nil, "Join enters the lobby without declaring readiness")
@@ -982,10 +987,13 @@ withMock(nil, function(env, UI, Menu)
     session = {phase="idle", canHost=true, canListen=true}
     Menu.Show("multiplayer")
     for _,id in ipairs({"stormwind_city","ironforge_gp","darnassus_canopy",
-        "orgrimmar_canyon","thunder_bluff_skyway","undercity_slime","mirage_raceway"}) do
+        "orgrimmar_canyon","thunder_bluff_skyway","undercity_slime","scarlet_graveyard",
+        "scarlet_library","scarlet_armory","scarlet_cathedral","mirage_raceway"}) do
         click(view.lobbyTrackChoice)
         assert(Menu.lobbyTrackId == id and UI.trackId == track,
             "host chooser cycles every finished course without changing local geometry: " .. id)
+        assert(view.lobbyTrack.text:find(id:find("^scarlet_") and "Sprint: 1 run" or "Laps: 3",1,true),
+            "host choices display the selected race rules: " .. id)
     end
     view.peerName:SetText("  Flaturlative Breeze  "); view.sessionCode:SetText("AKT902")
     refusal = "reused_session"

@@ -5,7 +5,8 @@ local Session = {SEND_INTERVAL=0.5, RETRY_INTERVAL=2, MAX_ATTEMPTS=3,
 local reasons = {left=true, timeout=true, incompatible=true, combat=true,
     world_leave=true, error=true}
 local tracks = {mirage_raceway=true, stormwind_city=true, ironforge_gp=true,
-    darnassus_canopy=true, orgrimmar_canyon=true, undercity_slime=true, thunder_bluff_skyway=true}
+    darnassus_canopy=true, orgrimmar_canyon=true, undercity_slime=true, thunder_bluff_skyway=true,
+    scarlet_graveyard=true,scarlet_library=true,scarlet_armory=true,scarlet_cathedral=true}
 
 local function finite(value)
     return type(value)=="number" and value==value and value~=math.huge and value~=-math.huge
@@ -133,14 +134,22 @@ function Session.new(options, now, codec)
         or not integer(laps,1,9) or not plain(options.trackVersions) then
         return nil, "invalid_options"
     end
-    local trackVersions, count = {}, 0
+    local trackVersions, trackLaps, count = {}, {}, 0
+    if options.trackLaps~=nil and not plain(options.trackLaps) then return nil,"invalid_options" end
     for id, version in pairs(options.trackVersions) do
         if not tracks[id] or not integer(version,1,1295) then return nil, "invalid_options" end
         trackVersions[id], count = version, count+1
+        local target=options.trackLaps and options.trackLaps[id]
+        if options.trackLaps and not integer(target,1,9) then return nil,"invalid_options" end
+        trackLaps[id]=target or laps
+    end
+    for id in pairs(options.trackLaps or {}) do
+        if not trackVersions[id] then return nil,"invalid_options" end
     end
     if count==0 then return nil, "invalid_options" end
     local state = {options={role=options.role, peer=peer, session=options.session,
-        physicsVersion=options.physicsVersion, trackVersions=trackVersions, laps=laps},
+        physicsVersion=options.physicsVersion, trackVersions=trackVersions, laps=laps,
+        trackLaps=options.trackLaps and trackLaps or nil},
         codec=codec, peerKey=nameKey(peer), lastNow=now, nextSequence=1,
         phase=options.role=="host" and "idle" or "listening",
         deadline=options.role=="guest" and now+30 or nil,
@@ -158,7 +167,7 @@ function Session.invite(state, now, trackId)
     local version = type(trackId)=="string" and state.options.trackVersions[trackId]
     if not version then return false, "invalid_argument" end
     local offer = {physicsVersion=state.options.physicsVersion, trackId=trackId,
-        trackVersion=version, laps=state.options.laps}
+        trackVersion=version, laps=state.options.trackLaps and state.options.trackLaps[trackId] or state.options.laps}
     local message = copy(offer)
     message.kind = "INVITE"
     if not command(state, message, now) then return false, state.reason end
@@ -310,7 +319,8 @@ function Session.receive(state, now, prefix, payload, channel, nativeSender)
             return refuse(state, "invalid_phase")
         end
         if message.physicsVersion~=state.options.physicsVersion
-            or state.options.trackVersions[message.trackId]~=message.trackVersion then
+            or state.options.trackVersions[message.trackId]~=message.trackVersion
+            or (state.options.trackLaps and state.options.trackLaps[message.trackId]~=message.laps) then
             close(state, "incompatible", nil, now)
             return false, state.reason
         end

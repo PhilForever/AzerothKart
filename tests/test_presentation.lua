@@ -409,6 +409,25 @@ do
     assert(P.remoteHeading(0,nil,16)==nil,"missing target returns no display heading")
     assert(select("#",P.remoteHeading(0,1,16))==1,"angular reconciliation returns one scalar")
 
+    local cx,cy=P.remoteCorrection(30,40,0)
+    near(cx,30,"same clock preserves positional error x"); near(cy,40,"same clock preserves positional error y")
+    local nx,ny=P.remoteCorrection(cx,cy,1000/60)
+    assert(nx>0 and ny>0 and nx<cx and ny<cy and math.abs(nx/ny-3/4)<1e-9,
+        "positional correction approaches the target without changing direction or overshoot")
+    assert(math.sqrt((nx-cx)^2+(ny-cy)^2)<=400/60+1e-8,
+        "correction velocity is bounded independently of packet error")
+    for _=1,60 do cx,cy=P.remoteCorrection(cx,cy,1000/60) end
+    assert(cx==0 and cy==0,"a settled correction has no permanent display delay")
+    cx,cy=P.remoteCorrection(1e3,0,1e9)
+    near(cx,960,"a render hitch consumes at most100ms correction"); near(cy,0,"no orthogonal error")
+    for _,invalid in ipairs({0/0,math.huge,-math.huge,false,"16",{}}) do
+        cx,cy=P.remoteCorrection(30,40,invalid)
+        assert(cx==30 and cy==40,"invalid time cannot advance positional error")
+        cx,cy=P.remoteCorrection(invalid,40,16)
+        assert(cx==0 and cy==0,"invalid position does not create an offset")
+    end
+    assert(select("#",P.remoteCorrection(30,40,16))==2,"positional correction returns only scalars")
+
     local wall = {resolveMovement=function(x,y,tx,ty)
         assert(math.sqrt((tx-x)^2+(ty-y)^2)<=260/60+1e-9,"small projection sweep")
         return math.min(tx,100),ty,tx>100

@@ -3399,6 +3399,110 @@ withMock(nil,false,function(env,UI)
     print(("offline UI remote turn: %d directional frame changes/90 frames, <=6rad/s correction, unchanged UI pool"):format(changes))
 end)
 
+-- Packet corrections continue the old trajectory at the current timestamp;
+-- actual UI draws, rather than just a pure straight-line forecast, must not
+-- teleport when a peer brakes between2Hz observations.
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart"); UI.Toggle()
+    local _,transport,launch=liveFixture(env,UI,"mirage_raceway")
+    assert(UI.MultiplayerAction("ready",true)); local token=launch(); UI.OnUpdate(0)
+    local view=env.namespace.LiveRace.view(token)
+    view.remoteStale=false; view.peerKartId="steam_tank"
+    transport.AdvanceLive=function() return view end
+    local P=env.namespace.Presentation
+    local objects={}; for key,value in pairs(env.counts) do objects[key]=value end
+    local function observation(ms)
+        return {x=700,y=400+math.min(ms,500)*0.2,heading=math.pi/2,
+            speed=ms<500 and 200 or 0,status="running",sampleMS=ms,receivedAtMS=ms+350}
+    end
+    local sample,lastRaw,lastShown,maxRaw,maxShown,maxPacket=nil,nil,nil,0,0,0
+    local stateTick,stateX=view.vehicle.tick,view.vehicle.x
+    for frame=21,120 do
+        local now=frame*1000/60
+        local latest=math.floor((now-350+1e-8)/500)*500
+        local replaced=latest~=sample
+        if replaced then
+            view.remotePrevious=view.remote; view.remote=observation(latest)
+            view.remoteSequence=latest/500+1; sample=latest
+        end
+        view.elapsedMS=now; view.remote.sampleAgeMS=now-sample
+        local inputY=view.remote.y
+        UI.OnUpdate(1/60)
+        local _,raw=P.remotePose(UI.remotePath,view.remote.sampleAgeMS)
+        local shown=UI.opponentWorldY
+        if lastRaw then maxRaw=math.max(maxRaw,math.abs(raw-lastRaw)) end
+        if lastShown then
+            local step=math.abs(shown-lastShown)
+            maxShown=math.max(maxShown,step)
+            if replaced then maxPacket=math.max(maxPacket,step) end
+            if sample==0 then assert(math.abs(step-200/60)<1e-7,"healthy straight adds no display delay or held packet frame") end
+        end
+        assert(view.remote.y==inputY and view.vehicle.tick==stateTick and view.vehicle.x==stateX,
+            "position reconciliation cannot alter copied remote or local simulation")
+        lastRaw,lastShown=raw,shown
+    end
+    assert(maxRaw>60 and maxShown<11 and maxPacket<=200/60+1e-6,
+        "actual UI suppresses a brake packet's large positional jump")
+    assert(math.abs(UI.opponentWorldY-500)<0.01,"braked display converges without permanent interpolation delay")
+    local shown=UI.opponentWorldY
+    UI.OnUpdate(1); UI.OnUpdate(1)
+    assert(UI.opponentWorldY==shown,"extra renders cannot consume correction without copied time")
+
+    -- Continuous unblocked revisions must not hit a universal timeout and
+    -- periodically snap. Only an actual geometry obstruction has a deadline.
+    for frame=121,330 do
+        local now=frame*1000/60
+        local latest=math.floor((now-350+1e-8)/500)*500
+        if latest~=sample then
+            view.remotePrevious=view.remote; view.remote=observation(latest)
+            view.remote.y=500+(latest/500%2==0 and 40 or -40)
+            view.remoteSequence=latest/500+1; sample=latest
+        end
+        view.elapsedMS=now; view.remote.sampleAgeMS=now-sample
+        local before=UI.opponentWorldY
+        UI.OnUpdate(1/60)
+        assert(math.abs(UI.opponentWorldY-before)<=400/60+1e-6 and UI.remoteBlockedSince==nil,
+            "healthy successive revisions smooth without periodic reseeding")
+    end
+
+    -- An obstruction between a stale forecast and revised observation may
+    -- forbid any smooth connection. Recovery is bounded and cannot be reset
+    -- forever by new packets; never accept an oversized geometry recovery.
+    view.remotePrevious=view.remote
+    view.remote=observation(5500); view.remote.y=530; view.remoteSequence=12
+    view.elapsedMS=5850; view.remote.sampleAgeMS=350
+    UI.OnUpdate(0.016)
+    assert(UI.remoteOffsetY and UI.remoteOffsetY~=0)
+    local solver=UI.track.resolveMovement
+    UI.track.resolveMovement=function(x,y) return x+10000,y,false end
+    view.elapsedMS=5867; view.remote.sampleAgeMS=367
+    shown=UI.opponentWorldY; local x=UI.opponentWorldX
+    UI.OnUpdate(0.016)
+    assert(UI.opponentWorldX==x and UI.opponentWorldY==shown,"invalid recovery cannot teleport the observation")
+    UI.track.resolveMovement=function(x,y) return x,y,true end
+    for ms=5884,6550,17 do
+        view.elapsedMS=ms; view.remote.sampleAgeMS=ms-5500
+        if ms>=6350 and view.remoteSequence==12 then
+            view.remotePrevious=view.remote
+            view.remote=observation(6000); view.remote.y=530; view.remoteSequence=13
+            view.remote.sampleAgeMS=ms-6000
+        elseif view.remoteSequence==13 then view.remote.sampleAgeMS=ms-6000 end
+        UI.OnUpdate(0.017)
+    end
+    UI.track.resolveMovement=solver
+    assert(math.abs(UI.opponentWorldY-530)<0.01,
+        "blocked correction expires even across fresh packets rather than stalling indefinitely")
+    view.remoteStale=true; UI.OnUpdate(0)
+    assert(UI.remotePositionAt==nil and UI.remoteBlockedSince==nil,"stale view clears correction history")
+    view.remoteStale=false; view.remote.status="finished"; UI.OnUpdate(0)
+    assert(UI.remotePositionAt==nil,"terminal peer is shown exactly without a residual correction")
+    UI.Stop("position continuity fixture")
+    assert(UI.remotePositionAt==nil and UI.remoteX==nil and UI.remoteOffsetX==nil,
+        "exit clears positional history before a new grid/session")
+    for key,value in pairs(objects) do assert(env.counts[key]==value,"remote corrections allocated UI widgets: "..key) end
+    originalPrint(("offline UI brake replay (2Hz/350ms/60Hz): maxStep=%.3f->%.3f, packetStep=%.3f; geometry/reentry/reset guards PASS"):format(maxRaw,maxShown,maxPacket))
+end,nil,nil,true)
+
 -- Wing poses are display-only. Only a current running peer report may drive
 -- its beat/glide; the grid, terminal reports and stale boosts stay at rest.
 withMock(nil,false,function(env,UI)
@@ -3627,8 +3731,9 @@ withMock({schemaVersion=1,preferences={version=1,track="test_oval",futureField="
     end
     for _,id in ipairs({"scarlet_graveyard","scarlet_library","scarlet_armory","scarlet_cathedral"}) do
         offered=id
-        assert(not UI.MultiplayerAction("ready",true) and not UI.liveArmed,
-            "a solo sprint offer cannot capture live controls: "..id)
+        assert(UI.MultiplayerAction("ready",true) and UI.liveArmed and UI.track.laps==1,
+            "a reviewed one-run sprint offer can prepare live controls: "..id)
+        assert(UI.MultiplayerAction("ready",false) and not UI.liveArmed)
         assert(UI.SelectTrack(id) and UI.track.laps==1 and
             UI.backgroundPath==AK.Courses.get(id).background,
             "each reviewed sprint selects its own geometry and loaded art: "..id)
@@ -3673,4 +3778,4 @@ for _,failure in ipairs({"false","nil","throws","camera"}) do
     end,nil,nil,true)
 end
 
-originalPrint("test_ui production catalogue: eleven finished courses, real Mirage default/scenery, retired-save preservation, seven-map Ready/four solo sprints and asset-failure Start guard PASS (90/91/150 pool)")
+originalPrint("test_ui production catalogue: eleven multiplayer courses, real Mirage default/scenery, retired-save preservation, sprint Ready and asset-failure Start guard PASS (90/91/150 pool)")

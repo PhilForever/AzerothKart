@@ -82,11 +82,10 @@ function Courses.available(id)
     return course ~= nil and not course.soon
 end
 
--- The current live controller supports closed three-lap circuits only. Keep
--- sprint selection out of the lobby until its live lifecycle is implemented.
+-- All production courses use the same two-peer controller. Geometry supplies
+-- the race target: three laps on circuits, one ordered run on dungeon sprints.
 function Courses.multiplayer(id)
-    local course = byId[id]
-    return Courses.available(id) and course.geometry ~= "dungeon"
+    return Courses.available(id)
 end
 
 -- The next selectable course after `id` in display order, wrapping round.

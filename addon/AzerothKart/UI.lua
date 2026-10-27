@@ -21,6 +21,10 @@ local UI = {
 }
 AK.UI = UI
 local render, pollLive, finishLive, applyLiveView
+local function resetRemotePosition()
+    UI.remoteX,UI.remoteY,UI.remoteOffsetX,UI.remoteOffsetY,UI.remotePositionAt=nil,nil,nil,nil,nil
+    UI.remoteBlockedSince=nil
+end
 -- Only the validated Ready transaction may load a shared race's map while
 -- multiplayer mode is retained. Public solo selectors cannot dissolve a room.
 local liveTrackSelection
@@ -430,6 +434,7 @@ function UI.Stop(reason)
     UI.remotePathSample,UI.remotePathSequence=nil,nil
     UI.remoteHeading,UI.remoteHeadingAt=nil,nil
     -- Closing an already interrupted drive cannot replace its terminal reason.
+    resetRemotePosition()
     if UI.result and (UI.result.status == "interrupted" or UI.result.status == "finished") then
         reason = UI.result.reason
     end
@@ -964,6 +969,7 @@ function UI.SelectTrack(id)
     UI.remotePathSample,UI.remotePathSequence=nil,nil
     UI.remoteHeading,UI.remoteHeadingAt=nil,nil
     UI.dismissedSummaryRace = nil
+    resetRemotePosition()
     UI.hudElapsed = 0
     UI.stopReason = "Track selected"
     UI.summary:Hide()
@@ -1003,6 +1009,7 @@ local function renderOpponent()
     local remote = grid and grid.peerPose or (view and view.remote)
     if not UI.multiplayer or not remote then
         UI.remoteHeading,UI.remoteHeadingAt=nil,nil
+        resetRemotePosition()
         UI.opponentWorldX,UI.opponentWorldY=nil,nil
         UI.opponent:Hide()
         UI.opponentLabel:Hide()
@@ -1013,11 +1020,28 @@ local function renderOpponent()
     if grid then
         wx,wy,heading=remote.x,remote.y,remote.heading
         UI.remoteHeading,UI.remoteHeadingAt=nil,nil
+        resetRemotePosition()
     else
+        local now=view.elapsedMS
+        local validTime=type(now)=="number" and now==now and now>=0 and now<math.huge
+        local elapsed=validTime and UI.remotePositionAt and math.max(0,now-UI.remotePositionAt) or 0
+        local correcting=validTime and view.phase=="running" and remote.status=="running"
+            and not view.remoteStale
+        local offsetX,offsetY=Presentation.remoteCorrection(UI.remoteOffsetX or 0,UI.remoteOffsetY or 0,elapsed)
+        local oldPath,oldSample=UI.remotePath,UI.remotePathSample
+        -- Geometry may make a smooth path to the revised estimate impossible.
+        -- Do not replenish blocked correction debt forever, including across
+        -- healthy packets: reseed the display after a bounded 600ms interval.
+        if validTime and UI.remoteBlockedSince and now-UI.remoteBlockedSince>=600 then
+            resetRemotePosition()
+            offsetX,offsetY,oldPath=0,0,nil
+        end
+        local replaced=false
         -- Cache bounded collision-aware display prediction once per packet.
         -- Its age includes transit time; no extra received-interval delay.
         if UI.remotePathAt~=remote.receivedAtMS or UI.remotePathSample~=remote.sampleMS
             or UI.remotePathSequence~=view.remoteSequence or not UI.remotePath then
+            replaced=true
             UI.remotePathAt=remote.receivedAtMS
             UI.remotePathSample,UI.remotePathSequence=remote.sampleMS,view.remoteSequence
             -- Transit time has already consumed part of the forecast. Cover
@@ -1028,10 +1052,35 @@ local function renderOpponent()
             UI.remotePath=Presentation.buildRemotePath(view.remotePrevious,remote,Track,age+600)
         end
         wx,wy,heading,predicted=Presentation.remotePose(UI.remotePath,remote.sampleAgeMS or view.remoteAgeMS or 0)
+        if correcting and wx then
+            if replaced and oldPath and UI.remotePositionAt and type(oldSample)=="number"
+                and type(remote.sampleMS)=="number" then
+                -- Continue the OLD trajectory at this same timestamp before
+                -- rebasing. Anchoring last frame would freeze every packet.
+                local age=(remote.sampleAgeMS or view.remoteAgeMS or 0)+remote.sampleMS-oldSample
+                local oldX,oldY=Presentation.remotePose(oldPath,age)
+                if oldX then offsetX,offsetY=oldX+offsetX-wx,oldY+offsetY-wy end
+            end
+            local targetX,targetY=wx+offsetX,wy+offsetY
+            local blocked=false
+            if UI.remoteX and (offsetX~=0 or offsetY~=0) and type(Track.resolveMovement)=="function" then
+                local x,y=Track.resolveMovement(UI.remoteX,UI.remoteY,targetX,targetY)
+                local dx,dy=targetX-UI.remoteX,targetY-UI.remoteY
+                -- Invalid-observation recovery must not create a display warp.
+                if type(x)=="number" and type(y)=="number" and x==x and y==y
+                    and (x-UI.remoteX)^2+(y-UI.remoteY)^2<=dx*dx+dy*dy+1e-6 then
+                    blocked=math.abs(x-targetX)>1e-6 or math.abs(y-targetY)>1e-6
+                    targetX,targetY=x,y
+                else targetX,targetY,blocked=UI.remoteX,UI.remoteY,true end
+            end
+            UI.remoteOffsetX,UI.remoteOffsetY=targetX-wx,targetY-wy
+            UI.remoteBlockedSince=blocked and (UI.remoteBlockedSince or now) or nil
+            wx,wy=targetX,targetY
+            UI.remoteX,UI.remoteY,UI.remotePositionAt=wx,wy,now
+        else resetRemotePosition() end
         -- A new packet can revise the inferred yaw sharply. Reconcile only
         -- its displayed heading, leaving the transit-aware x/y path untouched.
         -- Use the copied controller clock, never the number of render calls.
-        local now=view.elapsedMS
         local elapsed=0
         if type(now)=="number" and now==now and now>=0 and now<math.huge then
             if UI.remoteHeadingAt and now>=UI.remoteHeadingAt then
@@ -1444,6 +1493,7 @@ function UI.MultiplayerAction(action,...)
         UI.remotePathSample,UI.remotePathSequence=nil,nil
         UI.remoteHeading,UI.remoteHeadingAt=nil,nil
         UI.opponentAssetId=nil
+        resetRemotePosition()
     end
     return accepted,reason
 end
@@ -1595,6 +1645,7 @@ function UI.Start()
     UI.remotePathSample,UI.remotePathSequence=nil,nil
     UI.remoteHeading,UI.remoteHeadingAt=nil,nil
     soloKartId = chosenKartId
+    resetRemotePosition()
     UI.state = Physics.new(Track)
     UI.race = Race.new(Track,Checkpoints,Laps,UI.state.tick)
     UI.soloRun = AK.SoloRecords.Begin(Track, chosenKartId)

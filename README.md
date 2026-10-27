@@ -1,5 +1,14 @@
 # Azeroth Kart — top-down arcade racing inside WoW Forever
 
+**Current multiplayer source,2026-10-27:** all eleven finished courses enter
+the two-peer lobby, including four one-run Scarlet sprints. Invite/clock/live
+finish/rematch validation preserves each course's actual target; Test Oval
+stays retired. Remote x/y correction now reconciles packet changes using the
+copied clock and geometry, preserving the existing network budget. Focused
+offline checks pass; actual friend-kart smoothness/new sprint play remain
+pending. This supersedes the dated solo-only Scarlet notes below.
+[Current scope/versions](docs/PRODUCTION_MAPS.md), [short check](docs/MULTIPLAYER_PLAYTEST.md).
+
 **Scarlet integration (2026-10-26):** `codex/scarlet-integration` combines the
 reviewed Library, Armory, Cathedral and drive fixes with Codex's current build.
 There are eleven solo courses and seven experimental two-player lap circuits;

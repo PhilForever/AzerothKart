@@ -1,5 +1,31 @@
 # Codex handoff — production maps and Claude course review
 
+## Tested all-course multiplayer candidate — 2026-10-27 08:37 CET
+
+`codex/sprint-multiplayer-smoothing`, from4d9f7a8/reservation5e3902c, opens all11
+courses to existing two-peer races. Actual geometry supplies target1/3 through
+invite, clock handoff and live terminal bounds; new codes8/9/A/B, unchanged
+wire lengths/cadence. Same-player room/results/rematches retained. Native
+adapter always passes copied trackLaps; legacy direct callers may omit it.
+
+Remote x/y revisions now reconcile the old trajectory at current packet time,
+with scalar error decay and collision sweeps. Presentation.remoteCorrection
+is pure; UI private remoteX/Y/offset/time/blockedSince never feeds physics.
+Only geometry-blocked correction expires after600ms, across fresh packets;
+unblocked steering must not be periodically reseeded. Repeated clock draws
+cannot advance correction. Clear history on grid/Stop/session/stale/terminal.
+No art/score context/Physics12/traffic/pool change (90/91/150).
+
+Final focused Lua51 PASS11modules/all80parsedfiles (see PROGRESS exact command),
+all11grids, four native-mocked sprint/rematch sequences and actual three-round
+Core/Menu flow including sprint. UI brake maxstep66.667→6.667/packet3.333 in
+2Hz/350ms/60Hz mock. Export PASS11boards; diffcheck PASS. Validator only2expired
+historical skill links. Native NOT RUN, no broad/Lua54 repetition or milestones.
+Next: focused commit, backed-up85-file install and friend ZIP, then simple
+owner/friend sprint/peer-stutter/rematch check. Same runtime paths: reload from
+3f1b3fe suffices; older missing-art installs require full restart.
+Original other worktrees/tips/untracked outputs preserved. No push/release.
+
 ## Active task — all courses and remaining remote stutter, 2026-10-27
 
 Owner requests every new map in multiplayer and reports remaining stuttering.

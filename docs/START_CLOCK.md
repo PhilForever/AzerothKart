@@ -1,5 +1,10 @@
 # Experimental start-clock and race handoff
 
+2026-10-27: native coordinated/live sessions now derive each offered course's
+target from its captured geometry: four Scarlet sprints1, seven circuits3.
+Handoff rejects a mismatched offer target. Clock packets/epoch/grid/countdown
+are unchanged. This supersedes fixed-three-lap notes below; [contract](API_CONTRACTS.md).
+
 Implemented on `codex/start-clock`, from `4f9246a`. Shared menu integration and actual Forever validation are pending. This is a bounded two-peer start foundation under [ADR 0013](adr/0013-two-player-experiment-scope.md), not opponent replication or a playable multiplayer claim. [ADR 0014](adr/0014-experimental-start-clock.md) records the timing assumptions and limits.
 
 ## Native actions and ownership

@@ -20,8 +20,10 @@ Both players need the matching build. Native acceptance remains pending.
 
 Postrace idles for at most300seconds. Error/expiry/combat/world exits close
 the backend room with no automatic driving or interrupted-race resumption.
-Kart changes are deferred from this rematch slice. The four Scarlet sprints
-remain solo; this is not eight-player support.
+Kart changes are deferred from this rematch slice. As of2026-10-27, all eleven
+courses, including four one-run Scarlet sprints, use this two-peer room. The
+host can rematch from a circuit to a sprint with the target validated anew.
+This is not eight-player support.
 
 ## Copied observations
 

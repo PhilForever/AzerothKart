@@ -1,5 +1,13 @@
 # Session actions for Claude's menu
 
+## All-course source update — 2026-10-27
+
+Existing Host/Listen/Ready/Start/rematch actions admit all eleven courses.
+Copied `offer.laps` is1 for Scarlet sprints,3 for circuits; lobby shows
+"Sprint: 1 run" or "Laps: 3". No new menu command, peer capacity or caller-side
+simulation. Both clients need the updated build for new8/9/A/B track codes.
+The current result/Play Again/map flow remains shared. Native check pending.
+
 ## Implemented postrace/rematch extension — 2026-10-26
 
 [Current contract](MULTIPLAYER_POSTRACE.md): copied room/results and canRematch/

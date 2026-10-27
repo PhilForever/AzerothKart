@@ -269,6 +269,23 @@ function Presentation.remoteHeading(previous, target, elapsedMS)
     return previous+math.max(-step,math.min(step,delta))
 end
 
+-- Display-only positional error, retained by the caller across forecasts.
+-- Remove most small errors over 200ms, with a bounded correction velocity
+-- for large steering/braking revisions. Zero elapsed is idempotent; neither
+-- remote observations nor authoritative simulation are changed.
+function Presentation.remoteCorrection(x, y, elapsedMS)
+    if not finite(x) or not finite(y) then return 0,0 end
+    if not finite(elapsedMS) then elapsedMS=0 end
+    local elapsed=math.max(0,math.min(100,elapsedMS))
+    if elapsed==0 then return x,y end
+    local length=math.sqrt(x*x+y*y)
+    if not finite(length) or length==0 then return 0,0 end
+    local remove=math.min(length,400*elapsed/1000,length*(1-math.exp(-elapsed/80)))
+    if length-remove<0.01 then return 0,0 end
+    local scale=(length-remove)/length
+    return x*scale,y*scale
+end
+
 function Presentation.meter(state, config)
     assert(state and config, "state and meter config required")
     -- Surface cancellation takes precedence even for a retained/stale charge.

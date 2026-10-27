@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — all-course multiplayer and position smoothing (2026-10-27)
+
+- Open Graveyard, Library, Armory and Cathedral to the existing two-player
+  lobby, with one-run countdown/finish/results/rematch validation.
+- Reconcile friend-kart position changes between packets; preserve normal
+  prediction without extra interpolation delay. Collision-blocked corrections
+  recover within a bounded interval instead of sticking indefinitely.
+- Keep current physics, art, score history, transport budget and rematch flow.
+  Focused offline checks pass; native sprint/feel verification remains pending.
+
 ## Unreleased — reviewed visual/rematch integration (2026-10-26)
 
 - Integrate Claude's Scarlet-v3, race screens, score celebrations and Gryphon

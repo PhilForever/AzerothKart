@@ -1,5 +1,36 @@
 # Implemented simulation and rendering contracts
 
+## All-course two-peer races and positional continuity — 2026-10-27
+
+All eleven finished Courses are multiplayer eligible. RaceProtocol adds stable
+invite track codes8/9/A/B for Graveyard/Library/Armory/Cathedral, preserving1–7
+and retired0, prefix/layout/length unchanged. Both clients must update for
+sprint offers; older builds reject their unknown codes. Score codes/contexts
+are independent and unchanged.
+
+`PeerSession.new(options,now,codec)` adds optional plain `trackLaps` keyed by
+every offered `trackVersions` ID, values integer1..9, copied on construction;
+extra/missing keys reject. When omitted, legacy global `laps` behavior remains.
+The native adapter always supplies geometry-derived targets (sprint1/circuit3),
+and validates received offers/clock handoff against the captured geometry.
+LiveRace.new requires `race.targetLaps == (track.laps or3)` in the supported1..3
+range. Live.receive rejects completedLaps above target, wrong finished count
+and terminal gate progress. No state packet, cadence or158-byte budget change.
+
+`Presentation.remoteCorrection(offsetX,offsetY,elapsedMS)` returns two scalars:
+bounded decay toward zero (80ms time constant, correction speed<=400units/s,
+at most100ms per draw). Zero/invalid time cannot advance; invalid offsets clear.
+UI caches only display scalars and continues the old path at the new packet's
+current copied timestamp before rebasing onto the new forecast. Normal straight
+prediction gains no receive-time interpolation delay. Corrected segments sweep
+through existing track geometry; invalid oversized recovery is rejected.
+Only a geometry-blocked episode has a600ms deadline, not renewed by packets;
+when no smooth legal connection is possible, the display reseeds the latest
+forecast rather than sticking forever. Ordinary continuous steering corrections
+have no forced periodic reseed. Grid/session/Stop/stale/terminal views clear the
+history. No authoritative state writes or UI object allocation; native feel
+remains NOT RUN. [Focused check/evidence](MULTIPLAYER_PLAYTEST.md).
+
 ## Reviewed Claude visual integration — 2026-10-26
 
 The Scarlet-v3/race-screens/Gryphon stack is accepted with the corrections in
