@@ -104,3 +104,31 @@ refusedDecode(replaced(32,32,"4")); refusedDecode(replaced(33,33,"9"))
 refusedDecode(replaced(34,34,"4")); refusedDecode(replaced(34,34,"Z"))
 refusedDecode(replaced(35,40,"012KW1")); refusedDecode(replaced(35,40,"ZZZZZZ"))
 print("Pure live telemetry codec: exact 40-byte timestamped packets, bounded quantized fields, strict syntax and detached round trips verified offline")
+
+-- Layered courses negotiate a separate codec. Flat packets stay byte-exact;
+-- explicit level0/1 uses spare drift-byte values without growing the packet.
+local layered=P.Layered
+assert(layered.VERSION==3 and layered.PREFIX=="AZKRUN3" and layered.MAX_BYTES==40)
+for level=0,1 do
+    for tier=0,2 do
+        local input=copy(base);input.level,input.driftTier=level,tier
+        local payload=assert(layered.encode(input))
+        assert(#payload==40 and #payload+#layered.PREFIX==47 and payload:sub(1,2)=="3S")
+        same(assert(layered.decode(payload)),input)
+        assert(not P.decode(payload) and not layered.decode(assert(P.encode(base))),
+            "flat and layered protocol versions never silently mix")
+        for index=0,#payload-1 do assert(not layered.decode(payload:sub(1,index))) end
+        assert(not layered.decode(payload.."0"))
+        local corrupted=payload:sub(1,29).."6"..payload:sub(31)
+        assert(not layered.decode(corrupted),"unused packed level/drift values are rejected")
+    end
+end
+local missing=copy(base)
+assert(not layered.encode(missing),"layered state must carry its explicit level")
+for _,invalid in ipairs({-1,2,0.5,0/0,math.huge,false,"1",{}}) do
+    local input=copy(base);input.level=invalid
+    assert(not layered.encode(input),"invalid floor is not guessed or coerced")
+end
+local flatWithLevel=copy(base);flatWithLevel.level=0
+assert(not P.encode(flatWithLevel),"legacy flat syntax is unchanged")
+print("Layered live codec: explicit0/1 floors and drift tiers, strict3S/2S separation, same40-byte payload PASS")

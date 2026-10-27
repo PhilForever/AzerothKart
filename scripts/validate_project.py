@@ -8,6 +8,7 @@ import sys
 ROOT=Path(__file__).resolve().parents[1]
 ADDON=ROOT/'addon'/'AzerothKart'
 REQUIRED=[
+ 'addon/AzerothKart/LayeredTrack.lua','tests/test_layered_track.lua','tests/test_layered_physics.lua',
  'services/__init__.py','services/leaderboard/__init__.py','services/leaderboard/store.py',
  'services/leaderboard/__main__.py','services/leaderboard/catalog.json',
  'services/leaderboard/example-result.json','services/leaderboard/README.md',
@@ -81,6 +82,7 @@ REQUIRED=[
  'addon/AzerothKart/Assets/UI/TrackPreviews.tga','docs/art/ui/front-end.md',
  'addon/AzerothKart/Assets/UI/StatBars.tga','scripts/build_stat_bars.py','docs/art/ui/stat-bars.png',
  'docs/art/karts/gryphon-rider-wings-review.png',
+ 'docs/adr/0022-floors-and-boost-pads.md','docs/art/tracks/warsong-gulch.md','docs/art/tracks/warsong_gulch-route-sketch.png',
  'addon/AzerothKart/Assets/UI/Celebration.tga','scripts/build_celebration_art.py','docs/art/ui/celebration.png',
  'docs/art/ui/race-screens-review.png',
  'addon/AzerothKart/Assets/Karts/SteamTank.tga','addon/AzerothKart/Assets/Karts/DwarvenBiker.tga',
@@ -120,7 +122,7 @@ for tocname in ('AzerothKart.toc','AzerothKart_Camelot.toc'):
  if '## Interface: 16001' not in lines: errors.append(f'{tocname}: unexpected interface')
  if '## SavedVariables: AzerothKartDB' not in lines: errors.append(f'{tocname}: missing SavedVariables')
  loads=[x.strip() for x in lines if x.strip() and not x.startswith('##')]
- if loads!=['Track.lua','MirageRaceway.lua','Circuit.lua','CapitalCities.lua','Dungeon.lua','ScarletCrusade.lua','Courses.lua','Physics.lua','Input.lua','Loop.lua','Performance.lua','Presentation.lua','Checkpoints.lua','Laps.lua','Race.lua','Highscores.lua','SoloRecords.lua','ScoreSync.lua','ScoreDiscovery.lua','ScoreSharing.lua','UI.lua','Menu.lua','RaceProtocol.lua','PeerSession.lua','ClockProtocol.lua','StartClock.lua','RaceStart.lua','LiveProtocol.lua','LiveRace.lua','RaceGrid.lua','NetworkProbe.lua','TransportProbe.lua','SessionTransport.lua','GroupProbe.lua','ScoreChannelProbe.lua','Core.lua']:
+ if loads!=['Track.lua','MirageRaceway.lua','Circuit.lua','CapitalCities.lua','Dungeon.lua','LayeredTrack.lua','ScarletCrusade.lua','Courses.lua','Physics.lua','Input.lua','Loop.lua','Performance.lua','Presentation.lua','Checkpoints.lua','Laps.lua','Race.lua','Highscores.lua','SoloRecords.lua','ScoreSync.lua','ScoreDiscovery.lua','ScoreSharing.lua','UI.lua','Menu.lua','RaceProtocol.lua','PeerSession.lua','ClockProtocol.lua','StartClock.lua','RaceStart.lua','LiveProtocol.lua','LiveRace.lua','RaceGrid.lua','NetworkProbe.lua','TransportProbe.lua','SessionTransport.lua','GroupProbe.lua','ScoreChannelProbe.lua','Core.lua']:
   errors.append(f'{tocname}: unexpected source load order: {loads}')
  for f in loads:
   if not (ADDON/f).is_file():errors.append(f'{tocname}: missing {f}')

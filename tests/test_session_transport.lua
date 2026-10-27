@@ -49,7 +49,7 @@ local function client(identity,clockTest)
     e.globals.C_ChatInfo = {
         RegisterAddonMessagePrefix=function(prefix)
             assert(prefix=="AZKART2" or prefix=="AZKART1" or prefix=="AZKCLK1"
-                or prefix=="AZKGRD1" or prefix=="AZKRUN2")
+                or prefix=="AZKGRD1" or prefix=="AZKRUN2" or prefix=="AZKRUN3")
             e.registerCalls=e.registerCalls+1
             e.registeredPrefixes[prefix]=true
             if e.registerThrows then error("private registration error") end
@@ -715,7 +715,8 @@ local function livePair(track,delayed,beforeLobby)
     local leases={}
     for _,role in ipairs({"host","guest"}) do
         local e=p[role]
-        assert(e.registerCalls==4 and e.registeredPrefixes.AZKRUN2 and e.registeredPrefixes.AZKGRD1,
+        assert(e.registerCalls==(e.registeredPrefixes.AZKRUN3 and 5 or 4)
+            and e.registeredPrefixes.AZKRUN2 and e.registeredPrefixes.AZKGRD1,
             "live telemetry registration requires deliberate live opt-in")
         local grid=e:view().grid
         local peerRole=role=="host" and "guest" or "host"
@@ -1447,4 +1448,51 @@ do
     e.onSend=nil;p.host:call("Stop","stopped")
 end
 
+-- A synthetic stacked course exercises native selection/registration without
+-- registering an unfinished Warsong map. Production flat metadata stays12.
+do
+    local p=livePair("mirage_raceway",true,function(pair)
+        for _,role in ipairs({"host","guest"}) do
+            local e=pair[role]
+            local original=e.namespace.Courses.build
+            local source=original("mirage_raceway",e.namespace.Track.crossesGate)
+            local track={};for key,value in pairs(source) do track[key]=value end
+            track.layered,track.levelCount=true,2
+            track.validLevel=function(level) return level==0 or level==1 end
+            local start=source.spawn()
+            track.spawn=function() return {x=start.x,y=start.y,heading=start.heading,level=1} end
+            track.resolveMovement=function(x,y,tx,ty,level)
+                local nx,ny,hit
+                if source.resolveMovement then nx,ny,hit=source.resolveMovement(x,y,tx,ty)
+                else nx,ny,hit=source.constrainPosition(tx,ty) end
+                return nx,ny,hit,level
+            end
+            e.namespace.Courses.build=function(id,...)
+                if id=="mirage_raceway" then return track end
+                return original(id,...)
+            end
+        end
+    end)
+    for _,role in ipairs({"host","guest"}) do
+        local e=p[role]
+        assert(e.registeredPrefixes.AZKRUN3 and e.registerCalls==5
+            and e:view().offer.physicsVersion==13 and e:view().live.vehicle.level==1,
+            "native offer and GO retain the exact layered compatibility/floor")
+    end
+    drivePair(p,1.5)
+    for _,role in ipairs({"host","guest"}) do
+        local e=p[role]
+        assert(e:view().live.remote.level==1,"logged layered observation reaches the other copied view")
+        local packets=0
+        for _,packet in ipairs(e.sends) do
+            if packet.prefix=="AZKRUN3" then
+                packets=packets+1
+                assert(#packet.payload==40 and e.namespace.LiveProtocol.Layered.decode(packet.payload).level==1)
+            end
+        end
+        assert(packets>0,"native adapter selected the layered codec instead of flat telemetry")
+        assertPacing(e)
+        e:call("Stop","stopped")
+    end
+end
 originalPrint("Session logged-whisper adapter: explicit actions, scoped identities, negotiated live GO, persistent pacing and cleanup verified with mocks")

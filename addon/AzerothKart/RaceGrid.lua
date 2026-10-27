@@ -198,10 +198,14 @@ function Grid.pose(track,role)
     local dx,dy=-math.sin(spawn.heading)*18,math.cos(spawn.heading)*18
     local host={x=spawn.x-dx,y=spawn.y-dy,heading=spawn.heading}
     local guest={x=spawn.x+dx,y=spawn.y+dy,heading=spawn.heading}
+    if track.layered then
+        if type(track.validLevel)~="function" or not track.validLevel(spawn.level) then return nil,"spawn_level" end
+        host.level,guest.level=spawn.level,spawn.level
+    end
     for _,pose in ipairs({host,guest}) do
         if not finite(pose.x) or not finite(pose.y) or pose.x<0 or pose.x>track.width
             or pose.y<0 or pose.y>track.height then return nil,"grid_bounds" end
-        local legal,drivable=pcall(track.isDrivable,pose.x,pose.y)
+        local legal,drivable=pcall(track.isDrivable,pose.x,pose.y,pose.level)
         if not legal or drivable~=true then return nil,"grid_clearance" end
     end
     if role=="host" then return host,guest end

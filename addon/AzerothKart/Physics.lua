@@ -4,6 +4,9 @@ local _, namespace = ...
 
 local Physics = {}
 Physics.VERSION = 12
+-- Existing courses retain their replay/score context. New opt-in mechanics
+-- have a separate compatibility version without retiming flat driving.
+Physics.FEATURE_VERSION = 13
 Physics.FIXED_DT = 1/60
 Physics.MAX_SPEED = 200
 Physics.REVERSE_MAX = 55
@@ -76,10 +79,82 @@ local function approach(value, target, amount)
     return math.max(target, value - amount)
 end
 
-local function surfaceAt(track, x, y)
-    if track.surfaceAt then return track.surfaceAt(x,y) end
+local function finite(value)
+    return type(value)=="number" and value==value and value>-math.huge and value<math.huge
+end
+
+local function validLevel(track, level)
+    return finite(level) and level%1==0 and level>=0 and level<=1
+        and (not track.validLevel or track.validLevel(level)==true)
+end
+
+function Physics.versionForTrack(track)
+    return type(track)=="table" and (track.layered==true
+        or (type(track.pads)=="table" and next(track.pads)~=nil))
+        and Physics.FEATURE_VERSION or Physics.VERSION
+end
+
+-- Track construction validates author data once. Runtime pad scans are
+-- bounded and read-only; no per-kart mutable pad/contact registry is needed.
+function Physics.ValidatePads(pads)
+    if pads==nil then return true end
+    if type(pads)~="table" or getmetatable(pads)~=nil or #pads>32 then return false,"pads" end
+    local count,ids=0,{}
+    for index,pad in pairs(pads) do
+        count=count+1
+        if type(index)~="number" or index%1~=0 or index<1 or index>#pads
+            or type(pad)~="table" or getmetatable(pad)~=nil
+            or type(pad.id)~="string" or #pad.id<1 or #pad.id>32
+            or not pad.id:match("^[A-Za-z0-9_%-]+$") or ids[pad.id]
+            or not finite(pad.x) or pad.x<0 or pad.x>11663.75
+            or not finite(pad.y) or pad.y<0 or pad.y>11663.75
+            or not finite(pad.radius) or pad.radius<1 or pad.radius>256
+            or not finite(pad.boostTicks) or pad.boostTicks%1~=0 or pad.boostTicks<1 or pad.boostTicks>600
+            or (pad.level~=nil and (not finite(pad.level) or pad.level%1~=0 or pad.level<0 or pad.level>1)) then
+            return false,"pad"
+        end
+        ids[pad.id]=true
+    end
+    if count~=#pads then return false,"pads" end
+    return true
+end
+
+local function surfaceAt(track, x, y, level)
+    if track.surfaceAt then
+        if track.layered==true then return track.surfaceAt(x,y,level) end
+        return track.surfaceAt(x,y)
+    end
     -- Small open-plane/solid-wall fixtures can retain the original contract.
+    if track.layered==true then return track.isDrivable(x,y,level) and "road" or "wall" end
     return track.isDrivable(x,y) and "road" or "wall"
+end
+
+local function entersPad(pad,x,y,nx,ny,alreadyOnLevel)
+    local dx,dy=x-pad.x,y-pad.y
+    local radiusSquared=pad.radius*pad.radius
+    if alreadyOnLevel and dx*dx+dy*dy<=radiusSquared then return false end
+    local sx,sy=nx-x,ny-y
+    local lengthSquared=sx*sx+sy*sy
+    local at=lengthSquared>0 and math.max(0,math.min(1,-(dx*sx+dy*sy)/lengthSquared)) or 0
+    dx,dy=dx+sx*at,dy+sy*at
+    return dx*dx+dy*dy<=radiusSquared
+end
+
+local function enteredBoost(track,x,y,nx,ny,oldLevel,newLevel,switchX,switchY)
+    local reward=0
+    for _,pad in ipairs(track.pads or {}) do
+        local level=pad.level or 0
+        local entered=false
+        if oldLevel==newLevel then
+            entered=level==oldLevel and entersPad(pad,x,y,nx,ny,true)
+        else
+            assert(finite(switchX) and finite(switchY),"level transition requires a pad movement split")
+            entered=(level==oldLevel and entersPad(pad,x,y,switchX,switchY,true))
+                or (level==newLevel and entersPad(pad,switchX,switchY,nx,ny,false))
+        end
+        if entered then reward=math.max(reward,pad.boostTicks) end
+    end
+    return reward
 end
 
 local function grassSpeed(speed, dt)
@@ -95,12 +170,22 @@ end
 
 function Physics.new(track)
     track = assert(track, "track required")
+    assert(Physics.ValidatePads(track.pads),"invalid boost pads")
     local start = track.spawn()
-    return {
+    local level=start.level
+    if level==nil then level=0 end
+    if track.layered==true then assert(validLevel(track,level),"invalid spawn level") end
+    for _,pad in ipairs(track.pads or {}) do
+        assert(pad.level==nil or pad.level==0 or (track.layered==true and validLevel(track,pad.level)),
+            "boost pad level unavailable")
+    end
+    local state = {
         x=start.x, y=start.y, heading=start.heading, speed=0, tick=0, impacts=0,
         drifting=false, driftDirection=0, driftTicks=0, driftTier=0, driftGraceTicks=0,
-        boostTicks=0, slipAngle=0, surface=surfaceAt(track,start.x,start.y), steering=0,
+        boostTicks=0, slipAngle=0, surface=surfaceAt(track,start.x,start.y,level), steering=0,
     }
+    if track.layered==true then state.level=level end
+    return state
 end
 
 local function normalizedControls(input)
@@ -126,7 +211,14 @@ function Physics.step(state, input, dt, track, kartId)
     else
         steering = approach(steering,steer,handling.steeringRiseRate*dt)
     end
-    local startSurface = surfaceAt(track,state.x,state.y)
+    local level=0
+    if track.layered==true then
+        level=state.level
+        if level==nil then level=0 end
+    end
+    if track.layered==true then assert(validLevel(track,level),"invalid kart level") end
+    local oldLevel=level
+    local startSurface = surfaceAt(track,state.x,state.y,level)
     local speed = state.speed
     if accel then speed = speed + handling.accel * dt end
     if brake then speed = speed - handling.brake * dt end
@@ -200,19 +292,24 @@ function Physics.step(state, input, dt, track, kartId)
     local nx = state.x + math.cos(travelHeading) * speed * dt
     local ny = state.y + math.sin(travelHeading) * speed * dt
     local targetX,targetY = nx,ny
-    local hit
+    local hit,switchX,switchY
     if track.resolveMovement then
         -- Optional swept solids receive the whole fixed-step segment. The
         -- render pose is never used for collision or written back into it.
-        nx,ny,hit = track.resolveMovement(state.x,state.y,nx,ny)
+        if track.layered==true then
+            local resolvedLevel
+            nx,ny,hit,resolvedLevel,switchX,switchY = track.resolveMovement(state.x,state.y,nx,ny,level)
+            if resolvedLevel~=nil then level=resolvedLevel end
+            assert(validLevel(track,level),"invalid resolved level")
+        else nx,ny,hit = track.resolveMovement(state.x,state.y,nx,ny) end
     elseif track.constrainPosition then
         -- Clamp each axis, preserving any valid tangential displacement.
         nx,ny,hit = track.constrainPosition(nx,ny)
     else
-        hit = surfaceAt(track,nx,ny) == "wall"
+        hit = surfaceAt(track,nx,ny,level) == "wall"
         if hit then nx,ny = state.x,state.y end
     end
-    local surface = surfaceAt(track,nx,ny)
+    local surface = surfaceAt(track,nx,ny,level)
     if boosting and (hit or surface ~= "road") then
         -- Do not retain a release/boost acceleration reward on grass entry.
         speed = math.min(speed,speedBeforeBoost)
@@ -248,13 +345,21 @@ function Physics.step(state, input, dt, track, kartId)
         grace = 0
     end
 
-    return {
+    -- Pad entry is determined from resolved movement, not intended travel
+    -- through a wall. The reward begins on the next fixed step; collision,
+    -- braking and non-road cancellation keep their existing precedence.
+    if track.pads and not brake and not hit and surface=="road" then
+        boostTicks=math.max(boostTicks,enteredBoost(track,state.x,state.y,nx,ny,oldLevel,level,switchX,switchY))
+    end
+    local nextState = {
         x=nx, y=ny, heading=heading, speed=speed,
         tick=state.tick+1, impacts=state.impacts + (hit and 1 or 0),
         drifting=drifting, driftDirection=direction, driftTicks=driftTicks, driftTier=tier,
         driftGraceTicks=grace,
         boostTicks=boostTicks, slipAngle=slip, surface=hit and "wall" or surface, steering=steering,
     }
+    if track.layered==true then nextState.level=level end
+    return nextState
 end
 
 if type(namespace) == "table" then namespace.Physics = Physics end

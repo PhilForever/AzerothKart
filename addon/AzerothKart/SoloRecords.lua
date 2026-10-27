@@ -59,7 +59,8 @@ function Records.Context(track)
     if type(track) ~= "table" or not Courses.available(track.id) then return nil end
     -- A sprint course keeps its own one-run board.
     local context = {trackId=track.id, trackVersion=track.version,
-        physicsVersion=Physics.VERSION, lapCount=track.laps or 3, tickRate=60, rulesVersion=Scores.RULES_VERSION}
+        physicsVersion=Physics.versionForTrack and Physics.versionForTrack(track) or Physics.VERSION,
+        lapCount=track.laps or 3, tickRate=60, rulesVersion=Scores.RULES_VERSION}
     if Scores.BoardKey(context) then return context end
 end
 

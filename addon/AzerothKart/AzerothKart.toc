@@ -10,6 +10,7 @@ MirageRaceway.lua
 Circuit.lua
 CapitalCities.lua
 Dungeon.lua
+LayeredTrack.lua
 ScarletCrusade.lua
 Courses.lua
 Physics.lua

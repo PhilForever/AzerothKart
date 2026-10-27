@@ -14,6 +14,19 @@ local function closed(token,reason)
 end
 local function accept() return "accepted" end
 
+do
+    local track={layered=true,width=400,height=400,
+        spawn=function() return {x=200,y=200,heading=0,level=1} end,
+        validLevel=function(level) return level==0 or level==1 end,
+        isDrivable=function(x,y,level) return level==1 and x>100 and x<300 and y>100 and y<300 end}
+    local host,guest=G.pose(track,"host")
+    assert(host and guest and host.level==1 and guest.level==1,
+        "starting grid preserves the explicit floor and queries only that floor")
+    track.spawn=function() return {x=200,y=200,heading=0} end
+    local bad,why=G.pose(track,"host")
+    assert(not bad and why=="spawn_level","layered grid cannot guess a missing floor")
+end
+
 -- Canonical fixed sequence, exact fields, known kart IDs and detached packets.
 for index,id in ipairs(G.KART_IDS) do
     for _,kind in ipairs({"PROFILE","ACK"}) do

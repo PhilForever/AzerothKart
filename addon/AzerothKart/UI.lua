@@ -24,6 +24,7 @@ local render, pollLive, finishLive, applyLiveView
 local function resetRemotePosition()
     UI.remoteX,UI.remoteY,UI.remoteOffsetX,UI.remoteOffsetY,UI.remotePositionAt=nil,nil,nil,nil,nil
     UI.remoteBlockedSince=nil
+    UI.remoteDisplayLevel=nil
 end
 -- Only the validated Ready transaction may load a shared race's map while
 -- multiplayer mode is retained. Public solo selectors cannot dissolve a room.
@@ -1008,6 +1009,7 @@ local function renderOpponent()
     local grid = UI.gridStaged and UI.gridView
     local remote = grid and grid.peerPose or (view and view.remote)
     if not UI.multiplayer or not remote then
+        UI.opponentLevel=nil
         UI.remoteHeading,UI.remoteHeadingAt=nil,nil
         resetRemotePosition()
         UI.opponentWorldX,UI.opponentWorldY=nil,nil
@@ -1017,6 +1019,8 @@ local function renderOpponent()
         return
     end
     local wx,wy,heading,predicted
+    local level=remote.level or 0
+    UI.opponentLevel=level
     if grid then
         wx,wy,heading=remote.x,remote.y,remote.heading
         UI.remoteHeading,UI.remoteHeadingAt=nil,nil
@@ -1024,6 +1028,7 @@ local function renderOpponent()
     else
         local now=view.elapsedMS
         local validTime=type(now)=="number" and now==now and now>=0 and now<math.huge
+        if UI.remoteDisplayLevel~=nil and UI.remoteDisplayLevel~=level then resetRemotePosition() end
         local elapsed=validTime and UI.remotePositionAt and math.max(0,now-UI.remotePositionAt) or 0
         local correcting=validTime and view.phase=="running" and remote.status=="running"
             and not view.remoteStale
@@ -1040,9 +1045,11 @@ local function renderOpponent()
         -- Cache bounded collision-aware display prediction once per packet.
         -- Its age includes transit time; no extra received-interval delay.
         if UI.remotePathAt~=remote.receivedAtMS or UI.remotePathSample~=remote.sampleMS
+            or UI.remotePathLevel~=level
             or UI.remotePathSequence~=view.remoteSequence or not UI.remotePath then
             replaced=true
             UI.remotePathAt=remote.receivedAtMS
+            UI.remotePathLevel=level
             UI.remotePathSample,UI.remotePathSequence=remote.sampleMS,view.remoteSequence
             -- Transit time has already consumed part of the forecast. Cover
             -- one normal 500ms update interval plus 100ms jitter, bounded by
@@ -1064,10 +1071,11 @@ local function renderOpponent()
             local targetX,targetY=wx+offsetX,wy+offsetY
             local blocked=false
             if UI.remoteX and (offsetX~=0 or offsetY~=0) and type(Track.resolveMovement)=="function" then
-                local x,y=Track.resolveMovement(UI.remoteX,UI.remoteY,targetX,targetY)
+                local x,y,_,resolvedLevel=Track.resolveMovement(UI.remoteX,UI.remoteY,targetX,targetY,level)
                 local dx,dy=targetX-UI.remoteX,targetY-UI.remoteY
                 -- Invalid-observation recovery must not create a display warp.
                 if type(x)=="number" and type(y)=="number" and x==x and y==y
+                    and (not Track.layered or resolvedLevel==level)
                     and (x-UI.remoteX)^2+(y-UI.remoteY)^2<=dx*dx+dy*dy+1e-6 then
                     blocked=math.abs(x-targetX)>1e-6 or math.abs(y-targetY)>1e-6
                     targetX,targetY=x,y
@@ -1077,6 +1085,7 @@ local function renderOpponent()
             UI.remoteBlockedSince=blocked and (UI.remoteBlockedSince or now) or nil
             wx,wy=targetX,targetY
             UI.remoteX,UI.remoteY,UI.remotePositionAt=wx,wy,now
+            UI.remoteDisplayLevel=level
         else resetRemotePosition() end
         -- A new packet can revise the inferred yaw sharply. Reconcile only
         -- its displayed heading, leaving the transit-aware x/y path untouched.
@@ -1092,6 +1101,7 @@ local function renderOpponent()
         UI.remoteHeading=heading
     end
     if not wx then
+        UI.opponentLevel=nil
         UI.opponentWorldX,UI.opponentWorldY=nil,nil
         UI.opponent:Hide(); UI.opponentLabel:Hide()
         if UI.opponentTag then UI.opponentTag:Hide() end

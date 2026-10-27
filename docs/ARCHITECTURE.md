@@ -1,5 +1,12 @@
 # Technical architecture
 
+2026-10-27 opt-in foundation: [LayeredTrack](LAYERED_TRACKS.md) composes the
+existing Dungeon solver per floor, with authored ramp portals and scalar
+transition coordinates. Physics stores level only on layered tracks; pads use
+resolved own-floor entry. Flat state/handling/score version12 remains exact,
+feature tracks use13. Layered telemetry carries explicit floors at40bytes,
+not inferred elevation. No new production map or roof renderer is enabled.
+
 All-course multiplayer,2026-10-27: actual geometry supplies the round's target
 through native invite/start/live admission: circuits3, Scarlet sprints1. All11
 production courses retain one two-peer state machine and persistent budget.

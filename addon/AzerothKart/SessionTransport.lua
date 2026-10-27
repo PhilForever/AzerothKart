@@ -6,6 +6,10 @@ assert(type(AK)=="table", "addon namespace required")
 local Session, Protocol = assert(AK.PeerSession), assert(AK.RaceProtocol)
 local Clock, ClockProtocol, RaceStart = AK.StartClock, AK.ClockProtocol, AK.RaceStart
 local Live, LiveProtocol = AK.LiveRace, AK.LiveProtocol
+local function livePrefix(prefix)
+    return LiveProtocol and (prefix==LiveProtocol.PREFIX or
+        (type(LiveProtocol.Layered)=="table" and prefix==LiveProtocol.Layered.PREFIX))
+end
 local Grid=AK.RaceGrid
 local Transport = {ROUTE="WHISPER_LOGGED"}
 AK.SessionTransport = Transport
@@ -173,7 +177,7 @@ function Transport.DiagnosticTrafficQuiet(now)
     return ok and quiet or false
 end
 
-local function capabilities(wantClock,wantLive)
+local function capabilities(wantClock,wantLive,wantLayered)
     if not owns() or type(C_ChatInfo)~="table"
         or type(C_ChatInfo.RegisterAddonMessagePrefix)~="function"
         or type(C_ChatInfo.SendAddonMessageLogged)~="function" or type(Enum)~="table"
@@ -199,6 +203,11 @@ local function capabilities(wantClock,wantLive)
     if wantClock then prefixes[2]=ClockProtocol.PREFIX end
     if wantLive then prefixes[3]=LiveProtocol.PREFIX end
     if wantLive then prefixes[4]=Grid.PREFIX end
+    if wantLayered then
+        if type(LiveProtocol.Layered)~="table" or LiveProtocol.Layered.PREFIX~="AZKRUN3"
+            or LiveProtocol.Layered.MAX_BYTES~=40 then return false,"capabilities" end
+        prefixes[5]=LiveProtocol.Layered.PREFIX
+    end
     for _, prefix in ipairs(prefixes) do
         if not registered[prefix] then
             local raw = C_ChatInfo.RegisterAddonMessagePrefix(prefix)
@@ -223,7 +232,7 @@ local function nativeSend(expected, payload, peer, prefix, stampMS)
     if control~=expected or not owns() then return "failed" end
     prefix=prefix or Protocol.PREFIX
     local clockPacket=coordinated and prefix==ClockProtocol.PREFIX
-    local livePacket=liveMode and liveRun and prefix==LiveProtocol.PREFIX
+    local livePacket=liveMode and liveRun and livePrefix(prefix)
     local gridPacket=liveMode and liveGrid and prefix==Grid.PREFIX
     local cap=clockPacket and ClockProtocol.MAX_BYTES or (livePacket and LiveProtocol.MAX_BYTES
         or (gridPacket and Grid.MAX_BYTES or 23))
@@ -280,17 +289,19 @@ end
 -- Rebuilt for each round: geometry/version compatibility is never borrowed
 -- from a results screen, and the persistent native traffic window is separate.
 local function sessionOptions(role,peer,code,wantClock)
-    local versions,targets,tracks={},{},wantClock and {} or nil
+    local versions,targets,physics,tracks={},{},{},wantClock and {} or nil
     for _,course in ipairs(AK.Courses.LIST) do
         if AK.Courses.multiplayer(course.id) then
             local track=assert(AK.Courses.build(course.id,AK.Track.crossesGate))
             versions[course.id]=track.version
             targets[course.id]=track.laps or 3
+            physics[course.id]=type(AK.Physics.versionForTrack)=="function"
+                and AK.Physics.versionForTrack(track) or AK.Physics.VERSION
             if tracks then tracks[course.id]=copy(track) end
         end
     end
     return {role=role,peer=peer,session=code,physicsVersion=AK.Physics.VERSION,
-        trackVersions=versions,trackLaps=targets,laps=3},tracks
+        trackVersions=versions,trackLaps=targets,trackPhysics=physics,laps=3},tracks
 end
 
 local function arm(role, peer, code, trackId, wantClock, wantLive, kartId)
@@ -331,7 +342,11 @@ local function arm(role, peer, code, trackId, wantClock, wantLive, kartId)
         local invited, why = Session.invite(state,now,trackId)
         if not invited then return fail(why) end
     end
-    local apiOK, capable, why = pcall(capabilities,wantClock,wantLive)
+    local wantLayered=false
+    if wantLive then
+        for _,track in pairs(tracks or {}) do if track.layered then wantLayered=true; break end end
+    end
+    local apiOK, capable, why = pcall(capabilities,wantClock,wantLive,wantLayered)
     if not apiOK or not capable then return fail(apiOK and why or "capabilities") end
     if not owns() then return fail("lease_lost") end
     -- Native hook callbacks can call Stop. Keep the candidate private until all
@@ -744,7 +759,7 @@ function Transport.Message(prefix,payload,channel,nativeSender)
         local now,reason=checked()
         if not now then return hardStop(reason) end
         local token=liveRun
-        if prefix==LiveProtocol.PREFIX then
+        if livePrefix(prefix) then
             local ok,accepted,why=pcall(Live.receive,token,math.floor(now*1000),prefix,payload,channel,nativeSender)
             if not ok then return hardStop("controller_error") end
             if liveRun==token then finishLive(lastNow) end

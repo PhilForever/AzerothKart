@@ -11,6 +11,11 @@ local controls = {accelerate=true, brake=true, left=true, right=true, drift=true
 local function finite(v) return type(v)=="number" and v==v and v>-math.huge and v<math.huge end
 local function integer(v, low, high) return finite(v) and v%1==0 and v>=low and v<=high end
 local function plain(v) return type(v)=="table" and getmetatable(v)==nil end
+local function validLevel(track,level)
+    if not integer(level,0,1) or type(track.validLevel)~="function" then return false end
+    local ok,valid=pcall(track.validLevel,level)
+    return ok and valid==true
+end
 local function copy(v, seen)
     if type(v)~="table" then return v end
     assert(plain(v), "plain data required")
@@ -65,7 +70,7 @@ function Live.new(bundle, peer, nowMS, modules)
         or (b.role~="host" and b.role~="guest") or not integer(b.seed,0,2147483647)
         or not integer(b.localEpochMS,0,36^7-1) or not integer(b.hostEpochMS,0,36^7-1)
         or not integer(nowMS,b.localEpochMS,b.localEpochMS+250)
-        or b.fixedDt~=1/60 or b.physicsVersion~=modules.Physics.VERSION
+        or b.fixedDt~=1/60
         or (b.kartId~=nil and (type(b.kartId)~="string" or #b.kartId<1 or #b.kartId>64
             or not b.kartId:match("^[a-z0-9_]+$")))
         or not plain(b.track) or b.track.id~=b.trackId or b.track.version~=b.trackVersion
@@ -89,10 +94,27 @@ function Live.new(bundle, peer, nowMS, modules)
     end
     if b.vehicle.drifting~=false or (b.vehicle.surface~="road" and b.vehicle.surface~="grass"
         and b.vehicle.surface~="wall") then return nil,"bundle" end
+    local versionOK,version=true,modules.Physics.VERSION
+    local features=b.track.layered==true or (type(b.track.pads)=="table" and next(b.track.pads)~=nil)
+    if features and type(modules.Physics.versionForTrack)=="function" then
+        versionOK,version=pcall(modules.Physics.versionForTrack,b.track)
+    end
+    if features and type(modules.Physics.versionForTrack)~="function" then versionOK=false end
+    if not versionOK or b.physicsVersion~=version then return nil,"bundle" end
+    local codec=modules.LiveProtocol
+    if b.track.layered then
+        codec=codec.Layered
+        if not plain(codec) or codec.PREFIX~="AZKRUN3" or codec.VERSION~=3 or codec.MAX_BYTES~=40
+            or type(codec.encode)~="function" or type(codec.decode)~="function"
+            or codec.MAX_TICK~=modules.LiveProtocol.MAX_TICK
+            or codec.MAX_SEQUENCE~=modules.LiveProtocol.MAX_SEQUENCE then return nil,"dependencies" end
+        if not validLevel(b.track,b.vehicle.level) then return nil,"bundle" end
+    end
     local ok,captured=pcall(copy,b)
     if not ok then return nil,"bundle" end
     local token={}
     local m={}; for k,v in pairs(modules) do m[k]=v end
+    m.LiveProtocol=codec
     -- Reserve before invoking injected code; an initializer failure consumes
     -- this bundle too, rather than permitting a reentrant or partial retry.
     claimed[bundle]=true
@@ -148,13 +170,15 @@ end
 local function packet(s)
     local p,v,r=s.modules.LiveProtocol,s.vehicle,s.race
     local turn=2*math.pi
-    return p.encode({kind="STATE",session=s.bundle.session,sequence=s.sequence+1,tick=v.tick,
+    local message={kind="STATE",session=s.bundle.session,sequence=s.sequence+1,tick=v.tick,
         x=math.floor(v.x*4+0.5)/4,y=math.floor(v.y*4+0.5)/4,
         headingQ=math.floor((v.heading%turn)/turn*46656+0.5)%46656,
         speedQ=math.floor(v.speed*10+0.5),driftTier=v.driftTier or 0,
         boosting=(v.boostTicks or 0)>0,completedLaps=r.laps.completedLaps,
         passed=r.laps.checkpoints.passed,status=r.status,
-        sampleMS=math.max(0,s.advancedAt-s.bundle.localEpochMS)})
+        sampleMS=math.max(0,s.advancedAt-s.bundle.localEpochMS)}
+    if s.track.layered then message.level=v.level end
+    return p.encode(message)
 end
 
 -- Only output path: latest pose, never a history queue, ACK or catch-up burst.
@@ -207,6 +231,7 @@ function Live.receive(token, nowMS, prefix, payload, channel, sender)
     if message.session~=s.bundle.session then return reject("session") end
     if message.sequence<=s.remoteSequence then s.counters.stale=s.counters.stale+1; return false,"stale" end
     if message.x>s.track.width or message.y>s.track.height or message.passed>=#s.track.gates
+        or (s.track.layered and not validLevel(s.track,message.level))
         or message.completedLaps>s.race.targetLaps
         or (message.completedLaps==s.race.targetLaps)~=(message.status=="finished")
         or (message.status=="finished" and message.passed~=0) then return reject("bounds") end
@@ -220,6 +245,7 @@ function Live.receive(token, nowMS, prefix, payload, channel, sender)
         speed=message.speedQ/10,tick=message.tick,driftTier=message.driftTier,boosting=message.boosting,
         completedLaps=message.completedLaps,passed=message.passed,status=message.status,receivedAtMS=nowMS}
     remote.sampleMS=message.sampleMS
+    if s.track.layered then remote.level=message.level end
     s.remotePrevious,s.remote=s.remote or remote,remote
     s.remoteSequence,s.peerAt=message.sequence,nowMS
     s.counters.received=s.counters.received+1

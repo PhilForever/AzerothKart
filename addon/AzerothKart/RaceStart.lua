@@ -106,7 +106,15 @@ function RaceStart.take(gate,nowMS,physics,race,checkpoints,laps)
     -- caller cannot award a second start or retry a partly-created simulation.
     context.closed=true
     if nowMS-ticket.localEpochMS>RaceStart.MAX_LATE_MS then return nil,"late" end
-    if type(physics)~="table" or physics.VERSION~=context.physicsVersion then
+    local version=type(physics)=="table" and physics.VERSION
+    local features=context.track.layered==true or
+        (type(context.track.pads)=="table" and next(context.track.pads)~=nil)
+    if features and type(physics)=="table" and type(physics.versionForTrack)=="function" then
+        local ok,value=pcall(physics.versionForTrack,context.track)
+        version=ok and value or nil
+    end
+    if features and (type(physics)~="table" or type(physics.versionForTrack)~="function") then version=nil end
+    if version~=context.physicsVersion then
         return nil,"physics_version"
     end
     if type(physics.new)~="function" or not finite(physics.FIXED_DT) or physics.FIXED_DT<=0

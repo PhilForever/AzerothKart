@@ -1,5 +1,64 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-27 12:06 +01:00 — opt-in floors/pads foundation for Claude's Warsong
+
+Owner explicitly forwards Claude's floor/pad request. Cleana1b1d84,
+installed736ac2f; own `codex/layered-track-foundation`, reservationf691620.
+Reviewed Claude's docs-only1d776cb (e277d46/19465b3 frome3c82ad); integrated the
+plan without rewriting its branch or other checkout. [ADR0022](adr/0022-floors-and-boost-pads.md)
+accepted for the source foundation; [exact authoring contract](LAYERED_TRACKS.md).
+
+LayeredTrack composes Dungeon per floor0/1 with own-floor solids and explicit
+straight ramp portals. A kart changes floors only after leaving the correct
+end; side/wrong-end entries block, transfer remainder uses destination collision,
+and scalar switch coordinates split pad entry tests. No rampId state or inferred
+floor. Reserved ramp interiors and requests<=16units keep occupancy unambiguous;
+no route beneath a transition ramp in this first contract. Gates/spawn/pads
+are validated away from transfers. Independent review caught an exact16gap
+two-ramp entry bypass; strict>16margin and a reproducing regression fix it.
+
+Physics adds level only on layered state. Pads sweep resolved own-floor entry,
+reward max(existing,ticks) nexttick, never refresh while inside, rearm on leaving;
+brake/wall/nonroad cancellation wins. Definitions bounded by ValidatePads.
+Physics.VERSION12/flat15-fieldshape and720tickgoldens for3profiles stay exact;
+feature tracks alone use13 via versionForTrack. Existing11score contexts/export
+remain12, historical saves preserved. Floor-aware checkpoints require both
+consecutive poses on the gate's floor; order/tick/duplicate rules unchanged.
+
+PeerSession optionally captures complete per-course trackPhysics; native uses
+it for early compatibility. RaceStart/live validate the chosen feature version.
+Layered AZKRUN3packslevel+drifttier into one existing character, still40payload+
+7prefixB. Flat AZKRUN2 bytes and current4prefix registration stay unchanged;
+layered catalogues register a5th prefix. Explicit received floor is validated/
+copied; no xy inference. Grid poses preserve it. Renderer gets level scalars,
+stops forecasting before an unobserved transfer and clears cross-floor position
+correction. No new UI objects, send-rate/byte-budget or local control change.
+
+Actual focused Lua51 commands PASS: `layered_track layered_physics checkpoints
+peer_session race_grid solo_records presentation`; then `layered_track
+live_protocol race_start live_race session_transport ui menu
+multiplayer_integration`.14distinct modules,83source/test files parsed. Real
+LayeredTrack/Physics/Checkpoints720ticktape matches every state at30/60/144Hz,
+including ascent/descent, boots and wrong-floor walls/gates. Delayed native
+adapter mocks pass feature13GO/LP3receipts at both floors and unchanged pacing;
+existing three-round sprint/rematch and smoothing regressions pass. Additional
+agent Physics/drift/surface/handling passes reported. Initial layered adapter
+test incorrectly assumed Mirage.resolveMovement; fixture fixed to support its
+actual constrainPosition API. No production assertion weakened.
+
+Score export PASS11boards; diffcheck PASS. Structural validator retains only
+two historical expired skill links, not a full pass. No redundant full suite/
+Lua54, image rebuild, live-client or new Warsong test; native NOT RUN. No roadmap
+boxes closed, push/release/install or player-data change. Installed736ac2f and
+friend ZIP remain current: this foundation exposes no new player-facing map.
+
+**Next exact task:** Claude authors Warsong geometry/art/pooled roofs/arrow
+against LAYERED_TRACKS, leaving production registration for reviewed integration.
+Codex then assigns actual course/wire/score IDs and handles mixed Physics12/13
+score catalogue support before enabling/installing it. Flag-room doors,
+drop-offs and separate base starts remain undecided; initial engine has ramps
+and the existing shared grid only. No manual floor probe is requested now.
+
 ## 2026-10-27 — external evaluation checked against source and evidence
 
 Owner supplies Gemini's state evaluation. Documentation-only branch

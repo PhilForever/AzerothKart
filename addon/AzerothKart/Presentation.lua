@@ -165,7 +165,7 @@ function Presentation.buildRemotePath(previous, current, track, horizonMS)
     local x,y,heading = source.x,source.y,source.heading
     local points = {{x=x, y=y, heading=heading}}
     local path = {points=points, stepMS=remoteStepMS,
-        maxAgeMS=remoteHorizon(horizonMS), predicted=false}
+        maxAgeMS=remoteHorizon(horizonMS), predicted=false,level=source.level or 0}
     if not validCurrent or current.status ~= "running" or not finite(current.speed)
         or type(track) ~= "table" then return path end
     if type(track.resolveMovement) ~= "function" and type(track.isDrivable) ~= "function" then
@@ -219,14 +219,18 @@ function Presentation.buildRemotePath(previous, current, track, horizonMS)
         if not finite(targetX) or not finite(targetY) then break end
         local nx,ny,hit = targetX,targetY,false
         if type(track.resolveMovement) == "function" then
-            nx,ny,hit = track.resolveMovement(x,y,targetX,targetY)
+            local resolvedLevel
+            nx,ny,hit,resolvedLevel = track.resolveMovement(x,y,targetX,targetY,path.level)
+            -- Floor is an explicit received fact. Do not predict an opponent
+            -- onto another floor before its next authoritative observation.
+            if track.layered and resolvedLevel~=path.level then break end
             if not finite(nx) or not finite(ny) then break end
             local dx,dy = nx-x,ny-y
             -- Recovery may move an invalid observation far away; a display
             -- forecast must not turn that into a teleport through the map.
             if dx*dx+dy*dy > (speed/60+1e-6)^2 then break end
             hit = hit or math.abs(nx-targetX) > 1e-6 or math.abs(ny-targetY) > 1e-6
-        elseif not track.isDrivable(targetX,targetY) then
+        elseif not track.isDrivable(targetX,targetY,path.level) then
             break
         end
         heading = facing+turn*index

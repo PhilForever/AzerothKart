@@ -428,6 +428,20 @@ do
     end
     assert(select("#",P.remoteCorrection(30,40,16))==2,"positional correction returns only scalars")
 
+    local floorCalls=0
+    local floorTrack={layered=true,resolveMovement=function(x,y,tx,ty,level)
+        assert(level==1,"forecast collision uses the observed floor, not the default")
+        floorCalls=floorCalls+1
+        if tx>=80 then return tx,ty,false,0 end
+        return tx,ty,false,1
+    end}
+    local onFloor={x=60,y=30,heading=0,speed=100,sampleMS=500,status="running",level=1}
+    local floorPath=P.buildRemotePath(nil,onFloor,floorTrack)
+    local fx,fy=P.remotePose(floorPath,500)
+    assert(floorCalls>0 and floorPath.level==1 and fx<80 and fy==30,
+        "an estimated peer stops before a ramp switch until an explicit new-floor packet arrives")
+    assert(onFloor.level==1 and onFloor.x==60,"forecast cannot switch the received floor")
+
     local wall = {resolveMovement=function(x,y,tx,ty)
         assert(math.sqrt((tx-x)^2+(ty-y)^2)<=260/60+1e-9,"small projection sweep")
         return math.min(tx,100),ty,tx>100

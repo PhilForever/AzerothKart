@@ -37,6 +37,24 @@ local function closed(state,reason)
     assert(not view(state).canInvite and not view(state).canJoin and not view(state).canStart)
 end
 
+do
+    local mapping={mirage_raceway=13,stormwind_city=7}
+    local host=fresh("host",{trackPhysics=mapping})
+    local guest=fresh("guest",{trackPhysics=mapping})
+    mapping.mirage_raceway=99
+    assert(Session.invite(host,0,"mirage_raceway") and view(host).offer.physicsVersion==13,
+        "feature mechanics is selected per course from a captured map")
+    local payload=wire("INVITE",1,{trackId="mirage_raceway",trackVersion=1,physicsVersion=13,laps=3})
+    assert(deliver(guest,0,payload),"matching feature mechanics admits before any start")
+    local old=fresh("guest")
+    assert(not deliver(old,0,payload)); closed(old,"incompatible")
+    for _,bad in ipairs({false,{mirage_raceway=13},{mirage_raceway=13,stormwind_city=7,unknown=12},
+        {mirage_raceway=0,stormwind_city=7},setmetatable({},{})}) do
+        assert(Session.new(options("host",{trackPhysics=bad}),0,Protocol)==nil,
+            "per-course physics must be plain, complete and bounded")
+    end
+end
+
 -- Every production map can be offered without admitting the retired fixture.
 for _,id in ipairs({"mirage_raceway","stormwind_city","ironforge_gp",
     "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway",

@@ -157,6 +157,14 @@ Offline: the route walk crosses the five gates in order and never meets a wall o
 
 Offline: the route walk crosses the four gates in order and never meets a wall or a solid; full throttle from the grid launches cleanly; the pools block and a kart slides round the round pool's rim; a plinth's face stops a kart, the long flights run clean onto their landings, a parapet stops a kart driving on north and the short flights lead off to the lawns; a kart stops at a tree's crown, not at a hidden trunk. With the Cathedral every course is ready; none is listed as coming soon. See [the Scarlet Cathedral sheet](art/tracks/scarlet-cathedral.md).
 
+## Battlegrounds Cup: Warsong Gulch (planned; floor foundation available)
+
+The owner's fourth cup starts with Warsong Gulch. He chose a fixed three-lap
+loop through both bases, a Warsong-only guiding arrow, tunnels' Boots pads and
+floors first so the banana/roofs can be driven. Codex's opt-in foundation is
+implemented: [ADR0022](adr/0022-floors-and-boost-pads.md), [authoring contract](LAYERED_TRACKS.md).
+The map itself is not built/registered. See [the Warsong plan](art/tracks/warsong-gulch.md).
+
 ## Test Oval checkpoint sequence
 
 `Track.gates` defines four ordered finite segments: North, West, South, then Start, following counterclockwise motion from the right-hand spawn facing north. The Start strip now runs horizontally across the right-hand road at `y=240`, from `x=570` to `770`; it is the fourth gate rather than an immediate spawn award. The other gates cross the road at its north, west and south extremities. Four pooled strips show pending, next and passed gates; a separate text HUD names the next target and the passed count.

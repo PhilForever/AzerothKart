@@ -1,5 +1,11 @@
 # ADR 0015 — Track elevation
 
+2026-10-27: [ADR0022](0022-floors-and-boost-pads.md) implements a bounded opt-in
+two-floor/portal subset for future dungeon-style tracks. [Exact contract](../LAYERED_TRACKS.md).
+Existing city elevation remains inert/art-only; physical slope forces, crests,
+drop-offs, general layered bridges and height-rendering proposals below are
+not enabled by that foundation.
+
 Status: Art-only elevation and inert generated height metadata accepted for the reviewed9143949 integration, 2026-10-23. Physical slopes, crests, layered bridges and kart-height rendering remain proposals; this review does not approve their architecture or numerical tuning. Native city checks NOT RUN.
 
 ## Context

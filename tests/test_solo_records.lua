@@ -53,6 +53,9 @@ fixture({schemaVersion=1, custom={keep=true}, preferences={sound=false}}, functi
         and row.tickRate==60 and row.lapCount==3 and row.rulesVersion==1)
     row.playerName="Mutated"; assert(R.GetView("mirage_raceway").rows[1].playerName=="Lene Conradi", "detached view")
     assert(#R.GetView("stormwind_city").rows==0, "boards separated by track")
+    assert(R.Context({id="mirage_raceway",version=99,layered=true}).physicsVersion==13
+        and R.Context(ns.Courses.build("mirage_raceway",ns.Track.crossesGate)).physicsVersion==12,
+        "opted-in mechanics has a separate score context while current flat boards remain12")
     local slower, slowRace=run(2400)
     assert(not R.Finish(slower,slowRace,false).saved and root.highscores==raw, "slower run preserves best and date")
     local faster, fastRace=run(2300)

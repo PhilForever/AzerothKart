@@ -315,3 +315,46 @@ do
 end
 
 print("live_race: actual GO/physics/laps, 1200-tick two-peer tape, 700ms synthetic RTT, bounded telemetry and frozen cleanup")
+
+-- Synthetic stacked geometry isolates the transport contract: identical x/y
+-- on two floors must remain explicit and detached, never inferred by motion.
+do
+    local layered=shallow(Track);layered.layered,layered.levelCount=true,2
+    layered.validLevel=function(level) return level==0 or level==1 end
+    local spawn=Track.spawn()
+    layered.spawn=function() return {x=spawn.x,y=spawn.y,heading=spawn.heading,level=1} end
+    layered.resolveMovement=function(x,y,tx,ty,level)
+        local nx,ny,hit=Track.resolveMovement(x,y,tx,ty)
+        return nx,ny,hit,level
+    end
+    local launch=assert(Start.take(assert(Start.new({session="RACE01",role="host",seed=0,
+        localEpochMS=10000,hostEpochMS=10000,offsetLowMS=0,offsetHighMS=0,
+        uncertaintyMS=0,peerAcknowledged=true},layered,Physics.FEATURE_VERSION)),
+        10000,Physics,Race,Checkpoints,Laps))
+    assert(launch.physicsVersion==13 and launch.vehicle.level==1)
+    local run=assert(Live.new(launch,"Birch Vale",10000,modules))
+    local sent,prefix
+    assert(Live.update(run,10000,function(payload,_,p) sent,prefix=payload,p; return "accepted" end))
+    assert(prefix==Protocol.Layered.PREFIX and #sent==40
+        and assert(Protocol.Layered.decode(sent)).level==1,"layered output stays within the existing budget")
+    assert(not Live.receive(run,10001,Protocol.PREFIX,message(1,1),"WHISPER","Birch Vale"),
+        "a layered race never admits a flat observation")
+    local incoming={kind="STATE",session="RACE01",sequence=1,tick=1,x=spawn.x,y=spawn.y,
+        headingQ=0,speedQ=0,driftTier=0,boosting=false,completedLaps=0,passed=0,
+        status="running",sampleMS=16,level=0}
+    assert(Live.receive(run,10001,Protocol.Layered.PREFIX,assert(Protocol.Layered.encode(incoming)),"WHISPER","Birch Vale"))
+    local view=Live.view(run)
+    assert(view.vehicle.level==1 and view.remote.level==0 and view.remote.x==view.vehicle.x,
+        "same-coordinate floors remain separate across copied native observations")
+    view.remote.level=1;view.vehicle.level=0
+    assert(Live.view(run).remote.level==0 and Live.view(run).vehicle.level==1,
+        "presentation cannot alter authoritative or retained peer levels")
+    local invalid=shallow(launch);invalid.vehicle=shallow(launch.vehicle);invalid.vehicle.level=2
+    assert(not Live.new(invalid,"Birch Vale",10000,modules),"an unavailable launch floor is rejected")
+    invalid=shallow(launch);invalid.track=shallow(layered);invalid.track.validLevel=function(level) return level==1 end
+    local restricted=assert(Live.new(invalid,"Birch Vale",10000,modules))
+    local accepted,reason=Live.receive(restricted,10001,Protocol.Layered.PREFIX,
+        assert(Protocol.Layered.encode(incoming)),"WHISPER","Birch Vale")
+    assert(not accepted and reason=="bounds","codec-valid floor absent from track is not admitted")
+end
+print("layered live race: explicit floor codec, version selection, copied same-coordinate floors and bounds PASS")

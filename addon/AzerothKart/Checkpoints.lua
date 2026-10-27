@@ -11,6 +11,11 @@ local function validTick(tick)
     return finite(tick) and tick >= 0 and tick % 1 == 0
 end
 
+local function levelOf(value)
+    if value==nil then return 0 end
+    return value
+end
+
 function Checkpoints.new(track, tick)
     assert(type(track) == "table" and type(track.gates) == "table" and #track.gates > 0,
         "ordered track gates required")
@@ -43,6 +48,11 @@ function Checkpoints.step(progress, previous, current, track)
     if not finite(distanceSquared) or not finite(bound) or bound <= 0
         or distanceSquared > bound*bound then return nextProgress end
     local gate = track.gates[progress.nextGate]
+    local fromLevel,toLevel,gateLevel=levelOf(previous.level),levelOf(current.level),levelOf(gate.level)
+    if not (finite(fromLevel) and fromLevel%1==0 and fromLevel>=0 and fromLevel<=1
+        and finite(toLevel) and toLevel%1==0 and toLevel>=0 and toLevel<=1
+        and finite(gateLevel) and gateLevel%1==0 and gateLevel>=0 and gateLevel<=1)
+        or fromLevel~=gateLevel or toLevel~=gateLevel then return nextProgress end
     if track.crossesGate(previous,current,gate) then
         nextProgress.passed = progress.passed+1
         nextProgress.nextGate = progress.nextGate+1

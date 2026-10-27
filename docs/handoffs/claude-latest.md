@@ -1,4 +1,74 @@
-# Claude handoff — the Gryphon Rider's wingbeat
+# Claude handoff — Warsong Gulch plan and the floors request
+
+Prepared 2026-10-27 by Claude (rendering/UI/sprites owner).
+
+**Base:** `claude/gryphon-wings` `e3c82ad` (on `claude/race-screens`, `claude/scarlet-v3` and Codex's installed `caab661`). **Branch:** `claude/warsong-plan`, with these commits:
+
+- `19465b3`: the reservation;
+- `e277d46`: the plan and the proposal;
+- this handoff.
+
+Documentation only: no code, art or test changed. Nothing is installed.
+
+## Owner instructions
+
+"Battlegrounds Cup - let's try Warsong Gulch first. It's going to be groundbreaking if we can make it work. The challenge is the two tunnels, and possibly floors. I'm not sure how the route/track should go or if it should be open. If open we would need clearer checkpoints and possibly a guiding arrow to the next checkpoint. What do you think?" He sent the in-game world map with his callouts and eleven screenshots of both bases.
+
+I proposed a fixed three-lap loop (sketched over his map), tunnels as corridors under fading roofs, and the floors as the real limit. Asked, he chose:
+
+- **the race:** a fixed loop: at each base, in by the tunnel, round the flag, out by the ramp; three laps;
+- **floors:** "Wait for floors": ask Codex for two-level driving first, then build Warsong with the banana and roof drivable;
+- **the guiding arrow:** Warsong only;
+- **the Boots:** a boost pad in each tunnel, proposed to Codex.
+
+The standing instructions hold: no merge into `main`; no claim of in-game verification without the actual client; the owner pushes and runs the client checks; Codex prepares coordinated installs.
+
+## Scope (reserved and changed)
+
+The reservation (`19465b3`) held, plus a line in `docs/INDEX.md`.
+
+- New: `docs/adr/0022-floors-and-boost-pads.md` (proposed), `docs/art/tracks/warsong-gulch.md` and its `warsong_gulch-route-sketch.png` (drawn over the owner's world-map screenshot; a design reference, not shipped).
+- Edited: `docs/API_CONTRACTS.md` (a proposed section before the dungeon sprints), `docs/TRACKS.md` (a planned section), `docs/INDEX.md` (one line after the Scarlet cup), `scripts/validate_project.py` (the three new files).
+
+## Delivered
+
+- **[ADR 0022](../adr/0022-floors-and-boost-pads.md), proposed for Codex:**
+  - *floors:* levels on areas, walls and solids; ramps with a low and a high end; the kart's level in Physics' state, changed only by ramps; collision and gates by level; optional drop-downs; and how a friend's level reaches the other client;
+  - *boost pads:* `track.pads`; entering one sets `boostTicks = max(boostTicks, pad.boostTicks)`, re-armed on leaving;
+  - *my side:* roof overlays drawn over karts below and fading while the player is under one; the pads' marks; the guiding arrow, which needs nothing from Codex.
+- **[The contract proposal](../API_CONTRACTS.md#proposed-floors-and-boost-pads-claude-claudewarsong-plan-2026-10-27-for-codex):** the data fields and the optional `level` arguments to `isDrivable`, `surfaceAt` and `resolveMovement` (which also returns the level).
+- **[The Warsong Gulch plan](../art/tracks/warsong-gulch.md):** the request, his decisions, the six checkpoints (Alliance flag, Alliance ramp, Horde tunnel, Horde flag, Horde ramp, finish at the Alliance tunnel), what needs floors, the rendering and Warcraft III art plan, and what to settle when building (the flag rooms' doors, drop-downs, the start).
+
+## Needs Codex
+
+- **A decision on floors** (ADR 0022, section 1). The owner chose this order: floors first, then Warsong. Any shape that gives levels, ramps between them and level-aware collision and gates will do; the ADR's is a starting point.
+- **A decision on boost pads** (section 3).
+- On acceptance, the final data fields and function signatures, so the track generator and the rendering can follow them.
+
+## Tests
+
+| Command | Cloud |
+|---|---|
+| `python scripts/validate_project.py` | Only the 2 pre-existing Windows-path links in `PROGRESS.md` fail |
+| `git diff --check` | clean |
+
+No code changed, so no Lua suite was needed.
+
+## PROGRESS ledger entry for the integrator (Warsong plan)
+
+> **2026-10-27 — Warsong Gulch plan; floors and boost pads proposed (Claude, `claude/warsong-plan` `e277d46` on `claude/gryphon-wings` `e3c82ad`).** The owner's Battlegrounds Cup starts with Warsong Gulch. His choices: a fixed three-lap loop (in by each base's tunnel, round its flag, out by its ramp), the guiding arrow on Warsong only, the tunnels' Boots as boost pads, and floors first so the banana and roofs are drivable. ADR 0022 (proposed) asks Codex for floors (levels, ramps, a kart level, level-aware collision and gates) and boost pads; the Warsong plan and route sketch are in `docs/art/tracks/warsong-gulch.md`. Documentation only; validator: only the 2 pre-existing `PROGRESS.md` links fail.
+
+## Push (the owner's)
+
+```
+git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/scarlet-v3 claude/race-screens claude/gryphon-wings claude/warsong-plan
+```
+
+## Next
+
+Codex's answer on floors and boost pads. Then Warsong itself: the layout from the owner's screenshots, Warcraft III art for both halves, the roof overlays, the guiding arrow and the pads' marks.
+
+# Previous: the Gryphon Rider's wingbeat
 
 Prepared 2026-10-26 at about 17:20 CET by Claude (rendering/UI/sprites owner).
 

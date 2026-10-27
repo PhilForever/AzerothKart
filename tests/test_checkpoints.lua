@@ -42,6 +42,21 @@ assert(awarded.nextGate==2 and awarded.passed==1 and awarded.lastTick==1 and not
     "one expected gate awards one progress step")
 assert(progress.nextGate==1 and progress.passed==0 and progress.lastTick==0,
     "stepping leaves incoming progress unchanged")
+do
+    local layered={gates={{name=gate.name,ax=gate.ax,ay=gate.ay,bx=gate.bx,by=gate.by,
+        nx=gate.nx,ny=gate.ny,level=1}},crossesGate=T.crossesGate,checkpointMaxStep=5}
+    local a,b=pose(before.x,before.y,0),pose(after.x,after.y,1)
+    a.level,b.level=0,0
+    assert(C.step(C.new(layered),a,b,layered).passed==0,"same x/y crossing below an upper gate awards nothing")
+    a.level,b.level=0,1
+    assert(C.step(C.new(layered),a,b,layered).passed==0,"a ramp transfer cannot also award a gate on either floor")
+    a.level,b.level=1,1
+    assert(C.step(C.new(layered),a,b,layered).passed==1,"ordered gate on the kart's own floor counts normally")
+    for _,bad in ipairs({false,2,-1,0.5,0/0}) do
+        b.level=bad
+        assert(C.step(C.new(layered),a,b,layered).passed==0,"malformed floor cannot award progress")
+    end
+end
 assert(C.step(awarded,before,after,T)==awarded,"duplicate report returns the same progress")
 assert(C.step(awarded,pose(before.x,before.y,0),pose(after.x,after.y,2),T)==awarded,
     "out-of-order previous tick is rejected")

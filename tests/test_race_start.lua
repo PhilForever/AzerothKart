@@ -17,6 +17,21 @@ local function shallow(source)
     for key,value in pairs(source) do result[key]=value end
     return result
 end
+
+do
+    local layered=shallow(T);layered.layered=true
+    layered.validLevel=function(level) return level==0 or level==1 end
+    local spawn=T.spawn()
+    layered.spawn=function() return {x=spawn.x,y=spawn.y,heading=spawn.heading,level=1} end
+    local gate=assert(Start.new(ticket(),layered,P.FEATURE_VERSION))
+    local launch=assert(take(gate,10000))
+    assert(launch.physicsVersion==13 and launch.vehicle.level==1,
+        "feature opt-in preserves exact spawn floor at the one-shot GO")
+    local wrong=assert(Start.new(ticket(),layered,P.VERSION))
+    local bad,why=take(wrong,10000)
+    assert(not bad and why=="physics_version" and take(wrong,10000)==nil,
+        "old compatibility cannot silently launch new layered mechanics")
+end
 assert(Start.MAX_CLOCK_MS==36^7-1 and Start.MAX_LATE_MS==250,"bounded clock and late gate")
 local hostTicket=ticket()
 local host=assert(Start.new(hostTicket,T,P.VERSION))
