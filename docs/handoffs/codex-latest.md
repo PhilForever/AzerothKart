@@ -1,5 +1,26 @@
 # Codex handoff — production maps and Claude course review
 
+## Active foundation — Warsong floors and pads, 2026-10-27
+
+Owner explicitly forwards Claude's floors/boost-pad request. Basea1b1d84,
+installed736ac2f; own `codex/layered-track-foundation`. Review/integrate only
+Claude's documentation plan1d776cb (no map/art implementation). Reserve new
+LayeredTrack/test; opt-in Physics/pad tests; Checkpoints/PeerSession/RaceGrid/
+RaceStart/LiveProtocol/LiveRace/SessionTransport/Core level/compatibility hooks
+and relevant tests; read-only Presentation/UI level hooks; bothTOCs/test registry;
+SoloRecords per-track version and shared contracts/ADR/handoff/PROGRESS.
+
+Plan: explicit levels0/1 and axis-aligned authored ramp portals; own-floor
+collision/gates, no xy-based floor inference. Pads once per resolved swept
+entry with floor-correct segments. Physics12/flat states/boards remain exact;
+feature-version13 only opted-in tracks. Layered telemetry v3packslevel into
+unused drift values, same40bytes; native admission validates per-track version.
+Rendering receives explicit level; Claude owns roofs/arrow/map. Drop-offs,
+separate-base starts, new production Warsong ID/art/score code and mixed-physics
+score catalogue remain separate integration work. No made-up playable map,
+public release or new traffic budget. Focused offline proofs before handoff;
+current flat gameplay need not be reinstalled for a developer-only foundation.
+
 ## External evaluation review — 2026-10-27
 
 Owner supplies Gemini's project-state evaluation for review. Clean base684fc2d,
