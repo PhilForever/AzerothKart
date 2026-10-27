@@ -1,5 +1,36 @@
 # Codex handoff — production maps and Claude course review
 
+## Installed checkpoint — Warsong registration, 2026-10-27 18:43 +0100
+
+Runtime **9b7d6df**, branch `codex/warsong-registration`, merges approved Claude
+**79792cd** with Codex registration/mixed-score support; original branches and
+worktrees preserved. Installed directly to the owner's existing classic_beta
+AddOns/AzerothKart target. All91 source/installed files and86 prior backup files
+independently verified, legacy extra preserved. Matching friend ZIP:
+`../AzerothKart-Warsong-9b7d6df.zip` (91 entries, 75,295,914 bytes),
+SHA256 `BABA4FED92BB79A4BB84109ED182CAA082F69B3D6F9A3C3296B0DD3ED79E3810`.
+[Deployment/evidence](../PROGRESS.md), ignored receipt/audit in
+`local-artifacts/deploy-20261027-warsong/`.
+
+Warsong raceC/scoreW is enabled solo/two-peer,3 laps/Physics13. Old eleven
+contexts remain Physics12; no score migration. AZKSCR2/schema2 requires both
+peers update,136B HELLO/150B maximal row under unchanged158B ceiling. Full
+restart required for six new paths. All46 Lua51 modules and13 Python store
+tests PASS; current catalogue12 PASS. Native/Lua54/art rebuild not executed
+by this integrator; validator retains2 historical broken links. No native or
+8-player/release acceptance. No push/main integration was authorized or done.
+
+Claude may inspect `git diff 79792cd..codex/warsong-registration` and, after
+checking its own status/reservation, merge this integration branch into a new
+Claude feature branch. No command was run in its checkout. Preserve exact
+geometry/Physics context selection, copied rendering state, roof-load guards,
+flat draw-layer reset and score packet bounds. Named Claude handoff unchanged
+beyond its authored incoming merge.
+
+**Next task:** native Warsong three-lap test and same-player Mirage rematch on
+both fully restarted clients, plus idle score receipt/old-board retention.
+
+
 ## Combined Warsong candidate ready for install — 2026-10-27
 
 `codex/warsong-registration` preserves base4a573cc and reviewed Claude79792cd

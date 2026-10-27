@@ -1,5 +1,18 @@
 # Shared integration and deployment status
 
+## Installed Warsong build — 2026-10-27
+
+Runtime **9b7d6df** on `codex/warsong-registration` is installed in the owner's
+classic_beta AddOns folder. Reviewed Claude79792cd is integrated with registration
+and bounded mixed Physics12/13 scores; original worktrees preserved. All91
+source/installed files and86 prior backup files independently SHA-256 verified.
+Friend ZIP `../AzerothKart-Warsong-9b7d6df.zip` has91 tested entries; legacy extra
+remains installed/backed up but is excluded from the package. [Full receipt](PROGRESS.md).
+**Fully restart both clients** (six new paths); both need AZKSCR2 for score sync.
+All46 Lua51 modules,12-board export and13 Python tests PASS. Native tests remain
+NOT RUN; structural validator has two old expired links. No push/main/release.
+
+
 ## Warsong integrated candidate — 2026-10-27
 
 `codex/warsong-registration` merges reviewed Claude79792cd and registers

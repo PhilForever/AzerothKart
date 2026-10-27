@@ -1,5 +1,52 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-27 18:43 +0100 — Warsong installed and matching friend ZIP verified
+
+Committed combined runtime **9b7d6df** on `codex/warsong-registration` has both
+parents045be3d and reviewed Claude79792cd. All implementation/test evidence in
+the preceding entry applies unchanged; subsequent edits are documentation only.
+The owner-authorized AddOns installation is complete. The shared target was
+checked against installed736ac2f before deployment; no other agent install was
+present. Claude's branch/worktree remains79792cd, with its untracked outputs
+preserved. No GitHub push, main merge, rewrite or release.
+
+Executed PS7 `scripts/install_local.ps1 -AddOnsDirectory
+'C:/Program Files (x86)/World of Warcraft/_classic_beta_/Interface/AddOns'
+-Overwrite -BackupDirectory '<repo>/local-artifacts/deploy-20261027-warsong/backups'`
+(after successful `-WhatIf`): PASS. All91 tested source files copied and
+SHA-256 verified; all86 previous installed files preserved in a verified backup.
+Legacy extra `Assets/Karts/GoblinDragCar.tga` retained;92 installed files total.
+No deletion, WTF/SavedVariables or unrelated-addon changes.
+
+Independent `C:/Python314/python.exe
+local-artifacts/deploy-20261027-warsong/audit_and_package.py --runtime 9b7d6df`:
+PASS source/installed/backup hashes, exact path inventories and preserved extra.
+Creates an exclusive new ZIP from installed tested source paths, then checks
+every entry/hash and archive CRC. Runtime source still matches the commit.
+
+- Manifest: `local-artifacts/deploy-20261027-warsong/backups/20261027-184233-565-832338429aa549aaa2d1ac2e7dcd7162/install.json`.
+- Backup: that manifest directory's `before/`,86 verified files.
+- Receipt/audit/preflight/full Lua51 log: `local-artifacts/deploy-20261027-warsong/`.
+- Friend package: `../AzerothKart-Warsong-9b7d6df.zip`,91entries,75,295,914bytes.
+- ZIP SHA256: `BABA4FED92BB79A4BB84109ED182CAA082F69B3D6F9A3C3296B0DD3ED79E3810`.
+
+**Fully exit and restart both clients**, because LayeredTrack.lua,
+Battlegrounds.lua and four textures are new paths. Both players need this
+AZKSCR2 build for score sharing; all existing records remain saved. Warsong is
+now selectable solo and in the existing two-player lobby, with mixed Physics13/
+old-map Physics12 score contexts. No eight-player capability is claimed.
+
+Native appearance, floors/roof/arrow feel, current peer smoothness and actual
+new-prefix score delivery remain **NOT RUN**. Validator still has only the two
+historical expired skill links; milestone/release gates remain open.
+
+**Next exact task:** owner/friend check on this same build: start Warsong from
+the multiplayer lobby, observe both karts and3-2-1, finish three laps, both choose
+Play Again, host changes to Mirage, guest Join/Ready then host Start. Confirm
+roof/floor ordering and no peer jumps at transitions. While idle and connected,
+compare Highscores and confirm prior map records plus separate Warsong board.
+
+
 ## 2026-10-27 18:41 +0100 — Warsong registered; mixed-version score integration ready
 
 Owner authorizes registration, integration and installation. New branch
