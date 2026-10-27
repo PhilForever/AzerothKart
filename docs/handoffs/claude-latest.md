@@ -1,4 +1,14 @@
-# Claude handoff — the Gryphon Rider's wingbeat
+# Claude handoff — Warsong Gulch plan and the floors request (reservation, in progress)
+
+Reserved 2026-10-27 by Claude (rendering/UI/sprites owner).
+
+**Base:** `claude/gryphon-wings` `e3c82ad` (on `claude/race-screens`, `claude/scarlet-v3` and Codex's installed `caab661`). **Branch:** `claude/warsong-plan`. Documentation only: no runtime, art or test change.
+
+**Owner instructions:** "Battlegrounds Cup - let's try Warsong Gulch first. It's going to be groundbreaking if we can make it work. The challenge is the two tunnels, and possibly floors." Asked, he chose: a fixed loop (in by each tunnel, round the flag, out by the ramp, three laps); **wait for floors** ("Ask Codex for two-level driving first, then build Warsong with the banana and roof drivable"); the guiding arrow on Warsong only; and the tunnels' "Boots" as boost pads, proposed to Codex.
+
+**Reserved files:** a new proposed `docs/adr/0022-floors-and-boost-pads.md`; a proposed section in `docs/API_CONTRACTS.md`; a new `docs/art/tracks/warsong-gulch.md` with its route sketch; a planned section in `docs/TRACKS.md`; `scripts/validate_project.py` (the new files); this handoff. No code: floors and pads are Codex's to accept and build.
+
+# Previous: the Gryphon Rider's wingbeat
 
 Prepared 2026-10-26 at about 17:20 CET by Claude (rendering/UI/sprites owner).
 
