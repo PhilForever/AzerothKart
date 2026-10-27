@@ -1,5 +1,16 @@
 # Shared integration and deployment status
 
+## Installed all-course two-player build — 2026-10-27 08:40 CET
+
+Tested runtime `736ac2f` on `codex/sprint-multiplayer-smoothing` enables all11
+courses, including one-run Scarlet sprints, and reconciles friend-kart x/y
+packet corrections with bounded geometry recovery. Rematch, art, Physics12,
+scores and transport limits preserved. Eleven focused Lua51 modules pass;
+native new-course smoothness still pending. All85source/target and86prior
+backup files independently verified. Friend ZIP `AzerothKart-AllMapsMP-736ac2f.zip`.
+No new paths: reload from3f1b3fe. [Full evidence/next check](PROGRESS.md).
+No new GitHub push, main merge, other-worktree edit, release or8-player claim.
+
 ## Installed Claude visual/rematch integration — 2026-10-26 21:14 CET
 
 Reviewed runtime `3f1b3fe` on `codex/claude-race-integration` combines Claude

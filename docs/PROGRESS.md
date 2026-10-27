@@ -1,5 +1,33 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-27 08:40 +01:00 — all-map multiplayer/smoothing installed
+
+Tested runtime `736ac2f` on `codex/sprint-multiplayer-smoothing` is committed
+and installed. Preflight verified prior3f1b3fe unchanged; normal WhatIf/approved
+helper backed up all86prior files and verified all85tested source/target files.
+Independent audit reread every source/installed/prior-backup hash; legacy extra
+GoblinDragCar.tga remains unchanged. Installed tree86files. No asset/path/TOC
+addition, so `/reload` suffices from the preceding3f1b3fe build on both clients.
+Older installs missing its texture updates still need a full client restart.
+
+Ignored deployment root `local-artifacts/deploy-20261027-sprint-smoothing/`
+contains preflight, audit/package script, receipt and complete backup manifest
+`backups/20261027-083852-962-ffecdbfa5df64d2d859e3f051a064eca/install.json`.
+Matching ZIP from tested installed paths: `../AzerothKart-AllMapsMP-736ac2f.zip`,
+85entries/71,171,102bytes, SHA256
+`1A8349F72CC38C4A38F5EAD79DC9971062F678156CDCCF837563C630A56A37A2`.
+Every ZIP entry read back and hashed. No WTF/SavedVariables/other-addon edits,
+deletions, remote publication, main merge, release or native input.
+
+All eleven courses now enter the existing two-player mode. Focused source
+results below remain valid; native all-course play/peer smoothness NOT RUN.
+No eight-player capacity or complete stutter-elimination claim. Worktree clean
+after handoff commit; original checkouts/Claude branch/untracked files preserved.
+
+**Next exact task:** both clients update/reload, host a Scarlet sprint, compare
+friend-kart turns/braking/wall contact and one-run finish. Use Play Again then
+Change Map with the same players. Report native feel; no standalone probe.
+
 ## 2026-10-27 08:37 +01:00 — all-course multiplayer and remote position continuity
 
 Owner requests all new maps in multiplayer and confirms remaining stutter is

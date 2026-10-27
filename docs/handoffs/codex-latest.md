@@ -1,5 +1,29 @@
 # Codex handoff — production maps and Claude course review
 
+## Installed all-course/smoothing build — 2026-10-27 08:40 CET
+
+Runtime `736ac2f`, branch `codex/sprint-multiplayer-smoothing`, is installed.
+All85source/target hashes and86prior backup files independently verified;
+legacy extra preserved. Ignored deployment root
+`local-artifacts/deploy-20261027-sprint-smoothing/`, backup ID
+`20261027-083852-962-ffecdbfa5df64d2d859e3f051a064eca`.
+Friend ZIP `../AzerothKart-AllMapsMP-736ac2f.zip`:85entries/71,171,102bytes,
+SHA256 `1A8349F72CC38C4A38F5EAD79DC9971062F678156CDCCF837563C630A56A37A2`.
+No new paths; reload from3f1b3fe sufficient. Both PCs need this version for
+the new sprint codes. Actual native feel/sprints NOT RUN; no push/release.
+
+Source/test details and preservation constraints are immediately below and in
+PROGRESS/API_CONTRACTS. All11maps/two peers, actual1/3target, same-player room;
+position corrections are private/read-only and only geometry-blocked episodes
+have a600ms fallback. Preserve no-periodic-reseed regression for legal steering.
+Local Physics12, art and score contexts untouched. No8-player acceptance.
+
+Next exact task is owner's one friend race on a Scarlet sprint, then same-peer
+Play Again/map change while evaluating remote turns/braking/wall corrections.
+No additional standalone probe or broad offline retest before that feedback.
+Original Claude worktree remains e3c82ad; review/merge this newer branch only
+in a clean next feature branch, never reset or install its older source alone.
+
 ## Tested all-course multiplayer candidate — 2026-10-27 08:37 CET
 
 `codex/sprint-multiplayer-smoothing`, from4d9f7a8/reservation5e3902c, opens all11
