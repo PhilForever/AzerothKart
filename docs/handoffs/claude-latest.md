@@ -1,4 +1,61 @@
-# Claude handoff — Warsong Gulch: layout, art and rendering
+# Claude handoff — Warsong Gulch: Codex's review fixes
+
+Prepared 2026-10-27 at about 17:50 CET by Claude (rendering/UI/sprites owner).
+
+**Base:** `claude/warsong-layout` `bf94d2b` (below). **Branch:** the same, with these commits:
+
+- `d832966`: the two fixes, the dust's layer, tests and docs;
+- `8e2cee1`: the checks the review asked for (reopening, Ready, both floors);
+- this handoff.
+
+Nothing is installed; Warsong stays listed as coming soon. The developer machine's checkout has `claude/warsong-layout` at this handoff.
+
+## Owner instructions
+
+The owner relayed Codex's review of `bf94d2b` (`docs/reviews/2026-10-27-warsong-layout.md` on `codex/warsong-review` `2c32f13`, not on this branch): the layout is sound, but two bugs need fixing before enabling Warsong:
+
+1. "Missing roof textures don't prevent starting. Players could encounter upper-floor collision without visible floor artwork."
+2. "Opponent draw layers aren't restored after leaving Warsong. Switching to a flat map can leave the friend's kart incorrectly ordered against other sprites and effects."
+
+After those, Warsong needs Codex's registration and mixed-version leaderboard support within the existing packet budget.
+
+## Fixed
+
+- **The roof picture is required scenery.** `loadRoofs` (taken out of `layoutRoofs`) loads it once per picture. `UI.SelectTrack` now checks it after the background's staging load and before anything of the course shows: refused, the course is refused like a missing background ("Warsong Gulch roofs unavailable | Choose another track; previous selection retained"), the shown course and picture untouched; the multiplayer Ready, which selects through `SelectTrack`, refuses with "track_unavailable". `UI.Start` also refuses a course whose `roofs` are not loaded ("Track scenery unavailable…"). Choosing the course again or reopening the window retries the load. The arrow stays optional.
+- **The friend's kart's layer.** `layoutRoofs` no longer clears the friend's recorded sublevel: on a flat course it sets the texture back to `OVERLAY` 0, as created, and keeps the record true. A two-floor course still sets it as the friend draws.
+- **Found while fixing: the dust.** The kart's dust and wind puffs (`ARTWORK` 6) were hidden under the roofs on floor 1. They now follow the kart's draw set: `OVERLAY` 0 on floor 1 or a ramp (sharing the outer back flame's sublevel), `ARTWORK` 6 everywhere else, as before. Puffs already in the air switch with the kart when it changes floor.
+
+## Scope (changed)
+
+- `addon/AzerothKart/UI.lua`: `SMOKE_GROUND` and the `smoke` field of `KART_LAYERS`, `setKartLayers`, `createEffects` (the smoke pool's record), new `loadRoofs` and `roofsLoaded`, `layoutRoofs`. **In shared or Codex-owned functions, at the review's request:** `UI.SelectTrack`'s loading hook (the early return also requires loaded roofs; `roofsLoaded` after the background's staging load and, when the background is already shown, in its place) and one condition in `UI.Start`'s scenery refusal. Nothing else in `SelectTrack`'s transaction or in `UI.Start` changed.
+- `tests/test_ui.lua`, and the docs: the Warsong sheet, `API_CONTRACTS.md`'s proposed section, `TEST_PLAN.md`, `CHANGELOG.md`, the client checklist, this handoff.
+
+## Tests
+
+| Command | Cloud | Developer machine |
+|---|---|---|
+| `python scripts/test_lua.py --runtime lua51` | PASS, 46 modules | PASS, 46 modules (107 s) |
+| `python scripts/test_lua.py --runtime lua54 --tests ui menu warsong presentation` | PASS | — |
+| `python scripts/validate_project.py` | only the 2 pre-existing `PROGRESS.md` links | — |
+| `git diff --check` | clean | — |
+
+New in `test_ui`: a refused roof picture (false, nil, a throw) refuses Warsong with Mirage still shown and selected; Start refuses while the roofs are not loaded; choosing again or reopening retries, and once they load Warsong starts; Ready refuses an offered Warsong whose roofs do not load and selects it once they do; a friend on floor 1 draws at 3 and on the ground at -5, and from either, Mirage puts it back at 0, where it stays when shown again; the dust's layers on the ground, the plateau, a ramp and Mirage. Each check fails with its fix reverted (five reversions tried in the cloud). The pictures and data did not change; their byte check stands from `bf94d2b`. Client: NOT RUN ([the checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-warsong-gulch-check-proposed-claudewarsong-layout) gains the friend after Warsong and the dust on the plateau).
+
+## PROGRESS ledger entry for the integrator (Warsong review fixes)
+
+> **2026-10-27 — Warsong review fixes (Claude, `claude/warsong-layout` `8e2cee1`, after Codex's review of `bf94d2b`).** A roof picture that does not load now refuses Warsong at selection (rollback kept; the multiplayer Ready refuses with "track_unavailable") and at Start; the friend's kart returns to sublevel 0 on a flat course after Warsong; the kart's dust and wind puffs draw over the roofs on floor 1. One-condition additions to `UI.SelectTrack`'s loading hook and `UI.Start`'s scenery refusal. `test_ui` covers refused/throwing loads, retry, reopening, Ready and both floors' friend; each check fails with its fix reverted. Lua 5.1 suite PASS on both machines; Lua 5.4 focused PASS. Client: NOT RUN.
+
+## Needs Codex
+
+Review these fixes, then the registration the review describes (IDs, mixed Physics 12/13 scores within the 158-byte budget). Everything under "Needs Codex" below still holds, the ramp rule included.
+
+## Push (the owner's)
+
+```
+git -C "C:\Users\bakke\Downloads\Forever_Addons\AzerothKart_Codex_Project_Pack\AzerothKart-Claude" push -u origin claude/scarlet-v3 claude/race-screens claude/gryphon-wings claude/warsong-plan claude/warsong-layout
+```
+
+# Previous: Warsong Gulch: layout, art and rendering
 
 Prepared 2026-10-27 at about 15:40 CET by Claude (rendering/UI/sprites owner).
 
