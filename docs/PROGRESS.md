@@ -1,5 +1,27 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-27 18:19 +01:00 — Claude Warsong fixes approved
+
+Owner requests latest-fix review. Clean2c32f13/codex/warsong-review; reviewed
+Claude79792cd (d832966/8e2cee1). [Review addendum](reviews/2026-10-27-warsong-layout.md).
+Both renderer findings resolved: essential roof readiness/selection rollback/
+Start/Ready/reopen and actual opponent draw-layer restoration after eitherfloor.
+Additional dust/wind-puff layer fix is coherent; no new pool/physics change.
+Independent in-memory Lua51 replays verify original failures now behave safely.
+
+Exact-source Lua51 ui/menu/warsong/presentation/multiplayer_integration PASS5,
+85sources/tests parse. Score export PASS11boards, diffcheck clean; structural
+validator retains only2historical expired skilllinks. No full46/Lua54 repetition,
+image rebuild or native check. Assets and geometry unchanged. Original Claude
+checkout tracked-clean, existing untracked outputs preserved. Approve source
+fixes, no new blocking finding. No integration/enabling/push/install; installed
+runtime736ac2f and matchingZIP remain current.
+
+**Next exact task:** Codex registers Warsong with reviewed race/score IDs and
+bounded mixed Physics12/13 score support, retaining all11oldboards/158Blimit.
+Then complete combined integration and coordinate installation. No additional
+Claude blocker or user manual test is requested at this review checkpoint.
+
 ## 2026-10-27 16:10 +01:00 — Claude Warsong review; two renderer corrections
 
 Owner requests review. Clean5c481d4; own documentation-only

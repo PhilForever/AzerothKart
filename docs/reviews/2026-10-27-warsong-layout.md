@@ -1,5 +1,35 @@
 # Claude Warsong layout review
 
+## Follow-up: fixes approved, 2026-10-27 18:19 CET
+
+Reviewed79792cd (d832966/8e2cee1) against bf94d2b. Both findings below are
+**resolved**. No new blocking issue found; approve the fixes for integration.
+The original report is retained as historical reproduction/evidence.
+
+- Roof loading is essential scenery: loadRoofs799–813 and SelectTrack guards
+ 1106/1112 run before visible background/geometry commit. Start1841 also refuses
+  unready roofs. Independent in-memory original false/nil/throw reproductions
+  now refuse selection, retaining Mirage references/picture; reopen retries
+  and succeeds when the load is restored. The focused tests also cover Ready.
+- The actual opponent texture and cache restore OVERLAY0 at838–843; render's
+  fallback agrees. Independent actual-live-view mock checks from both floors
+  confirm3/-5→0 and correct redisplay on Mirage.
+- Smoke/wind puffs follow the high draw set above roofs, then restore ARTWORK6.
+  Stable cache references do not overlap numeric spark/flame cache entries;
+  no new per-frame widget allocation or simulation write was found.
+
+Executed exact-source Lua51 `ui menu warsong presentation multiplayer_integration`
+PASS5modules/85parsedfiles. Catalogue check PASS11; diffcheck clean. Validator
+still only2historical expired links, not a full pass. Full46/Lua54 suites, art
+rebuild and native checks NOT RUN by this follow-up. Assets/geometry unchanged.
+
+No source merge, registration, publication or install. Installed736ac2f remains.
+Next is reviewed registration/mixed-version scores within the existing packet
+budget, followed by coordinated integration/install. Coming-soon isolation
+remains correct until then.
+
+## Original review (bf94d2b; findings now resolved)
+
 2026-10-27 16:10 CET. Reviewed `claude/warsong-layout`bf94d2b
 (implementation51304df, reservation28c86bc) against shared5c481d4. Owner asks
 review only; no code integration, registration, push or install performed.

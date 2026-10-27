@@ -1,5 +1,31 @@
 # Codex handoff — production maps and Claude course review
 
+## Fixes approved — Claude79792cd, 2026-10-27 18:19 CET
+
+Owner asks review latest fixes. Continue documentation-only review on clean
+2c32f13/`codex/warsong-review`; reserve this handoff, original review addendum
+and PROGRESS. Reviewed79792cd (d832966 source/8e2cee1 regressions), no source
+merge, enabling, push or installation. Original Claude checkout/outputs intact.
+
+Both previous P2 findings are resolved. Required roof loads are checked before
+scenery commit; false/nil/throw preserve prior Mirage state/picture, Start
+refuses unready roofs, Ready refuses track_unavailable and reopen retries/
+recovers. Opponent actual layer and cache restore0 after either3/-5 floor,
+including real copied live-view mocks. Smoke/wind puffs now draw above roofs
+when high and restore ARTWORK6 on ground/flat; no new objects/physics writes.
+
+Actual Lua51 `ui menu warsong presentation multiplayer_integration` PASS5,
+85sources/tests parsed; independent in-memory original failure paths PASS.
+Score export PASS11; diffcheck clean. Structural validator only2oldexpired
+links, not a full pass. Native/full46/Lua54/art rebuild NOT RUN by this review;
+assets/data are unchanged from priorreview. Current pool91/96/151.
+
+Approve Claude's source fixes; no new blocking review finding. Remaining work
+is Codex registration, not another Claude correction: race/score IDs, bounded
+mixed Physics12/13 score catalogue and full layered course integration. Preserve
+the158B ceiling, old11boards and flat12 behavior. Then coordinate installation.
+Warsong stays coming soon until that work; installed736ac2f remains current.
+
 ## Review complete — Claude Warsong bf94d2b, 2026-10-27
 
 Owner asked review only. [Findings/evidence](../reviews/2026-10-27-warsong-layout.md).
