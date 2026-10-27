@@ -1,5 +1,21 @@
 # Codex handoff — production maps and Claude course review
 
+## External evaluation review — 2026-10-27
+
+Owner supplies Gemini's project-state evaluation for review. Clean base684fc2d,
+runtime/installation736ac2f unchanged. Own documentation-only branch
+`codex/external-review-20261027`; reserve this handoff, the dated external review
+and PROGRESS entry. Attachment recommendations are proposals, not authorization
+to change release scope, version/TOCs, main, assets, traffic or distribution.
+Read code/current evidence; no redundant source tests/install/native interaction.
+[Verified findings](../reviews/2026-10-27-external-evaluation.md) distinguish
+implemented content from native acceptance. Eleven maps/ten karts/two-player
+source are real; newest native sprint/smoothing/discovery gates remain open.
+Elevation is art-only, channel nonreceipt was a private-server observation,
+and two-player launch is not an approved replacement for the eight-player goal.
+Keep next native task unchanged: matching-build friend sprint/rematch and
+peer smoothness; current score-discovery receipt also still needs evidence.
+
 ## Installed all-course/smoothing build — 2026-10-27 08:40 CET
 
 Runtime `736ac2f`, branch `codex/sprint-multiplayer-smoothing`, is installed.

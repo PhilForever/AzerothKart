@@ -1,5 +1,23 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-27 — external evaluation checked against source and evidence
+
+Owner supplies Gemini's state evaluation. Documentation-only branch
+`codex/external-review-20261027` from clean684fc2d; installed/runtime736ac2f
+unchanged. [Review](reviews/2026-10-27-external-evaluation.md) confirms the content
+summary but corrects feature-complete/native readiness, universal CHANNEL
+failure, score-discovery proof, physical elevation, seventeen-screen and
+universal-smoothing claims. The suggested two-player launch is not an approved
+replacement for the owner's eight-player aspiration. Release gates stay open.
+
+Read source/current handoffs/acceptance/private-channel evidence and independently
+inspected existing ZIP metadata:85entries/71,171,102bytes=67.874MiB;
+uncompressed226.204MiB,46TGAs225.251MiB,11background paths. No native residency,
+platform compatibility or release determination inferred. No source tests
+repeated, install, deletion, scope/version/main change or publication. Other
+worktrees and untracked files preserved. Next native friend sprint/smoothing/
+rematch task remains unchanged; latest actual score receipt also remains pending.
+
 ## 2026-10-27 08:40 +01:00 — all-map multiplayer/smoothing installed
 
 Tested runtime `736ac2f` on `codex/sprint-multiplayer-smoothing` is committed
