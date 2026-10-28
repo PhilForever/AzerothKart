@@ -864,19 +864,54 @@ end
 -- lap's next gate, as a heading and a distance; nil when the lap's progress
 -- names no next gate. Reads the race's copied checkpoint progress and the
 -- course's reviewed route (Courses.route: its `points` and, per gate, the
--- point the route drives to as it crosses that gate): the arrow aims
--- `ahead` units along the route past its nearest point to the kart, looked
--- for between the previous gate's crossing and the next's, so it bends
--- round corners with the way instead of pointing through walls. With no
+-- point the route drives to as it crosses that gate): the arrow aims along
+-- the route from its nearest point to the kart, looked for between the
+-- previous gate's crossing and the next's. Given the kart's `level` and a
+-- track that answers isDrivable, it aims at the farthest of GUIDE_LOOKS
+-- (fractions of `ahead` units along the route) that the kart could drive to
+-- in a straight line on its floor, so round a bend it points along the way
+-- the kart can go, not across the corner into a wall. A third result, true,
+-- says the arrow follows a route (it then shows at any distance). With no
 -- route, at the middle of the next gate.
 Presentation.GUIDE_ARROW = {path="Interface\\AddOns\\AzerothKart\\Assets\\UI\\GuideArrow.tga",
     frames=16, columns=4, size=26, reach=46, ahead=110}
+local GUIDE_LOOKS = {1, 0.82, 0.64, 0.46, 0.32, 0.18, 0.08}
+local GUIDE_CLEAR_STEP = 3
 
 local function routePoint(p)
     return type(p) == "table" and finite(p.x) and finite(p.y)
 end
 
-local function alongRoute(points, crossings, nextGate, x, y, ahead)
+-- The point `left` units along the route from segment k's fraction t (at the
+-- route's end at most).
+local function routeAhead(points, count, k, t, left)
+    while true do
+        local a, b = points[k], points[k + 1]
+        if not routePoint(b) then b = a end
+        local dx, dy = b.x - a.x, b.y - a.y
+        local length = math.sqrt(dx * dx + dy * dy)
+        if length * (1 - t) >= left or k + 1 >= count or not routePoint(points[k + 2]) then
+            local f = length > 0 and math.min(1, t + left / length) or 1
+            return a.x + dx * f, a.y + dy * f
+        end
+        left = left - length * (1 - t)
+        k, t = k + 1, 0
+    end
+end
+
+-- Whether every point of the line from (x, y) to (tx, ty), each
+-- GUIDE_CLEAR_STEP units, is drivable on `level`.
+local function clearLine(track, level, x, y, tx, ty)
+    local dx, dy = tx - x, ty - y
+    local n = math.ceil(math.sqrt(dx * dx + dy * dy) / GUIDE_CLEAR_STEP)
+    for k = 1, n do
+        local f = k / n
+        if not track.isDrivable(x + dx * f, y + dy * f, level) then return false end
+    end
+    return true
+end
+
+local function alongRoute(track, level, points, crossings, nextGate, x, y, ahead)
     local count = #points
     local last = crossings[nextGate]
     if type(last) ~= "number" or last % 1 ~= 0 or last < 2 or last > count then return nil end
@@ -896,34 +931,26 @@ local function alongRoute(points, crossings, nextGate, x, y, ahead)
         local d = (px - x) * (px - x) + (py - y) * (py - y)
         if not best or d < best then best, bestK, bestT = d, k, t end
     end
-    -- Walk `ahead` on from there (to the route's end at most).
-    local k, t, left = bestK, bestT, ahead
-    while true do
-        local a, b = points[k], points[k + 1]
-        if not routePoint(b) then b = a end
-        local dx, dy = b.x - a.x, b.y - a.y
-        local length = math.sqrt(dx * dx + dy * dy)
-        if length * (1 - t) >= left or k + 1 >= count or not routePoint(points[k + 2]) then
-            local f = length > 0 and math.min(1, t + left / length) or 1
-            local tx, ty = a.x + dx * f, a.y + dy * f
-            local hx, hy = tx - x, ty - y
-            return atan2(hy, hx), math.sqrt(hx * hx + hy * hy)
-        end
-        left = left - length * (1 - t)
-        k, t = k + 1, 0
+    local checks = type(track.isDrivable) == "function" and (level == 0 or level == 1)
+    local tx, ty
+    for i = 1, #GUIDE_LOOKS do
+        tx, ty = routeAhead(points, count, bestK, bestT, ahead * GUIDE_LOOKS[i])
+        if not checks or clearLine(track, level, x, y, tx, ty) then break end
     end
+    local hx, hy = tx - x, ty - y
+    return atan2(hy, hx), math.sqrt(hx * hx + hy * hy)
 end
 
-function Presentation.guideHeading(track, progress, x, y, route)
+function Presentation.guideHeading(track, progress, x, y, route, level)
     if type(track) ~= "table" or type(track.gates) ~= "table" or type(progress) ~= "table"
         or progress.complete or not finite(x) or not finite(y) then return nil end
     local gate = track.gates[progress.nextGate]
     if type(gate) ~= "table" then return nil end
     if type(route) == "table" and type(route.points) == "table" and type(route.gates) == "table"
         and #route.points >= 2 then
-        local heading, distance = alongRoute(route.points, route.gates, progress.nextGate, x, y,
+        local heading, distance = alongRoute(track, level, route.points, route.gates, progress.nextGate, x, y,
             Presentation.GUIDE_ARROW.ahead)
-        if heading then return heading, distance end
+        if heading then return heading, distance, true end
     end
     local dx,dy = (gate.ax + gate.bx) / 2 - x, (gate.ay + gate.by) / 2 - y
     return atan2(dy, dx), math.sqrt(dx * dx + dy * dy)

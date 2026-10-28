@@ -6,7 +6,7 @@
 -- pending checks (docs/art/tracks/warsong-gulch.md).
 local AK = {}
 for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Dungeon", "ScarletCrusade",
-        "LayeredTrack", "Battlegrounds", "Courses", "Physics", "Checkpoints", "RaceGrid"}) do
+        "LayeredTrack", "Battlegrounds", "Courses", "Physics", "Checkpoints", "RaceGrid", "Presentation"}) do
     assert(loadfile("addon/AzerothKart/" .. name .. ".lua"))("AzerothKart", AK)
 end
 local Track, LayeredTrack, Physics, Checkpoints = AK.Track, AK.LayeredTrack, AK.Physics, AK.Checkpoints
@@ -36,24 +36,60 @@ assert(track.surfaceAt(388, 1800, 1) == "road" and track.surfaceAt(388, 1800, 0)
     and track.surfaceAt(400, 1990, 1) == "road", "Silverwing Hold's lobby and flag room are floor 1")
 assert(track.surfaceAt(540, 150, 0) == "road" and track.surfaceAt(540, 150, 1) == "wall"
     and track.surfaceAt(238, 450, 0) == "road", "the Lumber Mill and the slope below it are floor 0")
--- The wall between each base's way in and way out ends at its flag: no
--- kart passes between them.
-local x, y, hit, level = track.resolveMovement(500, 1890, 400, 1890, 1)
-assert(hit and level == 1 and x >= 480, "the hold's wall between the tunnel and the lobby")
-x, y, hit, level = track.resolveMovement(500, 1915, 400, 1915, 1)
-assert(hit and level == 1 and x >= 470, "and the flag at its end")
-x, y, hit, level = track.resolveMovement(510, 240, 420, 240, 0)
-assert(hit and level == 0 and x >= 498, "the mill's wall between the tunnel and the west passage")
-x, y, hit, level = track.resolveMovement(510, 205, 420, 205, 0)
-assert(hit and level == 0 and x >= 490, "and the flag at its end")
+-- A straight push in legal steps: 4 units at a time (LayeredTrack refuses
+-- any request over MAX_STEP before it looks at a wall), each from where the
+-- kart stands, resolved against the walls and solids, with Checkpoints
+-- watching the gate it is told is next (Codex's review of v2).
+local function push(x, y, ux, uy, length, level, gate)
+    local progress = {nextGate=gate, passed=gate - 1, complete=false, lastTick=0}
+    local pose, contact = {x=x, y=y, level=level, tick=0}, false
+    for _=1,math.ceil(length / 4) do
+        local mx, my, hit, lvl = track.resolveMovement(pose.x, pose.y, pose.x + ux * 4, pose.y + uy * 4, pose.level)
+        contact = contact or hit
+        local current = {x=mx, y=my, level=lvl, tick=pose.tick + 1}
+        progress = Checkpoints.step(progress, pose, current, track)
+        pose = current
+    end
+    return pose.x, pose.y, contact, pose.level, progress.passed == gate
+end
+-- The wall between each base's way in and way out ends at its flag: driving
+-- across from the tunnel's side stops at the wall, or wedges between the
+-- Alliance flag and the wall's end, and takes nothing; round the Horde flag's
+-- southern cap the kart slides on, west across the flag's gate, and takes it.
+local x, y, hit, level, taken = push(500, 1890, -1, 0, 100, 1, 2)
+assert(hit and level == 1 and math.abs(x - 480) < 1e-9 and y == 1890 and not taken,
+    "the hold's wall between the tunnel and the lobby stops a kart at the tunnel's side")
+x, y, hit, level, taken = push(500, 1915, -1, 0, 100, 1, 2)
+assert(hit and level == 1 and x > 470 and y > 1900 and not taken,
+    "against the Alliance flag the kart slides into the corner it makes with the wall: " .. x .. "," .. y)
+x, y, hit, level, taken = push(510, 240, -1, 0, 90, 0, 5)
+assert(hit and level == 0 and math.abs(x - 498) < 1e-9 and y == 240 and not taken,
+    "the mill's wall between the tunnel and the west passage")
+x, y, hit, level, taken = push(510, 205, -1, 0, 160, 0, 5)
+assert(hit and level == 0 and x < 470 and math.abs(y - 177.902) < 0.01 and taken,
+    "round the Horde flag's southern cap and on west: the flag's gate, taken: " .. x .. "," .. y)
 
 -- The reviewed route: kart-centre steps of at most 4 units through
 -- LayeredTrack, the floor changing only on ramps, never meeting a wall; the
 -- gates counted by Checkpoints, which needs both poses on the gate's floor.
 -- The route's gate crossings (the guiding arrow's way) are where it counts them.
+-- At every step the guiding arrow (Presentation.guideHeading, given the
+-- kart's floor) points where the kart can drive: a straight run along it, in
+-- 2-unit steps, to the point it aims at meets no wall or solid.
+local route = AK.Courses.route("warsong_gulch")
+local function clearRun(fromX, fromY, heading, length, lvl)
+    local px, py = fromX, fromY
+    for k=1,math.ceil(length / 2) do
+        local s = math.min(2, length - (k - 1) * 2)
+        local mx, my, hit, next = track.resolveMovement(px, py, px + math.cos(heading) * s, py + math.sin(heading) * s, lvl)
+        if hit then return false end
+        px, py, lvl = mx, my, next
+    end
+    return true
+end
 local progress = Checkpoints.new(track, 0)
 local previous = {x=spawn.x, y=spawn.y, level=spawn.level, tick=0}
-local names, walls, levels, crossed = {}, 0, {0}, {}
+local names, walls, levels, crossed, aimed, blind = {}, 0, {0}, {}, 0, 0
 for index=2,#data.route do
     local target = data.route[index]
     local fromX, fromY = previous.x, previous.y
@@ -71,15 +107,30 @@ for index=2,#data.route do
             crossed[#crossed + 1] = index
         end
         previous = current
+        if not progress.complete then
+            local heading, reach, along = AK.Presentation.guideHeading(track, progress, mx, my, route, lvl)
+            aimed = aimed + 1
+            if not (along and clearRun(mx, my, heading, reach, lvl)) then blind = blind + 1 end
+        end
     end
 end
 assert(walls == 0, "the route never meets a wall: " .. walls)
+assert(aimed > 1000 and blind == 0, "from every step of the lap the arrow points where the kart can drive: "
+    .. blind .. " of " .. aimed .. " do not")
+-- Codex's reproduction: leaving the front yard toward the plateau, the point
+-- 110 on lies across the corner (a run at it meets the wall 36 units out);
+-- the arrow aims along the yard first.
+local heading, reach, along = AK.Presentation.guideHeading(track, {passed=3, nextGate=4, complete=false},
+    390, 1685, route, 1)
+assert(along and clearRun(390, 1685, heading, reach, 1) and heading < -math.pi / 4,
+    "at the front yard's turn the arrow points down the yard, not across the corner: " .. math.deg(heading))
+local straight = AK.Presentation.guideHeading(track, {passed=3, nextGate=4, complete=false}, 390, 1685, route)
+assert(not clearRun(390, 1685, straight, 46, 1), "without the kart's floor it would point into the corner")
 assert(table.concat(names, ",") == "Alliance tunnel,Alliance flag,Alliance front door,Horde tunnel,Horde flag,"
     .. "Horde side door,Mid" and progress.complete, "the route passes the gates in lap order: " .. table.concat(names, ","))
 assert(table.concat(levels, "") == "010", "up the tunnel's climb into the hold, down the east path to the field")
 assert(table.concat(crossed, ",") == table.concat(data.routeGates, ","),
     "each gate's route point is where the route crosses it: " .. table.concat(crossed, ","))
-local route = AK.Courses.route("warsong_gulch")
 assert(route and route.points == data.route and route.gates == data.routeGates and not AK.Courses.route("mirage_raceway"),
     "the guided course hands its route to the arrow; other courses have none")
 
@@ -100,10 +151,11 @@ x, y, hit, level = track.resolveMovement(780, 1600, 780, 1585, 1)
 assert(not hit and level == 1, "from the plateau onto the east path")
 x, y, hit, level = track.resolveMovement(780, 1485, 780, 1475, 1)
 assert(not hit and level == 0 and y == 1475, "off its foot into the field")
-x, y, hit, level = track.resolveMovement(745, 1530, 725, 1530, 0)
-assert(hit and level == 0 and x >= 738, "the east path's side is a wall")
-x, y, hit, level = track.resolveMovement(522, 1650, 522, 1666, 1)
-assert(hit and level == 1 and y <= 1654, "the plateau's edge stops a kart above the climb's foot")
+x, y, hit, level = push(745, 1530, -1, 0, 20, 0, 4)
+assert(hit and level == 0 and math.abs(x - 738) < 1e-9, "the east path's side is a wall")
+x, y, hit, level = track.resolveMovement(522, 1650, 522, 1662, 1)
+assert(hit and level == 1 and math.abs(y - 1654) < 1e-9,
+    "the plateau's edge stops a kart above the climb's foot (a 12-unit move, stopped 4 on)")
 
 -- The Boots: a kart driving up the Alliance tunnel through its pad boosts once.
 local kart = Physics.new(track)

@@ -1148,6 +1148,24 @@ do
     assert(math.abs(heading + math.pi / 2) < 1e-12, "a crossing past the route's end: the gate's middle")
     assert(P.gateGlow(0) == 0.55 and math.abs(P.gateGlow(0.4) - 1) < 1e-12 and math.abs(P.gateGlow(0.2) - 0.775) < 1e-12
         and P.gateGlow(0 / 0) == 1, "the next gate's glow pulses between 0.55 and 1")
+    -- Round a bend the arrow aims only where the kart can drive straight on
+    -- its floor (Codex's review of Warsong v2): an L of floor, the corner's
+    -- inside at (100, 240); from (95, 220) the route's point 110 on lies
+    -- across the corner, the one 90 on does not.
+    local bend = {gates={{name="G", ax=280, ay=240, bx=280, by=300}},
+        isDrivable=function(px, py, level)
+            return level == 0 and ((px >= 0 and px <= 100 and py >= 0 and py <= 260)
+                or (px >= 0 and px <= 300 and py >= 240 and py <= 300))
+        end}
+    local corner = {points={{x=50, y=0}, {x=50, y=270}, {x=280, y=270}}, gates={3}}
+    local along
+    heading, distance, along = P.guideHeading(bend, {nextGate=1, passed=0}, 95, 220, corner, 0)
+    assert(math.abs(heading - atan2(50, 90.2 - 95)) < 1e-9 and along == true,
+        "round the bend the arrow aims at the farthest point it could drive to: " .. heading)
+    heading = P.guideHeading(bend, {nextGate=1, passed=0}, 95, 220, corner)
+    assert(math.abs(heading - atan2(50, 15)) < 1e-9, "without the kart's floor, 110 on, as before")
+    heading, distance, along = P.guideHeading(bend, {nextGate=1, passed=0}, 300, 250, nil, 0)
+    assert(math.abs(heading - atan2(20, -20)) < 1e-12 and not along, "without a route, the gate's middle")
     assert(P.arrowFrame(0) == 0 and P.arrowFrame(math.pi / 2) == 4 and P.arrowFrame(-math.pi / 2) == 12
         and P.arrowFrame(2 * math.pi - 0.01) == 0, "sixteen headings counter-clockwise from east")
     local c1, c2, c3, c4 = P.arrowCoords(6)

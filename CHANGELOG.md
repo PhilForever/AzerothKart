@@ -8,6 +8,7 @@ The owner drove version 1: "it's not really driveable ... I think you should ins
 - **Covers, not roofs:** only the ground over each tunnel covers the karts; cover and ground are one picture, and a cover starts fading 32 units before its tunnel's mouth.
 - **The arrow follows the route** (`Courses.route`, `routeGates`) instead of pointing through walls; **the next gate glows** (wide, pulsing).
 - **Tests:** `test_warsong` (v2 geometry, route, the flags' walls, ramps, Boots, the arrow's crossings), `test_presentation`, `test_ui`; Codex's peer-session version pin and multiplayer floors pin updated; score catalogue regenerated. Not installed; the client checks are NOT RUN.
+- **After Codex's review:** the arrow aims only where the kart can drive straight on its floor (round the front yard's turn it pointed into the corner); the flag and wall checks drive legal 4-unit steps instead of requests the engine refuses outright.
 
 ## 2026-10-27 — Warsong registration and score compatibility
 

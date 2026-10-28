@@ -14,7 +14,7 @@ Asked what confused him, he named all four:
 
 | What confused him | Version 2 |
 |---|---|
-| **The arrow pointed through walls** | The arrow follows the reviewed route: it aims 110 units along the route from the route's nearest point to the kart, so it bends round corners with the way (`Presentation.guideHeading`, `Courses.route`). |
+| **The arrow pointed through walls** | The arrow follows the reviewed route, aiming at the farthest point up to 110 units along it that the kart can drive to in a straight line, so it bends round corners with the way (`Presentation.guideHeading`, `Courses.route`). |
 | **He could not see under the roofs** | No roof stands over a base: both are drawn open, their floors in sight. The only covers are the ground over each tunnel, which start to fade 32 units before the tunnel's mouth. |
 | **Too many rooms and doors** | Each base is one way through: tunnel, flag room, one way out. Two ramps instead of eight; no optional way in. |
 | **Unclear checkpoints** | Seven gates at obvious places (each tunnel's mouth, each flag, each base's door, mid), each painted as a threshold with chevrons in its side's colours; the next one is drawn wide and pulses. |
@@ -73,7 +73,7 @@ All of it reads the simulation's copied state and writes none of it.
 
 - **Two pictures, one world.** The painter makes the battleground from above (UPPER) and, under each cover, the tunnel beneath (LOWER). `Background.tga` is UPPER with LOWER under the covers; `Roofs.tga` is UPPER within the covers' footprints, clear elsewhere: cover and ground are one picture, so they always meet. The Alliance tunnel's arch is clear in `Roofs.tga`: a kart driving in is seen through it.
 - **Two covers.** Each is one pooled texture (of four), cropped from `Roofs.tga` as the camera moves, drawn over the karts on the ground and under the karts on floor 1 or a ramp. It starts to fade 32 units before its tunnel and is down to a quarter 24 units in (`Presentation.roofAlpha`). A friend in a tunnel the player is not in is hidden by its cover. If `Roofs.tga` does not load the course is refused, as before.
-- **The guiding arrow** follows the reviewed route (`Courses.route`: its points and, per gate, the point it drives to as it crosses that gate, `routeGates` in `Battlegrounds.lua`), looked for between the previous gate's crossing and the next's: on the plateau it points east along it, not through the hill at the Horde tunnel.
+- **The guiding arrow** follows the reviewed route (`Courses.route`: its points and, per gate, the point it drives to as it crosses that gate, `routeGates` in `Battlegrounds.lua`), looked for between the previous gate's crossing and the next's: on the plateau it points east along it, not through the hill at the Horde tunnel. It aims at the farthest point up to 110 units along the route that the kart could drive to in a straight line on its floor, so round a bend it points down the way first (after Codex's review: at the front yard's turn the point 110 on lay across the corner). From every step of the reviewed lap, a straight run along the arrow to its point meets no wall (`test_warsong`).
 - **The next gate** (`UI.glowGate`): its marker is drawn ten units wide and pulses between 0.55 and 1 opacity (`Presentation.gateGlow`). No new texture: the gate markers are the existing pool. Budget unchanged: 91 frames, 96 textures, 151 font strings.
 
 ## Look

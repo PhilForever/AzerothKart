@@ -889,14 +889,17 @@ local function placeRoofs(wx, wy, high)
 end
 
 -- The guiding arrow beside the player's kart, the way to the lap's next gate
--- (along the course's route), while a run is on; hidden at the gate and
--- wherever it would leave the canvas. The next gate's marker glows: drawn
--- wide (placeTrackMarkers) and pulsing.
-local function placeGuide(wx, wy)
+-- (along the course's route, where the kart can drive on its floor `level`),
+-- while a run is on; without a route hidden at the gate, and wherever it
+-- would leave the canvas. The next gate's marker glows: drawn wide
+-- (placeTrackMarkers) and pulsing.
+local function placeGuide(wx, wy, level)
     local arrow = UI.guideArrow
-    local heading,distance
+    local heading,distance,along
     local running = UI.active and not UI.gridStaged
-    if running then heading,distance = Presentation.guideHeading(Track,UI.checkpoints,wx,wy,UI.guideRoute) end
+    if running then
+        heading,distance,along = Presentation.guideHeading(Track,UI.checkpoints,wx,wy,UI.guideRoute,level)
+    end
     local progress = UI.checkpoints
     local glow = running and type(progress) == "table" and not progress.complete and progress.nextGate or nil
     if glow ~= UI.glowGate then
@@ -908,7 +911,7 @@ local function placeGuide(wx, wy)
     local glowing = glow and UI.gateTextures[glow]
     if glowing then glowing:SetAlpha(Presentation.gateGlow((UI.state.tick or 0) * Physics.FIXED_DT)) end
     local G = Presentation.GUIDE_ARROW
-    if heading and distance > G.reach then
+    if heading and (along or distance > G.reach) then
         local scale = UI.view.scale
         local ax,ay = Presentation.project(UI.view,wx+math.cos(heading)*G.reach,wy+math.sin(heading)*G.reach)
         local half = G.size*scale/2
@@ -1396,15 +1399,15 @@ render = function()
             UI.cameraCropReady = true
         end
     end
+    local level = gridPose and gridPose.level or UI.state.level or 0
     if Track.layered then
         -- Two floors: the kart draws under the roofs on the ground, over them
         -- on floor 1 or a ramp; a roof fades while the kart is under it.
-        local level = gridPose and gridPose.level or UI.state.level or 0
         local high = Presentation.drawnHigh(Track,x,y,level)
         setKartLayers(high and KART_LAYERS.high or KART_LAYERS.low)
         if UI.roofs then placeRoofs(x,y,high) end
     end
-    if UI.guideReady then placeGuide(x,y) end
+    if UI.guideReady then placeGuide(x,y,level) end
     x,y = Presentation.project(UI.view,x,y)
     UI.kart:ClearAllPoints()
     local sprite = UI.kartSprite
