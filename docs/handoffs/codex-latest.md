@@ -1,5 +1,13 @@
 # Codex handoff — production maps and Claude course review
 
+## Active Alterac review/integration — 2026-10-29
+
+Owner requests review of Claude `ee4ac0c` and implementation if acceptable.
+Reserve opt-in ice physics/query, race-start/live validation, course/protocol/
+score registration and tests; review tiled scenery transaction before install.
+Work on `codex/alterac-integration` from clean429e6d1; preserve Claude’s
+checkout, Arathi v3 and all historical records. Native checks remain pending.
+
 ## Installed Arathi open grass — 2026-10-28 19:05 +0100
 
 Runtime **3e3e056** is installed, with independently verified94 source files
