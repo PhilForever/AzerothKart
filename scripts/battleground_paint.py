@@ -1,46 +1,60 @@
-"""Paint one Battlegrounds Cup course for build_battlegrounds.py: its ground and its roofs.
+"""Paint one Battlegrounds Cup course for build_battlegrounds.py: its ground and the covers over its tunnels.
 
-A battleground course has two floors (LayeredTrack.lua). The picture is two
-layers, both one texel per world unit, row 0 the north edge, as the karts'
-camera sees them (height leans north by `lean`):
+A battleground course has two floors (LayeredTrack.lua). The painter makes
+two pictures of the whole world, one texel per world unit, row 0 the north
+edge, as the karts' camera sees them (height leans north by `lean`):
 
-- Background.tga, opaque: the ground, everything floor 0 drives on and sees.
-  Outdoors, Warcraft III terrain tiles (paint_terrain: Ashenvale on the
-  Alliance's half, the Barrens on the Horde's); the cliffs round the field,
-  their faces where the camera sees them; under each hill, the tunnels in the
-  dark earth; under each roof, the base's halls and flag room between thick
-  walls; the ramps; the Boots pads; the finish line; the scenery.
-- Roofs.tga, with alpha: what stands over floor 0, laid at its world place:
-  each hill (the plateau's top, its graveyard and fence, the slopes) and each
-  base's roof (its walk, which floor 1 drives on, and its pitched roofs). The
-  addon draws each roof over karts below it and under karts on it, and fades
-  it while the player's kart is under it (UI.lua). Where a ramp or an open
-  floor 0 room lies within a roof's box, the roof is clear.
-- Preview.tga: both layers together, quartered, for the course menu.
+- UPPER, the battleground from above: its own ground (d["survey"], the
+  client's map measured by wow_map_survey.py: each ground texture's weight
+  per texel, drawn as the Warcraft III tile that stands for it, and the
+  terrain's relief, shading it); on that ground every floor the camera sees
+  (floor 1, and floor 0 where no cover hides it): the field and the plateau
+  in their terrain, the bases' floors between their walls; cliffs and walls
+  where the floors end, their faces where the camera sees them; the Boots
+  pads, the flags' daises, the gates' thresholds and the finish line; the
+  scenery, north to south.
+- LOWER, under each cover only: the tunnel there, its floor and walls in the
+  hill's dark earth.
 
-Each side of the map (the Alliance's north of mid, the Horde's south) has its
-style in d["sides"]. Integer compositing over IEEE-exact model rendering: the
-bytes are the same on every machine.
+The outputs:
+
+- Background.tga, opaque: UPPER, except within each cover's footprint, where
+  it is LOWER.
+- Roofs.tga, with alpha: UPPER within each cover's footprint (the ground over
+  the tunnel), clear elsewhere and where a tunnel's portal opens in a cliff
+  face. The addon draws each cover over the karts below it and under those on
+  floor 1, and fades it while the player's kart is in the tunnel beneath
+  (UI.lua): cover and ground are one picture, so they always meet.
+- Preview.tga: UPPER, quartered, for the course menu.
+
+Integer compositing; no transcendental function feeds a pixel: the bytes are
+the same on every machine.
 """
+import base64
 import hashlib
+import json
 import struct
 import time
+import zlib
 from math import sqrt
 from pathlib import Path
 
-from city_paint import (Picture, Strata, Tileset, _Noise, bank_distance, hash32, paint_sprite, paint_terrain,
-                        sprite_for)
+from city_paint import Picture, Strata, Tileset, _Noise, bank_distance, hash32, paint_sprite, sprite_for
 from dungeon_paint import parquet
 from paintkit import encode_png, encode_tga
 from wc3render import forget_textures
 
 ROOT = Path(__file__).resolve().parents[1]
-CLIFF_HEIGHT = 80         # the gulch's cliffs: world units, rising `lean` rows each
+CELL = 32                 # a terrain tile's cell, world units
+CLIFF_HEIGHT = 80         # a cliff's face: world units, rising `lean` rows each
 PROP_SLACK = 3            # a model that is not solid may reach this far onto a floor
+WALL = 30                 # a base's walls: at most this thick beside its floors
+CLIFF = 16                # a cliff's band of rock beside an outdoor floor
+FAR = 48                  # off the floors, the ground darkens out to this far
 
 
 # ---------------------------------------------------------------------------
-# An RGBA layer: the roofs.
+# An RGBA layer: the covers.
 
 
 class Layer:
@@ -50,28 +64,6 @@ class Layer:
         self.w, self.h = width, height
         n = width * height
         self.r, self.g, self.b, self.a = bytearray(n), bytearray(n), bytearray(n), bytearray(n)
-
-    def put(self, i, r, g, b, a=255):
-        self.r[i], self.g[i], self.b[i], self.a[i] = r, g, b, a
-
-    def over(self, i, r, g, b, a):
-        if a <= 0:
-            return
-        da = self.a[i]
-        if a >= 255 or da == 0:
-            self.r[i], self.g[i], self.b[i], self.a[i] = r, g, b, a
-            return
-        k = da * (255 - a)                  # the layer's own share, times 255
-        out = a * 255 + k                   # coverage, times 255
-        self.r[i] = (r * a * 255 + self.r[i] * k + out // 2) // out
-        self.g[i] = (g * a * 255 + self.g[i] * k + out // 2) // out
-        self.b[i] = (b * a * 255 + self.b[i] * k + out // 2) // out
-        self.a[i] = (out + 127) // 255
-
-    def scale(self, i, k):
-        self.r[i] = min(255, self.r[i] * k >> 8)
-        self.g[i] = min(255, self.g[i] * k >> 8)
-        self.b[i] = min(255, self.b[i] * k >> 8)
 
     def tga(self):
         """Type-2 BGRA32 with eight alpha bits, bottom-left origin."""
@@ -88,14 +80,167 @@ class Layer:
         return header + bytes(body)
 
 
+def _shade(rgb, k):
+    return (max(0, min(255, rgb[0] * k >> 8)), max(0, min(255, rgb[1] * k >> 8)), max(0, min(255, rgb[2] * k >> 8)))
+
+
+def _put(pic, i, rgb):
+    pic.r[i], pic.g[i], pic.b[i] = rgb
+
+
+# ---------------------------------------------------------------------------
+# The battleground's own ground.
+
+
+class Survey:
+    """scripts/wow_map_survey.py's measurements of the battleground: per
+    `grid`-unit texel (row 0 north) each ground texture's weight (0-15) and
+    the terrain's height (yards; None where it has a hole)."""
+
+    def __init__(self, path):
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        self.grid, self.cols, self.rows = data["grid"], data["columns"], data["rows"]
+        self.planes = {name: zlib.decompress(base64.b64decode(text)) for name, text in data["ground"].items()}
+        relief = data["relief"]
+        raw = zlib.decompress(base64.b64decode(relief["texels"]))
+        self.heights = [None if v == 255 else relief["base"] + v * relief["step"] for v in raw]
+        self.placements = data["placements"]
+
+
+def relief_light(sv, spec):
+    """Per survey texel, the sun on the terrain, x256 (256 on level ground):
+    its slope (exaggerated by spec["exaggerate"]) toward spec["light"] (a
+    direction east, north, up), never below spec["ambient"] of level
+    ground's. Holes take their neighbours' heights."""
+    cols, rows = sv.cols, sv.rows
+    h = list(sv.heights)
+    for _ in range(64):                                  # fill the holes from their edges inward
+        missing = [i for i, v in enumerate(h) if v is None]
+        if not missing:
+            break
+        fill = {}
+        for i in missing:
+            r, c = divmod(i, cols)
+            near = [h[j] for j in (i - 1 if c else -1, i + 1 if c + 1 < cols else -1,
+                                   i - cols if r else -1, i + cols if r + 1 < rows else -1) if j >= 0 and h[j] is not None]
+            if near:
+                fill[i] = sum(near) / len(near)
+        for i, v in fill.items():
+            h[i] = v
+    h = [290.0 if v is None else v for v in h]
+    lx, ly, lz = spec["light"]
+    n = sqrt(lx * lx + ly * ly + lz * lz)
+    lx, ly, lz = lx / n, ly / n, lz / n
+    run = 2 * sv.grid / 3.0                               # yards between a texel's two neighbours
+    k = spec["exaggerate"] / run
+    ambient = spec["ambient"]
+    out = [256] * (cols * rows)
+    for r in range(rows):
+        for c in range(cols):
+            i = r * cols + c
+            gx = (h[i + 1 if c + 1 < cols else i] - h[i - 1 if c else i]) * k
+            gy = (h[i - cols if r else i] - h[i + cols if r + 1 < rows else i]) * k     # north is up the rows
+            norm = sqrt(gx * gx + gy * gy + 1.0)
+            lit = (-gx * lx - gy * ly + lz) / norm / lz
+            out[i] = int(256 * max(ambient, ambient + (1 - ambient) * lit))
+    return out
+
+
+def _bilinear(grid, cols, rows, gs, x, row):
+    """A survey grid's value at picture texel (x, row), interpolated."""
+    u = (x + 0.5) / gs - 0.5
+    v = (row + 0.5) / gs - 0.5
+    c0, r0 = int(u // 1), int(v // 1)
+    fu, fv = u - c0, v - r0
+    c0, c1 = max(0, min(cols - 1, c0)), max(0, min(cols - 1, c0 + 1))
+    r0, r1 = max(0, min(rows - 1, r0)), max(0, min(rows - 1, r0 + 1))
+    a, b = grid[r0 * cols + c0], grid[r0 * cols + c1]
+    c, d = grid[r1 * cols + c0], grid[r1 * cols + c1]
+    top = a + (b - a) * fu
+    return top + (c + (d - c) * fu - top) * fv
+
+
+def paint_ground(pic, d, sv, tiles, light):
+    """The battleground's ground everywhere: each texel takes the Warcraft III
+    tile standing for one of the client's ground textures, picked by their
+    measured weights (bilinear between survey texels) against smooth noise,
+    so each texture keeps its share of the ground with a ragged edge; within
+    a hair of the edge the two tiles mix. A texture's `boost` scales its
+    weight (the paths, drawn bolder than measured). The relief's light over
+    it all."""
+    w, h, gs, cols, rows = pic.w, pic.h, sv.grid, sv.cols, sv.rows
+    order = list(d["ground"])
+    classes = []
+    for k, name in enumerate(order):
+        spec = d["ground"][name]
+        cells = tiles.cells(spec["tile"], spec.get("shade", 1.0))
+        pool = cells[16:] if len(cells) > 16 else cells[15:16]
+        classes.append((sv.planes[name], pool, 101 + 17 * k, spec.get("boost", 1.0)))
+    coarse, fine = _Noise(18, 721), _Noise(6, 727)
+    edge = 0.05
+    for row in range(h):
+        y = h - 1 - row
+        v = (row + 0.5) / gs - 0.5
+        r0 = int(v // 1)
+        fv = v - r0
+        r0c, r1c = max(0, min(rows - 1, r0)), max(0, min(rows - 1, r0 + 1))
+        base = row * w
+        cy = y // CELL
+        ty = (CELL - 1 - (y % CELL)) * CELL
+        for x in range(w):
+            u = (x + 0.5) / gs - 0.5
+            c0 = int(u // 1)
+            fu = u - c0
+            c0c, c1c = max(0, min(cols - 1, c0)), max(0, min(cols - 1, c0 + 1))
+            i00, i01, i10, i11 = r0c * cols + c0c, r0c * cols + c1c, r1c * cols + c0c, r1c * cols + c1c
+            weights, total = [], 0.0
+            for plane, pool, seed, boost in classes:
+                a, b, c, e = plane[i00], plane[i01], plane[i10], plane[i11]
+                if a or b or c or e:
+                    top = a + (b - a) * fu
+                    wv = (top + (c + (e - c) * fu - top) * fv) * boost
+                    if wv > 0:
+                        weights.append((wv, pool, seed))
+                        total += wv
+            t = 0.62 * coarse.at(x, y) + 0.38 * fine.at(x, y)
+            t = min(0.999, max(0.0, (t - 0.5) * 1.9 + 0.5)) * total
+            cum, pick, prev, gap = 0.0, None, None, 1.0
+            for entry in weights:
+                lo = cum
+                cum += entry[0]
+                if t < cum:
+                    pick = entry
+                    gap = (t - lo) / total if total else 1.0
+                    break
+                prev = entry
+            if pick is None:
+                pick = weights[-1] if weights else (1.0, classes[0][1], classes[0][2])
+            cx = x // CELL
+            cell = pick[1][hash32(cx, cy, pick[2]) % len(pick[1])]
+            r, g, b, _ = cell[ty + x % CELL]
+            if prev is not None and gap < edge:
+                other = prev[1][hash32(cx, cy, prev[2]) % len(prev[1])][ty + x % CELL]
+                f = int(128 * (1 - gap / edge))
+                r, g, b = (r * (256 - f) + other[0] * f) >> 8, (g * (256 - f) + other[1] * f) >> 8, \
+                    (b * (256 - f) + other[2] * f) >> 8
+            k = int(_bilinear(light, cols, rows, gs, x, row))
+            i = base + x
+            pic.r[i] = min(255, r * k >> 8)
+            pic.g[i] = min(255, g * k >> 8)
+            pic.b[i] = min(255, b * k >> 8)
+
+
 # ---------------------------------------------------------------------------
 # Where everything is: per texel (row 0 north).
 
 
 class Masks:
-    """`r0`/`r1`: 1 + the index of the floor 0 / floor 1 room painted there
-    (a later room over an earlier); `rp`: 1 + the ramp's index; `cv`: 1 +
-    the roof overlay's index whose picture covers the texel."""
+    """`r0`/`r1`: 1 + the index of the floor 0 / floor 1 room there (an
+    earlier room over a later: the field over a tunnel's mouth); `rp`: 1 + the ramp's index; `cv`: 1 + the cover's
+    index whose footprint holds the texel. `seen`: the floors UPPER shows
+    (floor 1, the ramps, floor 0 outside the covers); `low`: floor 0 under a
+    cover (LOWER's). `style`: per seen texel, what it is drawn as (see
+    STYLES)."""
 
     def __init__(self, d, g):
         w, h = g["width"], g["height"]
@@ -103,24 +248,34 @@ class Masks:
         n = w * h
         self.rooms, self.ramps, self.overlays = g["rooms"], g["ramps"], g["overlays"]
         self.r0, self.r1, self.rp, self.cv = bytearray(n), bytearray(n), bytearray(n), bytearray(n)
-        for k, r in enumerate(self.rooms):
+        for k in range(len(self.rooms) - 1, -1, -1):          # an earlier room over a later one
+            r = self.rooms[k]
             self._fill(self.r0 if r["level"] == 0 else self.r1, r, k + 1)
         for k, r in enumerate(self.ramps):
             self._fill(self.rp, r, k + 1)
         for k, o in enumerate(self.overlays):
-            fx0, fy0, fx1, fy1 = o.get("footprint") or (o["x0"], o["y0"], o["x1"], o["y1"])
+            fx0, fy0, fx1, fy1 = o["footprint"]
             for y in range(fy0, fy1):
                 base = (h - 1 - y) * w
-                for x in range(fx0, fx1):
-                    i = base + x
-                    if self.rp[i]:
-                        continue
-                    if self.r0[i] and not self.rooms[self.r0[i] - 1]["cover"]:
-                        continue                 # an open floor 0 room within the box: the gully
-                    self.cv[i] = k + 1
-        # The kart floor of each layer: floor 0's rooms and ramps; floor 1's.
-        self.ground = bytearray(1 if (self.r0[i] or self.rp[i]) else 0 for i in range(n))
-        self.upper = bytearray(1 if (self.r1[i] or self.rp[i]) else 0 for i in range(n))
+                self.cv[base + fx0:base + fx1] = bytes([k + 1]) * (fx1 - fx0)
+        self.seen, self.low, self.style = bytearray(n), bytearray(n), bytearray(n)
+        building = {s for s, name in enumerate(STYLES) if name in BUILDING}
+        for i in range(n):
+            if self.rp[i]:
+                r = self.ramps[self.rp[i] - 1]
+                self.seen[i] = 1
+                self.style[i] = STYLES.index("indoor ramp" if r.get("indoor") else "outdoor ramp")
+            elif self.r1[i] and not (self.r0[i] and not self.cv[i]):
+                self.seen[i] = 1
+                self.style[i] = STYLES.index(self.rooms[self.r1[i] - 1]["floor"])
+            elif self.r0[i]:
+                if self.cv[i]:
+                    self.low[i] = 1
+                else:
+                    self.seen[i] = 1
+                    self.style[i] = STYLES.index(self.rooms[self.r0[i] - 1]["floor"])
+        self.indoor = bytearray(1 if self.seen[i] and self.style[i] in building else 0 for i in range(n))
+        self.outdoor = bytearray(1 if self.seen[i] and self.style[i] not in building else 0 for i in range(n))
 
     def _fill(self, mask, r, value):
         w, h = self.w, self.h
@@ -133,70 +288,45 @@ class Masks:
         return "alliance" if y >= self.h // 2 else "horde"
 
 
-def _shade(rgb, k):
-    return (min(255, rgb[0] * k >> 8), min(255, rgb[1] * k >> 8), min(255, rgb[2] * k >> 8))
+STYLES = ["", "field", "plateau", "slope", "tunnel", "hall", "flag room", "door", "indoor ramp", "outdoor ramp"]
+BUILDING = ("hall", "flag room", "door", "indoor ramp")
 
 
 # ---------------------------------------------------------------------------
-# The ground.
+# UPPER: the floors on the ground, their walls and cliffs.
 
 
-def paint_ground_terrain(pic, d, tiles):
-    """Warcraft III terrain over the whole world (the field, the cliff tops,
-    the hills' and the bases' ground, under whatever stands on it)."""
-    paint_terrain(pic, {"terrain": d["terrain"], "districts": d["districts"], "zones": d["zones"]}, tiles)
-
-
-def paint_wild(pic, d, m, tiles):
-    """Off the floor outdoors: the cliff tops round the gulch, darker away
-    from the edge and under the woods; under a roof's box, the hill's dark
-    earth or the base's walls (seen only while the roof fades)."""
+def paint_floors(pic, d, m, tiles):
+    """The bases' floors (each side's stones or planks, its runner down the
+    middle of each hall), lit ramps with treads; shade along the foot of
+    every wall. Outdoor floors keep the battleground's ground, a little
+    shaded at their edges."""
     w, h = m.w, m.h
-    near = bank_distance(bytearray(1 - v for v in m.ground), w, h, 40)     # distance from floor 0
-    woods = _Noise(90, 611)
+    edge = bank_distance(m.seen, w, h, 14)
     for row in range(h):
         y = h - 1 - row
         side = d["sides"][m.side(y)]
-        er, eg, eb = side["earth"]
-        top = side["wall"]["top"]
         base = row * w
         for x in range(w):
             i = base + x
-            if m.ground[i]:
+            if not m.seen[i]:
                 continue
-            k = m.cv[i]
-            if k:
-                o = m.overlays[k - 1]
-                if o["kind"] == "hill":
-                    v = hash32(x // 6, y // 6, 613) % 13 - 6
-                    s = 256 - min(near[i], 40) * 2
-                    pic.r[i], pic.g[i], pic.b[i] = ((er + v) * s >> 8, (eg + v) * s >> 8, (eb + v) * s >> 8)
-                else:
-                    # The base's walls: courses of its stone (or logs).
-                    course = y // 16
-                    bx = (x + (course % 2) * 16) // 32
-                    v = hash32(bx, course, 401) % 15 - 7
-                    joint = y % 16 == 0 or (x + (course % 2) * 16) % 32 == 0
-                    s = (236 if joint else 256) * (256 - min(near[i], 40) * 2) >> 8
-                    pic.r[i] = max(0, min(255, (top[0] + v) * s >> 8))
-                    pic.g[i] = max(0, min(255, (top[1] + v) * s >> 8))
-                    pic.b[i] = max(0, min(255, (top[2] + v) * s >> 8))
+            style = STYLES[m.style[i]]
+            e = edge[i]
+            if style in ("field", "plateau", "slope", "outdoor ramp"):
+                if e <= 3:
+                    k = 214 + 10 * e
+                    pic.r[i], pic.g[i], pic.b[i] = pic.r[i] * k >> 8, pic.g[i] * k >> 8, pic.b[i] * k >> 8
                 continue
-            if m.rp[i]:
-                continue
-            e = near[i]
-            if e <= 10:
-                # The cliff's rim along the floor's edge: its side's rock, lit
-                # on top, darkening to the drop.
-                rr, rg, rb = _tile(tiles, side["rock"], x, y, 23)
-                s = 168 + 9 * e if e > 2 else 120
-                pic.r[i], pic.g[i], pic.b[i] = min(255, rr * s >> 8), min(255, rg * s >> 8), min(255, rb * s >> 8)
-                continue
-            # The cliff tops: the terrain, darker away from the edge, deeper
-            # in shade under the woods.
-            n = woods.at(x, y)
-            s = 236 - min(e, 40) * 2 - int(max(0.0, n - 0.45) * 120)
-            pic.r[i], pic.g[i], pic.b[i] = pic.r[i] * s >> 8, pic.g[i] * s >> 8, pic.b[i] * s >> 8
+            if style == "indoor ramp":
+                continue                                   # paint_ramps
+            floor = side["floor"]
+            if "tile" in floor:
+                r, g, b = _tile(tiles, floor, x, y, 5)
+            else:
+                r, g, b = parquet(x, y, floor["parquet"])
+            k = 150 if e <= 1 else 196 + 60 * min(e, 14) // 14
+            pic.r[i], pic.g[i], pic.b[i] = r * k >> 8, g * k >> 8, b * k >> 8
 
 
 def _tile(tiles, spec, x, y, seed=3):
@@ -204,69 +334,30 @@ def _tile(tiles, spec, x, y, seed=3):
     return r, g, b
 
 
-def paint_rooms(pic, d, m, tiles):
-    """Each floor 0 room in its side's style (the field keeps its terrain):
-    the gully's and the tunnels' dirt, the bases' wooden floors and tiled
-    doors; shade along the foot of every wall."""
-    w, h = m.w, m.h
-    edge = bank_distance(m.ground, w, h, 14)
-    for row in range(h):
-        y = h - 1 - row
-        side = d["sides"][m.side(y)]
-        base = row * w
-        for x in range(w):
-            i = base + x
-            k = m.r0[i]
-            if not k or m.rp[i]:
-                continue
-            style = m.rooms[k - 1]["floor"]
-            if style == "field":
-                r, g, b = pic.r[i], pic.g[i], pic.b[i]
-            elif style == "gully":
-                r, g, b = _tile(tiles, side["dirt"], x, y, 5)
-            elif style == "tunnel":
-                r, g, b = _tile(tiles, side["tunnel"], x, y, 7)
-                if y % 64 < 6:
-                    r, g, b = _shade(parquet(x, y, {"block": 64, "plank": 6, "colour": (110, 78, 48)}), 230)
-            else:                                   # halls, doors and the flag room
-                r, g, b = parquet(x, y, side["floor"]["parquet"])
-            e = edge[i]
-            s = 150 if e <= 1 else 196 + 60 * min(e, 14) // 14
-            if style == "field":
-                s = 256 if e > 3 else 210
-            pic.r[i], pic.g[i], pic.b[i] = r * s >> 8, g * s >> 8, b * s >> 8
-
-
 def paint_runners(pic, d, m):
-    """The bases' runners: each side's carpet down the middle of its halls
-    and across its flag room, edged."""
+    """Each base's runner: its side's carpet down the middle of its halls and
+    across its flag room's far side, edged; under the flag's dais."""
     w, h = m.w, m.h
     for r in m.rooms:
-        if r["level"] != 0 or r["floor"] not in ("hall", "flag room"):
+        if r["floor"] not in ("hall", "flag room") or not r.get("runner"):
             continue
         side = d["sides"][r["name"].split()[0]]
         body, trim = side["runner"]
-        horizontal = (r["x1"] - r["x0"]) >= (r["y1"] - r["y0"])
-        mid = (r["y0"] + r["y1"]) // 2 if horizontal else (r["x0"] + r["x1"]) // 2
-        half = 18
-        lo, hi = (r["x0"] + 30, r["x1"] - 30) if horizontal else (r["y0"] + 30, r["y1"] - 30)
-        for a in range(lo, hi):
-            for b in range(mid - half, mid + half):
-                x, y = (a, b) if horizontal else (b, a)
+        x0, y0, x1, y1 = r["runner"]
+        for y in range(y0, y1):
+            for x in range(x0, x1):
                 i = (h - 1 - y) * w + x
-                if m.rp[i] or not m.r0[i]:
+                if not m.seen[i] or STYLES[m.style[i]] not in BUILDING:
                     continue
-                t = abs(b - mid)
-                rgb = trim if t >= half - 3 else body
-                v = hash32(a // 3, b, 455) % 9 - 4
-                pic.r[i] = max(0, min(255, rgb[0] + v))
-                pic.g[i] = max(0, min(255, rgb[1] + v))
-                pic.b[i] = max(0, min(255, rgb[2] + v))
+                t = min(x - x0, x1 - 1 - x, y - y0, y1 - 1 - y)
+                rgb = trim if t < 3 else body
+                v = hash32(x // 3, y, 455) % 9 - 4
+                _put(pic, i, (max(0, min(255, rgb[0] + v)), max(0, min(255, rgb[1] + v)), max(0, min(255, rgb[2] + v))))
 
 
 def ramp_frame(r):
-    """(along, across, low, high, side0, side1): the ramp's axis ('x' or 'y'),
-    its low and high end coordinates along it, its side faces across it."""
+    """(along, low, high, side0, side1): the ramp's axis ('x' or 'y'), its low
+    and high end coordinates along it, its side faces across it."""
     if r["axis"] == "x":
         low, high = (r["x0"], r["x1"]) if r["ascending"] == 1 else (r["x1"], r["x0"])
         return "x", low, high, r["y0"], r["y1"]
@@ -275,18 +366,18 @@ def ramp_frame(r):
 
 
 def paint_ramps(pic, d, m, tiles):
-    """Each ramp: its side's dirt outdoors, planks across the slope at a
-    base's door; treads every 12 units; lit toward its high end, and the
-    more where it climbs toward the camera (north) than away from it; its
-    rails the side walls' tops, a wall's width each, the north rail of an
-    east-west ramp showing its face."""
+    """Each ramp: lit toward its high end, the more where it climbs toward
+    the camera (north); treads every 12 units; kerbs along its sides, a
+    wall's width each (its sides are walls on both floors). Indoors, its
+    side's floor stones; outdoors, the ground (the path the client's map
+    has there)."""
     w, h = m.w, m.h
     inset = 18
     for r in m.ramps:
         side = d["sides"][r["name"].split()[0]]
         axis, low, high, s0, s1 = ramp_frame(r)
-        wooden = "connector" in r["id"] or "front" in r["id"]
-        facing = 1.0 if axis == "x" else (1.08 if high > low else 0.86)
+        indoor = r.get("indoor")
+        facing = 1.0 if axis == "x" else (1.1 if high > low else 0.86)
         tr, tg, tb = side["wall"]["top"]
         cr, cg, cb = side["wall"]["coping"]
         for y in range(r["y0"], r["y1"]):
@@ -294,40 +385,86 @@ def paint_ramps(pic, d, m, tiles):
             for x in range(r["x0"], r["x1"]):
                 i = row * w + x
                 q, c = (x, y) if axis == "x" else (y, x)
-                t = (q - low) / (high - low)          # 0 at the low end, 1 at the high end
+                t = (q - low) / (high - low)
                 across = min(c - s0, s1 - 1 - c)
-                if across < inset - 6:
-                    if axis == "x" and c >= s1 - (inset - 6):
-                        # The north rail: its face, which the camera sees.
-                        k = c - (s1 - (inset - 6))
-                        rgb = _shade((tr + 30, tg + 28, tb + 26), 150 + 9 * k)
-                    elif across < 3:
-                        rgb = _shade((tr, tg, tb), 200)
+                if across < inset - 8:
+                    # A kerb: coping on top, the wall's stones below it.
+                    if across < 2:
+                        rgb = _shade((tr, tg, tb), 190)
+                    elif across >= inset - 11:
+                        rgb = (cr, cg, cb)
                     else:
-                        rgb = (cr, cg, cb) if across >= inset - 9 else _shade((tr + 20, tg + 18, tb + 16), 236)
+                        v = hash32(q // 9, c, 461) % 13 - 6
+                        rgb = _shade((tr + 24 + v, tg + 22 + v, tb + 20 + v), 236)
+                    _put(pic, i, rgb)
+                    continue
+                if indoor:
+                    rgb = _tile(tiles, side["floor"], x, y, 11) if "tile" in side["floor"] else \
+                        parquet(x, y, side["floor"]["parquet"])
                 else:
-                    if wooden:
-                        rgb = planks(c, q, side["deck"], board=9, length=60) if axis == "y" else \
-                            planks(y, x, side["deck"], board=9, length=60)
-                    else:
-                        rgb = _tile(tiles, side["dirt"], x, y, 11)
-                    k = int((150 + 106 * t) * facing)
-                    if int(abs(q - low)) % 12 < 2:
-                        k -= 36                        # the treads across the slope
-                    if across < inset:
-                        k -= 24                        # the rails' shade
-                    rgb = _shade(rgb, max(0, min(300, k)))
-                pic.r[i], pic.g[i], pic.b[i] = (min(255, rgb[0]), min(255, rgb[1]), min(255, rgb[2]))
+                    rgb = (pic.r[i], pic.g[i], pic.b[i])
+                k = int((176 + 80 * t) * facing)
+                if int(abs(q - low)) % 12 < 2:
+                    k -= 30
+                if across < inset:
+                    k -= 22
+                _put(pic, i, _shade(rgb, max(0, min(300, k))))
 
 
-def paint_faces(pic, d, m, tiles):
-    """Where the camera sees a wall, it rises over what lies beyond: a floor
-    0 room's north edge (north of the floor, off it) rises `height` x lean
-    rows, in its side's cliff strata outdoors and its fortress's stone
-    inside a base's box; a tunnel's in its earth. Every other edge shows a
-    coping, two texels wide."""
+def paint_walls(pic, d, m, tiles):
+    """Where the floors end. Beside a base's floor, its walls: their tops in
+    courses of its stone (or logs), up to WALL thick, the coping lit along
+    the inner edge. Beside an outdoor floor, a cliff: a band of its side's
+    rock CLIFF wide, dark at the floor's edge, into the ground beyond. Off
+    every floor the ground darkens the farther it lies. The camera sees a
+    floor's north wall rise over what lies beyond: a base's wall `height` x
+    lean rows in its stones, a cliff CLIFF_HEIGHT x lean rows in its strata,
+    each over its floor's whole north edge (a portal is cut later), stopping
+    where another floor begins. Returns the faces' texels."""
     w, h = m.w, m.h
     lean = d["lean"]
+    near_in = bank_distance(bytearray(1 - v for v in m.indoor), w, h, WALL + 2)
+    near_out = bank_distance(bytearray(1 - v for v in m.outdoor), w, h, FAR)
+    for row in range(h):
+        y = h - 1 - row
+        side = d["sides"][m.side(y)]
+        wall = side["wall"]
+        base = row * w
+        for x in range(w):
+            i = base + x
+            if m.seen[i]:
+                continue
+            di, do = near_in[i], near_out[i]
+            if di and di <= WALL and (not do or di <= do):
+                if di <= 2:
+                    rgb = wall["coping"] if di == 2 else _shade(wall["coping"], 196)
+                elif di >= WALL - 1:
+                    rgb = _shade(wall["top"], 170)
+                else:
+                    course = y // 12
+                    bx = (x + (course % 2) * 12) // 24
+                    v = hash32(bx, course, 401) % 15 - 7
+                    joint = y % 12 == 0 or (x + (course % 2) * 12) % 24 == 0
+                    s = 222 if joint else 248
+                    tr, tg, tb = wall["top"]
+                    rgb = _shade((tr + 26 + v, tg + 24 + v, tb + 24 + v), s)
+                _put(pic, i, rgb)
+                continue
+            dist = do if do else FAR
+            if dist <= CLIFF:
+                rr, rg, rb = _tile(tiles, side["rock"], x, y, 23)
+                if dist <= 2:
+                    k = 96
+                else:
+                    k = 150 + 70 * (dist - 2) // (CLIFF - 2)
+                f = 256 if dist <= CLIFF // 2 else 256 - 256 * (dist - CLIFF // 2) // (CLIFF - CLIFF // 2 + 1)
+                kk = 228 - dist * 3 // 2
+                pic.r[i] = (min(255, rr * k >> 8) * f + (pic.r[i] * kk >> 8) * (256 - f)) >> 8
+                pic.g[i] = (min(255, rg * k >> 8) * f + (pic.g[i] * kk >> 8) * (256 - f)) >> 8
+                pic.b[i] = (min(255, rb * k >> 8) * f + (pic.b[i] * kk >> 8) * (256 - f)) >> 8
+            else:
+                k = 228 - min(dist, FAR) * 3 // 2
+                pic.r[i], pic.g[i], pic.b[i] = pic.r[i] * k >> 8, pic.g[i] * k >> 8, pic.b[i] * k >> 8
     faced = bytearray(w * h)
     strata = {}
 
@@ -340,34 +477,23 @@ def paint_faces(pic, d, m, tiles):
     for x in range(w):
         for row in range(1, h):
             i = row * w + x
-            if not m.ground[i] or m.ground[i - w]:
+            if not m.seen[i] or m.seen[i - w]:
                 continue
             y = h - 1 - row
-            k = m.r0[i]
-            room = m.rooms[k - 1] if k else None
-            outdoor = room is not None and room["cover"] is None
             side = m.side(y)
-            if outdoor:
-                kind, height = "cliff", CLIFF_HEIGHT
-            elif room is not None and room["floor"] == "tunnel":
-                kind, height = "earth", 40
-            else:
+            indoor = m.indoor[i]
+            if indoor:
                 kind, height = "wall", d["sides"][side]["wall"]["height"]
+            else:
+                kind, height = "cliff", CLIFF_HEIGHT
             up = int(height * lean + 0.5)
             cr, cg, cb = d["sides"][side]["wall"]["coping"]
-            er, eg, eb = d["sides"][side]["earth"]
-            face = None if kind == "earth" else face_of(side, kind)
+            face = face_of(side, kind)
             for kk in range(1, up + 1):
                 j = (row - kk) * w + x
-                if row - kk < 0 or m.ground[j]:
+                if row - kk < 0 or m.seen[j]:
                     break
-                if face is None:
-                    v = hash32(x // 3, (row - kk) // 2, 617) % 17 - 8
-                    fr, fg, fb = er + 30 + v, eg + 24 + v, eb + 18 + v
-                    if (x // 24) % 4 == 0 and x % 24 < 5:
-                        fr, fg, fb = 96 + v, 66 + v, 40 + v        # a timber post
-                else:
-                    fr, fg, fb = face.sample(x, up - kk, up)
+                fr, fg, fb = face.sample(x, up - kk, up)
                 s = 150 + 120 * kk // up
                 if kind == "wall" and kk >= up - 2:
                     fr, fg, fb, s = cr, cg, cb, 256
@@ -375,26 +501,6 @@ def paint_faces(pic, d, m, tiles):
                 pic.g[j] = max(0, min(255, fg * s >> 8))
                 pic.b[j] = max(0, min(255, fb * s >> 8))
                 faced[j] = 1
-    for row in range(h):
-        y = h - 1 - row
-        cr, cg, cb = d["sides"][m.side(y)]["wall"]["coping"]
-        base = row * w
-        for x in range(w):
-            i = base + x
-            if m.ground[i] or faced[i]:
-                continue
-            north = row > 0 and m.ground[i - w]
-            side_ = (x > 0 and m.ground[i - 1]) or (x + 1 < w and m.ground[i + 1])
-            north2 = row > 1 and m.ground[i - 2 * w]
-            side2 = (x > 1 and m.ground[i - 2]) or (x + 2 < w and m.ground[i + 2])
-            if north or side_ or north2 or side2:
-                k = 230 if (north or side_) else 190
-                if m.cv[i] and m.overlays[m.cv[i] - 1]["kind"] == "roof":
-                    pic.r[i], pic.g[i], pic.b[i] = cr * k >> 8, cg * k >> 8, cb * k >> 8
-                else:
-                    pic.r[i], pic.g[i], pic.b[i] = (pic.r[i] + 40) * k >> 8, (pic.g[i] + 36) * k >> 8, \
-                        (pic.b[i] + 30) * k >> 8
-                    pic.r[i], pic.g[i], pic.b[i] = min(255, pic.r[i]), min(255, pic.g[i]), min(255, pic.b[i])
     return faced
 
 
@@ -440,306 +546,220 @@ def paint_pads(pic, d, g):
                     pic.over(i, min(255, lr + 70), min(255, lg + 70), min(255, lb + 70), a)
 
 
-def paint_flag_marks(pic, d, g, props):
-    """A ring on the floor round each flag, in its side's colour: the flag the
-    lap rounds."""
+def paint_daises(pic, d, g):
+    """Each flag's dais: a round stone step under the banner, ringed in its
+    side's colour, and a ring on the floor round it (the flag the lap rounds)."""
     w, h = g["width"], g["height"]
-    for item in props:
-        if not item["name"].endswith("_flag"):
+    for s in g["solids"]:
+        if not s["id"].endswith("_flag"):
             continue
-        body, trim = d["sides"][item["name"].split("_")[0]]["runner"]
-        cx, cy = item["x"], item["y"] + 4
-        for y in range(int(cy - 48), int(cy + 49)):
-            for x in range(int(cx - 48), int(cx + 49)):
+        side = d["sides"][s["id"].split("_")[0]]
+        body, trim = side["runner"]
+        stone = side["wall"]["coping"]
+        cx, cy, radius = s["x"] + s["width"] / 2, s["y"] + s["height"] / 2, s["width"] / 2
+        for y in range(int(cy - radius - 30), int(cy + radius + 31)):
+            for x in range(int(cx - radius - 30), int(cx + radius + 31)):
                 if not (0 <= x < w and 0 <= y < h):
                     continue
                 dist = sqrt((x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2)
                 i = (h - 1 - y) * w + x
-                if abs(dist - 42) < 3:
+                if dist <= radius - 3:
+                    v = hash32(x // 4, y // 4, 467) % 11 - 5
+                    lit = 236 + (30 if (x - cx) + (cy - y) < 0 else -10)
+                    _put(pic, i, _shade((stone[0] + v, stone[1] + v, stone[2] + v), lit))
+                elif dist <= radius:
+                    _put(pic, i, trim)
+                elif dist <= radius + 3:
+                    pic.over(i, 20, 16, 14, 150)                  # its shadow on the floor
+                elif abs(dist - (radius + 22)) < 2.5:
+                    pic.over(i, body[0], body[1], body[2], 200)
+
+
+def paint_thresholds(pic, d, g, m):
+    """Each gate but the finish: a threshold across the floor in its side's
+    colours (a band of the runner's trim, chevrons pointing the way)."""
+    w, h = g["width"], g["height"]
+    for gt in g["gates"][:-1]:
+        side = d["sides"][gt["name"].split()[0].lower()]
+        body, trim = side["runner"]
+        horizontal = gt["ay"] == gt["by"]
+        lo = int(min(gt["ax"], gt["bx"])) if horizontal else int(min(gt["ay"], gt["by"]))
+        hi = int(max(gt["ax"], gt["bx"])) if horizontal else int(max(gt["ay"], gt["by"]))
+        mid = gt["ay"] if horizontal else gt["ax"]
+        n = gt["ny"] if horizontal else gt["nx"]
+        for a in range(lo, hi):
+            for b in range(-7, 8):
+                x, y = (a, int(mid) + b) if horizontal else (int(mid) + b, a)
+                i = (h - 1 - y) * w + x
+                if not (m.seen[i] or m.low[i]):
+                    continue
+                if abs(b) >= 6:
                     pic.over(i, trim[0], trim[1], trim[2], 210)
-                elif dist < 39:
-                    pic.over(i, body[0], body[1], body[2], 90)
+                    continue
+                # Chevrons every 24 along the gate, pointing along its normal.
+                u = (a - lo) % 24 - 12
+                tip = -b * n
+                if abs(abs(u) - (tip + 6)) < 2.5 and abs(u) <= 10:
+                    pic.over(i, trim[0], trim[1], trim[2], 230)
+                else:
+                    pic.over(i, body[0], body[1], body[2], 110)
 
 
-def paint_finish(pic, g, m, thickness=10, cells=5):
+def paint_finish(pic, g, m, thickness=12, cells=6):
     """A chequered band across the floor along the last gate (mid)."""
-    from dungeon_paint import paint_finish as chequer
-    chequer(pic, g["gates"][-1], m.ground, m.w, m.h, thickness, cells)
+    gate = g["gates"][-1]
+    w, h = g["width"], g["height"]
+    horizontal = gate["ay"] == gate["by"]
+    lo = int(min(gate["ax"], gate["bx"])) if horizontal else int(min(gate["ay"], gate["by"]))
+    hi = int(max(gate["ax"], gate["bx"])) if horizontal else int(max(gate["ay"], gate["by"]))
+    mid = int(gate["ay"] if horizontal else gate["ax"])
+    for a in range(lo, hi):
+        for b in range(mid - thickness // 2, mid + thickness // 2):
+            x, y = (a, b) if horizontal else (b, a)
+            i = (h - 1 - y) * w + x
+            if not m.seen[i]:
+                continue
+            dark = ((a // cells) + ((b - (mid - thickness // 2)) // cells)) % 2
+            pic.over(i, *((34, 30, 30) if dark else (226, 222, 210)), 225)
 
 
-def paint_grade(pic, d, m):
-    """Light: the tunnels and the halls in shade, lamplit; the field in
-    daylight."""
+def paint_portals(pic, d, m, tiles):
+    """Each tunnel's mouth (d["portals"]): an arch cut in the cliff's face
+    (`arch`: the opening, clear in Roofs.tga, so the tunnel's own floor shows
+    through it), framed in its side's stone or timber; or a lintel of timber
+    along the cover's edge where the camera sees the hill's top. Returns
+    the opening's texels."""
     w, h = m.w, m.h
-    for row in range(h):
-        y = h - 1 - row
-        base = row * w
-        for x in range(w):
-            i = base + x
-            k = m.r0[i]
-            if k and m.rooms[k - 1]["cover"]:
-                s = 200 if m.rooms[k - 1]["floor"] == "tunnel" else 226
-                pic.r[i] = pic.r[i] * (s + 12) >> 8
-                pic.g[i] = pic.g[i] * s >> 8
-                pic.b[i] = pic.b[i] * (s - 10) >> 8
+    hole = bytearray(w * h)
+    for p in d.get("portals", ()):
+        side = d["sides"][p["side"]]
+        x0, x1, y0, rise = p["x0"], p["x1"], p["y"], p.get("rise", 0)
+        frame = side["portal"]
+        cx, half = (x0 + x1) / 2, (x1 - x0) / 2
+        if p["kind"] == "arch":
+            for y in range(y0, y0 + rise + 10):
+                for x in range(x0 - 10, x1 + 10):
+                    i = (h - 1 - y) * w + x
+                    # The opening: straight sides, a round head.
+                    u = (x + 0.5 - cx) / half
+                    top = rise - half * 0.6 * (1 - sqrt(max(0.0, 1 - u * u))) if abs(u) <= 1 else -1
+                    k = y - y0
+                    if abs(u) <= 1 and k < top:
+                        hole[i] = 1
+                        pic.r[i], pic.g[i], pic.b[i] = 10, 8, 8
+                    elif abs(u) <= 1 + 10 / half and k < top + 10:
+                        v = hash32(x // 6, y // 5, 471) % 13 - 6
+                        s = 236 if (k + x) % 14 else 200
+                        _put(pic, i, _shade((frame[0] + v, frame[1] + v, frame[2] + v), s))
+        else:
+            # A lintel along the cover's edge, posts at either side.
+            for y in range(y0 - 8, y0 + 4):
+                for x in range(x0 - 6, x1 + 6):
+                    i = (h - 1 - y) * w + x
+                    post = x < x0 + 6 or x >= x1 - 6
+                    if y >= y0 - 2 or post:
+                        v = hash32(x // 8, y, 473) % 15 - 7
+                        s = 250 if y >= y0 else 196
+                        _put(pic, i, _shade((frame[0] + v, frame[1] + v, frame[2] + v), s))
+    return hole
 
 
 # ---------------------------------------------------------------------------
-# Relief: what stands how high, and the shadows it casts.
-
-SUN = (0.57, -0.76)       # ground offset per unit of height, away from the light (the models' shadows)
-HILL_HEIGHT = 80
-ROOF_HEIGHT = 104
+# LOWER: the tunnels under their covers.
 
 
-def heights(d, m):
-    """World units above floor 0 per texel: the open floor 0; the ramps
-    climbing to a hill; the hills and the cliff tops; the bases' roofs."""
+def paint_lower(pic, d, m, tiles):
+    """Within each cover's footprint: the hill's dark earth; the tunnel's
+    floor (its side's dirt, a timber frame across it every 48 units, lit
+    toward the middle) and walls (timber-lined earth, a post every 24)."""
     w, h = m.w, m.h
-    out = bytearray(w * h)
-    for i in range(w * h):
-        if m.cv[i]:
-            out[i] = HILL_HEIGHT if m.overlays[m.cv[i] - 1]["kind"] == "hill" else ROOF_HEIGHT
-        elif m.rp[i]:
-            out[i] = HILL_HEIGHT // 3
-        elif not m.ground[i]:
-            out[i] = HILL_HEIGHT
-    for r in m.ramps:
-        axis, low, high, s0, s1 = ramp_frame(r)
-        for y in range(r["y0"], r["y1"]):
-            base = (h - 1 - y) * w
-            for x in range(r["x0"], r["x1"]):
-                q = x if axis == "x" else y
-                t = (q - low) / (high - low)
-                out[base + x] = int(HILL_HEIGHT * max(0.0, min(1.0, t)) * 0.9)
-    return out
-
-
-def shadows(m, high, reach=110, step=2):
-    """Per texel, 0-255: how deep in a cast shadow it lies (the sun's ray
-    from it passes under something taller). Only texels within `reach` of a
-    taller neighbour are marched."""
-    w, h = m.w, m.h
-    out = bytearray(w * h)
-    sx, sy = SUN
-    for row in range(h):
-        y = h - 1 - row
-        base = row * w
-        for x in range(w):
-            i = base + x
-            h0 = high[i]
-            if h0 >= ROOF_HEIGHT:
-                continue
-            # Toward the sun: back along the shadow vector.
-            for t in range(step, reach, step):
-                px, py = int(x - sx * t), int(y - sy * t)
-                if px < 0 or px >= w or py < 0 or py >= h:
-                    break
-                hh = high[(h - 1 - py) * w + px]
-                if hh > h0 + t:
-                    out[i] = 255
-                    break
-                if t > ROOF_HEIGHT:
-                    break
-    return out
-
-
-def apply_shadow(pic, shade, mask=None, depth=92):
-    """Darken shadowed texels (of `mask`, when given) by `depth`/256,
-    softened at the shadow's edge by a 3 x 3 average."""
-    w, h = pic.w, pic.h
-    for row in range(1, h - 1):
-        base = row * w
-        for x in range(1, w - 1):
-            i = base + x
-            if mask is not None and not mask[i]:
-                continue
-            s = (shade[i] * 4 + shade[i - 1] + shade[i + 1] + shade[i - w] + shade[i + w]) // 8
-            if s:
-                k = 256 - depth * s // 255
-                pic.r[i], pic.g[i], pic.b[i] = pic.r[i] * k >> 8, pic.g[i] * k >> 8, pic.b[i] * k >> 8
-
-
-# ---------------------------------------------------------------------------
-# The roofs.
-
-
-def hip(x, y, box):
-    """A hip roof over `box`: (facet, distance in from its eave, ridge):
-    facet 0 north, 1 south, 2 west, 3 east; ridge where two facets meet."""
-    x0, y0, x1, y1 = box
-    ds = (y1 - 1 - y, y - y0, x - x0, x1 - 1 - x)
-    near = min(ds)
-    facet = ds.index(near)
-    second = sorted(ds)[1]
-    return facet, near, second - near <= 1
-
-
-FACET_LIGHT = (250, 196, 238, 166)      # north, south, west, east: lit from the north-west
-
-
-def planks(x, y, colour, board=10, length=72):
-    """Boards laid east-west, `board` rows wide, their butt joints staggered."""
-    lane = y // board
-    piece = (x + hash32(lane, 0, 641) % length) // length
-    v = hash32(lane, piece, 643) % 25 - 12
-    grain = hash32(x // 6, y, 645) % 7 - 3
-    k = 168 if (y % board == 0 or (x + hash32(lane, 0, 641) % length) % length == 0) else 256
-    return tuple(max(0, min(255, (c + v + grain) * k >> 8)) for c in colour)
-
-
-def walk(tiles, spec, x, y):
-    """A roof's walk: its side's flagstones, or planks."""
-    if "planks" in spec:
-        return planks(x, y, spec["planks"])
-    return _tile(tiles, spec, x, y, 19)
-
-
-def paint_roofs(layer, d, m, tiles, ground):
-    """Each overlay within its box (m.cv). A hill: the plateau's grass over
-    the ground's own terrain (so the edges meet), its slopes in rock, a
-    rocky rim where it drops to lower ground. A base: its walk (floor 1) in
-    its deck's planks with a crenellated parapet where the walk ends, its
-    pitched roofs (d["hips"]) shingled facet by facet, the rest of its box
-    its walls' tops in courses."""
-    w, h = m.w, m.h
-    into = bank_distance(m.upper, w, h, 14)                              # in from floor 1's edge
-    away = bank_distance(bytearray(1 - v for v in m.upper), w, h, 14)    # out from floor 1's edge
-    rim = bank_distance(covered_mask(m), w, h, 10)                       # in from the box's edge
-    hips = [tuple(b) for b in d.get("hips", ())]
+    near = bank_distance(bytearray(1 - v for v in m.low), w, h, 20)
+    edge = bank_distance(m.low, w, h, 14)
     for row in range(h):
         y = h - 1 - row
         side = d["sides"][m.side(y)]
+        er, eg, eb = side["earth"]
         base = row * w
         for x in range(w):
             i = base + x
-            k = m.cv[i]
-            if not k:
+            if not m.cv[i]:
                 continue
-            o = m.overlays[k - 1]
-            on = m.r1[i]
-            e = into[i] if on else away[i]
-            edge = rim[i]
-            if o["kind"] == "hill":
-                r, g, b = ground[0][i], ground[1][i], ground[2][i]     # the terrain under the hill's ground
-                if not on:
-                    rr, rg, rb = _tile(tiles, side["rock"], x, y, 13)
-                    t = min(e, 12)
-                    r, g, b = (r * (12 - t) + rr * t) // 12, (g * (12 - t) + rg * t) // 12, (b * (12 - t) + rb * t) // 12
-                    s = 214
-                else:
-                    s = 250 if e > 3 else 214
-                if edge <= 6:
-                    rr, rg, rb = _tile(tiles, side["rock"], x, y, 17)
-                    r, g, b, s = rr, rg, rb, 150 + edge * 14       # the cliff's rim, darker at the drop
-                layer.put(i, r * s >> 8, g * s >> 8, b * s >> 8, 255)
+            if m.low[i]:
+                r, g, b = _tile(tiles, side["tunnel"], x, y, 7)
+                if y % 48 < 5:
+                    r, g, b = _shade(parquet(x, y, {"block": 64, "plank": 5, "colour": (110, 78, 48)}), 230)
+                e = edge[i]
+                k = 150 if e <= 1 else 190 + 52 * min(e, 14) // 14
+                _put(pic, i, _shade((r, g, b), k))
                 continue
-            if on:
-                rgb = walk(tiles, side["walk"], x, y)
-                if e <= 3:
-                    rgb = _shade(rgb, 196)
-                layer.put(i, rgb[0], rgb[1], rgb[2], 255)
-                continue
-            # Off the walk: a parapet beside it, a pitched roof, or wall tops.
-            wr, wg, wb = side["wall"]["top"]
-            cr, cg, cb = side["wall"]["coping"]
-            if e <= 10:
-                # The parapet: coping with crenels every 12 texels.
-                merlon = ((x + y) // 12) % 2 == 0
-                s = 250 if merlon else 176
-                if e <= 2:
-                    s = 210
-                layer.put(i, min(255, cr * s >> 8), min(255, cg * s >> 8), min(255, cb * s >> 8), 255)
-                continue
-            box = next((b for b in hips if b[0] <= x < b[2] and b[1] <= y < b[3]), None)
-            if box is not None:
-                facet, depth, ridge = hip(x, y, box)
-                rr, rg, rb = side["roof"]
-                if facet < 2:
-                    course, along = depth // 9, x
-                else:
-                    course, along = depth // 9, y
-                sx = (along + (course % 2) * 7) // 14
-                v = hash32(sx, course * 4 + facet, 631) % 21 - 10
-                s = FACET_LIGHT[facet] - (4 if depth % 9 < 2 else 0) * 6
-                if ridge and depth > 2:
-                    rr, rg, rb = side["ridge"]
-                    s, v = 236, 0
-                if depth <= 2:
-                    rr, rg, rb, s = wr, wg, wb, 200          # the eaves
-                layer.put(i, max(0, min(255, (rr + v) * s >> 8)), max(0, min(255, (rg + v) * s >> 8)),
-                          max(0, min(255, (rb + v) * s >> 8)), 255)
-                continue
-            course = y // 14
-            bx = (x + (course % 2) * 14) // 28
-            v = hash32(bx, course, 401) % 15 - 7
-            joint = y % 14 == 0 or (x + (course % 2) * 14) % 28 == 0
-            s = 220 if joint else 246
-            if edge <= 4:
-                s = 200
-            layer.put(i, max(0, min(255, (wr + 26 + v) * s >> 8)), max(0, min(255, (wg + 24 + v) * s >> 8)),
-                      max(0, min(255, (wb + 24 + v) * s >> 8)), 255)
-
-
-def roof_faces(layer, d, m, tiles):
-    """A base's front: where the roof's box meets lower ground to its south
-    (the plateau, the hill), the camera sees its wall rise: the fortress's
-    face over the roof's southernmost rows."""
-    w, h = m.w, m.h
-    lean = d["lean"]
-    for o in m.overlays:
-        if o["kind"] != "roof":
-            continue
-        side = d["sides"][o["side"]]
-        if not side.get("front_face", True) or o["y0"] < h // 2:
-            continue                                   # the Horde's front faces away
-        face = Strata(tiles, side["wall"]["face"])
-        up = int(side["wall"]["height"] * lean + 0.5)
-        cr, cg, cb = side["wall"]["coping"]
-        row0 = h - 1 - o["y0"]
-        for x in range(o["x0"], o["x1"]):
-            for kk in range(up):
-                j = (row0 - kk) * w + x
-                if not m.cv[j] or m.r1[j]:
-                    continue
-                fr, fg, fb = face.sample(x, up - kk, up)
-                s = 150 + 120 * kk // up
-                if kk >= up - 3:
-                    fr, fg, fb, s = cr, cg, cb, 256
-                layer.put(j, max(0, min(255, fr * s >> 8)), max(0, min(255, fg * s >> 8)),
-                          max(0, min(255, fb * s >> 8)), 255)
+            e = near[i]
+            if e <= WALL:
+                v = hash32(x // 3, y // 2, 617) % 17 - 8
+                fr, fg, fb = er + 34 + v, eg + 28 + v, eb + 20 + v
+                if (y // 24) % 2 == 0 and y % 24 < 4 or e <= 2:
+                    fr, fg, fb = 100 + v, 70 + v, 44 + v           # timber
+                _put(pic, i, _shade((fr, fg, fb), 236 - 4 * e))
+            else:
+                v = hash32(x // 6, y // 6, 613) % 13 - 6
+                _put(pic, i, (max(0, er + v), max(0, eg + v), max(0, eb + v)))
 
 
 # ---------------------------------------------------------------------------
 # Models.
 
 
+def prop_trouble(g, m, free, item, sprite, X, Y, walls=None):
+    """Why a model may not stand where it is drawn, or None: a model that is
+    not solid keeps its drawn body off every floor UPPER shows (by the
+    slack); every model stands wholly in or wholly out of each cover (its
+    picture would be cut where the cover fades); optional scenery keeps out
+    of the bases' walls (`walls`: per texel, its distance from a base's
+    floor)."""
+    w, h = g["width"], g["height"]
+    col0, row0 = X - sprite["ox"], h - Y - sprite["oy"]
+    covers = set()
+    for i, j in sprite["body_points"]:
+        row, col = row0 + j, col0 + i
+        if 0 <= row < h and 0 <= col < w:
+            covers.add(m.cv[row * w + col])
+    if len(covers) > 1:
+        return f"{item['name']} at ({X}, {Y}) stands across a cover's edge: move it"
+    if walls is not None and 0 <= X < w and 0 <= Y < h and walls[(h - 1 - Y) * w + X] <= WALL + 4:
+        return f"{item['name']} at ({X}, {Y}) stands in a base's walls"
+    if item["solid"]:
+        return None
+    for i, j in sprite["body_points"]:
+        x, y = col0 + i + 0.5, h - 1 - (row0 + j) + 0.5
+        px, py = int(x), int(y)
+        if not (0 <= px < w and 0 <= py < h):
+            continue
+        under = m.cv[(h - 1 - py) * w + px]
+        for level in (0, 1):
+            if level == 0 and under:
+                continue                           # floor 0 runs beneath the cover: not seen
+            if free[level].allowed(x, y):
+                return (f"{item['name']} at ({X}, {Y}) stands where floor {level} drives "
+                        f"(its body at {x:.0f}, {y:.0f}): make it solid or move it")
+    return None
+
+
 def check_props(g, m, placed):
-    """Nothing the karts drive over unseen: a model that is not solid keeps
-    its drawn body off the kart floor of the layer it is drawn in (floor 0's
-    for the ground, floor 1's for the roofs), by the slack."""
+    """The scenery that may stand (prop_trouble): optional models that may
+    not are left out; any other stops the build. Returns those kept."""
     from build_battlegrounds import floor_definition
     from build_dungeon_tracks import Floor
-    w, h = g["width"], g["height"]
     free = {level: Floor(dict(floor_definition(g, level), wallInset=g["wallInset"] + PROP_SLACK))
             for level in (0, 1)}
-    boxes = [(o["x0"], o["y0"], o["x1"], o["y1"]) for o in g["overlays"]]
-    for item, sprite, X, Y, level in placed:
-        col0, row0 = X - sprite["ox"], h - Y - sprite["oy"]
-        if level == 1:
-            # The roofs are drawn box by box: what stands on one keeps in it.
-            for i, j in sprite["body_points"]:
-                x, y = col0 + i + 0.5, h - 1 - (row0 + j) + 0.5
-                if not any(b[0] <= x < b[2] and b[1] <= y < b[3] for b in boxes):
-                    raise SystemExit(f"LAYOUT: {item['name']} at ({X}, {Y}) reaches out of its roof's box "
-                                     f"(its body at {x:.0f}, {y:.0f}): move it or widen the box")
-        if item["solid"]:
-            continue
-        for i, j in sprite["body_points"]:
-            x, y = col0 + i + 0.5, h - 1 - (row0 + j) + 0.5
-            if free[level].allowed(x, y):
-                raise SystemExit(f"LAYOUT: {item['name']} at ({X}, {Y}) stands where floor {level} drives "
-                                 f"(its body at {x:.0f}, {y:.0f}): make it solid or move it")
+    walls = bank_distance(bytearray(1 - v for v in m.indoor), m.w, m.h, WALL + 6)
+    kept = []
+    for entry in placed:
+        item, sprite, X, Y, level = entry
+        why = prop_trouble(g, m, free, item, sprite, X, Y, walls if item.get("optional") else None)
+        if why is None:
+            kept.append(entry)
+        elif not item.get("optional"):
+            raise SystemExit("LAYOUT: " + why)
+    return kept
 
 
 def place(wc3, d, items, cache, level):
@@ -751,6 +771,29 @@ def place(wc3, d, items, cache, level):
     return placed
 
 
+def paint_lights(pic, d, placed, m):
+    """A pool of light round each model that has one (`light`: (radius,
+    (r, g, b))), on the ground under it."""
+    w, h = pic.w, pic.h
+    for item, sprite, X, Y, level in placed:
+        light = item.get("light")
+        if not light:
+            continue
+        radius, (lr, lg, lb) = light
+        for y in range(Y - radius, Y + radius + 1):
+            for x in range(X - radius, X + radius + 1):
+                if not (0 <= x < w and 0 <= y < h):
+                    continue
+                d2 = (x - X) ** 2 + (y - Y) ** 2
+                if d2 > radius * radius:
+                    continue
+                a = int(70 * (1 - d2 / (radius * radius)))
+                i = (h - 1 - y) * w + x
+                pic.r[i] = min(255, pic.r[i] + (lr * a >> 8))
+                pic.g[i] = min(255, pic.g[i] + (lg * a >> 8))
+                pic.b[i] = min(255, pic.b[i] + (lb * a >> 8))
+
+
 # ---------------------------------------------------------------------------
 # The build.
 
@@ -759,45 +802,45 @@ def build(wc3, d, g, check=False, preview=False, log=print, cache=None):
     started = time.time()
     w, h = g["width"], g["height"]
     tiles = Tileset(wc3)
+    sv = Survey(Path(__file__).resolve().parent / d["survey"])
     m = Masks(d, g)
-    for o in m.overlays:
-        o.setdefault("kind", "hill" if "hill" in o["id"] else "roof")
-        o.setdefault("side", o["id"].split("_")[0])
-    pic = Picture(w, h)
-    paint_ground_terrain(pic, d, tiles)
-    terrain = (bytes(pic.r), bytes(pic.g), bytes(pic.b))
-    log(f"  terrain {time.time() - started:.0f}s")
-    paint_wild(pic, d, m, tiles)
-    paint_rooms(pic, d, m, tiles)
-    paint_runners(pic, d, m)
-    paint_ramps(pic, d, m, tiles)
-    paint_faces(pic, d, m, tiles)
-    paint_pads(pic, d, g)
-    paint_flag_marks(pic, d, g, d["props"])
-    paint_finish(pic, g, m)
-    high = heights(d, m)
-    shade = shadows(m, high)
-    open_ground = bytearray(0 if m.cv[i] else 1 for i in range(w * h))
-    apply_shadow(pic, shade, open_ground)
+    upper = Picture(w, h)
+    light = relief_light(sv, d["relief"])
+    paint_ground(upper, d, sv, tiles, light)
     log(f"  ground {time.time() - started:.0f}s")
+    paint_floors(upper, d, m, tiles)
+    paint_runners(upper, d, m)
+    paint_ramps(upper, d, m, tiles)
+    paint_walls(upper, d, m, tiles)
+    hole = paint_portals(upper, d, m, tiles)
+    paint_finish(upper, g, m)
+    paint_thresholds(upper, d, g, m)
+    paint_daises(upper, d, g)
+    log(f"  floors {time.time() - started:.0f}s")
     cache = {} if cache is None else cache
-    ground_models = place(wc3, d, d["props"], cache, 0)
-    roof_models = place(wc3, d, d["roof_props"], cache, 1)
-    check_props(g, m, ground_models + roof_models)
-    for item, sprite, X, Y, _ in sorted(ground_models, key=lambda p: (-p[3], p[2])):
-        paint_sprite(pic, sprite, X, Y)
-    paint_grade(pic, d, m)
+    candidates = place(wc3, d, d["props"], cache, 0) + place(wc3, d, d["roof_props"], cache, 1)
+    models = check_props(g, m, candidates)
+    paint_lights(upper, d, models, m)
+    for item, sprite, X, Y, _ in sorted(models, key=lambda p: (-p[3], p[2])):
+        paint_sprite(upper, sprite, X, Y)
+    log(f"  models {time.time() - started:.0f}s ({len(models)} models, {len(candidates) - len(models)} optional left out)")
+    lower = Picture(w, h)
+    paint_lower(lower, d, m, tiles)
+    paint_pads(lower, d, g)
+    paint_thresholds(lower, d, g, m)
+    # Background: UPPER, LOWER under the covers. Roofs: UPPER over them.
+    background = Picture(w, h)
     layer = Layer(w, h)
-    paint_roofs(layer, d, m, tiles, terrain)
-    roof_faces(layer, d, m, tiles)
-    apply_shadow(layer, shade, covered_mask(m))
-    for item, sprite, X, Y, _ in sorted(roof_models, key=lambda p: (-p[3], p[2])):
-        paint_sprite(layer, sprite, X, Y)
-    log(f"  roofs {time.time() - started:.0f}s ({len(ground_models) + len(roof_models)} models)")
-    whole = composite(pic, layer, g["overlays"])
-    preview_rows = whole.rows(4)
+    for i in range(w * h):
+        if m.cv[i]:
+            background.r[i], background.g[i], background.b[i] = lower.r[i], lower.g[i], lower.b[i]
+            if not hole[i]:
+                layer.r[i], layer.g[i], layer.b[i], layer.a[i] = upper.r[i], upper.g[i], upper.b[i], 255
+        else:
+            background.r[i], background.g[i], background.b[i] = upper.r[i], upper.g[i], upper.b[i]
+    preview_rows = upper.rows(4)
     folder = ROOT / "addon" / "AzerothKart" / "Assets" / "Tracks" / d["folder"]
-    outputs = [(folder / "Background.tga", pic.tga()), (folder / "Roofs.tga", layer.tga()),
+    outputs = [(folder / "Background.tga", background.tga()), (folder / "Roofs.tga", layer.tga()),
                (folder / "Preview.tga", encode_tga(preview_rows)),
                (ROOT / "addon" / "AzerothKart" / "Assets" / "UI" / "GuideArrow.tga", encode_tga(arrow_sheet()))]
     for output, data in outputs:
@@ -814,9 +857,8 @@ def build(wc3, d, g, check=False, preview=False, log=print, cache=None):
         docs = ROOT / "docs" / "art" / "tracks"
         docs.mkdir(parents=True, exist_ok=True)
         (docs / f"{d['id']}-overview.png").write_bytes(encode_png(preview_rows))
-        (docs / f"{d['id']}-sources.txt").write_text(sources(d, tiles, ground_models + roof_models),
-                                                     encoding="utf-8", newline="\n")
-    return pic, layer, whole
+        (docs / f"{d['id']}-sources.txt").write_text(sources(d, tiles, models), encoding="utf-8", newline="\n")
+    return upper, lower, background, layer
 
 
 # The guiding arrow's sheet (Presentation.GUIDE_ARROW): 16 headings in a
@@ -857,27 +899,6 @@ def arrow_sheet():
     return rows
 
 
-def covered_mask(m):
-    return bytearray(1 if m.cv[i] else 0 for i in range(m.w * m.h))
-
-
-def composite(pic, layer, overlays):
-    """The ground with the roofs over it, box by box, as the addon draws them."""
-    out = Picture(pic.w, pic.h)
-    out.r[:], out.g[:], out.b[:] = pic.r, pic.g, pic.b
-    w, h = pic.w, pic.h
-    inside = bytearray(w * h)
-    for o in overlays:
-        for y in range(o["y0"], o["y1"]):
-            base = (h - 1 - y) * w
-            inside[base + o["x0"]:base + o["x1"]] = b"\x01" * (o["x1"] - o["x0"])
-    for i in range(w * h):
-        a = layer.a[i]
-        if a and inside[i]:
-            out.over(i, layer.r[i], layer.g[i], layer.b[i], a)
-    return out
-
-
 def sources(d, tiles, models):
     counts = {}
     textures = set()
@@ -891,6 +912,8 @@ def sources(d, tiles, models):
         textures.add(path)
     lines = [f"# {d['name']}: Warcraft III Reforged files used by {d['folder']}/Background.tga and Roofs.tga",
              "# Generated by scripts/build_battlegrounds.py --preview. Archive paths as the client stores them.",
+             "# The ground's layout, relief and the models' places are measured from the World of Warcraft",
+             f"# client's own map ({d['survey']}, scripts/wow_map_survey.py): numbers only, no client file.",
              "", "## Models (placements)"]
     lines += [f"{counts[k]:4d}  {k}" for k in sorted(counts)]
     lines += ["", "## Textures"] + sorted(textures)

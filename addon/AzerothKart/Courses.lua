@@ -67,13 +67,14 @@ Courses.LIST = {
         background=TRACKS .. "ScarletCathedral\\Background.tga",
         dust={0.78,0.74,0.68}, ground={0.05,0.05,0.05},
         status="Scarlet Cathedral | Sprint to the altar | Up the stairs and turn at the landing"},
-    -- Two floors: in by each base's tunnel, round its flag, out by its ramp.
-    -- Its floor-aware physics and protocol context are separate from flat courses.
+    -- In by each base's tunnel, round its flag, out by its door; two floors
+    -- where Silverwing Hold's plateau crosses its tunnel. Its floor-aware
+    -- physics and protocol context are separate from flat courses.
     {id="warsong_gulch", name="Warsong Gulch", short="Warsong", cup="battlegrounds", geometry="layered",
         guideArrow=true,
         background=TRACKS .. "WarsongGulch\\Background.tga", roofs=TRACKS .. "WarsongGulch\\Roofs.tga",
         dust={0.80,0.74,0.60}, ground={0.14,0.17,0.10},
-        status="Warsong Gulch | Start for 3 laps | In by each tunnel, round the flag, out by the ramp"},
+        status="Warsong Gulch | Start for 3 laps | In by each tunnel, round the flag, out by the door"},
 }
 
 local byId = {}
@@ -116,6 +117,20 @@ function Courses.roofs(id)
     if not course or course.geometry ~= "layered" then return nil end
     local definition = namespace.Battlegrounds and namespace.Battlegrounds[id]
     return definition and definition.overlays
+end
+
+-- A guided course's reviewed way round (presentation data, as its roofs): the
+-- route's points and, per gate, the point the route drives to as it crosses
+-- that gate; nil when the course has none (Presentation.guideHeading then
+-- points at the next gate).
+function Courses.route(id)
+    local course = byId[id]
+    if not course or not course.guideArrow or course.geometry ~= "layered" then return nil end
+    local definition = namespace.Battlegrounds and namespace.Battlegrounds[id]
+    if not definition or type(definition.route) ~= "table" or type(definition.routeGates) ~= "table" then
+        return nil
+    end
+    return {points=definition.route, gates=definition.routeGates}
 end
 
 -- The pure track for a course; crossesGate is the shared gate predicate.

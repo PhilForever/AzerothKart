@@ -1,11 +1,12 @@
 """Read-only World of Warcraft CASC reader: extract files by FileDataID.
 
-python wowcasc.py ROOT extract OUTDIR FDID[=NAME] ... [--cdn]   # write each file (default name: its FileDataID)
-python wowcasc.py ROOT info
+python wowcasc.py ROOT extract OUTDIR FDID[=NAME] ... [--cdn] [--product NAME]   # write each file (default name: its FileDataID)
+python wowcasc.py ROOT info [--product NAME]
 
 ROOT is the World of Warcraft install folder (holding .build.info and Data/).
 Nothing there is written. The build is the first active product line of
-.build.info; files are found through its root manifest (MFST: FileDataID to
+.build.info, or the active line named by --product (an install can hold
+several: wow_classic_era, wow_classic_beta, ...); files are found through its root manifest (MFST: FileDataID to
 content key), the encoding table (content key to encoding key) and the local
 indices (encoding key to a data archive), all read lazily: the bucket of an
 encoding key is computed and its index searched, so a lookup reads a few
@@ -29,13 +30,13 @@ from wc3casc import blte
 
 
 class WowCasc:
-    def __init__(self, root):
+    def __init__(self, root, product=None):
         self.root = root
         self.data = os.path.join(root, "Data", "data")
         info = open(os.path.join(root, ".build.info"), encoding="utf-8").read().splitlines()
         names = [h.split("!")[0] for h in info[0].split("|")]
         rows = [dict(zip(names, line.split("|"))) for line in info[1:] if line.strip()]
-        row = next(r for r in rows if r.get("Active") == "1")
+        row = next(r for r in rows if r.get("Active") == "1" and product in (None, r.get("Product")))
         self.product, self.version = row.get("Product"), row.get("Version")
         self.cdn_hosts, self.cdn_path = row.get("CDN Hosts", "").split(), row.get("CDN Path", "")
         self.config = self._config(row["Build Key"])
@@ -253,8 +254,13 @@ class WowCasc:
 def main():
     args = [a for a in sys.argv[1:] if a != "--cdn"]
     cdn = len(args) != len(sys.argv) - 1
+    product = None
+    if "--product" in args:
+        at = args.index("--product")
+        product = args[at + 1]
+        del args[at:at + 2]
     root, command = args[0], args[1]
-    casc = WowCasc(root)
+    casc = WowCasc(root, product)
     if command == "info":
         print(casc.product, casc.version, casc.config.get("build-name"))
         return

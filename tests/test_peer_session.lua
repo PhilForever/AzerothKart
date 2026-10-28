@@ -86,15 +86,15 @@ do
         end))
         assert(view(guest).canJoin)
     end
-    for _,change in ipairs({{physicsVersion=12},{trackVersion=2},{laps=1}}) do
-        local message={physicsVersion=13,trackId="warsong_gulch",trackVersion=1,laps=3}
+    for _,change in ipairs({{physicsVersion=12},{trackVersion=1},{laps=1}}) do
+        local message={physicsVersion=13,trackId="warsong_gulch",trackVersion=2,laps=3}
         for field,value in pairs(change) do message[field]=value end
         local guest=fresh("guest",captured)
         assert(not deliver(guest,0,wire("INVITE",1,message)))
         closed(guest,"incompatible")
     end
     local prior=fresh("guest",{physicsVersion=12})
-    assert(not deliver(prior,0,wire("INVITE",1,{physicsVersion=13,trackId="warsong_gulch",trackVersion=1,laps=3})))
+    assert(not deliver(prior,0,wire("INVITE",1,{physicsVersion=13,trackId="warsong_gulch",trackVersion=2,laps=3})))
     closed(prior,"incompatible")
 end
 

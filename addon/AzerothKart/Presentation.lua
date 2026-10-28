@@ -827,21 +827,24 @@ function Presentation.drawnHigh(track, x, y, level)
     return false
 end
 
-Presentation.ROOF_FADED, Presentation.ROOF_FADE_DEPTH = 0.25, 24
+Presentation.ROOF_FADED, Presentation.ROOF_FADE_DEPTH, Presentation.ROOF_FADE_LEAD = 0.25, 24, 32
 
 -- A roof's opacity: whole, unless the player's kart is on the ground under
--- it, fading to ROOF_FADED over its first ROOF_FADE_DEPTH units in.
+-- it or about to be: it starts to fade ROOF_FADE_LEAD units before one of
+-- its `under` boxes (a tunnel's mouth) and is down to ROOF_FADED
+-- ROOF_FADE_DEPTH units in, so the kart never vanishes under it.
 function Presentation.roofAlpha(roof, x, y, high)
     if high or type(roof) ~= "table" or type(roof.under) ~= "table" or not finite(x) or not finite(y) then
         return 1
     end
-    local depth = 0
+    local lead = Presentation.ROOF_FADE_LEAD
+    local depth = -lead
     for i = 1, #roof.under do
         local b = roof.under[i]
         local d = math.min(x - b.x0, b.x1 - x, y - b.y0, b.y1 - y)
         if d > depth then depth = d end
     end
-    local t = math.min(1, depth / Presentation.ROOF_FADE_DEPTH)
+    local t = math.min(1, (depth + lead) / (lead + Presentation.ROOF_FADE_DEPTH))
     return 1 - (1 - Presentation.ROOF_FADED) * t
 end
 
@@ -857,19 +860,82 @@ function Presentation.roofCrop(view, roof)
     return px, py, pw, ph, x0 / W, x1 / W, 1 - y1 / H, 1 - y0 / H
 end
 
--- The guiding arrow (a course's `guideArrow`): from (x, y) toward the middle
--- of the lap's next gate, as a heading and a distance; nil when the lap's
--- progress names no next gate. Reads the race's copied checkpoint progress.
+-- The guiding arrow (a course's `guideArrow`): from (x, y) the way to the
+-- lap's next gate, as a heading and a distance; nil when the lap's progress
+-- names no next gate. Reads the race's copied checkpoint progress and the
+-- course's reviewed route (Courses.route: its `points` and, per gate, the
+-- point the route drives to as it crosses that gate): the arrow aims
+-- `ahead` units along the route past its nearest point to the kart, looked
+-- for between the previous gate's crossing and the next's, so it bends
+-- round corners with the way instead of pointing through walls. With no
+-- route, at the middle of the next gate.
 Presentation.GUIDE_ARROW = {path="Interface\\AddOns\\AzerothKart\\Assets\\UI\\GuideArrow.tga",
-    frames=16, columns=4, size=26, reach=46}
+    frames=16, columns=4, size=26, reach=46, ahead=110}
 
-function Presentation.guideHeading(track, progress, x, y)
+local function routePoint(p)
+    return type(p) == "table" and finite(p.x) and finite(p.y)
+end
+
+local function alongRoute(points, crossings, nextGate, x, y, ahead)
+    local count = #points
+    local last = crossings[nextGate]
+    if type(last) ~= "number" or last % 1 ~= 0 or last < 2 or last > count then return nil end
+    local first = nextGate > 1 and crossings[nextGate - 1]
+    first = (type(first) == "number" and first % 1 == 0 and first >= 2 and first <= last) and first - 1 or 1
+    for k = first, last do
+        if not routePoint(points[k]) then return nil end
+    end
+    local best, bestK, bestT
+    for k = first, last - 1 do
+        local a, b = points[k], points[k + 1]
+        local dx, dy = b.x - a.x, b.y - a.y
+        local length2 = dx * dx + dy * dy
+        local t = 0
+        if length2 > 0 then t = math.max(0, math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / length2)) end
+        local px, py = a.x + dx * t, a.y + dy * t
+        local d = (px - x) * (px - x) + (py - y) * (py - y)
+        if not best or d < best then best, bestK, bestT = d, k, t end
+    end
+    -- Walk `ahead` on from there (to the route's end at most).
+    local k, t, left = bestK, bestT, ahead
+    while true do
+        local a, b = points[k], points[k + 1]
+        if not routePoint(b) then b = a end
+        local dx, dy = b.x - a.x, b.y - a.y
+        local length = math.sqrt(dx * dx + dy * dy)
+        if length * (1 - t) >= left or k + 1 >= count or not routePoint(points[k + 2]) then
+            local f = length > 0 and math.min(1, t + left / length) or 1
+            local tx, ty = a.x + dx * f, a.y + dy * f
+            local hx, hy = tx - x, ty - y
+            return atan2(hy, hx), math.sqrt(hx * hx + hy * hy)
+        end
+        left = left - length * (1 - t)
+        k, t = k + 1, 0
+    end
+end
+
+function Presentation.guideHeading(track, progress, x, y, route)
     if type(track) ~= "table" or type(track.gates) ~= "table" or type(progress) ~= "table"
         or progress.complete or not finite(x) or not finite(y) then return nil end
     local gate = track.gates[progress.nextGate]
     if type(gate) ~= "table" then return nil end
+    if type(route) == "table" and type(route.points) == "table" and type(route.gates) == "table"
+        and #route.points >= 2 then
+        local heading, distance = alongRoute(route.points, route.gates, progress.nextGate, x, y,
+            Presentation.GUIDE_ARROW.ahead)
+        if heading then return heading, distance end
+    end
     local dx,dy = (gate.ax + gate.bx) / 2 - x, (gate.ay + gate.by) / 2 - y
     return atan2(dy, dx), math.sqrt(dx * dx + dy * dy)
+end
+
+-- The next gate's glow on a guided course: its marker's opacity at `seconds`
+-- into the run, a slow pulse between 0.55 and 1.
+function Presentation.gateGlow(seconds)
+    if not finite(seconds) then return 1 end
+    local phase = seconds * 1.25 % 1
+    local wave = phase < 0.5 and phase * 2 or 2 - phase * 2
+    return 0.55 + 0.45 * wave
 end
 
 -- The arrow sheet: 16 headings, frame k pointing at k/16 of a turn from
