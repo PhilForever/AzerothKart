@@ -174,6 +174,22 @@ The owner's fourth cup starts with Warsong Gulch (`warsong_gulch`), the first co
 
 Offline: `LayeredTrack.new` accepts it; the route walk crosses the seven gates in order on the right floors (0, 1, 0, 1, 0) and never meets a wall, and its crossings are the arrow's; from every step the arrow's straight run is clear; nothing passes between a flag and its wall; the ramps change floor end to end only; the Boots boost a kart in either tunnel; both grid poses stand on floor 0; Codex's assisted two-peer integration drives three laps of it with real Physics without an impact. See [the Warsong Gulch sheet](art/tracks/warsong-gulch.md).
 
+## Battlegrounds Cup: Arathi Basin (coming soon)
+
+The cup's second course (`arathi_basin`, `claude/arathi-basin`): a circuit round the basin on its real roads, measured from the owner's client as Warsong's gulch was; no insides, heavy slopes. Listed as coming soon until Codex assigns its course, invite and score IDs. The owner's way round: "East > DOWN to Gold Mine > Up to the stables > UP to the Lumbermill and then down to the farm and around".
+
+1. From the grid on the east road, north over the east bridge, past the pond and down the Gold Mine's road into the mine's hollow (the lap's lowest ground) and through its yard.
+2. Up the north road to the Stables; round the barn either way (by the road north of it, or across the yard south of it).
+3. Over the west bridge, down the west road, up the hill past the Lumber Mill (the lap's highest ground).
+4. Down the cliff road to the junction at the south bridge, sharp back east along the farm road past the Farm, round the corner onto the east road to the finish behind the grid.
+
+- 2048 × 2048 at three units to the yard; a Circuit (the cities' street: road radius 56, the karts' reach 76, full grip to the fences); the two bridges narrowed to 42 with their approaches; the Stables' yard a plaza with the barn solid in it.
+- Five gates: *Gold Mine*, *Stables*, *Lumber Mill*, *Farm* and *Defiler's Den* (the finish).
+- About 5,070 units a lap; heights from 0 (the Gold Mine's hollow) to 124 yards (the Lumber Mill), drawn by the relief and carried as inert `elevation` data (felt slopes are Codex's proposal, ADR 0015).
+- Rendering: one picture (no roofs); the arrow follows the route; the next gate glows.
+
+Offline: `Circuit.new` accepts it; the route walk never meets a wall and crosses the five gates in order where `routeGates` says, the arrow following it; the bridges' decks are walled at 42; the barn blocks and the yard drives on both sides of it; coming soon, it is not built, selected or stepped to. See [the Arathi Basin sheet](art/tracks/arathi-basin.md).
+
 ## Test Oval checkpoint sequence
 
 `Track.gates` defines four ordered finite segments: North, West, South, then Start, following counterclockwise motion from the right-hand spawn facing north. The Start strip now runs horizontally across the right-hand road at `y=240`, from `x=570` to `770`; it is the fourth gate rather than an immediate spawn award. The other gates cross the road at its north, west and south extremities. Four pooled strips show pending, next and passed gates; a separate text HUD names the next target and the passed count.

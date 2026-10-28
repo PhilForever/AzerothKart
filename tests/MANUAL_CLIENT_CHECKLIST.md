@@ -1,5 +1,20 @@
 # Manual client acceptance — F0/F1/F2/F5
 
+## Deferred Arathi Basin check (proposed, `claude/arathi-basin`)
+
+**NOT RUN.** Item 1 after a coordinated install of the branch; the rest once Codex has registered the course (its course, invite and score IDs). **Fully restart the client:** `Battlegrounds.lua` changes and `Assets/Tracks/ArathiBasin/` is new. The owner runs these checks; Claude does not control the client. The course sheet: [arathi-basin.md](../docs/art/tracks/arathi-basin.md).
+
+1. **Coming soon:** under Battlegrounds Cup, "Arathi Basin (soon)" below Warsong Gulch, disabled; all thirteen rows of the track list clear of the Back button.
+2. **Track screen** (registered): Arathi's square preview and copy. Note any hitch loading its 16 MiB picture.
+3. **The grid** on the east road, facing north; at GO the arrow points up the road toward the east bridge, the Gold Mine's gate glowing once in view.
+4. **Does it look like Arathi Basin?** The river and its bridges, the Gold Mine in its hollow, the Stables' barn and yard, the Lumber Mill on its hill, the Farm with its windmill and fields, the Blacksmith across its bridges in the middle, the two town halls. Do the slopes read: the Gold Mine's hollow low, the Lumber Mill's hill high? A screenshot of anything that reads wrong.
+5. **The bridges:** narrower than the road, the kart stopping at the parapets as drawn.
+6. **The Stables:** round the barn both ways, north by the road and south across the yard; the barn stops the kart where it is drawn.
+7. **Up the Lumber Mill's hill and down the cliff road,** the sharp turn east at the south bridge, past the Farm to the finish behind the grid. Three laps, the arrow always along the way.
+8. **Checkpoints:** every gate easy to see, the next one glowing, the HUD naming it; any gate missed while driving the obvious way: where.
+9. **Slopes on flat physics:** the climbs and descents look steep but drive flat; say if that reads wrong (feeling the grade is a proposal to Codex).
+10. **Seams:** a place where the kart stops at nothing it can see, or drives through something that looks solid (a fence, a tree, a building): a screenshot of each.
+
 ## Deferred Warsong Gulch version 3 check (proposed, `claude/warsong-v3`)
 
 **NOT RUN.** Run it after Codex's review and a coordinated install. **Fully restart the client:** `Battlegrounds.lua` and the three pictures in `Assets/Tracks/WarsongGulch/` change (same paths). Version 3 has its own board: version 1 and 2 times stay on theirs. The owner runs these checks; Claude does not control the client.
