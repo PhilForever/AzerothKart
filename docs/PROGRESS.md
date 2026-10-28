@@ -1,5 +1,48 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-28 10:15 +0100 — Reviewed Warsong v2 installed and packaged
+
+Tested runtime **5871f06**, branch `codex/warsong-v2-integration`, preserves
+both parents4a2cf06 and approved Claude0794343. The two review findings are
+closed by c362f4a and the independent checks in the previous entry. Owner's
+requested installation is complete; no additional gameplay/handling changes.
+Claude's checkout remains0794343 with its existing untracked outputs intact.
+No push, main merge, release, rewrite or other-worktree mutation.
+
+Executed PS7 `scripts/install_local.ps1 -AddOnsDirectory
+'C:/Program Files (x86)/World of Warcraft/_classic_beta_/Interface/AddOns'
+-Overwrite -BackupDirectory '<repo>/local-artifacts/deploy-20261028-warsong-v2/backups'`
+after successful preview: PASS. All91 tested source files installed and
+SHA-256 verified. All92 prior installed files backed up and verified; the
+legacy GoblinDragCar.tga extra remains. No deletions, SavedVariables/WTF or
+unrelated-addon changes.
+
+Independent `C:/Python314/python.exe
+local-artifacts/deploy-20261028-warsong-v2/audit_and_package.py --runtime 5871f06`:
+PASS every source/target/backup hash, exact inventories and retained extra.
+A new exclusive ZIP is built from the installed tested paths; every archive
+entry/hash and CRC verifies. Source still matches the committed runtime.
+
+- Manifest: `local-artifacts/deploy-20261028-warsong-v2/backups/20261028-101431-468-c28868e3588f4287bfbde19fd8ae39e2/install.json`.
+- Prior files: that manifest directory's `before/` (92 verified files).
+- Audit/preflight/receipt: `local-artifacts/deploy-20261028-warsong-v2/`.
+- Friend ZIP: `../AzerothKart-WarsongV2-5871f06.zip`,91 entries,76,877,177 bytes.
+- SHA256: `BF79633478560FBB6C6F869233FB57641051FF11D88D0261BB1FE61B7267F70A`.
+
+Focused Lua51 eight-module/85-file checks and12-board catalogue check PASS,
+with both guide-ray and mutation regressions independently verified; no
+redundant full46/Lua54 repetition. Structural validator still reports only
+the same two historical links. Native driving/appearance/arrow feel/frame cost
+and current multiplayer delivery remain NOT RUN. Existing milestone/release
+and eight-player gates remain open.
+
+**Next exact task:** fully restart WoW and drive Warsong v2, checking the
+Alliance front-yard arrow, tunnel fades, visible next gate and three-lap finish.
+For multiplayer, both players install this same package and restart, then use
+the existing two-peer lobby/rematch. V1 times remain stored separately; the
+other eleven course contexts and Physics12 handling are unchanged.
+
+
 ## 2026-10-28 10:12 +01:00 — Warsong v2 fixes approved and integrated candidate
 
 Owner explicitly requests installation after review. Clean6b4519f; own branch

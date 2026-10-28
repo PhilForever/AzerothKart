@@ -1,5 +1,20 @@
 # Shared integration and deployment status
 
+## Installed Warsong v2 — 2026-10-28
+
+Runtime **5871f06** on `codex/warsong-v2-integration` is installed, integrating
+reviewed Claude0794343 and fixes c362f4a. All91 source/target and92 prior backup
+files independently SHA-256 verified; legacy extra preserved. Friend package:
+`../AzerothKart-WarsongV2-5871f06.zip` (91 entries). [Receipt](PROGRESS.md).
+
+Both review findings are closed. Eight focused Lua51 modules,85 parsed files,
+12-board catalogue and independent guide/mutation checks PASS. Native checks
+remain NOT RUN; validator has two historical broken links. **Fully restart
+both clients** for the replacement textures and matching geometry2. V1 scores
+remain saved separately; other eleven boards/handling/transport are unchanged.
+Original Claude checkout/history intact; no GitHub push, main merge or release.
+
+
 ## Installed Warsong build — 2026-10-27
 
 Runtime **9b7d6df** on `codex/warsong-registration` is installed in the owner's

@@ -1,5 +1,35 @@
 # Codex handoff — production maps and Claude course review
 
+## Installed Warsong v2 checkpoint — 2026-10-28 10:15 +0100
+
+Runtime **5871f06**, branch `codex/warsong-v2-integration`, integrates reviewed
+Claude **0794343** / fixes **c362f4a**. Both original P2 findings are resolved;
+[review addendum](../reviews/2026-10-28-warsong-v2.md#fix-review-addendum--2026-10-28-1012-cet).
+Eight focused Lua51 modules/85 parsed files and12-board catalogue checks PASS.
+Independent exact-corner/all1179 visible rays and flag/refusal mutations PASS.
+Native checks, full46/Lua54 repetition and art rebuild by Codex NOT RUN; the
+structural validator retains two historical expired links.
+
+Installed into the existing classic_beta AddOns/AzerothKart folder. All91
+source/installed files and92 prior backup files independently verified, legacy
+extra preserved. Friend ZIP `../AzerothKart-WarsongV2-5871f06.zip` has91 entries,
+76,877,177 bytes, SHA256
+`BF79633478560FBB6C6F869233FB57641051FF11D88D0261BB1FE61B7267F70A`.
+[Full deployment receipt and next steps](../PROGRESS.md). Receipt/audit scripts
+stay under ignored `local-artifacts/deploy-20261028-warsong-v2/`.
+
+Warsong geometry2/Physics13 has the surveyed14-room/two-ramp route, two tunnel
+covers, open bases, seven checkpoints and two pads. The copied-floor route
+arrow selects a sampled clear intermediate target; no physics/transport writes
+or UI allocation. V1 scores remain stored; other eleven Physics12 boards and
+AZKSCR2 limits are unchanged. Full restart recommended for replacement textures;
+both multiplayer clients need the same v2 geometry. No push/main/release.
+Original Claude checkout remains0794343, tracked-clean with its existing outputs.
+
+**Next:** owner tests the v2 front-yard arrow, tunnel fades, visible checkpoints
+and three-lap finish, then same-build friend race/rematch when available.
+
+
 ## Active authorized integration/install — Warsong v2, 2026-10-28
 
 Owner explicitly requests installation if Claude's fixes pass review. Clean
