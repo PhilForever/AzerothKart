@@ -1,5 +1,13 @@
 # Shared integration and deployment status
 
+## Installed Alterac Valley — 2026-10-29
+
+Runtime **858913b** is installed with99 source files independently verified
+and95 previous files backed up. Matching ZIP `../AzerothKart-Alterac-858913b.zip`
+verified. Full client restart required; native ice feel/remote smoothing,
+scenery seams and performance remain NOT RUN. [Receipt](PROGRESS.md),
+[review](reviews/2026-10-29-alterac.md).
+
 ## Alterac reviewed candidate — 2026-10-29
 
 Reviewed Claude `ee4ac0c` with Codex Physics15 ice and solo/two-player sprint

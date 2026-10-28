@@ -1,5 +1,15 @@
 # Codex handoff — production maps and Claude course review
 
+## Installed Alterac Valley — 2026-10-29 00:41 +0100
+
+Runtime **858913b** installed: reviewed Claude `ee4ac0c`, Physics15 ice,
+solo/two-peer one-run sprint, bounded14-board sharing.99 installed source
+files and95 prior backup files verified; friend ZIP
+`../AzerothKart-Alterac-858913b.zip` matches. Full client restart required.
+Native ice/forecast feel, seams and performance pending;
+[review](../reviews/2026-10-29-alterac.md) and [evidence](../PROGRESS.md).
+Claude’s worktree remains separate; no push/main/release.
+
 ## Alterac integrated candidate — 2026-10-29
 
 Reviewed Claude `ee4ac0c`; own `codex/alterac-integration` adds Physics15 ice

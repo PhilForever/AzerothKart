@@ -1,5 +1,23 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-29 00:41 +0100 — Alterac installed and friend ZIP verified
+
+Runtime **858913b** on `codex/alterac-integration` merges reviewed Claude
+`ee4ac0c` with Codex ice/registration. Fresh prior-source hash/inventory check
+and installer preview passed. `scripts/install_local.ps1` installed99 tested
+source files and backed up95 prior files; independent
+`local-artifacts/deploy-20261029-alterac/audit_and_package.py --runtime 858913b`
+verified all source/installed/backup hashes, preserved legacy extra and99 ZIP
+entries/CRC: PASS. No SavedVariables, other addon or Claude worktree changed.
+
+ZIP: `../AzerothKart-Alterac-858913b.zip`,127,047,634 bytes; SHA256
+`CADC2313F1D1E424805063DA7F3D1DDBF3145CDE64F092DC6EB5B78EA69E9A96`.
+Backup/manifest/receipt and focused log: `local-artifacts/deploy-20261029-alterac/`.
+Full client restart required for five new textures; both racers update.
+Native ice feel/remote prediction, seams and memory/frame cost NOT RUN.
+Next: owner drives the one-run course and checks ice entry/exit, braking and
+Dun Baldar finish. No push, release or main merge.
+
 ## 2026-10-29 00:39 +0100 — Alterac reviewed and ice/registration implemented
 
 Reviewed Claude `ee4ac0c` on `codex/alterac-integration`: open one-run Circuit,
