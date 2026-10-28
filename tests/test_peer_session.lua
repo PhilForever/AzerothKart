@@ -65,14 +65,16 @@ do
     end
     local versions,targets,mechanics,count={},{},{},0
     for _,course in ipairs(AK.Courses.LIST) do
+      if not course.soon then -- Claude pin: a course coming soon (Arathi Basin) has no IDs yet
         assert(AK.Courses.multiplayer(course.id))
         local track=assert(AK.Courses.build(course.id,AK.Track.crossesGate))
         versions[course.id],targets[course.id]=track.version,track.laps or 3
         mechanics[course.id]=AK.Physics.versionForTrack(track)
         assert(mechanics[course.id]==(course.id=="warsong_gulch" and 13 or 12))
         count=count+1
+      end
     end
-    assert(count==12 and not versions.test_oval and targets.warsong_gulch==3)
+    assert(count==12 and not versions.test_oval and not versions.arathi_basin and targets.warsong_gulch==3)
     local captured={physicsVersion=12,trackVersions=versions,trackLaps=targets,trackPhysics=mechanics}
     for id in pairs(versions) do
         local host,guest=fresh("host",captured),fresh("guest",captured)

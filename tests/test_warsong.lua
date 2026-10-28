@@ -240,10 +240,13 @@ assert(AK.Courses.available("warsong_gulch") and AK.Courses.multiplayer("warsong
     "the real layered three-lap track (version 3) is available in solo and two-peer racing")
 assert(AK.Courses.build("warsong_gulch", Track.crossesGate) == production,
     "production geometry is built once and retained")
-local flat, layered = 0, 0
+local flat, layered, soon = 0, 0, 0
 for _,entry in ipairs(AK.Courses.LIST) do
-    local built = assert(AK.Courses.build(entry.id, Track.crossesGate))
-    if entry.id == "warsong_gulch" then
+    local built = AK.Courses.build(entry.id, Track.crossesGate)
+    assert(built or entry.soon, "every course but one coming soon builds: " .. entry.id)
+    if entry.soon then
+        soon = soon + 1
+    elseif entry.id == "warsong_gulch" then
         layered = layered + 1
     else
         flat = flat + 1
@@ -251,8 +254,8 @@ for _,entry in ipairs(AK.Courses.LIST) do
             "existing flat course keeps Physics12: " .. entry.id)
     end
 end
-assert(flat == 11 and layered == 1 and Physics.VERSION == 12 and Physics.FEATURE_VERSION == 13,
-    "Warsong adds a separate feature context without retiming the eleven existing courses")
+assert(flat == 11 and layered == 1 and soon == 1 and Physics.VERSION == 12 and Physics.FEATURE_VERSION == 13,
+    "Warsong adds a separate feature context without retiming the eleven existing courses (Arathi Basin coming soon)")
 assert(not AK.Courses.get("test_oval") and not AK.Courses.available("test_oval")
     and not AK.Courses.multiplayer("test_oval") and not AK.Courses.build("test_oval", Track.crossesGate),
     "the development oval stays retired")

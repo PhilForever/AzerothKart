@@ -3,7 +3,8 @@
 -- builds each one. Independent of WoW APIs; UI and the menus read it.
 -- A Scarlet Crusade Cup course is a dungeon sprint: one run from the start
 -- to the last gate (its geometry sets `laps`). A Battlegrounds Cup course is
--- a course on two floors (LayeredTrack.lua): Warsong Gulch.
+-- a course on two floors (LayeredTrack.lua), Warsong Gulch, or a circuit on
+-- one (Circuit.lua, from Battlegrounds.lua): Arathi Basin, coming soon.
 local _, namespace = ...
 local Courses = {DEFAULT_ID="mirage_raceway"}
 
@@ -76,6 +77,15 @@ Courses.LIST = {
         background=TRACKS .. "WarsongGulch\\Background.tga", roofs=TRACKS .. "WarsongGulch\\Roofs.tga",
         dust={0.80,0.74,0.60}, ground={0.14,0.17,0.10},
         status="Warsong Gulch | Start for 3 laps | Up each ramp, round the flag, out by the tunnel"},
+    -- Round the basin on its real roads, down to the Gold Mine and up to the
+    -- Lumber Mill: a circuit (the cities' street rules) on the basin's own
+    -- ground. Listed as coming soon until its course, invite and score IDs
+    -- are assigned (Codex).
+    {id="arathi_basin", name="Arathi Basin", short="Arathi", cup="battlegrounds", geometry="circuit",
+        guideArrow=true, soon=true,
+        background=TRACKS .. "ArathiBasin\\Background.tga",
+        dust={0.80,0.76,0.62}, ground={0.30,0.30,0.16},
+        status="Arathi Basin | Start for 3 laps | Down to the Gold Mine, up to the Lumber Mill"},
 }
 
 local byId = {}
@@ -126,7 +136,9 @@ end
 -- points at the next gate).
 function Courses.route(id)
     local course = byId[id]
-    if not course or not course.guideArrow or course.geometry ~= "layered" then return nil end
+    if not course or not course.guideArrow or (course.geometry ~= "layered" and course.geometry ~= "circuit") then
+        return nil
+    end
     local definition = namespace.Battlegrounds and namespace.Battlegrounds[id]
     if not definition or type(definition.route) ~= "table" or type(definition.routeGates) ~= "table" then
         return nil
@@ -153,6 +165,9 @@ function Courses.build(id, crossesGate)
     elseif course.geometry == "layered" then
         local definition = namespace.Battlegrounds and namespace.Battlegrounds[id]
         track = definition and namespace.LayeredTrack and namespace.LayeredTrack.new(definition, crossesGate)
+    elseif course.geometry == "circuit" then
+        local definition = namespace.Battlegrounds and namespace.Battlegrounds[id]
+        track = definition and namespace.Circuit.new(definition, crossesGate)
     end
     built[id] = track
     return track

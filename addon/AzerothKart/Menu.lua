@@ -91,6 +91,13 @@ Menu.TRACKS = {
             .. "its tunnel to mid, every lap.",
         facts={"3 laps, 7 gates: both flags every lap", "Laid out from the game's own map",
             "Boots in each tunnel; the arrow shows the way"}},
+    -- The second (coming soon): round the basin on its real roads.
+    {id="arathi_basin", name="Arathi Basin", cell="arathibasin",
+        blurb="Round the basin from the road to Defiler's Den: north over the east bridge and down into the "
+            .. "Gold Mine's hollow, up the north road to the Stables and round the barn either way, over the west "
+            .. "bridge, up the hill past the Lumber Mill and down the cliff road to the Farm.",
+        facts={"3 laps, 5 gates named for the bases", "Laid out from the game's own map: real hills and roads",
+            "Round the Stables' barn either way; the arrow shows the way"}},
 }
 
 local WC3C = "Model: ITE project (wc3c), author unknown"
@@ -166,6 +173,9 @@ Menu.PREVIEW_CELLS = {
     -- Warsong Gulch's preview shows the gulch from above, its covers on (1024 x 2048).
     warsonggulch={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\WarsongGulch\\Preview.tga",
         left=0, right=1, top=0, bottom=1, width=160, height=320},
+    -- Arathi Basin's: the basin from above (2048 x 2048).
+    arathibasin={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\ArathiBasin\\Preview.tga",
+        left=0, right=1, top=0, bottom=1, width=320, height=320},
 }
 
 -- The kart screen's handling bars: Physics' handling profiles, read through
@@ -680,7 +690,7 @@ local function buildHighscores()
     local view = Menu.view
     view.highscoreScope = newText(box, FONT.gray, "TOP", 0, -65, "Local cache | Global publishing pending")
     view.highscoreTrack = newButton(box, "Track", 420, 30, "TOP", 0, -91, function()
-        -- The next board, past any course still coming soon (it has none).
+        -- The next board, past any course still coming soon (Arathi Basin).
         local index = Menu.highscoreTrackIndex or 1
         for _=1,#Menu.TRACKS do
             index = index % #Menu.TRACKS + 1
@@ -835,8 +845,8 @@ local function buildTracks()
     local glow = newTexture(box, "ARTWORK")
     glow:SetColorTexture(1, 0.82, 0, 0.30)
     local buttons, soon = {}, {}
-    -- Four cups: a 24-unit heading and a 32-unit row step keep the list
-    -- clear of the Back button.
+    -- Four cups and thirteen rows: a 24-unit heading and a 30-unit row step
+    -- (28-unit buttons) keep the list clear of the Back button.
     local y = -78
     for _,row in ipairs(Menu.trackRows()) do
         if row.heading then
@@ -845,7 +855,7 @@ local function buildTracks()
         else
             local track, course = row.track, row.soon
             local label = track and track.name or (course.name .. "  |cffff8c26(soon)|r")
-            local button = newButton(box, label, 310, 30, "TOPLEFT", 34, y, track and function()
+            local button = newButton(box, label, 310, 28, "TOPLEFT", 34, y, track and function()
                 if UI.SelectTrack(track.id) then
                     Menu.Chose("track", track.id)
                     toast("tracks", "")
@@ -856,7 +866,7 @@ local function buildTracks()
             fonts(button, "GameFontNormal", "GameFontHighlight", "GameFontDisable")
             if track then buttons[track.id] = button
             else button:Disable(); soon[course.id] = button end
-            y = y - 32
+            y = y - 30
         end
     end
     local card = panel(box, CARD, 340, 340, "TOPRIGHT", -32, -72, 0.05, 0.05, 0.06, 1)
