@@ -606,9 +606,10 @@ AB_LOOP = [
     # The west bridge; the west road to its fork.
     (242, 1548), (242, 1505), (241, 1460), (248, 1412), (268, 1365), (293, 1325), (315, 1280), (328, 1230),
     (333, 1180),
-    # Up the hill, along the cliff top past the Lumber Mill.
+    # Up the hill, along the cliff top past the Lumber Mill (version 2: the
+    # street's north-east fence at the brink, the cliff face beyond it).
     (325, 1140), (295, 1110), (262, 1080), (243, 1040), (238, 995), (248, 948), (270, 905), (296, 860),
-    (322, 818), (352, 780), (392, 752), (438, 727), (484, 697), (522, 662), (556, 627), (590, 594), (626, 563),
+    (322, 818), (342, 770), (374, 726), (414, 694), (452, 663), (478, 622), (518, 590), (556, 558), (612, 546),
     # Down the escarpment to the junction at the south bridge.
     (670, 537), (728, 519), (795, 510), (852, 507), (895, 530), (920, 575), (937, 620), (948, 655), (955, 685),
     # Sharp back east along the farm road, past the Farm to the finish.
@@ -653,6 +654,7 @@ def _nearest(line, x, y):
 # The Stables' yard (a plaza), from the north road to the west road's foot
 # by the bridge and down to the river: the barn stands in it (a solid), so a
 # kart goes round it either way, by the road north of it or across the yard.
+# Version 2: the yard is a meadow (slow grass, Circuit.lua's grass plaza).
 AB_YARD_RADIUS = 96
 AB_YARD = [((520, 1696), (300, 1690))]
 
@@ -662,7 +664,7 @@ AB_YARD = [((520, 1696), (300, 1690))]
 AB_GATES = [
     ("Gold Mine", (1250, 1680)),
     ("Stables", (662, 1767)),
-    ("Lumber Mill", (522, 662)),
+    ("Lumber Mill", (498, 606)),
     ("Farm", (1400, 463)),
     ("Defiler's Den", (1649, 566)),
 ]
@@ -678,13 +680,17 @@ AB_SPAWN = _nearest(ARATHI_LINE, 1647, 625)
 ARATHI = {
     "id": "arathi_basin",
     "name": "Arathi Basin",
-    "version": 1,
+    "version": 2,
     "kind": "circuit",
     "size": AB_SIZE,
     "laps": 3,
     "centerline": ARATHI_LINE,
     "branches": [],
-    "plazas": [{"ax": a[0], "ay": a[1], "bx": b[0], "by": b[1], "radius": AB_YARD_RADIUS} for a, b in AB_YARD],
+    # The Stables' yard is a meadow (version 2, the owner): slow grass all
+    # round the barn, a shortcut from the gate to the west bridge that pays
+    # only with a boost; the road round north of the barn keeps full speed.
+    "plazas": [{"ax": a[0], "ay": a[1], "bx": b[0], "by": b[1], "radius": AB_YARD_RADIUS, "surface": "grass"}
+               for a, b in AB_YARD],
     "narrows": [{"name": name, "from": round(_ab_arc(*a) - AB_APPROACH, 1), "to": round(_ab_arc(*b) + AB_APPROACH, 1),
                  "wall_radius": AB_BRIDGE_RADIUS} for name, a, b in AB_BRIDGES],
     "gates": _ab_gates(),
@@ -761,7 +767,7 @@ OTHER = "war3.w3mod:buildings/other/"
 AB_PROPS = [
     prop(SUMMER + "structures/barn/barn.mdx", 357, 1704, yaw=225, scale=0.3, solid=True, margin=6, name="stables"),
     prop(OTHER + "goldmine/goldmine.mdx", 1490, 1730, yaw=225, scale=0.46, name="gold_mine"),
-    prop(HUMAN + "humanlumbermill/humanlumbermill.mdx", 350, 580, yaw=225, scale=0.38, name="lumber_mill"),
+    prop(HUMAN + "humanlumbermill/humanlumbermill.mdx", 312, 548, yaw=225, scale=0.38, name="lumber_mill"),
     prop(HUMAN + "farm/farm.mdx", 1400, 628, yaw=270, scale=0.5, name="farm"),
     # The Farm's windmill and granary, at the client's windmill and north of
     # its silo (which stands on the course).
@@ -774,13 +780,69 @@ AB_PROPS = [
     prop(HUMAN + "townhall/townhall.mdx", 1792, 266, yaw=135, scale=0.4, name="defilers_den", team=HORDE_RED,
          tint=(0.78, 0.74, 0.8)),
 ]
-for _name, (_x, _y) in (("stables_flag", (400, 1950)), ("lumber_mill_flag", (440, 650)),
+for _name, (_x, _y) in (("stables_flag", (400, 1950)), ("lumber_mill_flag", (398, 600)),
                         ("blacksmith_flag", (780.3, 1081.1)), ("farm_flag", (1297.3, 568.6)),
                         ("gold_mine_flag", (1375.4, 1590.8))):
     AB_PROPS.append(dict(prop(SUMMER + "props/bannerhuman/bannerhuman0.mdx", _x, _y, scale=0.36, name=_name),
                          nudge=True))
 
 ARATHI.update({"props": AB_PROPS})
+
+# Version 2 (the owner, after driving version 1): where a real road leaves
+# the course, no fence across it: the road runs on, seamless, and what
+# stands in it blocks it, painted at the street's edge where the karts stop
+# ("a group of angry alliance players" on the upper road above the Gold
+# Mine, forcing the karts down to the mine; spilled lumber on the lower road
+# under the Lumber Mill's cliff). Each opening: a road's mouth (the client's
+# road texture crossing the street's edge within `reach` of `at`) and what
+# stands in it (AB_BLOCKERS: model, sequence, scale, team colour).
+UNITS = "war3.w3mod:units/"
+AB_BLOCKERS = {
+    "alliance": [(UNITS + "human/footman/footman.mdx", "Stand Defend", 0.45, ALLIANCE_BLUE),
+                 (UNITS + "human/footman/footman.mdx", "Attack - 1", 0.45, ALLIANCE_BLUE),
+                 (UNITS + "human/rifleman/rifleman.mdx", "Stand Ready", 0.45, ALLIANCE_BLUE),
+                 (UNITS + "human/footman/footman.mdx", "Stand Defend", 0.45, ALLIANCE_BLUE),
+                 (UNITS + "human/priest/priest.mdx", "Spell Attack", 0.45, ALLIANCE_BLUE)],
+    "horde": [(UNITS + "orc/grunt/grunt.mdx", "Stand Ready", 0.45, HORDE_RED),
+              (UNITS + "orc/grunt/grunt.mdx", "Attack - 1", 0.45, HORDE_RED),
+              (UNITS + "orc/headhunter/headhunter.mdx", "stand ready", 0.45, HORDE_RED),
+              (UNITS + "orc/tauren/tauren.mdx", "Stand Ready", 0.34, HORDE_RED)],
+    "lumber": [(D3 + "ashenvale/props/ashenlogstraight/ashenlogstraight.mdx", "Stand", 0.11, None),
+               (SUMMER + "props/haycartbroken/haycartbroken.mdx", "Stand", 0.28, None),
+               (D3 + "ashenvale/props/ashenlogstraight/ashenlogstraight.mdx", "Stand", 0.13, None),
+               (D3 + "ashenvale/props/ashenlogstraight/ashenlogstraight.mdx", "Stand", 0.1, None)],
+    "supplies": [(BARRELS, "Stand", 0.2, None), (SUMMER + "terrain/crates/crates1.mdx", "Stand", 0.26, None),
+                 (SUMMER + "props/haycartbroken/haycartbroken.mdx", "Stand", 0.28, None),
+                 (SUMMER + "terrain/crates/crates0.mdx", "Stand", 0.26, None)],
+}
+AB_OPENINGS = [
+    {"name": "the upper road above the Gold Mine", "at": (1323, 1222), "reach": 75, "blockers": "alliance",
+     "spacing": 19},
+    {"name": "the upper road at the Stables", "at": (720, 1682), "reach": 50, "blockers": "alliance"},
+    {"name": "the road to Trollbane Hall", "at": (185, 1912), "reach": 28, "blockers": "alliance"},
+    {"name": "the north road at the Stables", "at": (532, 1894), "reach": 45, "blockers": "alliance"},
+    {"name": "the lower road under the Lumber Mill", "at": (392, 1066), "reach": 32, "blockers": "lumber"},
+    {"name": "the lower road at the south bridge", "at": (856, 703), "reach": 32, "blockers": "lumber"},
+    {"name": "the road to the Blacksmith", "at": (944, 770), "reach": 40, "blockers": "supplies"},
+    {"name": "the road to Defiler's Den", "at": (1675, 378), "reach": 30, "blockers": "horde"},
+]
+ARATHI.update({
+    "openings": AB_OPENINGS,
+    "blockers": AB_BLOCKERS,
+    # The client's roads off the course, drawn as the course's road.
+    "survey_roads": {"plane": "arathihighlandsrubblebase_s", "smooth": 2, "threshold": 0.36, "ragged": 0.05,
+                     "least": 40},
+    # The drops (the owner: the Gold Mine's pit under the upper road, the
+    # Lumber Mill's straight cliff down to the lower road): ground steeper
+    # than 0.8 (yards per yard) a rock face, wholly from 1.5.
+    "cliffs": {"from": 1.0, "full": 1.7, "smooth": 1, "strata": 1.6, "light": (-0.6, 0.8, 0.95),
+               "face": (TA + "lordaeronsummer/lords_cliff0.dds", (0, 0, 192, 63), (1.06, 1.02, 1.1, 0.3)),
+               "flatten": 0.3, "dark": 0.3, "bright": 0.85, "brink": (236, 230, 216), "lip": 0.55, "foot": 0.5,
+               "shadow": (22, 0.42)},
+})
+ARATHI["relief"]["occlusion"] = {"step": 4, "reach": 256, "strength": 0.6}
+ARATHI["course"]["meadow"] = {"tile": TA + "lordaeronsummer/lords_grass.dds", "shade": (1.3, 1.28, 0.66, 0.5),
+                              "tuft_every": 19, "tip": (186, 194, 110), "root": (52, 74, 30)}
 
 # The survey's scenery: (the client's model names starting so, the Warcraft
 # III models that stand for them, sizes (the client's small, medium, large),

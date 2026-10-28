@@ -32,6 +32,17 @@ do
     assert(not bad and why=="physics_version" and take(wrong,10000)==nil,
         "old compatibility cannot silently launch new layered mechanics")
 end
+do
+    local grass=shallow(T); grass.boostOnGrass=true
+    local gate=assert(Start.new(ticket(),grass,P.GRASS_BOOST_VERSION))
+    grass.boostOnGrass=false
+    local launch=assert(take(gate,10000))
+    assert(launch.track.boostOnGrass and launch.physicsVersion==14,
+        "GO captures the Arathi rule with its new compatibility version")
+    local wrong=shallow(T); wrong.boostOnGrass=true
+    local bad,why=take(assert(Start.new(ticket(),wrong,P.VERSION)),10000)
+    assert(not bad and why=="physics_version", "flat grass boost cannot launch with old physics")
+end
 assert(Start.MAX_CLOCK_MS==36^7-1 and Start.MAX_LATE_MS==250,"bounded clock and late gate")
 local hostTicket=ticket()
 local host=assert(Start.new(hostTicket,T,P.VERSION))

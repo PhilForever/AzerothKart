@@ -7,6 +7,7 @@ Physics.VERSION = 12
 -- Existing courses retain their replay/score context. New opt-in mechanics
 -- have a separate compatibility version without retiming flat driving.
 Physics.FEATURE_VERSION = 13
+Physics.GRASS_BOOST_VERSION = 14
 Physics.FIXED_DT = 1/60
 Physics.MAX_SPEED = 200
 Physics.REVERSE_MAX = 55
@@ -89,6 +90,7 @@ local function validLevel(track, level)
 end
 
 function Physics.versionForTrack(track)
+    if type(track)=="table" and track.boostOnGrass==true then return Physics.GRASS_BOOST_VERSION end
     return type(track)=="table" and (track.layered==true
         or (type(track.pads)=="table" and next(track.pads)~=nil))
         and Physics.FEATURE_VERSION or Physics.VERSION
@@ -224,7 +226,8 @@ function Physics.step(state, input, dt, track, kartId)
     if brake then speed = speed - handling.brake * dt end
     if not accel and not brake then speed = approachZero(speed, Physics.COAST*dt) end
     local boostTicks = state.boostTicks or 0
-    if brake or startSurface ~= "road" then boostTicks = 0 end
+    local grassBoost = track.boostOnGrass==true
+    if brake or (startSurface ~= "road" and not (grassBoost and startSurface == "grass")) then boostTicks = 0 end
 
     -- Charge counts fixed simulation ticks, never render frames or wall time.
     -- Brief corrections pause an existing charge; only actual single-direction
@@ -263,6 +266,8 @@ function Physics.step(state, input, dt, track, kartId)
     if startSurface == "road" then
         local speedCap = boosting and Physics.BOOST_MAX_SPEED or handling.maxSpeed
         speed = math.max(-Physics.REVERSE_MAX, math.min(speedCap, speed))
+    elseif grassBoost and startSurface == "grass" and boosting then
+        speed = math.max(-Physics.REVERSE_MAX, math.min(handling.maxSpeed, speed))
     else
         speed = grassSpeed(speed,dt)
     end
@@ -310,7 +315,8 @@ function Physics.step(state, input, dt, track, kartId)
         if hit then nx,ny = state.x,state.y end
     end
     local surface = surfaceAt(track,nx,ny,level)
-    if boosting and (hit or surface ~= "road") then
+    local protectedGrass = grassBoost and surface == "grass" and boosting and not hit
+    if boosting and (hit or (surface ~= "road" and not protectedGrass)) then
         -- Do not retain a release/boost acceleration reward on grass entry.
         speed = math.min(speed,speedBeforeBoost)
     end
@@ -339,9 +345,18 @@ function Physics.step(state, input, dt, track, kartId)
         grace = 0
     end
     if surface ~= "road" then
-        if startSurface == "road" then speed = grassSpeed(speed,dt) end
-        -- Crossing into grass cancels even a charged release on this step.
-        drifting, direction, driftTicks, tier, boostTicks, slip = false, 0, 0, 0, 0, 0
+        if protectedGrass then
+            -- The final active boost tick still protects the kart. Its road
+            -- speed cap is per handling profile; it never increases speed.
+            speed = math.max(-Physics.REVERSE_MAX, math.min(handling.maxSpeed, speed))
+        else
+            if startSurface == "road" or (grassBoost and startSurface == "grass" and boosting) then
+                speed = grassSpeed(speed,dt)
+            end
+            boostTicks = 0
+        end
+        -- Grass never permits drift charging, even while a boost is active.
+        drifting, direction, driftTicks, tier, slip = false, 0, 0, 0, 0
         grace = 0
     end
 

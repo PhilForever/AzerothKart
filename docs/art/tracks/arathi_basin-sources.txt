@@ -8,16 +8,18 @@
    1  war3.w3mod:buildings/human/farm/farm.mdx
    1  war3.w3mod:buildings/human/humanlumbermill/humanlumbermill.mdx
    2  war3.w3mod:buildings/human/townhall/townhall.mdx
-  29  war3.w3mod:buildings/other/barrelsunit/barrelsunit.mdx
+  28  war3.w3mod:buildings/other/barrelsunit/barrelsunit.mdx
    1  war3.w3mod:buildings/other/goldmine/goldmine.mdx
  402  war3.w3mod:doodads/ashenvale/plants/ashenbush0/ashenbush0.mdx
-  27  war3.w3mod:doodads/ashenvale/props/ashenhollowstump/ashenhollowstump.mdx
+  22  war3.w3mod:doodads/ashenvale/props/ashenhollowstump/ashenhollowstump.mdx
+   3  war3.w3mod:doodads/ashenvale/props/ashenlogstraight/ashenlogstraight.mdx
    5  war3.w3mod:doodads/lordaeronsummer/props/bannerhuman/bannerhuman0.mdx
    2  war3.w3mod:doodads/lordaeronsummer/props/bannerhuman/bannerhuman1.mdx
   27  war3.w3mod:doodads/lordaeronsummer/props/grave/grave.mdx
-   2  war3.w3mod:doodads/lordaeronsummer/props/haycart/haycart.mdx
+   1  war3.w3mod:doodads/lordaeronsummer/props/haycart/haycart.mdx
+   9  war3.w3mod:doodads/lordaeronsummer/props/haycartbroken/haycartbroken.mdx
    2  war3.w3mod:doodads/lordaeronsummer/props/lanternpost/lanternpost0.mdx
-   5  war3.w3mod:doodads/lordaeronsummer/props/wheelbarrel/wheelbarrel.mdx
+   4  war3.w3mod:doodads/lordaeronsummer/props/wheelbarrel/wheelbarrel.mdx
    1  war3.w3mod:doodads/lordaeronsummer/rocks/lords_rock/lords_rock0.mdx
    2  war3.w3mod:doodads/lordaeronsummer/rocks/lords_rock/lords_rock1.mdx
    9  war3.w3mod:doodads/lordaeronsummer/rocks/lords_rock/lords_rock2.mdx
@@ -31,18 +33,22 @@
    1  war3.w3mod:doodads/lordaeronsummer/structures/barn/barn.mdx
    1  war3.w3mod:doodads/lordaeronsummer/structures/granary/granary.mdx
    1  war3.w3mod:doodads/lordaeronsummer/structures/windmill/windmill.mdx
-  12  war3.w3mod:doodads/lordaeronsummer/terrain/crates/crates0.mdx
-  17  war3.w3mod:doodads/lordaeronsummer/terrain/crates/crates1.mdx
+  13  war3.w3mod:doodads/lordaeronsummer/terrain/crates/crates0.mdx
+  16  war3.w3mod:doodads/lordaeronsummer/terrain/crates/crates1.mdx
    7  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree0.mdx
-   7  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree1.mdx
+   8  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree1.mdx
    8  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree2.mdx
    9  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree3.mdx
    9  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree4.mdx
    5  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree5.mdx
-   7  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree6.mdx
-   4  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree7.mdx
+   6  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree6.mdx
+   5  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree7.mdx
    8  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree8.mdx
    5  war3.w3mod:doodads/terrain/lordaerontree/lordaerontree9.mdx
+  21  war3.w3mod:units/human/footman/footman.mdx
+   5  war3.w3mod:units/human/priest/priest.mdx
+   8  war3.w3mod:units/human/rifleman/rifleman.mdx
+   4  war3.w3mod:units/orc/grunt/grunt.mdx
 
 ## Textures
 war3.w3mod:buildings/human/blacksmith/newblacksmith.dds
@@ -53,6 +59,7 @@ war3.w3mod:replaceabletextures/lordaerontree/lordaeronsummertree.dds
 war3.w3mod:replaceabletextures/splats/goldmineubersplat.dds
 war3.w3mod:replaceabletextures/splats/humancastleubersplat.dds
 war3.w3mod:replaceabletextures/splats/humantownhallubersplat.dds
+war3.w3mod:terrainart/lordaeronsummer/lords_cliff0.dds
 war3.w3mod:terrainart/lordaeronsummer/lords_dirt.dds
 war3.w3mod:terrainart/lordaeronsummer/lords_dirtrough.dds
 war3.w3mod:terrainart/lordaeronsummer/lords_grass.dds
@@ -65,13 +72,19 @@ war3.w3mod:textures/chest.dds
 war3.w3mod:textures/deathsmug.dds
 war3.w3mod:textures/doodads0-0.dds
 war3.w3mod:textures/doodads0.dds
+war3.w3mod:textures/footman.dds
 war3.w3mod:textures/goldmine.dds
+war3.w3mod:textures/grunt.dds
+war3.w3mod:textures/gutz.dds
 war3.w3mod:textures/humanbase.dds
 war3.w3mod:textures/humantower.dds
 war3.w3mod:textures/lensflare1ax.dds
 war3.w3mod:textures/lordsrockwall.dds
+war3.w3mod:textures/priest.dds
 war3.w3mod:textures/shockwave1.dds
+war3.w3mod:textures/shockwave_ice1.dds
 war3.w3mod:textures/villagedoodad0.dds
 war3.w3mod:textures/villagedoodad1.dds
 war3.w3mod:textures/white.dds
 war3.w3mod:textures/yellow_glow3.dds
+war3.w3mod:units/human/rifleman/rifleman.dds

@@ -793,6 +793,10 @@ for _,id in ipairs({"mirage_raceway","stormwind_city","ironforge_gp",
                 and view.grid.localPose.level==0 and view.grid.peerPose.level==0,
                 "real Warsong negotiation registers the floor codec and stages both ground slots")
         else
+            if id=="arathi_basin" then
+                assert(track.boostOnGrass and view.offer.physicsVersion==14 and view.offer.trackVersion==2,
+                    "Arathi native offer retains its opt-in grass-boost physics context")
+            end
             assert(view.live.vehicle.level==nil,"flat production states keep their original shape")
         end
         assertPacing(e)

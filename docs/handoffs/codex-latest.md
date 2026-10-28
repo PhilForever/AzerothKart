@@ -1,5 +1,16 @@
 # Codex handoff — production maps and Claude course review
 
+## Arathi v2 integrated candidate — 2026-10-28
+
+Claude `0b27c02` was reviewed and merged into `codex/arathi-v2-integration`.
+Arathi geometry2 is selectable solo and in the existing two-player lobby;
+Physics14 preserves active boost up to normal road speed on its grass. Other
+tracks retain their rules and old score contexts; flat AZKRUN2 is unchanged.
+Only Warsong keeps the arrow. See [review](../reviews/2026-10-28-arathi-v2.md),
+[contract](../API_CONTRACTS.md) and [test evidence](../PROGRESS.md). Native
+checks remain NOT RUN. Next: verified install and user playtest. Claude’s
+worktree is untouched; no push, release or main merge.
+
 ## Active Arathi v2 review and conditional install — 2026-10-28
 
 Owner requests check/install if it passes. Clean1fbea6b; installed8bf3218.

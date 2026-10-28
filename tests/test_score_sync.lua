@@ -6,11 +6,11 @@ local ids={"mirage_raceway","stormwind_city","ironforge_gp",
     "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway","scarlet_graveyard",
     "scarlet_library","scarlet_armory","scarlet_cathedral","warsong_gulch","arathi_basin"}
 local versions={stormwind_city=3,ironforge_gp=4,undercity_slime=2,thunder_bluff_skyway=2,
-    scarlet_graveyard=3,scarlet_library=3,scarlet_armory=2,scarlet_cathedral=3,warsong_gulch=3}
+    scarlet_graveyard=3,scarlet_library=3,scarlet_armory=2,scarlet_cathedral=3,warsong_gulch=3,arathi_basin=2}
 local contexts={}
 for i,id in ipairs(ids) do contexts[i]={trackId=id,
     trackVersion=versions[id] or 1,
-    physicsVersion=id=="warsong_gulch" and 13 or 12,
+    physicsVersion=id=="arathi_basin" and 14 or id=="warsong_gulch" and 13 or 12,
     lapCount=id:match("^scarlet_") and 1 or 3,tickRate=60,rulesVersion=1} end
 local function copy(t)
     if type(t)~="table" then return t end
@@ -243,13 +243,22 @@ do
         return true
     end))
     assert(S.view(localToken).connected==0 and S.view(localToken).received==0)
-    for _,index in ipairs({1,12}) do
+    for _,index in ipairs({1,12,13}) do
         local wrong=record("Birch Vale",1,index)
-        wrong.physicsVersion=index==12 and 12 or 13
+        wrong.physicsVersion=index==1 and 13 or 12
         local accepted,why=S.receive(localToken,"Birch Vale",assert(S.encode({kind="NEW",record=wrong})),index)
         assert(not accepted and why=="context" and #H.View(S.snapshot(localToken),contexts[index])==0,
             "exact board physics remains mandatory for pre-handshake announcements")
     end
+    local oldArathi=copy(contexts);oldArathi[13].physicsVersion=12
+    local oldPeer=assert(S.new({name="Birch Vale",contexts=oldArathi},0))
+    assert(S.discover(oldPeer,{"Amber Stone"},0))
+    assert(S.update(oldPeer,0,function(_,payload)
+        local accepted,why=S.receive(localToken,"Birch Vale",payload,13)
+        assert(not accepted and why=="incompatible",
+            "an Arathi Physics12 catalogue cannot silently join Physics14 sharing")
+        return true
+    end))
     local changed=copy(contexts);changed[12].rulesVersion=2
     local rulePeer=assert(S.new({name="Birch Vale",contexts=changed},0))
     assert(S.discover(rulePeer,{"Amber Stone"},0))

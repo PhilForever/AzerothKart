@@ -107,7 +107,7 @@ function RaceStart.take(gate,nowMS,physics,race,checkpoints,laps)
     context.closed=true
     if nowMS-ticket.localEpochMS>RaceStart.MAX_LATE_MS then return nil,"late" end
     local version=type(physics)=="table" and physics.VERSION
-    local features=context.track.layered==true or
+    local features=context.track.boostOnGrass==true or context.track.layered==true or
         (type(context.track.pads)=="table" and next(context.track.pads)~=nil)
     if features and type(physics)=="table" and type(physics.versionForTrack)=="function" then
         local ok,value=pcall(physics.versionForTrack,context.track)

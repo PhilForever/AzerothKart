@@ -112,15 +112,10 @@ class Survey:
             self.water = [v * step for v in zlib.decompress(base64.b64decode(data["water"]["texels"]))]
 
 
-def relief_light(sv, spec):
-    """Per survey texel, the sun on the terrain, x256 (256 on level ground):
-    its slope (exaggerated by spec["exaggerate"]) toward spec["light"] (a
-    direction east, north, up), never below spec["ambient"] of level
-    ground's. Holes take their neighbours' heights. Optionally the heights
-    are first evened (spec["smooth"] passes of a 3 x 3 mean: a coarse
-    relief's steps) and the light raised on high ground and lowered in the
-    hollows (spec["height_tint"]: the fraction at the survey's highest and
-    lowest ground)."""
+def survey_heights(sv, smooth=0):
+    """The survey's terrain heights (yards, per texel, row 0 north), its holes
+    filled from their edges inward, evened by `smooth` passes of a 3 x 3
+    mean."""
     cols, rows = sv.cols, sv.rows
     h = list(sv.heights)
     for _ in range(64):                                  # fill the holes from their edges inward
@@ -137,7 +132,7 @@ def relief_light(sv, spec):
         for i, v in fill.items():
             h[i] = v
     h = [290.0 if v is None else v for v in h]
-    for _ in range(spec.get("smooth", 0)):
+    for _ in range(smooth):
         even = [0.0] * (cols * rows)
         for r in range(rows):
             r0, r1 = max(0, r - 1), min(rows - 1, r + 1)
@@ -149,6 +144,74 @@ def relief_light(sv, spec):
                     acc += h[base + c0] + h[base + c] + h[base + c1]
                 even[r * cols + c] = acc / 9.0
         h = even
+    return h
+
+
+def occlusion(sv, h, spec):
+    """Per survey texel, how open its sky is (1: open; less in a pit or
+    under a cliff), from the evened heights `h`: on a coarse grid
+    (spec["step"] texels), in eight directions out to spec["reach"] units,
+    the steepest rise's share of the sky (its height over its distance, as
+    t / sqrt(1 + t * t): no transcendental), then bilinear between the grid's
+    points. The light is scaled by 1 - spec["strength"] * (1 - openness)."""
+    cols, rows, gs = sv.cols, sv.rows, sv.grid
+    step = spec["step"]
+    steps = max(1, int(spec["reach"] / (step * gs)))
+    ccols, crows = (cols + step - 1) // step, (rows + step - 1) // step
+    diagonal = 1.4142135623730951
+    dirs = [(1, 0, 1.0), (1, 1, diagonal), (0, 1, 1.0), (-1, 1, diagonal), (-1, 0, 1.0), (-1, -1, diagonal),
+            (0, -1, 1.0), (1, -1, diagonal)]
+    coarse = [1.0] * (ccols * crows)
+    for cr in range(crows):
+        r0 = min(rows - 1, cr * step + step // 2)
+        for cc in range(ccols):
+            c0 = min(cols - 1, cc * step + step // 2)
+            here = h[r0 * cols + c0]
+            shut = 0.0
+            for dc, dr, unit in dirs:
+                best = 0.0
+                for k in range(1, steps + 1):
+                    c, r = c0 + dc * step * k, r0 - dr * step * k
+                    if not (0 <= c < cols and 0 <= r < rows):
+                        break
+                    t = (h[r * cols + c] - here) / (k * step * gs * unit / 3.0)
+                    if t > best:
+                        best = t
+                shut += best / sqrt(1.0 + best * best)
+            coarse[cr * ccols + cc] = 1.0 - shut / 8.0
+    strength = spec["strength"]
+    out = [1.0] * (cols * rows)
+    for r in range(rows):
+        v = (r - step // 2) / step
+        cr0 = max(0, min(crows - 1, int(v // 1)))
+        cr1 = min(crows - 1, cr0 + 1)
+        fv = min(1.0, max(0.0, v - cr0))
+        for c in range(cols):
+            u = (c - step // 2) / step
+            cc0 = max(0, min(ccols - 1, int(u // 1)))
+            cc1 = min(ccols - 1, cc0 + 1)
+            fu = min(1.0, max(0.0, u - cc0))
+            a, b = coarse[cr0 * ccols + cc0], coarse[cr0 * ccols + cc1]
+            e, f = coarse[cr1 * ccols + cc0], coarse[cr1 * ccols + cc1]
+            top = a + (b - a) * fu
+            open_ = top + (e + (f - e) * fu - top) * fv
+            out[r * cols + c] = 1.0 - strength * (1.0 - open_)
+    return out
+
+
+def relief_light(sv, spec):
+    """Per survey texel, the sun on the terrain, x256 (256 on level ground):
+    its slope (exaggerated by spec["exaggerate"]) toward spec["light"] (a
+    direction east, north, up), never below spec["ambient"] of level
+    ground's. Holes take their neighbours' heights. Optionally the heights
+    are first evened (spec["smooth"] passes of a 3 x 3 mean: a coarse
+    relief's steps), the light raised on high ground and lowered in the
+    hollows (spec["height_tint"]: the fraction at the survey's highest and
+    lowest ground) and dimmed where the sky is shut in (spec["occlusion"]:
+    a pit, the foot of a cliff)."""
+    cols, rows = sv.cols, sv.rows
+    h = survey_heights(sv, spec.get("smooth", 0))
+    shut = occlusion(sv, h, spec["occlusion"]) if spec.get("occlusion") else None
     lx, ly, lz = spec["light"]
     n = sqrt(lx * lx + ly * ly + lz * lz)
     lx, ly, lz = lx / n, ly / n, lz / n
@@ -169,6 +232,8 @@ def relief_light(sv, spec):
             value = max(ambient, ambient + (1 - ambient) * lit)
             if tint:
                 value *= 1.0 + tint * (2.0 * (h[i] - low) / span - 1.0)
+            if shut is not None:
+                value *= shut[i]
             out[i] = int(256 * value)
     return out
 
@@ -993,12 +1058,348 @@ def paint_circuit_water(pic, d, sv, street, light):
     return wet
 
 
-def paint_course(pic, d, g, street, sv, tiles, light):
+def survey_road_mask(sv, spec, w, h):
+    """Per texel (row 0 north), 1 where the client paints its road: the
+    weight of the ground texture spec["plane"], evened (spec["smooth"]
+    passes: its texels are noisy) and bilinear between the survey's texels,
+    over spec["threshold"], its edge ragged by spec["ragged"] (a share of a
+    full weight either way); patches smaller than spec["least"] texels of
+    the survey are left out (scattered rubble, not a road)."""
+    gs, cols, rows = sv.grid, sv.cols, sv.rows
+    plane = even([v / 15.0 for v in sv.planes[spec["plane"]]], cols, rows, spec.get("smooth", 0))
+    threshold, ragged = spec["threshold"], spec.get("ragged", 0.0)
+    # The road's patches on the survey's grid, eight-connected; the small ones go.
+    keep = bytearray(cols * rows)
+    seen = bytearray(cols * rows)
+    for start in range(cols * rows):
+        if seen[start] or plane[start] <= threshold:
+            continue
+        seen[start] = 1
+        patch, todo = [start], [start]
+        while todo:
+            i = todo.pop()
+            r, c = divmod(i, cols)
+            for dr in (-1, 0, 1):
+                for dc in (-1, 0, 1):
+                    rr, cc = r + dr, c + dc
+                    if 0 <= rr < rows and 0 <= cc < cols:
+                        j = rr * cols + cc
+                        if not seen[j] and plane[j] > threshold:
+                            seen[j] = 1
+                            patch.append(j)
+                            todo.append(j)
+        if len(patch) >= spec.get("least", 1):
+            for i in patch:
+                keep[i] = 1
+    noise = _Noise(9, 841)
+    mask = bytearray(w * h)
+    for sr in range(rows):
+        for sc in range(cols):
+            near = False
+            for rr in (sr - 1, sr, sr + 1):
+                for cc in (sc - 1, sc, sc + 1):
+                    if 0 <= rr < rows and 0 <= cc < cols and keep[rr * cols + cc]:
+                        near = True
+            if not near:
+                continue
+            for row in range(sr * gs, sr * gs + gs):
+                y = h - 1 - row
+                base = row * w
+                for x in range(sc * gs, sc * gs + gs):
+                    if _bilinear(plane, cols, rows, gs, x, row) < threshold + ragged * (2.0 * noise.at(x, y) - 1.0):
+                        continue
+                    # Only where a kept patch is among the four texels blended.
+                    c0 = max(0, min(cols - 1, int(((x + 0.5) / gs - 0.5) // 1)))
+                    r0 = max(0, min(rows - 1, int(((row + 0.5) / gs - 0.5) // 1)))
+                    c1, r1 = min(cols - 1, c0 + 1), min(rows - 1, r0 + 1)
+                    if keep[r0 * cols + c0] or keep[r0 * cols + c1] or keep[r1 * cols + c0] or keep[r1 * cols + c1]:
+                        mask[base + x] = 1
+    return mask
+
+
+def paint_survey_roads(pic, d, street, tiles, light, sv, mask, wet):
+    """The client's roads outside the street (`mask`), drawn as the street's
+    road, a little paler down the middle and darker along its edges (2 units
+    from the verge), so a road reads as a road on the rocky ground: the
+    paths a kart would take if nothing stood in them."""
+    w, h, gs, cols, rows = pic.w, pic.h, sv.grid, sv.cols, sv.rows
+    road = d["course"]["road"]
+    crown, rim = d["survey_roads"].get("crown", 268), d["survey_roads"].get("rim", 200)
+    for row in range(h):
+        base = row * w
+        y = h - 1 - row
+        for x in range(w):
+            i = base + x
+            if not mask[i] or wet[i] or street.gap[i] <= 0:
+                continue
+            edge = False
+            for dx, dy in ((-2, 0), (2, 0), (0, -2), (0, 2)):
+                xx, rr = x + dx, row + dy
+                if 0 <= xx < w and 0 <= rr < h and not mask[rr * w + xx]:
+                    edge = True
+            rgb = _tile(tiles, road, x, y, 17)
+            k = int(_bilinear(light, cols, rows, gs, x, row)) * (rim if edge else crown) >> 8
+            _put(pic, i, _shade(rgb, k))
+
+
+def paint_cliffs(pic, d, sv, street, tiles, wet):
+    """The steep ground off the street as cliffs (d["cliffs"]): where the
+    terrain (evened once) rises steeper than spec["from"] (yards per yard), a
+    rock face, wholly from spec["full"]: the cliff texture's strata
+    (spec["face"]) laid along the slope's contours (spec["strata"] rows per
+    yard of height), lit by its own steepness toward spec["light"] and dimmed
+    with the sky (occlusion); its brink (the top) catches the light, its foot
+    is in shade. Returns the faces' texels (no scenery stands on a cliff)."""
+    spec = d["cliffs"]
+    w, h, gs, cols, rows = pic.w, pic.h, sv.grid, sv.cols, sv.rows
+    hts = survey_heights(sv, spec.get("smooth", 1))
+    shut = occlusion(sv, hts, d["relief"]["occlusion"]) if d["relief"].get("occlusion") else [1.0] * (cols * rows)
+    # Per texel: the gradient (yards per world unit, x east and y north).
+    gxs, gys = [0.0] * (cols * rows), [0.0] * (cols * rows)
+    steep = bytearray(cols * rows)
+    lo, hi = spec["from"], spec["full"]
+    for r in range(rows):
+        for c in range(cols):
+            i = r * cols + c
+            gx = (hts[i + 1 if c + 1 < cols else i] - hts[i - 1 if c else i]) / (2.0 * gs)
+            gy = (hts[i - cols if r else i] - hts[i + cols if r + 1 < rows else i]) / (2.0 * gs)
+            gxs[i], gys[i] = gx, gy
+            if 3.0 * sqrt(gx * gx + gy * gy) > lo * 0.8:
+                steep[i] = 1
+    strata = Strata(tiles, spec["face"])
+    srows, swidth, sheight = strata.rows, strata.width, strata.height
+    flat = spec.get("flatten", 0.0)
+    if flat:
+        count = swidth * sheight
+        mr = sum(t[0] for line in srows for t in line) / count
+        mg = sum(t[1] for line in srows for t in line) / count
+        mb = sum(t[2] for line in srows for t in line) / count
+        srows = [[(int(t[0] + (mr - t[0]) * flat), int(t[1] + (mg - t[1]) * flat), int(t[2] + (mb - t[2]) * flat))
+                  for t in line] for line in srows]
+    kv = spec["strata"]
+    lx, ly, lz = spec["light"]
+    norm = sqrt(lx * lx + ly * ly + lz * lz)
+    lx, ly, lz = lx / norm, ly / norm, lz / norm
+    br, bg, bb = spec["brink"]
+    foot = spec["foot"]
+    thick = d["wall"]["thickness"]
+    face = bytearray(w * h)
+
+    def weight(x, row):
+        gx = _bilinear(gxs, cols, rows, gs, x, row)
+        gy = _bilinear(gys, cols, rows, gs, x, row)
+        t = (3.0 * sqrt(gx * gx + gy * gy) - lo) / (hi - lo)
+        return (0.0 if t < 0.0 else (1.0 if t > 1.0 else t)), gx, gy
+
+    for sr in range(rows):
+        for sc in range(cols):
+            near = False
+            for rr in (sr - 1, sr, sr + 1):
+                for cc in (sc - 1, sc, sc + 1):
+                    if 0 <= rr < rows and 0 <= cc < cols and steep[rr * cols + cc]:
+                        near = True
+            if not near:
+                continue
+            for row in range(sr * gs, sr * gs + gs):
+                y = h - 1 - row
+                base = row * w
+                for x in range(sc * gs, sc * gs + gs):
+                    i = base + x
+                    if wet[i] or street.gap[i] <= thick + 1.5:
+                        continue
+                    f, gx, gy = weight(x, row)
+                    if f <= 0.0:
+                        continue
+                    g2 = gx * gx + gy * gy
+                    glen = sqrt(g2)
+                    ux, uy = gx / glen, gy / glen                 # uphill
+                    height = _bilinear(hts, cols, rows, gs, x, row)
+                    ty = int((height * kv) // 1) % sheight
+                    across = gy * gy / g2                          # an east-west cliff: strata run east
+                    a = srows[ty][(x * 2) % swidth]
+                    b = srows[ty][(y * 2) % swidth]
+                    cr = a[0] * across + b[0] * (1.0 - across)
+                    cg = a[1] * across + b[1] * (1.0 - across)
+                    cb = a[2] * across + b[2] * (1.0 - across)
+                    nx, ny = -3.0 * gx, -3.0 * gy
+                    lit = (nx * lx + ny * ly + lz) / sqrt(nx * nx + ny * ny + 1.0)
+                    k = (spec.get("dark", 0.36) + spec.get("bright", 0.82) * (lit if lit > 0.0 else 0.0)) * \
+                        _bilinear(shut, cols, rows, gs, x, row)
+                    cr, cg, cb = cr * k, cg * k, cb * k
+                    # The brink: no face a little way uphill; the foot: none downhill.
+                    up, _, _ = weight(int(x + ux * 5.0 + 0.5), int(row - uy * 5.0 + 0.5))
+                    if up < f:
+                        e = spec.get("lip", 0.45) * (f - up)
+                        cr, cg, cb = cr + (br - cr) * e, cg + (bg - cg) * e, cb + (bb - cb) * e
+                    down, _, _ = weight(int(x - ux * 5.0 + 0.5), int(row + uy * 5.0 + 0.5))
+                    if down < f:
+                        e = 1.0 - foot * (f - down)
+                        cr, cg, cb = cr * e, cg * e, cb * e
+                    m = int(256 * f)
+                    pic.r[i] = max(0, min(255, (pic.r[i] * (256 - m) + int(cr) * m) >> 8))
+                    pic.g[i] = max(0, min(255, (pic.g[i] * (256 - m) + int(cg) * m) >> 8))
+                    pic.b[i] = max(0, min(255, (pic.b[i] * (256 - m) + int(cb) * m) >> 8))
+                    if f > 0.5:
+                        face[i] = 1
+    # The ground at a face's foot in its shade: off the faces, within
+    # spec["shadow"][0] units downhill of one, dimmed by up to [1].
+    reach_, depth = spec.get("shadow", (0, 0.0))
+    if reach_:
+        for row in range(h):
+            y = h - 1 - row
+            base = row * w
+            for x in range(w):
+                i = base + x
+                if face[i] or wet[i] or street.gap[i] <= 0:
+                    continue
+                sr, sc = row // gs, x // gs
+                if not steep[min(rows - 1, sr) * cols + min(cols - 1, sc)]:
+                    continue
+                gx = _bilinear(gxs, cols, rows, gs, x, row)
+                gy = _bilinear(gys, cols, rows, gs, x, row)
+                glen = sqrt(gx * gx + gy * gy)
+                if glen <= 0.0:
+                    continue
+                ux, uy = gx / glen, gy / glen
+                for k in range(2, reach_ + 1, 2):
+                    xx, rr = int(x + ux * k + 0.5), int(row - uy * k + 0.5)
+                    if 0 <= xx < w and 0 <= rr < h and face[rr * w + xx]:
+                        dim = int(256 - 256 * depth * (1.0 - (k - 2) / reach_))
+                        pic.r[i], pic.g[i], pic.b[i] = (pic.r[i] * dim) >> 8, (pic.g[i] * dim) >> 8, \
+                            (pic.b[i] * dim) >> 8
+                        break
+    return face
+
+
+def openings(d, street, roads):
+    """The fence's texels left out where a real road leaves the course
+    (d["openings"]: each `at` a road's mouth, within `reach`): the street's
+    edge band where the client's road (`roads`, widened by 3) crosses it.
+    {opening index: [texel index, ...]}."""
+    w, h = street.w, street.h
+    thick = d["wall"]["thickness"]
+    out = {}
+    for k, opening in enumerate(d.get("openings", ())):
+        ax, ay = opening["at"]
+        reach = opening["reach"]
+        found = []
+        for y in range(max(0, int(ay - reach)), min(h, int(ay + reach) + 1)):
+            row = h - 1 - y
+            for x in range(max(0, int(ax - reach)), min(w, int(ax + reach) + 1)):
+                if (x - ax) ** 2 + (y - ay) ** 2 > reach * reach:
+                    continue
+                i = row * w + x
+                if not (0.5 < street.gap[i] <= thick + 0.5):
+                    continue
+                hit = False
+                for dy in (-3, 0, 3):
+                    for dx in (-3, 0, 3):
+                        xx, rr = x + dx, row + dy
+                        if 0 <= xx < w and 0 <= rr < h and roads[rr * w + xx]:
+                            hit = True
+                if hit:
+                    found.append(i)
+        if not found:
+            raise SystemExit(f"LAYOUT: no road leaves the course at {opening['name']}")
+        out[k] = found
+    return out
+
+
+def _octant(dx, dy):
+    """A model's yaw (degrees, a multiple of 45, 0 east, 90 north) facing
+    (dx, dy), without a transcendental: by the ratio of the sides."""
+    t = 0.41421356237309503                     # tan(22.5 degrees)
+    if abs(dy) <= abs(dx) * t:
+        return 0 if dx >= 0 else 180
+    if abs(dx) <= abs(dy) * t:
+        return 90 if dy >= 0 else 270
+    if dx >= 0:
+        return 45 if dy >= 0 else 315
+    return 135 if dy >= 0 else 225
+
+
+def place_blockers(wc3, d, street, gaps, cache, log):
+    """What stands in each opening's road (d["openings"], d["blockers"]):
+    along the gap in the fence, a model every `spacing` units at the street's
+    edge facing the course, and a second row behind; each stepped outward
+    until its body is off the street. Every texel of the gap must lie within
+    `cover` units of a model's body, so a kart never stops at nothing."""
+    from city_layouts import prop
+    from city_paint import body_clear
+    w, h = street.w, street.h
+    placed = []
+    for k, opening in enumerate(d.get("openings", ())):
+        kinds = d["blockers"][opening["blockers"]]
+        spacing = opening.get("spacing", 14)
+        # The front row: greedily, every texel of the gap within 0.7 of a
+        # spacing of a model's place (in the order of the course).
+        texels = sorted(gaps[k], key=lambda i: (street.along(i), i))
+        fronts, spots = [], []
+        near = (0.7 * spacing) ** 2
+        for i in texels:
+            row, x = divmod(i, w)
+            y = h - 1 - row
+            if any((x - fx) ** 2 + (y - fy) ** 2 < near for fx, fy in spots):
+                continue
+            fronts.append(i)
+            spots.append((x, y))
+        rows = [(fronts, 3.0, 0)]
+        if opening.get("rows", 2) > 1:
+            rows.append((fronts[1::2] if len(fronts) > 2 else fronts, 3.0 + opening.get("depth", 18), 1))
+        front_points = []
+        for texels_, out, rank in rows:
+            for n, i in enumerate(texels_):
+                row, x = divmod(i, w)
+                y = h - 1 - row
+                nx, ny = street.nx[i], street.ny[i]
+                px, py = x + 0.5 + nx * out, y + 0.5 + ny * out
+                if rank:
+                    px, py = px - ny * spacing * 0.5, py + nx * spacing * 0.5
+                model, sequence, scale, team = kinds[hash32(int(px), int(py), 61 + k) % len(kinds)]
+                item = prop(model, int(round(px)), int(round(py)), yaw=_octant(-nx, -ny), scale=scale,
+                            sequence=sequence, team=team, name="%s_%d" % (opening["blockers"], len(placed)))
+                sprite = sprite_for(wc3, d, item, cache)
+                forget_textures()
+                X, Y = item["x"], item["y"]
+                for push in range(0, 80, 2):
+                    QX, QY = int(round(X + nx * push)), int(round(Y + ny * push))
+                    if body_clear(street, sprite, QX, QY):
+                        X, Y = QX, QY
+                        break
+                else:
+                    raise SystemExit(f"LAYOUT: {item['name']} in {opening['name']} cannot stand off the street")
+                placed.append((item, sprite, X, Y))
+                col0, row0 = X - sprite["ox"], h - Y - sprite["oy"]
+                for bi, bj in sprite["body_points"]:
+                    c, r = col0 + bi, row0 + bj
+                    if 0 <= c < w and 0 <= r < h:
+                        front_points.append(r * w + c)
+        body = set(front_points)
+        cover = opening.get("cover", 9)
+        for i in gaps[k]:
+            row, x = divmod(i, w)
+            if not any((row + dy) * w + x + dx in body for dy in range(-cover, cover + 1)
+                       for dx in range(-cover, cover + 1)):
+                raise SystemExit(f"LAYOUT: the gap in the fence at {opening['name']} is open at "
+                                 f"({x}, {h - 1 - row})")
+        log(f"  {opening['name']}: {len(gaps[k])} texels of road, {len(fronts)} models in front")
+    return placed
+
+
+def paint_course(pic, d, g, street, sv, tiles, light, roads=None, zone=None):
     """Inside the street (gap <= 0): the road, the verges, the plazas, the
-    decks (see above). Returns the decks' texels."""
+    decks (see above). A meadow (a grass plaza: d["course"]["meadow"]) is
+    long grass where the karts' reach of the road ends; the verge beside it
+    is worn to the yard's dirt, so the road's full speed and the meadow's
+    slow grass do not look alike. Within an opening's `zone`, the client's
+    road (`roads`) runs across the verge into the street's. Returns the
+    decks' texels."""
     w, h, gs, cols, rows = pic.w, pic.h, sv.grid, sv.cols, sv.rows
     spec = d["course"]
     road, verge, yard, deck_spec = spec["road"], spec["verge"], spec["yard"], spec["deck"]
+    meadow = spec.get("meadow") if any(p.get("surface") == "grass" for p in g["plazas"]) else None
+    reach = g["wallRadius"]
+    tufts = []
     half, rut = spec["road_half"], spec["rut"]
     narrows = narrow_segments_of(g, street)
     kart = street.kart
@@ -1041,23 +1442,50 @@ def paint_course(pic, d, g, street, sv, tiles, light):
                     rgb = _tile(tiles, road, x, y, 17)
                     if abs(lane - rut[0]) < rut[1]:
                         rgb = _shade(rgb, 222)
+                elif street.plaza[i] and meadow and \
+                        lane > (narrows[seg] if seg in narrows else reach) + 16 * (ragged.at(x, y) - 0.5):
+                    rgb = _tile(tiles, meadow, x, y, 29)
+                    if hash32(x, y, 97) % meadow["tuft_every"] == 0:
+                        tufts.append(i)
                 elif street.plaza[i]:
                     rgb = _tile(tiles, yard, x, y, 19)
+                elif roads is not None and zone[i] and roads[i]:
+                    rgb = _tile(tiles, road, x, y, 17)
                 else:
                     rgb = _tile(tiles, verge, x, y, 23)
                 k = int(_bilinear(light, cols, rows, gs, x, row))
                 if gap > -6:
                     k = k * (226 + 5 * int(-gap)) >> 8          # the wall's foot in its shade
                 _put(pic, i, _shade(rgb, k))
+    # The meadow's long grass: a blade or two up from each tuft's root, pale
+    # at the tip, in the meadow only.
+    if meadow:
+        tip, root = meadow["tip"], meadow["root"]
+        for i in tufts:
+            row, x = divmod(i, w)
+            tall = 3 + hash32(x, row, 101) % 4
+            for lean in ((0,) if hash32(x, row, 103) % 3 else (0, 1)):
+                for k in range(tall):
+                    rr, xx = row - k, x + (lean * k) // 3
+                    if rr < 0 or xx >= w:
+                        break
+                    j = rr * w + xx
+                    seg_ = street.seg[j]
+                    if street.gap[j] > 0 or not street.plaza[j] or \
+                            street.lane[j] <= (narrows[seg_] if seg_ in narrows else reach):
+                        break
+                    c = tip if k >= tall - 2 else root
+                    pic.r[j], pic.g[j], pic.b[j] = (pic.r[j] + c[0]) >> 1, (pic.g[j] + c[1]) >> 1, \
+                        (pic.b[j] + c[2]) >> 1
     return deck
 
 
-def circuit_walls(d, street, deck):
+def circuit_walls(d, street, deck, skip=frozenset()):
     """The street's edge walls (as city_paint.wall_columns lays them): per
     world row, the texels just outside the karts' reach plus a kart, each
     with its height and style: a bridge's stone parapet beside its deck
     (taller every 24 units), else the timber rail fence (`rope_fence`, its
-    rails straight)."""
+    rails straight). None in `skip` (where a road leaves the course)."""
     w, h = street.w, street.h
     thick = d["wall"]["thickness"]
     fence = d["rope_fence"]["land"]
@@ -1068,7 +1496,7 @@ def circuit_walls(d, street, deck):
             for x in range(bi * 64, min(w, (bi + 1) * 64)):
                 i = row * w + x
                 gap = street.gap[i]
-                if not (0.5 < gap <= thick + 0.5):
+                if not (0.5 < gap <= thick + 0.5) or i in skip:
                     continue
                 along = street.along(i) if street.seg[i] >= 0 else float(x + y)
                 inner_x = int(x - street.nx[i] * (gap + 2))
@@ -1216,12 +1644,47 @@ def build_circuit(wc3, d, g, check=False, preview=False, log=print, cache=None):
     paint_ground(pic, d, sv, tiles, light)
     log(f"  ground {time.time() - started:.0f}s")
     wet = paint_circuit_water(pic, d, sv, street, light)
-    deck = paint_course(pic, d, g, street, sv, tiles, light)
+    roads = zone = None
+    gaps, skip = {}, frozenset()
+    if d.get("survey_roads"):
+        roads = survey_road_mask(sv, d["survey_roads"], w, h)
+        paint_survey_roads(pic, d, street, tiles, light, sv, roads, wet)
+        log(f"  roads {time.time() - started:.0f}s")
+    if d.get("cliffs"):
+        paint_cliffs(pic, d, sv, street, tiles, wet)
+        log(f"  cliffs {time.time() - started:.0f}s")
+    if d.get("openings"):
+        # The roads off the course, and the bridges off it with 50 units of
+        # their road at either end: a bridge's mouth is a road's mouth.
+        roads = bytearray(roads) if roads is not None else bytearray(w * h)
+        for bridge in d.get("bridges", ()):
+            (ax, ay), (bx, by), half = bridge["a"], bridge["b"], bridge["width"] / 2.0
+            length = sqrt((bx - ax) ** 2 + (by - ay) ** 2)
+            ux, uy = (bx - ax) / length, (by - ay) / length
+            for y in range(max(0, int(min(ay, by) - 60)), min(h, int(max(ay, by) + 61))):
+                for x in range(max(0, int(min(ax, bx) - 60)), min(w, int(max(ax, bx) + 61))):
+                    px, py = x + 0.5 - ax, y + 0.5 - ay
+                    t = px * ux + py * uy
+                    if -50.0 <= t <= length + 50.0 and abs(-px * uy + py * ux) <= half:
+                        roads[(h - 1 - y) * w + x] = 1
+        gaps = openings(d, street, roads)
+        skip = frozenset(i for found in gaps.values() for i in found)
+        zone = bytearray(w * h)
+        for opening in d["openings"]:
+            ax, ay = opening["at"]
+            reach = opening["reach"]
+            for y in range(max(0, int(ay - reach)), min(h, int(ay + reach) + 1)):
+                for x in range(max(0, int(ax - reach)), min(w, int(ax + reach) + 1)):
+                    if (x - ax) ** 2 + (y - ay) ** 2 <= reach * reach:
+                        zone[(h - 1 - y) * w + x] = 1
+    deck = paint_course(pic, d, g, street, sv, tiles, light, roads, zone)
     paint_circuit_finish(pic, street, g["gates"][-1])
     log(f"  course {time.time() - started:.0f}s")
     cache = {} if cache is None else cache
     models, dropped = place_circuit_props(wc3, d, street, cache, log, sv)
-    walls = circuit_walls(d, street, deck)
+    if gaps:
+        models += place_blockers(wc3, d, street, gaps, cache, log)
+    walls = circuit_walls(d, street, deck, skip)
     paint_off_bridges(pic, d, street, tiles, walls)
     survey_fences(d, sv, street, walls)
     paint_scenery(pic, d, walls, models)

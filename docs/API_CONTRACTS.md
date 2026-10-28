@@ -1,7 +1,25 @@
 # Implemented simulation and rendering contracts
 
 
-## Arathi registration and solid-aware guide — 2026-10-28
+## Arathi v2 and opt-in grass boost — 2026-10-28
+
+Arathi geometry2 uses Physics14, race code D and score code B. This is a
+flat track and continues to use AZKRUN2. The eleven other flat courses remain
+on Physics12; layered Warsong remains Physics13/AZKRUN3. Existing records,
+including Arathi v1/Physics12, remain in their original contexts. Multiplayer
+peers must agree on both course and physics versions. The score catalogue
+retains fourteen digest slots and the unchanged 158-byte native limit.
+
+`Courses.build` sets the immutable opt-in `boostOnGrass=true` only for the
+current Arathi track before caching. While boost is active, grass preserves it
+and caps speed at the kart profile’s ordinary road maximum. The final active
+tick is protected; the following tick slows normally. Grass still clears drift
+charge; braking and wall contact cancel the boost. An unboosted kart slows as
+before. Track geometry, race authority and presentation remain separate.
+The old v1 contract and Claude proposal below are historical. Native behavior
+and whether the shortcut is competitively worthwhile remain NOT RUN.
+
+## Arathi registration and solid-aware guide — 2026-10-28 (historical)
 
 Arathi Basin (geometry1, race code D, score code B) is a three-lap circuit
 using Physics12 in solo, Highscores and the existing two-player lobby. Its
@@ -944,6 +962,20 @@ record the request. Proposed rendering/drop-down/registration work remains open.
 - **Claude's side, after acceptance:** roof overlays drawn over karts below them and fading while the player is under one; karts drawn by level; the pads' boots marks; the guiding arrow (`course.guideArrow`, Warsong only), which needs nothing from Codex. Built on `claude/warsong-layout`: [the next section](#two-floor-presentation-warsong-gulch).
 
 <a id="warsong-gulch-version-3"></a>
+
+### Reviewed proposal: Arathi Basin version 2 (Claude, `claude/arathi-v2`, 2026-10-28)
+
+Historical proposal: the accepted implementation above supersedes the Physics12 and pending-boost statements below.
+
+On `claude/arathi-v2` (base Codex's `codex/arathi-integration` `1fbea6b`, installed runtime `8bf3218`), after the owner drove version 1. Client NOT RUN. [Sheet](art/tracks/arathi-basin.md#version-2).
+
+- **Version 2** (`Battlegrounds.arathi_basin.version`): the geometry changes; flat Physics 12, three laps, race code D and score code B unchanged; version 1 times stay on their own board (score catalogue regenerated: `trackVersion` 2).
+- **No guiding arrow** (the owner: only Warsong Gulch keeps it): `Courses` drops `guideArrow` for Arathi, so `Courses.route("arathi_basin")` is nil and no gate glows (the glow belongs to the arrow). `route`/`routeGates` stay in the data as review data.
+- **The Lumber Mill's cliff top:** eight control points moved 8 to 60 units south-west, so the street's north-east fence stands at the brink with the cliff face beyond it. The Lumber Mill gate is now vertical at x 504.3; 324 centerline points, 5,094 units a lap; heights 0 to 365.4 (inert, as before).
+- **A meadow (`Circuit.lua`, additive, shared: flagged for review):** `plazas[i].surface = "grass"`: the plaza is drivable to its radius as any plaza, but never paved, and `fullSpeedToWalls` does not reach it: beyond the street's own capsules its ground is rough, so `surfaceAt` answers "grass" and `isDrivable`/`isGuideDrivable` are false there (Physics' grass). The street's own reach keeps its full grip through it; walls, clearance and every existing definition are unchanged (no `surface`: paved, as before). Arathi's Stables yard is a meadow: the shortcut south of the barn; the road round north of it keeps full grip. `test_circuit` covers it: surfaces, the walls unchanged, grass speed on it, any other surface refused.
+- **Requested (Codex, the owner's choice): a boost keeps normal speed on grass.** The owner: "if you boost over grass - normal speed is retained - if you don't have boost here, going the road to the right around the stables is optimal". Today a boost ends on entering grass and the kart is dragged to `GRASS_MAX_SPEED` (70). Suggested: while `boostTicks > 0`, grass neither ends the boost nor slows the kart below its handling's normal road cap (no boost surplus on grass); when the boost runs out, grass as now. Opt-in per course (a track field such as `boostOnGrass`, with its own physics context for the boards) so other courses' grass and records stay as they are. Until then the meadow slows every kart, boost or not.
+- **Openings and blockers (painting only):** where a real road leaves the course, the fence is left out and the road painted on, seamless, and what stands in it (Warcraft III units and props) is painted at the street's edge where the karts stop. The walls are the street's, as before (no new collision); the painter refuses an opening a kart could see through (every gap texel within 9 units of a blocker's body).
+- **Codex-owned tests, pins only (for review):** `test_peer_session` (Arathi `trackVersion` 2; 1 incompatible), `test_multiplayer_integration` (the offer's `trackVersion` 2), `test_arathi_guide` (Arathi hands no route to the arrow: the guide-round-a-solid regression keeps Arathi's geometry with the yard paved, as version 1 had it, and its route from the data). A failure already on `codex/arathi-integration` is fixed in `test_dungeon` (the Track button now steps from Warsong to Arathi, then to Mirage).
 
 ### Proposed: Arathi Basin, a Battlegrounds Cup circuit (Claude, 2026-10-28, for Codex)
 

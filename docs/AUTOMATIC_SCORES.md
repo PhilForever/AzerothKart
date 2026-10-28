@@ -68,8 +68,8 @@ cached-channel/native-group/confirmed-racer discovery plus the separately verifi
 
 ## Implementation
 
-Current catalogue: thirteen courses, with Warsong on Physics13 and twelve
-flat maps on Physics12. AZKSCR2/schema2 HELLO uses fourteen fixed hexadecimal
+Current catalogue: thirteen courses, with eleven flat maps on Physics12,
+Warsong on Physics13 and Arathi v2 on flat Physics14. AZKSCR2/schema2 HELLO uses fourteen fixed hexadecimal
 digest slots, including retired O=0, and an exact-context catalogue hash. The
 maximum HELLO is145 bytes including prefix; Arathi adds score code B and all
 prior codes remain stable. Maximum legal NEW/ROW is150 bytes, including a

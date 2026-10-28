@@ -1,5 +1,12 @@
 # Shared integration and deployment status
 
+## Arathi v2 reviewed candidate — 2026-10-28
+
+Reviewed Claude `0b27c02` plus Codex’s opt-in Physics14 grass boost.
+Focused Lua51 and thirteen-board export pass; native play is NOT RUN.
+Install and friend ZIP verification are the next step. See
+[review](reviews/2026-10-28-arathi-v2.md) and [PROGRESS](PROGRESS.md).
+
 ## Installed Arathi Basin — 2026-10-28
 
 Runtime **8bf3218** on `codex/arathi-integration` is installed. Reviewed Claude

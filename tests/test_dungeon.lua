@@ -354,8 +354,8 @@ assert(scarlet == 4 and Courses.get("scarlet_cathedral") and not Courses.get("sc
 assert(Courses.next("undercity_slime") == "scarlet_graveyard" and Courses.next("scarlet_graveyard") == "scarlet_library"
     and Courses.next("scarlet_library") == "scarlet_armory" and Courses.next("scarlet_armory") == "scarlet_cathedral"
     and Courses.next("scarlet_cathedral") == "warsong_gulch"
-    and Courses.next("warsong_gulch") == "mirage_raceway",
-    "the Track button steps on through the four dungeons and Warsong, then round to Mirage")
+    and Courses.next("warsong_gulch") == "arathi_basin" and Courses.next("arathi_basin") == "mirage_raceway",
+    "the Track button steps on through the four dungeons, Warsong and Arathi, then round to Mirage")
 
 -- Scarlet Graveyard: one run from the entrance to Honor's Tomb. The spawn
 -- stands on stone; the reviewed route crosses the three gates in order and

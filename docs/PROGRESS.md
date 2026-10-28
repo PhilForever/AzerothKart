@@ -1,5 +1,30 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-28 17:34 +0100 — Arathi v2 reviewed; install candidate
+
+Reviewed Claude `claude/arathi-v2` at `0b27c02`; integrated geometry2,
+meadow, revised scenery and removal of Arathi’s arrow. The gate glow coupled
+to that arrow also disappears. Codex added the owner-requested Arathi-only
+boost-on-grass rule, versioned as Physics14: an active boost preserves up to
+the kart profile’s road speed; unboosted grass slows. Braking, collisions and
+expiry end protection. Other tracks and existing historical records retain
+their contexts; Arathi remains flat/AZKRUN2. See
+[review](reviews/2026-10-28-arathi-v2.md) and [contract](API_CONTRACTS.md).
+
+Executed `scripts/test_lua.py --runtime lua51 --tests grass_boost arathi
+arathi_guide circuit dungeon physics surface drift drift_payoff layered_physics
+race_start live_race peer_session race_grid session_transport
+multiplayer_integration score_sync score_sharing ui menu`: PASS, 20 modules,
+88 Lua files parsed. The initial run exposed and corrected a stale Physics12
+test assertion; the rerun passed. `scripts/export_score_catalog.py --check`:
+PASS, 13 boards. Agent ran grass_boost/race_start/live_race under Lua51 and
+Lua54: PASS. `scripts/validate_project.py`: FAIL solely on two pre-existing
+expired computer-use skill links in this file. Native WoW tests NOT RUN;
+shortcut competitiveness and community/peer delivery remain unverified.
+Claude’s art rebuild is reported by Claude, not rerun here. Next: install
+this reviewed candidate with backup and hash verification, then user playtest.
+No GitHub push, release or modification of Claude’s worktree.
+
 ## 2026-10-28 14:43 +0100 — Arathi Basin installed and friend ZIP verified
 
 Runtime **8bf3218**, branch `codex/arathi-integration`, merges reviewed Claude

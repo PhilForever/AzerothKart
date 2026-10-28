@@ -79,9 +79,9 @@ Courses.LIST = {
         status="Warsong Gulch | Start for 3 laps | Up each ramp, round the flag, out by the tunnel"},
     -- Round the basin on its real roads, down to the Gold Mine and up to the
     -- Lumber Mill: a circuit (the cities' street rules) on the basin's own
-    -- ground, selectable in solo and the two-peer lobby.
-    {id="arathi_basin", name="Arathi Basin", short="Arathi", cup="battlegrounds", geometry="circuit",
-        guideArrow=true,
+    -- ground, selectable in solo and the two-peer lobby. No guiding arrow:
+    -- the way is plain (the owner keeps the arrow for Warsong Gulch alone).
+    {id="arathi_basin", name="Arathi Basin", short="Arathi", cup="battlegrounds", geometry="circuit", boostOnGrass=true,
         background=TRACKS .. "ArathiBasin\\Background.tga",
         dust={0.80,0.76,0.62}, ground={0.30,0.30,0.16},
         status="Arathi Basin | Start for 3 laps | Down to the Gold Mine, up to the Lumber Mill"},
@@ -168,6 +168,9 @@ function Courses.build(id, crossesGate)
         local definition = namespace.Battlegrounds and namespace.Battlegrounds[id]
         track = definition and namespace.Circuit.new(definition, crossesGate)
     end
+    -- Constructor-only rule: set before caching; runs and tickets copy this
+    -- immutable course flag, so physics/version selection cannot diverge.
+    if track and course.boostOnGrass==true then track.boostOnGrass=true end
     built[id] = track
     return track
 end

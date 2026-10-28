@@ -664,7 +664,7 @@ end
 
 
 -- Arathi is negotiated via actual menus and the same delayed two-client
--- transport as the other courses; this exercises the new flat Physics12
+-- transport as the other courses; this exercises the new flat Physics14
 -- admission and live telemetry, without claiming native delivery or feel.
 do
     local q=freshPair()
@@ -686,9 +686,9 @@ do
     for _=1,90 do q:step() end
     for _,e in ipairs({a,b}) do
         local ui,view=e.ns.UI,e:view()
-        assert(view.offer.trackId=="arathi_basin" and view.offer.trackVersion==1
-            and view.offer.physicsVersion==12 and view.offer.laps==3
-            and ui.trackId=="arathi_basin" and not ui.track.layered and ui.race.targetLaps==3
+        assert(view.offer.trackId=="arathi_basin" and view.offer.trackVersion==2 -- Claude pin: Arathi version 2
+            and view.offer.physicsVersion==14 and view.offer.laps==3
+            and ui.trackId=="arathi_basin" and ui.track.boostOnGrass and not ui.track.layered and ui.race.targetLaps==3
             and ui.state.tick>0 and ui.state.level==nil,
             "both racers launch actual Arathi with the correct geometry, physics and target")
         assert(e.stagedGrid and e.cues["3"]==1 and e.cues["2"]==1 and e.cues["1"]==1,

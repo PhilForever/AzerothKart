@@ -95,7 +95,7 @@ function Live.new(bundle, peer, nowMS, modules)
     if b.vehicle.drifting~=false or (b.vehicle.surface~="road" and b.vehicle.surface~="grass"
         and b.vehicle.surface~="wall") then return nil,"bundle" end
     local versionOK,version=true,modules.Physics.VERSION
-    local features=b.track.layered==true or (type(b.track.pads)=="table" and next(b.track.pads)~=nil)
+    local features=b.track.boostOnGrass==true or b.track.layered==true or (type(b.track.pads)=="table" and next(b.track.pads)~=nil)
     if features and type(modules.Physics.versionForTrack)=="function" then
         versionOK,version=pcall(modules.Physics.versionForTrack,b.track)
     end

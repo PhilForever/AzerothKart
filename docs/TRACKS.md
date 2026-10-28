@@ -174,9 +174,11 @@ The owner's fourth cup starts with Warsong Gulch (`warsong_gulch`), the first co
 
 Offline: `LayeredTrack.new` accepts it; the route walk crosses the seven gates in order on the right floors (0, 1, 0, 1, 0) and never meets a wall, and its crossings are the arrow's; from every step the arrow's straight run is clear; nothing passes between a flag and its wall; the ramps change floor end to end only; the Boots boost a kart in either tunnel; both grid poses stand on floor 0; Codex's assisted two-peer integration drives three laps of it with real Physics without an impact. See [the Warsong Gulch sheet](art/tracks/warsong-gulch.md).
 
-## Battlegrounds Cup: Arathi Basin (coming soon)
+## Battlegrounds Cup: Arathi Basin
 
-The cup's second course (`arathi_basin`, `claude/arathi-basin`): a circuit round the basin on its real roads, measured from the owner's client as Warsong's gulch was; no insides, heavy slopes. Listed as coming soon until Codex assigns its course, invite and score IDs. The owner's way round: "East > DOWN to Gold Mine > Up to the stables > UP to the Lumbermill and then down to the farm and around".
+The cup's second course (`arathi_basin`, `claude/arathi-basin`): a circuit round the basin on its real roads, measured from the owner's client as Warsong's gulch was; no insides, heavy slopes. Registered by Codex as version 1 (race code D, score code B) and installed. The owner's way round: "East > DOWN to Gold Mine > Up to the stables > UP to the Lumbermill and then down to the farm and around".
+
+**Version 2** (`claude/arathi-v2`, for Codex's review, not installed), after the owner's drive: no guiding arrow (only Warsong keeps it); every real road leaving the course runs on, seamless, blocked by what stands in it (angry Alliance soldiers on the upper road at the Gold Mine fork, lumber on the lower road under the Lumber Mill's cliff, carts and crates, Horde grunts) instead of a fence across it; the drops drawn as cliffs (the Gold Mine's pit under the upper road, the Lumber Mill's cliff down to the lower road, the lap moved to its brink); the Stables' yard a meadow of slow grass (Circuit's grass plaza), the shortcut for a boost once Codex adds the owner's rule that a boost keeps normal speed on grass. Offline: the meadow is grass beyond the road's reach and road on it; the route walk crosses the five gates in order; no arrow; version 2 on its own board.
 
 1. From the grid on the east road, north over the east bridge, past the pond and down the Gold Mine's road into the mine's hollow (the lap's lowest ground) and through its yard.
 2. Up the north road to the Stables; round the barn either way (by the road north of it, or across the yard south of it).

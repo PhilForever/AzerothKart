@@ -1,4 +1,78 @@
-# Claude handoff — Arathi Basin, coming soon
+# Claude handoff — Arathi Basin version 2
+
+Prepared 2026-10-28 at about 17:30 CET by Claude (rendering/UI/sprites owner).
+
+**Base:** Codex's `codex/arathi-integration` `1fbea6b` (installed runtime `8bf3218`). **Branch:** `claude/arathi-v2`, no merge commit:
+
+- `f1cadff`: the reservation;
+- `040dc78`: Circuit's meadow (an additive grass plaza) and its `test_circuit` coverage;
+- `1d6f4f2`: version 2 (layout, painter, data, pictures, catalogue, menu copy, tests, Codex's three pins, score catalogue);
+- `8751d82`: the docs;
+- this handoff.
+
+**Nothing is installed or pushed.** The developer machine's Claude worktree is on `claude/arathi-v2` (fetched from `local-artifacts/bundles/arathi-v2-1.bundle`), clean apart from its untracked `Claude outputs/`; this handoff follows the same way (`arathi-v2-2.bundle`).
+
+## Owner instructions
+
+He drove the installed version 1 and asked, with screenshots of it and of the real basin:
+
+1. "No need for arrow on maps that are obvious where you drive, right now - only map with arrow should be Warsong Gulch."
+2. The Gold Mine: "The road going to right down to Gold Mine is directly connected to the road going left and above Gold Mine. Make it look seamless but put objects blocking the road to the left (like a group of angry alliance players - forcing people down to the gold mine." And "a way massively better visible downhill here between Gold Mine and the upper road", as Thunder Bluff's drops.
+3. The Stables: "Make it a grassy on the whole left side of the stables - slowed - I want to introduce this as a shortcut going over slow grass, but if you boost over grass - normal speed is retained - if you don't have boost here, going the road to the right around the stables is optimal." Asked who should add the driving rule (driving rules are Codex's), he chose **"Codex adds it"**.
+4. The Lumber Mill: "The other road should not be blocked by a fence, but rather something else just being 'in the way', leading you up to lumber mill", and "Way more visible ridge/drop needed here. It's supposed to be a straight cliff down to the lower road".
+
+## Done
+
+- **No arrow:** `Courses` drops `guideArrow` for Arathi (`Courses.route` nil, no glowing gate); the route stays in the data for the tests. Menu copy: "The Stables: the road round, or a slow grass shortcut".
+- **Side roads:** the survey's road texture (evened twice, patches under 40 texels dropped, threshold 0.36) paints the basin's roads off the course (paler crown, darker edges). Eight openings (`AB_OPENINGS`): where a road crosses the street's edge the fence is left out, the road runs on across the verge, and what stands in it (`AB_BLOCKERS`) is placed along the gap at the edge, facing the course, stepped out until its body is off the street: Alliance footmen, riflemen and priests (the upper road at the Gold Mine fork, the upper road's west end and the roads to Trollbane Hall and north at the Stables), Ashenvale logs and a broken hay cart (the lower road's two ends), carts, crates and barrels (the south bridge's road to the Blacksmith; the off-course bridges count as roads at their mouths), Horde grunts (the road to Defiler's Den). The build stops on an opening no road crosses and on any gap texel more than 9 units from a blocker's body. Painting only: the walls are the street's.
+- **Cliffs:** survey slope over 1.0 yards per yard (evened once) is a rock face, wholly from 1.7: `lords_cliff0.dds` strata by height (1.6 rows a yard, flattened 30%), lit by its own steepness, pale brink, shaded foot, a contact shadow 22 units down; the light dimmed by the sky's openness (`occlusion`: 8 directions out to 256 units on a 16-unit grid, strength 0.6), so the Gold Mine's pit reads deep.
+- **The Lumber Mill's cliff top:** 8 control points moved 8 to 60 units south-west (measured brink to fence); the mill to (312, 548), its flag beside it; the Lumber Mill gate now vertical at x 504.3. 324 points, 5,094 units a lap; heights 0 to 365.4.
+- **The meadow:** the Stables' plaza `surface="grass"` (Circuit's new grass plaza): long grass with tufts where the road's reach ends (the narrows' reach by the bridge), the verge beside it worn to dirt. Physics' grass slows every kart on it until Codex's boost rule.
+- **Version 2** in the data and the score catalogue (`trackVersion` 2). Warsong's three pictures and the arrow are byte-identical.
+- `relief_light`'s heights moved into `survey_heights` (Warsong's output unchanged); new painter functions `occlusion`, `survey_road_mask`, `paint_survey_roads`, `paint_cliffs`, `openings`, `place_blockers`, `_octant` (no transcendental: yaws by side ratios).
+
+## Scope (changed)
+
+- Claude's: the Arathi sections of `scripts/battleground_layouts.py`, `battleground_paint.py` (also the shared `relief_light` refactor), `build_battlegrounds.py` (a plaza's `surface` to the data); generated `Battlegrounds.lua` (Arathi's entry) and `Assets/Tracks/ArathiBasin/{Background,Preview}.tga`; `docs/art/tracks/arathi_basin-{overview.png,review.png,route-sketch.png,sources.txt}`; `Menu.lua` (Arathi's copy); `tests/test_arathi.lua`, `tests/test_dungeon.lua` (a stale catalogue order, failing already on `codex/arathi-integration`), `tests/test_ui.lua` (Arathi's block).
+- **Shared, flagged for review:** `addon/AzerothKart/Circuit.lua` (the grass plaza: `add`'s `grass` flag, `ground`, `streetGround`'s clearance branch, the plaza assertion) and `tests/test_circuit.lua`; `addon/AzerothKart/Courses.lua` (Arathi's `guideArrow` off); `services/leaderboard/catalog.json` (regenerated).
+- **Codex-owned, pins only, for review:** `tests/test_peer_session.lua` (Arathi `trackVersion` 2; 1 incompatible), `tests/test_multiplayer_integration.lua` (the offer's version 2), `tests/test_arathi_guide.lua` (Arathi hands no route to the arrow, so its guide-round-the-barn regression builds Arathi's geometry with the yard paved, as version 1 had it, and takes the route from the data).
+- Docs: the Arathi sheet (a version 2 section), `API_CONTRACTS.md` (version 2 proposal and the boost request), `TRACKS.md`, `ASSETS.md`, `art/ASSET_SOURCES.md`, `INDEX.md`, `TEST_PLAN.md`, `CHANGELOG.md`, the client checklist, this handoff.
+
+No change to Physics, Checkpoints, Presentation, UI, protocols, sessions or scores' code.
+
+## Tests
+
+| Command | Cloud | Developer machine (Linux VM) |
+|---|---|---|
+| `python scripts/build_battlegrounds.py --wc3 WC3 --check` | PASS: Arathi Background `3b75218d…`, Preview `22706112…`; Warsong's three pictures and the arrow unchanged (70 s) | PASS, byte-identical from its own Warcraft III extraction and a fresh sprite cache: `--course arathi_basin` (130 s), `--course warsong_gulch` (110 s) |
+| `python scripts/test_lua.py --runtime lua51` (full suite, 87 files) | PASS (66 s) | PASS |
+| `test_lua.py --runtime lua51 --tests arathi arathi_guide circuit ui menu dungeon peer_session multiplayer_integration` | PASS | in the full suite |
+| `test_lua.py --runtime lua54 --tests arathi arathi_guide circuit ui menu dungeon warsong presentation peer_session` | PASS | not run |
+| `python scripts/export_score_catalog.py --check` | PASS (13 boards) | PASS |
+| Baseline: every module on `codex/arathi-integration` (scratch checkout) | `test_dungeon` FAILS there (fixed here) | not run |
+| `git diff --check` | PASS | not run |
+| `python scripts/validate_project.py` | the same 2 pre-existing FAILs | not run |
+
+Pre-existing, not from this work: `validate_project.py`'s two links in `docs/PROGRESS.md` to `C:/Users/bakke/.codex/plugins/...`; under Lua 5.4, `test_score_sharing` (global `unpack`) and `test_multiplayer_integration` (line 208).
+
+**NOT RUN in the client:** version 2's look (the cliffs, the blocked roads, the meadow), the drive, the meadow's speed. The owner's checks are in [the client checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-arathi-basin-version-2-check-proposed-claudearathi-v2).
+
+## For Codex
+
+1. Review `040dc78` (Circuit's grass plaza: additive, every existing definition unchanged) and `1d6f4f2`: the version 2 data, `Courses`' arrow off, the three pins, the `test_dungeon` fix, the regenerated catalogue ([proposal](../API_CONTRACTS.md#proposed-arathi-basin-version-2-claude-claudearathi-v2-2026-10-28-for-codex)).
+2. **The owner's rule, his choice that you add it:** a boost keeps normal speed on grass ("if you boost over grass - normal speed is retained - if you don't have boost here, going the road to the right around the stables is optimal"). Suggested in the proposal: while `boostTicks > 0`, grass neither ends the boost nor slows the kart below its handling's normal road cap; opt-in per course (Arathi now) with its own physics context, so the other courses' grass and records stay. Until then the meadow slows every kart.
+3. **Pending ledger entry for `docs/PROGRESS.md`** (not written here): "2026-10-28 Claude `claude/arathi-v2` (`040dc78`, `1d6f4f2`, `8751d82`): Arathi Basin version 2 after the owner's drive: no guiding arrow; the side roads painted on and blocked by what stands in them (Alliance soldiers at the Gold Mine fork and the Stables, lumber under the Lumber Mill, carts, grunts) instead of fences; cliffs and pit shading; the Lumber Mill's lap at the cliff's brink; the Stables' yard a meadow (Circuit's additive grass plaza); trackVersion 2, catalogue regenerated; the boost-on-grass rule requested from Codex (owner's choice). Offline: build `--check` byte-identical on cloud and developer machine; full Lua 5.1 suite PASS on both. Client NOT RUN."
+4. Integration as before: the integrator installs; both players fully restart (version 2 needs the same build on both).
+
+## Push (the owner's; never pushed by Claude)
+
+From the main checkout on the developer machine:
+
+```
+git push -u origin claude/arathi-v2
+```
+
+# Previous: Arathi Basin, coming soon
 
 Prepared 2026-10-28 at about 14:05 CET by Claude (rendering/UI/sprites owner).
 

@@ -70,12 +70,12 @@ do
         local track=assert(AK.Courses.build(course.id,AK.Track.crossesGate))
         versions[course.id],targets[course.id]=track.version,track.laps or 3
         mechanics[course.id]=AK.Physics.versionForTrack(track)
-        assert(mechanics[course.id]==(course.id=="warsong_gulch" and 13 or 12))
+        assert(mechanics[course.id]==(course.id=="arathi_basin" and 14 or course.id=="warsong_gulch" and 13 or 12))
         count=count+1
       end
     end
-    assert(count==13 and not versions.test_oval and versions.arathi_basin==1
-        and targets.arathi_basin==3 and mechanics.arathi_basin==12 and targets.warsong_gulch==3,
+    assert(count==13 and not versions.test_oval and versions.arathi_basin==2 -- Claude pin: Arathi version 2
+        and targets.arathi_basin==3 and mechanics.arathi_basin==14 and targets.warsong_gulch==3,
         "the exact current catalogue includes the flat three-lap Arathi course")
     local captured={physicsVersion=12,trackVersions=versions,trackLaps=targets,trackPhysics=mechanics}
     for id in pairs(versions) do
@@ -97,8 +97,8 @@ do
         assert(not deliver(guest,0,wire("INVITE",1,message)))
         closed(guest,"incompatible")
     end
-    for _,change in ipairs({{physicsVersion=13},{trackVersion=2},{laps=1}}) do
-        local message={physicsVersion=12,trackId="arathi_basin",trackVersion=1,laps=3}
+    for _,change in ipairs({{physicsVersion=12},{physicsVersion=13},{trackVersion=1},{laps=1}}) do
+        local message={physicsVersion=14,trackId="arathi_basin",trackVersion=2,laps=3}
         for field,value in pairs(change) do message[field]=value end
         local guest=fresh("guest",captured)
         assert(not deliver(guest,0,wire("INVITE",1,message)))
@@ -110,7 +110,7 @@ do
     local withoutArathi=fresh("guest",{physicsVersion=12,trackVersions={mirage_raceway=1},
         trackLaps={mirage_raceway=3},trackPhysics={mirage_raceway=12}})
     assert(not deliver(withoutArathi,0,wire("INVITE",1,
-        {physicsVersion=12,trackId="arathi_basin",trackVersion=1,laps=3})))
+        {physicsVersion=14,trackId="arathi_basin",trackVersion=2,laps=3})))
     closed(withoutArathi,"incompatible")
 end
 

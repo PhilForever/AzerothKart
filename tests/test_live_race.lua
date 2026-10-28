@@ -358,3 +358,19 @@ do
     assert(not accepted and reason=="bounds","codec-valid floor absent from track is not admitted")
 end
 print("layered live race: explicit floor codec, version selection, copied same-coordinate floors and bounds PASS")
+
+-- Flat Arathi opt-in keeps the flat packet and rejects mismatched physics.
+do
+    local grass=shallow(Track); grass.boostOnGrass=true
+    local ticket={session="RACE01",role="host",seed=0,localEpochMS=10000,hostEpochMS=10000,
+        offsetLowMS=0,offsetHighMS=0,uncertaintyMS=0,peerAcknowledged=true}
+    local launch=assert(Start.take(assert(Start.new(ticket,grass,Physics.GRASS_BOOST_VERSION)),
+        10000,Physics,Race,Checkpoints,Laps))
+    local wrong=shallow(launch);wrong.physicsVersion=Physics.VERSION
+    assert(not Live.new(wrong,"Birch Vale",10000,modules),"flat opt-in rejects old physics version")
+    local run=assert(Live.new(launch,"Birch Vale",10000,modules))
+    local payload,prefix
+    assert(Live.update(run,10000,function(p,_,code) payload,prefix=p,code;return "accepted" end))
+    assert(prefix==Protocol.PREFIX and #payload==40 and Protocol.decode(payload),
+        "flat physics 14 still uses the existing AZKRUN2 packet")
+end
