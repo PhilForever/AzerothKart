@@ -926,3 +926,405 @@ def _ab_dressing():
 
 
 ARATHI["props"] = AB_PROPS + _ab_dressing()
+
+
+# ---------------------------------------------------------------------------
+# Alterac Valley (the Battlegrounds Cup's third course; the owner, 2026-10-28:
+# "Let's get started on Alterac Valley. This is going to be a long sprint.
+# Starting on the horde side - no fences - but allow for driving and drifting
+# a few kart lengths outside the road - after that, our regular speed
+# reduction like grass", with the way drawn on the battleground's map: from
+# the Horde's side by Frostwolf Keep, up the valley's road through the Field
+# of Strife, to Dun Baldar).
+#
+# A sprint (one run, from the grid to the last gate) on the valley's own
+# ground (alterac_valley_survey.json, the map PVPZone01), three units to the
+# yard as Warsong Gulch's and Arathi Basin's: a placement at (px east, pz
+# south) in yards stands at X = (px - 17014) * 3, Y = (18633 - pz) * 3, over
+# 2048 x 7168 units (the valley's floor from Frostwolf to Dun Baldar).
+#
+# A Battlegrounds Cup sprint is an open circuit (Circuit.lua with `open` and
+# `laps` 1) on the valley's real road (the client's road texture,
+# "winterspringdirt", traced from the survey along the owner's line):
+#
+# - the grid east of the frozen lake below Frostwolf Keep, facing north;
+# - north along the lake's shore, west on the track to the valley's road by
+#   Frostwolf Village, north up the road past Coldtooth Mine's turning,
+#   round Tower Point's hill and down past Iceblood Tower;
+# - across the Field of Strife (its trampled middle frozen over: the owner's
+#   patch of ice), past Stonehearth Outpost and up to Icewing Bunker;
+# - north along the icy basin's eastern road, over the gorge on Dun Baldar's
+#   bridge (a narrows) and into Dun Baldar: the finish.
+#
+# No street walls (the owner: "no fences"): the street is the karts' full
+# grip, the road and AV_MARGIN beyond its edge (three kart lengths, packed
+# snow); beyond it the snow is drivable at grass speed (Physics' grass) out
+# to the valley's natural walls: its steep slopes, buildings, rocks and trees
+# (`grassMap`, generated from the survey and the scenery: Circuit.lua's
+# packed passability grid, as Arathi's open grass). The Field of Strife's
+# ice is `iceMap` (the same packed grid): proposed to Codex as an ice
+# surface (worse grip and turning, a slide); until Codex adds it, inert.
+
+AV_SIZE = (2048, 7168)
+AV_ORIGIN = (17014.0, 18633.0)
+# The road's control points, traced along the client's road texture (a
+# least-cost path on the survey's road weight, held near the owner's line,
+# simplified), south to north.
+AV_ROUTE = [
+    # The grid, east of the frozen lake; north along its shore.
+    (1680, 690), (1680, 749), (1680, 901), (1680, 1053), (1680, 1205), (1644, 1257), (1616, 1285),
+    # West on the track to the valley's road.
+    (1528, 1253), (1440, 1285), (1330, 1295), (1220, 1305),
+    # North up the road past Frostwolf Village and Coldtooth Mine's turning.
+    (1256, 1385), (1248, 1509), (1300, 1557), (1348, 1657), (1352, 1797), (1304, 1961), (1332, 2153),
+    # Round Tower Point's hill.
+    (1392, 2209), (1480, 2245), (1504, 2297), (1448, 2369), (1448, 2437), (1388, 2533), (1256, 2577),
+    (1300, 2697), (1344, 2817), (1316, 2841), (1204, 2837), (1128, 2897),
+    # Down past Iceblood Tower to the Field of Strife.
+    (1116, 3009), (1172, 3065), (1180, 3121), (1032, 3217), (992, 3277), (980, 3398), (968, 3520),
+    (956, 3641),
+    # Across the Field of Strife (its frozen middle).
+    (1052, 3757), (1040, 3853), (1072, 3885), (1064, 4073), (1000, 4141), (992, 4313), (960, 4333),
+    # Past Stonehearth Outpost, up to Icewing Bunker.
+    (904, 4453), (848, 4573), (884, 4689), (880, 4889), (1024, 4985), (1068, 5005), (1124, 4997),
+    (1284, 5077), (1352, 5161), (1384, 5287), (1416, 5413),
+    # North along the icy basin's eastern road.
+    (1392, 5469), (1320, 5541), (1300, 5605), (1320, 5759), (1340, 5913), (1296, 5977), (1272, 6077),
+    (1200, 6165), (1128, 6253), (1128, 6365), (1168, 6505), (1112, 6585), (1056, 6609),
+    # Over the gorge on Dun Baldar's bridge, into Dun Baldar.
+    (860, 6621), (724, 6613), (680, 6585), (544, 6565), (430, 6600), (398, 6614),
+]
+# Dun Baldar's bridge (the client's pvp_bridge01): its deck from bank to
+# bank, straight, walled at AV_BRIDGE_RADIUS and AV_APPROACH units beyond.
+AV_BRIDGE_RADIUS = 42
+AV_APPROACH = 24
+AV_BRIDGES = [("Dun Baldar bridge", (975, 6610), (605, 6588))]
+# The karts' full grip: the road (AV_ROAD_HALF either side of its middle)
+# and AV_MARGIN beyond (three kart lengths of 31 units).
+AV_ROAD_HALF = 52
+AV_MARGIN = 93
+AV_GRIP = AV_ROAD_HALF + AV_MARGIN
+
+
+def _open_arc(line, x, y):
+    """Arc length along the open `line` where it passes nearest (x, y)."""
+    best, at, total = None, 0.0, 0.0
+    for i in range(1, len(line)):
+        (ax, ay), (bx, by) = line[i - 1], line[i]
+        dx, dy = bx - ax, by - ay
+        length = sqrt(dx * dx + dy * dy)
+        t = 0.0 if length == 0 else max(0.0, min(1.0, ((x - ax) * dx + (y - ay) * dy) / (length * length)))
+        d = (ax + dx * t - x) ** 2 + (ay + dy * t - y) ** 2
+        if best is None or d < best:
+            best, at = d, total + length * t
+        total += length
+    return round(at, 1)
+
+
+def _av_line():
+    from city_layouts import straighten
+    line = catmull_rom(AV_ROUTE, closed=False, step=16.0)
+    for _name, a, b in AV_BRIDGES:
+        at = (_open_arc(line, *a) + _open_arc(line, *b)) / 2
+        length = sqrt((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2)
+        line = straighten(line, at, length + 2 * AV_APPROACH)
+    return line
+
+
+ALTERAC_LINE = _av_line()
+
+# The gates, in the course's order, each a straight cut across the valley's
+# drivable ground near a place (build_battlegrounds.sprint_gates: across the
+# whole open ground there, wall to wall, so no way round it): ("y", Y) a
+# line along Y crossed northwards, ("x", X) a line along X crossed westwards
+# (the last stretch runs west into Dun Baldar). The last gate is the finish.
+AV_GATES = [
+    ("Frostwolf Village", "y", 1500),
+    ("Tower Point", "y", 2470),
+    ("Iceblood Tower", "y", 3060),
+    ("Field of Strife", "y", 3960),
+    ("Stonehearth Outpost", "y", 4720),
+    ("Icewing Bunker", "y", 5400),
+    ("Dun Baldar Bridge", "x", 800),
+    ("Dun Baldar", "x", 430),
+]
+AV_SPAWN = _nearest(ALTERAC_LINE, 1680, 760)
+
+ALTERAC = {
+    "id": "alterac_valley",
+    "name": "Alterac Valley",
+    "version": 1,
+    "kind": "sprint",
+    "size": AV_SIZE,
+    "laps": 1,
+    "centerline": ALTERAC_LINE,
+    "branches": [],
+    "plazas": [],
+    "narrows": [{"name": name, "from": round(_open_arc(ALTERAC_LINE, *a) - AV_APPROACH, 1),
+                 "to": round(_open_arc(ALTERAC_LINE, *b) + AV_APPROACH, 1), "wall_radius": AV_BRIDGE_RADIUS}
+                for name, a, b in AV_BRIDGES],
+    "gate_cuts": AV_GATES,
+    "spawn": AV_SPAWN + ("north",),
+    "solids": [],
+    "full_speed_to_walls": True,
+    "road_radius": AV_GRIP, "wall_radius": AV_GRIP,
+    "survey": "alterac_valley_survey.json",
+}
+
+# The valley's natural walls (build_battlegrounds.sprint_maps): ground
+# steeper than `steep` yards per yard (the survey's terrain, evened once:
+# where the painted cliffs are more than half a rock face), every building's
+# plan and the trunks of the trees and the rocks the scenery stands there,
+# each grown by the karts' inset; the street's grip (the road, its margin,
+# the bridge's deck) is always open. A grid of `cell` units (Circuit.lua's
+# grassMap). The ice (`iceMap`, the same grid): the Field of Strife's
+# trampled middle frozen over (the survey's road texture within the field's
+# box, evened, filled and grown), the one patch the owner asked for; the
+# valley's other frozen ponds are snow underfoot.
+ALTERAC["maps"] = {
+    "cell": 8, "steep": 1.35, "smooth": 1, "trunk": 7,
+    "field": {"plane": "winterspringdirt_s", "box": (560, 3560, 1320, 4500), "least": 0.3, "smooth": 4,
+              "grow": 40},
+}
+BATTLEGROUNDS.append(ALTERAC)
+
+# ---------------------------------------------------------------------------
+# Alterac Valley's painting (battleground_paint.build_sprint).
+#
+# The ground is the valley's own (alterac_valley_survey.json): the client's
+# snows as Warcraft III's Lordaeron winter and Northrend snow, its rocky
+# patches and rock as Lordaeron winter rock, its roads as Lordaeron winter
+# dirt, its ice as Northrend ice; lit by the relief from the north-west, the
+# hollows darker and the sky's openness dimming the gorges. Steep ground is
+# rock face (Lordaeron winter's cliff in strata). The street: the road down
+# its middle, packed snow to the karts' full grip (three kart lengths beyond
+# the road's edge), deep snow beyond; the ice glassy (Icecrown's) where the
+# karts would slide; the frozen water as ice. In four pictures, 2048 units
+# wide, south to north (the follow camera's tiles).
+
+AV_GROUND = {
+    "ironforgesnow01solid_s": {"tile": TA + "lordaeronwinter/lordw_snow.dds", "shade": (0.98, 1.0, 1.04, 0.22)},
+    "winterspringsnowsolid_s": {"tile": TA + "northrend/north_snow.dds", "shade": (0.98, 1.0, 1.04, 0.22)},
+    "winterspringsnowripple_s": {"tile": TA + "northrend/north_snow.dds", "shade": (0.95, 0.98, 1.04, 0.3)},
+    "ironforgesnow03ripple_s": {"tile": TA + "lordaeronwinter/lordw_snow.dds", "shade": (0.95, 0.98, 1.04, 0.3)},
+    "winterspringicesnowalpha_s": {"tile": TA + "northrend/north_snow.dds", "shade": (0.94, 0.98, 1.06, 0.3)},
+    "ironforgefootprintsalpha_s": {"tile": TA + "lordaeronwinter/lordw_snow.dds", "shade": (0.94, 0.96, 1.0, 0.3)},
+    "ironforgesnow05scrapebrown_s": {"tile": TA + "lordaeronwinter/lordw_rock.dds", "shade": (0.9, 0.9, 0.96, 0.35)},
+    "deadwindpassrockbase_s": {"tile": TA + "lordaeronwinter/lordw_rock.dds", "shade": (0.82, 0.84, 0.9, 0.4)},
+    "badlandsrock_s": {"tile": TA + "lordaeronwinter/lordw_rock.dds", "shade": (0.88, 0.84, 0.86, 0.4)},
+    "blastedlandsrockcrackhighlight_s": {"tile": TA + "lordaeronwinter/lordw_rock.dds",
+                                         "shade": (0.8, 0.82, 0.88, 0.4)},
+    "winterspringdirt_s": {"tile": TA + "lordaeronwinter/lordw_dirt.dds", "shade": (1.08, 0.98, 0.9, 0.45),
+                           "boost": 1.6},
+    "blastedlandsdirt01_s": {"tile": TA + "lordaeronwinter/lordw_dirtrough.dds", "shade": (1.0, 0.94, 0.88, 0.45)},
+    "deadwindpassdirt_s": {"tile": TA + "lordaeronwinter/lordw_dirtrough.dds", "shade": (0.96, 0.9, 0.86, 0.45)},
+    "blastedlandsblack_s": {"tile": TA + "lordaeronwinter/lordw_dirtrough.dds", "shade": (0.42, 0.4, 0.4, 0.3)},
+    "black_s": {"tile": TA + "lordaeronwinter/lordw_dirtrough.dds", "shade": (0.3, 0.3, 0.32, 0.3)},
+    "winterspringice_s": {"tile": TA + "northrend/north_ice.dds", "shade": (1.0, 1.04, 1.06, 0.2)},
+    "ironforgeice01_s": {"tile": TA + "northrend/north_ice.dds", "shade": (1.0, 1.04, 1.06, 0.2)},
+    "winterspringicecracked_s": {"tile": TA + "northrend/north_ice.dds", "shade": (0.96, 1.0, 1.04, 0.2)},
+    "winterspringicesmooth_s": {"tile": TA + "northrend/north_ice.dds", "shade": (1.04, 1.06, 1.08, 0.2)},
+}
+
+ALTERAC.update({
+    "folder": "AlteracValley",
+    "lean": 0.6, "team": (0.5, 0.5, 0.52), "supersample": 3,
+    # Warcraft III's Northrend trees take their bark and needles from
+    # replaceable texture 34 (31 is Lordaeron's, 32 Ashenvale's).
+    "replaceables": {34: "war3.w3mod:replaceabletextures/northrendtree/northtree.dds"},
+    "ground": AV_GROUND,
+    "relief": {"light": (-0.5, 0.6, 0.62), "exaggerate": 1.5, "ambient": 0.48, "smooth": 3, "height_tint": 0.12,
+               "occlusion": {"step": 4, "reach": 256, "strength": 0.5}},
+    "cliffs": {"from": 1.0, "full": 1.7, "smooth": 1, "strata": 1.6, "light": (-0.6, 0.8, 0.95),
+               "face": (TA + "lordaeronwinter/lordw_cliff0.dds", (0, 0, 192, 63), (0.86, 0.88, 0.96, 0.3)),
+               "flatten": 0.3, "dark": 0.32, "bright": 0.9, "brink": (244, 246, 252), "lip": 0.6, "foot": 0.45,
+               "shadow": (22, 0.38)},
+    # The street's surfaces keep to the tiles' plain variations (the snow's
+    # without its tufts and stones, the dirt's without its tufts): a calm
+    # street against the valley's busier deep snow. The ice is Icecrown's,
+    # calmed toward `glass` (by `calm` / 256), the road on through it by
+    # `road` / 256. A bridge: its deck `half` either side of its line (the
+    # karts' reach, 42, and half a kart), stone parapets `parapet` thick
+    # (`height`, posts every `post` units `post_height`), wing walls at its
+    # ends out to `wing` (where the narrows' sides stop being shut; lower,
+    # `wing_height`, a post at their ends), its
+    # shadow on the gorge (`shadow`: width, darkest factor) and the gorge
+    # darkened and blued with its depth below the deck (`depth`: yards to
+    # the darkest, tint / 256).
+    "course": {
+        "road": {"tile": TA + "lordaeronwinter/lordw_dirt.dds", "shade": (1.08, 0.98, 0.9, 0.45),
+                 "variations": (16, 20, 24, 28, 17, 18, 21)},
+        "packed": {"tile": TA + "lordaeronwinter/lordw_snow.dds", "shade": (0.86, 0.88, 0.94, 0.3),
+                   "variations": (16, 20, 24, 28, 17, 21)},
+        "ice": {"tile": TA + "icecrown/ice_ice.dds", "shade": (0.78, 0.92, 1.0, 0.25),
+                "glass": (200, 230, 244), "calm": 150, "road": 80},
+        "deck": {"tile": TA + "village/village_stonepath.dds", "shade": (1.4, 1.45, 1.6, 0.5)},
+        "bridge": {"half": 50, "parapet": 6, "post": 32, "height": 10, "post_height": 16, "shadow": (28, 0.55),
+                   "wing": AV_GRIP + 40, "wing_height": 7, "depth": (40, 150)},
+        "road_half": AV_ROAD_HALF, "grip": AV_GRIP, "rut": (24, 3),
+    },
+    "wall_styles": {"bridge": ((148, 152, 162), (214, 218, 226), (84, 86, 96))},
+    "street_reach": 24, "street_far": 240,
+    "decks": [(a, b) for _name, a, b in AV_BRIDGES],
+    "wall": {"thickness": 4},
+    "tiles": [(0, 2048), (2048, 2048), (4096, 2048), (6144, 1024)],
+    # The track screen's picture: the Field of Strife's square, from Iceblood
+    # Garrison to Stonehearth Outpost (world rows from 3000, 2048 high).
+    "preview": (3000, 2048),
+    "water": {"shallow": (206, 226, 238), "deep": (132, 172, 206), "bank": (236, 242, 248), "shore": 0.35,
+              "full": 8.0, "rim": 0.9, "smooth": 2},
+    "survey_roads": {"plane": "winterspringdirt_s", "smooth": 2, "threshold": 0.36, "ragged": 0.05, "least": 40},
+})
+
+# ---------------------------------------------------------------------------
+# Alterac Valley's scenery: the bases' and the battle's buildings by hand at
+# the client's places (Warcraft III's that stand for them: Dun Baldar a
+# castle, Stonehearth Outpost a keep, Frostwolf Keep an orc fortress, the
+# bunkers human towers, the Horde's towers orc watch towers, Iceblood
+# Garrison an orc barracks), and the survey's trees, rocks, tents, graves,
+# bones, barrels and crates. Every building, rock, tent and tree trunk
+# stands in the karts' way (ALTERAC["maps"]); bones, graves, barrels and
+# crates do not.
+
+HUMAN = "war3.w3mod:buildings/human/"
+ORCB = "war3.w3mod:buildings/orc/"
+OTHERB = "war3.w3mod:buildings/other/"
+NORTHREND = D3 + "northrend/"
+
+
+def _av(model, x, y, scale, yaw=270, sequence="Stand", team=None, name=None, **kw):
+    item = prop(model, x, y, yaw=yaw, scale=scale, sequence=sequence, team=team, name=name, **kw)
+    item["blocks_karts"] = "plan"
+    item["building"] = True
+    return item
+
+
+AV_PROPS = [
+    # Dun Baldar and its bunkers, its stable, Irondeep Mine.
+    _av(HUMAN + "townhall/townhall.mdx", 200, 6705, 0.62, yaw=315, sequence="Stand Upgrade Second",
+        team=ALLIANCE_BLUE, name="dun_baldar"),
+    _av(HUMAN + "humantower/humantower.mdx", 547, 6708, 0.42, team=ALLIANCE_BLUE, name="dun_baldar_north_bunker"),
+    _av(HUMAN + "humantower/humantower.mdx", 405, 6402, 0.42, team=ALLIANCE_BLUE, name="dun_baldar_south_bunker"),
+    _av(HUMAN + "humanbarracks/humanbarracks.mdx", 167, 6498, 0.38, yaw=315, team=ALLIANCE_BLUE,
+        name="dun_baldar_stable"),
+    _av(OTHERB + "goldmine/goldmine.mdx", 1130, 7074, 0.46, yaw=270, name="irondeep_mine"),
+    # The Stormpike lumber mill and aid station.
+    _av(HUMAN + "humanlumbermill/humanlumbermill.mdx", 1717, 6166, 0.4, yaw=225, team=ALLIANCE_BLUE,
+        name="stormpike_lumber_mill"),
+    _av(HUMAN + "gryphonaviary/gryphonaviary.mdx", 1711, 5729, 0.38, yaw=225, team=ALLIANCE_BLUE,
+        name="stormpike_aid_station"),
+    # Icewing and Stonehearth Bunkers; Stonehearth Outpost and its village.
+    _av(HUMAN + "humantower/humantower.mdx", 1240, 5352, 0.42, team=ALLIANCE_BLUE, name="icewing_bunker"),
+    _av(HUMAN + "humantower/humantower.mdx", 1521, 4261, 0.42, team=ALLIANCE_BLUE, name="stonehearth_bunker"),
+    _av(HUMAN + "townhall/townhall.mdx", 1080, 4740, 0.5, yaw=270, sequence="Stand Upgrade First",
+        team=ALLIANCE_BLUE, name="stonehearth_outpost"),
+    _av(HUMAN + "farm/farm.mdx", 1438, 4751, 0.42, yaw=225, name="stonehearth_house"),
+    _av(HUMAN + "farm/farm.mdx", 1373, 4809, 0.36, yaw=270, name="stonehearth_hovel"),
+    _av(HUMAN + "humanbarracks/humanbarracks.mdx", 1492, 4693, 0.34, yaw=225, team=ALLIANCE_BLUE,
+        name="stonehearth_stable"),
+    _av(HUMAN + "blacksmith/blacksmith.mdx", 1868, 4339, 0.4, yaw=225, name="stonehearth_blacksmith"),
+    # The Field of Strife's south: Iceblood Garrison and its towers, the
+    # Horde's camp west of the field.
+    _av(ORCB + "orcbarracks/orcbarracks.mdx", 662, 3085, 0.48, yaw=270, team=HORDE_RED, name="iceblood_garrison"),
+    _av(ORCB + "watchtower/watchtower.mdx", 945, 2982, 0.44, team=HORDE_RED, name="iceblood_tower"),
+    _av(ORCB + "watchtower/watchtower.mdx", 834, 3488, 0.36, team=HORDE_RED, name="iceblood_watch_east"),
+    _av(ORCB + "watchtower/watchtower.mdx", 459, 3515, 0.36, team=HORDE_RED, name="iceblood_watch_west"),
+    _av(OTHERB + "tent/tent.mdx", 456, 4695, 0.34, yaw=225, name="field_camp_tent"),
+    _av(OTHERB + "tent/tent.mdx", 517, 4800, 0.3, yaw=270, name="field_camp_tent_2"),
+    # Tower Point; Coldtooth Mine.
+    _av(ORCB + "watchtower/watchtower.mdx", 1248, 2394, 0.44, team=HORDE_RED, name="tower_point"),
+    _av(ORCB + "watchtower/watchtower.mdx", 1500, 2622, 0.38, team=HORDE_RED, name="tower_point_watch"),
+    _av(OTHERB + "goldmine/goldmine.mdx", 761, 1839, 0.46, yaw=315, name="coldtooth_mine"),
+    # Frostwolf: the keep, its two towers, the village's great hall, war
+    # mill, tents and the kennel by the relief hut.
+    _av(ORCB + "greathall/greathall.mdx", 841, 596, 0.6, yaw=270, sequence="Stand Upgrade Second",
+        team=HORDE_RED, name="frostwolf_keep"),
+    _av(ORCB + "watchtower/watchtower.mdx", 958, 806, 0.44, team=HORDE_RED, name="west_frostwolf_tower"),
+    _av(ORCB + "watchtower/watchtower.mdx", 1108, 791, 0.44, team=HORDE_RED, name="east_frostwolf_tower"),
+    _av(ORCB + "greathall/greathall.mdx", 909, 979, 0.42, yaw=270, sequence="stand", team=HORDE_RED,
+        name="frostwolf_great_hall"),
+    _av(ORCB + "warmill/warmill.mdx", 1089, 948, 0.36, yaw=225, team=HORDE_RED, name="frostwolf_war_mill"),
+    _av(OTHERB + "tent/tent.mdx", 943, 712, 0.32, yaw=270, name="frostwolf_tent"),
+    _av(OTHERB + "tent/tent.mdx", 1215, 1034, 0.32, yaw=225, name="frostwolf_tent_2"),
+    _av(OTHERB + "tent/tent.mdx", 1208, 1107, 0.32, yaw=270, name="frostwolf_tent_3"),
+    _av(OTHERB + "tent/tent.mdx", 962, 1155, 0.32, yaw=315, name="frostwolf_tent_4"),
+    _av(OTHERB + "tent/tent.mdx", 1137, 413, 0.32, yaw=270, name="frostwolf_tent_5"),
+    _av(ORCB + "beastiary/beastiary.mdx", 1966, 914, 0.36, yaw=225, team=HORDE_RED, name="frostwolf_kennel"),
+    _av(OTHERB + "tent/tent.mdx", 2005, 1000, 0.3, yaw=270, name="relief_hut_tent"),
+]
+
+NORTH_TREES = [D3 + "terrain/northrendtree/northrendtree%d.mdx" % n for n in range(10)]
+NORTH_ROCKS = [NORTHREND + "rocks/north_rocks/north_rocks%d.mdx" % n for n in range(10)]
+NORTH_THORNS = [NORTHREND + "plants/north_thorns/north_thorns%d.mdx" % n for n in range(7)]
+NORTH_BONES = [NORTHREND + "props/north_bones/north_bones%d.mdx" % n for n in range(10)]
+NORTH_GRAVES = [NORTHREND + "props/northrendtombstone/northrendtombstone%d.mdx" % n for n in range(3)]
+# (the client's model names starting so, the Warcraft III models that stand
+# for them, sizes (small, medium, large), round (turned at random), options,
+# what stands in the karts' way: a tree's trunk, a model's plan, or nothing).
+AV_KINDS = [
+    (("ironforgesnowtree", "wintertree", "wintersmalltree", "ironforgetree", "ironforgepine", "winterspringtree",
+      "wintermidtree", "newwinterspringtree", "burntstonetree", "stonetree0"), NORTH_TREES, (0.22, 0.28, 0.34),
+     True, {"alpha_shadow": True}, "trunk"),
+    (("winterspringrock", "snowytowerrock", "desolacerock", "elwynnrock", "ironforgecliff"), NORTH_ROCKS,
+     (0.28, 0.34, 0.4), True, {}, "plan"),
+    (("orctent", "gnolltent", "durotarorctent", "excavationtent"), [TENT], (0.24, 0.28, 0.32), False, {}, "plan"),
+    (("winterspringbush", "ironforgebush", "ironforgeangledbush", "ironforgesnowybush"), NORTH_THORNS,
+     (0.2, 0.24, 0.28), True, {}, None),
+    (("ironstump", "stonetreelog", "winterspringfallen"), [STUMP], (0.14, 0.17, 0.2), True, {}, None),
+    (("tombstone", "cemetarygate"), NORTH_GRAVES, (0.24, 0.28, 0.32), False, {}, None),
+    (("blastedlandsbone", "blastedlandsskull", "blastedlandsspine", "bone0", "dwarvebone", "kotobeastbone",
+      "battlegladebones", "battlegladeskull", "battlegladebskeleton", "corpseskeleton", "westfallskeleton",
+      "tigerskull", "boarskull", "tallstriderskull"), NORTH_BONES, (0.2, 0.24, 0.28), True, {}, None),
+    (("orcbarrel", "westfallbarrel", "barrel0", "brokenbarrel", "powderkeg", "beerkeg"), [BARRELS],
+     (0.18, 0.2, 0.22), True, {}, None),
+    (("orccrate", "replacecrate", "stormwindcrate", "westfallcrate", "crate0", "crategrain"), CRATES,
+     (0.22, 0.24, 0.26), False, {}, None),
+    (("generaltorch", "tallbrazier", "lochlamppost", "generallantern"), [LANTERN], (0.26,) * 3, False, {}, None),
+]
+# Scenery keeps this far from the course's middle (beyond the karts' full
+# grip): the street is clear for the drift the owner asked for.
+AV_CLEAR = AV_GRIP + 34
+
+
+def _route_distance(x, y):
+    best = None
+    for i in range(1, len(ALTERAC_LINE)):
+        (ax, ay), (bx, by) = ALTERAC_LINE[i - 1], ALTERAC_LINE[i]
+        if abs(ax - x) > 600 and abs(bx - x) > 600 or abs(ay - y) > 600 and abs(by - y) > 600:
+            continue
+        dx, dy = bx - ax, by - ay
+        length = dx * dx + dy * dy
+        t = 0.0 if length == 0 else max(0.0, min(1.0, ((x - ax) * dx + (y - ay) * dy) / length))
+        d = (ax + dx * t - x) ** 2 + (ay + dy * t - y) ** 2
+        if best is None or d < best:
+            best = d
+    return sqrt(best) if best is not None else 1e9
+
+
+def _av_dressing():
+    """The survey's placements as scenery: away from the course's middle
+    (AV_CLEAR), each as its kind's model (AV_KINDS). The build leaves out
+    any drawn over the street or standing in the client's water
+    (battleground_sprint.sprint_props)."""
+    from paintkit import hash2
+    survey = json.loads(Path(__file__).with_name(ALTERAC["survey"]).read_text(encoding="utf-8"))
+    out = []
+    for kind, model, x, y, height, yaw, scale in survey["placements"]:
+        xi, yi = int(round(x)), int(round(y))
+        if kind != "doodad" or not (24 <= xi < AV_SIZE[0] - 24 and 24 <= yi < AV_SIZE[1] - 24):
+            continue
+        found = next((k for k in AV_KINDS if model.startswith(k[0])), None)
+        if found is None or _route_distance(xi, yi) < AV_CLEAR:
+            continue
+        _, models, sizes, round_, options, blocks = found
+        path = models[hash2(xi, yi, 31) % len(models)]
+        size = sizes[0] if scale < 0.85 else (sizes[1] if scale <= 1.25 else sizes[2])
+        turn = hash2(xi, yi, 37) % 4 * 90 if round_ else int(round(yaw / 45)) % 8 * 45
+        item = prop(path, xi, yi, yaw=turn, scale=size, name=model, **options)
+        if blocks:
+            item["blocks_karts"] = blocks
+        out.append(item)
+    return out
+
+
+ALTERAC["props"] = AV_PROPS + _av_dressing()

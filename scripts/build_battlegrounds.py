@@ -62,9 +62,12 @@ def geometry(d, wc3=None, cache=None):
     props on floor 0, the roofs' on floor 1. `cache` keeps the sprites for
     the painter. With mid's stumps, the finish line (the last gate) runs
     from the field's wall (its `ax`) to the stumps, across their middle.
-    A circuit's: circuit_geometry."""
+    A circuit's: circuit_geometry; a sprint's: battleground_sprint."""
     if d.get("kind") == "circuit":
         return circuit_geometry(d, wc3, cache)
+    if d.get("kind") == "sprint":
+        from battleground_sprint import sprint_geometry
+        return sprint_geometry(d, wc3, cache)
     width, height = d["size"]
     sx, sy, heading, level = d["spawn"]
     cache = {} if cache is None else cache
@@ -466,9 +469,12 @@ def walk(g, route, level, step=4.0):
 def validate(g):
     """LayeredTrack's authoring rules (docs/LAYERED_TRACKS.md) and the
     dungeon rules, on both floors; then the reviewed route. A circuit's:
-    validate_circuit."""
+    validate_circuit; a sprint's, validate_sprint."""
     if g.get("kind") == "circuit":
         return validate_circuit(g)
+    if g.get("kind") == "sprint":
+        from battleground_sprint import validate_sprint
+        return validate_sprint(g)
     width, height, inset = g["width"], g["height"], g["wallInset"]
     names = set()
     for r in g["rooms"]:
@@ -629,11 +635,14 @@ def validate(g):
 
 def lua_circuit(g):
     """A circuit's entry, as CapitalCities.lua writes a city's, plus its
-    reviewed route."""
+    reviewed route. A sprint's (an open circuit) adds `open`, `laps` and its
+    grids (`grassMap`, Circuit.lua's passability; `iceMap`, proposed)."""
     lines = ["Battlegrounds[%s] = {" % q(g["id"]),
              "    id=%s, version=%d, name=%s," % (q(g["id"]), g["version"], q(g["name"])),
              "    width=%d, height=%d, wallInset=%d, roadRadius=%d, wallRadius=%d, checkpointMaxStep=5," %
              (g["width"], g["height"], g["wallInset"], g["roadRadius"], g["wallRadius"])]
+    if g.get("kind") == "sprint":
+        lines.append("    open=true, laps=%d," % g["laps"])
     if g["narrows"]:
         lines.append("    narrows={")
         for narrow in g["narrows"]:
@@ -693,6 +702,13 @@ def lua_circuit(g):
     lines.append("    },")
     points("route", g["route"])
     lines.append("    routeGates={%s}," % ", ".join(str(k + 1) for k in g["routeGates"]))
+    if g.get("kind") == "sprint":
+        from battleground_sprint import lua_bytes, packed
+        maps = g["maps"]
+        for key, name in (("grass", "grassMap"), ("ice", "iceMap")):
+            data = packed(maps[key], maps["columns"], maps["rows"])
+            lines.append("    %s={cellSize=%d, columns=%d, rows=%d, data=%s}," % (
+                name, maps["cell"], maps["columns"], maps["rows"], lua_bytes(data)))
     lines.append("}")
     lines.append("")
     return lines
@@ -713,7 +729,7 @@ def lua_data(courses):
         "",
     ]
     for g in courses:
-        if g.get("kind") == "circuit":
+        if g.get("kind") in ("circuit", "sprint"):
             lines += lua_circuit(g)
             continue
         sx, sy, heading, level = g["spawn"]
