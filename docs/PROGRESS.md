@@ -1,5 +1,48 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-28 14:43 +0100 — Arathi Basin installed and friend ZIP verified
+
+Runtime **8bf3218**, branch `codex/arathi-integration`, merges reviewed Claude
+3b85407 with Codex registration and solid-aware guide correction. The owner
+requested review/install if acceptable; [review](reviews/2026-10-28-arathi-basin.md)
+and prior entry record the findings and executed checks. Claude's checkout
+remains3b85407 with its original untracked outputs; no push, main merge,
+release, rewrite or other-worktree mutation.
+
+Executed `scripts/install_local.ps1` using the existing classic_beta AddOns
+path and `-Overwrite -BackupDirectory '<repo>/local-artifacts/deploy-20261028-arathi/backups'`
+after successful preview and a fresh prior-build hash check: PASS. All93
+tested source files installed and SHA-256 verified; all92 previous installed
+files backed up and verified. One legacy texture remains as an extra. No
+WTF/SavedVariables, unrelated addon or deletion operations.
+
+Independent `C:/Python314/python.exe
+local-artifacts/deploy-20261028-arathi/audit_and_package.py --runtime 8bf3218`:
+PASS every source/installed/backup hash, exact inventories, legacy extra and
+all93 ZIP entries/CRC. Source still matches the committed runtime.
+
+- Manifest: `local-artifacts/deploy-20261028-arathi/backups/20261028-144246-651-9e6929b9d07041b1ba9dbf996390120b/install.json`.
+- Backup: its `before/` directory,92 verified files.
+- Audit, preflight, receipt and focused test logs: `local-artifacts/deploy-20261028-arathi/`.
+- Friend ZIP: `../AzerothKart-Arathi-8bf3218.zip`,93 entries,88,830,943 bytes.
+- SHA256: `32174DF6E0BD3699F2C4D339696E45A48424732B2EEF60E78CA40C4716AADD70`.
+
+Arathi is selectable solo and in the existing two-player lobby. Existing scores
+and twelve map contexts remain saved; complete score catch-up requires peers
+with the new fourteen-slot catalogue. Both clients must fully restart for two
+new Arathi textures. Slopes are visual under existing flat Physics12 handling.
+
+Fourteen focused Lua51 modules across the recorded checks PASS;87 files parse.
+Arathi's real menu/lobby/grid/countdown/flat telemetry is covered with delayed
+mock clients, not native gameplay. Native driving, guide feel, frame cost and
+score delivery remain NOT RUN. Structural validator still reports only the two
+historical expired links; no milestone/release/eight-player acceptance.
+
+**Next exact task:** fully restart WoW and test Arathi's two bridges, both
+routes around the barn and guide, then complete three laps. Both multiplayer
+participants install this build and restart before racing.
+
+
 ## 2026-10-28 14:41 +0100 — Arathi reviewed and registration candidate ready
 
 Owner requested review and install if acceptable. Base clean93270b1, installed

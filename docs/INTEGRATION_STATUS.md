@@ -1,5 +1,20 @@
 # Shared integration and deployment status
 
+## Installed Arathi Basin — 2026-10-28
+
+Runtime **8bf3218** on `codex/arathi-integration` is installed. Reviewed Claude
+3b85407 is integrated with solo/two-player registration and a solid-aware guide.
+All93 source/installed and92 prior backup files independently SHA-256 verified;
+legacy extra preserved. Friend ZIP `../AzerothKart-Arathi-8bf3218.zip` has93
+entries. [Receipt](PROGRESS.md), [review](reviews/2026-10-28-arathi-basin.md).
+
+Fourteen focused Lua51 modules,87 parsed files and thirteen-board export PASS.
+Native gameplay/frame cost and peer/score delivery remain NOT RUN; validator
+retains two historical expired links. **Fully restart both clients** for new
+assets and complete score catch-up. Arathi's slopes remain visual under flat
+Physics12. No GitHub push, main merge, other-worktree mutation or release.
+
+
 ## Arathi reviewed candidate — 2026-10-28
 
 `codex/arathi-integration` combines reviewed Claude3b85407 with the current

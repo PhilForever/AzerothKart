@@ -1,5 +1,32 @@
 # Codex handoff — production maps and Claude course review
 
+## Installed Arathi Basin checkpoint — 2026-10-28 14:43 +0100
+
+Runtime **8bf3218**, branch `codex/arathi-integration`, merges approved Claude
+**3b85407** with raceD/scoreB registration, bounded thirteen-board sharing and
+solid-aware guide correction. [Review](../reviews/2026-10-28-arathi-basin.md)
+records the reachable barn bug, bounded fallback and exact executed evidence.
+Fourteen focused Lua51 modules/87 files parsed pass;13-board export passes.
+Native game/peer/score/guide frame cost remain NOT RUN; two old validator links
+still fail. Guide hides if no checked route point is clear.
+
+Installed in classic_beta AddOns/AzerothKart. All93 source/installed and92
+prior backup files independently verified; legacy extra retained. Friend ZIP
+`../AzerothKart-Arathi-8bf3218.zip` has93 entries,88,830,943 bytes,
+SHA256 `32174DF6E0BD3699F2C4D339696E45A48424732B2EEF60E78CA40C4716AADD70`. [Full receipt](../PROGRESS.md); audit and backups
+are under ignored `local-artifacts/deploy-20261028-arathi/`.
+
+Arathi uses geometry1, flat Physics12 and three laps; surveyed slopes are
+visual only. Existing12 map contexts and historical scores remain intact.
+Fourteen-slot HELLO is145 bytes including prefix under the existing158-byte
+ceiling; older thirteen-slot peers need the update for complete catch-up.
+Both clients need a full restart for new texture paths. Original Claude branch
+and outputs remain untouched; no push/main/release.
+
+**Next:** owner drives the two bridges and both Stables routes, checks the guide
+and completes three laps; same-build friend test can follow.
+
+
 ## Active Arathi review and conditional installation — 2026-10-28
 
 Additional narrow shared-interface reservation: Arathi's guide can point through
