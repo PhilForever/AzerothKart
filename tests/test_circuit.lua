@@ -164,6 +164,33 @@ assert(not pcall(Circuit.new, (function()
     return bad
 end)(), Track.crossesGate), "a plaza's surface may only be grass")
 
+-- An open course (Claude, Alterac Valley: a sprint, flagged for Codex's
+-- review): `open` drops the closing segment, so the square's west side is no
+-- street; `laps` sets the run's length as a dungeon's does. Closed circuits
+-- keep both unset.
+local openDefinition = {}
+for key,value in pairs(squareDefinition) do openDefinition[key] = value end
+openDefinition.open, openDefinition.laps, openDefinition.plazas, openDefinition.solids = true, 1, nil, nil
+local openStreet = Circuit.new(openDefinition, Track.crossesGate)
+assert(openStreet.open == true and openStreet.laps == 1 and square.open == nil and square.laps == nil,
+    "an open course is a one-run sprint; a closed circuit sets neither")
+assert(openStreet.surfaceAt(200,100) == "road" and openStreet.surfaceAt(300,200) == "road"
+    and openStreet.surfaceAt(200,300) == "road" and openStreet.surfaceAt(100,200) == "wall"
+    and square.surfaceAt(100,200) == "road", "an open course has no closing segment")
+assert(near(openStreet.length, 600) and near(square.length, 800), "an open course's length leaves out the closing segment")
+assert(not pcall(Circuit.new, (function()
+    local bad = {}
+    for key,value in pairs(openDefinition) do bad[key] = value end
+    bad.narrows = {{first=4, last=4, wallRadius=15}}
+    return bad
+end)(), Track.crossesGate), "an open course's narrows name only its segments")
+for _,laps in ipairs({0, 10, 1.5, "1"}) do
+    local bad = {}
+    for key,value in pairs(openDefinition) do bad[key] = value end
+    bad.laps = laps
+    assert(not pcall(Circuit.new, bad, Track.crossesGate), "a lap count is an integer from 1 to 9")
+end
+
 -- Reviewed narrows (Ironforge v3): loop segments walled at their own
 -- smaller radius and paved no further, so no rough strip; elsewhere the
 -- street is unchanged. The square's south side (segment 1) narrows to 15.
@@ -238,7 +265,9 @@ for _,course in ipairs(Courses.LIST) do
             Courses.build(course.id, Track.crossesGate) == nil, "a coming-soon course cannot be built")
     end
 end
-assert(soon == 0 and Courses.available("arathi_basin") and Courses.available("stormwind_city") and Courses.available("ironforge_gp")
+-- Alterac Valley is listed, coming soon (tests/test_alterac.lua).
+assert(soon == 1 and Courses.get("alterac_valley").soon and not Courses.available("alterac_valley")
+    and Courses.available("arathi_basin") and Courses.available("stormwind_city") and Courses.available("ironforge_gp")
     and Courses.available("darnassus_canopy") and Courses.available("orgrimmar_canyon")
     and Courses.available("thunder_bluff_skyway") and Courses.available("undercity_slime"),
     "all six cities are ready")
