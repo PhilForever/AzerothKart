@@ -1,5 +1,16 @@
 # Codex handoff — production maps and Claude course review
 
+## Active review — Warsong v2, 2026-10-28
+
+Owner forwards Claude's Warsong update. Base clean47777d0, installed9b7d6df;
+review exact Claude d5fabbf/claude/warsong-v2 in its existing checkout without
+mutating it. Own codex/warsong-v2-review. Reserve this handoff, a dated review
+and PROGRESS only. Read-only review/tests cover geometry, navigation/roof/gate
+presentation, survey/pipeline and exact version2 score/session compatibility.
+Do not infer new push/install authority from Claude's handoff text. No source
+merge or player-data change during review; finish with concrete disposition.
+
+
 ## Installed checkpoint — Warsong registration, 2026-10-27 18:43 +0100
 
 Runtime **9b7d6df**, branch `codex/warsong-registration`, merges approved Claude
