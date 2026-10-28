@@ -863,8 +863,8 @@ local function roofsLoaded(course)
 end
 
 -- Each roof over its box, cropped as the camera moves, at its opacity for
--- the player's kart (whole unless it is on the ground under the roof).
-local function placeRoofs(wx, wy, high)
+-- the player's kart (whole while `above`: on floor 1 off the ramps).
+local function placeRoofs(wx, wy, above)
     local view = UI.view
     local moved = UI.roofCropX ~= view.offsetX or UI.roofCropY ~= view.offsetY
     for index,roof in ipairs(UI.roofs) do
@@ -879,7 +879,7 @@ local function placeRoofs(wx, wy, high)
                 piece:Show()
             else piece:Hide() end
         end
-        local alpha = Presentation.roofAlpha(roof,wx,wy,high)
+        local alpha = Presentation.roofAlpha(roof,wx,wy,above)
         if UI.roofAlphas[index] ~= alpha then
             UI.roofAlphas[index] = alpha
             piece:SetAlpha(alpha)
@@ -1402,10 +1402,11 @@ render = function()
     local level = gridPose and gridPose.level or UI.state.level or 0
     if Track.layered then
         -- Two floors: the kart draws under the roofs on the ground, over them
-        -- on floor 1 or a ramp; a roof fades while the kart is under it.
-        local high = Presentation.drawnHigh(Track,x,y,level)
-        setKartLayers(high and KART_LAYERS.high or KART_LAYERS.low)
-        if UI.roofs then placeRoofs(x,y,high) end
+        -- on floor 1 or a ramp; a roof fades while the kart is under it or
+        -- nears it, on the ground or down a ramp (whole under floor 1).
+        local ramp = Presentation.onRamp(Track,x,y)
+        setKartLayers((level == 1 or ramp) and KART_LAYERS.high or KART_LAYERS.low)
+        if UI.roofs then placeRoofs(x,y,level == 1 and not ramp) end
     end
     if UI.guideReady then placeGuide(x,y,level) end
     x,y = Presentation.project(UI.view,x,y)

@@ -126,20 +126,20 @@ duration; a pad adds no new force/speed profile or telemetry boost field.
 
 ## Warsong registration and integration
 
-Reviewed Claude0794343 (version2 plus fixes c362f4a) is integrated. Warsong
-geometry2, inviteC/scoreW, three laps and Physics13 remain enabled solo and in
-the existing two-peer flow. All eleven other boards remain Physics12; old
-Warsong v1 records stay stored under their original context. Bounded AZKSCR2,
-save schemas and live packet/cadence limits remain unchanged.
+Reviewed Claude5cee515 (implementation d9750f5) is integrated. Warsong geometry3,
+inviteC/scoreW, three laps and Physics13 remain enabled solo and in the existing
+two-peer flow. The other eleven maps retain Physics12. Warsong v1/v2 records
+stay in their original contexts; AZKSCR2 and saved schemas are unchanged.
 
-Version2 follows the owner's surveyed route through the two bases:14 rooms,
-two ramps at Silverwing Hold, seven gates and two Boots pads. Bases are open;
-two pooled tunnel covers fade from32 units before entry. No optional banana
-route or separate-base start. The Warsong-only guide follows routeGates and
-receives the copied floor. It selects a sampled clear line to an intermediate
-route target around bends; gate glow/cover sorting remain presentation-only.
-Required-cover failures still block selection/Start/Ready. Native driving,
-appearance, frame cost and peer feel remain NOT RUN by this integration.
+V3 drives both bases alike: up the outside ramp onto floor1, front door,
+lobby, flag, then down the tunnel to floor0. Fifteen rooms, four ramps, seven
+gates, two Boots pads and seven round solids. The grid starts east of the solid
+midfield stumps; finish spans the east half. Two pooled tunnel covers fade as
+the kart descends the climbs, while the kart keeps its proper draw ordering.
+The guide checks its straight line plus two parallels3 units either side on
+the copied floor; no authoritative state writes or new UI objects. Required
+scenery guards, transport budgets and same-player rematches are preserved.
+Native driving, appearance, frame cost and peer feel remain NOT RUN.
 
 ## Evidence
 

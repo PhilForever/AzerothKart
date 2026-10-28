@@ -2,11 +2,11 @@
 
 ## Registered Warsong and mixed-version scores — 2026-10-27
 
-Warsong Gulch (`warsong_gulch`, geometry2, three laps) is enabled for solo,
+Warsong Gulch (`warsong_gulch`, geometry3, three laps) is enabled for solo,
 Highscores and the existing two-peer lobby. Race invite code `C`, score code
 `W`; these are independent alphabets. Current eleven flat courses keep
 Physics12 and their exact board contexts. Warsong alone uses Physics13 and
-AZKRUN3; AZKRUN2 and existing handling remain unchanged. Claude0794343's
+AZKRUN3; AZKRUN2 and existing handling remain unchanged. Claude5cee515's
 reviewed tunnel covers, floor sorting, collision-clear route arrow and essential-roof load guards are
 integrated without changing authoritative state. Production pool91/96/151
 (frames/textures/fontStrings), measured in offline doubles only.
@@ -919,6 +919,18 @@ record the request. Proposed rendering/drop-down/registration work remains open.
 - **Multiplayer.** The friend's level, sent in the live state (a protocol version change) or inferred by the receiver. Codex's call.
 - **Boost pads.** `track.pads = {{id, x, y, radius, level?, boostTicks}}`. Entering a pad's disc on its level sets `boostTicks = max(boostTicks, pad.boostTicks)`; leaving re-arms it for that kart. Proposed strength: a tier-2 drift boost. No new live field (`boosting` exists).
 - **Claude's side, after acceptance:** roof overlays drawn over karts below them and fading while the player is under one; karts drawn by level; the pads' boots marks; the guiding arrow (`course.guideArrow`, Warsong only), which needs nothing from Codex. Built on `claude/warsong-layout`: [the next section](#two-floor-presentation-warsong-gulch).
+
+<a id="warsong-gulch-version-3"></a>
+
+### Proposed: Warsong Gulch version 3, both bases alike (Claude, `claude/warsong-v3`, 2026-10-28, for Codex)
+
+Additive to the version 2 section below; no LayeredTrack, Physics, Checkpoints, protocol or score code change. Client NOT RUN.
+
+- **Data:** `Battlegrounds.warsong_gulch` is version 3: 15 rooms (floor 0: the field, its two corners, the two tunnels; floor 1: at each base its plateau, front yard, lobby, flag room and tunnel top), 4 ramps (each base's outside ramp and its tunnel's climb), 7 gates (*Alliance front door*, *Alliance flag*, *Alliance tunnel*, *Horde front door*, *Horde flag*, *Horde tunnel*, *Mid*), 2 pads, 7 round solids (the flags, mid's stumps, the huts), 2 overlays, `routeGates`. Both flags stand on floor 1. Same fields and rules as version 2; the owner's lap: each base up its outside ramp, in at the front door, round the flag, out down its tunnel.
+- **Generator:** with a solid named `mid_stumps`, `build_battlegrounds.geometry` lays the finish (the last gate) across the stumps' middle from its first end (the field's wall) to the stumps' near side, east or west (version 1 had it west only).
+- **Presentation:** new `onRamp(track, x, y) -> boolean` (within one of `track.ramps`' boxes); `drawnHigh(track, x, y, level)` is `level == 1 or onRamp(...)`, unchanged. `roofAlpha(roof, x, y, high)` is unchanged; the UI now passes `high` only for a kart on floor 1 off the ramps, so on a ramp a cover fades by its distance like on the ground (down a climb, the cover ahead fades before the kart drops below it). `guideHeading`'s clear line now keeps 3 units to spare: the line and its two parallels 3 units either side, each sampled every 3 units, must be drivable (a line only grazing a corner was taken as clear: 4 of 1,258 v3 lap steps). Per frame three times version 2's samples: measured offline (PUC Lua 5.1 via lupa, the cloud machine), `isDrivable` 0.73 µs, a `guideHeading` call about 0.13 ms in the open field and 0.17 ms at a bend (0.05 ms before); no allocation. Native frame cost NOT RUN.
+- **UI (Claude's regions):** the visual body of `render` computes `onRamp` once: the kart's draw set from `level == 1 or ramp`, `placeRoofs(x, y, level == 1 and not ramp)`. No new texture (budget 91/96/151).
+- **Version:** trackVersion 3 starts a new Warsong board (version 1 and 2 records stay); Codex's `test_peer_session` pin (trackVersion 3; 2 now incompatible) and `test_multiplayer_integration`'s floors (`0101010101010`, both pads each lap) follow it; `services/leaderboard/catalog.json` regenerated.
 
 <a id="warsong-gulch-version-2"></a>
 

@@ -1166,6 +1166,16 @@ do
     assert(math.abs(heading - atan2(50, 15)) < 1e-9, "without the kart's floor, 110 on, as before")
     heading, distance, along = P.guideHeading(bend, {nextGate=1, passed=0}, 300, 250, nil, 0)
     assert(math.abs(heading - atan2(20, -20)) < 1e-12 and not along, "without a route, the gate's middle")
+    -- And with a few units to spare (Warsong v3): from (60, 200) the route's
+    -- point 70.4 on lies on the diagonal through the corner itself, a line
+    -- only grazing it; the arrow takes the next look in, 50.6 on.
+    local diagonal = {points={{x=60, y=200}, {x=110, y=250}, {x=280, y=250}}, gates={3}}
+    heading, distance, along = P.guideHeading(bend, {nextGate=1, passed=0}, 60, 200, diagonal, 0)
+    assert(math.abs(heading - math.pi / 4) < 1e-9 and math.abs(distance - 0.46 * 110) < 1e-9 and along,
+        "a line grazing a corner is not clear: " .. distance)
+    local ramps = {ramps={{x=100, y=100, width=40, height=80}}}
+    assert(P.onRamp(ramps, 120, 140) and P.onRamp(ramps, 100, 180) and not P.onRamp(ramps, 99, 140)
+        and not P.onRamp({}, 120, 140) and not P.onRamp(ramps, 0 / 0, 140), "on a ramp: within one's box")
     assert(P.arrowFrame(0) == 0 and P.arrowFrame(math.pi / 2) == 4 and P.arrowFrame(-math.pi / 2) == 12
         and P.arrowFrame(2 * math.pi - 0.01) == 0, "sixteen headings counter-clockwise from east")
     local c1, c2, c3, c4 = P.arrowCoords(6)

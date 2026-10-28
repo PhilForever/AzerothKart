@@ -1,11 +1,11 @@
 # Azeroth Kart — top-down arcade racing inside WoW Forever
 
-**Warsong v2, 2026-10-28:** the surveyed route, open bases, two fading tunnel
-covers, clearer checkpoints and the reviewed collision-clear arrow are
-integrated from Claude0794343. Solo and current two-player flow remain enabled.
-V2 times use their own board; v1 records stay saved. Both players need the same
-updated build and a full restart for the replacement textures. Native checks
-remain pending; [current deployment](docs/INTEGRATION_STATUS.md).
+**Warsong v3, 2026-10-28:** both bases run up the outside ramp, through the
+lobby and flag room, then down the tunnel. Reviewed Claude5cee515 adds the
+raised Horde base, descent-aware cover fades and clearance around the guiding
+arrow. Solo and existing two-player races remain enabled. V3 has its own score
+context; v1/v2 records remain saved. Fully restart both clients after updating.
+Native checks remain pending; [current deployment](docs/INTEGRATION_STATUS.md).
 
 
 **Warsong prerequisite,2026-10-27:** opt-in two-floor/ramp driving, floor-aware

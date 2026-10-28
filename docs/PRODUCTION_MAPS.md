@@ -7,9 +7,10 @@ This page supersedes older playable-Oval and Mirage-only catalogue statements.
 Reviewed Claude ea4425d adds the complete four-course Scarlet sprint cup and
 the Thunder Bluff/Graveyard version2 drive corrections. Codex integrates the
 swept round-pool fix and bounded L/A/C score sharing on `codex/scarlet-integration`.
-Reviewed Claude0794343 supplies Warsong v2's surveyed route, two tunnel
-covers and collision-clear guide arrow. Geometry2 gets a new Physics13 board;
-v1 records remain saved. RaceC/scoreW and the other eleven contexts stay intact.
+Reviewed Claude5cee515 supplies Warsong v3: both bases up the outside ramp,
+through the lobby/flag and down the tunnel. Two covers fade on the descents;
+the guide keeps a3-unit margin. Geometry3 gets a new Physics13 board; v1/v2
+records remain saved. RaceC/scoreW and the other eleven contexts stay intact.
 No eight-player implementation or capacity acceptance is claimed.
 
 ## Implemented map catalogue
@@ -27,7 +28,7 @@ No eight-player implementation or capacity acceptance is claimed.
 | Scarlet Library (`scarlet_library`) | 3 | 9 |
 | Scarlet Armory (`scarlet_armory`) | 2 | A |
 | Scarlet Cathedral (`scarlet_cathedral`) | 3 | B |
-| Warsong Gulch (`warsong_gulch`) | 2 | C |
+| Warsong Gulch (`warsong_gulch`) | 3 | C |
 
 All twelve courses are available in solo, Highscores and the two-peer lobby
 (owner direction,2026-10-27). Circuits use three laps; the four Scarlet dungeons

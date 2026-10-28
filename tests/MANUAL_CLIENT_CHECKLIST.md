@@ -1,8 +1,22 @@
 # Manual client acceptance — F0/F1/F2/F5
 
+## Deferred Warsong Gulch version 3 check (proposed, `claude/warsong-v3`)
+
+**NOT RUN.** Run it after Codex's review and a coordinated install. **Fully restart the client:** `Battlegrounds.lua` and the three pictures in `Assets/Tracks/WarsongGulch/` change (same paths). Version 3 has its own board: version 1 and 2 times stay on theirs. The owner runs these checks; Claude does not control the client.
+
+1. **Track screen:** Warsong's new preview and copy ("The real gulch, both bases alike: ..."). Note any hitch loading the two 8 MiB pictures.
+2. **The grid** east of mid, facing north, mid's stumps to the left; at GO the arrow points up the field's east side, the Alliance's front door glowing ahead (wide, pulsing) once in view.
+3. **Up the east path** onto the plateau, west over the tunnel, in at the front door: from the ramp on the kart draws over the hill; the arrow turns with the front yard into the door, never into a corner.
+4. **Round the Alliance flag** (east), **down the climb into the tunnel:** the hill ahead starts to fade while the kart is still on the climb, so it never vanishes; the Boots under the plateau boost once; out of the arch onto the field.
+5. **South-west down the field,** west of mid's stumps, to the west path. **Does the Horde side now look and run like the real Lumber Mill?** Up the west path onto the plateau, east over the tunnel to the front yard by the graveyard's stones, in at the front door, down the lobby, round the flag (west), down the climb, the tunnel, out of its mouth. A screenshot of anything that reads wrong.
+6. **North-east to the finish** between mid's stumps and the east wall; the run south-west never crosses the finish line. Three laps, the arrow always along the way.
+7. **Checkpoints:** every gate's threshold is easy to see and the next one glows; the HUD names it ("Next: Horde front door"). Any gate missed while driving the obvious way: where.
+8. **Seams:** any misalignment where a cover meets the ground or a plateau crosses it, an edge where a cover ends, or a place where the kart stops at nothing it can see (or passes something that looks solid): a screenshot of each.
+9. **Two players:** a friend in a tunnel the player is not in is hidden by its cover; on a plateau or a ramp they draw over it.
+
 ## Deferred Warsong Gulch version 2 check (proposed, `claude/warsong-v2`)
 
-**NOT RUN.** Run it after Codex's review and a coordinated install. **Fully restart the client:** `Battlegrounds.lua` and the three pictures in `Assets/Tracks/WarsongGulch/` change (same paths). Version 2 has its own board: version 1 times stay on theirs. The owner runs these checks; Claude does not control the client.
+Superseded by version 3 once it is installed; kept for version 2 (installed by Codex, `5871f06`). **NOT RUN.** Run it after Codex's review and a coordinated install. **Fully restart the client:** `Battlegrounds.lua` and the three pictures in `Assets/Tracks/WarsongGulch/` change (same paths). Version 2 has its own board: version 1 times stay on theirs. The owner runs these checks; Claude does not control the client.
 
 1. **Track screen:** Warsong's new preview (the gulch from above) and copy ("The real gulch: ..."). Note any hitch loading the two 8 MiB pictures.
 2. **Does it look like Warsong Gulch?** The field with its two night elf and two orc huts, the Alliance's arch in the north cliff, Silverwing Hold with its towers and the forest round it, the Horde's tunnel mouth and the Lumber Mill among its fences, braziers and catapults, the dirt paths where the game has them. A screenshot of anything that reads wrong.

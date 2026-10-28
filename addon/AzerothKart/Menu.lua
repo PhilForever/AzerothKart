@@ -82,12 +82,13 @@ Menu.TRACKS = {
             .. "Whitemane stand.",
         facts={"Sprint: one run through 4 gates", "The pools block; the stairs turn at a landing",
             "The finish is before the altar"}},
-    -- The Battlegrounds Cup's course (version 2: laid out on the real gulch).
-    -- A course listed as coming soon shows in trackRows without a board.
+    -- The Battlegrounds Cup's course (version 3: laid out on the real gulch,
+    -- both bases driven alike). A course listed as coming soon shows in
+    -- trackRows without a board.
     {id="warsong_gulch", name="Warsong Gulch", cell="warsonggulch",
-        blurb="The real gulch: up the Alliance tunnel into Silverwing Hold, round the flag, out of the front "
-            .. "door and down the east path; then down the Horde tunnel into the Lumber Mill, round its flag "
-            .. "and out of the side door, every lap.",
+        blurb="The real gulch, both bases alike: up Silverwing Hold's east path, in at the front door, round "
+            .. "the flag and out down its tunnel; then up the Lumber Mill's west path, round its flag and down "
+            .. "its tunnel to mid, every lap.",
         facts={"3 laps, 7 gates: both flags every lap", "Laid out from the game's own map",
             "Boots in each tunnel; the arrow shows the way"}},
 }

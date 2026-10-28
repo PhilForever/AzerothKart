@@ -1,5 +1,42 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-28 11:57 +01:00 — Warsong v3 reviewed and combined candidate ready
+
+Owner requests review/install if acceptable. Clean8ed25f4, installed5871f06;
+new `codex/warsong-v3-integration`, reservation5018e4a. Reviewed exact Claude
+5cee515 / d9750f5 and merged without conflicts. [Review and evidence](reviews/2026-10-28-warsong-v3.md).
+Approve; no blocking finding. Original Claude checkout/outputs are preserved.
+No push, main merge, release, rewrite or player-data edits.
+
+Both bases now run outside-ramp→lobby→flag→tunnel, with raised Horde floor1.
+Fifteen rooms, four ramps, seven gates, two pads and seven solids. East-of-stump
+finish/grid, gate directions and geometry3 pins are coherent. Covers fade down
+both climbs while kart ordering remains correct. Guide3-unit margin clears all
+1258 route/target/visible-ray samples, including52 shorter targets. Legal4-unit
+finish tests award east-side crossings and reject west bypass/reverse. No new
+UI allocation, physics/handling or transport/score-code changes.
+
+Actual Python314/pinned Lupa/PYTHONDONTWRITEBYTECODE=1:
+`scripts/test_lua.py --runtime lua51 --tests warsong presentation ui menu
+peer_session multiplayer_integration score_sync score_sharing` PASS8 modules,
+85 parsed files. Delegated geometry/grid/admission PASS3. Actual delayed mock
+Core/Menu/Physics race completes3laps/12floorchanges/6pads and flat rematch.
+Catalogue `--check` PASS12, only Warsong2→3 differs. Independent v1/v2 retention,
+v3 publish and stale context refusal PASS. Pipeline syntax/TGA metadata/hash
+checks PASS. Combined source/tests/scripts/catalogue byte-identical to tested
+Claude candidate; diffcheck clean. Preflight installed91 source hashes match
+5871f06,92 total files with legacy extra. Exact install receipt follows.
+
+V3 keeps Physics13/raceC/scoreW; old Warsong v1/v2 and all eleven Physics12 map
+contexts stay saved. Native appearance/handling/peer feel/frame cost, repeated
+full46/Lua54 and art rebuild by this integrator NOT RUN. Claude's reported
+passes remain its evidence. Structural validator's two historical links remain
+known; milestone/release/eight-player gates unchanged.
+
+**Next:** commit tested source, complete backed-up/hash-verified AddOns install
+and friend ZIP; owner tests v3 after a full client restart.
+
+
 ## 2026-10-28 10:15 +0100 — Reviewed Warsong v2 installed and packaged
 
 Tested runtime **5871f06**, branch `codex/warsong-v2-integration`, preserves

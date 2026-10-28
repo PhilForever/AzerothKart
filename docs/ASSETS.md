@@ -50,7 +50,7 @@ The same painter draws it, with Reforged's Scarlet footmen, Dagren the Orcslayer
 
 The same painter draws it, with its new pools (Warcraft III's water, tinted), the falls and a wooden parquet, and Reforged's Renault Mograine, Sally Whitemane, Scarlet clerics, city fountain and Lordaeron lions, pillars, bookshelves and furniture. Version 2 (`claude/scarlet-fixes`) raises the statues' platforms as plinths, painted with cobbled tops, dressed rims and faces. Loading it in the client is **NOT RUN**.
 
-[Warsong Gulch](art/tracks/warsong-gulch.md) adds `Assets/Tracks/WarsongGulch/`, the first course with two pictures. Version 2 (`claude/warsong-v2`, not installed) repaints them:
+[Warsong Gulch](art/tracks/warsong-gulch.md) adds `Assets/Tracks/WarsongGulch/`, the first course with two pictures. Version 3 (`claude/warsong-v3`, not installed; version 2 is installed) repaints them:
 
 - `Background.tga`, 1024×2048 (8 MiB raw pixels): the battleground from above, and under each tunnel's cover the tunnel;
 - `Roofs.tga`, 1024×2048 with alpha (8 MiB raw pixels), world-aligned: the ground over each tunnel, drawn by two of four pooled textures over the karts on the ground;

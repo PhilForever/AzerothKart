@@ -159,20 +159,20 @@ Offline: the route walk crosses the four gates in order and never meets a wall o
 
 ## Battlegrounds Cup: Warsong Gulch
 
-The owner's fourth cup starts with Warsong Gulch (`warsong_gulch`), the first course on two floors, on Codex's [LayeredTrack](LAYERED_TRACKS.md) ([ADR 0022](adr/0022-floors-and-boost-pads.md)). Version 1 (`claude/warsong-layout`, registered and installed by Codex) was point-symmetric and roofed; after driving it the owner asked for the real gulch. **Version 2** (`claude/warsong-v2`, trackVersion 2, not installed) is laid out on the battleground measured from his own client (`scripts/wow_map_survey.py`), with the lap he chose, "Front, as traced":
+The owner's fourth cup starts with Warsong Gulch (`warsong_gulch`), the first course on two floors, on Codex's [LayeredTrack](LAYERED_TRACKS.md) ([ADR 0022](adr/0022-floors-and-boost-pads.md)). Version 1 (`claude/warsong-layout`) was point-symmetric and roofed; after driving it the owner asked for the real gulch. Version 2 (`claude/warsong-v2`, installed by Codex) is laid out on the battleground measured from his own client (`scripts/wow_map_survey.py`); driving it he corrected the Horde side ("outside ramp goes into lobby into flag room into tunnel down to mid") and chose both bases driven the same way. **Version 3** (`claude/warsong-v3`, trackVersion 3, not installed):
 
-1. From mid north up the middle of the field into the Alliance tunnel's arch.
-2. Up the tunnel under the plateau (the Boots), climbing into Silverwing Hold (floor 1); round the flag; south down the lobby and out of the front door.
-3. East across the plateau over the tunnel and down the east path into the field's north-east corner.
-4. South down the field's east side into the Horde tunnel, into the Warsong Lumber Mill; round the flag; north up the west passage and out of the side door.
-5. North up the slope below the west tower and across the field to the finish at mid.
+1. From the grid east of mid, north up the field's east side to the foot of the east path.
+2. Up the east path onto Silverwing Hold's plateau (floor 1), west over the tunnel, in at the front door, up the lobby, round the flag; down the tunnel's climb and out of the tunnel's arch (the Boots under the plateau).
+3. South-west down the field's west side, past mid's stumps and the Horde's west hut, to the foot of the west path.
+4. Up the west path onto the Lumber Mill's plateau, east over the tunnel to the front yard by the graveyard, in at the front door, down the lobby, round the flag; down the climb and out of the tunnel's mouth.
+5. North-east to the finish, from mid's stumps to the field's east wall.
 
-- 1024 × 2048 at three units to the yard; 14 rooms, all `road` (9 on the ground, 5 on floor 1 at Silverwing Hold); 2 ramps; 2 Boots pads; 6 round solids (the flags, each capping its wall, and the four huts at their real places).
-- Seven gates: *Alliance tunnel*, *Alliance flag*, *Alliance front door* (floor 1), *Horde tunnel*, *Horde flag*, *Horde side door* and *Mid* (the finish).
-- About 4,700 units a lap along the reviewed route.
-- Rendering: the bases drawn open; the ground over each tunnel is a cover over karts on the ground, fading from 32 units before its mouth; the arrow follows the route; the next gate glows.
+- 1024 × 2048 at three units to the yard; 15 rooms, all `road` (5 on the ground, 5 on floor 1 at each base, the Lumber Mill's Silverwing Hold's turned half a circle); 4 ramps; 2 Boots pads; 7 round solids (the flags, each capping its wall, mid's stumps and the four huts at their real places).
+- Seven gates: *Alliance front door*, *Alliance flag* (floor 1), *Alliance tunnel*, *Horde front door*, *Horde flag* (floor 1), *Horde tunnel* and *Mid* (the finish).
+- About 4,900 units a lap along the reviewed route.
+- Rendering: the bases drawn open; the ground over each tunnel is a cover over karts on the ground, fading from 32 units before it (also down a climb toward it); the arrow follows the route with a few units to spare; the next gate glows.
 
-Offline: `LayeredTrack.new` accepts it; the route walk crosses the seven gates in order on the right floors (0, 1, 0) and never meets a wall, and its crossings are the arrow's; nothing passes between a flag and its wall; the ramps change floor end to end only; the Boots boost a kart in the tunnel; both grid poses stand on floor 0; Codex's assisted two-peer integration drives three laps of it with real Physics without an impact. See [the Warsong Gulch sheet](art/tracks/warsong-gulch.md).
+Offline: `LayeredTrack.new` accepts it; the route walk crosses the seven gates in order on the right floors (0, 1, 0, 1, 0) and never meets a wall, and its crossings are the arrow's; from every step the arrow's straight run is clear; nothing passes between a flag and its wall; the ramps change floor end to end only; the Boots boost a kart in either tunnel; both grid poses stand on floor 0; Codex's assisted two-peer integration drives three laps of it with real Physics without an impact. See [the Warsong Gulch sheet](art/tracks/warsong-gulch.md).
 
 ## Test Oval checkpoint sequence
 

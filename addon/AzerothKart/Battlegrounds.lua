@@ -8,45 +8,49 @@ local _, namespace = ...
 local Battlegrounds = {}
 
 Battlegrounds["warsong_gulch"] = {
-    id="warsong_gulch", version=2, name="Warsong Gulch", laps=3,
+    id="warsong_gulch", version=3, name="Warsong Gulch", laps=3,
     width=1024, height=2048, wallInset=18, checkpointMaxStep=5,
-    spawn={x=522, y=990, heading=math.pi/2, level=0},
+    spawn={x=680, y=960, heading=math.pi/2, level=0},
     rooms={
         {x=64, y=660, width=896, height=780, surface="road", level=0}, -- field
         {x=600, y=1404, width=360, height=94, surface="road", level=0}, -- field north-east
-        {x=64, y=540, width=356, height=156, surface="road", level=0}, -- field south-west
+        {x=64, y=563, width=398, height=133, surface="road", level=0}, -- field south-west
         {x=462, y=1404, width=120, height=314, surface="road", level=0}, -- alliance tunnel
         {x=462, y=1792, width=120, height=128, surface="road", level=1}, -- alliance tunnel top
         {x=336, y=1884, width=246, height=152, surface="road", level=1}, -- alliance flag room
         {x=336, y=1700, width=104, height=220, surface="road", level=1}, -- alliance lobby
         {x=290, y=1636, width=144, height=100, surface="road", level=1}, -- alliance front yard
         {x=290, y=1572, width=550, height=100, surface="road", level=1}, -- alliance plateau
-        {x=480, y=214, width=120, height=482, surface="road", level=0}, -- horde tunnel
-        {x=360, y=70, width=260, height=180, surface="road", level=0}, -- horde flag room
-        {x=360, y=214, width=100, height=126, surface="road", level=0}, -- horde west passage
-        {x=280, y=240, width=116, height=100, surface="road", level=0}, -- horde side door
-        {x=160, y=240, width=156, height=360, surface="road", level=0}, -- horde slope
+        {x=480, y=343, width=120, height=353, surface="road", level=0}, -- horde tunnel
+        {x=480, y=141, width=120, height=128, surface="road", level=1}, -- horde tunnel top
+        {x=480, y=25, width=246, height=152, surface="road", level=1}, -- horde flag room
+        {x=622, y=141, width=104, height=220, surface="road", level=1}, -- horde lobby
+        {x=628, y=325, width=144, height=100, surface="road", level=1}, -- horde front yard
+        {x=222, y=389, width=550, height=100, surface="road", level=1}, -- horde plateau
     },
     ramps={
         {id="alliance_tunnel", x=462, y=1700, width=120, height=110, axis="y", ascending=1, lowLevel=0, highLevel=1},
         {id="alliance_ramp", x=720, y=1480, width=120, height=110, axis="y", ascending=1, lowLevel=0, highLevel=1},
+        {id="horde_tunnel", x=480, y=251, width=120, height=110, axis="y", ascending=-1, lowLevel=0, highLevel=1},
+        {id="horde_ramp", x=222, y=471, width=120, height=110, axis="y", ascending=-1, lowLevel=0, highLevel=1},
     },
     gates={
-        {name="Alliance tunnel", ax=462, ay=1428, bx=582, by=1428, nx=0, ny=1, level=0},
-        {name="Alliance flag", ax=451, ay=1940, bx=451, by=2036, nx=-1, ny=0, level=1},
-        {name="Alliance front door", ax=336, ay=1730, bx=440, by=1730, nx=0, ny=-1, level=1},
-        {name="Horde tunnel", ax=480, ay=672, bx=600, by=672, nx=0, ny=-1, level=0},
-        {name="Horde flag", ax=470, ay=70, bx=470, by=196, nx=-1, ny=0, level=0},
-        {name="Horde side door", ax=340, ay=240, bx=340, by=340, nx=-1, ny=0, level=0},
-        {name="Mid", ax=64, ay=1056, bx=960, by=1056, nx=0, ny=1, level=0},
+        {name="Alliance front door", ax=336, ay=1730, bx=440, by=1730, nx=0, ny=1, level=1},
+        {name="Alliance flag", ax=451, ay=1940, bx=451, by=2036, nx=1, ny=0, level=1},
+        {name="Alliance tunnel", ax=462, ay=1428, bx=582, by=1428, nx=0, ny=-1, level=0},
+        {name="Horde front door", ax=726, ay=331, bx=622, by=331, nx=0, ny=-1, level=1},
+        {name="Horde flag", ax=611, ay=121, bx=611, by=25, nx=-1, ny=0, level=1},
+        {name="Horde tunnel", ax=480, ay=672, bx=600, by=672, nx=0, ny=1, level=0},
+        {name="Mid", ax=960, ay=1046, bx=594, by=1046, nx=0, ny=1, level=0},
     },
     pads={
         {id="alliance_boots", x=522, y=1600, radius=14, level=0, boostTicks=78},
-        {id="horde_boots", x=540, y=480, radius=14, level=0, boostTicks=78},
+        {id="horde_boots", x=540, y=461, radius=14, level=0, boostTicks=78},
     },
     solids={
         {id="alliance_flag", x=437, y=1912, width=28, height=28, shape="disc", level=1},
-        {id="horde_flag", x=456, y=196, width=28, height=28, shape="disc", level=0},
+        {id="horde_flag", x=597, y=121, width=28, height=28, shape="disc", level=1},
+        {id="mid_stumps", x=524, y=1011, width=70, height=70, shape="disc", level=0},
         {id="alliance_west_hut", x=205, y=1265, width=88, height=88, shape="disc", level=0},
         {id="alliance_east_hut", x=719, y=1266, width=72, height=72, shape="disc", level=0},
         {id="horde_west_hut", x=198, y=731, width=68, height=68, shape="disc", level=0},
@@ -54,18 +58,19 @@ Battlegrounds["warsong_gulch"] = {
     },
     overlays={
         {id="alliance_hill", x0=444, y0=1440, x1=600, y1=1700, under={{x0=462, y0=1440, x1=582, y1=1700}}},
-        {id="horde_hill", x0=462, y0=340, x1=618, y1=660, under={{x0=480, y0=340, x1=600, y1=660}}},
+        {id="horde_hill", x0=462, y0=361, x1=618, y1=660, under={{x0=480, y0=361, x1=600, y1=660}}},
     },
     route={
-        {x=522,y=990}, {x=522,y=1100}, {x=522,y=1440}, {x=522,y=1690}, {x=522,y=1830}, {x=522,y=1950},
-        {x=500,y=1985}, {x=451,y=1995}, {x=400,y=1985}, {x=388,y=1940}, {x=388,y=1860}, {x=388,y=1700},
-        {x=396,y=1640}, {x=460,y=1622}, {x=780,y=1622}, {x=780,y=1600}, {x=780,y=1470}, {x=740,y=1400},
-        {x=690,y=1330}, {x=680,y=1150}, {x=600,y=900}, {x=545,y=760}, {x=540,y=690}, {x=540,y=260},
-        {x=540,y=200}, {x=525,y=125}, {x=470,y=110}, {x=415,y=125}, {x=410,y=200}, {x=410,y=290},
-        {x=340,y=290}, {x=238,y=290}, {x=238,y=560}, {x=260,y=640}, {x=310,y=720}, {x=330,y=820},
-        {x=430,y=1000}, {x=480,y=1080}, {x=500,y=1110},
+        {x=680,y=960}, {x=685,y=1100}, {x=690,y=1330}, {x=740,y=1400}, {x=780,y=1470}, {x=780,y=1600},
+        {x=780,y=1622}, {x=460,y=1622}, {x=396,y=1640}, {x=388,y=1700}, {x=388,y=1860}, {x=388,y=1940},
+        {x=400,y=1985}, {x=451,y=1995}, {x=500,y=1985}, {x=522,y=1950}, {x=522,y=1830}, {x=522,y=1690},
+        {x=522,y=1440}, {x=522,y=1380}, {x=500,y=1300}, {x=440,y=1150}, {x=420,y=1030}, {x=380,y=900},
+        {x=330,y=780}, {x=300,y=680}, {x=282,y=591}, {x=282,y=461}, {x=282,y=439}, {x=602,y=439},
+        {x=666,y=421}, {x=674,y=361}, {x=674,y=201}, {x=674,y=121}, {x=662,y=76}, {x=611,y=66},
+        {x=562,y=76}, {x=540,y=111}, {x=540,y=231}, {x=540,y=371}, {x=540,y=621}, {x=540,y=700},
+        {x=570,y=780}, {x=630,y=880}, {x=680,y=980}, {x=685,y=1100},
     },
-    routeGates={3, 8, 12, 24, 27, 31, 38},
+    routeGates={11, 14, 20, 33, 36, 42, 46},
 }
 
 if type(namespace) == "table" then namespace.Battlegrounds = Battlegrounds end

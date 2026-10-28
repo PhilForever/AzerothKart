@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — Warsong Gulch version 3: both bases alike (2026-10-28, `claude/warsong-v3`)
+The owner drove version 2 and corrected its Horde side: "outside ramp goes into lobby into flag room into tunnel down to mid". The game files put the Horde's outside ramp on the west of the gulch (the Alliance's is the east path); shown the two ways the lap could then run, he chose both bases the same way.
+- **The lap (trackVersion 3):** from the grid east of mid, up the east path onto Silverwing Hold's plateau, west over the tunnel, in at the front door, up the lobby, round the flag, down the climb and out of the tunnel; south-west past mid's stumps to the west path; the Lumber Mill the same way round, in at its front door by the graveyard; north-east to the finish. 15 rooms, 4 ramps, 7 gates (each base's front door, flag and tunnel; mid); floor 1 at both bases (the Mill's floors are the hold's turned half a circle); mid's stumps solid, the finish from them to the east wall. About 4,900 units a lap.
+- **Read from the game files:** the Lumber Mill's building parts (flag room, lobby, front door, tunnel) and its walkable surfaces: the only way onto the Horde's plateau but the tunnel is the west path.
+- **Covers fade down a ramp too:** driving down a climb, the cover ahead fades before the kart drops below it (`Presentation.onRamp`; a cover stays whole only under a kart on floor 1 off the ramps).
+- **The arrow keeps 3 units to spare:** its straight line and two parallels must be drivable (a line only grazing a corner had been taken as clear).
+- **Tests:** `test_warsong` rewritten for version 3; `test_presentation` (a grazing line, `onRamp`); `test_ui` (covers fading down each climb, whole on each plateau; the arrow at the grid and along the Horde's plateau); Codex's peer-session version pin and multiplayer floors pin updated; score catalogue regenerated. Not installed; the client checks are NOT RUN.
+
 ## Unreleased — Warsong Gulch version 2: the real gulch (2026-10-28, `claude/warsong-v2`)
 The owner drove version 1: "it's not really driveable ... I think you should inspect the actual warsong gulch in the game files". What confused him: the arrow pointing through walls, karts out of sight under roofs, too many rooms and doors, unclear checkpoints. He kept the lap traced on the real gulch ("Front, as traced").
 - **Measured from his client:** `scripts/wow_map_survey.py` reads the battleground's files (via `wowcasc.py`, now with `--product`) into `scripts/warsong_gulch_survey.json`: ground texture weights, relief and placements, numbers only.
