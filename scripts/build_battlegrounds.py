@@ -1,28 +1,33 @@
-"""Build the Battlegrounds Cup's two-floor courses: geometry data, scenery and roofs.
+"""Build the Battlegrounds Cup's courses: geometry data, scenery and roofs.
 
 python scripts/build_battlegrounds.py --wc3 ROOT             # write every output
 python scripts/build_battlegrounds.py --wc3 ROOT --check     # verify exact bytes, write nothing
 python scripts/build_battlegrounds.py --wc3 ROOT --preview   # also write review PNGs under docs/art/tracks/
 python scripts/build_battlegrounds.py --wc3 ROOT --geometry-only                     # only the Lua data
-python scripts/build_battlegrounds.py --wc3 ROOT --geometry-only --schematic OUT.png  # a floor plan to review
+python scripts/build_battlegrounds.py --wc3 ROOT --geometry-only --schematic OUT.png  # floor plans to review
+python scripts/build_battlegrounds.py --wc3 ROOT --course arathi_basin   # paint one course only
 
 ROOT holds Warcraft III Reforged files extracted from the owner's own install
 by scripts/wc3casc.py, as for build_city_tracks.py.
 
 Outputs, per course in battleground_layouts.BATTLEGROUNDS:
 
-- addon/AzerothKart/Battlegrounds.lua: the two-floor geometry (rooms with
-  their floor, ramps, gates, Boots pads, spawn, solids, lap count, the roof
-  overlays and the reviewed route), generated from battleground_layouts.py
-  for LayeredTrack.new (docs/LAYERED_TRACKS.md).
+- addon/AzerothKart/Battlegrounds.lua: a two-floor course's geometry (rooms
+  with their floor, ramps, gates, Boots pads, spawn, solids, lap count, the
+  roof overlays and the reviewed route), generated from
+  battleground_layouts.py for LayeredTrack.new (docs/LAYERED_TRACKS.md); or a
+  circuit's (`kind` "circuit": centerline, narrows, plazas, gates, spawn,
+  street walls and their exposed junctions, the inert elevation, the
+  reviewed route) for Circuit.new, as CapitalCities.lua's.
 - addon/AzerothKart/Assets/Tracks/<Folder>/Background.tga, Preview.tga and
-  Roofs.tga: the ground as floor 0 sees it, and the roof overlays over it,
-  painted by battleground_paint.py from the same rooms.
+  (two floors) Roofs.tga: the ground as floor 0 sees it, and the roof
+  overlays over it, painted by battleground_paint.py from the same geometry.
 
 validate() checks LayeredTrack's authoring rules before LayeredTrack.new
 does at load, plus the dungeon rules (no invisible wall on either floor,
 rooms that do not meet stay apart, gates from wall to wall) and walks the
-reviewed route across the floors, through the gates in order.
+reviewed route across the floors, through the gates in order; a circuit, the
+city rules (build_city_tracks.validate_geometry) and its route.
 
 Standard library only for the outputs; --schematic uses Pillow.
 """
@@ -31,9 +36,10 @@ from math import sqrt
 from pathlib import Path
 
 import battleground_layouts as L
-from build_city_tracks import number, prop_box, q
+from build_city_tracks import heading_text, narrow_segments, number, prop_box, q, validate_geometry
 from build_dungeon_tracks import CHECKPOINT_MAX_STEP, HEADINGS, Floor, blocking, floor_gap, hidden_walls
-from city_layouts import WALL_INSET
+from circuit_boundary import boundary_vertices, loop_radii
+from city_layouts import KART, ROAD_RADIUS, WALL_INSET, WALL_RADIUS
 from wc3render import forget_textures
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -55,7 +61,10 @@ def geometry(d, wc3=None, cache=None):
     a hut's round, a tree's crown), on its layer's floor: the ground's
     props on floor 0, the roofs' on floor 1. `cache` keeps the sprites for
     the painter. With mid's stumps, the finish line (the last gate) runs
-    from the field's wall (its `ax`) to the stumps, across their middle."""
+    from the field's wall (its `ax`) to the stumps, across their middle.
+    A circuit's: circuit_geometry."""
+    if d.get("kind") == "circuit":
+        return circuit_geometry(d, wc3, cache)
     width, height = d["size"]
     sx, sy, heading, level = d["spawn"]
     cache = {} if cache is None else cache
@@ -91,6 +100,167 @@ def geometry(d, wc3=None, cache=None):
             "gates": gates, "pads": [dict(p) for p in d["pads"]],
             "solids": solids, "overlays": [dict(o) for o in d["overlays"]],
             "spawn": (sx, sy, heading, level), "route": list(d["route"])}
+
+
+# ---------------------------------------------------------------------------
+# A circuit (Circuit.lua): the Capital Cities Cup's street rules on a
+# battleground's own ground.
+
+
+def circuit_geometry(d, wc3=None, cache=None):
+    """A circuit course's runtime definition, as build_city_tracks.geometry
+    makes a city's: the street at the cities' radii, full grip to the walls
+    when the layout says so, its narrows (loop segments), its plazas, the
+    exposed junctions of the walls' clearance; plus the ground's height under
+    each centerline point (`elevation`, inert) and the reviewed route (the
+    loop from the spawn round to it again, every other point: the guiding
+    arrow's way)."""
+    width, height = d["size"]
+    cache = {} if cache is None else cache
+    solids = [dict(s) for s in d.get("solids", ())]
+    for item in d.get("props", ()):
+        if not item["solid"]:
+            continue
+        if wc3 is None:
+            raise SystemExit("--wc3 is required: solid scenery blocks where it is drawn")
+        found = prop_box(wc3, d, item)
+        forget_textures()
+        if item.get("blocks"):
+            found = blocking(wc3, d, item, found, cache)
+        solids.append(found)
+    seen = {}
+    for s in solids:
+        seen[s["id"]] = seen.get(s["id"], 0) + 1
+        if seen[s["id"]] > 1:
+            s["id"] = "%s_%d" % (s["id"], seen[s["id"]])
+    line = list(d["centerline"])
+    plazas = [{k: round(p[k], 1) for k in ("ax", "ay", "bx", "by", "radius")} for p in d.get("plazas", ())]
+    g = {"kind": "circuit", "id": d["id"], "name": d["name"], "version": d["version"], "width": width,
+         "height": height, "wallInset": WALL_INSET, "roadRadius": ROAD_RADIUS, "wallRadius": WALL_RADIUS,
+         "fullSpeedToWalls": bool(d.get("full_speed_to_walls")), "kart": KART, "centerline": line,
+         "narrows": narrow_segments(d, line), "branches": [list(b) for b in d.get("branches", ())],
+         "plazas": plazas, "gates": [dict(gt) for gt in d["gates"]], "solids": solids, "spawn": tuple(d["spawn"]),
+         "laps": d.get("laps", 3)}
+    g["elevation"] = circuit_heights(d, g)
+    clearance = d.get("wall_clearance")
+    if clearance is not None:
+        # The junctions of the capsules exactly as the Lua data writes them.
+        canonical = dict(g)
+        point = lambda p: (float(number(p[0])), float(number(p[1])))
+        canonical["centerline"] = [point(p) for p in line]
+        canonical["branches"] = [[point(p) for p in branch] for branch in g["branches"]]
+        canonical["plazas"] = [{key: float(number(value)) for key, value in p.items()} for p in plazas]
+        g["wallClearance"] = clearance
+        g["wallVertices"] = boundary_vertices(canonical, clearance)
+    sx, sy = g["spawn"][:2]
+    k = min(range(len(line)), key=lambda i: (line[i][0] - sx) ** 2 + (line[i][1] - sy) ** 2)
+    assert line[k] == (sx, sy), "the spawn stands on a centerline point"
+    route = [line[(k + j) % len(line)] for j in range(0, len(line), 2)] + [line[k]]
+    g["route"] = route
+    return g
+
+
+def circuit_heights(d, g):
+    """The ground's height (world units, three to the yard, above the lap's
+    lowest point) under each centerline point: the survey's terrain, the
+    mean over 48 units of the loop either side; straight across each
+    narrows (a bridge's deck, from bank to bank). Branches carry none."""
+    import base64
+    import json
+    import zlib
+    survey = json.loads((Path(__file__).resolve().parent / d["survey"]).read_text(encoding="utf-8"))
+    relief = zlib.decompress(base64.b64decode(survey["relief"]["texels"]))
+    grid, cols, rows = survey["grid"], survey["columns"], survey["rows"]
+    base, step = survey["relief"]["base"], survey["relief"]["step"]
+    height = g["height"]
+
+    def ground(x, y):
+        c = max(0, min(cols - 1, int(x // grid)))
+        r = max(0, min(rows - 1, int((height - y) // grid)))
+        v = relief[r * cols + c]
+        assert v != 255, "the course runs over a hole in the terrain at (%.0f, %.0f)" % (x, y)
+        return base + v * step
+    line = g["centerline"]
+    n = len(line)
+    raw = [ground(x, y) for x, y in line]
+    arcs = [0.0]
+    for i in range(1, n + 1):
+        (ax, ay), (bx, by) = line[i - 1], line[i % n]
+        arcs.append(arcs[-1] + sqrt((bx - ax) ** 2 + (by - ay) ** 2))
+    total = arcs[n]
+    # Bridges: their decks run straight from the first point to the last.
+    for narrow in g["narrows"]:
+        first, last = narrow["first"] - 1, narrow["last"] % n
+        span = (arcs[narrow["last"]] - arcs[first]) or 1.0
+        for i in range(first + 1, narrow["last"]):
+            t = (arcs[i] - arcs[first]) / span
+            raw[i] = raw[first] + (raw[last] - raw[first]) * t
+    smooth = []
+    for i in range(n):
+        acc, count = 0.0, 0
+        for j in range(n):
+            gap = abs(arcs[j] - arcs[i])
+            if min(gap, total - gap) <= 48:
+                acc += raw[j]
+                count += 1
+        smooth.append(acc / count)
+    low = min(smooth)
+    return {"centerline": [round((h - low) * 3, 1) for h in smooth], "branches": [[] for _ in g["branches"]]}
+
+
+def circuit_allowed(g, x, y):
+    """Circuit.lua's drivable test for a kart centre, without the walls'
+    clearance at concave junctions: inside the perimeter, out of every solid
+    (by the inset), within the street's reach of the course (a narrows' on its
+    loop segments) or inside a plaza."""
+    inset = g["wallInset"]
+    if not (inset <= x <= g["width"] - inset and inset <= y <= g["height"] - inset):
+        return False
+    for s in g["solids"]:
+        if s["x"] - inset < x < s["x"] + s["width"] + inset and s["y"] - inset < y < s["y"] + s["height"] + inset:
+            return False
+    from build_city_tracks import segment_distance
+    radii = loop_radii(g)
+    line = g["centerline"]
+    for k in range(len(line)):
+        a, b = line[k], line[(k + 1) % len(line)]
+        if (a[0] - x) ** 2 + (a[1] - y) ** 2 > (radii[k] + 400) ** 2:
+            continue
+        if segment_distance(x, y, a[0], a[1], b[0], b[1]) <= radii[k]:
+            return True
+    for branch in g["branches"]:
+        for a, b in zip(branch, branch[1:]):
+            if segment_distance(x, y, a[0], a[1], b[0], b[1]) <= g["wallRadius"]:
+                return True
+    for p in g["plazas"]:
+        if segment_distance(x, y, p["ax"], p["ay"], p["bx"], p["by"]) <= p["radius"]:
+            return True
+    return False
+
+
+def validate_circuit(g):
+    """The city rules (build_city_tracks.validate_geometry), then the
+    reviewed route: drivable all the way, through every gate in lap order,
+    back to the spawn."""
+    validate_geometry(g)
+    route = g["route"]
+    gates = g["gates"]
+    passed, crossings, nxt = [], [], 0
+    x, y = route[0]
+    for index, (bx, by) in enumerate(route[1:], 1):
+        n = max(1, int(sqrt((bx - x) ** 2 + (by - y) ** 2) / 4.0) + 1)
+        ax, ay = x, y
+        for k in range(1, n + 1):
+            tx, ty = ax + (bx - ax) * k / n, ay + (by - ay) * k / n
+            assert circuit_allowed(g, tx, ty), "the route leaves the street at (%.0f, %.0f)" % (tx, ty)
+            if nxt < len(gates) and crosses(gates[nxt], x, y, tx, ty):
+                passed.append(gates[nxt]["name"])
+                crossings.append(index)
+                nxt += 1
+            x, y = tx, ty
+    assert passed == [gt["name"] for gt in gates], "the route passes the gates in order: %s" % passed
+    g["routeGates"] = crossings
+    return {"passed": passed, "levels": [0], "ramps": [], "crossings": crossings}
 
 
 def corridor(r, inset=WALL_INSET):
@@ -291,7 +461,10 @@ def walk(g, route, level, step=4.0):
 
 def validate(g):
     """LayeredTrack's authoring rules (docs/LAYERED_TRACKS.md) and the
-    dungeon rules, on both floors; then the reviewed route."""
+    dungeon rules, on both floors; then the reviewed route. A circuit's:
+    validate_circuit."""
+    if g.get("kind") == "circuit":
+        return validate_circuit(g)
     width, height, inset = g["width"], g["height"], g["wallInset"]
     names = set()
     for r in g["rooms"]:
@@ -450,19 +623,94 @@ def validate(g):
 # The Lua data file.
 
 
+def lua_circuit(g):
+    """A circuit's entry, as CapitalCities.lua writes a city's, plus its
+    reviewed route."""
+    lines = ["Battlegrounds[%s] = {" % q(g["id"]),
+             "    id=%s, version=%d, name=%s," % (q(g["id"]), g["version"], q(g["name"])),
+             "    width=%d, height=%d, wallInset=%d, roadRadius=%d, wallRadius=%d, checkpointMaxStep=5," %
+             (g["width"], g["height"], g["wallInset"], g["roadRadius"], g["wallRadius"])]
+    if g["narrows"]:
+        lines.append("    narrows={")
+        for narrow in g["narrows"]:
+            lines.append("        {name=%s, first=%d, last=%d, wallRadius=%s}," % (
+                q(narrow["name"]), narrow["first"], narrow["last"], number(narrow["wallRadius"])))
+        lines.append("    },")
+    if g["fullSpeedToWalls"]:
+        lines.append("    fullSpeedToWalls=true,")
+    if "wallClearance" in g:
+        lines.append("    wallClearance=%s," % number(g["wallClearance"]))
+        lines.append("    wallVertices={")
+        for x, y in g["wallVertices"]:
+            lines.append("        {x=%.8f,y=%.8f}," % (x, y))
+        lines.append("    },")
+    sx, sy, heading = g["spawn"]
+    lines.append("    spawn={x=%s, y=%s, heading=%s}," % (number(sx), number(sy), heading_text(heading)))
+
+    def points(name, line):
+        lines.append("    " + name + "={")
+        row = []
+        for x, y in line:
+            row.append("{x=%s,y=%s}," % (number(x), number(y)))
+            if len(row) == 5:
+                lines.append("        " + " ".join(row))
+                row = []
+        if row:
+            lines.append("        " + " ".join(row))
+        lines.append("    },")
+    points("centerline", g["centerline"])
+    lines.append("    branches={},")
+    lines.append("    plazas={")
+    for p in g["plazas"]:
+        lines.append("        {ax=%s, ay=%s, bx=%s, by=%s, radius=%s}," % (
+            number(p["ax"]), number(p["ay"]), number(p["bx"]), number(p["by"]), number(p["radius"])))
+    lines.append("    },")
+    lines.append("    gates={")
+    for gate in g["gates"]:
+        lines.append("        {name=%s, ax=%s, ay=%s, bx=%s, by=%s, nx=%d, ny=%d}," % (
+            q(gate["name"]), number(gate["ax"]), number(gate["ay"]), number(gate["bx"]), number(gate["by"]),
+            gate["nx"], gate["ny"]))
+    lines.append("    },")
+    lines.append("    solids={")
+    for s in g["solids"]:
+        lines.append("        {id=%s, x=%d, y=%d, width=%d, height=%d}," % (q(s["id"]), s["x"], s["y"], s["width"],
+                                                                         s["height"]))
+    lines.append("    },")
+    # Proposed (docs/API_CONTRACTS.md, ADR 0015): the ground's height under
+    # every centerline point. Circuit.new does not read it.
+    lines.append("    elevation={")
+    lines.append("        centerline={")
+    values = g["elevation"]["centerline"]
+    for k in range(0, len(values), 16):
+        lines.append("            " + ",".join(number(v) for v in values[k:k + 16]) + ",")
+    lines.append("        },")
+    lines.append("        branches={},")
+    lines.append("    },")
+    points("route", g["route"])
+    lines.append("    routeGates={%s}," % ", ".join(str(k + 1) for k in g["routeGates"]))
+    lines.append("}")
+    lines.append("")
+    return lines
+
+
 def lua_data(courses):
     lines = [
-        "-- Battlegrounds Cup two-floor geometry. GENERATED by scripts/build_battlegrounds.py",
+        "-- Battlegrounds Cup geometry. GENERATED by scripts/build_battlegrounds.py",
         "-- from scripts/battleground_layouts.py; edit the layouts there, not this file.",
-        "-- Pure data: LayeredTrack.new builds each course from its entry",
-        "-- (docs/LAYERED_TRACKS.md). `overlays`, `route` and `routeGates` are",
-        "-- presentation and review data: the covers over floor 0, the reviewed way",
-        "-- round and where along it each gate is crossed (the guiding arrow's way).",
+        "-- Pure data: LayeredTrack.new builds a two-floor course from its entry",
+        "-- (docs/LAYERED_TRACKS.md), Circuit.new a circuit (as CapitalCities.lua's).",
+        "-- `overlays`, `route` and `routeGates` are presentation and review data:",
+        "-- the covers over floor 0, the reviewed way round and where along it each",
+        "-- gate is crossed (the guiding arrow's way). A circuit's `elevation` is",
+        "-- the proposed, inert height data (docs/API_CONTRACTS.md).",
         "local _, namespace = ...",
         "local Battlegrounds = {}",
         "",
     ]
     for g in courses:
+        if g.get("kind") == "circuit":
+            lines += lua_circuit(g)
+            continue
         sx, sy, heading, level = g["spawn"]
         lines.append("Battlegrounds[%s] = {" % q(g["id"]))
         lines.append("    id=%s, version=%d, name=%s, laps=%d," % (q(g["id"]), g["version"], q(g["name"]), g["laps"]))
@@ -533,8 +781,41 @@ def lua_data(courses):
 # A floor plan to review (Pillow; not an addon output).
 
 
+def circuit_schematic(g, path, scale=0.5):
+    """A circuit's plan: the street's reach (narrows and plazas too), the
+    walls' line a kart's length beyond, gates, route and spawn."""
+    from PIL import Image, ImageDraw
+    w, h = int(g["width"] * scale), int(g["height"] * scale)
+    img = Image.new("RGB", (w, h), (28, 26, 24))
+    d = ImageDraw.Draw(img, "RGBA")
+
+    def pt(x, y):
+        return (x * scale, (g["height"] - y) * scale)
+    radii = loop_radii(g)
+    line = g["centerline"]
+    caps = [(line[k], line[(k + 1) % len(line)], radii[k]) for k in range(len(line))]
+    caps += [((p["ax"], p["ay"]), (p["bx"], p["by"]), p["radius"]) for p in g["plazas"]]
+    for extra, colour in ((g["kart"], (150, 70, 60, 255)), (0, (104, 140, 82, 255))):
+        for a, b, r in caps:
+            rr = (r + extra) * scale
+            d.line([pt(*a), pt(*b)], fill=colour, width=int(2 * rr))
+            for x, y in (a, b):
+                px, py = pt(x, y)
+                d.ellipse([px - rr, py - rr, px + rr, py + rr], fill=colour)
+    for s in g["solids"]:
+        d.rectangle([pt(s["x"], s["y"] + s["height"]), pt(s["x"] + s["width"], s["y"])], fill=(90, 60, 40, 255))
+    for gt in g["gates"]:
+        d.line([pt(gt["ax"], gt["ay"]), pt(gt["bx"], gt["by"])], fill=(255, 60, 60), width=2)
+    d.line([pt(x, y) for x, y in g["route"]], fill=(255, 255, 255, 160), width=1)
+    sx, sy = g["spawn"][:2]
+    d.ellipse([pt(sx, sy)[0] - 3, pt(sx, sy)[1] - 3, pt(sx, sy)[0] + 3, pt(sx, sy)[1] + 3], fill=(255, 255, 0))
+    img.save(path)
+
+
 def schematic(g, path, scale=0.5):
     from PIL import Image, ImageDraw
+    if g.get("kind") == "circuit":
+        return circuit_schematic(g, path, scale)
     w, h = int(g["width"] * scale), int(g["height"] * scale)
     img = Image.new("RGB", (w, h), (28, 26, 24))
     d = ImageDraw.Draw(img, "RGBA")
@@ -585,7 +866,9 @@ def main():
     parser.add_argument("--check", action="store_true", help="verify outputs without writing")
     parser.add_argument("--preview", action="store_true", help="also write review PNGs")
     parser.add_argument("--geometry-only", action="store_true", help="only the Lua data")
-    parser.add_argument("--schematic", type=Path, help="write a floor plan PNG of each course here")
+    parser.add_argument("--schematic", type=Path, help="write a floor plan PNG of each course here "
+                        "(the course's id added to the name)")
+    parser.add_argument("--course", help="paint only this course id (the geometry is always complete)")
     args = parser.parse_args()
     caches = {d["id"]: {} for d in L.BATTLEGROUNDS}         # each course's sprites, for its painter
     courses = [geometry(d, args.wc3, caches[d["id"]]) for d in L.BATTLEGROUNDS]
@@ -594,8 +877,9 @@ def main():
         print("VALID: %s gates %s; floors %s; ramps %s" % (g["id"], len(report["passed"]),
               "".join(str(n) for n in report["levels"]), ",".join(report["ramps"])))
         if args.schematic:
-            schematic(g, args.schematic)
-            print("WROTE: %s" % args.schematic)
+            path = args.schematic.with_name("%s-%s%s" % (args.schematic.stem, g["id"], args.schematic.suffix))
+            schematic(g, path)
+            print("WROTE: %s" % path)
     text = lua_data(courses)
     relative = LUA_OUTPUT.relative_to(ROOT).as_posix()
     if args.check:
@@ -609,6 +893,8 @@ def main():
         return
     import battleground_paint
     for d, g in zip(L.BATTLEGROUNDS, courses):
+        if args.course and d["id"] != args.course:
+            continue
         battleground_paint.build(args.wc3, d, g, check=args.check, preview=args.preview, cache=caches[d["id"]])
 
 

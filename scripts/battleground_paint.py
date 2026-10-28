@@ -94,8 +94,9 @@ def _put(pic, i, rgb):
 
 class Survey:
     """scripts/wow_map_survey.py's measurements of the battleground: per
-    `grid`-unit texel (row 0 north) each ground texture's weight (0-15) and
-    the terrain's height (yards; None where it has a hole)."""
+    `grid`-unit texel (row 0 north) each ground texture's weight (0-15), the
+    terrain's height (yards; None where it has a hole) and, where the map
+    has any, the depth of the water over it (yards; 0 where dry)."""
 
     def __init__(self, path):
         data = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -105,13 +106,21 @@ class Survey:
         raw = zlib.decompress(base64.b64decode(relief["texels"]))
         self.heights = [None if v == 255 else relief["base"] + v * relief["step"] for v in raw]
         self.placements = data["placements"]
+        self.water = None
+        if "water" in data:
+            step = data["water"]["step"]
+            self.water = [v * step for v in zlib.decompress(base64.b64decode(data["water"]["texels"]))]
 
 
 def relief_light(sv, spec):
     """Per survey texel, the sun on the terrain, x256 (256 on level ground):
     its slope (exaggerated by spec["exaggerate"]) toward spec["light"] (a
     direction east, north, up), never below spec["ambient"] of level
-    ground's. Holes take their neighbours' heights."""
+    ground's. Holes take their neighbours' heights. Optionally the heights
+    are first evened (spec["smooth"] passes of a 3 x 3 mean: a coarse
+    relief's steps) and the light raised on high ground and lowered in the
+    hollows (spec["height_tint"]: the fraction at the survey's highest and
+    lowest ground)."""
     cols, rows = sv.cols, sv.rows
     h = list(sv.heights)
     for _ in range(64):                                  # fill the holes from their edges inward
@@ -128,12 +137,27 @@ def relief_light(sv, spec):
         for i, v in fill.items():
             h[i] = v
     h = [290.0 if v is None else v for v in h]
+    for _ in range(spec.get("smooth", 0)):
+        even = [0.0] * (cols * rows)
+        for r in range(rows):
+            r0, r1 = max(0, r - 1), min(rows - 1, r + 1)
+            for c in range(cols):
+                c0, c1 = max(0, c - 1), min(cols - 1, c + 1)
+                acc = 0.0
+                for rr in (r0, r, r1):
+                    base = rr * cols
+                    acc += h[base + c0] + h[base + c] + h[base + c1]
+                even[r * cols + c] = acc / 9.0
+        h = even
     lx, ly, lz = spec["light"]
     n = sqrt(lx * lx + ly * ly + lz * lz)
     lx, ly, lz = lx / n, ly / n, lz / n
     run = 2 * sv.grid / 3.0                               # yards between a texel's two neighbours
     k = spec["exaggerate"] / run
     ambient = spec["ambient"]
+    tint = spec.get("height_tint", 0.0)
+    low, high = min(h), max(h)
+    span = (high - low) or 1.0
     out = [256] * (cols * rows)
     for r in range(rows):
         for c in range(cols):
@@ -142,7 +166,10 @@ def relief_light(sv, spec):
             gy = (h[i - cols if r else i] - h[i + cols if r + 1 < rows else i]) * k     # north is up the rows
             norm = sqrt(gx * gx + gy * gy + 1.0)
             lit = (-gx * lx - gy * ly + lz) / norm / lz
-            out[i] = int(256 * max(ambient, ambient + (1 - ambient) * lit))
+            value = max(ambient, ambient + (1 - ambient) * lit)
+            if tint:
+                value *= 1.0 + tint * (2.0 * (h[i] - low) / span - 1.0)
+            out[i] = int(256 * value)
     return out
 
 
@@ -799,6 +826,8 @@ def paint_lights(pic, d, placed, m):
 
 
 def build(wc3, d, g, check=False, preview=False, log=print, cache=None):
+    if g.get("kind") == "circuit":
+        return build_circuit(wc3, d, g, check=check, preview=preview, log=log, cache=cache)
     started = time.time()
     w, h = g["width"], g["height"]
     tiles = Tileset(wc3)
@@ -861,6 +890,364 @@ def build(wc3, d, g, check=False, preview=False, log=print, cache=None):
     return upper, lower, background, layer
 
 
+# ---------------------------------------------------------------------------
+# A circuit on the battleground's own ground (Arathi Basin).
+#
+# One floor, one picture. The street is city_paint's (Street: per texel the
+# distance beyond the karts' reach plus a kart's length, `gap`, <= 0 inside;
+# the nearest road axis, its segment and the distance to it, `lane`). Over the
+# battleground's own ground (paint_ground, the relief's light):
+#
+# - the water the survey measured, outside the street (paint_circuit_water);
+# - the street (paint_course): the course's dirt road along its axis (to the
+#   paved radius, a ragged edge, two worn ruts), grass to the walls, the
+#   plazas in the yard's dirt, all under the relief's light; on a narrows (a
+#   bridge) its stone deck from bank to bank;
+# - the walls (circuit_walls): a timber rail fence along the street's edge,
+#   a stone parapet on the bridges and wherever water lies beyond;
+# - the finish line; the scenery (the survey's placements as Warcraft III
+#   models; the bases), with the walls, north to south.
+
+
+def narrow_segments_of(g, street):
+    """{Street segment index: the narrows' drivable radius} for the loop
+    segments in a narrows (Lua segment k is Street segment k % n)."""
+    n = street.loop_count
+    out = {}
+    for narrow in g.get("narrows", ()):
+        for k in range(narrow["first"], narrow["last"] + 1):
+            out[k % n] = narrow["wallRadius"]
+    return out
+
+
+def water_depth(sv, x, row):
+    """The survey's water depth (yards) at picture texel (x, row),
+    bilinear; 0 where there is none."""
+    return _bilinear(sv.water, sv.cols, sv.rows, sv.grid, x, row)
+
+
+def even(values, cols, rows, passes):
+    """A survey plane evened by `passes` 3 x 3 means (the edges keep their
+    own neighbours only)."""
+    for _ in range(passes):
+        out = [0.0] * (cols * rows)
+        for r in range(rows):
+            r0, r1 = max(0, r - 1), min(rows - 1, r + 1)
+            for c in range(cols):
+                c0, c1 = max(0, c - 1), min(cols - 1, c + 1)
+                acc = 0.0
+                for rr in range(r0, r1 + 1):
+                    base = rr * cols
+                    for cc in range(c0, c1 + 1):
+                        acc += values[base + cc]
+                out[r * cols + c] = acc / ((r1 - r0 + 1) * (c1 - c0 + 1))
+        values = out
+    return values
+
+
+def paint_circuit_water(pic, d, sv, street, light):
+    """The rivers and pools, outside the street: shallow to deep by the
+    measured depth (evened, spec["smooth"] passes: the client's water ends
+    on its terrain cells' edges), a slow swell of light over them, pale where
+    they meet the bank."""
+    if sv.water is None:
+        return bytearray(pic.w * pic.h)
+    spec = d["water"]
+    w, h, gs, cols = pic.w, pic.h, sv.grid, sv.cols
+    depths = even(sv.water, cols, sv.rows, spec.get("smooth", 0))
+    shallow, deep, bank = spec["shallow"], spec["deep"], spec["bank"]
+    swell, glint = _Noise(26, 811), _Noise(5, 813)
+    wet = bytearray(w * h)
+    for sr in range(sv.rows):
+        for sc in range(cols):
+            near = False
+            for rr in (sr - 1, sr, sr + 1):
+                for cc in (sc - 1, sc, sc + 1):
+                    if 0 <= rr < sv.rows and 0 <= cc < cols and depths[rr * cols + cc] > 0:
+                        near = True
+            if not near:
+                continue
+            for row in range(sr * gs, sr * gs + gs):
+                y = h - 1 - row
+                base = row * w
+                for x in range(sc * gs, sc * gs + gs):
+                    i = base + x
+                    if street.gap[i] <= 0:
+                        continue
+                    depth = _bilinear(depths, cols, sv.rows, gs, x, row)
+                    if depth < spec["shore"]:
+                        continue
+                    wet[i] = 1
+                    t = min(1.0, depth / spec["full"])
+                    r = shallow[0] + (deep[0] - shallow[0]) * t
+                    g_ = shallow[1] + (deep[1] - shallow[1]) * t
+                    b = shallow[2] + (deep[2] - shallow[2]) * t
+                    k = 0.86 + 0.24 * swell.at(x, y) + (0.10 if glint.at(x, y) > 0.86 else 0.0)
+                    edge = depth - spec["shore"]
+                    if edge < spec["rim"]:
+                        f = 1.0 - edge / spec["rim"]
+                        r, g_, b = r + (bank[0] - r) * f, g_ + (bank[1] - g_) * f, b + (bank[2] - b) * f
+                    pic.r[i] = max(0, min(255, int(r * k)))
+                    pic.g[i] = max(0, min(255, int(g_ * k)))
+                    pic.b[i] = max(0, min(255, int(b * k)))
+    return wet
+
+
+def paint_course(pic, d, g, street, sv, tiles, light):
+    """Inside the street (gap <= 0): the road, the verges, the plazas, the
+    decks (see above). Returns the decks' texels."""
+    w, h, gs, cols, rows = pic.w, pic.h, sv.grid, sv.cols, sv.rows
+    spec = d["course"]
+    road, verge, yard, deck_spec = spec["road"], spec["verge"], spec["yard"], spec["deck"]
+    half, rut = spec["road_half"], spec["rut"]
+    narrows = narrow_segments_of(g, street)
+    kart = street.kart
+    ragged = _Noise(14, 821)
+    deck = bytearray(w * h)
+    # The decks (d["decks"]: each the straight from bank to bank, a to b):
+    # a narrows' texels within its chord's ends.
+    chords = []
+    for (ax, ay), (bx, by) in d.get("decks", ()):
+        length = sqrt((bx - ax) ** 2 + (by - ay) ** 2)
+        chords.append((ax, ay, (bx - ax) / length, (by - ay) / length, length))
+    for (bi, bj) in street.buckets:
+        for y in range(bj * 64, min(h, (bj + 1) * 64)):
+            row = h - 1 - y
+            base = row * w
+            for x in range(bi * 64, min(w, (bi + 1) * 64)):
+                i = base + x
+                gap = street.gap[i]
+                if gap > 0:
+                    continue
+                lane, seg = street.lane[i], street.seg[i]
+                on_deck = False
+                if seg in narrows and lane <= narrows[seg] + kart + 0.5:
+                    for ax, ay, ux, uy, length in chords:
+                        t = (x + 0.5 - ax) * ux + (y + 0.5 - ay) * uy
+                        c = -(x + 0.5 - ax) * uy + (y + 0.5 - ay) * ux
+                        if 0.0 <= t <= length and abs(c) <= narrows[seg] + kart + 0.5:
+                            on_deck = True
+                if on_deck:
+                    deck[i] = 1
+                    rgb = _tile(tiles, deck_spec, x, y, 13)
+                    # Shaded toward the parapets; the courses' joints every 16.
+                    k = 236 if lane > narrows[seg] + kart - 6 else 256
+                    if int(street.along(i)) % 16 == 0:
+                        k -= 30
+                    _put(pic, i, _shade(rgb, k))
+                    continue
+                edge = half + 8 * (ragged.at(x, y) - 0.5)
+                if lane <= edge:
+                    rgb = _tile(tiles, road, x, y, 17)
+                    if abs(lane - rut[0]) < rut[1]:
+                        rgb = _shade(rgb, 222)
+                elif street.plaza[i]:
+                    rgb = _tile(tiles, yard, x, y, 19)
+                else:
+                    rgb = _tile(tiles, verge, x, y, 23)
+                k = int(_bilinear(light, cols, rows, gs, x, row))
+                if gap > -6:
+                    k = k * (226 + 5 * int(-gap)) >> 8          # the wall's foot in its shade
+                _put(pic, i, _shade(rgb, k))
+    return deck
+
+
+def circuit_walls(d, street, deck):
+    """The street's edge walls (as city_paint.wall_columns lays them): per
+    world row, the texels just outside the karts' reach plus a kart, each
+    with its height and style: a bridge's stone parapet beside its deck
+    (taller every 24 units), else the timber rail fence (`rope_fence`, its
+    rails straight)."""
+    w, h = street.w, street.h
+    thick = d["wall"]["thickness"]
+    fence = d["rope_fence"]["land"]
+    rows = {}
+    for (bi, bj) in street.buckets:
+        for y in range(bj * 64, min(h, (bj + 1) * 64)):
+            row = h - 1 - y
+            for x in range(bi * 64, min(w, (bi + 1) * 64)):
+                i = row * w + x
+                gap = street.gap[i]
+                if not (0.5 < gap <= thick + 0.5):
+                    continue
+                along = street.along(i) if street.seg[i] >= 0 else float(x + y)
+                inner_x = int(x - street.nx[i] * (gap + 2))
+                inner_y = int(y - street.ny[i] * (gap + 2))
+                if 0 <= inner_x < w and 0 <= inner_y < h and deck[(h - 1 - inner_y) * w + inner_x]:
+                    rows.setdefault(y, []).append((x, 14 if along % 24 < 5 else 10, "bridge"))
+                    continue
+                rows.setdefault(y, []).append((x, fence["post_height"], "rope",
+                                               (along % fence["every"], fence, 1.5 < gap <= 3.8)))
+    return rows
+
+
+def paint_off_bridges(pic, d, street, tiles, walls):
+    """The bridges off the course (d["bridges"]: each from its end `a` to
+    `b`, `width` wide), outside the street: a stone deck over the water and
+    its parapets (added to `walls`, the street's wall rows)."""
+    w, h = pic.w, pic.h
+    deck_spec = d["course"]["deck"]
+    for bridge in d.get("bridges", ()):
+        (ax, ay), (bx, by), width = bridge["a"], bridge["b"], bridge["width"]
+        length = sqrt((bx - ax) ** 2 + (by - ay) ** 2)
+        ux, uy = (bx - ax) / length, (by - ay) / length
+        half = width / 2.0
+        x0, x1 = int(min(ax, bx) - half - 2), int(max(ax, bx) + half + 3)
+        y0, y1 = int(min(ay, by) - half - 2), int(max(ay, by) + half + 3)
+        for y in range(max(0, y0), min(h, y1)):
+            for x in range(max(0, x0), min(w, x1)):
+                i = (h - 1 - y) * w + x
+                if street.gap[i] <= 3.5:
+                    continue
+                px, py = x + 0.5 - ax, y + 0.5 - ay
+                t = px * ux + py * uy
+                c = -px * uy + py * ux
+                if not (0.0 <= t <= length and abs(c) <= half):
+                    continue
+                if abs(c) > half - 3:
+                    walls.setdefault(y, []).append((x, 14 if int(t) % 24 < 5 else 10, "bridge"))
+                    continue
+                rgb = _tile(tiles, deck_spec, x, y, 13)
+                k = 236 if abs(c) > half - 7 else 256
+                if int(t) % 16 == 0:
+                    k -= 30
+                _put(pic, i, _shade(rgb, k))
+
+
+def survey_fences(d, sv, street, walls):
+    """The battleground's own field fences (the survey's placements of the
+    models d["fences"]["models"] name, a section every 12 units or so): each
+    section joined to every other within d["fences"]["link"], drawn as the
+    timber rail fence (d["rope_fence"]["field"], a post at each section)
+    along the joins, outside the street; added to `walls`."""
+    spec = d["fences"]
+    fence = d["rope_fence"]["field"]
+    w, h = street.w, street.h
+    names = tuple(spec["models"])
+    nodes = [(x, y) for kind, model, x, y, _h, _yaw, _s in sv.placements
+             if kind == "doodad" and model.startswith(names) and 0 <= x < w and 0 <= y < h]
+    link = spec["link"]
+    seen = set()
+    for a, (ax, ay) in enumerate(nodes):
+        for b, (bx, by) in enumerate(nodes):
+            if a >= b or (ax - bx) ** 2 + (ay - by) ** 2 > link * link:
+                continue
+            length = sqrt((bx - ax) ** 2 + (by - ay) ** 2)
+            ux, uy = (bx - ax) / length, (by - ay) / length
+            for y in range(int(min(ay, by) - 2), int(max(ay, by) + 3)):
+                for x in range(int(min(ax, bx) - 2), int(max(ax, bx) + 3)):
+                    if not (0 <= x < w and 0 <= y < h) or (x, y) in seen:
+                        continue
+                    px, py = x + 0.5 - ax, y + 0.5 - ay
+                    t = px * ux + py * uy
+                    if not (-1.0 <= t <= length + 1.0) or abs(-px * uy + py * ux) > 1.1:
+                        continue
+                    if street.gap[(h - 1 - y) * w + x] <= 3.0:
+                        continue
+                    seen.add((x, y))
+                    walls.setdefault(y, []).append((x, fence["post_height"], "rope",
+                                                    (max(0.0, t) if t < length - fence["post"] else 0.0, fence, True)))
+
+
+def paint_circuit_finish(pic, street, gate, thickness=12, cells=6):
+    """A chequered band across the street along the finish gate."""
+    w, h = pic.w, pic.h
+    horizontal = gate["ay"] == gate["by"]
+    lo = int(min(gate["ax"], gate["bx"])) if horizontal else int(min(gate["ay"], gate["by"]))
+    hi = int(max(gate["ax"], gate["bx"])) if horizontal else int(max(gate["ay"], gate["by"]))
+    mid = int(gate["ay"] if horizontal else gate["ax"])
+    for a in range(lo, hi + 1):
+        for b in range(mid - thickness // 2, mid + thickness // 2):
+            x, y = (a, b) if horizontal else (b, a)
+            if not (0 <= x < w and 0 <= y < h):
+                continue
+            i = (h - 1 - y) * w + x
+            if street.gap[i] > -2:
+                continue
+            dark = ((a // cells) + ((b - (mid - thickness // 2)) // cells)) % 2
+            pic.over(i, *((34, 30, 30) if dark else (226, 222, 210)), 230)
+
+
+def place_circuit_props(wc3, d, street, cache, log, sv=None):
+    """The scenery's models: each keeps its drawn body off the street (a
+    `nudge`d one steps away from it until clear); optional ones that cannot
+    are left out, any other stops the build. A solid one stands on the street
+    (its box blocks the karts: circuit_geometry)."""
+    from city_paint import body_clear
+    placed, dropped = [], 0
+    for item in d["props"]:
+        sprite = sprite_for(wc3, d, item, cache)
+        forget_textures()
+        X, Y = int(round(item["x"])), int(round(item["y"]))
+        if item["solid"]:
+            placed.append((item, sprite, X, Y))
+            continue
+        if item.get("optional") and sv is not None and sv.water is not None and \
+                water_depth(sv, X, street.h - 1 - Y) > 0:
+            dropped += 1
+            continue
+        if item.get("nudge") and not body_clear(street, sprite, X, Y):
+            _, nx, ny = street.nearest(X + 0.5, Y + 0.5)
+            for push in range(4, 160, 4):
+                QX, QY = int(round(X + nx * push)), int(round(Y + ny * push))
+                if body_clear(street, sprite, QX, QY):
+                    log(f"  {item['name']} stepped from ({X}, {Y}) to ({QX}, {QY}), off the street")
+                    X, Y = QX, QY
+                    break
+        if not body_clear(street, sprite, X, Y):
+            if item.get("optional"):
+                dropped += 1
+                continue
+            raise SystemExit(f"LAYOUT: {item['name']} at ({X}, {Y}) covers the street")
+        placed.append((item, sprite, X, Y))
+    return placed, dropped
+
+
+def build_circuit(wc3, d, g, check=False, preview=False, log=print, cache=None):
+    from city_paint import Street, paint_scenery
+    started = time.time()
+    w, h = g["width"], g["height"]
+    tiles = Tileset(wc3)
+    sv = Survey(Path(__file__).resolve().parent / d["survey"])
+    street = Street(g, g["kart"], d["street_reach"], d["street_far"])
+    log(f"  street {time.time() - started:.0f}s")
+    pic = Picture(w, h)
+    light = relief_light(sv, d["relief"])
+    paint_ground(pic, d, sv, tiles, light)
+    log(f"  ground {time.time() - started:.0f}s")
+    wet = paint_circuit_water(pic, d, sv, street, light)
+    deck = paint_course(pic, d, g, street, sv, tiles, light)
+    paint_circuit_finish(pic, street, g["gates"][-1])
+    log(f"  course {time.time() - started:.0f}s")
+    cache = {} if cache is None else cache
+    models, dropped = place_circuit_props(wc3, d, street, cache, log, sv)
+    walls = circuit_walls(d, street, deck)
+    paint_off_bridges(pic, d, street, tiles, walls)
+    survey_fences(d, sv, street, walls)
+    paint_scenery(pic, d, walls, models)
+    log(f"  scenery {time.time() - started:.0f}s ({len(models)} models, {dropped} optional left out)")
+    preview_rows = pic.rows(4)
+    folder = ROOT / "addon" / "AzerothKart" / "Assets" / "Tracks" / d["folder"]
+    outputs = [(folder / "Background.tga", pic.tga()), (folder / "Preview.tga", encode_tga(preview_rows))]
+    for output, data in outputs:
+        relative = output.relative_to(ROOT).as_posix()
+        if check:
+            if not output.is_file() or output.read_bytes() != data:
+                raise SystemExit(f"STALE: {relative}; run without --check")
+        else:
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_bytes(data)
+        log(f"{'CHECK PASS' if check else 'WROTE'}: {relative}; BGRA32; {len(data)} bytes; "
+            f"sha256={hashlib.sha256(data).hexdigest()}")
+    if preview:
+        docs = ROOT / "docs" / "art" / "tracks"
+        docs.mkdir(parents=True, exist_ok=True)
+        (docs / f"{d['id']}-overview.png").write_bytes(encode_png(preview_rows))
+        (docs / f"{d['id']}-sources.txt").write_text(sources(d, tiles, [(m[0], m[1], m[2], m[3], 0) for m in models]),
+                                                    encoding="utf-8", newline="\n")
+    return pic
+
+
 # The guiding arrow's sheet (Presentation.GUIDE_ARROW): 16 headings in a
 # 4 x 4 grid of 32 x 32 cells, frame k pointing k/16 of a turn
 # counter-clockwise from east; gold with a dark rim, 4 x 4 supersampled.
@@ -910,7 +1297,8 @@ def sources(d, tiles, models):
         textures.add(path)
     for path, _, _ in tiles.strata:
         textures.add(path)
-    lines = [f"# {d['name']}: Warcraft III Reforged files used by {d['folder']}/Background.tga and Roofs.tga",
+    pictures = "Background.tga" if d.get("kind") == "circuit" else "Background.tga and Roofs.tga"
+    lines = [f"# {d['name']}: Warcraft III Reforged files used by {d['folder']}/{pictures}",
              "# Generated by scripts/build_battlegrounds.py --preview. Archive paths as the client stores them.",
              "# The ground's layout, relief and the models' places are measured from the World of Warcraft",
              f"# client's own map ({d['survey']}, scripts/wow_map_survey.py): numbers only, no client file.",

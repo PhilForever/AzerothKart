@@ -25,9 +25,10 @@ is the battleground's own ground at three units to the yard (see the
 Warsong section below).
 """
 import json
+from math import sqrt
 from pathlib import Path
 
-from city_layouts import WALL_INSET, prop
+from city_layouts import WALL_INSET, catmull_rom, prop
 
 TA = "war3.w3mod:terrainart/"
 ASHEN = "war3.w3mod:doodads/ashenvale/"
@@ -545,4 +546,292 @@ WG_PROPS = [
 
 WARSONG.update({"props": WG_PROPS + _dressing() + _woods(), "roof_props": []})
 
-BATTLEGROUNDS = [WARSONG]
+# ---------------------------------------------------------------------------
+# Arathi Basin: a circuit round the basin, on one floor.
+#
+# The owner (2026-10-28), with his way round drawn on the basin's map: "Let's
+# take what we learned creating this map and make Arathi Basin. (No insides
+# here but heavy slopes)", and asked which way: "East > DOWN to Gold Mine >
+# Up to the stables > UP to the Lumbermill and then down to the farm and
+# around".
+#
+# The world is the basin's own ground (map PVPZone04, read from the owner's
+# client with scripts/wowcasc.py and measured by wow_map_survey.py into
+# arathi_basin_survey.json), three units to the yard as Warsong Gulch's: a
+# placement at (px east, pz south) in yards stands at X = (px - 15760) * 3,
+# Y = (16450 - pz) * 3, over 2048 x 2048 units.
+#
+# A Battlegrounds Cup circuit is a city circuit (Circuit.lua, the Capital
+# Cities Cup's street rules: the karts' centres keep within WALL_RADIUS of the
+# course, full grip to the walls) laid on the basin's real roads (the
+# client's road texture, "rubble", traced from the survey), widened for karts:
+#
+# - the grid on the east road just north of its junction with the farm road
+#   (the owner's X lies on the road from there to Defiler's Den), facing up
+#   the road, the finish line behind it;
+# - north up the east road and over the east bridge, past the pond to the
+#   river road's fork, then down the Gold Mine's road along the lake's west
+#   shore into the mine's hollow (the lap's lowest ground, 110 yards below
+#   the basin's datum) and through its yard past the mine's mouth;
+# - up the north road to the Stables (50 yards up): round the barn either
+#   way, by the road to Trollbane Hall and down the west road, or by the yard
+#   between the barn and the river (narrower, shorter);
+# - over the west bridge, down the west road to its fork, and up the hill on
+#   the Lumber Mill's road (60 yards up in under 200), along the cliff top
+#   past the mill;
+# - down the escarpment (70 yards in 160) to the junction at the south
+#   bridge (the road over it to the Blacksmith stays shut), sharp back east
+#   along the farm road past the Farm and round to the finish.
+#
+# The bridges are narrows (their decks, BRIDGE_RADIUS); the ground the
+# course runs over gives the painted relief and each centerline point's
+# height (the inert `elevation` data of ADR 0015: the slopes are drawn, not
+# yet felt).
+
+AB_SIZE = (2048, 2048)
+AB_ORIGIN = (15760.0, 16450.0)
+AB_LOOP = [
+    # The east road, north from the grid to the east bridge.
+    (1648, 560), (1650, 610), (1640, 655), (1616, 698), (1595, 735), (1586, 775), (1584, 815), (1582, 858),
+    # Past the pond to the river road's fork; down the Gold Mine's road, west of the lake.
+    (1574, 900), (1548, 936), (1514, 970), (1481, 1010), (1456, 1058), (1438, 1116), (1428, 1182),
+    (1421, 1250), (1417, 1318), (1411, 1384), (1400, 1446),
+    # Through the mine's hollow and its yard.
+    (1384, 1508), (1362, 1568), (1330, 1622), (1285, 1663), (1225, 1693), (1158, 1716),
+    # Up the north road to the Stables.
+    (1088, 1738), (1018, 1761), (948, 1785), (878, 1803), (808, 1807), (738, 1793), (670, 1770), (612, 1755),
+    # North of the barn on the road to Trollbane Hall, then down the west road.
+    (550, 1774), (480, 1806), (410, 1838), (340, 1860), (284, 1858), (247, 1822), (232, 1768), (230, 1706),
+    (233, 1645), (239, 1595),
+    # The west bridge; the west road to its fork.
+    (242, 1548), (242, 1505), (241, 1460), (248, 1412), (268, 1365), (293, 1325), (315, 1280), (328, 1230),
+    (333, 1180),
+    # Up the hill, along the cliff top past the Lumber Mill.
+    (325, 1140), (295, 1110), (262, 1080), (243, 1040), (238, 995), (248, 948), (270, 905), (296, 860),
+    (322, 818), (352, 780), (392, 752), (438, 727), (484, 697), (522, 662), (556, 627), (590, 594), (626, 563),
+    # Down the escarpment to the junction at the south bridge.
+    (670, 537), (728, 519), (795, 510), (852, 507), (895, 530), (920, 575), (937, 620), (948, 655), (955, 685),
+    # Sharp back east along the farm road, past the Farm to the finish.
+    (985, 675), (1030, 645), (1078, 612), (1128, 578), (1180, 552), (1235, 530), (1292, 506), (1347, 482),
+    (1400, 463), (1458, 449), (1517, 441), (1573, 441), (1614, 456), (1638, 490),
+]
+AB_BRIDGE_RADIUS = 42
+# The bridges on the course: their decks' ends (a short abutment onto either
+# bank), the road straight across and AB_APPROACH units either side, where
+# it narrows to the deck's width (so the road's full width never reaches the
+# water beside a deck).
+AB_BRIDGES = [("east bridge", (1586, 752), (1582, 868)), ("west bridge", (242, 1578), (241, 1458))]
+AB_APPROACH = 84
+
+
+def _ab_line():
+    from city_layouts import arc_at, straighten
+    line = catmull_rom(AB_LOOP, step=16.0)
+    for _name, a, b in AB_BRIDGES:
+        at = (arc_at(line, *a, to_world=_world) + arc_at(line, *b, to_world=_world)) / 2
+        length = sqrt((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2)
+        line = straighten(line, at, length + 40)
+    return line
+
+
+def _world(x, y):
+    return x, y
+
+
+ARATHI_LINE = _ab_line()
+
+
+def _ab_arc(x, y):
+    from city_layouts import arc_at
+    return arc_at(ARATHI_LINE, x, y, to_world=_world)
+
+
+def _nearest(line, x, y):
+    return min(line, key=lambda p: (p[0] - x) ** 2 + (p[1] - y) ** 2)
+
+
+# The Stables' yard (a plaza), from the north road to the west road's foot
+# by the bridge and down to the river: the barn stands in it (a solid), so a
+# kart goes round it either way, by the road north of it or across the yard.
+AB_YARD_RADIUS = 96
+AB_YARD = [((520, 1696), (300, 1690))]
+
+# In lap order, each across the course where it passes the base it is named
+# for; the finish (named for the Horde's base, down the road behind the
+# grid) last.
+AB_GATES = [
+    ("Gold Mine", (1250, 1680)),
+    ("Stables", (662, 1767)),
+    ("Lumber Mill", (522, 662)),
+    ("Farm", (1400, 463)),
+    ("Defiler's Den", (1649, 566)),
+]
+
+
+def _ab_gates():
+    from city_layouts import gate_on
+    return [gate_on(name, ARATHI_LINE, x, y) for name, (x, y) in AB_GATES]
+
+
+AB_SPAWN = _nearest(ARATHI_LINE, 1647, 625)
+
+ARATHI = {
+    "id": "arathi_basin",
+    "name": "Arathi Basin",
+    "version": 1,
+    "kind": "circuit",
+    "size": AB_SIZE,
+    "laps": 3,
+    "centerline": ARATHI_LINE,
+    "branches": [],
+    "plazas": [{"ax": a[0], "ay": a[1], "bx": b[0], "by": b[1], "radius": AB_YARD_RADIUS} for a, b in AB_YARD],
+    "narrows": [{"name": name, "from": round(_ab_arc(*a) - AB_APPROACH, 1), "to": round(_ab_arc(*b) + AB_APPROACH, 1),
+                 "wall_radius": AB_BRIDGE_RADIUS} for name, a, b in AB_BRIDGES],
+    "gates": _ab_gates(),
+    "spawn": AB_SPAWN + ("north",),
+    "solids": [],
+    "full_speed_to_walls": True,
+    "wall_clearance": 14,
+    "survey": "arathi_basin_survey.json",
+}
+
+BATTLEGROUNDS = [WARSONG, ARATHI]
+
+# ---------------------------------------------------------------------------
+# Arathi Basin's painting (battleground_paint.build_circuit).
+#
+# The ground is the basin's own (arathi_basin_survey.json): each of the
+# client's six Arathi Highlands textures drawn as the Warcraft III tile that
+# stands for it (Lordaeron's summer grass made the Highlands' olive, its dirt
+# and rough dirt for the roads, its rock, the village's crops for the Farm's
+# fields), shaded by the relief (evened, the hollows a little darker); the
+# river and pools by their measured depth. The street: a dirt road down its
+# middle with grass to a timber rail fence; stone decks and parapets on the
+# bridges and along the water.
+
+AB_GROUND = {
+    "arathihighlandsgrassbase_s": {"tile": TA + "lordaeronsummer/lords_grass.dds", "shade": (1.9, 1.38, 0.8, 0.38)},
+    "arathihighlandsgrasshighlight_s": {"tile": TA + "lordaeronsummer/lords_grass.dds",
+                                        "shade": (2.15, 1.56, 0.86, 0.38)},
+    "arathihighlandsdirt_s": {"tile": TA + "lordaeronsummer/lords_dirt.dds", "shade": (0.8, 0.88, 0.96, 0.6)},
+    "arathihighlandsrockbase_s": {"tile": TA + "lordaeronsummer/lords_rock.dds", "shade": (0.9, 0.93, 0.98, 0.2)},
+    "arathihighlandsrubblebase_s": {"tile": TA + "lordaeronsummer/lords_dirtrough.dds",
+                                    "shade": (0.98, 1.06, 1.16, 0.45), "boost": 2.0},
+    "arathihighlandscropbase_s": {"tile": TA + "village/village_crops.dds", "shade": (1.8, 1.7, 1.5)},
+}
+
+ARATHI.update({
+    "folder": "ArathiBasin",
+    "lean": 0.6, "team": (0.5, 0.48, 0.44), "supersample": 3,
+    "replaceables": {31: "war3.w3mod:replaceabletextures/lordaerontree/lordaeronsummertree.dds"},
+    "ground": AB_GROUND,
+    "relief": {"light": (-0.5, 0.6, 0.62), "exaggerate": 1.7, "ambient": 0.42, "smooth": 3, "height_tint": 0.18},
+    "water": {"shallow": (78, 104, 98), "deep": (30, 50, 62), "bank": (120, 120, 96), "shore": 0.35, "full": 8.0,
+              "rim": 0.9, "smooth": 2},
+    "course": {
+        "road": {"tile": TA + "lordaeronsummer/lords_dirtrough.dds", "shade": (0.98, 1.06, 1.16, 0.45)},
+        "verge": {"tile": TA + "lordaeronsummer/lords_grass.dds", "shade": (1.9, 1.38, 0.8, 0.38)},
+        "yard": {"tile": TA + "lordaeronsummer/lords_dirtrough.dds", "shade": (0.98, 1.06, 1.16, 0.45)},
+        "deck": {"tile": TA + "village/village_stonepath.dds", "shade": (1.5, 1.55, 1.7, 0.5)},
+        "road_half": 50, "rut": (24, 3),
+    },
+    "street_reach": 24, "street_far": 240,
+    "decks": [(a, b) for _name, a, b in AB_BRIDGES],
+    "fences": {"models": ("westfallfence", "gatesegment", "gatepost"), "link": 13.5},
+    # The two bridges the course does not cross (the roads to the Blacksmith),
+    # as the client's map lays them.
+    "bridges": [{"a": (920, 1473), "b": (920, 1578), "width": 46}, {"a": (955, 750), "b": (932, 852), "width": 46}],
+    "wall": {"thickness": 4},
+    "rope_fence": {"land": {"every": 30, "post": 5, "post_height": 22, "ropes": [(16.0, 0.0), (9.0, 0.0)],
+                            "rope_rows": 2},
+                   "field": {"every": 12, "post": 3, "post_height": 16, "ropes": [(11.0, 0.0), (6.0, 0.0)],
+                             "rope_rows": 2},
+                   "post": ((112, 80, 50), (150, 112, 72), (58, 40, 24)),
+                   "rope": ((156, 118, 74), (88, 62, 38))},
+})
+
+# ---------------------------------------------------------------------------
+# Arathi Basin's scenery: the bases' buildings by hand at the client's
+# places (Warcraft III's that stand for them), every node's flag beside the
+# course, and the survey's trees, bushes, fences, hay, carts, crates and
+# graves as optional scenery (left out where they would stand on the street).
+
+HUMAN = "war3.w3mod:buildings/human/"
+OTHER = "war3.w3mod:buildings/other/"
+AB_PROPS = [
+    prop(SUMMER + "structures/barn/barn.mdx", 357, 1704, yaw=225, scale=0.3, solid=True, margin=6, name="stables"),
+    prop(OTHER + "goldmine/goldmine.mdx", 1490, 1730, yaw=225, scale=0.46, name="gold_mine"),
+    prop(HUMAN + "humanlumbermill/humanlumbermill.mdx", 350, 580, yaw=225, scale=0.38, name="lumber_mill"),
+    prop(HUMAN + "farm/farm.mdx", 1400, 628, yaw=270, scale=0.5, name="farm"),
+    # The Farm's windmill and granary, at the client's windmill and north of
+    # its silo (which stands on the course).
+    dict(prop(SUMMER + "structures/windmill/windmill.mdx", 1496, 688, yaw=225, scale=0.34, name="farm_windmill"),
+         nudge=True),
+    dict(prop(SUMMER + "structures/granary/granary.mdx", 1530, 610, yaw=270, scale=0.3, name="farm_granary"),
+         nudge=True),
+    prop(HUMAN + "blacksmith/blacksmith.mdx", 896, 1123, yaw=225, scale=0.44, name="blacksmith"),
+    prop(HUMAN + "townhall/townhall.mdx", 96, 1990, yaw=315, scale=0.4, name="trollbane_hall", team=ALLIANCE_BLUE),
+    prop(HUMAN + "townhall/townhall.mdx", 1792, 266, yaw=135, scale=0.4, name="defilers_den", team=HORDE_RED,
+         tint=(0.78, 0.74, 0.8)),
+]
+for _name, (_x, _y) in (("stables_flag", (400, 1950)), ("lumber_mill_flag", (440, 650)),
+                        ("blacksmith_flag", (780.3, 1081.1)), ("farm_flag", (1297.3, 568.6)),
+                        ("gold_mine_flag", (1375.4, 1590.8))):
+    AB_PROPS.append(dict(prop(SUMMER + "props/bannerhuman/bannerhuman0.mdx", _x, _y, scale=0.36, name=_name),
+                         nudge=True))
+
+ARATHI.update({"props": AB_PROPS})
+
+# The survey's scenery: (the client's model names starting so, the Warcraft
+# III models that stand for them, sizes (the client's small, medium, large),
+# round (turned at random to a quarter) or turned as placed (to the nearest
+# eighth), options). The field fences are drawn along their own line
+# (ARATHI["fences"]); the river's weed, fish and floating wreckage, the tools
+# and the rest are left out, as is anything standing in the water.
+LORDAERON_TREES = [D3 + "terrain/lordaerontree/lordaerontree%d.mdx" % n for n in range(10)]
+ARATHI_OLIVE = (0.86, 0.9, 0.5)                 # a bush the Highlands' olive
+AB_KINDS = [
+    (("arathitree0", "duskwoodbrowntree", "duskwoodspookytree"), LORDAERON_TREES, (0.22, 0.27, 0.32), True,
+     {"alpha_shadow": True}),
+    (("alteracshrub", "lochmodanshrub", "lochmodanshurb", "duskwoodbush", "duskwoodspookybush", "feralasferns",
+      "lochtallgrass"), [BUSH], (0.13, 0.17, 0.21), True, {"tint": ARATHI_OLIVE}),
+    (("haystack", "shadowfanghaypile", "duskwoodhaystack"), [SUMMER + "props/hay/hay%d.mdx" % n for n in range(5)],
+     (0.24, 0.28, 0.32), True, {}),
+    (("westfallwagon", "badlandssunkenwagon", "westfallhaywagon", "brokencart"), [SUMMER + "props/haycart/haycart.mdx"],
+     (0.3,) * 3, False, {}),
+    (("westfallbarrel", "barrel01", "brokenbarrel", "oildrum"), [BARRELS], (0.2,) * 3, True, {}),
+    (("stormwindcrate", "replacecrate", "crate0", "westfallcrate", "graincrate", "crategrain"), CRATES, (0.24,) * 3,
+     False, {}),
+    (("tombstone",), [SUMMER + "props/grave/grave.mdx"], (0.26,) * 3, False, {}),
+    (("elwynncliffrock", "arathirock", "duskwoodrockwall", "rockwallend"),
+     [SUMMER + "rocks/lords_rock/lords_rock%d.mdx" % n for n in range(10)], (0.3, 0.36, 0.42), True, {"cut": 0.5}),
+    (("arathistump", "stonetreelog"), [STUMP], (0.14, 0.17, 0.2), True, {}),
+    (("caveminewheelbarrow", "caveminecar"), [SUMMER + "props/wheelbarrel/wheelbarrel.mdx"], (0.3,) * 3, False, {}),
+    (("generallantern",), [LANTERN], (0.28,) * 3, False, {}),
+    (("westfallscarecrow",), [SUMMER + "props/bannerhuman/bannerhuman1.mdx"], (0.3,) * 3, False, {}),
+]
+
+
+def _ab_dressing():
+    """The survey's placements as optional scenery (see above)."""
+    from paintkit import hash2
+    placements = json.loads(Path(__file__).with_name(ARATHI["survey"]).read_text(encoding="utf-8"))["placements"]
+    out = []
+    for kind, model, x, y, height, yaw, scale in placements:
+        xi, yi = int(round(x)), int(round(y))
+        if kind != "doodad" or not (0 <= xi < AB_SIZE[0] and 0 <= yi < AB_SIZE[1]):
+            continue
+        found = next((k for k in AB_KINDS if model.startswith(k[0])), None)
+        if found is None:
+            continue
+        _, models, sizes, round_, options = found
+        path = models[hash2(xi, yi, 31) % len(models)]
+        size = sizes[0] if scale < 0.85 else (sizes[1] if scale <= 1.25 else sizes[2])
+        turn = hash2(xi, yi, 37) % 4 * 90 if round_ else int(round(yaw / 45)) % 8 * 45
+        item = prop(path, xi, yi, yaw=turn, scale=size, name=model, **options)
+        item["optional"] = True
+        out.append(item)
+    return out
+
+
+ARATHI["props"] = AB_PROPS + _ab_dressing()
