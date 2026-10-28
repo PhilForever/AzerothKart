@@ -2,7 +2,7 @@
 -- check both legitimate ways around the Stables, including the original bug.
 local AK = {}
 for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Dungeon", "ScarletCrusade",
-    "LayeredTrack", "Battlegrounds", "Courses", "Physics", "Checkpoints", "Presentation"}) do
+    "LayeredTrack", "Battlegrounds", "ArathiGrass", "Courses", "Physics", "Checkpoints", "Presentation"}) do
     assert(loadfile("addon/AzerothKart/"..name..".lua"))("AzerothKart", AK)
 end
 -- Claude pin (Arathi version 2): the owner keeps the guiding arrow for

@@ -1386,14 +1386,15 @@ def place_blockers(wc3, d, street, gaps, cache, log):
     return placed
 
 
-def paint_course(pic, d, g, street, sv, tiles, light, roads=None, zone=None):
+def paint_course(pic, d, g, street, sv, tiles, light, roads=None, zone=None, open_=None):
     """Inside the street (gap <= 0): the road, the verges, the plazas, the
     decks (see above). A meadow (a grass plaza: d["course"]["meadow"]) is
     long grass where the karts' reach of the road ends; the verge beside it
     is worn to the yard's dirt, so the road's full speed and the meadow's
     slow grass do not look alike. Within an opening's `zone`, the client's
-    road (`roads`) runs across the verge into the street's. Returns the
-    decks' texels."""
+    road (`roads`) runs across the verge into the street's. A fence's foot is
+    in its shade, but not along an open stretch of the edge (`open_`,
+    open_edges). Returns the decks' texels."""
     w, h, gs, cols, rows = pic.w, pic.h, sv.grid, sv.cols, sv.rows
     spec = d["course"]
     road, verge, yard, deck_spec = spec["road"], spec["verge"], spec["yard"], spec["deck"]
@@ -1405,6 +1406,8 @@ def paint_course(pic, d, g, street, sv, tiles, light, roads=None, zone=None):
     kart = street.kart
     ragged = _Noise(14, 821)
     deck = bytearray(w * h)
+    open_segs = open_ or {}
+    foot = street.wall + kart + 1.0
     # The decks (d["decks"]: each the straight from bank to bank, a to b):
     # a narrows' texels within its chord's ends.
     chords = []
@@ -1454,7 +1457,7 @@ def paint_course(pic, d, g, street, sv, tiles, light, roads=None, zone=None):
                 else:
                     rgb = _tile(tiles, verge, x, y, 23)
                 k = int(_bilinear(light, cols, rows, gs, x, row))
-                if gap > -6:
+                if gap > -6 and not _open_at(street, open_segs, i, x, y, foot):
                     k = k * (226 + 5 * int(-gap)) >> 8          # the wall's foot in its shade
                 _put(pic, i, _shade(rgb, k))
     # The meadow's long grass: a blade or two up from each tuft's root, pale
@@ -1480,16 +1483,130 @@ def paint_course(pic, d, g, street, sv, tiles, light, roads=None, zone=None):
     return deck
 
 
-def circuit_walls(d, street, deck, skip=frozenset()):
+def _side(street, i, x, y):
+    """Which side of the lap texel i (at x, y) lies on: 1 left of travel along
+    its nearest loop segment, -1 right."""
+    (ax, ay), (bx, by) = street.segs[street.seg[i]]
+    return 1 if (bx - ax) * (y + 0.5 - ay) - (by - ay) * (x + 0.5 - ax) > 0 else -1
+
+
+def _open_at(street, open_segs, i, x, y, edge):
+    """Whether texel i (at x, y) lies along an open stretch of the loop's edge
+    (open_edges): its nearest loop segment open on its side, and it no
+    farther than `edge` from that segment's axis (not a plaza's edge)."""
+    k = street.seg[i]
+    if not open_segs or not (0 <= k < street.loop_count) or street.lane[i] > edge:
+        return False
+    return k in open_segs[_side(street, i, x, y)]
+
+
+def open_edges(d, g, street):
+    """The stretches of the street's edge with no fence (d["open_edges"]:
+    each a side of the lap, "inner" or "outer", from the loop segment
+    nearest one point to the one nearest another, in the course's order):
+    {side: set of loop segment indices}, side 1 the left of travel and -1
+    the right; a lap counter-clockwise has its inner edge on the left."""
+    spec = d.get("open_edges")
+    if not spec:
+        return {}
+    line = g["centerline"]
+    n = street.loop_count
+    area = sum(line[k - 1][0] * line[k][1] - line[k][0] * line[k - 1][1] for k in range(n))
+    inner = 1 if area > 0 else -1
+
+    def nearest(px, py):
+        best, which = None, 0
+        for k in range(n):
+            (ax, ay), (bx, by) = street.segs[k]
+            dx, dy = bx - ax, by - ay
+            length = dx * dx + dy * dy
+            t = 0.0 if length == 0 else max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / length))
+            e = (px - ax - t * dx) ** 2 + (py - ay - t * dy) ** 2
+            if best is None or e < best:
+                best, which = e, k
+        return which
+
+    segs = {1: set(), -1: set()}
+    for side, a, b in spec:
+        if side not in ("inner", "outer"):
+            raise SystemExit(f"LAYOUT: an open edge's side is inner or outer, not {side!r}")
+        s = inner if side == "inner" else -inner
+        k, last = nearest(*a), nearest(*b)
+        while True:
+            segs[s].add(k)
+            if k == last:
+                break
+            k = (k + 1) % n
+    return segs
+
+
+def paint_wild_edges(pic, d, sv, street, open_, keep):
+    """Where the street's edge has no fence (`open_`, open_edges) and the
+    ground beyond is the survey's grass (d["course"]["wild"]["planes"], at
+    least `least` of its weight): the long grass the verge's mowing stops
+    at, out to `reach` units past the karts' reach (raggedly), darker toward
+    the edge by up to `shade`/256, with a tuft here and there (one texel in
+    `tuft_every`; `tip` and `root` its colours). `keep`: texels left as they
+    are (water, cliff faces, the client's roads)."""
+    spec = d["course"].get("wild")
+    open_segs = open_ or {}
+    if not spec or not open_segs:
+        return
+    w, h, gs, cols, rows = pic.w, pic.h, sv.grid, sv.cols, sv.rows
+    reach, shade, every, least = spec["reach"], spec["shade"], spec["tuft_every"], spec["least"]
+    grass = [sv.planes[name] for name in spec["planes"]]
+    planes = list(sv.planes.values())
+    edge = street.wall + street.kart + reach + 1.0
+    ragged = _Noise(9, 829)
+    roots = []
+    for (bi, bj) in street.buckets:
+        for y in range(bj * 64, min(h, (bj + 1) * 64)):
+            row = h - 1 - y
+            for x in range(bi * 64, min(w, (bi + 1) * 64)):
+                i = row * w + x
+                gap = street.gap[i]
+                if not (0.0 < gap <= reach) or keep[i] or not _open_at(street, open_segs, i, x, y, edge):
+                    continue
+                total = sum(_bilinear(plane, cols, rows, gs, x, row) for plane in planes)
+                if total <= 0 or sum(_bilinear(plane, cols, rows, gs, x, row) for plane in grass) < least * total:
+                    continue
+                depth = reach * (0.5 + 0.5 * ragged.at(x, y))
+                if gap > depth:
+                    continue
+                f = int(shade * (1.0 - gap / depth))
+                pic.r[i], pic.g[i], pic.b[i] = (pic.r[i] * (256 - f)) >> 8, (pic.g[i] * (256 - f)) >> 8, \
+                    (pic.b[i] * (256 - f)) >> 8
+                if hash32(x, y, 131) % every == 0:
+                    roots.append(i)
+    tip, root = spec["tip"], spec["root"]
+    for i in roots:
+        row, x = divmod(i, w)
+        tall = 3 + hash32(x, row, 137) % 5
+        for lean in ((0,) if hash32(x, row, 139) % 3 else (0, 1)):
+            for k in range(tall):
+                rr, xx = row - k, x + (lean * k) // 3
+                if rr < 0 or xx >= w:
+                    break
+                j = rr * w + xx
+                c = tip if k >= tall - 2 else root
+                pic.r[j], pic.g[j], pic.b[j] = (pic.r[j] + c[0]) >> 1, (pic.g[j] + c[1]) >> 1, (pic.b[j] + c[2]) >> 1
+
+
+def circuit_walls(d, street, deck, skip=frozenset(), open_=None):
     """The street's edge walls (as city_paint.wall_columns lays them): per
     world row, the texels just outside the karts' reach plus a kart, each
     with its height and style: a bridge's stone parapet beside its deck
     (taller every 24 units), else the timber rail fence (`rope_fence`, its
-    rails straight). None in `skip` (where a road leaves the course)."""
+    rails straight). None in `skip` (where a road leaves the course), and no
+    fence along an open stretch of the loop's edge (`open_`, open_edges):
+    the fence's last `post` units beside one are a post."""
     w, h = street.w, street.h
     thick = d["wall"]["thickness"]
     fence = d["rope_fence"]["land"]
+    edge = street.wall + street.kart + thick + 1.5          # a texel of the loop's edge, not a plaza's
     rows = {}
+    gone = bytearray(w * h) if open_ else None
+    kept = []
     for (bi, bj) in street.buckets:
         for y in range(bj * 64, min(h, (bj + 1) * 64)):
             row = h - 1 - y
@@ -1504,8 +1621,31 @@ def circuit_walls(d, street, deck, skip=frozenset()):
                 if 0 <= inner_x < w and 0 <= inner_y < h and deck[(h - 1 - inner_y) * w + inner_x]:
                     rows.setdefault(y, []).append((x, 14 if along % 24 < 5 else 10, "bridge"))
                     continue
+                if open_ and _open_at(street, open_, i, x, y, edge):
+                    gone[i] = 1
+                    continue
                 rows.setdefault(y, []).append((x, fence["post_height"], "rope",
                                                (along % fence["every"], fence, 1.5 < gap <= 3.8)))
+                if open_:
+                    kept.append((y, len(rows[y]) - 1))
+    # Where the fence stops beside an open stretch: a post, over its texels
+    # within `post` units of the stretch's.
+    post = fence["post"]
+    near = int(post)
+    for y, n in kept:
+        x, height, style, (phase, spec, line) = rows[y][n]
+        best = None
+        for dy in range(-near, near + 1):
+            r = h - 1 - y - dy
+            if not 0 <= r < h:
+                continue
+            for dx in range(-near, near + 1):
+                if 0 <= x + dx < w and gone[r * w + x + dx]:
+                    dd = dx * dx + dy * dy
+                    if best is None or dd < best:
+                        best = dd
+        if best is not None and best < post * post:
+            rows[y][n] = (x, height, style, (min(sqrt(best), post - 0.5), spec, line))
     return rows
 
 
@@ -1650,9 +1790,11 @@ def build_circuit(wc3, d, g, check=False, preview=False, log=print, cache=None):
         roads = survey_road_mask(sv, d["survey_roads"], w, h)
         paint_survey_roads(pic, d, street, tiles, light, sv, roads, wet)
         log(f"  roads {time.time() - started:.0f}s")
+    faces = None
     if d.get("cliffs"):
-        paint_cliffs(pic, d, sv, street, tiles, wet)
+        faces = paint_cliffs(pic, d, sv, street, tiles, wet)
         log(f"  cliffs {time.time() - started:.0f}s")
+    open_ = open_edges(d, g, street)
     if d.get("openings"):
         # The roads off the course, and the bridges off it with 50 units of
         # their road at either end: a bridge's mouth is a road's mouth.
@@ -1677,14 +1819,20 @@ def build_circuit(wc3, d, g, check=False, preview=False, log=print, cache=None):
                 for x in range(max(0, int(ax - reach)), min(w, int(ax + reach) + 1)):
                     if (x - ax) ** 2 + (y - ay) ** 2 <= reach * reach:
                         zone[(h - 1 - y) * w + x] = 1
-    deck = paint_course(pic, d, g, street, sv, tiles, light, roads, zone)
+    deck = paint_course(pic, d, g, street, sv, tiles, light, roads, zone, open_)
+    if open_:
+        keep = int.from_bytes(wet, "big")
+        for mask in (faces, roads):
+            if mask is not None:
+                keep |= int.from_bytes(mask, "big")
+        paint_wild_edges(pic, d, sv, street, open_, keep.to_bytes(w * h, "big"))
     paint_circuit_finish(pic, street, g["gates"][-1])
     log(f"  course {time.time() - started:.0f}s")
     cache = {} if cache is None else cache
     models, dropped = place_circuit_props(wc3, d, street, cache, log, sv)
     if gaps:
         models += place_blockers(wc3, d, street, gaps, cache, log)
-    walls = circuit_walls(d, street, deck, skip)
+    walls = circuit_walls(d, street, deck, skip, open_)
     paint_off_bridges(pic, d, street, tiles, walls)
     survey_fences(d, sv, street, walls)
     paint_scenery(pic, d, walls, models)

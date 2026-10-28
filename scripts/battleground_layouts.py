@@ -680,7 +680,7 @@ AB_SPAWN = _nearest(ARATHI_LINE, 1647, 625)
 ARATHI = {
     "id": "arathi_basin",
     "name": "Arathi Basin",
-    "version": 2,
+    "version": 3,
     "kind": "circuit",
     "size": AB_SIZE,
     "laps": 3,
@@ -843,6 +843,35 @@ ARATHI.update({
 ARATHI["relief"]["occlusion"] = {"step": 4, "reach": 256, "strength": 0.6}
 ARATHI["course"]["meadow"] = {"tile": TA + "lordaeronsummer/lords_grass.dds", "shade": (1.3, 1.28, 0.66, 0.5),
                               "tuft_every": 19, "tip": (186, 194, 110), "root": (52, 74, 30)}
+
+# Version 2, after the owner's second look ("remove the fences where the red
+# line is. following the road is obvious - and the map has natural
+# boundaries"): the timber fence stays only where it marks something - the
+# fork above the Gold Mine beside the Alliance's group, the Stables' meadow
+# and the west bridge's inner end, the home straight's Farm side from the
+# finish to the east bridge, the junction under the south bridge, Trollbane's
+# corner, Defiler's road and the bridges' ends. Elsewhere the street's edge
+# is open ground (the karts' walls stand where they did). Each stretch: a
+# side of the lap ("inner" or "outer") from the loop segment nearest one
+# point to the one nearest another, in the course's order.
+AB_OPEN_EDGES = [
+    ("inner", (962, 684), (1649, 569)),       # the south bridge's junction past the Farm to the finish
+    ("inner", (1582, 851), (1431, 1157)),     # the east bridge to the fork above the Gold Mine
+    ("inner", (1412, 1376), (729, 1790)),     # the fork round under the Gold Mine to the Stables' meadow
+    ("inner", (242, 1498), (940, 629)),       # the west bridge past the Lumber Mill to the south bridge's junction
+    ("outer", (1628, 471), (1590, 782)),      # Defiler's road past the finish to the east bridge
+    ("outer", (1579, 879), (290, 1860)),      # the east bridge round the Gold Mine and along the top to Trollbane's
+    ("outer", (252, 1829), (240, 1541)),      # Trollbane's corner to the west bridge
+    ("outer", (242, 1483), (1608, 452)),      # the west bridge round the Lumber Mill and the bottom to Defiler's road
+]
+ARATHI["open_edges"] = AB_OPEN_EDGES
+# Beyond an open edge, where the ground is grass: the long grass the verge's
+# mowing stops at, a little darker toward the edge and tufted, so a kart's
+# reach still shows (battleground_paint.paint_wild_edges).
+ARATHI["course"]["wild"] = {"planes": ("arathihighlandsgrassbase_s", "arathihighlandsgrasshighlight_s",
+                                       "arathihighlandscropbase_s"),
+                            "least": 0.5, "reach": 9, "shade": 64, "tuft_every": 15,
+                            "tip": (186, 194, 110), "root": (52, 74, 30)}
 
 # The survey's scenery: (the client's model names starting so, the Warcraft
 # III models that stand for them, sizes (the client's small, medium, large),

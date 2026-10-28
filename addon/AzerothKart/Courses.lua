@@ -166,6 +166,9 @@ function Courses.build(id, crossesGate)
         track = definition and namespace.LayeredTrack and namespace.LayeredTrack.new(definition, crossesGate)
     elseif course.geometry == "circuit" then
         local definition = namespace.Battlegrounds and namespace.Battlegrounds[id]
+        -- A missing generated collision map must never silently load the old
+        -- walls with the new Arathi version and scoreboard context.
+        if id == "arathi_basin" and (not definition or not definition.grassMap) then return nil end
         track = definition and namespace.Circuit.new(definition, crossesGate)
     end
     -- Constructor-only rule: set before caching; runs and tickets copy this

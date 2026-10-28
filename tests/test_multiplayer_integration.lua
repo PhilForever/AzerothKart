@@ -686,7 +686,7 @@ do
     for _=1,90 do q:step() end
     for _,e in ipairs({a,b}) do
         local ui,view=e.ns.UI,e:view()
-        assert(view.offer.trackId=="arathi_basin" and view.offer.trackVersion==2 -- Claude pin: Arathi version 2
+        assert(view.offer.trackId=="arathi_basin" and view.offer.trackVersion==3 -- open-grass geometry
             and view.offer.physicsVersion==14 and view.offer.laps==3
             and ui.trackId=="arathi_basin" and ui.track.boostOnGrass and not ui.track.layered and ui.race.targetLaps==3
             and ui.state.tick>0 and ui.state.level==nil,

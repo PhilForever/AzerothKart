@@ -6,7 +6,7 @@ local ids={"mirage_raceway","stormwind_city","ironforge_gp",
     "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway","scarlet_graveyard",
     "scarlet_library","scarlet_armory","scarlet_cathedral","warsong_gulch","arathi_basin"}
 local versions={stormwind_city=3,ironforge_gp=4,undercity_slime=2,thunder_bluff_skyway=2,
-    scarlet_graveyard=3,scarlet_library=3,scarlet_armory=2,scarlet_cathedral=3,warsong_gulch=3,arathi_basin=2}
+    scarlet_graveyard=3,scarlet_library=3,scarlet_armory=2,scarlet_cathedral=3,warsong_gulch=3,arathi_basin=3}
 local contexts={}
 for i,id in ipairs(ids) do contexts[i]={trackId=id,
     trackVersion=versions[id] or 1,
@@ -259,6 +259,19 @@ do
             "an Arathi Physics12 catalogue cannot silently join Physics14 sharing")
         return true
     end))
+    local v2Arathi=copy(contexts);v2Arathi[13].trackVersion=2
+    local v2Peer=assert(S.new({name="Birch Vale",contexts=v2Arathi},0))
+    assert(S.discover(v2Peer,{"Amber Stone"},0))
+    assert(S.update(v2Peer,0,function(_,payload)
+        local accepted,why=S.receive(localToken,"Birch Vale",payload,13)
+        assert(not accepted and why=="incompatible",
+            "Arathi v2 Physics14 cannot handshake with changed v3 geometry")
+        return true
+    end))
+    local oldRecord=record("Birch Vale",1,13);oldRecord.trackVersion=2
+    local accepted,why=S.receive(localToken,"Birch Vale",assert(S.encode({kind="NEW",record=oldRecord})),13)
+    assert(not accepted and why=="context" and #H.View(S.snapshot(localToken),contexts[13])==0,
+        "an old geometry record cannot enter the current board even before a handshake")
     local changed=copy(contexts);changed[12].rulesVersion=2
     local rulePeer=assert(S.new({name="Birch Vale",contexts=changed},0))
     assert(S.discover(rulePeer,{"Amber Stone"},0))

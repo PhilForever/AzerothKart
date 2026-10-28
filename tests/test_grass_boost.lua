@@ -56,7 +56,7 @@ end
 -- Production construction (not just a hand-made flag) opts in only Arathi.
 local AK={}
 for _,name in ipairs({"Track","MirageRaceway","Circuit","CapitalCities","Dungeon","ScarletCrusade",
-    "LayeredTrack","Battlegrounds","Courses","Physics"}) do
+    "LayeredTrack","Battlegrounds","ArathiGrass","Courses","Physics"}) do
     assert(loadfile("addon/AzerothKart/"..name..".lua"))("AzerothKart",AK)
 end
 local arathi=assert(AK.Courses.build("arathi_basin",AK.Track.crossesGate))

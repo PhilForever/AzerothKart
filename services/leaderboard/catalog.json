@@ -99,7 +99,7 @@
     },
     {
       "trackId": "arathi_basin",
-      "trackVersion": 2,
+      "trackVersion": 3,
       "physicsVersion": 14,
       "lapCount": 3,
       "tickRate": 60,

@@ -13,6 +13,7 @@ Dungeon.lua
 LayeredTrack.lua
 ScarletCrusade.lua
 Battlegrounds.lua
+ArathiGrass.lua
 Courses.lua
 Physics.lua
 Input.lua

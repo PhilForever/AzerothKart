@@ -97,7 +97,12 @@ end
 -- radius but never paved, so its ground stays grass even with
 -- fullSpeedToWalls wherever no street capsule reaches),
 -- gates={{name,ax,ay,bx,by,nx,ny}...},
--- spawn={x,y,heading}, solids={{id,x,y,width,height}...}}.
+-- spawn={x,y,heading}, solids={{id,x,y,width,height}...},
+-- grassMap={cellSize,columns,rows,data} (optional packed centre-passability
+-- grid, row-major from world y=0, least-significant bit first). A set bit
+-- admits the whole cell; unset cells are walls. The producer must include
+-- roads, openings and all pre-expanded natural/visible barriers. Existing
+-- road geometry continues to classify grip, not passability, for this opt-in.
 function Circuit.new(definition, crossesGate)
     assert(type(definition) == "table", "circuit definition required")
     assert(type(crossesGate) == "function", "directional gate predicate required")
@@ -153,6 +158,63 @@ function Circuit.new(definition, crossesGate)
     local inset = track.wallInset
     local solids = track.solids
     local reach = d.wallRadius or d.roadRadius
+
+    local grassMap = d.grassMap
+    local gridSize,gridColumns,gridRows,gridBytes
+    if grassMap ~= nil then
+        assert(type(grassMap)=="table" and getmetatable(grassMap)==nil,
+            "grassMap must be plain data")
+        gridSize,gridColumns,gridRows,gridBytes = grassMap.cellSize,grassMap.columns,grassMap.rows,grassMap.data
+        assert(finite(gridSize) and gridSize>=1 and gridSize<=64
+            and finite(gridColumns) and gridColumns>=1 and gridColumns<=4096 and gridColumns%1==0
+            and finite(gridRows) and gridRows>=1 and gridRows<=4096 and gridRows%1==0
+            and gridColumns*gridSize==track.width and gridRows*gridSize==track.height
+            and type(gridBytes)=="string" and #gridBytes==math.ceil(gridColumns*gridRows/8),
+            "invalid grassMap dimensions or packed data")
+    end
+    local powers = {1,2,4,8,16,32,64,128}
+    local function gridOpenCell(col,row)
+        if col<0 or row<0 or col>=gridColumns or row>=gridRows then return false end
+        local bit = row*gridColumns+col
+        local byte = string.byte(gridBytes,math.floor(bit/8)+1)
+        return math.floor(byte/powers[bit%8+1])%2==1
+    end
+    local function gridOpen(x,y)
+        return gridOpenCell(math.floor(x/gridSize),math.floor(y/gridSize))
+    end
+
+    -- Traverse every crossed cell, including both neighbours at a corner.
+    -- Returns first blocked plane(s) with a tiny inset into the allowed cell.
+    -- Endpoint-only checks can cross a thin wall in a single physics step.
+    local function gridSweep(x,y,dx,dy)
+        local col,row = math.floor(x/gridSize),math.floor(y/gridSize)
+        local sx = dx>0 and 1 or (dx<0 and -1 or 0)
+        local sy = dy>0 and 1 or (dy<0 and -1 or 0)
+        local tx = sx==0 and math.huge or (((sx>0 and col+1 or col)*gridSize)-x)/dx
+        local ty = sy==0 and math.huge or (((sy>0 and row+1 or row)*gridSize)-y)/dy
+        local dtx = sx==0 and math.huge or gridSize/math.abs(dx)
+        local dty = sy==0 and math.huge or gridSize/math.abs(dy)
+        local eps = 1e-7
+        while true do
+            local t = math.min(tx,ty)
+            if t>1 then return nil end
+            -- A tiny tolerance treats numerically identical corner entries as
+            -- simultaneous. Both sides and the diagonal must be passable.
+            local crossX = tx<=t+1e-12
+            local crossY = ty<=t+1e-12
+            local blockX = crossX and not gridOpenCell(col+sx,row)
+            local blockY = crossY and not gridOpenCell(col,row+sy)
+            if crossX and crossY and not blockX and not blockY
+                and not gridOpenCell(col+sx,row+sy) then blockX,blockY=true,true end
+            if blockX or blockY then
+                local px = blockX and ((sx>0 and col+1 or col)*gridSize-sx*eps) or nil
+                local py = blockY and ((sy>0 and row+1 or row)*gridSize-sy*eps) or nil
+                return math.max(0,t),px,py
+            end
+            if crossX then col,tx=col+sx,tx+dtx end
+            if crossY then row,ty=row+sy,ty+dty end
+        end
+    end
 
     -- Capsules: each road segment (paved to roadRadius, drivable to wallRadius,
     -- or both to a narrows' radius) and each plaza (paved and drivable to its
@@ -431,6 +493,7 @@ function Circuit.new(definition, crossesGate)
     -- Other circuits retain the existing rough shoulder response.
     function track.isDrivable(x,y)
         if not finite(x) or not finite(y) then return false end
+        if grassMap and not gridOpen(x,y) then return false end
         return streetGround(x,y) == "road"
     end
 
@@ -439,6 +502,7 @@ function Circuit.new(definition, crossesGate)
         if x < inset or x > track.width-inset or y < inset or y > track.height-inset then
             return "wall"
         end
+        if grassMap and not gridOpen(x,y) then return "wall" end
         for i=1,#solids do
             local box = solids[i]
             if x >= box.x and x <= box.x+box.width
@@ -446,7 +510,7 @@ function Circuit.new(definition, crossesGate)
         end
         local found = streetGround(x,y)
         if found == "road" then return "road" end
-        if found == "rough" or not corridor then return "grass" end
+        if found == "rough" or not corridor or grassMap then return "grass" end
         return "wall"
     end
 
@@ -459,8 +523,10 @@ function Circuit.new(definition, crossesGate)
 
     allowed = function(x, y)
         return x >= inset and x <= track.width-inset and y >= inset and y <= track.height-inset
-            and not inSolid(x,y,inset) and (not corridor or streetGround(x,y) ~= nil)
+            and not inSolid(x,y,inset) and (grassMap and gridOpen(x,y)
+                or not grassMap and (not corridor or streetGround(x,y) ~= nil))
     end
+    if grassMap then assert(allowed(spawnX,spawnY),"grassMap must admit the spawn") end
 
     -- Presentation guidance needs the kart centre's collision clearance, not
     -- just the road-grip query exposed by isDrivable. Keep that older query's
@@ -468,7 +534,7 @@ function Circuit.new(definition, crossesGate)
     function track.isGuideDrivable(x,y)
         return finite(x) and finite(y) and x >= inset and x <= track.width-inset
             and y >= inset and y <= track.height-inset and not inSolid(x,y,inset)
-            and streetGround(x,y) == "road"
+            and (not grassMap or gridOpen(x,y)) and streetGround(x,y) == "road"
     end
 
     -- A centre that starts inside an expanded box (never by driving: the
@@ -479,7 +545,8 @@ function Circuit.new(definition, crossesGate)
     -- returns to the spawn. A centre outside the street walls moves to the
     -- nearest drivable point.
     local function recover(x,y)
-        if corridor and streetGround(x,y) == nil then
+        if grassMap and not gridOpen(x,y) then return spawnX,spawnY,true end
+        if not grassMap and corridor and streetGround(x,y) == nil then
             local px,py = nearestDrivable(x,y,true)
             if px and allowed(px,py) then return px,py,true end
             return spawnX,spawnY,true
@@ -536,6 +603,10 @@ function Circuit.new(definition, crossesGate)
                 best,blockX,blockY = earlier(best,blockX,blockY,
                     (track.height-inset-y)/dy,nil,track.height-inset)
             end
+            if grassMap then
+                local time,planeX,planeY = gridSweep(x,y,dx,dy)
+                if time then best,blockX,blockY = earlier(best,blockX,blockY,time,planeX,planeY) end
+            end
             for i=1,#solids do
                 local box = solids[i]
                 local time,planeX,planeY = sweepBox(x,y,dx,dy,box.x-inset,box.y-inset,
@@ -551,7 +622,7 @@ function Circuit.new(definition, crossesGate)
             if blockX then x,dx = blockX,0 end
             if blockY then y,dy = blockY,0 end
         end
-        if corridor and streetGround(x,y) == nil then
+        if not grassMap and corridor and streetGround(x,y) == nil then
             hit = true
             local stepX,stepY = targetX-startX,targetY-startY
             local stepSquared = stepX*stepX+stepY*stepY

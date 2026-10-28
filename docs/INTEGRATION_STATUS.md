@@ -1,5 +1,12 @@
 # Shared integration and deployment status
 
+## Arathi open grass candidate — 2026-10-28
+
+Reviewed Claude `445c322` and Codex geometry3 collision mask. Focused Lua51
+checks and map/score exports pass. Native play and new grass shortcuts remain
+unverified. See [review](reviews/2026-10-28-arathi-open-grass.md) and
+[PROGRESS](PROGRESS.md). Verified install and playtest are next.
+
 ## Installed Arathi v2 — 2026-10-28
 
 Runtime **4dd8071** is installed and independently hash-verified (93 files);

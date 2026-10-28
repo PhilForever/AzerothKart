@@ -76,7 +76,7 @@ Battlegrounds["warsong_gulch"] = {
 }
 
 Battlegrounds["arathi_basin"] = {
-    id="arathi_basin", version=2, name="Arathi Basin",
+    id="arathi_basin", version=3, name="Arathi Basin",
     width=2048, height=2048, wallInset=18, roadRadius=56, wallRadius=76, checkpointMaxStep=5,
     narrows={
         {name="east bridge", first=9, last=27, wallRadius=42},

@@ -1,15 +1,16 @@
 # Manual client acceptance — F0/F1/F2/F5
 
-## Deferred Arathi Basin version 2 check (integrated)
+## Deferred Arathi Basin version 3 check (integrated)
 
-**NOT RUN.** After the coordinated install, **fully restart the client:** `Battlegrounds.lua` and `Assets/Tracks/ArathiBasin/` change (same paths). Version 2 has its own board. The owner runs these checks; Claude does not control the client.
+**NOT RUN.** After the coordinated install, **fully restart the client:** `Battlegrounds.lua` and `Assets/Tracks/ArathiBasin/` change (same paths). Version 3 has its own board; v1/v2 scores remain saved. The owner runs these checks; Claude does not control the client.
 
 1. **No arrow** on Arathi, no glowing gate; the way still plain.
 2. **The Gold Mine fork:** the upper road goes left as a real road, blocked by the group of Alliance soldiers; the kart stops at them, never at nothing. Down the road into the pit: does the cliff up to the upper road read as a drop now?
 3. **The Stables:** the meadow (long grass) slows an unboosted kart; an active boost retains up to normal road speed while it lasts. Test both paths and boost expiry; the worn dirt beside the road keeps full grip. Compare whether the shortcut feels worthwhile.
-4. **The Lumber Mill:** the fork's lower road blocked by lumber and a cart, not a fence; along the cliff top the cliff drops beyond the fence to the lower road. Does it read as a straight cliff?
+4. **The Lumber Mill:** the fork's lower road blocked by lumber and a cart, not a fence; along the cliff top the cliff drops beyond the verge to the lower road. Does it read as a straight cliff?
 5. **The south bridge junction** and **the road to Defiler's Den:** blocked by carts, crates and grunts.
-6. **Seams:** anywhere a kart stops at nothing it can see, or a road ends at a fence: a screenshot of each.
+6. **Fewer fences:** no fence along the stretches lined in red; the fence stays only at the Gold Mine fork, round the Stables' meadow, beside the Farm from the finish to the east bridge, at the south bridge's junction, Trollbane's corner, Defiler's road and the bridges' ends. Drive from the road across several open edges onto slow grass and back; check that retained fences, bridges, water and cliffs still stop the kart where visible. A screenshot of any place where the boundary feels invisible or incorrect.
+7. **Seams:** anywhere a kart stops at nothing it can see, or a road ends at a fence: a screenshot of each.
 
 ## Deferred Arathi Basin client check (registered)
 

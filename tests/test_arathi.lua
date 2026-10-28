@@ -6,7 +6,7 @@
 -- separate, pending checks (docs/art/tracks/arathi-basin.md).
 local AK = {}
 for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Dungeon", "ScarletCrusade",
-        "LayeredTrack", "Battlegrounds", "Courses", "Physics", "Checkpoints", "Presentation"}) do
+        "LayeredTrack", "Battlegrounds", "ArathiGrass", "Courses", "Physics", "Checkpoints", "Presentation"}) do
     assert(loadfile("addon/AzerothKart/" .. name .. ".lua"))("AzerothKart", AK)
 end
 local Track, Circuit, Checkpoints = AK.Track, AK.Circuit, AK.Checkpoints
@@ -17,12 +17,17 @@ local function distance(ax, ay, bx, by) return math.sqrt((bx - ax) ^ 2 + (by - a
 -- radius 56, the karts' reach 76, full grip to the walls), the walls'
 -- clearance at their junctions, two bridges narrowed, the Stables' yard (a
 -- meadow: Circuit's grass plaza) and its barn.
+local savedMask = data.grassMap
+data.grassMap = nil
+assert(AK.Courses.build("arathi_basin", Track.crossesGate) == nil,
+    "missing generated collision data must not silently use the old track")
+data.grassMap = savedMask
 local track = Circuit.new(data, Track.crossesGate)
-assert(track.version == 2 and track.width == 2048 and track.height == 2048 and track.roadRadius == 56
+assert(track.version == 3 and track.width == 2048 and track.height == 2048 and track.roadRadius == 56
     and track.wallRadius == 76 and track.fullSpeedToWalls and track.wallClearance == 14 and #track.wallVertices > 0
     and #track.gates == 5 and #track.narrows == 2 and #track.plazas == 1 and track.plazas[1].surface == "grass"
     and #track.solids == 1 and #track.branches == 0,
-    "Arathi Basin version 2: 2048 x 2048, five gates, two bridges, the Stables' meadow and barn")
+    "Arathi Basin version 3: 2048 x 2048, five gates, two bridges, the Stables' meadow and barn")
 assert(track.laps == nil and AK.Physics.versionForTrack(track) == AK.Physics.VERSION,
     "three laps on the flat physics: no floors, no pads")
 assert(track.length > 4900 and track.length < 5300, "about 5,100 units a lap: " .. track.length)
@@ -147,10 +152,10 @@ assert(course and not course.soon and course.cup == "battlegrounds"
 assert(AK.Courses.next("warsong_gulch") == "arathi_basin"
     and AK.Courses.next("arathi_basin") == "mirage_raceway", "the Track button includes Arathi")
 local built = assert(AK.Courses.build("arathi_basin", Track.crossesGate))
-assert(built.id == "arathi_basin" and built.version == 2 and built.length == track.length
+assert(built.id == "arathi_basin" and built.version == 3 and built.length == track.length
     and #built.gates == 5 and (built.laps or 3) == 3 and not built.layered
     and AK.Physics.versionForTrack(built) == 14 and AK.Courses.roofs("arathi_basin") == nil,
-    "the catalogue builds version 2 as a flat, three-lap Physics14 circuit with no roofs")
+    "the catalogue builds version 3 as a flat, three-lap Physics14 circuit with no roofs")
 -- Temporarily model a future coming-soon entry without changing the real catalogue.
 course.soon = true
 assert(not AK.Courses.available("arathi_basin") and not AK.Courses.multiplayer("arathi_basin")
@@ -160,4 +165,4 @@ assert(not AK.Courses.available("arathi_basin") and not AK.Courses.multiplayer("
 course.soon = nil
 assert(AK.Courses.build("arathi_basin", Track.crossesGate) == built,
     "restoring availability reuses the built geometry")
-print("Arathi Basin version 2: five gates, two bridges, the Stables' meadow and barn, route walked, no arrow")
+print("Arathi Basin version 3: five gates, two bridges, the Stables' meadow and barn, route walked, no arrow")

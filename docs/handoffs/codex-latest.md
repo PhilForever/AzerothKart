@@ -1,5 +1,15 @@
 # Codex handoff — production maps and Claude course review
 
+## Arathi open grass reviewed candidate — 2026-10-28
+
+`codex/arathi-open-grass` merges Claude `445c322` and opens selected former
+fence edges to slow grass. Arathi geometry3 retains Physics14/AZKRUN2 and
+has a separate score context. Existing tracks and old saves are preserved.
+The generated collision mask and opt-in Circuit sweep pass focused checks;
+client feel and natural-edge alignment are NOT RUN. Full details, limitations
+and potential shortcut balance are in [review](../reviews/2026-10-28-arathi-open-grass.md)
+and [PROGRESS](../PROGRESS.md). Next: verified install and user playtest.
+
 ## Active Arathi open-grass change — 2026-10-28
 
 Owner requests drivable slow grass beyond the former fences, out toward the

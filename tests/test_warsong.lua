@@ -6,7 +6,7 @@
 -- the client are separate, pending checks (docs/art/tracks/warsong-gulch.md).
 local AK = {}
 for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Dungeon", "ScarletCrusade",
-        "LayeredTrack", "Battlegrounds", "Courses", "Physics", "Checkpoints", "RaceGrid", "Presentation"}) do
+        "LayeredTrack", "Battlegrounds", "ArathiGrass", "Courses", "Physics", "Checkpoints", "RaceGrid", "Presentation"}) do
     assert(loadfile("addon/AzerothKart/" .. name .. ".lua"))("AzerothKart", AK)
 end
 local Track, LayeredTrack, Physics, Checkpoints = AK.Track, AK.LayeredTrack, AK.Physics, AK.Checkpoints

@@ -1,7 +1,27 @@
 # Implemented simulation and rendering contracts
 
 
-## Arathi v2 and opt-in grass boost — 2026-10-28
+## Arathi v3: open grass and mapped barriers — 2026-10-28
+
+Arathi v3 replaces selected former roadside walls with grass. `Circuit.new`
+accepts an optional immutable `grassMap` packed bit grid of kart-centre
+passability: `cellSize`, `columns`, `rows`, `data`, row-major from world
+y=0 with least-significant bit first. The generated 4-unit cells preserve
+roads, bridge/fence boundaries, terrain hazards and blocked openings; old
+road capsules classify grip, and other admitted ground is grass. Swept grid
+movement checks every crossed cell and slides on blocking faces. Existing
+tracks without the mask retain the prior solver.
+
+The mask is built by `scripts/build_arathi_grass_mask.py` from the same survey
+and authored fence ranges. Terrain and retained boundaries are discretized
+and expanded for kart clearance; off-road decorative props do not all have
+collision. Native appearance, feel and precise edge alignment are NOT RUN.
+Arathi’s existing Physics14 boost-on-grass handling is unchanged. Geometry3
+gets its own score context and multiplayer version; old v1/v2 records remain
+saved. Both racers need the updated build. AZKRUN2 and score packet budgets
+are unchanged. The preceding v2 and older proposals below are historical.
+
+## Arathi v2 and opt-in grass boost — 2026-10-28 (historical)
 
 Arathi geometry2 uses Physics14, race code D and score code B. This is a
 flat track and continues to use AZKRUN2. The eleven other flat courses remain
@@ -975,6 +995,7 @@ On `claude/arathi-v2` (base Codex's `codex/arathi-integration` `1fbea6b`, instal
 - **A meadow (`Circuit.lua`, additive, shared: flagged for review):** `plazas[i].surface = "grass"`: the plaza is drivable to its radius as any plaza, but never paved, and `fullSpeedToWalls` does not reach it: beyond the street's own capsules its ground is rough, so `surfaceAt` answers "grass" and `isDrivable`/`isGuideDrivable` are false there (Physics' grass). The street's own reach keeps its full grip through it; walls, clearance and every existing definition are unchanged (no `surface`: paved, as before). Arathi's Stables yard is a meadow: the shortcut south of the barn; the road round north of it keeps full grip. `test_circuit` covers it: surfaces, the walls unchanged, grass speed on it, any other surface refused.
 - **Requested (Codex, the owner's choice): a boost keeps normal speed on grass.** The owner: "if you boost over grass - normal speed is retained - if you don't have boost here, going the road to the right around the stables is optimal". Today a boost ends on entering grass and the kart is dragged to `GRASS_MAX_SPEED` (70). Suggested: while `boostTicks > 0`, grass neither ends the boost nor slows the kart below its handling's normal road cap (no boost surplus on grass); when the boost runs out, grass as now. Opt-in per course (a track field such as `boostOnGrass`, with its own physics context for the boards) so other courses' grass and records stay as they are. Until then the meadow slows every kart, boost or not.
 - **Openings and blockers (painting only):** where a real road leaves the course, the fence is left out and the road painted on, seamless, and what stands in it (Warcraft III units and props) is painted at the street's edge where the karts stop. The walls are the street's, as before (no new collision); the painter refuses an opening a kart could see through (every gap texel within 9 units of a blocker's body).
+- **Fewer fences (painting only, after the owner's second look):** the painted timber fence is left out along eight stretches of the street's edge he lined in red (`open_edges` in the layout: a side of the lap from one place to another; 87% of the fence), so the cliffs, the river and the long grass beyond the verge mark the edge there. No contract change: the walls (`wallRadius`, `wallVertices`, narrows, plazas) and `Battlegrounds.lua` are byte-identical, trackVersion stays 2, and collision never reads the picture. A kart still stops where the fence stood; whether that reads as natural in the client is NOT RUN (if the owner would rather karts run out onto slow grass there, that is a geometry and physics change for Codex).
 - **Codex-owned tests, pins only (for review):** `test_peer_session` (Arathi `trackVersion` 2; 1 incompatible), `test_multiplayer_integration` (the offer's `trackVersion` 2), `test_arathi_guide` (Arathi hands no route to the arrow: the guide-round-a-solid regression keeps Arathi's geometry with the yard paved, as version 1 had it, and its route from the data). A failure already on `codex/arathi-integration` is fixed in `test_dungeon` (the Track button now steps from Warsong to Arathi, then to Mirage).
 
 ### Proposed: Arathi Basin, a Battlegrounds Cup circuit (Claude, 2026-10-28, for Codex)

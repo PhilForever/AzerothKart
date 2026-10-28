@@ -10,6 +10,12 @@ You are a development agent for **Azeroth Kart**, a top-down 2D WoW Forever arca
 
 ## Current owner priority
 
+Latest direction, 2026-10-28: remove walls at the opened Arathi fence
+stretches and allow slow grass toward natural boundaries. Integrated geometry
+version3 uses opt-in packed terrain passability and existing Physics14;
+previous records stay separate. Native boundary/shortcut feel is unverified.
+See [current contract](docs/API_CONTRACTS.md) and [handoff](docs/handoffs/codex-latest.md).
+
 Latest direction, 2026-10-28: review and install Arathi Basin when acceptable.
 It is registered for the existing two-peer flow alongside the prior twelve
 courses. Arathi uses flat Physics12; its surveyed slopes are visual. Score

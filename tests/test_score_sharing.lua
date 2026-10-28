@@ -116,7 +116,7 @@ local function bus()
             return frame
         end
         using(client,function()
-            for _,module in ipairs({"Track","MirageRaceway","Circuit","CapitalCities","Dungeon","LayeredTrack","ScarletCrusade","Battlegrounds","Courses",
+            for _,module in ipairs({"Track","MirageRaceway","Circuit","CapitalCities","Dungeon","LayeredTrack","ScarletCrusade","Battlegrounds","ArathiGrass","Courses",
                 "Physics","Highscores","SoloRecords","ScoreSync","ScoreDiscovery","ScoreSharing"}) do
                 assert(loadfile("addon/AzerothKart/"..module..".lua"))("AzerothKart",client.namespace)
             end
@@ -211,6 +211,11 @@ do
     oldArathi.playerName,oldArathi.totalTicks=owner.name,8888
     oldArathi.finishedAt,oldArathi.kartId=1792750000,"goblin_mortar_trike"
     owner.db.highscores=owner.namespace.Highscores.Submit(owner.db.highscores,oldArathi)
+    local previousArathi=owner.namespace.SoloRecords.Context(owner.namespace.Courses.build("arathi_basin",owner.namespace.Track.crossesGate))
+    previousArathi.trackVersion,previousArathi.physicsVersion=2,14
+    previousArathi.playerName,previousArathi.totalTicks=owner.name,7777
+    previousArathi.finishedAt,previousArathi.kartId=1792750000,"goblin_mortar_trike"
+    owner.db.highscores=owner.namespace.Highscores.Submit(owner.db.highscores,previousArathi)
     using(owner,function() owner.namespace.SoloRecords.Init() end)
     local ids={}
     for _,course in ipairs(owner.namespace.Courses.LIST) do
@@ -241,10 +246,12 @@ do
     assert(learner:view("warsong_gulch").rows[1].lapCount==3)
     assert(learner:view("arathi_basin").rows[1].lapCount==3
         and learner:view("arathi_basin").rows[1].physicsVersion==14
-        and learner:view("arathi_basin").rows[1].trackVersion==2,
+        and learner:view("arathi_basin").rows[1].trackVersion==3,
         "Arathi catch-up uses its own flat three-lap board")
     assert(owner.namespace.Highscores.View(owner.db.highscores,oldArathi)[1].totalTicks==8888,
-        "Arathi version 1 Physics12 remains saved separately from version 2 Physics14")
+        "Arathi version 1 Physics12 remains saved separately from version 3 Physics14")
+    assert(owner.namespace.Highscores.View(owner.db.highscores,previousArathi)[1].totalTicks==7777,
+        "Arathi version 2 Physics14 stays saved separately from version 3")
     assert(owner.namespace.Highscores.View(owner.db.highscores,historical)[1].totalTicks==9999,
         "adding Physics13 sharing never migrates/deletes historical Physics11 records")
     assert(learner:view("scarlet_graveyard").rows[1].trackVersion==3

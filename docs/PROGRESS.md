@@ -1,5 +1,36 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-28 19:05 +0100 — Arathi open grass reviewed candidate
+
+Owner requests slow grass beyond the removed fence stretches. Reviewed and
+merged Claude `445c322` (artwork/fewer fences) on `codex/arathi-open-grass`.
+Codex adds a four-unit packed passability map and swept opt-in Circuit solver
+derived from the same survey and authored open-edge ranges. Retained fences,
+bridges, terrain hazards and painted road mouths are approximated; decorative
+off-road props are not all colliders. Arathi geometry3 keeps Physics14 and
+flat AZKRUN2; prior v1/v2 scores stay saved, older race offers reject. See
+[review](reviews/2026-10-28-arathi-open-grass.md) and [contract](API_CONTRACTS.md).
+
+Executed `scripts/test_lua.py --runtime lua51 --tests open_grass
+arathi_grass_map grass_boost arathi arathi_guide circuit physics race_grid
+peer_session session_transport multiplayer_integration score_sync
+score_sharing ui menu`: PASS, 15 modules, 91 Lua files parsed. The actual
+map samples cover all eight openings, retained barriers, a bridge, water,
+cliff and one 100-unit grass passage. Agent separately ran `open_grass circuit`
+under Lua51 and Lua54: PASS. `scripts/build_arathi_grass_mask.py --check`:
+PASS, 32768 bytes, binary SHA256 da504daf47d7d6b88f4d46177c4f767433ff77a3fd8c33527e428bac07ab5d32.
+`scripts/export_score_catalog.py --check`: PASS, 13 boards; HELLO stays145 bytes.
+A separate bounded cardinal search plus real Lua resolver/checkpoint replay
+completed two laps in gate order. An eight-neighbor geometric search found a
+route about14% shorter than the centerline; this is not a race-time or
+balance measurement. Audit scripts: `local-artifacts/arathi-v3-gate-bfs-20261028.py`
+and `local-artifacts/arathi-v3-performance-20261028.py`. Native play, boundary
+alignment and frame cost NOT RUN. Project validator: two pre-existing expired
+computer-use links remain FAIL; TOC order checks pass after the new module.
+Preflight matched the installed93 files and preserved extra; install preview
+PASS. Next: install, independently hash-verify and request a short drive.
+No push, release, main merge or other worktree mutation.
+
 ## 2026-10-28 17:35 +0100 — Arathi v2 installed and friend ZIP verified
 
 Runtime **4dd8071** on `codex/arathi-v2-integration` merges Claude

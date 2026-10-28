@@ -1,6 +1,7 @@
 # Azeroth Kart — top-down arcade racing inside WoW Forever
 
-**Arathi Basin v2:** available in solo and the existing two-player lobby. The
+**Arathi Basin v3:** available in solo and the existing two-player lobby. Former
+fence stretches open onto slow grass with natural boundaries; the
 Stables grass shortcut slows unboosted karts; an active boost maintains up to
 the kart’s normal road speed. It uses flat Physics14 and its own score context;
 terrain relief is visual. Both players need this build and a full client restart.

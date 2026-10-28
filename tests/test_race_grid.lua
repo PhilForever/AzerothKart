@@ -185,7 +185,7 @@ end
 do
     local AK={}
     for _,module in ipairs({"Track","MirageRaceway","Circuit","CapitalCities","Dungeon","ScarletCrusade",
-        "LayeredTrack","Battlegrounds","Courses"}) do
+        "LayeredTrack","Battlegrounds","ArathiGrass","Courses"}) do
         assert(loadfile("addon/AzerothKart/"..module..".lua"))("AzerothKart",AK)
     end
     local ready=0

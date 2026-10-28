@@ -1,5 +1,11 @@
 # Technical architecture
 
+Arathi geometry3 uses an opt-in four-unit packed kart-centre passability
+mask derived from surveyed water/cliffs and authored fence openings. Circuit
+sweeps its cells and classifies admitted off-road ground as grass; Physics14
+boost handling is unchanged. Legacy courses retain the existing solver.
+Natural-boundary alignment and new shortcuts need native playtesting.
+
 2026-10-27 opt-in foundation: [LayeredTrack](LAYERED_TRACKS.md) composes the
 existing Dungeon solver per floor, with authored ramp portals and scalar
 transition coordinates. Physics stores level only on layered tracks; pads use
