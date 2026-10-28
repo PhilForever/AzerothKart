@@ -91,13 +91,13 @@ Menu.TRACKS = {
             .. "its tunnel to mid, every lap.",
         facts={"3 laps, 7 gates: both flags every lap", "Laid out from the game's own map",
             "Boots in each tunnel; the arrow shows the way"}},
-    -- The second (coming soon): round the basin on its real roads.
+    -- The second: round the basin on its real roads.
     {id="arathi_basin", name="Arathi Basin", cell="arathibasin",
         blurb="Round the basin from the road to Defiler's Den: north over the east bridge and down into the "
-            .. "Gold Mine's hollow, up the north road to the Stables and round the barn either way, over the west "
-            .. "bridge, up the hill past the Lumber Mill and down the cliff road to the Farm.",
-        facts={"3 laps, 5 gates named for the bases", "Laid out from the game's own map: real hills and roads",
-            "Round the Stables' barn either way; the arrow shows the way"}},
+            .. "Gold Mine's pit, up the north road to the Stables, round the barn by the road or across its slow "
+            .. "grass, over the west bridge, along the Lumber Mill's cliff top and down to the Farm.",
+        facts={"3 laps, 5 gates named for the bases", "Laid out from the game's own map: real hills and cliffs",
+            "The Stables: the road round, or a slow grass shortcut"}},
 }
 
 local WC3C = "Model: ITE project (wc3c), author unknown"

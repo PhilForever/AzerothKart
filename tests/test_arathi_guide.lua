@@ -5,8 +5,20 @@ for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Dun
     "LayeredTrack", "Battlegrounds", "Courses", "Physics", "Checkpoints", "Presentation"}) do
     assert(loadfile("addon/AzerothKart/"..name..".lua"))("AzerothKart", AK)
 end
-local track = assert(AK.Courses.build("arathi_basin", AK.Track.crossesGate))
-local route = assert(AK.Courses.route("arathi_basin"))
+-- Claude pin (Arathi version 2): the owner keeps the guiding arrow for
+-- Warsong Gulch alone, so Arathi hands no route to the arrow and its yard is
+-- a meadow of slow grass. This regression of the guide round a solid keeps
+-- Arathi's real geometry with the Stables' yard paved, as version 1 had it,
+-- and the reviewed route from its data.
+local definition = {}
+for key,value in pairs(AK.Battlegrounds.arathi_basin) do definition[key] = value end
+definition.plazas = {}
+for index,plaza in ipairs(AK.Battlegrounds.arathi_basin.plazas) do
+    definition.plazas[index] = {ax=plaza.ax, ay=plaza.ay, bx=plaza.bx, by=plaza.by, radius=plaza.radius}
+end
+assert(AK.Courses.route("arathi_basin") == nil, "Arathi Basin hands no route to the arrow")
+local track = AK.Circuit.new(definition, AK.Track.crossesGate)
+local route = {points=definition.route, gates=definition.routeGates}
 local progress = {passed=2, nextGate=3, complete=false}
 
 local function clearRay(x, y, heading, length)

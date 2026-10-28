@@ -135,6 +135,9 @@ def circuit_geometry(d, wc3=None, cache=None):
             s["id"] = "%s_%d" % (s["id"], seen[s["id"]])
     line = list(d["centerline"])
     plazas = [{k: round(p[k], 1) for k in ("ax", "ay", "bx", "by", "radius")} for p in d.get("plazas", ())]
+    for plaza, spec in zip(plazas, d.get("plazas", ())):
+        if spec.get("surface"):
+            plaza["surface"] = spec["surface"]          # "grass": a meadow (Circuit.lua)
     g = {"kind": "circuit", "id": d["id"], "name": d["name"], "version": d["version"], "width": width,
          "height": height, "wallInset": WALL_INSET, "roadRadius": ROAD_RADIUS, "wallRadius": WALL_RADIUS,
          "fullSpeedToWalls": bool(d.get("full_speed_to_walls")), "kart": KART, "centerline": line,
@@ -149,7 +152,8 @@ def circuit_geometry(d, wc3=None, cache=None):
         point = lambda p: (float(number(p[0])), float(number(p[1])))
         canonical["centerline"] = [point(p) for p in line]
         canonical["branches"] = [[point(p) for p in branch] for branch in g["branches"]]
-        canonical["plazas"] = [{key: float(number(value)) for key, value in p.items()} for p in plazas]
+        canonical["plazas"] = [{key: float(number(p[key])) for key in ("ax", "ay", "bx", "by", "radius")}
+                               for p in plazas]
         g["wallClearance"] = clearance
         g["wallVertices"] = boundary_vertices(canonical, clearance)
     sx, sy = g["spawn"][:2]
@@ -662,8 +666,9 @@ def lua_circuit(g):
     lines.append("    branches={},")
     lines.append("    plazas={")
     for p in g["plazas"]:
-        lines.append("        {ax=%s, ay=%s, bx=%s, by=%s, radius=%s}," % (
-            number(p["ax"]), number(p["ay"]), number(p["bx"]), number(p["by"]), number(p["radius"])))
+        surface = ", surface=%s" % q(p["surface"]) if p.get("surface") else ""
+        lines.append("        {ax=%s, ay=%s, bx=%s, by=%s, radius=%s%s}," % (
+            number(p["ax"]), number(p["ay"]), number(p["bx"]), number(p["by"]), number(p["radius"]), surface))
     lines.append("    },")
     lines.append("    gates={")
     for gate in g["gates"]:

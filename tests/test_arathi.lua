@@ -1,8 +1,9 @@
--- Arathi Basin, the Battlegrounds Cup's second registered course: its
--- generated circuit (Battlegrounds.lua, from scripts/battleground_layouts.py)
--- on Codex's Circuit.lua, laid on the basin's real roads. Pure offline
--- checks: its look and drive in the client are separate, pending checks
--- (docs/art/tracks/arathi-basin.md).
+-- Arathi Basin, the Battlegrounds Cup's second registered course (version
+-- 2, after the owner's drive): its generated circuit (Battlegrounds.lua,
+-- from scripts/battleground_layouts.py) on Codex's Circuit.lua, laid on the
+-- basin's real roads, the Stables' yard a meadow of slow grass, no guiding
+-- arrow. Pure offline checks: its look and drive in the client are
+-- separate, pending checks (docs/art/tracks/arathi-basin.md).
 local AK = {}
 for _,name in ipairs({"Track", "MirageRaceway", "Circuit", "CapitalCities", "Dungeon", "ScarletCrusade",
         "LayeredTrack", "Battlegrounds", "Courses", "Physics", "Checkpoints", "Presentation"}) do
@@ -14,13 +15,14 @@ local function distance(ax, ay, bx, by) return math.sqrt((bx - ax) ^ 2 + (by - a
 
 -- The contract's own constructor accepts it: the cities' street (road
 -- radius 56, the karts' reach 76, full grip to the walls), the walls'
--- clearance at their junctions, two bridges narrowed, the Stables' yard and
--- its barn.
+-- clearance at their junctions, two bridges narrowed, the Stables' yard (a
+-- meadow: Circuit's grass plaza) and its barn.
 local track = Circuit.new(data, Track.crossesGate)
-assert(track.width == 2048 and track.height == 2048 and track.roadRadius == 56 and track.wallRadius == 76
-    and track.fullSpeedToWalls and track.wallClearance == 14 and #track.wallVertices > 0
-    and #track.gates == 5 and #track.narrows == 2 and #track.plazas == 1 and #track.solids == 1
-    and #track.branches == 0, "Arathi Basin: 2048 x 2048, five gates, two bridges, the Stables' yard and barn")
+assert(track.version == 2 and track.width == 2048 and track.height == 2048 and track.roadRadius == 56
+    and track.wallRadius == 76 and track.fullSpeedToWalls and track.wallClearance == 14 and #track.wallVertices > 0
+    and #track.gates == 5 and #track.narrows == 2 and #track.plazas == 1 and track.plazas[1].surface == "grass"
+    and #track.solids == 1 and #track.branches == 0,
+    "Arathi Basin version 2: 2048 x 2048, five gates, two bridges, the Stables' meadow and barn")
 assert(track.laps == nil and AK.Physics.versionForTrack(track) == AK.Physics.VERSION,
     "three laps on the flat physics: no floors, no pads")
 assert(track.length > 4900 and track.length < 5300, "about 5,100 units a lap: " .. track.length)
@@ -49,13 +51,20 @@ end
 assert(track.surfaceAt(1650 - 70, 600) == "road" and track.surfaceAt(1650 + 70, 600) == "road",
     "south of the east bridge's approach the road is full width")
 
--- The Stables: the barn is solid; the yard runs on both sides of it (north
--- by the road to Trollbane Hall, south across the yard by the river).
+-- The Stables: the barn is solid; the yard round it is a meadow, slow grass
+-- (the shortcut south of the barn, from the gate to the west bridge); the
+-- road round north of it, and the west road beside the meadow, keep the
+-- street's full grip. The yard still drives on both sides of the barn.
 local barn = data.solids[1]
 local bx, by = barn.x + barn.width / 2, barn.y + barn.height / 2
 assert(barn.id == "stables" and track.surfaceAt(bx, by) == "wall", "the barn stands solid in the yard")
-assert(track.surfaceAt(bx, barn.y + barn.height + 40) == "road" and track.surfaceAt(bx, barn.y - 40) == "road",
-    "the yard drives north and south of the barn: both ways round the Stables")
+for _,p in ipairs({{bx, barn.y - 40}, {450, 1640}, {520, 1650}, {bx, barn.y + barn.height + 40}}) do
+    assert(track.surfaceAt(p[1], p[2]) == "grass" and not track.isDrivable(p[1], p[2]),
+        "the meadow is slow grass: " .. p[1] .. ", " .. p[2])
+end
+for _,p in ipairs({{410, 1838}, {340, 1860}, {240, 1680}, {612, 1755}}) do
+    assert(track.surfaceAt(p[1], p[2]) == "road", "the road round the Stables keeps full grip: " .. p[1] .. ", " .. p[2])
+end
 local function push(x, y, ux, uy, length)
     local px, py, contact = x, y, false
     for _=1,math.ceil(length / 4) do
@@ -73,21 +82,19 @@ assert(not hit and x < barn.x - 40, "north of the barn the yard is open: " .. x)
 x, y, hit = push(barn.x + barn.width + 60, barn.y - 40, -1, 0, 260)
 assert(not hit and x < barn.x - 40, "south of the barn the yard is open: " .. x)
 
--- The reviewed route: kart-centre steps of at most 4 units through
--- Circuit.resolveMovement, never meeting a wall; the gates counted in lap
--- order by Checkpoints where the route's gate crossings (the guiding arrow's
--- way) say. At every step the guiding arrow (Presentation.guideHeading)
--- points along the route where the kart can drive.
+-- The reviewed route (review data since version 2: no guiding arrow, the
+-- owner keeps it for Warsong Gulch alone): kart-centre steps of at most 4
+-- units through Circuit.resolveMovement, never meeting a wall; the gates
+-- counted in lap order by Checkpoints where the route's gate crossings say.
 local course = AK.Courses.get("arathi_basin")
-local route = AK.Courses.route("arathi_basin")
-assert(route and route.points == data.route and route.gates == data.routeGates,
-    "the guided circuit hands its route to the arrow")
+assert(not course.guideArrow and AK.Courses.route("arathi_basin") == nil,
+    "no guiding arrow on Arathi Basin: the way is plain")
 assert(data.route[1].x == spawn.x and data.route[1].y == spawn.y
     and data.route[#data.route].x == spawn.x and data.route[#data.route].y == spawn.y,
     "the route runs from the grid round to it")
 local progress = Checkpoints.new(track, 0)
 local previous = {x=spawn.x, y=spawn.y, tick=0}
-local passed, walls, crossed, aimed, lost = {}, 0, {}, 0, 0
+local passed, walls, crossed, steps_ = {}, 0, {}, 0
 for index=2,#data.route do
     local target = data.route[index]
     local fromX, fromY = previous.x, previous.y
@@ -104,11 +111,7 @@ for index=2,#data.route do
             crossed[#crossed + 1] = index
         end
         previous = current
-        if not progress.complete then
-            local heading, reach, along = AK.Presentation.guideHeading(track, progress, mx, my, route, 0)
-            aimed = aimed + 1
-            if not (heading and along and reach > 0) then lost = lost + 1 end
-        end
+        steps_ = steps_ + 1
     end
 end
 assert(walls == 0, "the route never meets a wall: " .. walls)
@@ -116,7 +119,7 @@ assert(table.concat(passed, ",") == table.concat(names, ",") and progress.comple
     "the route passes the gates in lap order: " .. table.concat(passed, ","))
 assert(table.concat(crossed, ",") == table.concat(data.routeGates, ","),
     "each gate's route point is where the route crosses it: " .. table.concat(crossed, ","))
-assert(aimed > 1000 and lost == 0, "the arrow follows the route all the way round: " .. lost .. " of " .. aimed)
+assert(steps_ > 1000, "the lap walked in " .. steps_ .. " steps")
 
 -- The heights (inert, ADR 0015): one per centerline point, world units
 -- above the lap's lowest ground: the Gold Mine's hollow at 0, the Lumber
@@ -138,16 +141,16 @@ assert(low == 0 and high > 300 and near(lowAt, 1300, 1640, 220) and near(highAt,
 
 -- Arathi is registered for solo and two-peer races with flat Physics12.
 assert(course and not course.soon and course.cup == "battlegrounds"
-    and course.geometry == "circuit" and course.guideArrow
+    and course.geometry == "circuit" and not course.guideArrow
     and AK.Courses.available("arathi_basin") and AK.Courses.multiplayer("arathi_basin"),
     "Arathi Basin is available in the Battlegrounds Cup")
 assert(AK.Courses.next("warsong_gulch") == "arathi_basin"
     and AK.Courses.next("arathi_basin") == "mirage_raceway", "the Track button includes Arathi")
 local built = assert(AK.Courses.build("arathi_basin", Track.crossesGate))
-assert(built.id == "arathi_basin" and built.version == 1 and built.length == track.length
+assert(built.id == "arathi_basin" and built.version == 2 and built.length == track.length
     and #built.gates == 5 and (built.laps or 3) == 3 and not built.layered
     and AK.Physics.versionForTrack(built) == 12 and AK.Courses.roofs("arathi_basin") == nil,
-    "the catalogue builds version 1 as a flat, three-lap Physics12 circuit with no roofs")
+    "the catalogue builds version 2 as a flat, three-lap Physics12 circuit with no roofs")
 -- Temporarily model a future coming-soon entry without changing the real catalogue.
 course.soon = true
 assert(not AK.Courses.available("arathi_basin") and not AK.Courses.multiplayer("arathi_basin")
@@ -157,4 +160,4 @@ assert(not AK.Courses.available("arathi_basin") and not AK.Courses.multiplayer("
 course.soon = nil
 assert(AK.Courses.build("arathi_basin", Track.crossesGate) == built,
     "restoring availability reuses the built geometry")
-print("Arathi Basin: five gates, two bridges, both ways round the Stables' barn; route walked, arrow on it")
+print("Arathi Basin version 2: five gates, two bridges, the Stables' meadow and barn, route walked, no arrow")

@@ -3915,11 +3915,11 @@ withMock(nil,false,function(env,UI)
     end
 end,nil,nil,true)
 
--- Registered Arathi Basin: a temporary gate is refused by the chooser, then
--- the available guided circuit
--- selects with its picture on the flat draw set, no roofs, and the arrow
--- loads with its route: at the grid it points north up the east road, and
--- the first gate's marker glows. Only drawn poses; nothing is simulated.
+-- Registered Arathi Basin (version 2): a temporary gate is refused by the
+-- chooser, then the available circuit selects with its picture on the flat
+-- draw set, no roofs and no guiding arrow (the owner keeps the arrow for
+-- Warsong Gulch alone): at the grid nothing points and no gate glows. Only
+-- drawn poses; nothing is simulated.
 withMock(nil,false,function(env,UI)
     env.fire("ADDON_LOADED","AzerothKart")
     local AK=env.namespace
@@ -3932,8 +3932,8 @@ withMock(nil,false,function(env,UI)
         "a temporarily gated future course is not chosen")
     course.soon=nil
     assert(UI.SelectTrack("arathi_basin") and not UI.track.layered and UI.backgroundPath==course.background
-        and not UI.roofs and UI.guideReady and UI.guideRoute and #UI.guideRoute.gates==5
-        and UI.kart.sublevel==0,"the circuit, its picture, the flat draw set, the arrow and its route")
+        and not UI.roofs and not UI.guideReady and UI.guideRoute==nil
+        and UI.kart.sublevel==0,"the circuit, its picture, the flat draw set, no arrow")
     UI.Start()
     finishCountdown(UI)
     local spawn=UI.track.spawn()
@@ -3942,11 +3942,8 @@ withMock(nil,false,function(env,UI)
     pose.x,pose.y=spawn.x,spawn.y
     UI.state,UI.previousState=pose,pose
     UI.OnUpdate(0)
-    -- Up the east road, which bends north-west to the bridge ahead: the
-    -- arrow's frame 5 (112.5 degrees, counter-clockwise from east).
-    assert(UI.guideArrow.shown and UI.guideFrame==5 and UI.guideArrow.texCoords[1]==0.25
-        and UI.guideArrow.texCoords[3]==0.25,"at the grid the arrow points up the east road, as it bends to the bridge")
-    assert(UI.glowGate==1,"the Gold Mine's gate marker glows")
+    assert(not UI.guideArrow.shown and UI.guideFrame==nil and UI.glowGate==nil,
+        "at the grid no arrow points and no gate glows")
     UI.Stop("rendering checked")
 end,nil,nil,true)
 
