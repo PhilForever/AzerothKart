@@ -1,5 +1,24 @@
 # Codex handoff — production maps and Claude course review
 
+## Active Arathi v2 review and conditional install — 2026-10-28
+
+Owner requests check/install if it passes. Clean1fbea6b; installed8bf3218.
+Review Claude0b27c02/candidate1d6f4f2 and grass-plaza040dc78 on own
+`codex/arathi-v2-integration`, without touching Claude's checkout/outputs.
+Owner's prior documented choice assigns boost-over-grass to Codex, so reserve
+Physics, RaceStart, LiveRace and Courses' Arathi opt-in, the associated tests,
+score catalogue/compatibility pins, shared contract/status/progress and this
+handoff. No change to old-track handling or transport cadence.
+
+Plan: reviewed grass plaza and art; add opt-in Physics14 for Arathi v2 so an
+active boost keeps ordinary road-speed capability on grass; unboosted grass,
+brake/wall and all other courses retain their behavior. Keep flat AZKRUN2 and
+old scores; prove deterministic timing and two-client negotiation with focused
+Lua51 tests. Integrate approved Claude history, back up/hash-verify user-requested
+install, and build a matching friend ZIP. Native driving remains pending; no
+push/main/release.
+
+
 ## Installed Arathi Basin checkpoint — 2026-10-28 14:43 +0100
 
 Runtime **8bf3218**, branch `codex/arathi-integration`, merges approved Claude
