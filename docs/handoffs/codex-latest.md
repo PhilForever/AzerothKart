@@ -1,5 +1,13 @@
 # Codex handoff — production maps and Claude course review
 
+## Installed Arathi v2 — 2026-10-28 17:35 +0100
+
+Runtime **4dd8071**, `codex/arathi-v2-integration`, is installed and the
+matching `../AzerothKart-ArathiV2-4dd8071.zip` was verified. 93 installed
+source files and 94 prior backup files were independently hashed. No changes
+to Claude’s worktree, SavedVariables or other addons. Full client restart
+required; native play and shortcut balance remain NOT RUN. [Evidence](../PROGRESS.md).
+
 ## Arathi v2 integrated candidate — 2026-10-28
 
 Claude `0b27c02` was reviewed and merged into `codex/arathi-v2-integration`.

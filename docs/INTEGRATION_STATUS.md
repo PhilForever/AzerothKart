@@ -1,5 +1,13 @@
 # Shared integration and deployment status
 
+## Installed Arathi v2 — 2026-10-28
+
+Runtime **4dd8071** is installed and independently hash-verified (93 files);
+94 prior files are backed up, including the preserved extra. Friend ZIP
+`../AzerothKart-ArathiV2-4dd8071.zip` matches. Full client restart required;
+user playtest of the v2 track and grass shortcut remains NOT RUN.
+[Receipt and evidence](PROGRESS.md); [review](reviews/2026-10-28-arathi-v2.md).
+
 ## Arathi v2 reviewed candidate — 2026-10-28
 
 Reviewed Claude `0b27c02` plus Codex’s opt-in Physics14 grass boost.

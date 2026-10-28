@@ -1,5 +1,25 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-28 17:35 +0100 — Arathi v2 installed and friend ZIP verified
+
+Runtime **4dd8071** on `codex/arathi-v2-integration` merges Claude
+`0b27c02` and the reviewed Physics14 shortcut. The focused checks and remaining
+limitations are in the next entry and [review](reviews/2026-10-28-arathi-v2.md).
+Fresh preflight matched all93 installed runtime files and the preserved extra;
+installer preview passed. `scripts/install_local.ps1` backed up and installed
+the authorized addon; independent `local-artifacts/deploy-20261028-arathi-v2/
+audit_and_package.py --runtime 4dd8071` verified all93 source/installed files,
+all94 prior backup files and the exact93 ZIP entries and CRC: PASS. The extra
+legacy texture remains preserved. No WTF/SavedVariables or other addon touched.
+
+Friend ZIP: `../AzerothKart-ArathiV2-4dd8071.zip`, 88,569,745 bytes, SHA256
+`C46960CE573FD51B580FB3A31E2F99142230D1BC2BB82907E41206CA77A21FA7`.
+Receipt/backup under `local-artifacts/deploy-20261028-arathi-v2/`. Full WoW
+restart required to refresh the replaced textures; multiplayer peers need the
+same build. In-game play, shortcut balance and networking delivery NOT RUN.
+Next: user drives Arathi and checks boosted versus unboosted Stables grass.
+No push, release, main merge or changes to Claude’s worktree.
+
 ## 2026-10-28 17:34 +0100 — Arathi v2 reviewed; install candidate
 
 Reviewed Claude `claude/arathi-v2` at `0b27c02`; integrated geometry2,
