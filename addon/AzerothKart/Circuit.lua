@@ -92,8 +92,11 @@ end
 -- centerline[k] to centerline[k%n+1], walled at their own smaller radius and
 -- paved to min(roadRadius, that radius); no rough strip when it is at most
 -- roadRadius), centerline={{x,y}...} (closed),
--- branches={{{x,y}...}...} (open), plazas={{ax,ay,bx,by,radius}...}
--- (optional, with wallRadius), gates={{name,ax,ay,bx,by,nx,ny}...},
+-- branches={{{x,y}...}...} (open), plazas={{ax,ay,bx,by,radius[,surface]}...}
+-- (optional, with wallRadius; surface "grass": a meadow, drivable to its
+-- radius but never paved, so its ground stays grass even with
+-- fullSpeedToWalls wherever no street capsule reaches),
+-- gates={{name,ax,ay,bx,by,nx,ny}...},
 -- spawn={x,y,heading}, solids={{id,x,y,width,height}...}}.
 function Circuit.new(definition, crossesGate)
     assert(type(definition) == "table", "circuit definition required")
@@ -155,13 +158,13 @@ function Circuit.new(definition, crossesGate)
     -- or both to a narrows' radius) and each plaza (paved and drivable to its
     -- radius).
     local capsules, length = {}, 0
-    local function add(ax, ay, bx, by, paved, drivable, allRoadNarrow)
+    local function add(ax, ay, bx, by, paved, drivable, allRoadNarrow, grass)
         local dx,dy = bx-ax,by-ay
         local visual = drivable+clearance
         assert(clearance == 0 or finite(visual*visual), "finite visual capsule radius required")
         capsules[#capsules+1] = {x=ax, y=ay, dx=dx, dy=dy, lengthSquared=dx*dx+dy*dy,
             paved=paved*paved, drivable=drivable*drivable, radius=drivable,
-            visualRadius=visual, visualSquared=visual*visual, allRoadNarrow=allRoadNarrow}
+            visualRadius=visual, visualSquared=visual*visual, allRoadNarrow=allRoadNarrow, grass=grass}
         return math.sqrt(dx*dx+dy*dy)
     end
     local line = track.centerline
@@ -185,7 +188,9 @@ function Circuit.new(definition, crossesGate)
     for _,plaza in ipairs(track.plazas) do
         assert(finite(plaza.ax) and finite(plaza.ay) and finite(plaza.bx) and finite(plaza.by)
             and finite(plaza.radius) and plaza.radius > 0, "plaza capsule required")
-        add(plaza.ax,plaza.ay,plaza.bx,plaza.by,plaza.radius,plaza.radius)
+        assert(plaza.surface == nil or plaza.surface == "grass", "a plaza's surface may only be grass")
+        -- A meadow (surface "grass") is drivable, never paved: no road grip.
+        add(plaza.ax,plaza.ay,plaza.bx,plaza.by,plaza.radius,plaza.radius,nil,plaza.surface == "grass")
     end
 
     -- The grid: each cell lists the capsules whose drivable radius plus
@@ -261,19 +266,26 @@ function Circuit.new(definition, crossesGate)
         return true
     end
 
-    -- "road", "rough" or nil (outside every capsule).
+    -- "road", "rough" or nil (outside every capsule). A meadow's ground is
+    -- rough wherever no street capsule reaches (fullSpeedToWalls paves the
+    -- street's whole reach, not the meadow).
     local function ground(x, y)
         local list = near(x,y)
         if not list then return nil end
-        local rough = false
+        local rough, meadow = false, false
         for i=1,#list do
             local c = capsules[list[i]]
             local distance = axisDistance(c,x,y)
-            if distance <= c.paved then return "road" end
-            if distance <= c.drivable then rough = true end
+            if c.grass then
+                if distance <= c.drivable then meadow = true end
+            else
+                if distance <= c.paved then return "road" end
+                if distance <= c.drivable then rough = true end
+            end
         end
         -- Surface policy only: preserve the painted paving and wall radii.
-        return rough and (fullSpeedToWalls and "road" or "rough") or nil
+        if rough then return fullSpeedToWalls and "road" or "rough" end
+        return meadow and "rough" or nil
     end
 
     -- The old radius is always safe: it is contained in the visual union
@@ -286,11 +298,12 @@ function Circuit.new(definition, crossesGate)
         if found or clearance == 0 then return found end
         local list = near(x,y)
         if not list then return nil end
-        local inside,allRoadNarrow = false,false
+        local inside,allRoadNarrow,street = false,false,false
         for i=1,#list do
             local c = capsules[list[i]]
             if axisDistance(c,x,y) <= c.visualSquared then
                 inside = true
+                if not c.grass then street = true end
                 if c.allRoadNarrow then allRoadNarrow = true; break end
             end
         end
@@ -312,6 +325,8 @@ function Circuit.new(definition, crossesGate)
         -- The extra room at a fully paved tunnel's concave joins remains
         -- road. Ordinary streets, plazas and the wide street's shoulders
         -- keep their existing surface policy; none of the wall tests change.
+        -- A meadow's own joins stay grass.
+        if not street then return "rough" end
         return (fullSpeedToWalls or allRoadNarrow) and "road" or "rough"
     end
 

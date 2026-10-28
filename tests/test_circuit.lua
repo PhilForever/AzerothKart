@@ -126,6 +126,44 @@ for _,mode in ipairs({"throttle", "boost", "release", "drift"}) do
     if mode == "drift" then assert(edge.drifting and edge.driftTicks > 0, "shoulder builds drift") end
 end
 
+-- A meadow (Claude, Arathi Basin version 2: the Stables' yard): a plaza
+-- whose surface is "grass" is drivable to its radius like any plaza, but
+-- never paved, and full street grip does not reach it: beyond the street's
+-- own capsules it is grass (Physics' grass), on the street's own reach road.
+-- Its walls are the plaza's; nothing else changes.
+local meadowDefinition = {}
+for key,value in pairs(fastDefinition) do meadowDefinition[key] = value end
+meadowDefinition.plazas = {{ax=200, ay=300, bx=200, by=300, radius=60, surface="grass"}}
+local meadow = Circuit.new(meadowDefinition, Track.crossesGate)
+assert(meadow.plazas[1].surface == "grass" and meadow.surfaceAt(200, 350) == "grass"
+    and meadow.surfaceAt(160, 340) == "grass" and not meadow.isDrivable(200, 350)
+    and not meadow.isGuideDrivable(200, 350), "the meadow beyond the street is grass, without road grip")
+assert(meadow.surfaceAt(200, 300) == "road" and meadow.surfaceAt(200, 325) == "wall"
+    and meadow.surfaceAt(150, 325) == "road" and meadow.surfaceAt(200, 365) == "wall",
+    "the street keeps its full grip through the meadow; the statue and the meadow's edge are walls")
+assert(fastStreet.surfaceAt(200, 350) == "road", "a plaza without a surface stays paved")
+for _,probe in ipairs({{200,350,203,353}, {160,340,156,344}, {200,358,200,366}}) do
+    local mx,my,mh = meadow.resolveMovement(probe[1],probe[2],probe[3],probe[4])
+    local px,py,ph = fastStreet.resolveMovement(probe[1],probe[2],probe[3],probe[4])
+    assert(mx == px and my == py and mh == ph, "a meadow's walls are its plaza's")
+end
+local onGrass, onRoad = Physics.new(meadow), Physics.new(meadow)
+onGrass.x,onGrass.y,onGrass.heading,onGrass.speed = 165,340,0,0
+onRoad.x,onRoad.y,onRoad.heading,onRoad.speed = 120,100,0,0
+for _=1,36 do
+    onGrass = Physics.step(onGrass,{accelerate=true},Physics.FIXED_DT,meadow)
+    onRoad = Physics.step(onRoad,{accelerate=true},Physics.FIXED_DT,meadow)
+end
+assert(onGrass.surface == "grass" and onGrass.impacts == 0 and onGrass.speed <= Physics.GRASS_MAX_SPEED
+    and onRoad.surface == "road" and onRoad.speed > Physics.GRASS_MAX_SPEED,
+    "a kart on the meadow drives at grass speed, one on the street does not (no boost rule yet: Codex's)")
+assert(not pcall(Circuit.new, (function()
+    local bad = {}
+    for key,value in pairs(meadowDefinition) do bad[key] = value end
+    bad.plazas = {{ax=200, ay=300, bx=200, by=300, radius=60, surface="ice"}}
+    return bad
+end)(), Track.crossesGate), "a plaza's surface may only be grass")
+
 -- Reviewed narrows (Ironforge v3): loop segments walled at their own
 -- smaller radius and paved no further, so no rough strip; elsewhere the
 -- street is unchanged. The square's south side (segment 1) narrows to 15.
