@@ -1,5 +1,18 @@
 # Codex handoff — production maps and Claude course review
 
+## Active authorized integration/install — Warsong v2, 2026-10-28
+
+Owner explicitly requests installation if Claude's fixes pass review. Clean
+6b4519f, installed9b7d6df; own codex/warsong-v2-integration. Review exact
+Claude0794343/c362f4a and prior v2d5fabbf, preserving its branch/worktree/outputs.
+Reserve this handoff, review addendum, shared current-version contracts/status/
+progress and scoped integration/deployment scripts/artifacts. No gameplay or
+handling changes. Plan: confirm original arrow/invalid-test failures resolved,
+merge reviewed v2, run focused Lua51/catalogue checks, commit tested source,
+back up/hash-verify AddOns installation and produce matching friend ZIP.
+Both clients update; native testing remains pending. No push/main/release.
+
+
 ## Review complete — Warsong v2 d5fabbf, 2026-10-28
 
 Review-only `codex/warsong-v2-review` from clean47777d0; original Claude
