@@ -29,8 +29,9 @@ No eight-player implementation or capacity acceptance is claimed.
 | Scarlet Armory (`scarlet_armory`) | 2 | A |
 | Scarlet Cathedral (`scarlet_cathedral`) | 3 | B |
 | Warsong Gulch (`warsong_gulch`) | 3 | C |
+| Arathi Basin (`arathi_basin`) | 1 | D |
 
-All twelve courses are available in solo, Highscores and the two-peer lobby
+All thirteen courses are available in solo, Highscores and the two-peer lobby
 (owner direction,2026-10-27). Circuits use three laps; the four Scarlet dungeons
 use one ordered run. Target count is validated at invite, clock handoff and live
 terminal receipt; no sprint can advertise three laps or finish prematurely.
@@ -43,9 +44,9 @@ makes all four Scarlet courses full grip, and gives the Cathedral staircases
 their turning landings. Graveyard, Library and Cathedral now use version3;
 Armory remains2. Graveyard's handling change requires a new board even though
 its scenery is unchanged. All older version1/2 records remain saved in their
-original contexts. Current score catalogue/export has twelve boards, still
+original contexts. Current score catalogue/export has thirteen boards, still
 within the unchanged packet limit. The integrated race screens bring the
-explicit production pool to91frames/96textures/151fontStrings with Warsong, created once.
+explicit production pool to92frames/96textures/151fontStrings with Arathi, created once.
 Native appearance/feel for these changes remains pending.
 
 A failed scenery load refuses Start until a valid map loads;
@@ -55,7 +56,7 @@ in memory without rewriting the save on initial load.
 `Courses.get/available/build/next`, menu cards, lobby cycling and session offers
 exclude Oval. Control wire code0 is retired; Mirage1 remains stable. Both racers
 must update for new sprint offers. `Courses.multiplayer(id)` admits all current
-available production courses; `Courses.next(id,true)` filters the lobby. The eleven flat courses retain Physics12; Warsong uses Physics13 and layered
+available production courses; `Courses.next(id,true)` filters the lobby. The twelve flat courses retain Physics12; Warsong uses Physics13 and layered
 AZKRUN3. Existing live packet sizes and logged-whisper budgets are unchanged.
 
 `Track.lua` remains a developer-only analytical fixture and the shared gate
@@ -65,17 +66,16 @@ be selected, started or negotiated through the player APIs. Old saved scores
 are preserved but excluded from current boards/publication. No player data is
 deleted or migrated.
 
-ScoreSync admits twelve exact current contexts: eleven Physics12 boards and
-Warsong Physics13. AZKSCR2/schema2 has thirteen fixed hexadecimal digest slots,
-including retired O=0, and binds per-context physics in the catalogue hash.
-Existing score codes stay stable; Warsong appends W. HELLO is136 native counted
-bytes and maximum legal NEW/ROW150; native158-byte ceiling remains. Old-prefix
-clients must update; stored historical boards are retained without migration.
-[Exact bounds and compatibility](AUTOMATIC_SCORES.md#implementation). The
-separate server-store example exports the same twelve contexts; no external
-service is contacted by the addon.
+ScoreSync admits thirteen exact current contexts: twelve Physics12 boards and
+Warsong Physics13. AZKSCR2/schema2 has fourteen fixed hexadecimal digest slots,
+including retired O=0. Existing codes stay stable; Arathi appends B. HELLO is
+145 bytes including prefix and maximum legal NEW/ROW is150; the native158-byte
+ceiling remains. The prior thirteen-slot HELLO cannot complete catch-up with
+this build, so both peers need to update. Existing scores remain saved without
+migration. [Exact bounds](AUTOMATIC_SCORES.md#implementation). The server-store
+example exports the same contexts; the addon does not contact an external server.
 
-## Why eight racers## Why eight racers need a transport decision
+## Why eight racers need a transport decision
 
 There is no WoW party/raid requirement for the current two-peer whisper flow;
 the recorded AKT723 window worked across different zones while ungrouped.

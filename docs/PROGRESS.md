@@ -1,5 +1,47 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-28 14:41 +0100 — Arathi reviewed and registration candidate ready
+
+Owner requested review and install if acceptable. Base clean93270b1, installed
+runtime a51b60e; branch `codex/arathi-integration`, reservation65eeb9a. Reviewed
+Claude3b85407 and merged its history. One documentation index conflict was
+resolved preserving Warsong v3 and Arathi; Claude's checkout/outputs remain
+untouched. [Review and exact evidence](reviews/2026-10-28-arathi-basin.md).
+
+Arathi is selectable solo and in the existing two-peer lobby: geometry1,
+Physics12, three laps, race codeD and score codeB. Thirteen current score
+contexts use fourteen fixed HELLO slots; maximum145 bytes including prefix,
+within the unchanged158-byte budget. The former thirteen-slot HELLO cannot
+complete reconciliation with this build; both peers must update. Historical
+scores, other maps, transport rates and save schemas remain intact. Arathi's
+slopes are drawn from measured heights but do not alter driving physics.
+
+Fixed the guide pointing into the Stables barn from a reachable alternate line
+using an additive read-only `Circuit.isGuideDrivable` with expanded solid
+clearance. A bounded route fallback handles both barn sides; the arrow hides if
+no candidate is clear. Physics and original isDrivable semantics do not change.
+No per-frame UI object/table creation. Native feel/frame cost remains NOT RUN.
+
+Executed Lua51 candidate checks and combined focused regressions cover14
+modules,87 parsed files. The initial menu run stopped on a stale assertion about
+ready/gated row order; corrected and reran menu, session_transport,
+multiplayer_integration, score_sync and score_sharing: PASS5. Real-geometry
+Arathi guide regression and route ray checks PASS. Arathi's two-client mocked
+lobby/grid/countdown/flat telemetry PASS; no native or completed-Arathi-race
+claim. Export catalogue PASS13; max HELLO145, prior-shape rejection and existing
+history tested. Detailed commands and other test evidence are in the review.
+
+`git diff --check` PASS; preflight matches all91 prior source hashes and92
+installed files, including legacy extra; installer preview PASS. The actual
+install and matching ZIP receipt follow once the tested source is committed.
+Native client, repeated full suite/Lua54 and art rebuild by this integrator NOT
+RUN. No push, main merge, release, or milestone/eight-player acceptance.
+
+**Next:** commit the reviewed source and complete the authorized backed-up,
+hash-verified installation and matching friend ZIP. Then fully restart WoW and
+check Arathi's bridges, barn routes and guide in-game.
+
+
 ## 2026-10-28 12:00 +0100 — Warsong v3 installed and friend ZIP verified
 
 Runtime **a51b60e** on `codex/warsong-v3-integration` merges approved Claude

@@ -661,3 +661,46 @@ do
     q:untilTrue(function() return not a:view().transportBusy and not b:view().transportBusy end)
     originalPrint("Warsong multiplayer integration: real assisted Physics, 3 laps, ramps/pads/floor codec, delayed results and same-peer flat rematch PASS (offline mocks)")
 end
+
+
+-- Arathi is negotiated via actual menus and the same delayed two-client
+-- transport as the other courses; this exercises the new flat Physics12
+-- admission and live telemetry, without claiming native delivery or feel.
+do
+    local q=freshPair()
+    local a,b=q.host,q.guest
+    for _,entry in ipairs({{a,GUEST},{b,HOST}}) do
+        entry[1]:run(function()
+            entry[1].ns.Menu.view.peerName:SetText(entry[2])
+            entry[1].ns.Menu.view.sessionCode:SetText("ARA001")
+        end)
+    end
+    for _=1,#a.ns.Courses.LIST do
+        if a.ns.Menu.lobbyTrackId=="arathi_basin" then break end
+        a:click(a.ns.Menu.view.lobbyTrackChoice)
+    end
+    assert(a.ns.Menu.lobbyTrackId=="arathi_basin","host can offer Arathi in the real lobby")
+    b:click(b.ns.Menu.view.listen);a:click(a.ns.Menu.view.host)
+    q:untilTrue(function() return b.ns.Menu.view.join.enabled end)
+    b:click(b.ns.Menu.view.join);readyAndLaunch(q)
+    for _=1,90 do q:step() end
+    for _,e in ipairs({a,b}) do
+        local ui,view=e.ns.UI,e:view()
+        assert(view.offer.trackId=="arathi_basin" and view.offer.trackVersion==1
+            and view.offer.physicsVersion==12 and view.offer.laps==3
+            and ui.trackId=="arathi_basin" and not ui.track.layered and ui.race.targetLaps==3
+            and ui.state.tick>0 and ui.state.level==nil,
+            "both racers launch actual Arathi with the correct geometry, physics and target")
+        assert(e.stagedGrid and e.cues["3"]==1 and e.cues["2"]==1 and e.cues["1"]==1,
+            "the pooled two-kart grid precedes the full countdown")
+        local sawFlat=false
+        for _,packet in ipairs(e.sends) do
+            if packet.prefix=="AZKRUN2" then sawFlat=true;assert(#packet.payload==40) end
+        end
+        assert(sawFlat,"Arathi uses the existing flat live codec")
+        assertBudget(e)
+    end
+    a:run(a.ns.UI.MultiplayerAction,"leave");b:run(b.ns.UI.MultiplayerAction,"leave")
+    q:untilTrue(function() return not a:view().transportBusy and not b:view().transportBusy end)
+    originalPrint("Arathi multiplayer: menu/peer/grid/countdown/flat telemetry and budget PASS (offline mocks)")
+end

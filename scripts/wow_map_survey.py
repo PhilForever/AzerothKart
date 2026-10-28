@@ -1,6 +1,7 @@
 """Survey a World of Warcraft battleground for a Battlegrounds Cup course.
 
 python scripts/wow_map_survey.py MAPDIR LISTFILE OUT.json [--map pvpzone03] [--origin 15430 16182]
+    [--size 1024 2048] [--relief 290 0.6]
 
 MAPDIR holds the map's files as the owner's client stores them, extracted
 read-only by scripts/wowcasc.py (MAPDIR/world/maps/<map>/: the WDT and each
@@ -11,15 +12,21 @@ the output is numbers about the map.
 
 The course's world is the battleground's ground at three units to the yard:
 a point at (px, pz) in the ADTs' placement space (yards; px east, pz south)
-stands at X = (px - ox) * 3, Y = (oz - pz) * 3 (--origin ox oz). OUT.json
-holds, over the world in GRID-unit texels (row 0 north):
+stands at X = (px - ox) * 3, Y = (oz - pz) * 3 (--origin ox oz), over a
+world --size wide and high (units; Warsong Gulch's 1024 x 2048 by
+default). OUT.json holds, over the world in GRID-unit texels (row 0 north):
 
 - "ground": per texel, the blend weight (0-15) of each ground texture of the
   map (each tile's _tex0 layers, their alpha maps composed in order as the
   client composes them), one plane per texture, zlib then base64;
 - "relief": per texel, the terrain's height (the root ADTs' MCVT vertices,
-  interpolated over each cell's four triangles) in RELIEF_STEP-yard steps
-  above RELIEF_BASE, 255 where the terrain has a hole or none; zlib, base64;
+  interpolated over each cell's four triangles) in `step`-yard steps above
+  `base` (--relief base step; 290 and 0.6 by default), 255 where the terrain
+  has a hole or none; zlib, base64;
+- "water" (only where the map has any): per texel, the depth of the liquid
+  over the terrain (the root ADTs' MH2O instances: each cell's surface from
+  its vertices, or the instance's level) in WATER_STEP-yard steps, 0 where
+  there is none; zlib, base64;
 - "placements": every doodad (MDDF) and building (MODF) inside the world
   (with a margin): its model file's name, X, Y, height (yards), yaw (degrees
   counter-clockwise from east: the placement's turn less 90, as the props'
@@ -39,8 +46,9 @@ TILE = 1600.0 / 3.0                 # yards per ADT tile
 CHUNK = TILE / 16                   # per map chunk (16 x 16 a tile)
 UNIT = CHUNK / 8                    # per terrain cell (8 x 8 a chunk)
 SCALE = 3                           # world units per yard
-WIDTH, HEIGHT, GRID = 1024, 2048, 4
+WIDTH, HEIGHT, GRID = 1024, 2048, 4          # the defaults: Warsong Gulch's world
 RELIEF_BASE, RELIEF_STEP = 290.0, 0.6
+WATER_STEP = 0.5
 MARGIN = 120                        # placements kept this far outside the world
 
 
@@ -147,6 +155,71 @@ def height_at(land, px, pz):
 
 
 # ---------------------------------------------------------------------------
+# Water: each chunk's liquid (root ADT, MH2O).
+
+
+def water(mapdir, name):
+    """{(chunk column, chunk row): {(cell column, cell row): (surface at the
+    cell's four corners: north-west, north-east, south-west, south-east)}},
+    over the whole map: every cell an MH2O instance covers and marks."""
+    out = {}
+    for tx, ty, path in tiles(mapdir, name):
+        data = path.read_bytes()
+        for tag, off, size in chunks(data):
+            if tag != "MH2O":
+                continue
+            for k in range(256):
+                first, count, _ = struct.unpack_from("<III", data, off + 12 * k)
+                if not count or not first:
+                    continue
+                iy, ix = divmod(k, 16)
+                cells = out.setdefault((tx * 16 + ix, ty * 16 + iy), {})
+                for j in range(count):
+                    (kind, lvf, low, high, x0, y0, w, h, bits, verts) = struct.unpack_from(
+                        "<HHffBBBBII", data, off + first + 24 * j)
+                    n = (w + 1) * (h + 1)
+                    heights = None
+                    if verts and lvf in (0, 1, 3):
+                        heights = struct.unpack_from("<%df" % n, data, off + verts)
+                    elif verts and lvf >= 42:          # a liquid object: heights first when they are plausible
+                        guess = struct.unpack_from("<%df" % n, data, off + verts)
+                        if all(low - 1 <= v <= high + 1 for v in guess):
+                            heights = guess
+                    mask = None
+                    if bits:
+                        nbytes = (w * h + 7) // 8
+                        raw = data[off + bits:off + bits + nbytes]
+                        mask = [raw[i // 8] >> (i % 8) & 1 for i in range(w * h)]
+                    for r in range(h):
+                        for c in range(w):
+                            if mask is not None and not mask[r * w + c]:
+                                continue
+                            if heights is None:
+                                corners = (high, high, high, high)
+                            else:
+                                corners = (heights[r * (w + 1) + c], heights[r * (w + 1) + c + 1],
+                                           heights[(r + 1) * (w + 1) + c], heights[(r + 1) * (w + 1) + c + 1])
+                            cells[(x0 + c, y0 + r)] = corners
+    return out
+
+
+def water_at(liquid, px, pz):
+    """The liquid's surface at (px, pz), or None."""
+    ci, cj = int(px // CHUNK), int(pz // CHUNK)
+    cells = liquid.get((ci, cj))
+    if not cells:
+        return None
+    u, v = (px - ci * CHUNK) / UNIT, (pz - cj * CHUNK) / UNIT
+    c, r = min(7, int(u)), min(7, int(v))
+    corners = cells.get((c, r))
+    if corners is None:
+        return None
+    fu, fv = u - c, v - r
+    nw, ne, sw, se = corners
+    return (nw * (1 - fu) + ne * fu) * (1 - fv) + (sw * (1 - fu) + se * fu) * fv
+
+
+# ---------------------------------------------------------------------------
 # The ground's textures: each chunk's layers and alpha maps (_tex0 ADT).
 
 
@@ -231,7 +304,7 @@ def ground(mapdir, name, land, names):
 # Placements (_obj0 ADT).
 
 
-def placements(mapdir, name, names, ox, oz):
+def placements(mapdir, name, names, ox, oz, width=WIDTH, height=HEIGHT):
     out, seen = [], set()
     for tx, ty, path in tiles(mapdir, name):
         obj = path.with_name(path.stem + "_obj0.adt")
@@ -254,7 +327,7 @@ def placements(mapdir, name, names, ox, oz):
     rows = []
     for kind, fid, px, py, pz, ry, scale in out:
         x, y = (px - ox) * SCALE, (oz - pz) * SCALE
-        if -MARGIN <= x <= WIDTH + MARGIN and -MARGIN <= y <= HEIGHT + MARGIN:
+        if -MARGIN <= x <= width + MARGIN and -MARGIN <= y <= height + MARGIN:
             model = names.get(fid, str(fid)).rsplit("/", 1)[-1].rsplit(".", 1)[0]
             rows.append([kind, model, round(x, 1), round(y, 1), round(py, 1), round((ry - 90) % 360, 1),
                          round(scale, 3)])
@@ -270,26 +343,32 @@ def pack(values):
     return base64.b64encode(zlib.compress(bytes(values), 9)).decode("ascii")
 
 
-def survey(mapdir, listfile, name, ox, oz):
+def survey(mapdir, listfile, name, ox, oz, width=WIDTH, height=HEIGHT, relief_base=RELIEF_BASE,
+           relief_step=RELIEF_STEP):
     names = {}
     for line in open(listfile, encoding="utf-8", errors="replace"):
         fid, _, path = line.rstrip("\r\n").partition(";")
         if fid.isdigit():
             names[int(fid)] = path
     land = terrain(mapdir, name)
+    liquid = water(mapdir, name)
     blend, textures = ground(mapdir, name, land, names)
-    cols, rows = WIDTH // GRID, HEIGHT // GRID
+    cols, rows = width // GRID, height // GRID
     relief = bytearray(cols * rows)
+    depth = bytearray(cols * rows)
     planes = {t: bytearray(cols * rows) for t in textures}
     for row in range(rows):
-        y = HEIGHT - (row + 0.5) * GRID
+        y = height - (row + 0.5) * GRID
         pz = oz - y / SCALE
         for col in range(cols):
             x = (col + 0.5) * GRID
             px = ox + x / SCALE
             i = row * cols + col
             h = height_at(land, px, pz)
-            relief[i] = 255 if h is None else max(0, min(254, int(round((h - RELIEF_BASE) / RELIEF_STEP))))
+            relief[i] = 255 if h is None else max(0, min(254, int(round((h - relief_base) / relief_step))))
+            surface = water_at(liquid, px, pz)
+            if surface is not None and h is not None and surface > h:
+                depth[i] = max(1, min(254, int(round((surface - h) / WATER_STEP))))
             ci, cj = int(px // CHUNK), int(pz // CHUNK)
             weights = blend.get((ci, cj))
             if weights is None:
@@ -298,12 +377,15 @@ def survey(mapdir, listfile, name, ox, oz):
             r = min(63, int((pz - cj * CHUNK) / CHUNK * 64))
             for texture, plane in weights.items():
                 planes[texture][i] = max(0, min(15, int(round(plane[r][c] * 15))))
-    return {
+    out = {
         "map": name, "origin": [ox, oz], "scale": SCALE, "grid": GRID, "columns": cols, "rows": rows,
-        "relief": {"base": RELIEF_BASE, "step": RELIEF_STEP, "texels": pack(relief)},
+        "relief": {"base": relief_base, "step": relief_step, "texels": pack(relief)},
         "ground": {t: pack(planes[t]) for t in textures},
-        "placements": placements(mapdir, name, names, ox, oz),
+        "placements": placements(mapdir, name, names, ox, oz, width, height),
     }
+    if any(depth):
+        out["water"] = {"step": WATER_STEP, "texels": pack(depth)}
+    return out
 
 
 def main():
@@ -313,8 +395,11 @@ def main():
     parser.add_argument("out", type=Path)
     parser.add_argument("--map", default="pvpzone03")
     parser.add_argument("--origin", type=float, nargs=2, default=(15430.0, 16182.0))
+    parser.add_argument("--size", type=int, nargs=2, default=(WIDTH, HEIGHT), help="the world, units")
+    parser.add_argument("--relief", type=float, nargs=2, default=(RELIEF_BASE, RELIEF_STEP),
+                        help="the relief's base height and step, yards")
     args = parser.parse_args()
-    data = survey(args.mapdir, args.listfile, args.map, *args.origin)
+    data = survey(args.mapdir, args.listfile, args.map, *args.origin, *args.size, *args.relief)
     text = json.dumps(data, indent=0, separators=(",", ":")) + "\n"
     args.out.write_text(text, encoding="utf-8", newline="\n")
     print("WROTE: %s; %d placements; ground %s; %d bytes" % (args.out, len(data["placements"]),

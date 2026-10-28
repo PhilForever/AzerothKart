@@ -262,11 +262,12 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu)
     -- (one label), and to the results a Highscores button, a sunburst, a medal
     -- and twelve confetti pieces (14 textures), a banner, its line, the wreath's
     -- rank and the two racers' rows (two labels each).
-    -- The Battlegrounds Cup adds its heading and Warsong Gulch's track
-    -- button; a two-floor course's four pooled roofs and its guiding arrow
-    -- are created with the window (hidden on every other course).
-    assert(UI.objects.frames == 91 and UI.objects.textures == 96 and UI.objects.fontStrings == 151,
-        ("explicit budget 91/96/151, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
+    -- The Battlegrounds Cup adds its heading, Warsong Gulch's track button
+    -- and Arathi Basin's coming-soon one; a two-floor course's four pooled
+    -- roofs and its guiding arrow are created with the window (hidden on
+    -- every other course).
+    assert(UI.objects.frames == 92 and UI.objects.textures == 96 and UI.objects.fontStrings == 151,
+        ("explicit budget 92/96/151, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
             UI.objects.fontStrings))
     assert(AzerothKartDB.preferences == nil, "creation saves nothing")
     local before = counts(env)
@@ -676,6 +677,9 @@ withMock({schemaVersion=1, preferences={version=1, kart="gyrocopter", track="mir
     assert(UI.trackId == "warsong_gulch" and AzerothKartDB.preferences.track == "warsong_gulch",
         "and on to Warsong's two-floor circuit")
     click(UI.trackButton)
+    assert(UI.trackId == "arathi_basin" and AzerothKartDB.preferences.track == "arathi_basin",
+        "and on to Arathi Basin")
+    click(UI.trackButton)
     assert(UI.trackId == "mirage_raceway" and AzerothKartDB.preferences.track == "mirage_raceway",
         "switching back is remembered too")
 end, function(env, AK)
@@ -999,7 +1003,7 @@ withMock(nil, function(env, UI, Menu)
     Menu.Show("multiplayer")
     for _,id in ipairs({"stormwind_city","ironforge_gp","darnassus_canopy",
         "orgrimmar_canyon","thunder_bluff_skyway","undercity_slime","scarlet_graveyard",
-        "scarlet_library","scarlet_armory","scarlet_cathedral","warsong_gulch","mirage_raceway"}) do
+        "scarlet_library","scarlet_armory","scarlet_cathedral","warsong_gulch","arathi_basin","mirage_raceway"}) do
         click(view.lobbyTrackChoice)
         assert(Menu.lobbyTrackId == id and UI.trackId == track,
             "host chooser cycles every finished course without changing local geometry: " .. id)
@@ -1345,24 +1349,41 @@ withMock(nil, function(env, UI, Menu, AK)
         and not soon.scarlet_graveyard and not soon.scarlet_cathedral,
         "the cup lists its four sprints, none of them coming soon")
     local rows = Menu.trackRows()
-    assert(rows[#rows - 6].heading == "Scarlet Crusade Cup" and rows[#rows - 5].track.id == "scarlet_graveyard"
-        and rows[#rows - 4].track.id == "scarlet_library" and rows[#rows - 3].track.id == "scarlet_armory"
-        and rows[#rows - 2].track.id == "scarlet_cathedral", "the third cup's heading, then its four sprints")
-    -- The Battlegrounds Cup, last: its reviewed course is selectable.
-    assert(rows[#rows - 1].heading == "Battlegrounds Cup" and rows[#rows].track.id == "warsong_gulch"
+    assert(rows[#rows - 7].heading == "Scarlet Crusade Cup" and rows[#rows - 6].track.id == "scarlet_graveyard"
+        and rows[#rows - 5].track.id == "scarlet_library" and rows[#rows - 4].track.id == "scarlet_armory"
+        and rows[#rows - 3].track.id == "scarlet_cathedral", "the third cup's heading, then its four sprints")
+    -- Both reviewed Battlegrounds Cup courses are selectable.
+    assert(rows[#rows - 2].heading == "Battlegrounds Cup" and rows[#rows - 1].track.id == "warsong_gulch"
         and buttons.warsong_gulch and buttons.warsong_gulch:IsEnabled() and buttons.warsong_gulch.scripts.OnClick
         and not soon.warsong_gulch, "the fourth cup lists Warsong Gulch as a ready track")
-    local warsong = Menu.TRACKS[#Menu.TRACKS]
-    assert(warsong.id == "warsong_gulch" and #warsong.facts == 3 and warsong.blurb:find("Silverwing Hold", 1, true)
+    local arathiCourse = AK.Courses.get("arathi_basin")
+    assert(rows[#rows].track.id == "arathi_basin" and buttons.arathi_basin
+        and buttons.arathi_basin:IsEnabled() and buttons.arathi_basin.scripts.OnClick
+        and not soon.arathi_basin and not arathiCourse.soon, "then the playable Arathi Basin")
+    local warsong, arathi
+    for _,track in ipairs(Menu.TRACKS) do
+        if track.id == "warsong_gulch" then warsong = track elseif track.id == "arathi_basin" then arathi = track end
+    end
+    assert(warsong and #warsong.facts == 3 and warsong.blurb:find("Silverwing Hold", 1, true)
         and Menu.PREVIEW_CELLS[warsong.cell].path:find("WarsongGulch\\Preview.tga", 1, true)
         and Menu.PREVIEW_CELLS[warsong.cell].width == 160 and Menu.PREVIEW_CELLS[warsong.cell].height == 320,
         "Warsong's copy and its twice-as-tall preview")
+    assert(arathi and Menu.TRACKS[#Menu.TRACKS] == arathi and #arathi.facts == 3
+        and arathi.blurb:find("Gold Mine", 1, true) and arathi.blurb:find("Lumber Mill", 1, true)
+        and Menu.PREVIEW_CELLS[arathi.cell].path:find("ArathiBasin\\Preview.tga", 1, true)
+        and Menu.PREVIEW_CELLS[arathi.cell].width == 320 and Menu.PREVIEW_CELLS[arathi.cell].height == 320,
+        "Arathi Basin's copy and its square preview")
     local course = AK.Courses.get("warsong_gulch")
     course.soon = true
     local gated = Menu.trackRows()
     course.soon = nil
-    assert(#gated == #rows and gated[#gated - 1].heading == "Battlegrounds Cup"
-        and gated[#gated].soon == course, "an explicitly gated course takes its ready row's place, once")
+    assert(#gated == #rows and gated[#gated - 2].heading == "Battlegrounds Cup"
+        and gated[#gated - 1].track.id == arathiCourse.id and gated[#gated].soon == course,
+        "an explicitly gated course takes its ready row's place while Arathi remains available")
+    click(buttons.arathi_basin)
+    assert(UI.trackId == "arathi_basin" and Menu.previewReady and not UI.track.layered
+        and Menu.view.trackPreview.width == 320 and Menu.view.trackPreview.height == 320,
+        "selecting Arathi builds its circuit and shows its square preview")
     click(buttons.warsong_gulch)
     assert(UI.trackId == "warsong_gulch" and Menu.previewReady and UI.track.layered
         and Menu.view.trackPreview.width == 160 and Menu.view.trackPreview.height == 320,
@@ -1417,9 +1438,13 @@ withMock(nil, function(env, UI, Menu, AK)
         and Menu.view.highscoreRule.text == "Fastest completed three-lap totals for the current rules",
         "Warsong's board displays three-lap totals")
     click(Menu.view.highscoreTrack)
+    assert(Menu.view.highscoreTrack.text == "Track: Arathi Basin"
+        and Menu.view.highscoreRule.text == "Fastest completed three-lap totals for the current rules",
+        "Arathi's board displays three-lap totals")
+    click(Menu.view.highscoreTrack)
     assert(Menu.view.highscoreTrack.text == "Track: Mirage Raceway"
         and Menu.view.highscoreRule.text == "Fastest completed three-lap totals for the current rules",
-        "past Warsong Gulch back to the first board's three-lap totals")
+        "past Arathi back to the first board's three-lap totals")
     course.soon = true
     for _=1,#Menu.TRACKS do
         click(Menu.view.highscoreTrack)

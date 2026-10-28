@@ -1,5 +1,12 @@
 # Verification and QA plan
 
+Current Arathi integration: exercise real course geometry/grid, alternate barn
+routes and solid-aware guide, UI/menu selection, race/score protocols, native
+adapter doubles and two-client countdown/start. Check thirteen score contexts,
+14-slot HELLO within158 bytes, old-slot refusal and saved history. Exact
+executed commands/results are in PROGRESS; native feel and performance remain
+NOT RUN. The new guide may hide when no checked route point is clear.
+
 Warsong registration integration: Lua51 score_sync/score_sharing, catalogue/
 menu/UI/grids and actual layered Physics under delayed two-peer Core/Menu
 fixtures. Verify3laps, both floors/pads, AZKRUN3, same-roster Physics12 rematch,
@@ -140,6 +147,16 @@ On `claude/race-screens` (focused: `python scripts/test_lua.py --runtime lua51 -
 - `tests/test_ui.lua`: the name tag over the observed kart, its stale fade, and off screen held at the canvas edge with the distance; the budget, 90/91/150. Codex's assertions stay unchanged and pass: the plain results' 460×336, one name read per finish, the finish fanfare last, the live results' "No agreed winner" hint.
 
 The look, the sounds, the medal's motion and a two-player race in the client are NOT RUN.
+
+On `claude/arathi-basin` (Arathi Basin, the Battlegrounds Cup's second course: a circuit on the basin's real roads, listed as coming soon; focused: `python scripts/test_lua.py --runtime lua51 --tests arathi warsong circuit ui menu peer_session`, then the full Lua 5.1 suite; data and picture bytes: `python scripts/build_battlegrounds.py --wc3 WC3 --check`; catalogue: `python scripts/export_score_catalog.py --check`):
+
+- `tests/test_arathi.lua` (new) on Codex's real Circuit, Checkpoints, Physics and Presentation: `Circuit.new` accepts the generated course (2048 × 2048, road radius 56, reach 76, full grip to the walls, wall clearance 14 with its junction vertices, 5 gates, 2 narrows, 1 plaza, 1 solid, no branches; no `laps`, Physics 12); about 5,100 units a lap; the gates named in lap order, the finish for Defiler's Den; the grid on the east road facing north, the finish line just behind it. Each bridge's deck is road 38 from its middle and wall at 50, the road south of the east bridge's approach full width again; the barn is wall and the yard road north and south of it. In 4-unit tapes through `resolveMovement`: west into the barn the kart stops at its east face plus the wall inset; north and south of it the yard is open 260 units on. The reviewed route in steps of at most 4 units never meets a wall, passes the five gates in order through Checkpoints and crosses each where `routeGates` says; at each of its 1,331 steps `Presentation.guideHeading` points along the route. The heights: one per centerline point, 0 at the Gold Mine's hollow, the highest (over 300) on the Lumber Mill's hill, the grid between. Listed in the Battlegrounds Cup as coming soon (not available, multiplayer or buildable; the Track button steps past it); with the gate lifted, in the test only, the catalogue builds the circuit, no roofs. Mutations (applied in a scratch copy, not committed): the bridges at full width, the yard shrunk, `routeGates` shifted by one and the heights reversed each fail their own assertion.
+- `tests/test_ui.lua`: `UI.SelectTrack` refuses Arathi Basin while it is coming soon; with the gate lifted (in that test only) it selects with its picture on the flat draw set (no roofs, sublevel 0), the arrow ready with the route's five gates; at the grid the arrow shows frame 5 (up the east road as it bends north-west to the bridge) and the Gold Mine's gate marker glows. The budget, 92/96/151: one more frame, the coming-soon button.
+- `tests/test_menu.lua`: the Battlegrounds Cup lists Warsong Gulch, then "Arathi Basin (soon)", disabled with no click script; Arathi's copy (three facts; the Gold Mine and the Lumber Mill in its blurb) and its square 320 × 320 preview cell; an explicitly gated Warsong takes its own row's place, before Arathi's; the budget, 92/96/151.
+- `tests/test_warsong.lua`, `tests/test_circuit.lua`: the catalogue loops expect one course coming soon, Arathi Basin, which does not build; the eleven flat courses and Warsong unchanged.
+- Codex-owned, pin only (flagged for review): `tests/test_peer_session.lua` skips a coming-soon course when it builds every multiplayer course's version, target and physics (Arathi has no IDs yet); its twelve courses unchanged and no version for Arathi.
+
+`build_battlegrounds.py` checks the circuit with the cities' rules (`build_city_tracks.validate_geometry`: gates axis-aligned across the centerline, wall to wall, guarding one stretch; the spawn on the road; a wall between separate stretches; the street inside the world), then walks the route through the gates in order and records `routeGates`; the painter stops on a building or flag that would stand on the street. The look, the slopes' shading, the bridges, the Stables' yard, the arrow and the drive in the client are NOT RUN; Arathi Basin cannot be selected in the client until Codex registers it.
 
 On `claude/warsong-v3` (Warsong Gulch version 3, both bases driven alike; focused: `python scripts/test_lua.py --runtime lua51 --tests warsong presentation ui menu peer_session multiplayer_integration`, then the full Lua 5.1 suite; data and picture bytes: `python scripts/build_battlegrounds.py --wc3 WC3 --check`; catalogue: `python scripts/export_score_catalog.py --check`):
 

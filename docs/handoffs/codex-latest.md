@@ -2,6 +2,14 @@
 
 ## Active Arathi review and conditional installation — 2026-10-28
 
+Additional narrow shared-interface reservation: Arathi's guide can point through
+the Stables barn because Circuit.isDrivable reports road grip without expanded
+solid clearance. Add a separate read-only Circuit.isGuideDrivable query and
+consume it in Presentation.clearLine when available, with exact reachable-yard
+and both-route regressions. Existing physics/surface/isDrivable behavior remains
+unchanged. The change is coordinated here on the integrator branch; Claude's
+source branch and its worktree stay untouched.
+
 Owner requests review and install if acceptable. Base clean93270b1, installed
 Warsong v3 runtime a51b60e; own branch codex/arathi-integration. Claude's
 candidate3b85407 is coming soon pending Codex-owned registration. Review its

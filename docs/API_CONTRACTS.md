@@ -1,22 +1,45 @@
 # Implemented simulation and rendering contracts
 
+
+## Arathi registration and solid-aware guide — 2026-10-28
+
+Arathi Basin (geometry1, race code D, score code B) is a three-lap circuit
+using Physics12 in solo, Highscores and the existing two-player lobby. Its
+surveyed height data is presentation-only. All twelve prior score contexts,
+including Warsong Physics13, remain unchanged; retired Oval stays excluded.
+
+`Circuit.isGuideDrivable(x,y)` is an additive read-only presentation query
+using the existing road and inset-expanded solid clearance; `isDrivable`,
+physics, collision, scores and transport semantics are unchanged. The guide
+prefers this query when available. Its bounded local route fallback can hide
+an arrow when no clear direction is found rather than point through a solid.
+No per-tick UI objects are created. Native frame cost remains unmeasured.
+
+AZKSCR2/schema2 now carries thirteen exact contexts and fourteen fixed-width
+HELLO digest slots (retired O=0); maximum HELLO is145 bytes including prefix,
+within the unchanged158-byte ceiling. Other codes stay stable and Arathi adds
+B. The earlier thirteen-slot HELLO cannot complete catch-up with this build;
+both peers need the update. Exact-context direct NEW admission remains as
+before. Saved data, rate limits and existing board versions do not change.
+
+
 ## Registered Warsong and mixed-version scores — 2026-10-27
 
 Warsong Gulch (`warsong_gulch`, geometry3, three laps) is enabled for solo,
 Highscores and the existing two-peer lobby. Race invite code `C`, score code
-`W`; these are independent alphabets. Current eleven flat courses keep
+`W`; these are independent alphabets. Current twelve flat courses keep
 Physics12 and their exact board contexts. Warsong alone uses Physics13 and
 AZKRUN3; AZKRUN2 and existing handling remain unchanged. Claude5cee515's
 reviewed tunnel covers, floor sorting, collision-clear route arrow and essential-roof load guards are
-integrated without changing authoritative state. Production pool91/96/151
+integrated without changing authoritative state. Production pool92/96/151
 (frames/textures/fontStrings), measured in offline doubles only.
 
 `ScoreSync.PREFIX="AZKSCR2"`, wire schema2, `MAX_BYTES=151` payload. HELLO:
-`2 H <catalogue hash> <O M S I D R U T G L A C W digests>`, each digest/hash
-exactly8 uppercase hexadecimal characters. Thirteen slots include mandatory
-retired O=0; twelve active contexts contain all six exact fields, including
+`2 H <catalogue hash> <O M S I D R U T G L A C W B digests>`, each digest/hash
+exactly8 uppercase hexadecimal characters. Fourteen slots include mandatory
+retired O=0; thirteen active contexts contain all six exact fields, including
 per-map physics, in the catalogue hash. No global physics version is assumed.
-HELLO is136 prefix-plus-payload bytes even at maximum digest values. NEW/ROW
+HELLO is145 prefix-plus-payload bytes even at maximum digest values. NEW/ROW
 keep exact context fields; REQUEST/END bind their course code to the negotiated
 catalogue. Direct NEW still requires the event sender to own the record and
 match the exact local context, even before HELLO. Hashes detect change; they
@@ -921,6 +944,17 @@ record the request. Proposed rendering/drop-down/registration work remains open.
 - **Claude's side, after acceptance:** roof overlays drawn over karts below them and fading while the player is under one; karts drawn by level; the pads' boots marks; the guiding arrow (`course.guideArrow`, Warsong only), which needs nothing from Codex. Built on `claude/warsong-layout`: [the next section](#two-floor-presentation-warsong-gulch).
 
 <a id="warsong-gulch-version-3"></a>
+
+### Proposed: Arathi Basin, a Battlegrounds Cup circuit (Claude, 2026-10-28, for Codex)
+
+On `claude/arathi-basin` (base `claude/warsong-v3` `5cee515`). Listed as **coming soon**: nothing builds or races it until Codex assigns its IDs. No Circuit, Physics, Checkpoints, protocol or score code change. Client NOT RUN. [Sheet](art/tracks/arathi-basin.md).
+
+- **Data:** `Battlegrounds.arathi_basin` is a `Circuit.new` definition beside Warsong's two-floor one, in the fields `CapitalCities.lua` uses: version 1, 2048 × 2048, `roadRadius` 56, `wallRadius` 76, `fullSpeedToWalls=true`, `wallClearance` 14 with 1,032 generated `wallVertices`, 2 `narrows` (the bridges and 84 units of road either side, wall radius 42), 1 plaza (the Stables' yard, radius 96), 1 solid (the barn, 106 × 57), 5 gates (*Gold Mine*, *Stables*, *Lumber Mill*, *Farm*, *Defiler's Den*: the finish), no branch, the spawn on the loop (1648, 625.3) facing north 65 units past the finish; 322 centerline points (5,073 units). Plus, as Warsong's: `route` (162 points, the loop from the spawn round to it) and `routeGates`; and the proposed inert `elevation` (below). `Circuit.new` copies named fields only, so the extras are inert.
+- **Catalogue (`Courses.lua`, shared: flagged for review):** entry `arathi_basin` (cup `battlegrounds`, geometry `circuit`, `guideArrow`, `soon=true`, background `Assets/Tracks/ArathiBasin/Background.tga`). `Courses.build` gains a `circuit` case, `Circuit.new(Battlegrounds[id], crossesGate)`, unreachable while the entry is coming soon; `Courses.route` also serves a guided `circuit`. `Courses.roofs` stays two-floor only.
+- **Presentation and UI:** no code change. The arrow's clear-line test calls the circuit's `isDrivable(x, y)` (its level ignored); measured offline (PUC Lua 5.1 via lupa, the cloud machine) `isDrivable` 1.85 µs and a `guideHeading` call 0.22 ms on average, 0.33 ms at worst over the lap (Warsong's 0.13-0.17). Native frame cost NOT RUN.
+- **Menu:** Arathi's copy and preview cell (`arathibasin`, 320 × 320); the track list's rows step 30 units (buttons 28 tall) so thirteen rows and four headings fit above the Back button. Budget **92/96/151** (one more frame: its coming-soon button), in `test_ui` and `test_menu`.
+- **Registration requested (Codex):** the course, invite and score IDs as for Warsong (`PeerSession`'s course table, `RaceProtocol`'s next code, `ScoreSync`'s list, the score catalogue), Physics 12 (flat, three laps), then drop `soon`. Codex-owned test, a pin only: `tests/test_peer_session.lua`'s catalogue loop skips a course coming soon (it asserted every listed course is multiplayer).
+- **Elevation (proposed, inert, [ADR 0015](adr/0015-track-elevation.md)):** `elevation.centerline` holds the ground's height under each centerline point in world units (three to the yard, so heights and distances share a scale) above the lap's lowest ground, the survey's terrain evened over 48 units and straight across each bridge; 0 in the Gold Mine's hollow to 372.4 at the Lumber Mill, 190.7 at the grid; `branches` empty. Over 64-unit runs the grade reaches +0.58 up the Lumber Mill's road and −0.85 down the cliff road (mean 0.175): **the owner's "heavy slopes"**. For ADR 0015's proposed grade term `a = -G * dh/ds` they ask a small gain (the climb must not stop a kart: Physics accelerates at 155 units/s²). Codex's decision; until then the slopes are only drawn.
 
 ### Proposed: Warsong Gulch version 3, both bases alike (Claude, `claude/warsong-v3`, 2026-10-28, for Codex)
 

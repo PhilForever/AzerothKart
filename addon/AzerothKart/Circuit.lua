@@ -447,6 +447,15 @@ function Circuit.new(definition, crossesGate)
             and not inSolid(x,y,inset) and (not corridor or streetGround(x,y) ~= nil)
     end
 
+    -- Presentation guidance needs the kart centre's collision clearance, not
+    -- just the road-grip query exposed by isDrivable. Keep that older query's
+    -- semantics unchanged for physics and other callers.
+    function track.isGuideDrivable(x,y)
+        return finite(x) and finite(y) and x >= inset and x <= track.width-inset
+            and y >= inset and y <= track.height-inset and not inSolid(x,y,inset)
+            and streetGround(x,y) == "road"
+    end
+
     -- A centre that starts inside an expanded box (never by driving: the
     -- sweep stops at its faces) moves to the nearest face point that is
     -- outside every expanded box, inside the perimeter and (with street

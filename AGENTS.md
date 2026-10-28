@@ -10,6 +10,13 @@ You are a development agent for **Azeroth Kart**, a top-down 2D WoW Forever arca
 
 ## Current owner priority
 
+Latest direction, 2026-10-28: review and install Arathi Basin when acceptable.
+It is registered for the existing two-peer flow alongside the prior twelve
+courses. Arathi uses flat Physics12; its surveyed slopes are visual. Score
+sharing uses fourteen HELLO slots within the existing 158-byte ceiling; both
+peers update for complete catch-up. Full native checks and eight-player gates
+remain open. [Current status](docs/INTEGRATION_STATUS.md).
+
 Latest owner direction, 2026-10-27: register reviewed Warsong as the twelfth
 course, preserve mixed Physics12/13 score boards, integrate and install.
 Score sync uses bounded AZKSCR2; both peers update. No push/release inferred.

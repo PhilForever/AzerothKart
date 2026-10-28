@@ -1,5 +1,16 @@
 # Shared integration and deployment status
 
+## Arathi reviewed candidate — 2026-10-28
+
+`codex/arathi-integration` combines reviewed Claude3b85407 with the current
+Warsong v3 source. Arathi is registered solo/two-player, flat Physics12, with
+raceD/scoreB. Thirteen boards fit the existing budget via a145-byte HELLO;
+both peers update for full catch-up. Barn guidance is solid-aware and can
+hide when no checked route point is clear. [Review](reviews/2026-10-28-arathi-basin.md),
+[executed evidence](PROGRESS.md). Installation receipt follows after commit;
+native checks remain NOT RUN. No push/main/release.
+
+
 ## Installed Warsong v3 — 2026-10-28
 
 Runtime **a51b60e** on `codex/warsong-v3-integration` is installed, merging

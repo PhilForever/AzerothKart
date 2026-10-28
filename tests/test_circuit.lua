@@ -188,8 +188,8 @@ end
 
 -- The catalog: cups in order, every city and dungeon ready (the Scarlet
 -- Crusade Cup's four dungeons too, tests/test_dungeon.lua); the Battlegrounds
--- Cup's layered Warsong Gulch is registered
--- (tests/test_warsong.lua).
+-- Cup's layered Warsong Gulch and circuit Arathi Basin are registered
+-- (tests/test_warsong.lua and tests/test_arathi.lua).
 assert(#Courses.CUPS == 4 and Courses.CUPS[2].name == "Capital Cities Cup"
     and Courses.CUPS[4].name == "Battlegrounds Cup", "four cups")
 local soon = 0
@@ -200,7 +200,7 @@ for _,course in ipairs(Courses.LIST) do
             Courses.build(course.id, Track.crossesGate) == nil, "a coming-soon course cannot be built")
     end
 end
-assert(soon == 0 and Courses.available("stormwind_city") and Courses.available("ironforge_gp")
+assert(soon == 0 and Courses.available("arathi_basin") and Courses.available("stormwind_city") and Courses.available("ironforge_gp")
     and Courses.available("darnassus_canopy") and Courses.available("orgrimmar_canyon")
     and Courses.available("thunder_bluff_skyway") and Courses.available("undercity_slime"),
     "all six cities are ready")
@@ -214,7 +214,8 @@ assert(Courses.next("test_oval") == "mirage_raceway" and Courses.next("mirage_ra
     and Courses.next("scarlet_library") == "scarlet_armory"
     and Courses.next("scarlet_armory") == "scarlet_cathedral"
     and Courses.next("scarlet_cathedral") == "warsong_gulch"
-    and Courses.next("warsong_gulch") == "mirage_raceway", "the Track button cycles the ready tracks")
+    and Courses.next("warsong_gulch") == "arathi_basin"
+    and Courses.next("arathi_basin") == "mirage_raceway", "the Track button cycles all ready tracks")
 -- A course marked coming soon (Thunder Bluff was until it was built) is
 -- listed but neither available, built nor stepped to.
 local thunderCourse = Courses.get("thunder_bluff_skyway")

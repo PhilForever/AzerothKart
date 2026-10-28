@@ -1,5 +1,12 @@
 # ADR 0023 — bounded mixed-version community score protocol
 
+**2026-10-28 Arathi update:** the implemented catalogue has thirteen active
+boards and fourteen digest slots. Fixed-width HELLO is145 bytes including
+prefix; all existing bounds and pacing stay unchanged. The previous
+thirteen-slot HELLO cannot reconcile with the new shape; both peers update.
+Historical data is retained. Exact-context direct NEW still follows the
+existing pre-handshake rule.
+
 - Status: Accepted for the installed candidate; native delivery still pending.
 - Date: 2026-10-27
 - Scope: owner-authorized Warsong registration and mixed-version score support.

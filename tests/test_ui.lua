@@ -353,8 +353,9 @@ local OUTLINE_CHECK_FRAMES,OUTLINE_CHECK_FONTS=1,2
 -- The Scarlet Crusade Cup adds its heading and four track buttons (Scarlet
 -- Graveyard and three coming-soon dungeons) to the track list.
 local SCARLET_CUP_FRAMES,SCARLET_CUP_FONTS=4,1
--- The Battlegrounds Cup adds its heading and Warsong Gulch's coming-soon button.
-local BATTLEGROUNDS_CUP_FRAMES,BATTLEGROUNDS_CUP_FONTS=1,1
+-- The Battlegrounds Cup adds its heading, Warsong Gulch's button and Arathi
+-- Basin's coming-soon button.
+local BATTLEGROUNDS_CUP_FRAMES,BATTLEGROUNDS_CUP_FONTS=2,1
 local UI_FRAMES=11+MENU_FRAMES+OUTLINE_CHECK_FRAMES+SCARLET_CUP_FRAMES+BATTLEGROUNDS_CUP_FRAMES
 -- (UI's own 14 font strings include the friend's name tag.)
 local UI_FONTS=14+MENU_FONTS+OUTLINE_CHECK_FONTS+SCARLET_CUP_FONTS+BATTLEGROUNDS_CUP_FONTS
@@ -3718,7 +3719,7 @@ withMock({schemaVersion=1,preferences={version=1,track="test_oval",futureField="
     for _,track in ipairs(AK.Menu.TRACKS) do assert(track.id~="test_oval") end
     local ids={"mirage_raceway","stormwind_city","ironforge_gp","darnassus_canopy",
         "orgrimmar_canyon","thunder_bluff_skyway","undercity_slime","scarlet_graveyard",
-        "scarlet_library","scarlet_armory","scarlet_cathedral","warsong_gulch"}
+        "scarlet_library","scarlet_armory","scarlet_cathedral","warsong_gulch","arathi_basin"}
     local offered,readyCalls="test_oval",0
     AK.SessionTransport={GetView=function()
         return {liveMode=true,canSetReady=true,transportBusy=false,offer={trackId=offered},session="MAP001"}
@@ -3756,9 +3757,10 @@ withMock({schemaVersion=1,preferences={version=1,track="test_oval",futureField="
         UI.state.x==UI.track.spawn().x and UI.state.y==UI.track.spawn().y,
         "default Start uses the displayed Mirage spawn and no developer geometry")
     UI.Stop("production catalogue regression")
-    -- (The Battlegrounds Cup's heading and coming-soon button, the four pooled
-    -- roofs and the guiding arrow are part of the production pool.)
-    assert(UI.objects.frames==91 and UI.objects.textures==96 and UI.objects.fontStrings==151,
+    -- (The Battlegrounds Cup's heading and two buttons, Arathi Basin's coming
+    -- soon, the four pooled roofs and the guiding arrow are part of the
+    -- production pool.)
+    assert(UI.objects.frames==92 and UI.objects.textures==96 and UI.objects.fontStrings==151,
         "production pool excludes the 96 Oval bands and two fixture crates")
 end,nil,nil,true)
 
@@ -3787,7 +3789,7 @@ for _,failure in ipairs({"false","nil","throws","camera"}) do
     end,nil,nil,true)
 end
 
-originalPrint("test_ui production catalogue: twelve multiplayer courses, real Mirage default/scenery, retired-save preservation, layered/sprint Ready and asset-failure Start guard PASS (91/96/151 pool)")
+originalPrint("test_ui production catalogue: thirteen multiplayer courses, real Mirage default/scenery, retired-save preservation, layered/sprint Ready and asset-failure Start guard PASS (92/96/151 pool)")
 
 -- Registered Warsong rendering (version 3). Its two covers, the ground over
 -- each tunnel, crop from Roofs.tga as the camera moves and fade as the
@@ -3911,6 +3913,41 @@ withMock(nil,false,function(env,UI)
         assert(UI.opponent:IsShown() and UI.opponent.sublevel==0,"and the friend shows there at 0: "..level)
         noFriend()
     end
+end,nil,nil,true)
+
+-- Registered Arathi Basin: a temporary gate is refused by the chooser, then
+-- the available guided circuit
+-- selects with its picture on the flat draw set, no roofs, and the arrow
+-- loads with its route: at the grid it points north up the east road, and
+-- the first gate's marker glows. Only drawn poses; nothing is simulated.
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    local AK=env.namespace
+    local course=AK.Courses.get("arathi_basin")
+    UI.Toggle()
+    assert(not course.soon and AK.Courses.multiplayer("arathi_basin"),
+        "Arathi is available in the production solo and two-peer catalogue")
+    course.soon=true
+    assert(not UI.SelectTrack("arathi_basin") and UI.trackId~="arathi_basin",
+        "a temporarily gated future course is not chosen")
+    course.soon=nil
+    assert(UI.SelectTrack("arathi_basin") and not UI.track.layered and UI.backgroundPath==course.background
+        and not UI.roofs and UI.guideReady and UI.guideRoute and #UI.guideRoute.gates==5
+        and UI.kart.sublevel==0,"the circuit, its picture, the flat draw set, the arrow and its route")
+    UI.Start()
+    finishCountdown(UI)
+    local spawn=UI.track.spawn()
+    local pose={}
+    for key,value in pairs(UI.state) do pose[key]=value end
+    pose.x,pose.y=spawn.x,spawn.y
+    UI.state,UI.previousState=pose,pose
+    UI.OnUpdate(0)
+    -- Up the east road, which bends north-west to the bridge ahead: the
+    -- arrow's frame 5 (112.5 degrees, counter-clockwise from east).
+    assert(UI.guideArrow.shown and UI.guideFrame==5 and UI.guideArrow.texCoords[1]==0.25
+        and UI.guideArrow.texCoords[3]==0.25,"at the grid the arrow points up the east road, as it bends to the bridge")
+    assert(UI.glowGate==1,"the Gold Mine's gate marker glows")
+    UI.Stop("rendering checked")
 end,nil,nil,true)
 
 -- Warsong's covers are part of its picture (the ground over each tunnel):

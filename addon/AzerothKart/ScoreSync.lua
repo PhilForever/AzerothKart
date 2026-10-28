@@ -7,10 +7,10 @@ local Sync = {PREFIX="AZKSCR2", MAX_BYTES=151, MAX_PEERS=32, SEND_INTERVAL=1,
 AK.ScoreSync = Sync
 local courseIds={"mirage_raceway","stormwind_city","ironforge_gp",
     "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway","scarlet_graveyard",
-    "scarlet_library","scarlet_armory","scarlet_cathedral","warsong_gulch"}
+    "scarlet_library","scarlet_armory","scarlet_cathedral","warsong_gulch","arathi_basin"}
 -- O remains a zero-digest placeholder, never an admitted course. Active
 -- production codes stay stable; new courses append their own digest slots.
-local courseCodes={"O","M","S","I","D","R","U","T","G","L","A","C","W"}
+local courseCodes={"O","M","S","I","D","R","U","T","G","L","A","C","W","B"}
 local ACTIVE_BOARDS,HELLO_SLOTS=#courseIds,#courseCodes
 local courseToCode,codeToCourse={},{}
 for i,id in ipairs(courseIds) do courseToCode[id],codeToCourse[courseCodes[i+1]]=courseCodes[i+1],id end
@@ -74,7 +74,7 @@ function Sync.encode(message)
         and dense(message.hashes,HELLO_SLOTS)==HELLO_SLOTS
         and message.hashes[1]==0 then
         -- The catalogue binds each board's exact context, including physics.
-        -- Fixed-width digests fit all thirteen slots in 136 native bytes.
+        -- Fixed-width digests fit all fourteen slots in 145 native bytes.
         -- Retired O remains a mandatory zero, never a peer's active board.
         local parts={"2 H",hexadecimal(message.catalogHash)}
         for _,value in ipairs(message.hashes) do

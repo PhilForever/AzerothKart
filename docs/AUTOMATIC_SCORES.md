@@ -68,18 +68,18 @@ cached-channel/native-group/confirmed-racer discovery plus the separately verifi
 
 ## Implementation
 
-Current catalogue: twelve courses, with Warsong on Physics13 and the eleven
-existing maps on Physics12. AZKSCR2/schema2 HELLO uses13 fixed eight-hex-digit
-slots, including retired O=0, and an exact-context catalogue hash. It costs136
-bytes including prefix at every legal digest value. M/S/I/D/R/U/T/G/L/A/C stay
-stable; W identifies Warsong. Maximum legal NEW/ROW costs150 bytes, including
-a96-byte name; every payload is capped151, native prefix-plus-payload158.
-Wire contexts allow track/physics/rules versions1..1295, laps1..9 and tickRate60.
-Unsupported current rows disable sharing safely without modifying them;
-historical contexts and Test Oval remain saved. Both players must update:
-AZKSCR1/schema1 cannot catch up or publish into this protocol family. No save
-schema migration or board reset. [Contract](API_CONTRACTS.md#registered-warsong-and-mixed-version-scores--2026-10-27),
-[decision](adr/0023-mixed-version-score-sync.md), [map scope](PRODUCTION_MAPS.md).
+Current catalogue: thirteen courses, with Warsong on Physics13 and twelve
+flat maps on Physics12. AZKSCR2/schema2 HELLO uses fourteen fixed hexadecimal
+digest slots, including retired O=0, and an exact-context catalogue hash. The
+maximum HELLO is145 bytes including prefix; Arathi adds score code B and all
+prior codes remain stable. Maximum legal NEW/ROW is150 bytes, including a
+96-byte name. Each payload remains capped151 and native total158 bytes.
+Wire contexts permit track/physics/rules versions1..1295, laps1..9 and tickRate60.
+Prior thirteen-slot HELLOs cannot complete catch-up with this build. Both peers
+need the update for complete reconciliation; compatible direct NEW records from
+an older build may still be received. Historical scores and Test Oval remain
+saved. No save migration or board reset. [Contract](API_CONTRACTS.md),
+[decision](adr/0023-mixed-version-score-sync.md), [maps](PRODUCTION_MAPS.md).
 
 - `ScoreDiscovery.Read` validates an entire bounded cached roster using display
   indices, not local send-channel IDs. Missing/secret/partial data stays pending.
@@ -112,7 +112,7 @@ schema migration or board reset. [Contract](API_CONTRACTS.md#registered-warsong-
   emit a local achievement. UI rows and result text are reused; no per-tick UI
   allocation or message stream is added.
 
-The integrated Warsong production UI pool is91frames/96textures/151fonts. Core and the score receiver
+The integrated Warsong production UI pool is92frames/96textures/151fonts. Core and the score receiver
 add two fixed frames outside that pool. Normal WoW SavedVariables saving remains
 responsible for disk persistence; development/install scripts never read player
 WTF data. No external service or Python database is contacted.

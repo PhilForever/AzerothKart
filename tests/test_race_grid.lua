@@ -212,7 +212,7 @@ do
         assert(track.spawn().x==original.x and track.spawn().y==original.y)
       end
     end
-    assert(ready==12,"all twelve courses, including four sprints and the layered circuit but no development fixture, were checked")
+    assert(ready==13,"all thirteen courses, including Arathi, four sprints and Warsong, but no development fixture, were checked")
     local bad={width=10,height=10,spawn=function() return {x=5,y=5,heading=0} end,
         isDrivable=function() return true end}
     assert(G.pose(bad,"host")==nil)
@@ -224,4 +224,4 @@ do
 end
 assert(G.view({})==nil and not G.update({},0,accept) and not G.receive({},0,"")
     and not G.stop({},0,"left"))
-print("RaceGrid: strict 12-byte profiles, bounded agreement/retries/reentry and twelve-course two-peer grids PASS")
+print("RaceGrid: strict 12-byte profiles, bounded agreement/retries/reentry and thirteen-course two-peer grids PASS")

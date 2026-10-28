@@ -775,7 +775,7 @@ end
 -- The real course catalogue, geometry snapshots and native lease are shared
 -- by every available map; a city offer must not fall back to Mirage or Oval.
 for _,id in ipairs({"mirage_raceway","stormwind_city","ironforge_gp",
-    "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway","warsong_gulch"}) do
+    "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway","warsong_gulch","arathi_basin"}) do
     local p=livePair(id)
     for _,role in ipairs({"host","guest"}) do
         local e=p[role]

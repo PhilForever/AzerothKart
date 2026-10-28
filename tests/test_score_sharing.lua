@@ -211,7 +211,7 @@ do
     for _,course in ipairs(owner.namespace.Courses.LIST) do
         if owner.namespace.Courses.available(course.id) then ids[#ids+1]=course.id end
     end
-    assert(#ids==12,"twelve finished courses, including all Scarlet sprints and layered Warsong")
+    assert(#ids==13,"thirteen finished courses, including Arathi and layered Warsong")
     for index,id in ipairs(ids) do
         local saved=owner:finish(2000+index,id)
         assert(saved.saved,"eligible current board saves: "..id)
@@ -234,6 +234,9 @@ do
     assert(learner:view("scarlet_graveyard").rows[1].lapCount==1)
     assert(learner:view("thunder_bluff_skyway").rows[1].lapCount==3)
     assert(learner:view("warsong_gulch").rows[1].lapCount==3)
+    assert(learner:view("arathi_basin").rows[1].lapCount==3
+        and learner:view("arathi_basin").rows[1].physicsVersion==12,
+        "Arathi catch-up uses its own flat three-lap board")
     assert(owner.namespace.Highscores.View(owner.db.highscores,historical)[1].totalTicks==9999,
         "adding Physics13 sharing never migrates/deletes historical Physics11 records")
     assert(learner:view("scarlet_graveyard").rows[1].trackVersion==3
@@ -252,6 +255,9 @@ do
     local warsong=owner:finish(1600,"warsong_gulch")
     assert(warsong.saved and warsong.placement and owner:view("warsong_gulch").context.physicsVersion==13)
     allMaps:untilTrue(function() return learner:view("warsong_gulch").rows[1].totalTicks==1600 end,5)
+    local arathi=owner:finish(1500,"arathi_basin")
+    assert(arathi.saved and arathi.placement and owner:view("arathi_basin").context.physicsVersion==12)
+    allMaps:untilTrue(function() return learner:view("arathi_basin").rows[1].totalTicks==1500 end,5)
     assert(learner:view("mirage_raceway").rows[1].physicsVersion==12,
         "new layered finish notification does not merge into an existing flat board")
 end

@@ -1,12 +1,12 @@
 # Probe wire format and future race protocol
 
-Current score wire,2026-10-27: AZKSCR2/schema2 carries twelve exact boards
-(existing11Physics12/Warsong13), thirteen fixed hexadecimal digest slots,
-136-byte HELLO and maximal150-byte ROW including prefix. Native158 ceiling and
-pacing are unchanged. Older score-prefix peers must update; cached data stays.
-[Exact contract](API_CONTRACTS.md#registered-warsong-and-mixed-version-scores--2026-10-27).
-Race control adds Warsong inviteC; layered poses use40-byte AZKRUN3 while flat
-AZKRUN2 remains unchanged. Older experiment descriptions below are historical.
+Current score wire,2026-10-28: AZKSCR2/schema2 carries thirteen exact boards
+(twelve Physics12 and Warsong Physics13), fourteen fixed hexadecimal digest
+slots, 145-byte HELLO and maximal150-byte ROW including prefix. Native158-byte
+ceiling and pacing stay unchanged. Prior thirteen-slot peers need the update
+for complete catch-up; cached data remains. [Exact contract](API_CONTRACTS.md).
+Race control adds Arathi inviteD; layered AZKRUN3 and flat AZKRUN2 remain.
+Older experiment descriptions below are historical.
 
 **Current branch:** a bounded, explicitly armed two-client **WHISPER_LOGGED** experiment, using `C_ChatInfo.SendAddonMessageLogged` and `CHAT_MSG_ADDON_LOGGED` with native channel argument `WHISPER`. CSV evidence uses channel `WHISPER_LOGGED`, keeping it distinct from unlogged traffic; there is no ordinary-whisper or unlogged fallback. [AKT722](evidence/2026-10-21-akt722-network-window.md) completed one 0.5 DATA/s, 16-byte, 120-second window with both sides reporting `window_complete`: 59 accepted DATA/unique receipts/accepted ACKs/matched ACKs, zero observed rejection/duplicate/reorder/timeout/late/outstanding/throttle/error counters, and numeric `0` prefix/send returns on both peers. One terminal opportunity was unattempted at the local window boundary, not network loss. Listener bitmaps show 1–59 followed by an absent 60; owner map portions are obscured, limiting independent position transcription. Exact client builds/interfaces, location and UTC time were not provided. The later budget and reload/fresh-session samples are recorded below. The probe implements no rooms, invites or kart replication. See [ADR 0012](adr/0012-forever-logged-transport.md), [the manual sequence](../tests/MANUAL_NETWORK_CHECKLIST.md) and [client API evidence](CLIENT_API.md#transport-probe-api-contract-source-evidence-not-a-live-pass).
 

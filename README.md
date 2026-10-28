@@ -1,5 +1,11 @@
 # Azeroth Kart — top-down arcade racing inside WoW Forever
 
+**Arathi Basin:** the reviewed Battlegrounds Cup circuit is available in solo
+and the existing two-player lobby. It uses the established flat Physics12;
+terrain relief is visual and does not affect speed. Both players need the
+updated build and a full restart. [Current status](docs/INTEGRATION_STATUS.md).
+
+
 **Warsong v3, 2026-10-28:** both bases run up the outside ramp, through the
 lobby and flag room, then down the tunnel. Reviewed Claude5cee515 adds the
 raised Horde base, descent-aware cover fades and clearance around the guiding

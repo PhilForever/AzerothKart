@@ -917,7 +917,7 @@ local function clearLine(track, level, x, y, tx, ty)
     if length <= 0 then return true end
     local n = math.ceil(length / GUIDE_CLEAR_STEP)
     local ox, oy = -dy / length * GUIDE_CLEAR_MARGIN, dx / length * GUIDE_CLEAR_MARGIN
-    local drivable = track.isDrivable
+    local drivable = type(track.isGuideDrivable) == "function" and track.isGuideDrivable or track.isDrivable
     for k = 1, n do
         local f = k / n
         local px, py = x + dx * f, y + dy * f
@@ -950,9 +950,35 @@ local function alongRoute(track, level, points, crossings, nextGate, x, y, ahead
     end
     local checks = type(track.isDrivable) == "function" and (level == 0 or level == 1)
     local tx, ty
+    local clear = false
     for i = 1, #GUIDE_LOOKS do
         tx, ty = routeAhead(points, count, bestK, bestT, ahead * GUIDE_LOOKS[i])
-        if not checks or clearLine(track, level, x, y, tx, ty) then break end
+        if not checks or clearLine(track, level, x, y, tx, ty) then clear = true; break end
+    end
+    if not clear and type(track.isGuideDrivable) == "function" then
+        -- A kart can legitimately take the other side of a solid. First try
+        -- the nearest point on the route, then a bounded local vertex search.
+        -- If none is clear, hide the arrow until it can guide safely again.
+        tx, ty = routeAhead(points, count, bestK, bestT, 0)
+        local dx,dy = tx-x,ty-y
+        clear = dx*dx+dy*dy > 1e-6 and clearLine(track, level, x, y, tx, ty)
+        if not clear then
+            local bestDistance
+            for offset = -2,2 do
+                local index = bestK + offset
+                local point = index >= first and index <= last and points[index]
+                if routePoint(point) then
+                    local vx,vy = point.x-x,point.y-y
+                    local distance = vx*vx+vy*vy
+                    if distance > 1e-6 and distance <= 4*ahead*ahead
+                        and (not bestDistance or distance < bestDistance)
+                        and clearLine(track, level, x, y, point.x, point.y) then
+                        tx,ty,bestDistance,clear = point.x,point.y,distance,true
+                    end
+                end
+            end
+        end
+        if not clear then return nil,nil,true end
     end
     local hx, hy = tx - x, ty - y
     return atan2(hy, hx), math.sqrt(hx * hx + hy * hy)
@@ -965,9 +991,10 @@ function Presentation.guideHeading(track, progress, x, y, route, level)
     if type(gate) ~= "table" then return nil end
     if type(route) == "table" and type(route.points) == "table" and type(route.gates) == "table"
         and #route.points >= 2 then
-        local heading, distance = alongRoute(track, level, route.points, route.gates, progress.nextGate, x, y,
+        local heading, distance, blocked = alongRoute(track, level, route.points, route.gates, progress.nextGate, x, y,
             Presentation.GUIDE_ARROW.ahead)
         if heading then return heading, distance, true end
+        if blocked then return nil end
     end
     local dx,dy = (gate.ax + gate.bx) / 2 - x, (gate.ay + gate.by) / 2 - y
     return atan2(dy, dx), math.sqrt(dx * dx + dy * dy)
