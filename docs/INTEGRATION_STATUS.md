@@ -1,5 +1,12 @@
 # Shared integration and deployment status
 
+## Arathi open grass installed — 2026-10-28
+
+Runtime **3e3e056** installed; 94 source/installed and 94 prior backup files
+verified. Matching ZIP `../AzerothKart-ArathiOpenGrass-3e3e056.zip` verified.
+Fully restart WoW; native grass/edge and shortcut balance NOT RUN.
+[Receipt](PROGRESS.md); [review](reviews/2026-10-28-arathi-open-grass.md).
+
 ## Arathi open grass candidate — 2026-10-28
 
 Reviewed Claude `445c322` and Codex geometry3 collision mask. Focused Lua51

@@ -1,5 +1,24 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-28 19:05 +0100 — Arathi open grass installed and ZIP verified
+
+Runtime **3e3e056**, branch `codex/arathi-open-grass`, combines Claude
+`445c322` with Codex geometry3 open-grass collision. The prior installed
+source and preserved extra were freshly checked before the authorized install.
+`install_local.ps1` installed94 source files and backed up94 previous files;
+`local-artifacts/deploy-20261028-arathi-open-grass/audit_and_package.py
+--runtime 3e3e056` independently verified every installed and backup hash,
+the preserved extra and all94 ZIP entries/CRC: PASS. No SavedVariables, other
+addon or Claude worktree modified.
+
+Friend ZIP: `../AzerothKart-ArathiOpenGrass-3e3e056.zip` (88,688,544 bytes;
+SHA256 `4EF28646039DE9452378A631C3105E994E43C4BC43B722C0EBF2E16D392FA134`).
+Receipt/backup under `local-artifacts/deploy-20261028-arathi-open-grass/`.
+Full client restart required for the new Lua module and replaced textures;
+multiplayer peers need this same build. Native driving, natural-edge alignment
+and shortcut balance NOT RUN. Next: drive across opened edges, then check the
+remaining fences and grass speed. No push, release or main merge.
+
 ## 2026-10-28 19:05 +0100 — Arathi open grass reviewed candidate
 
 Owner requests slow grass beyond the removed fence stretches. Reviewed and

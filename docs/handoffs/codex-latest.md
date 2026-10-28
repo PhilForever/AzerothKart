@@ -1,5 +1,14 @@
 # Codex handoff — production maps and Claude course review
 
+## Installed Arathi open grass — 2026-10-28 19:05 +0100
+
+Runtime **3e3e056** is installed, with independently verified94 source files
+and94 prior backup files; the matching friend ZIP is
+`../AzerothKart-ArathiOpenGrass-3e3e056.zip`. Claude `445c322` is integrated
+without changes to its worktree. Full client restart is required. Native
+boundary alignment, shortcut balance and performance remain NOT RUN.
+[Evidence](../PROGRESS.md).
+
 ## Arathi open grass reviewed candidate — 2026-10-28
 
 `codex/arathi-open-grass` merges Claude `445c322` and opens selected former
