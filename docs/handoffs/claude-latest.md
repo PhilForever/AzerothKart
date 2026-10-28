@@ -1,4 +1,14 @@
-# Claude handoff — Warsong Gulch version 3: both bases alike
+# Claude handoff — Arathi Basin (reserved, in progress)
+
+Reserved 2026-10-28 at about 12:45 CET by Claude (rendering/UI/sprites owner).
+
+**Task:** the owner, with Warsong version 3 looking right: "Let's take what we learned creating this map and make Arathi Basin. (No insides here but heavy slopes)", with a route drawn on the battleground's world map: a loop round the basin from Defiler's Den. Shown it on the game's own map, he gave the way round: **"East > DOWN to Gold Mine > Up to the stables > UP to the Lumbermill and then down to the farm and around"**. He left the other questions open; taken as recommended and to be confirmed: both ways round the Stables (a fork, as he drew it), the slopes drawn from the real heights now and felt later (Codex's physics, [ADR 0015](../adr/0015-track-elevation.md)), the grass at full speed to the walls.
+
+**Base:** `claude/warsong-v3` `5cee515` (Warsong version 3, not yet integrated: Arathi Basin uses the same battleground pipeline). **Branch:** `claude/arathi-basin`.
+
+**Reserved (Claude):** `scripts/wow_map_survey.py` (a world's size, relief range and water), new `scripts/arathi_basin_survey.json`; the Battlegrounds Cup's layouts, painter and builder (`scripts/battleground_layouts.py`, `battleground_paint.py`, `build_battlegrounds.py`), the generated `addon/AzerothKart/Battlegrounds.lua` and a new `Assets/Tracks/ArathiBasin/`; Arathi Basin's entries in `Courses.lua` (listed as coming soon; a `circuit` geometry built by `Circuit.new` from `Battlegrounds.lua`) and `Menu.lua`; new `tests/test_arathi.lua`, the catalogue's counts in `tests/test_ui.lua`/`tests/test_menu.lua` if they change; a new sheet `docs/art/tracks/arathi-basin.md`, notes in `API_CONTRACTS.md`, `TRACKS.md`, `ASSETS.md`, `art/ASSET_SOURCES.md`, `TEST_PLAN.md`, `CHANGELOG.md`, the client checklist, this handoff. **Not touched (Codex's):** `Circuit.lua`, Physics, Checkpoints, the protocols' and scores' course tables (`PeerSession`, `RaceProtocol`, `ScoreSync`): the course stays coming soon until Codex registers it.
+
+# Previous: Warsong Gulch version 3: both bases alike
 
 Prepared 2026-10-28 at about 11:45 CET by Claude (rendering/UI/sprites owner).
 
