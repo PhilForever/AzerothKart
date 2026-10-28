@@ -1,5 +1,14 @@
 # Codex handoff — production maps and Claude course review
 
+## Active Arathi open-grass change — 2026-10-28
+
+Owner requests drivable slow grass beyond the former fences, out toward the
+map edges. Reviewing Claude `445c322` on `codex/arathi-open-grass`; reserve
+Circuit geometry, generated Arathi collision data, score/version tests and
+shared contract/progress documents. Preserve the approved Arathi grass-boost
+rule, other courses, Claude’s worktree and old records. Review natural boundaries
+and checkpoint integrity before installing; native driving stays pending.
+
 ## Installed Arathi v2 — 2026-10-28 17:35 +0100
 
 Runtime **4dd8071**, `codex/arathi-v2-integration`, is installed and the
