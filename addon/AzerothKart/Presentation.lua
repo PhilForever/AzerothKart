@@ -867,6 +867,24 @@ function Presentation.roofCrop(view, roof)
     return px, py, pw, ph, x0 / W, x1 / W, 1 - y1 / H, 1 - y0 / H
 end
 
+-- A course too big for one picture (every course's stays at most 2048
+-- texels a side) has its scenery in tiles (Courses.lua `tiles`): each a picture of
+-- the world's box x0..x1, y0..y1, one texel per world unit. Where a tile
+-- shows on the canvas and its crop of its own picture, as roofCrop's: left,
+-- bottom, width, height, then left/right/top/bottom texture coordinates;
+-- nil when none of it shows. Neighbouring tiles share their edge exactly,
+-- so the two pieces meet without a gap.
+function Presentation.tileCrop(view, tile)
+    local px,py,pw,ph = Presentation.clipRect(view, tile.x0, tile.y0, tile.x1 - tile.x0, tile.y1 - tile.y0)
+    if not px then return nil end
+    local x0,y0 = Presentation.unproject(view, px, py)
+    local x1,y1 = Presentation.unproject(view, px + pw, py + ph)
+    local W,H = tile.x1 - tile.x0, tile.y1 - tile.y0
+    local function unit(v) return math.max(0, math.min(1, v)) end
+    return px, py, pw, ph, unit((x0 - tile.x0) / W), unit((x1 - tile.x0) / W),
+        unit(1 - (y1 - tile.y0) / H), unit(1 - (y0 - tile.y0) / H)
+end
+
 -- The guiding arrow (a course's `guideArrow`): from (x, y) the way to the
 -- lap's next gate, as a heading and a distance; nil when the lap's progress
 -- names no next gate. Reads the race's copied checkpoint progress and the

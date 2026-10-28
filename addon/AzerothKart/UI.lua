@@ -620,6 +620,10 @@ local KART_LAYERS = {
     high={behind=0, sparks=2, kart=3, outline=4, front=5, smoke={"OVERLAY", 0}},
 }
 local ROOF_SUBLEVEL, MAX_ROOFS = -1, 4
+-- A course too big for one picture draws its scenery in tiles (Courses.lua
+-- `tiles`, Alterac Valley's four): the first in the background texture, the
+-- rest in a pool of MAX_TILES - 1 background textures.
+local MAX_TILES = 4
 
 -- The player's kart and its effects to one set; the flames take theirs
 -- each frame (renderEffects). Guarded: a refused call keeps the old layer.
@@ -862,6 +866,70 @@ local function roofsLoaded(course)
     return false
 end
 
+-- A tiled course's pictures past its first (the first is its `background`,
+-- loaded as every course's), loaded into the pooled tile textures once per
+-- course: true when the course has no tiles or they are loaded. A refusal
+-- leaves the pool unready (UI.tilesLoaded nil), and SelectTrack and Start
+-- refuse the course, as they refuse a missing background.
+local function loadTiles(course)
+    local tiles = course and course.tiles
+    if not tiles then return true end
+    if UI.tilesLoaded == tiles then return true end
+    UI.tilesLoaded = nil
+    if not UI.tileTextures or #tiles > #UI.tileTextures + 1 or type(tiles[1]) ~= "table"
+        or tiles[1].path ~= course.background then return false end
+    for index=2,#tiles do
+        local piece = UI.tileTextures[index-1]
+        if type(piece.SetTexture) ~= "function" or type(piece.SetTexCoord) ~= "function" then return false end
+        local ok,loaded = pcall(piece.SetTexture,piece,tiles[index].path)
+        if not ok or loaded ~= true then return false end
+    end
+    UI.tilesLoaded = tiles
+    return true
+end
+
+-- Each of a tiled course's pictures over its box of the world, cropped to
+-- the camera: the first in the background texture, the rest in the pool.
+-- Neighbouring tiles share their edge (Presentation.tileCrop).
+local function placeTiles()
+    local view = UI.view
+    for index,tile in ipairs(UI.tiles) do
+        local piece = index == 1 and UI.mirageBackground or UI.tileTextures[index-1]
+        local px,py,pw,ph,left,right,top,bottom = Presentation.tileCrop(view,tile)
+        if px then
+            piece:ClearAllPoints()
+            piece:SetPoint("BOTTOMLEFT",UI.canvas,"BOTTOMLEFT",px,py)
+            piece:SetSize(pw,ph)
+            piece:SetTexCoord(left,right,top,bottom)
+            piece:Show()
+        else piece:Hide() end
+    end
+end
+
+-- A tiled course's tiles, placed as the camera moves (placeTiles); every
+-- other course hides the pool, its background over the whole canvas. A
+-- tiled course whose pictures were refused shows none of them (Start
+-- refuses it) rather than its first stretched over the world.
+local function layoutTiles(course)
+    UI.tiles = nil
+    for _,piece in ipairs(UI.tileTextures or {}) do piece:Hide() end
+    if course and course.tiles then
+        if loadTiles(course) then UI.tiles = course.tiles else UI.mirageBackground:Hide() end
+    end
+end
+
+-- SelectTrack's tile check, as its roof check: refused, the course is
+-- refused as for a missing background, and a current tiled course lays its
+-- own tiles out again (the pool may hold a part load).
+local function tilesLoaded(course)
+    if loadTiles(course) then return true end
+    refuseStart(course.name .. " background unavailable | Choose another track; previous selection retained")
+    local current = Courses.get(UI.trackId)
+    layoutTiles(current ~= course and current or nil)
+    if UI.tiles and UI.view and UI.view.follow then placeTiles() end
+    return false
+end
+
 -- Each roof over its box, cropped as the camera moves, at its opacity for
 -- the player's kart (whole while `above`: on floor 1 off the ramps).
 local function placeRoofs(wx, wy, above)
@@ -947,6 +1015,7 @@ local function layoutTrack()
     UI.mirageBackground:ClearAllPoints()
     UI.mirageBackground:SetPoint("BOTTOMLEFT",UI.canvas,"BOTTOMLEFT",0,0)
     UI.mirageBackground:SetSize(800,480)
+    layoutTiles(follow and course or nil)
     placeTrackMarkers()
     layoutRoofs(course)
     for index,piece in ipairs(UI.obstacleTextures) do
@@ -1094,7 +1163,8 @@ function UI.SelectTrack(id)
     if not course or course.soon then return false end
     local background = course.background
     if id == UI.trackId and (not background or UI.backgroundPath == background)
-        and (not course.roofs or UI.roofsPath == course.roofs) then return true end
+        and (not course.roofs or UI.roofsPath == course.roofs)
+        and (not course.tiles or UI.tilesLoaded == course.tiles) then return true end
     local staging = UI.backgroundStaging
     local backgroundTarget = UI.backgroundPath == background and UI.mirageBackground or staging
     if background and type(backgroundTarget.SetTexCoord) ~= "function" then
@@ -1125,14 +1195,15 @@ function UI.SelectTrack(id)
             refuseStart(course.name .. " background unavailable | Choose another track; previous selection retained")
             return false
         end
-        -- A two-floor course's roof picture is scenery too (its upper floor).
-        if not roofsLoaded(course) then return false end
+        -- A two-floor course's roof picture is scenery too (its upper floor),
+        -- as are a tiled course's pictures past its first.
+        if not roofsLoaded(course) or not tilesLoaded(course) then return false end
         UI.mirageBackground:Hide()
         UI.mirageBackground,UI.backgroundStaging = staging,UI.mirageBackground
         UI.backgroundPath = background
         UI.cameraApiReady = true
         UI.mirageTextureReady = id == "mirage_raceway"
-    elseif not roofsLoaded(course) then return false end
+    elseif not roofsLoaded(course) or not tilesLoaded(course) then return false end
     if id == UI.trackId then
         -- Loading the default's picture changes presentation only. Keep the
         -- already constructed pose and timing references on first open.
@@ -1394,7 +1465,8 @@ render = function()
         local oldX,oldY = UI.view.offsetX,UI.view.offsetY
         Presentation.follow(UI.view,x,y,heading,60)
         if oldX ~= UI.view.offsetX or oldY ~= UI.view.offsetY or not UI.cameraCropReady then
-            UI.mirageBackground:SetTexCoord(Presentation.texCoords(UI.view))
+            if UI.tiles then placeTiles() -- a tiled course: each picture over its box
+            else UI.mirageBackground:SetTexCoord(Presentation.texCoords(UI.view)) end
             placeTrackMarkers()
             UI.cameraCropReady = true
         end
@@ -1510,6 +1582,15 @@ function UI.Create()
     UI.mirageBackground:Hide()
     UI.backgroundStaging = texture(UI.canvas,"BACKGROUND")
     UI.backgroundStaging:Hide()
+    -- A tiled course's pictures past its first: pooled background textures,
+    -- each cropped from its own picture as the camera moves; hidden on every
+    -- other course.
+    UI.tileTextures = {}
+    for index=1,MAX_TILES-1 do
+        local piece = texture(UI.canvas,"BACKGROUND")
+        piece:Hide()
+        UI.tileTextures[index] = piece
+    end
     -- A two-floor course's roofs: pooled textures, one per roof box, cropped
     -- from its roof picture as the camera moves; hidden on other courses.
     UI.roofTextures,UI.roofAlphas = {},{}
@@ -1862,7 +1943,8 @@ function UI.Start()
     local course = Courses.get(UI.trackId)
     if not course or course.soon or (course.background and
         (UI.backgroundPath ~= course.background or not UI.cameraApiReady))
-        or (course.roofs and UI.roofsPath ~= course.roofs) then
+        or (course.roofs and UI.roofsPath ~= course.roofs)
+        or (course.tiles and UI.tilesLoaded ~= course.tiles) then
         refuseStart("Track scenery unavailable; choose another track or reopen to retry"); return
     end
     if type(GetCurrentKeyBoardFocus) ~= "function"

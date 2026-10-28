@@ -262,12 +262,13 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu)
     -- (one label), and to the results a Highscores button, a sunburst, a medal
     -- and twelve confetti pieces (14 textures), a banner, its line, the wreath's
     -- rank and the two racers' rows (two labels each).
-    -- The Battlegrounds Cup adds its heading, Warsong Gulch's track button
-    -- and Arathi Basin's coming-soon one; a two-floor course's four pooled
-    -- roofs and its guiding arrow are created with the window (hidden on
-    -- every other course).
-    assert(UI.objects.frames == 92 and UI.objects.textures == 96 and UI.objects.fontStrings == 151,
-        ("explicit budget 92/96/151, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
+    -- The Battlegrounds Cup adds its heading, Warsong Gulch's and Arathi
+    -- Basin's track buttons and Alterac Valley's coming-soon one; a two-floor
+    -- course's four pooled roofs and its guiding arrow, and a tiled course's
+    -- three pooled tiles, are created with the window (hidden on every other
+    -- course).
+    assert(UI.objects.frames == 93 and UI.objects.textures == 99 and UI.objects.fontStrings == 151,
+        ("explicit budget 93/99/151, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
             UI.objects.fontStrings))
     assert(AzerothKartDB.preferences == nil, "creation saves nothing")
     local before = counts(env)
@@ -1349,26 +1350,38 @@ withMock(nil, function(env, UI, Menu, AK)
         and not soon.scarlet_graveyard and not soon.scarlet_cathedral,
         "the cup lists its four sprints, none of them coming soon")
     local rows = Menu.trackRows()
-    assert(rows[#rows - 7].heading == "Scarlet Crusade Cup" and rows[#rows - 6].track.id == "scarlet_graveyard"
-        and rows[#rows - 5].track.id == "scarlet_library" and rows[#rows - 4].track.id == "scarlet_armory"
-        and rows[#rows - 3].track.id == "scarlet_cathedral", "the third cup's heading, then its four sprints")
+    assert(rows[#rows - 8].heading == "Scarlet Crusade Cup" and rows[#rows - 7].track.id == "scarlet_graveyard"
+        and rows[#rows - 6].track.id == "scarlet_library" and rows[#rows - 5].track.id == "scarlet_armory"
+        and rows[#rows - 4].track.id == "scarlet_cathedral", "the third cup's heading, then its four sprints")
     -- Both reviewed Battlegrounds Cup courses are selectable.
-    assert(rows[#rows - 2].heading == "Battlegrounds Cup" and rows[#rows - 1].track.id == "warsong_gulch"
+    assert(rows[#rows - 3].heading == "Battlegrounds Cup" and rows[#rows - 2].track.id == "warsong_gulch"
         and buttons.warsong_gulch and buttons.warsong_gulch:IsEnabled() and buttons.warsong_gulch.scripts.OnClick
         and not soon.warsong_gulch, "the fourth cup lists Warsong Gulch as a ready track")
     local arathiCourse = AK.Courses.get("arathi_basin")
-    assert(rows[#rows].track.id == "arathi_basin" and buttons.arathi_basin
+    assert(rows[#rows - 1].track.id == "arathi_basin" and buttons.arathi_basin
         and buttons.arathi_basin:IsEnabled() and buttons.arathi_basin.scripts.OnClick
         and not soon.arathi_basin and not arathiCourse.soon, "then the playable Arathi Basin")
-    local warsong, arathi
+    -- Alterac Valley is listed last, coming soon: disabled and inert.
+    local alteracCourse = AK.Courses.get("alterac_valley")
+    assert(rows[#rows].soon == alteracCourse and alteracCourse.soon and not buttons.alterac_valley
+        and soon.alterac_valley and not soon.alterac_valley:IsEnabled() and not soon.alterac_valley.scripts.OnClick
+        and soon.alterac_valley.text:find("(soon)", 1, true), "then Alterac Valley, coming soon")
+    local warsong, arathi, alterac
     for _,track in ipairs(Menu.TRACKS) do
-        if track.id == "warsong_gulch" then warsong = track elseif track.id == "arathi_basin" then arathi = track end
+        if track.id == "warsong_gulch" then warsong = track elseif track.id == "arathi_basin" then arathi = track
+        elseif track.id == "alterac_valley" then alterac = track end
     end
     assert(warsong and #warsong.facts == 3 and warsong.blurb:find("Silverwing Hold", 1, true)
         and Menu.PREVIEW_CELLS[warsong.cell].path:find("WarsongGulch\\Preview.tga", 1, true)
         and Menu.PREVIEW_CELLS[warsong.cell].width == 160 and Menu.PREVIEW_CELLS[warsong.cell].height == 320,
         "Warsong's copy and its twice-as-tall preview")
-    assert(arathi and Menu.TRACKS[#Menu.TRACKS] == arathi and #arathi.facts == 3
+    assert(alterac and Menu.TRACKS[#Menu.TRACKS] == alterac and #alterac.facts == 3
+        and alterac.blurb:find("Frostwolf", 1, true) and alterac.blurb:find("Field of Strife", 1, true)
+        and alterac.blurb:find("Dun Baldar", 1, true)
+        and Menu.PREVIEW_CELLS[alterac.cell].path:find("AlteracValley\\Preview.tga", 1, true)
+        and Menu.PREVIEW_CELLS[alterac.cell].width == 320 and Menu.PREVIEW_CELLS[alterac.cell].height == 320,
+        "Alterac Valley's copy and its square preview of the Field of Strife")
+    assert(arathi and Menu.TRACKS[#Menu.TRACKS - 1] == arathi and #arathi.facts == 3
         and arathi.blurb:find("Gold Mine", 1, true) and arathi.blurb:find("Lumber Mill", 1, true)
         and Menu.PREVIEW_CELLS[arathi.cell].path:find("ArathiBasin\\Preview.tga", 1, true)
         and Menu.PREVIEW_CELLS[arathi.cell].width == 320 and Menu.PREVIEW_CELLS[arathi.cell].height == 320,
@@ -1377,8 +1390,9 @@ withMock(nil, function(env, UI, Menu, AK)
     course.soon = true
     local gated = Menu.trackRows()
     course.soon = nil
-    assert(#gated == #rows and gated[#gated - 2].heading == "Battlegrounds Cup"
-        and gated[#gated - 1].track.id == arathiCourse.id and gated[#gated].soon == course,
+    assert(#gated == #rows and gated[#gated - 3].heading == "Battlegrounds Cup"
+        and gated[#gated - 2].track.id == arathiCourse.id and gated[#gated - 1].soon == course
+        and gated[#gated].soon == alteracCourse,
         "an explicitly gated course takes its ready row's place while Arathi remains available")
     click(buttons.arathi_basin)
     assert(UI.trackId == "arathi_basin" and Menu.previewReady and not UI.track.layered

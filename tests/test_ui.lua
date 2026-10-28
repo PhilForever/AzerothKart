@@ -346,16 +346,20 @@ local GATE_STRIPS=8
 -- A two-floor course's four pooled roofs and the guiding arrow are created
 -- with the window, hidden on every other course; each sets its sublevel once.
 local ROOF_PIECES=4+1
-local UI_TEXTURES=112+GATE_STRIPS+EFFECT_TEXTURES+MENU_TEXTURES+ROOF_PIECES
+-- A tiled course (Alterac Valley) draws its first picture in the background
+-- texture and the rest in three pooled background textures, created with the
+-- window and hidden on every other course.
+local TILE_PIECES=3
+local UI_TEXTURES=112+GATE_STRIPS+EFFECT_TEXTURES+MENU_TEXTURES+ROOF_PIECES+TILE_PIECES
 -- The Close results and Kart buttons add two Frames to the earlier nine; the
 -- Settings check "Outline my kart" adds a button and its two lines of text.
 local OUTLINE_CHECK_FRAMES,OUTLINE_CHECK_FONTS=1,2
 -- The Scarlet Crusade Cup adds its heading and four track buttons (Scarlet
 -- Graveyard and three coming-soon dungeons) to the track list.
 local SCARLET_CUP_FRAMES,SCARLET_CUP_FONTS=4,1
--- The Battlegrounds Cup adds its heading, Warsong Gulch's button and Arathi
--- Basin's coming-soon button.
-local BATTLEGROUNDS_CUP_FRAMES,BATTLEGROUNDS_CUP_FONTS=2,1
+-- The Battlegrounds Cup adds its heading, Warsong Gulch's and Arathi Basin's
+-- buttons and Alterac Valley's coming-soon one.
+local BATTLEGROUNDS_CUP_FRAMES,BATTLEGROUNDS_CUP_FONTS=3,1
 local UI_FRAMES=11+MENU_FRAMES+OUTLINE_CHECK_FRAMES+SCARLET_CUP_FRAMES+BATTLEGROUNDS_CUP_FRAMES
 -- (UI's own 14 font strings include the friend's name tag.)
 local UI_FONTS=14+MENU_FONTS+OUTLINE_CHECK_FONTS+SCARLET_CUP_FONTS+BATTLEGROUNDS_CUP_FONTS
@@ -3757,10 +3761,10 @@ withMock({schemaVersion=1,preferences={version=1,track="test_oval",futureField="
         UI.state.x==UI.track.spawn().x and UI.state.y==UI.track.spawn().y,
         "default Start uses the displayed Mirage spawn and no developer geometry")
     UI.Stop("production catalogue regression")
-    -- (The Battlegrounds Cup's heading and two buttons, Arathi Basin's coming
-    -- soon, the four pooled roofs and the guiding arrow are part of the
-    -- production pool.)
-    assert(UI.objects.frames==92 and UI.objects.textures==96 and UI.objects.fontStrings==151,
+    -- (The Battlegrounds Cup's heading and three buttons, Alterac Valley's
+    -- coming soon, the four pooled roofs, the guiding arrow and the three
+    -- pooled tiles are part of the production pool.)
+    assert(UI.objects.frames==93 and UI.objects.textures==99 and UI.objects.fontStrings==151,
         "production pool excludes the 96 Oval bands and two fixture crates")
 end,nil,nil,true)
 
@@ -3789,7 +3793,7 @@ for _,failure in ipairs({"false","nil","throws","camera"}) do
     end,nil,nil,true)
 end
 
-originalPrint("test_ui production catalogue: thirteen multiplayer courses, real Mirage default/scenery, retired-save preservation, layered/sprint Ready and asset-failure Start guard PASS (92/96/151 pool)")
+originalPrint("test_ui production catalogue: thirteen multiplayer courses, real Mirage default/scenery, retired-save preservation, layered/sprint Ready and asset-failure Start guard PASS (93/99/151 pool)")
 
 -- Registered Warsong rendering (version 3). Its two covers, the ground over
 -- each tunnel, crop from Roofs.tga as the camera moves and fade as the
@@ -4002,3 +4006,84 @@ withMock(nil,false,function(env,UI)
     transport.Stop("roofs checked")
 end,nil,nil,true)
 originalPrint("test_ui Warsong rendering: roof crops and fades, floor draw sets, dust and the friend by floor, guiding arrow, roof refusal guard PASS (offline mock)")
+
+-- A tiled course (Alterac Valley, coming soon; made available here for the
+-- test only): its first picture in the background texture, the other three
+-- in the pooled tiles, each placed over its band of the world and cropped
+-- from its own picture as the camera moves; neighbouring tiles meet exactly.
+-- A refused tile refuses the course as a missing background does; every
+-- other course hides the pool. No physics or race state is written: the
+-- poses below are placed only to be drawn.
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    local AK=env.namespace
+    local course=AK.Courses.get("alterac_valley")
+    local mirage=AK.Courses.get("mirage_raceway")
+    UI.Toggle()
+    assert(course.soon and not UI.SelectTrack("alterac_valley") and UI.trackId=="mirage_raceway",
+        "coming soon, Alterac Valley cannot be chosen")
+    course.soon=nil
+    for _,failure in ipairs({"false","nil","throws"}) do
+        env.textureModes={[course.tiles[3].path]=failure}
+        local track,state,shown=UI.track,UI.state,UI.mirageBackground
+        assert(not UI.SelectTrack("alterac_valley") and UI.trackId=="mirage_raceway" and UI.track==track
+            and UI.state==state and UI.mirageBackground==shown and UI.backgroundPath==mirage.background
+            and not UI.tiles and not UI.tilesLoaded and UI.status.text:find("background unavailable",1,true),
+            "a refused tile refuses Alterac Valley; Mirage stays shown and selected: "..failure)
+        for _,piece in ipairs(UI.tileTextures) do assert(not piece:IsShown(),"no tile shows on Mirage: "..failure) end
+    end
+    env.textureModes={}
+    assert(UI.SelectTrack("alterac_valley") and UI.backgroundPath==course.background
+        and UI.tiles==course.tiles and UI.tilesLoaded==course.tiles,
+        "with its four pictures loading, Alterac Valley is chosen")
+    for index=2,4 do
+        local piece=UI.tileTextures[index-1]
+        assert(piece.texturePath==course.tiles[index].path and piece.layer=="BACKGROUND" and piece.sublevel==0,
+            "each further tile in its own pooled background texture: "..index)
+    end
+    local first=UI.mirageBackground
+    assert(first.shown and first.texturePath==course.tiles[1].path and not UI.tileTextures[1].shown
+        and not UI.tileTextures[2].shown and not UI.tileTextures[3].shown,
+        "at the grid, below Frostwolf Village, only the first tile shows")
+    UI.Start()
+    finishCountdown(UI)
+    local function drawAt(x,y)
+        local pose={}
+        for key,value in pairs(UI.state) do pose[key]=value end
+        pose.x,pose.y,pose.heading=x,y,math.pi/2
+        UI.state,UI.previousState=pose,pose
+        UI.OnUpdate(0)
+    end
+    -- Facing north at (1000, 1940): the camera looks 60 ahead, so it shows
+    -- y 1840..2160 across the first seam, at y 2048 (312 on the canvas).
+    drawAt(1000,1940)
+    local second=UI.tileTextures[1]
+    assert(first.shown and second.shown and not UI.tileTextures[2].shown and not UI.tileTextures[3].shown,
+        "across the first seam the first two tiles show")
+    assert(first.point[2]==UI.canvas and first.point[4]==0 and first.point[5]==0 and first.width==800
+        and math.abs(first.height-312)<1e-9 and second.point[4]==0 and math.abs(second.point[5]-312)<1e-9
+        and second.width==800 and math.abs(second.height-168)<1e-9,
+        "the first fills the canvas up to the seam, the second from it")
+    local _,_,t1,b1=(table.unpack or unpack)(first.texCoords)
+    local _,_,t2,b2=(table.unpack or unpack)(second.texCoords)
+    assert(math.abs(t1)<1e-12 and math.abs(b1-(1-1840/2048))<1e-12 and math.abs(t2-(1-112/2048))<1e-12
+        and b2==1, "each crops its own picture up to and from the seam")
+    drawAt(1000,7100)
+    local last=UI.tileTextures[3]
+    assert(last.shown and not first.shown and not second.shown and not UI.tileTextures[2].shown
+        and last.point[5]==0 and last.height==480,
+        "at Dun Baldar the last, half-height band fills the canvas alone")
+    UI.Stop("tiles checked")
+    -- Start refuses a tiled course whose pictures past the first are not loaded.
+    UI.tilesLoaded=nil
+    UI.Start()
+    assert(not UI.active and UI.status.text:find("scenery unavailable",1,true),
+        "Start refuses a tiled course whose tiles are not loaded: "..tostring(UI.status.text))
+    assert(UI.SelectTrack("mirage_raceway") and not UI.tiles and UI.mirageBackground.shown
+        and UI.mirageBackground.width==800 and UI.mirageBackground.height==480
+        and UI.mirageBackground.point[4]==0 and UI.mirageBackground.point[5]==0,
+        "back on Mirage its picture fills the canvas again")
+    for _,piece in ipairs(UI.tileTextures) do assert(not piece:IsShown(),"no tile shows on Mirage") end
+    course.soon=true
+end,nil,nil,true)
+originalPrint("test_ui tiled scenery: four bands placed and cropped across seams, tile refusal guard PASS (offline mock)")

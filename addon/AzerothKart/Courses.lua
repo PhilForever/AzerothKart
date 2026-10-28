@@ -4,7 +4,8 @@
 -- A Scarlet Crusade Cup course is a dungeon sprint: one run from the start
 -- to the last gate (its geometry sets `laps`). A Battlegrounds Cup course is
 -- a course on two floors (LayeredTrack.lua), Warsong Gulch, or a circuit on
--- one (Circuit.lua, from Battlegrounds.lua): Arathi Basin.
+-- one (Circuit.lua, from Battlegrounds.lua): Arathi Basin, and Alterac
+-- Valley, an open circuit run once (a sprint) whose scenery is in tiles.
 local _, namespace = ...
 local Courses = {DEFAULT_ID="mirage_raceway"}
 
@@ -85,6 +86,24 @@ Courses.LIST = {
         background=TRACKS .. "ArathiBasin\\Background.tga",
         dust={0.80,0.76,0.62}, ground={0.30,0.30,0.16},
         status="Arathi Basin | Start for 3 laps | Down to the Gold Mine, up to the Lumber Mill"},
+    -- From the Horde's side to the Alliance's: one run down the valley's
+    -- real road (Circuit.lua's open course, `laps` 1) from Frostwolf Village
+    -- to Dun Baldar. Full grip a few kart lengths either side of the road,
+    -- slow snow beyond it to the valley's natural walls (its grassMap), and
+    -- the Field of Strife frozen over (its iceMap: Codex's slide, proposed).
+    -- Its scenery is 2048 x 7168: `tiles`, four pictures each a band of the
+    -- world (every course's picture stays at most 2048 a side, the largest
+    -- the owner's client has shown), the first its `background`.
+    {id="alterac_valley", name="Alterac Valley", short="Alterac", cup="battlegrounds", geometry="circuit", soon=true,
+        background=TRACKS .. "AlteracValley\\Background1.tga",
+        tiles={
+            {path=TRACKS .. "AlteracValley\\Background1.tga", x0=0, y0=0, x1=2048, y1=2048},
+            {path=TRACKS .. "AlteracValley\\Background2.tga", x0=0, y0=2048, x1=2048, y1=4096},
+            {path=TRACKS .. "AlteracValley\\Background3.tga", x0=0, y0=4096, x1=2048, y1=6144},
+            {path=TRACKS .. "AlteracValley\\Background4.tga", x0=0, y0=6144, x1=2048, y1=7168},
+        },
+        dust={0.90,0.93,0.97}, ground={0.70,0.72,0.76},
+        status="Alterac Valley | Sprint to Dun Baldar | Deep snow off the road; ice on the Field of Strife"},
 }
 
 local byId = {}

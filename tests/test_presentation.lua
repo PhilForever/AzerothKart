@@ -1098,6 +1098,34 @@ do
     print("offline presentation: race progress, placing (finished, racing, out) and ordinals")
 end
 
+-- A tiled course (Alterac Valley, 2048 x 7168: four pictures, each a band
+-- of the world): each tile's part of the canvas and its crop of its own
+-- picture; across a seam the two pieces meet exactly.
+do
+    local view = P.cameraViewport(2048, 7168, 800, 480, 1.5)
+    local tiles = {{x0=0, y0=0, x1=2048, y1=2048}, {x0=0, y0=2048, x1=2048, y1=4096},
+        {x0=0, y0=4096, x1=2048, y1=6144}, {x0=0, y0=6144, x1=2048, y1=7168}}
+    P.follow(view, 1000, 2000, 0, 0)
+    -- The camera shows x 733.3..1266.7, y 1840..2160: the first seam.
+    local px, py, pw, ph, l, r, t, b = P.tileCrop(view, tiles[1])
+    assert(px == 0 and py == 0 and math.abs(pw - 800) < 1e-9 and math.abs(ph - 312) < 1e-9,
+        "the first tile fills the canvas up to the seam: " .. tostring(pw) .. "x" .. tostring(ph))
+    assert(math.abs(l - (1000 - 800 / 3) / 2048) < 1e-12 and math.abs(r - (1000 + 800 / 3) / 2048) < 1e-12
+        and math.abs(t) < 1e-12 and math.abs(b - (1 - 1840 / 2048)) < 1e-12,
+        "and cuts its own picture up to its top edge")
+    local qx, qy, qw, qh, l2, r2, t2, b2 = P.tileCrop(view, tiles[2])
+    assert(qx == 0 and math.abs(qy - (py + ph)) < 1e-9 and math.abs(qw - 800) < 1e-9 and math.abs(qh - 168) < 1e-9,
+        "the second starts exactly where the first ends")
+    assert(math.abs(l2 - l) < 1e-12 and math.abs(r2 - r) < 1e-12 and math.abs(t2 - (1 - 112 / 2048)) < 1e-12
+        and b2 == 1, "from its own bottom edge")
+    assert(P.tileCrop(view, tiles[3]) == nil and P.tileCrop(view, tiles[4]) == nil, "tiles off the camera are not drawn")
+    P.follow(view, 1000, 7168, 0, 0)
+    local _, sy, _, sh, _, _, st, sb = P.tileCrop(view, tiles[4])
+    assert(sy == 0 and math.abs(sh - 480) < 1e-9 and math.abs(st) < 1e-12
+        and math.abs(sb - (1 - 704 / 1024)) < 1e-12, "the last, half-height band at the world's top edge")
+    assert(P.tileCrop(view, tiles[3]) == nil, "with the band below it off the camera")
+end
+
 -- Two-floor courses (Warsong Gulch): which karts draw over the roofs, each
 -- roof's fade, its crop of the world-aligned roof picture, and the guiding arrow.
 do
