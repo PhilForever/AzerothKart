@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — Arathi Basin version 2 (2026-10-28, `claude/arathi-v2`)
+After driving version 1, the owner asked for: no guiding arrow on courses where the way is plain (Warsong keeps it); at the Gold Mine the road down and the road above it as the one real junction, the upper road blocked by "a group of angry alliance players" instead of a fence, and a far more visible drop between the mine and the upper road; the Stables' left side slow grass, a shortcut only with a boost; at the Lumber Mill the other road blocked by something in the way, and "a straight cliff down to the lower road".
+- **No arrow** on Arathi (`Courses`), and so no glowing gate.
+- **Side roads:** every real road leaving the course runs on, seamless; no fence across it; what stands in it is painted at the street's edge where the karts stop: Alliance soldiers (footmen, riflemen, priests) at the Gold Mine fork and on the Stables' roads, lumber and a broken cart on the lower road under the Lumber Mill, carts and crates on the road to the Blacksmith, Horde grunts on the road to Defiler's Den. The basin's own roads off the course are painted.
+- **Cliffs:** steep ground drawn as rock faces (Lordaeron's cliff texture in strata, pale brinks, shaded feet), the pits dimmed by the sky's openness: the Gold Mine's pit under the upper road, the Lumber Mill's cliff down to the lower road, the lap moved to its brink.
+- **The Stables' meadow:** slow grass round the barn (`Circuit.lua`: an additive grass plaza, flagged for Codex's review). The owner chose Codex to add the rule that a boost keeps normal speed on grass; until then the meadow slows every kart.
+- **Version 2:** its own score board; version 1 times stay on theirs. Tests: `test_arathi`, `test_circuit` (the grass plaza), `test_ui`, `test_dungeon` (failing already on Codex's integration); Codex's `test_peer_session`, `test_multiplayer_integration` and `test_arathi_guide` pinned. Not installed; the client checks are NOT RUN.
+
 ## Unreleased — Arathi Basin (2026-10-28)
 With Warsong version 3 looking right, the owner: "Let's take what we learned creating this map and make Arathi Basin. (No insides here but heavy slopes)", and the way round: "East > DOWN to Gold Mine > Up to the stables > UP to the Lumbermill and then down to the farm and around". Reviewed and registered for solo and the existing two-player lobby.
 - **Measured from his client:** `scripts/wow_map_survey.py` (now with the world's size, the relief's range and the water) reads the battleground's files into `scripts/arathi_basin_survey.json`: the six ground textures' weights, the terrain's height every four units, the river's depth and 3,065 placements; numbers only.

@@ -1,5 +1,16 @@
 # Manual client acceptance — F0/F1/F2/F5
 
+## Deferred Arathi Basin version 2 check (proposed, `claude/arathi-v2`)
+
+**NOT RUN.** After Codex's review and a coordinated install. **Fully restart the client:** `Battlegrounds.lua` and `Assets/Tracks/ArathiBasin/` change (same paths). Version 2 has its own board. The owner runs these checks; Claude does not control the client.
+
+1. **No arrow** on Arathi, no glowing gate; the way still plain.
+2. **The Gold Mine fork:** the upper road goes left as a real road, blocked by the group of Alliance soldiers; the kart stops at them, never at nothing. Down the road into the pit: does the cliff up to the upper road read as a drop now?
+3. **The Stables:** the meadow (long grass) slows the kart; the road round north of the barn is faster; the worn dirt beside the road is full speed. (A boost keeping its speed on the grass waits for Codex.)
+4. **The Lumber Mill:** the fork's lower road blocked by lumber and a cart, not a fence; along the cliff top the cliff drops beyond the fence to the lower road. Does it read as a straight cliff?
+5. **The south bridge junction** and **the road to Defiler's Den:** blocked by carts, crates and grunts.
+6. **Seams:** anywhere a kart stops at nothing it can see, or a road ends at a fence: a screenshot of each.
+
 ## Deferred Arathi Basin client check (registered)
 
 **NOT RUN.** Fully restart after installing the build: two Arathi textures are
