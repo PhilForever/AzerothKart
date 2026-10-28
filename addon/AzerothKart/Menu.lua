@@ -82,12 +82,13 @@ Menu.TRACKS = {
             .. "Whitemane stand.",
         facts={"Sprint: one run through 4 gates", "The pools block; the stairs turn at a landing",
             "The finish is before the altar"}},
-    -- Ready for when Codex registers it; until then it is listed as coming
-    -- soon (trackRows) and has no board (the Highscores cycle skips it).
+    -- The Battlegrounds Cup's course (version 2: laid out on the real gulch).
+    -- A course listed as coming soon shows in trackRows without a board.
     {id="warsong_gulch", name="Warsong Gulch", cell="warsonggulch",
-        blurb="From mid into Silverwing Hold by its tunnel, through the flag room past the Alliance flag, out "
-            .. "onto the plateau and down its ramp; then the same through the Warsong Lumber Mill, every lap.",
-        facts={"3 laps, 7 gates: both flags every lap", "Two floors: under the hills and over them",
+        blurb="The real gulch: up the Alliance tunnel into Silverwing Hold, round the flag, out of the front "
+            .. "door and down the east path; then down the Horde tunnel into the Lumber Mill, round its flag "
+            .. "and out of the side door, every lap.",
+        facts={"3 laps, 7 gates: both flags every lap", "Laid out from the game's own map",
             "Boots in each tunnel; the arrow shows the way"}},
 }
 
@@ -161,7 +162,7 @@ Menu.PREVIEW_CELLS = {
         left=0, right=1, top=0, bottom=1, width=320, height=320},
     scarletcathedral={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\ScarletCathedral\\Preview.tga",
         left=0, right=1, top=0, bottom=1, width=160, height=320},
-    -- Warsong Gulch's preview shows the ground with its roofs (1024 x 2048).
+    -- Warsong Gulch's preview shows the gulch from above, its covers on (1024 x 2048).
     warsonggulch={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\WarsongGulch\\Preview.tga",
         left=0, right=1, top=0, bottom=1, width=160, height=320},
 }

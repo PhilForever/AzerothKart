@@ -126,17 +126,20 @@ duration; a pad adds no new force/speed profile or telemetry boost field.
 
 ## Warsong registration and integration
 
-Reviewed Claude79792cd is integrated. Warsong geometry1, inviteC/scoreW,
-three laps and Physics13 are enabled solo and in the existing two-peer flow.
-All eleven old boards remain Physics12; bounded AZKSCR2 supports the mixed
-catalogue without changing saved schemas. [Exact score contract](AUTOMATIC_SCORES.md).
+Reviewed Claude0794343 (version2 plus fixes c362f4a) is integrated. Warsong
+geometry2, inviteC/scoreW, three laps and Physics13 remain enabled solo and in
+the existing two-peer flow. All eleven other boards remain Physics12; old
+Warsong v1 records stay stored under their original context. Bounded AZKSCR2,
+save schemas and live packet/cadence limits remain unchanged.
 
-The owner-approved route passes through both bases per lap, uses shared
-midfield grid starts and both ground flag rooms; optional banana/terrace
-routes connect via ramps. No drops or separate base starts. Arrow remains
-Warsong-only. Four pooled roofs fade/order around copied explicit floor state;
-required roof-load failures block selection/Start/Ready safely. Native course,
-roof, performance and peer-delivery acceptance remains NOT RUN.
+Version2 follows the owner's surveyed route through the two bases:14 rooms,
+two ramps at Silverwing Hold, seven gates and two Boots pads. Bases are open;
+two pooled tunnel covers fade from32 units before entry. No optional banana
+route or separate-base start. The Warsong-only guide follows routeGates and
+receives the copied floor. It selects a sampled clear line to an intermediate
+route target around bends; gate glow/cover sorting remain presentation-only.
+Required-cover failures still block selection/Start/Ready. Native driving,
+appearance, frame cost and peer feel remain NOT RUN by this integration.
 
 ## Evidence
 

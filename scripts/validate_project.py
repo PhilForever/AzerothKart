@@ -79,7 +79,7 @@ REQUIRED=[
  'addon/AzerothKart/Assets/Tracks/ScarletCathedral/Background.tga',
  'addon/AzerothKart/Assets/Tracks/ScarletCathedral/Preview.tga',
  'addon/AzerothKart/Battlegrounds.lua','scripts/battleground_layouts.py','scripts/build_battlegrounds.py',
- 'scripts/battleground_paint.py','tests/test_warsong.lua',
+ 'scripts/battleground_paint.py','tests/test_warsong.lua','scripts/wow_map_survey.py','scripts/warsong_gulch_survey.json',
  'addon/AzerothKart/Assets/Tracks/WarsongGulch/Background.tga',
  'addon/AzerothKart/Assets/Tracks/WarsongGulch/Roofs.tga',
  'addon/AzerothKart/Assets/Tracks/WarsongGulch/Preview.tga',

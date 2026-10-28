@@ -584,8 +584,10 @@ local function placeTrackMarkers()
     for index,piece in ipairs(UI.gateTextures) do
         local gate = Track.gates[index]
         if gate then
-            local width = gate.ax == gate.bx and 5 or math.abs(gate.bx-gate.ax)
-            local height = gate.ay == gate.by and 5 or math.abs(gate.by-gate.ay)
+            -- A guided course's next gate (UI.glowGate) is drawn wide.
+            local thick = UI.glowGate == index and 10 or 5
+            local width = gate.ax == gate.bx and thick or math.abs(gate.bx-gate.ax)
+            local height = gate.ay == gate.by and thick or math.abs(gate.by-gate.ay)
             placeWorldRect(piece,(gate.ax+gate.bx-width)/2,(gate.ay+gate.by-height)/2,width,height)
         else piece:Hide() end
     end
@@ -824,6 +826,11 @@ local function layoutRoofs(course)
     end
     if course and course.roofs and loadRoofs(course) then UI.roofs = Courses.roofs(course.id) end
     UI.guideReady,UI.guideFrame = false,nil
+    -- The guiding arrow follows the course's reviewed route when it has one.
+    UI.guideRoute = course and course.guideArrow and Courses.route and Courses.route(course.id) or nil
+    local glowing = UI.gateTextures and UI.gateTextures[UI.glowGate or 0]
+    if glowing then glowing:SetAlpha(1) end
+    UI.glowGate = nil
     if UI.guideArrow then
         UI.guideArrow:Hide()
         local arrow = UI.guideArrow
@@ -881,14 +888,30 @@ local function placeRoofs(wx, wy, high)
     UI.roofCropX,UI.roofCropY = view.offsetX,view.offsetY
 end
 
--- The guiding arrow beside the player's kart, toward the lap's next gate,
--- while a run is on; hidden at the gate and wherever it would leave the canvas.
-local function placeGuide(wx, wy)
+-- The guiding arrow beside the player's kart, the way to the lap's next gate
+-- (along the course's route, where the kart can drive on its floor `level`),
+-- while a run is on; without a route hidden at the gate, and wherever it
+-- would leave the canvas. The next gate's marker glows: drawn wide
+-- (placeTrackMarkers) and pulsing.
+local function placeGuide(wx, wy, level)
     local arrow = UI.guideArrow
-    local heading,distance
-    if UI.active and not UI.gridStaged then heading,distance = Presentation.guideHeading(Track,UI.checkpoints,wx,wy) end
+    local heading,distance,along
+    local running = UI.active and not UI.gridStaged
+    if running then
+        heading,distance,along = Presentation.guideHeading(Track,UI.checkpoints,wx,wy,UI.guideRoute,level)
+    end
+    local progress = UI.checkpoints
+    local glow = running and type(progress) == "table" and not progress.complete and progress.nextGate or nil
+    if glow ~= UI.glowGate then
+        local old = UI.gateTextures[UI.glowGate or 0]
+        if old then old:SetAlpha(1) end
+        UI.glowGate = glow
+        placeTrackMarkers()
+    end
+    local glowing = glow and UI.gateTextures[glow]
+    if glowing then glowing:SetAlpha(Presentation.gateGlow((UI.state.tick or 0) * Physics.FIXED_DT)) end
     local G = Presentation.GUIDE_ARROW
-    if heading and distance > G.reach then
+    if heading and (along or distance > G.reach) then
         local scale = UI.view.scale
         local ax,ay = Presentation.project(UI.view,wx+math.cos(heading)*G.reach,wy+math.sin(heading)*G.reach)
         local half = G.size*scale/2
@@ -1376,15 +1399,15 @@ render = function()
             UI.cameraCropReady = true
         end
     end
+    local level = gridPose and gridPose.level or UI.state.level or 0
     if Track.layered then
         -- Two floors: the kart draws under the roofs on the ground, over them
         -- on floor 1 or a ramp; a roof fades while the kart is under it.
-        local level = gridPose and gridPose.level or UI.state.level or 0
         local high = Presentation.drawnHigh(Track,x,y,level)
         setKartLayers(high and KART_LAYERS.high or KART_LAYERS.low)
         if UI.roofs then placeRoofs(x,y,high) end
     end
-    if UI.guideReady then placeGuide(x,y) end
+    if UI.guideReady then placeGuide(x,y,level) end
     x,y = Presentation.project(UI.view,x,y)
     UI.kart:ClearAllPoints()
     local sprite = UI.kartSprite

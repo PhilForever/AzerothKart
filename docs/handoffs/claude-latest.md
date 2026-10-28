@@ -1,4 +1,147 @@
-# Claude handoff — Warsong Gulch: Codex's review fixes
+# Claude handoff — Warsong Gulch version 2: Codex's review fixes
+
+Prepared 2026-10-28 at about 10:00 CET by Claude (rendering/UI/sprites owner).
+
+**Base:** `claude/warsong-v2` `d5fabbf` (below). **Review:** Codex's `codex/warsong-v2-review` `6b4519f`, `docs/reviews/2026-10-28-warsong-v2.md` (not on this branch). **Branch:** `claude/warsong-v2`, no merge commit:
+
+- `c362f4a`: both fixes, their tests and docs;
+- this handoff.
+
+**Nothing is installed or pushed.** The developer machine's Claude worktree is fast-forwarded to `c362f4a` (from `local-artifacts/bundles/warsong-v2-review.bundle`), clean apart from its untracked `Claude outputs/`; this handoff follows the same way.
+
+## Owner instructions
+
+"Reviewed v2. Two fixes before integration: The arrow still points through a wall near the Alliance front-yard turn. Four collision tests pass because their movement exceeds the engine's step limit; they need valid small-step checks. The actual geometry, score versioning and multiplayer checks passed." The review has the reproductions; the installed build is unchanged.
+
+## Done
+
+1. **The arrow at the front yard's turn** (review P2 1). `Presentation.guideHeading(track, progress, x, y, route?, level?) -> heading, distance, along`: given the kart's `level` and a track that answers `isDrivable`, it aims at the farthest of `ahead` × {1, 0.82, 0.64, 0.46, 0.32, 0.18, 0.08} along the route to which the straight line from the kart is drivable on that floor, sampled every 3 units (with none clear, the nearest). The point 110 on can be drivable and still lie across a corner, so the whole line is checked, as the review asked, not the end point. `along` is true when the route was followed; the UI then shows the arrow at any distance (round a bend the clear point can be nearer than the arrow's 46-unit reach). The render passes the kart's floor (the grid pose's before GO) to `placeGuide`. Codex's reproduction (390, 1685), floor 1, next gate 4: −42.503° at 92.49 units before (the same numbers as the review), −59.85° at 59.87 now, down the yard, and a run along it is clear. At most seven lines of samples a frame (one when the farthest point is clear), no allocation; it reads only the copied progress, the route and `isDrivable`, and writes nothing.
+2. **Collision checks at legal steps** (review P2 2). In `tests/test_warsong.lua` a `push` helper drives 4-unit steps through `resolveMovement`, each from where the kart stands, with Checkpoints watching the gate named next. The four oversized requests are now tapes, with the review's expectations:
+   - the hold's wall (500, 1890) west: stops at x 480, nothing taken;
+   - the Alliance flag (500, 1915) west: the kart wedges in the corner between the flag and the wall's end, x > 470, y > 1900 (about (472.9, 1902.6) on this 100-unit tape; the review's tape ended about (475.1, 1904.9)), nothing taken;
+   - the mill's wall (510, 240) west: stops at x 498, nothing taken;
+   - the Horde flag (510, 205) west: slides round its southern cap to y 177.902 and on west, taking the flag's gate (the legitimate slide the review describes).
+
+   Two more single moves had the same flaw or were at its edge: the east path's side (a 20-unit request, refused before collision) is a tape stopping at x 738; the plateau's edge (16 units, the limit) is a 12-unit move that must stop at exactly y 1654 (a refused request would leave 1650). Mutation: with the flags removed in memory, the two flag tapes fail (the old checks passed without any solid).
+3. **The arrow everywhere on the lap.** In the route walk, from each of its 1,179 steps, a straight 2-unit-step trace along the arrow to the point it aims at meets no wall or solid: 0 blind (13 with `d5fabbf`'s arrow; passing no floor makes the check fail). Codex's corner is its own regression; the plateau-east and gate-order checks stay. `tests/test_presentation.lua` adds an L-shaped bend: the farthest clear point, the route without a floor (110 on, as before), no route (the gate's middle, `along` nil).
+
+## Scope (changed)
+
+- `addon/AzerothKart/Presentation.lua`: `guideHeading` (the `level` argument, the clearance check, the third result); new locals `GUIDE_LOOKS`, `routeAhead`, `clearLine`.
+- `addon/AzerothKart/UI.lua`, Claude's regions only: `placeGuide(wx, wy, level)` and its call in the visual body of `render` (the `level` local moved before the layered branch, unchanged in value).
+- `tests/test_warsong.lua`, `tests/test_presentation.lua`.
+- Docs: `API_CONTRACTS.md` (the Warsong version 2 section's Presentation and UI bullets), the Warsong sheet, `TEST_PLAN.md`, `CHANGELOG.md`; with this handoff, the client checklist's fifth Warsong check (the arrow through the front yard's turn).
+
+No generated data or picture changed (the build's bytes are `d5fabbf`'s); no LayeredTrack, Physics, Checkpoints, protocol, session, score or Codex-owned test change.
+
+## Tests
+
+| Command | Cloud | Developer machine (Linux VM) |
+|---|---|---|
+| `python scripts/test_lua.py --runtime lua51` (full suite) | PASS (60 s) | PASS (95 s) |
+| `test_lua.py --runtime lua51 --tests warsong presentation ui menu peer_session multiplayer_integration` | PASS | not run (in the full suite) |
+| `test_lua.py --runtime lua54 --tests warsong presentation ui menu peer_session` | PASS | not run |
+| Mutations (in memory): flags removed; arrow without the kart's floor | the flag tapes fail; the sweep fails (13 blind) | not run |
+| `git diff --check` | PASS | not run |
+| `python scripts/validate_project.py` | the same 2 pre-existing FAILs | not run |
+
+Not rerun, unchanged since `d5fabbf`: `build_battlegrounds.py --check`, `export_score_catalog.py --check`. Pre-existing under Lua 5.4 (also at `47777d0`): `test_score_sharing` (global `unpack`) and `test_multiplayer_integration` (line 208).
+
+**NOT RUN in the client:** the arrow at the front yard and anywhere else, and everything below. The client checklist's nine Warsong checks stand.
+
+## For Codex
+
+1. Review `c362f4a`: `Presentation.guideHeading`'s clearance and third result, `placeGuide`'s call, the replaced checks in `test_warsong` and the new ones in `test_presentation`.
+2. **Pending ledger entry for `docs/PROGRESS.md`** (not written here; it replaces the one below): "2026-10-28 Claude `claude/warsong-v2` (`696bb85`, `b4377dc`; after Codex's review `6b4519f`, `c362f4a`): Warsong Gulch version 2 laid on the real gulch measured from the owner's client (`wow_map_survey.py`); 14 rooms, 2 ramps, 7 gates; a route-following arrow that aims only where the kart can drive straight on its floor, covers fading from 32 units before each tunnel, glowing next gate; trackVersion 2, catalogue regenerated; Warsong's collision checks at legal 4-unit steps. Offline: build `--check` byte-identical on cloud and developer machine (`d5fabbf`); full Lua 5.1 suite PASS on both at `c362f4a`. Client NOT RUN."
+3. Integration as before (installed runtime `9b7d6df` has version 1): the integrator installs; both players fully restart.
+
+## Push (the owner's; never pushed by Claude)
+
+From the main checkout on the developer machine:
+
+```
+git push -u origin claude/warsong-v2
+```
+
+## Next
+
+Codex reviews `c362f4a`, then the integration and install when authorized; the owner drives version 2 (the checklist's nine checks, the arrow round the front yard among them).
+
+# Previous: Warsong Gulch version 2: the real gulch
+
+Prepared 2026-10-28 at about 09:30 CET by Claude (rendering/UI/sprites owner).
+
+**Base:** Codex's `codex/warsong-registration` `47777d0` (installed runtime `9b7d6df`). **Branch:** `claude/warsong-v2`, no merge commit:
+
+- `47bf89e`: the reservation;
+- `696bb85`: version 2 (layout, survey, painter, pictures, navigation, tests, catalogue);
+- `b4377dc`: the docs;
+- this handoff.
+
+**Nothing is installed or pushed.** The developer machine has the branch (fetched from `local-artifacts/bundles/warsong-v2.bundle`) and the Claude worktree is on it, clean.
+
+## Owner instructions
+
+After driving the installed Warsong: "Hmm - it was an honorable attempt, you did good - but it's not really driveable - I mean you can drive, and try to follow the arrow, but it's not really intuitive unfortunately. I think you should inspect the actual warsong gulch in the game files or something to figure this out. Not only is the map difficult to navigate the way you've made it, the way you've made it is good - close - but not close enough unfortunately. Can you try to inspect the actual warsong gulch and try again?"
+
+Shown the real gulch read from his client with a lap traced through it, he chose to leave each base **"Front, as traced"** and named all four problems: the arrow pointing through walls, not seeing under the roofs, too many rooms and doors, unclear checkpoints.
+
+## Done
+
+- **Measured from his client** (`scripts/wow_map_survey.py`, through `scripts/wowcasc.py`, which gains `--product`; output `scripts/warsong_gulch_survey.json`): the ground textures' weights and the relief every 4 units, every doodad and building placement. Numbers only; no client file is stored.
+- **Version 2 layout** (`scripts/battleground_layouts.py`, trackVersion 2): the battleground at three units to the yard. 14 rooms (9 on floor 0, 5 on floor 1 at Silverwing Hold only), 2 ramps (the Alliance tunnel's climb into the hold; the east path down), 7 gates (*Alliance tunnel*, *Alliance flag*, *Alliance front door*, *Horde tunnel*, *Horde flag*, *Horde side door*, *Mid*), 2 Boots, 6 round solids (each flag capping the wall between its base's way in and out; the four huts at their real places), 2 covers (the ground over each tunnel). About 4,700 units a lap.
+- **Painter v2** (`scripts/battleground_paint.py`, rewritten): UPPER (the battleground from above: the client's ground as Warcraft III tiles in its measured weights, shaded by its relief; open bases between thick walls; cliffs at outdoor edges; thresholds, daises, Boots, finish; the scenery) and LOWER (the tunnels); `Background.tga` = UPPER with LOWER under the covers, `Roofs.tga` = UPPER over them, so covers and ground always meet. The client's scenery where its map has it (optional: left out where it would stand on a floor in view, across a cover's edge or in a base's walls); woods on the Alliance's hills. Full build 90 s in the cloud.
+- **Navigation:** the arrow follows the reviewed route (`routeGates` in `Battlegrounds.lua`, `Courses.route`, `Presentation.guideHeading`'s optional route); covers start fading 32 units before their tunnels (`ROOF_FADE_LEAD`); the next gate's marker is drawn 10 units wide and pulses (`Presentation.gateGlow`, `UI.glowGate`). No new texture.
+- **Copy:** Warsong's track-screen blurb and facts, its status line.
+
+## Scope (changed)
+
+- `scripts/battleground_layouts.py`, `scripts/battleground_paint.py`, `scripts/build_battlegrounds.py` (`walk` returns the crossings; `validate` records `routeGates`; `lua_data` writes them), new `scripts/wow_map_survey.py` and `scripts/warsong_gulch_survey.json`, `scripts/wowcasc.py` (`--product`), `scripts/validate_project.py` (the two new files required).
+- Generated: `addon/AzerothKart/Battlegrounds.lua`, `Assets/Tracks/WarsongGulch/{Background,Roofs,Preview}.tga`, `docs/art/tracks/warsong_gulch-{overview.png,sources.txt}`; review images `warsong_gulch-review.png`, `warsong_gulch-route-sketch.png`.
+- `addon/AzerothKart/Presentation.lua`: `roofAlpha` (lead), `GUIDE_ARROW.ahead`, `guideHeading` (optional route), new `gateGlow`.
+- `addon/AzerothKart/Courses.lua`: new `Courses.route`; Warsong's comment and status copy.
+- `addon/AzerothKart/UI.lua`, Claude's regions only: `placeTrackMarkers` (the glowing gate's width), `layoutRoofs` (`UI.guideRoute`, glow reset), `placeGuide` (route, glow).
+- `addon/AzerothKart/Menu.lua`: Warsong's copy and comments.
+- `services/leaderboard/catalog.json`: regenerated by Codex's `export_score_catalog.py` (Warsong trackVersion 2).
+- Tests: `tests/test_warsong.lua` (rewritten), `tests/test_presentation.lua`, `tests/test_ui.lua` (Warsong's blocks). **Codex-owned, pins only, for review:** `tests/test_peer_session.lua` (Warsong's trackVersion 1 → 2 in the incompatibility checks) and `tests/test_multiplayer_integration.lua` (per-lap floors `0101010` instead of `0101010101010`; the assisted real-Physics drive of the new route completes three laps with no impact and six boosts).
+- Docs: the Warsong sheet, `API_CONTRACTS.md` (new section, version 2), `LAYERED_TRACKS.md` (a version 2 note under Codex's Warsong section, for review), `TRACKS.md`, `ASSETS.md`, `art/ASSET_SOURCES.md`, `INDEX.md`, `TEST_PLAN.md`, `CHANGELOG.md`, the client checklist, this handoff.
+
+No change to LayeredTrack, Dungeon, Physics, Checkpoints, protocols, sessions or scores' code.
+
+## Tests
+
+| Command | Cloud | Developer machine (Linux VM) |
+|---|---|---|
+| `python scripts/build_battlegrounds.py --wc3 WC3 --check` | PASS (Background `e5190778…`, Roofs `7a2de473…`, Preview `ed1140a0…`, GuideArrow unchanged) | PASS, byte-identical |
+| `python scripts/test_lua.py --runtime lua51` (full suite) | PASS | PASS (96 s) |
+| `test_lua.py --runtime lua54 --tests warsong presentation ui menu layered_track layered_physics peer_session` | PASS | not run |
+| `python scripts/export_score_catalog.py --check` | PASS (12 boards) | PASS |
+| `python -m pytest tests/test_leaderboard_store.py` | PASS (13) | not run |
+| `python scripts/validate_project.py` | 2 FAIL, pre-existing | the same 2 |
+
+Pre-existing, not from this work (also at `47777d0`): `validate_project.py` flags two links in `docs/PROGRESS.md` to `C:/Users/bakke/.codex/plugins/...`; under Lua 5.4, `test_score_sharing` (global `unpack`) and `test_multiplayer_integration` (line 208) fail.
+
+**NOT RUN in the client:** the look, the covers and their fades, the arrow, the gate glow, the drive, a two-player race. The owner's checks are in [the client checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-warsong-gulch-version-2-check-proposed-claudewarsong-v2).
+
+## For Codex
+
+1. Review `696bb85`'s layout and pins: the two Codex-owned test edits above, the regenerated catalogue (a new Warsong board; version 1 times stay on theirs) and the version 2 note in `LAYERED_TRACKS.md`.
+2. **Pending ledger entry for `docs/PROGRESS.md`** (not written here): "2026-10-28 Claude `claude/warsong-v2` (`696bb85`, `b4377dc`): Warsong Gulch version 2 laid on the real gulch measured from the owner's client (`wow_map_survey.py`); 14 rooms, 2 ramps, 7 gates; route-following arrow, covers fading from 32 units before each tunnel, glowing next gate; trackVersion 2, catalogue regenerated. Offline: build `--check` byte-identical on cloud and developer machine; full Lua 5.1 suite PASS on both. Client NOT RUN."
+3. Integration as before (installed runtime `9b7d6df` has version 1): the integrator installs; both players fully restart.
+
+## Push (the owner's; never pushed by Claude)
+
+From the main checkout on the developer machine:
+
+```
+git push -u origin claude/warsong-v2
+```
+
+## Next
+
+Codex's review and integration, an install, then the owner drives version 2 (the checklist's nine checks). If it still is not right, the survey and the tracing make the next round quick: say which place reads wrong.
+
+# Previous: Warsong Gulch: Codex's review fixes
 
 Prepared 2026-10-27 at about 17:50 CET by Claude (rendering/UI/sprites owner).
 

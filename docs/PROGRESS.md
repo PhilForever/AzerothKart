@@ -1,5 +1,47 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-28 10:12 +01:00 — Warsong v2 fixes approved and integrated candidate
+
+Owner explicitly requests installation after review. Clean6b4519f; own branch
+`codex/warsong-v2-integration`, reservation4a2cf06. Reviewed Claude0794343 /
+fix c362f4a and merged without conflicts, preserving both histories and the
+original Claude checkout/outputs. [Fix review](reviews/2026-10-28-warsong-v2.md#fix-review-addendum--2026-10-28-1012-cet).
+No GitHub push, main merge, release or player-data change.
+
+Both previous findings resolved: exact front-yard pose now aims−59.851594°,
+clear to its59.867556-unit target and through the visible46-unit ray. All1179
+normal-route samples clear;26 targets are nearer than46. Legal4-unit flag/wall
+tapes and gate awards replace oversized refusals. Independent mutations fail
+when either flag is removed, movement always refused, plateau stays1650 rather
+than1654, or guide floor is omitted (13 blind positions). No new UI objects,
+physics, checkpoint, transport or score-code changes.
+
+V2 retains Physics13/raceC/scoreW but uses geometry2. The eleven other boards
+and Warsong v1 history stay intact. Surveyed14 rooms,2 ramps,7 gates,2 pads;
+two tunnel covers and open bases; route-guided arrow and highlighted next gate.
+Production pool91/96/151 remains creation-time bounded.
+
+Actual Python314/pinned Lupa/PYTHONDONTWRITEBYTECODE=1 commands against exact
+Claude0794343: `scripts/test_lua.py --runtime lua51 --tests warsong presentation
+ui menu peer_session multiplayer_integration score_sync score_sharing` PASS8;
+all85 Lua sources/tests parsed. `scripts/export_score_catalog.py --check` PASS12.
+The merged runtime/tests/scripts/catalogue are byte-identical to that candidate
+(`git diff --exit-code claude/warsong-v2 -- addon tests services scripts` PASS).
+Independent read-only guide sweep/mutation checks above PASS. Source diffcheck
+clean. Installer `-WhatIf` PASS; preflight all91 prior source hashes match
+installed9b7d6df,92 installed files total with legacy extra. Exact new install
+and matching ZIP receipt follow after committed source.
+
+Native driving/visuals/peer feel/frame cost, full46/Lua54 repetition and art
+rebuild by this integrator NOT RUN. Prior Claude passes remain attributed.
+Structural validator's two historical links remain a known issue, not a full
+pass. No roadmap/release/eight-player acceptance change.
+
+**Next exact task:** complete the authorized backed-up/hash-verified install
+and friend ZIP; owner tests Warsong v2 after a full restart, focusing on the
+front-yard arrow, tunnel covers, flags/checkpoints and three-lap finish.
+
+
 ## 2026-10-28 09:39 +01:00 — Warsong v2 review; arrow correction needed
 
 Owner forwards Claude's real-gulch update. Clean47777d0, installed9b7d6df;

@@ -1110,8 +1110,12 @@ do
     assert(P.roofAlpha(roof, 50, 50, false) == 1 and P.roofAlpha(roof, 150, 200, true) == 1,
         "a roof stands whole unless the player is on the ground under it")
     assert(math.abs(P.roofAlpha(roof, 150, 200, false) - P.ROOF_FADED) < 1e-12
-        and math.abs(P.roofAlpha(roof, 112, 200, false) - (1 - 0.75 * 12 / 24)) < 1e-12,
-        "it fades over its first 24 units in, to a quarter")
+        and math.abs(P.roofAlpha(roof, 112, 200, false) - (1 - 0.75 * 44 / 56)) < 1e-12
+        and math.abs(P.roofAlpha(roof, 124, 200, false) - P.ROOF_FADED) < 1e-12,
+        "it fades from 32 units before an under box to 24 units in, to a quarter")
+    assert(math.abs(P.roofAlpha(roof, 150, 84, false) - (1 - 0.75 * 16 / 56)) < 1e-12
+        and P.roofAlpha(roof, 150, 68, false) == 1 and P.roofAlpha(roof, 150, 40, false) == 1,
+        "approaching a tunnel's mouth the cover starts to fade before the kart is under it")
     local view = P.cameraViewport(1024, 2048, 800, 480, 1.5)
     P.follow(view, 200, 200, 0, 0)
     local px, py, pw, ph, l, r, t, b = P.roofCrop(view, roof)
@@ -1125,6 +1129,43 @@ do
     assert(math.abs(heading + math.pi / 2) < 1e-12 and math.abs(distance - 200) < 1e-12,
         "the arrow points at the middle of the next gate")
     assert(P.guideHeading(track, {nextGate=3, passed=2, complete=true}, 0, 0) == nil, "none once the lap is done")
+    -- With a route, the arrow follows it: `ahead` units on from its nearest
+    -- point, looked for between the previous gate's crossing and the next's.
+    local route = {points={{x=0, y=0}, {x=0, y=300}, {x=300, y=300}, {x=300, y=0}}, gates={2, 4}}
+    local atan2 = math.atan2 or math.atan
+    heading, distance = P.guideHeading(track, {nextGate=1, passed=0}, 10, 100, route)
+    assert(math.abs(heading - atan2(110, -10)) < 1e-12 and math.abs(distance - math.sqrt(110 ^ 2 + 10 ^ 2)) < 1e-9,
+        "up the route's first leg, 110 on from the nearest point")
+    heading = P.guideHeading(track, {nextGate=2, passed=1}, 0, 260, route)
+    assert(math.abs(heading - atan2(40, 70)) < 1e-12,
+        "round the corner: 40 to the corner and 70 along the next leg, not straight at the gate")
+    heading = P.guideHeading(track, {nextGate=2, passed=1}, 300, 100, route)
+    assert(math.abs(heading - atan2(-100, 0)) < 1e-12,
+        "near the route's end it aims at the end, the last leg down")
+    heading = P.guideHeading(track, {nextGate=2, passed=1}, 300, 250, {points={{x=0, y=0}}, gates={}})
+    assert(math.abs(heading + math.pi / 2) < 1e-12, "a route too short to follow: the gate's middle")
+    heading = P.guideHeading(track, {nextGate=2, passed=1}, 300, 250, {points=route.points, gates={2, 9}})
+    assert(math.abs(heading + math.pi / 2) < 1e-12, "a crossing past the route's end: the gate's middle")
+    assert(P.gateGlow(0) == 0.55 and math.abs(P.gateGlow(0.4) - 1) < 1e-12 and math.abs(P.gateGlow(0.2) - 0.775) < 1e-12
+        and P.gateGlow(0 / 0) == 1, "the next gate's glow pulses between 0.55 and 1")
+    -- Round a bend the arrow aims only where the kart can drive straight on
+    -- its floor (Codex's review of Warsong v2): an L of floor, the corner's
+    -- inside at (100, 240); from (95, 220) the route's point 110 on lies
+    -- across the corner, the one 90 on does not.
+    local bend = {gates={{name="G", ax=280, ay=240, bx=280, by=300}},
+        isDrivable=function(px, py, level)
+            return level == 0 and ((px >= 0 and px <= 100 and py >= 0 and py <= 260)
+                or (px >= 0 and px <= 300 and py >= 240 and py <= 300))
+        end}
+    local corner = {points={{x=50, y=0}, {x=50, y=270}, {x=280, y=270}}, gates={3}}
+    local along
+    heading, distance, along = P.guideHeading(bend, {nextGate=1, passed=0}, 95, 220, corner, 0)
+    assert(math.abs(heading - atan2(50, 90.2 - 95)) < 1e-9 and along == true,
+        "round the bend the arrow aims at the farthest point it could drive to: " .. heading)
+    heading = P.guideHeading(bend, {nextGate=1, passed=0}, 95, 220, corner)
+    assert(math.abs(heading - atan2(50, 15)) < 1e-9, "without the kart's floor, 110 on, as before")
+    heading, distance, along = P.guideHeading(bend, {nextGate=1, passed=0}, 300, 250, nil, 0)
+    assert(math.abs(heading - atan2(20, -20)) < 1e-12 and not along, "without a route, the gate's middle")
     assert(P.arrowFrame(0) == 0 and P.arrowFrame(math.pi / 2) == 4 and P.arrowFrame(-math.pi / 2) == 12
         and P.arrowFrame(2 * math.pi - 0.01) == 0, "sixteen headings counter-clockwise from east")
     local c1, c2, c3, c4 = P.arrowCoords(6)

@@ -3789,11 +3789,13 @@ end
 
 originalPrint("test_ui production catalogue: twelve multiplayer courses, real Mirage default/scenery, retired-save preservation, layered/sprint Ready and asset-failure Start guard PASS (91/96/151 pool)")
 
--- Registered Warsong rendering. Its four roofs crop from Roofs.tga as the
--- camera moves and fade under the player's kart on the ground; the kart draws
--- under them on the ground and over them on floor 1 or a ramp; the guiding
--- arrow beside it points at the lap's next gate. No physics or race state is
--- written: the poses below are placed only to be drawn.
+-- Registered Warsong rendering (version 2). Its two covers, the ground over
+-- each tunnel, crop from Roofs.tga as the camera moves and fade as the
+-- player's kart drives into the tunnel below; the kart draws under them on
+-- the ground and over them on floor 1 or a ramp; the guiding arrow beside it
+-- follows the reviewed route to the lap's next gate, whose marker glows. No
+-- physics or race state is written: the poses below are placed only to be
+-- drawn (the checkpoint progress copied in is only read).
 withMock(nil,false,function(env,UI)
     env.fire("ADDON_LOADED","AzerothKart")
     local AK=env.namespace
@@ -3803,14 +3805,16 @@ withMock(nil,false,function(env,UI)
         "the registered layered course is available in the real multiplayer catalogue")
     assert(UI.SelectTrack("warsong_gulch") and UI.track.layered and UI.backgroundPath==course.background,
         "the two-floor course selects with its ground picture")
-    assert(UI.roofs and #UI.roofs==4 and UI.roofsPath==course.roofs and UI.guideReady,
-        "its four roofs and the arrow load")
-    for index=1,4 do
+    assert(UI.roofs and #UI.roofs==2 and UI.roofsPath==course.roofs and UI.guideReady
+        and UI.guideRoute and #UI.guideRoute.points>20 and #UI.guideRoute.gates==7,
+        "its two covers, the arrow and the route it follows load")
+    for index=1,2 do
         local piece=UI.roofTextures[index]
         assert(piece.texturePath==course.roofs and piece.layer=="OVERLAY" and piece.sublevel==-1,
-            "each roof crops the one roof picture, between the floors' draw sets")
+            "each cover crops the one roof picture, between the floors' draw sets")
     end
-    assert(UI.kart.sublevel==-5 and UI.kartOutline.sublevel==-4,"at the grid the kart draws under the roofs")
+    assert(not UI.roofTextures[3].shown and not UI.roofTextures[4].shown,"the other pooled roofs stay hidden")
+    assert(UI.kart.sublevel==-5 and UI.kartOutline.sublevel==-4,"at the grid the kart draws under the covers")
     UI.Start()
     finishCountdown(UI)
     local function drawAt(x,y,level)
@@ -3820,48 +3824,62 @@ withMock(nil,false,function(env,UI)
         UI.state,UI.previousState=pose,pose
         UI.OnUpdate(0)
     end
-    local hill,roof=UI.roofTextures[1],UI.roofTextures[3]
+    local hill,horde=UI.roofTextures[1],UI.roofTextures[2]
     drawAt(300,1300,0)
-    assert(UI.kart.sublevel==-5 and hill.shown and hill.alpha==1 and roof.alpha==1,
-        "on the field the kart is below the hill, which stands whole")
+    assert(UI.kart.sublevel==-5 and hill.shown and hill.alpha==1 and horde.alpha==1,
+        "on the field the kart is below the covers, which stand whole")
     local l,r,t,b=(table.unpack or unpack)(hill.texCoords)
     assert(l>=0 and r<=1 and t>=0 and b<=1 and l<r and t<b and hill.width>0 and hill.height>0,
-        "the hill's crop lies in the picture")
-    drawAt(400,1560,0)
-    assert(UI.kart.sublevel==-5 and math.abs(hill.alpha-0.25)<1e-9 and roof.alpha==1,
-        "in the tunnel the hill over it fades; the base's roof does not")
+        "the cover's crop lies in the picture")
+    drawAt(522,1420,0)
+    assert(hill.alpha>0.25 and hill.alpha<1,"nearing the tunnel's mouth the cover starts to fade")
+    drawAt(522,1622,0)
+    assert(UI.kart.sublevel==-5 and math.abs(hill.alpha-0.25)<1e-9 and horde.alpha==1,
+        "in the tunnel the ground over it fades; the Horde's cover does not")
     local smoke=UI.fxSmoke[1]
     assert(smoke.layer=="ARTWORK" and smoke.sublevel==6,"on the ground the kart's dust stays under every overlay")
-    drawAt(400,1560,1)
+    drawAt(522,1622,1)
     assert(UI.kart.sublevel==3 and UI.kartOutline.sublevel==4 and hill.alpha==1,
-        "on the plateau, the same place a floor up, the kart draws over the hill")
-    assert(smoke.layer=="OVERLAY" and smoke.sublevel==0,"and its dust over the hill too, under the kart")
-    drawAt(824,1460,0)
+        "on the plateau, the same place a floor up, the kart draws over the cover")
+    assert(smoke.layer=="OVERLAY" and smoke.sublevel==0,"and its dust over the cover too, under the kart")
+    drawAt(780,1530,0)
     assert(UI.kart.sublevel==3 and hill.alpha==1 and smoke.layer=="OVERLAY",
-        "climbing a ramp the kart and its dust draw over the roofs")
-    drawAt(440,1925,0)
-    assert(UI.kart.sublevel==-5 and math.abs(roof.alpha-0.25)<1e-9 and hill.alpha==1,
-        "in the flag room Silverwing Hold's roof fades over it")
-    assert(smoke.layer=="ARTWORK" and smoke.sublevel==6,"back on the ground, the dust under the roofs again")
+        "on the east path's ramp the kart and its dust draw over the covers")
+    drawAt(540,480,0)
+    assert(UI.kart.sublevel==-5 and math.abs(horde.alpha-0.25)<1e-9 and hill.alpha==1,
+        "in the Horde's tunnel the hill over it fades")
+    assert(smoke.layer=="ARTWORK" and smoke.sublevel==6,"back on the ground, the dust under the covers again")
     -- A friend (a copied grid pose, no transport) draws by their reported
-    -- floor: over the hill on the plateau, under it in the tunnel below.
-    drawAt(400,1560,0)
+    -- floor: over the cover on the plateau, under it in the tunnel below.
+    drawAt(522,1622,0)
     local function friendAt(x,y,level)
         UI.multiplayer,UI.gridStaged=true,true
         UI.gridView={peerPose={x=x,y=y,heading=math.pi/2,level=level}}
         UI.SetKartOutline(not UI.outlineOn); UI.SetKartOutline(not UI.outlineOn) -- each redraws
     end
     local function noFriend() UI.multiplayer,UI.gridStaged,UI.gridView=false,false,nil end
-    friendAt(420,1560,1)
-    assert(UI.opponent:IsShown() and UI.opponent.sublevel==3,"a friend on the plateau draws over the hill")
-    friendAt(420,1560,0)
+    friendAt(540,1622,1)
+    assert(UI.opponent:IsShown() and UI.opponent.sublevel==3,"a friend on the plateau draws over the cover")
+    friendAt(540,1622,0)
     assert(UI.opponent:IsShown() and UI.opponent.sublevel==-5,"a friend in the tunnel draws under it")
     noFriend()
-    drawAt(300,984,0)
-    local frame=AK.Presentation.arrowFrame((math.atan2 or math.atan)(1380-984,400-300))
-    assert(UI.guideArrow.shown and UI.guideArrow.sublevel==7 and frame==3
-        and UI.guideArrow.texCoords[1]==0.75 and UI.guideArrow.texCoords[3]==0,
-        "the arrow points from mid toward the Alliance tunnel")
+    drawAt(522,990,0)
+    local frame=AK.Presentation.arrowFrame(math.pi/2)
+    assert(UI.guideArrow.shown and UI.guideArrow.sublevel==7 and frame==4
+        and UI.guideArrow.texCoords[1]==0 and UI.guideArrow.texCoords[3]==0.25,
+        "the arrow points from the grid up the field to the Alliance tunnel")
+    assert(UI.glowGate==1 and UI.gateTextures[1].alpha>=0.55 and UI.gateTextures[1].alpha<=1,
+        "the next gate's marker glows")
+    -- Past the hold's front door, on the plateau: the next gate (the Horde
+    -- tunnel) lies south-west through the hill; the arrow follows the route
+    -- east to the path down instead.
+    local progress=UI.checkpoints
+    UI.checkpoints={passed=3,nextGate=4,complete=false,lap=progress.lap,lapGate=progress.lapGate}
+    drawAt(600,1622,1)
+    assert(UI.guideArrow.shown and AK.Presentation.arrowFrame(0)==0 and UI.guideArrow.texCoords[1]==0
+        and UI.guideArrow.texCoords[3]==0,"on the plateau the arrow points east along it, not through the hill")
+    assert(UI.glowGate==4 and UI.gateTextures[1].alpha==1,"the glow moves to the new next gate")
+    UI.checkpoints=progress
     UI.Stop("rendering checked")
     assert(UI.SelectTrack("mirage_raceway") and not UI.roofs and not hill.shown and not UI.guideReady
         and UI.kart.sublevel==0 and UI.kartOutline.sublevel==1 and smoke.layer=="ARTWORK" and smoke.sublevel==6,
@@ -3874,8 +3892,8 @@ withMock(nil,false,function(env,UI)
         assert(UI.SelectTrack("warsong_gulch"),"back to Warsong")
         UI.Start()
         finishCountdown(UI)
-        drawAt(400,1560,0)
-        friendAt(420,1560,level)
+        drawAt(522,1622,0)
+        friendAt(540,1622,level)
         assert(UI.opponent.sublevel==(level==1 and 3 or -5),"the friend on floor "..level)
         noFriend()
         UI.Stop("floor "..level)
@@ -3887,9 +3905,9 @@ withMock(nil,false,function(env,UI)
     end
 end,nil,nil,true)
 
--- Warsong's upper floor is drawn only in its roof picture: refused, the
--- course is refused like a missing background (the shown course and its
--- picture stay), and Start refuses it while its roofs are not loaded.
+-- Warsong's covers are part of its picture (the ground over each tunnel):
+-- refused, the course is refused like a missing background (the shown course
+-- and its picture stay), and Start refuses it while its roofs are not loaded.
 withMock(nil,false,function(env,UI)
     env.fire("ADDON_LOADED","AzerothKart")
     local AK=env.namespace
