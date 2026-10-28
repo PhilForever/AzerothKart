@@ -7,9 +7,10 @@
 1. **No arrow** on Arathi, no glowing gate; the way still plain.
 2. **The Gold Mine fork:** the upper road goes left as a real road, blocked by the group of Alliance soldiers; the kart stops at them, never at nothing. Down the road into the pit: does the cliff up to the upper road read as a drop now?
 3. **The Stables:** the meadow (long grass) slows the kart; the road round north of the barn is faster; the worn dirt beside the road is full speed. (A boost keeping its speed on the grass waits for Codex.)
-4. **The Lumber Mill:** the fork's lower road blocked by lumber and a cart, not a fence; along the cliff top the cliff drops beyond the fence to the lower road. Does it read as a straight cliff?
+4. **The Lumber Mill:** the fork's lower road blocked by lumber and a cart, not a fence; along the cliff top the cliff drops beyond the verge to the lower road. Does it read as a straight cliff?
 5. **The south bridge junction** and **the road to Defiler's Den:** blocked by carts, crates and grunts.
-6. **Seams:** anywhere a kart stops at nothing it can see, or a road ends at a fence: a screenshot of each.
+6. **Fewer fences:** no fence along the stretches lined in red; the fence stays only at the Gold Mine fork, round the Stables' meadow, beside the Farm from the finish to the east bridge, at the south bridge's junction, Trollbane's corner, Defiler's road and the bridges' ends. Driving wide onto the verge where there is no fence, the kart still stops where the fence stood (the walls are unchanged): does the edge read (the cliffs, the river, the long grass starting beyond the verge), or does it feel like an invisible wall? A screenshot of any place where it does.
+7. **Seams:** anywhere a kart stops at nothing it can see, or a road ends at a fence: a screenshot of each.
 
 ## Deferred Arathi Basin client check (registered)
 
