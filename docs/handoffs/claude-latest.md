@@ -1,12 +1,77 @@
-# Claude handoff — Arathi Basin (reserved, in progress)
+# Claude handoff — Arathi Basin, coming soon
 
-Reserved 2026-10-28 at about 12:45 CET by Claude (rendering/UI/sprites owner).
+Prepared 2026-10-28 at about 14:05 CET by Claude (rendering/UI/sprites owner).
 
-**Task:** the owner, with Warsong version 3 looking right: "Let's take what we learned creating this map and make Arathi Basin. (No insides here but heavy slopes)", with a route drawn on the battleground's world map: a loop round the basin from Defiler's Den. Shown it on the game's own map, he gave the way round: **"East > DOWN to Gold Mine > Up to the stables > UP to the Lumbermill and then down to the farm and around"**. He left the other questions open; taken as recommended and to be confirmed: both ways round the Stables (a fork, as he drew it), the slopes drawn from the real heights now and felt later (Codex's physics, [ADR 0015](../adr/0015-track-elevation.md)), the grass at full speed to the walls.
+**Base:** `claude/warsong-v3` `5cee515` (Warsong version 3, not yet integrated: Arathi Basin uses the same battleground pipeline). **Branch:** `claude/arathi-basin`, no merge commit:
 
-**Base:** `claude/warsong-v3` `5cee515` (Warsong version 3, not yet integrated: Arathi Basin uses the same battleground pipeline). **Branch:** `claude/arathi-basin`.
+- `2947563`: the reservation;
+- `929741e`: the survey (`wow_map_survey.py` generalised, `scripts/arathi_basin_survey.json`);
+- `ed9ad82`: the generator, the course's data, its pictures, sheet, provenance and review pictures;
+- `01693e5`: the catalogue entry (coming soon), menu, tests and Codex's peer-session pin;
+- `3387fdf`: the docs;
+- this handoff.
 
-**Reserved (Claude):** `scripts/wow_map_survey.py` (a world's size, relief range and water), new `scripts/arathi_basin_survey.json`; the Battlegrounds Cup's layouts, painter and builder (`scripts/battleground_layouts.py`, `battleground_paint.py`, `build_battlegrounds.py`), the generated `addon/AzerothKart/Battlegrounds.lua` and a new `Assets/Tracks/ArathiBasin/`; Arathi Basin's entries in `Courses.lua` (listed as coming soon; a `circuit` geometry built by `Circuit.new` from `Battlegrounds.lua`) and `Menu.lua`; new `tests/test_arathi.lua`, the catalogue's counts in `tests/test_ui.lua`/`tests/test_menu.lua` if they change; a new sheet `docs/art/tracks/arathi-basin.md`, notes in `API_CONTRACTS.md`, `TRACKS.md`, `ASSETS.md`, `art/ASSET_SOURCES.md`, `TEST_PLAN.md`, `CHANGELOG.md`, the client checklist, this handoff. **Not touched (Codex's):** `Circuit.lua`, Physics, Checkpoints, the protocols' and scores' course tables (`PeerSession`, `RaceProtocol`, `ScoreSync`): the course stays coming soon until Codex registers it.
+**Nothing is installed or pushed.** The developer machine's Claude worktree is on `claude/arathi-basin` (fetched from `local-artifacts/bundles/arathi-basin-1.bundle`), clean apart from its untracked `Claude outputs/`; this handoff follows the same way (`arathi-basin-2.bundle`).
+
+## Owner instructions
+
+With Warsong version 3 looking right: **"Okay. Looks alright. Let's take what we learned creating this map and make Arathi Basin. (No insides here but heavy slopes)"**, with a loop drawn on the battleground's world map from beside Defiler's Den. Shown it on the game's own map, he gave the way round: **"East > DOWN to Gold Mine > Up to the stables > UP to the Lumbermill and then down to the farm and around"**. His other questions were left open; taken as recommended, **to be confirmed by him**:
+
+1. **The Stables** (he drew two lines round the barn): both ways round it. The yard is open (a plaza), the barn solid in it.
+2. **The slopes:** drawn from the real heights now (shading, inert per-point heights), felt later only if Codex adds a grade term ([ADR 0015](../adr/0015-track-elevation.md)).
+3. **The grass beside the road:** full speed to the fences, as on the cities.
+4. Not asked: the grid stands on the lap (the east road just north of its junction with the farm road), not at his X on the road from that junction to Defiler's Den, so the race starts straight up the road (as Thunder Bluff's since version 2).
+
+## Done
+
+- **Survey** (`929741e`): `scripts/wow_map_survey.py` takes a world's size, the relief's base and step, and records the water (MH2O); `scripts/arathi_basin_survey.json` holds `pvpzone04` over 2048 × 2048 units from (15760, 16450) yards at three units to the yard: the six Arathi Highlands ground textures' weights, the relief (−133 to +141 yards in 1.4-yard steps) every four units, the river's depth, 3,065 placements. Numbers only; no client file or picture stored. Warsong's survey regenerates byte for byte.
+- **The course** (`scripts/battleground_layouts.py`, `build_battlegrounds.py`): a `Circuit.new` definition on the cities' street, traced on the roads the client paints with one texture: north up the east road over **the east bridge**, down **the Gold Mine's** road into its hollow (the lap's lowest ground), up **the north road to the Stables**, round **the barn** either way, over **the west bridge**, up **the Lumber Mill's** hill (the highest), down **the cliff road**, sharp east past **the Farm**, north to the finish (*Defiler's Den*). 322 centerline points, 5,073 units; road radius 56, reach 76, full grip, wall clearance 14 with 1,032 junction vertices; 2 narrows (each bridge's deck and 84 units either side, reach 42); 1 plaza (the yard, radius 96); 1 solid (the barn, 106 × 57); 5 gates; the spawn (1648, 625.3) facing north 65 units past the finish. The route (162 points) and `routeGates` {38, 58, 114, 149, 160} for the arrow. `validate_circuit` runs the cities' authoring rules (`build_city_tracks.validate_geometry`) and walks the route through the gates in order.
+- **The slopes:** `elevation.centerline`, the survey's terrain under each point (evened over 48 units, straight across each bridge) in world units above the lap's lowest: 0 at the Gold Mine to 372.4 on the Lumber Mill's hill, 190.7 at the grid; grades over 64-unit runs from −0.85 (down the cliff road) to +0.58 (up the Lumber Mill's road), mean 0.175. Inert, as on the cities.
+- **The picture** (`scripts/battleground_paint.py`, `build_circuit`): the client's ground as Warcraft III tiles by the measured weights, shaded by the relief (lit from the north-west, ×1.7, hollows darker and hills brighter), the river by its depth; the dirt road with ruts, rail fences, stone bridges with parapets (the two to the Blacksmith off the course, as narrow as the client's); the bases as Warcraft III buildings at the client's places (barn, gold mine, lumber mill, farmhouse with windmill and granary, blacksmith, the two town halls), the nodes' banners, the client's scenery as Warcraft III models (650 placed; optional ones on the street or in the water left out). Warsong's pictures are byte-identical.
+- **Catalogue and menu:** `Courses` geometry `circuit` (`Circuit.new` from `Battlegrounds.lua`); `Courses.route` serves a guided circuit; Arathi Basin listed after Warsong, `soon=true`. `Menu`: its copy, square 320 × 320 preview cell; the track list's rows step 30 units (28-unit buttons) so thirteen rows fit above Back; budget **92/96/151** (its coming-soon button).
+- **Measured offline** (PUC Lua 5.1 via lupa, the cloud machine): `isDrivable` 1.85 µs; a `guideHeading` call 0.22 ms on average over the lap, 0.33 ms at worst (Warsong's 0.13-0.17). Native frame cost NOT RUN.
+
+## Scope (changed)
+
+- Claude's, as reserved: `scripts/wow_map_survey.py`, `scripts/arathi_basin_survey.json` (new), `scripts/battleground_layouts.py`, `battleground_paint.py`, `build_battlegrounds.py`; generated `addon/AzerothKart/Battlegrounds.lua` (Warsong's entry unchanged), `Assets/Tracks/ArathiBasin/{Background,Preview}.tga` (new); `docs/art/tracks/arathi-basin.md` and `arathi_basin-{overview.png,sources.txt,review.png,route-sketch.png}` (new); `Menu.lua` (Arathi's copy and preview cell, the list's row step); `tests/test_arathi.lua` (new), `tests/test_ui.lua` (a coming-soon block, the budget), `tests/test_menu.lua` (rows, copy, budget).
+- **Shared, flagged for review:** `addon/AzerothKart/Courses.lua` (the `circuit` geometry case in `build`, `route` for a guided circuit, the entry); `tests/run.lua` (`test_arathi` added); `tests/test_circuit.lua` and `tests/test_warsong.lua` (their catalogue loops expect one course coming soon); `scripts/validate_project.py` (the new files required).
+- **Codex-owned, a pin only, for review:** `tests/test_peer_session.lua` skips a course coming soon in its every-multiplayer-course loop (Arathi has no IDs); its twelve courses unchanged.
+- Docs: `API_CONTRACTS.md` (a new proposal section), `TRACKS.md`, `ASSETS.md`, `art/ASSET_SOURCES.md`, `INDEX.md`, `TEST_PLAN.md`, `CHANGELOG.md`, the client checklist, this handoff.
+
+No change to Circuit, LayeredTrack, Physics, Checkpoints, Presentation, UI, protocols, sessions or scores' code.
+
+## Tests
+
+| Command | Cloud | Developer machine (Linux VM) |
+|---|---|---|
+| `python scripts/build_battlegrounds.py --wc3 WC3 --check` | PASS: the data; Warsong's three pictures and the arrow unchanged; Arathi's Background `caac93b1…`, Preview `cab694ef…` (58 s) | PASS, byte-identical, from its own Warcraft III extraction: `--course arathi_basin` (110 s) and `--course warsong_gulch` (110 s), each with the full data check |
+| `python scripts/test_lua.py --runtime lua51` (full suite) | PASS (63 s) | PASS (105 s) |
+| `test_lua.py --runtime lua51 --tests arathi warsong circuit ui menu peer_session` | PASS | in the full suite |
+| `test_lua.py --runtime lua54 --tests arathi warsong ui menu circuit presentation` | PASS | not run |
+| `python scripts/export_score_catalog.py --check` | PASS (12 boards; Arathi has none yet) | not run |
+| Mutations of `test_arathi` (scratch copy, not committed): the bridges full width; the yard shrunk; `routeGates` shifted by one; the heights reversed | each fails its own assertion | not run |
+| `git diff --check 5cee515..HEAD` | PASS | not run |
+| `python scripts/validate_project.py` | the same 2 pre-existing FAILs | not run |
+
+Pre-existing, not from this work: `validate_project.py`'s two links in `docs/PROGRESS.md` to `C:/Users/bakke/.codex/plugins/...`; under Lua 5.4, `test_score_sharing` (global `unpack`) and `test_multiplayer_integration` (line 208).
+
+**NOT RUN in the client:** the coming-soon row; once registered, the look (the slopes' shading, the bridges, the Stables' yard, the bases), the arrow, the gate glow, the drive, a two-player race. The owner's checks are in [the client checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-arathi-basin-check-proposed-claudearathi-basin).
+
+## For Codex
+
+1. Review `ed9ad82` and `01693e5`: the circuit data in `Battlegrounds.lua` (the cities' rules; [proposal](../API_CONTRACTS.md#proposed-arathi-basin-a-battlegrounds-cup-circuit-claude-2026-10-28-for-codex)), `Courses`' `circuit` case and `route`, the arrow's cost on a circuit (above), the tests' catalogue changes and the peer-session pin.
+2. **Registration requested:** the course, invite and score IDs as for Warsong (`PeerSession`'s course table, `RaceProtocol`'s next code, `ScoreSync`'s list, the score catalogue), Physics 12 (flat, three laps), then drop `soon`; `test_arathi`'s last block and `test_ui`'s Arathi block lift the gate themselves and should be adjusted when it goes.
+3. **The slopes:** the heights are there for ADR 0015's grade term; the grades above ask for a small gain (a climb must not stop a kart). Your decision; until then they are only drawn.
+4. **Pending ledger entry for `docs/PROGRESS.md`** (not written here): "2026-10-28 Claude `claude/arathi-basin` (`929741e`, `ed9ad82`, `01693e5`, `3387fdf`): Arathi Basin, the Battlegrounds Cup's second course, listed as coming soon: surveyed from the owner's client (numbers only), a three-lap circuit on the basin's real roads (the owner's way round: east, down to the Gold Mine, up to the Stables, up to the Lumber Mill, down to the Farm), both bridges narrowed, both ways round the Stables' barn, inert heights 0-372 units, painted from Warcraft III tiles and models; budget 92/96/151. Offline: build `--check` byte-identical on cloud and developer machine; full Lua 5.1 suite PASS on both. Client NOT RUN."
+5. Integration as before: it rides on Warsong version 3's branch (base `5cee515`); the integrator installs; both players fully restart.
+
+## Push (the owner's; never pushed by Claude)
+
+From the main checkout on the developer machine:
+
+```
+git push -u origin claude/arathi-basin
+```
 
 # Previous: Warsong Gulch version 3: both bases alike
 
