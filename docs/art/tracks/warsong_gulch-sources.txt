@@ -4,39 +4,40 @@
 # client's own map (warsong_gulch_survey.json, scripts/wow_map_survey.py): numbers only, no client file.
 
 ## Models (placements)
-  24  war3.w3mod:_de.w3mod:doodads/lordaeronsummer/structures/palisade/palisade0.mdx
-  13  war3.w3mod:_de.w3mod:doodads/lordaeronsummer/structures/palisade/palisade1.mdx
+  23  war3.w3mod:_de.w3mod:doodads/lordaeronsummer/structures/palisade/palisade0.mdx
+  16  war3.w3mod:_de.w3mod:doodads/lordaeronsummer/structures/palisade/palisade1.mdx
    2  war3.w3mod:buildings/orc/trollburrow/trollburrow.mdx
    1  war3.w3mod:buildings/orc/warmill/warmill.mdx
-   3  war3.w3mod:buildings/orc/watchtower/watchtower.mdx
-  16  war3.w3mod:buildings/other/barrelsunit/barrelsunit.mdx
+   2  war3.w3mod:buildings/orc/watchtower/watchtower.mdx
+  13  war3.w3mod:buildings/other/barrelsunit/barrelsunit.mdx
    1  war3.w3mod:buildings/other/furbolghut/furbolghut.mdx
    1  war3.w3mod:buildings/other/furbolghut2/furbolghut2.mdx
    1  war3.w3mod:buildings/other/tent/tent.mdx
-  98  war3.w3mod:doodads/ashenvale/plants/ashenbush0/ashenbush0.mdx
-   5  war3.w3mod:doodads/ashenvale/props/ashenhollowstump/ashenhollowstump.mdx
+  95  war3.w3mod:doodads/ashenvale/plants/ashenbush0/ashenbush0.mdx
+   6  war3.w3mod:doodads/ashenvale/props/ashenhollowstump/ashenhollowstump.mdx
   14  war3.w3mod:doodads/ashenvale/props/ashenlogstraight/ashenlogstraight.mdx
-  14  war3.w3mod:doodads/barrens/rocks/barrens_rocks/barrens_rocks1.mdx
+  12  war3.w3mod:doodads/barrens/rocks/barrens_rocks/barrens_rocks1.mdx
    6  war3.w3mod:doodads/barrens/rocks/barrens_rocks/barrens_rocks3.mdx
-  15  war3.w3mod:doodads/barrens/rocks/barrens_rocks/barrens_rocks5.mdx
-   1  war3.w3mod:doodads/barrens/rocks/barrens_rocks/barrens_rocks7.mdx
+  11  war3.w3mod:doodads/barrens/rocks/barrens_rocks/barrens_rocks5.mdx
+   3  war3.w3mod:doodads/barrens/rocks/barrens_rocks/barrens_rocks7.mdx
    1  war3.w3mod:doodads/lordaeronsummer/props/bannerhuman/bannerhuman0.mdx
    1  war3.w3mod:doodads/lordaeronsummer/props/bannerorc/bannerorc0.mdx
-  18  war3.w3mod:doodads/lordaeronsummer/props/brazier/brazier.mdx
+  13  war3.w3mod:doodads/lordaeronsummer/props/brazier/brazier.mdx
   10  war3.w3mod:doodads/lordaeronsummer/props/lanternpost/lanternpost0.mdx
-  10  war3.w3mod:doodads/lordaeronsummer/terrain/crates/crates0.mdx
-  19  war3.w3mod:doodads/lordaeronsummer/terrain/crates/crates1.mdx
+   4  war3.w3mod:doodads/lordaeronsummer/terrain/crates/crates0.mdx
+  14  war3.w3mod:doodads/lordaeronsummer/terrain/crates/crates1.mdx
    4  war3.w3mod:doodads/silvermoon/structures/silvermoontowerdoodadsmedium/silvermoontowerdoodadsmedium.mdx
   32  war3.w3mod:doodads/terrain/ashentree/ashentree0.mdx
   41  war3.w3mod:doodads/terrain/ashentree/ashentree2.mdx
   35  war3.w3mod:doodads/terrain/ashentree/ashentree3.mdx
-  45  war3.w3mod:doodads/terrain/ashentree/ashentree5.mdx
+  46  war3.w3mod:doodads/terrain/ashentree/ashentree5.mdx
   41  war3.w3mod:doodads/terrain/ashentree/ashentree7.mdx
-   2  war3.w3mod:doodads/terrain/barrenstree/barrenstree0.mdx
+   1  war3.w3mod:doodads/terrain/barrenstree/barrenstree0.mdx
+   1  war3.w3mod:doodads/terrain/barrenstree/barrenstree2.mdx
    3  war3.w3mod:doodads/terrain/barrenstree/barrenstree3.mdx
    2  war3.w3mod:doodads/terrain/barrenstree/barrenstree5.mdx
-   3  war3.w3mod:doodads/terrain/barrenstree/barrenstree7.mdx
-  10  war3.w3mod:units/orc/catapult/catapult.mdx
+   2  war3.w3mod:doodads/terrain/barrenstree/barrenstree7.mdx
+   5  war3.w3mod:units/orc/catapult/catapult.mdx
 
 ## Textures
 war3.w3mod:_de.w3mod:textures/human_buildup_diffuse.dds

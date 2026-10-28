@@ -141,6 +141,20 @@ route target around bends; gate glow/cover sorting remain presentation-only.
 Required-cover failures still block selection/Start/Ready. Native driving,
 appearance, frame cost and peer feel remain NOT RUN by this integration.
 
+**Version 3 proposed (Claude, `claude/warsong-v3`, for Codex's review).** The
+owner corrected the Horde side after driving version 2 ("outside ramp goes
+into lobby into flag room into tunnel down to mid") and chose both bases
+driven alike: up the outside ramp, in at the front door, round the flag, out
+down the tunnel. Geometry3: 15 rooms, four ramps (each base's outside ramp
+and tunnel climb), floor 1 at both bases (each plateau crosses its tunnel),
+seven gates, two pads, mid's stumps solid with the finish from them to the
+east wall. Same contract, codes, Physics13 and laps; trackVersion3 starts its
+own board (catalogue regenerated). Presentation only: `Presentation.onRamp`;
+a cover also fades for a kart on a ramp nearing it; the arrow's clear line
+keeps 3 units to spare. Pins updated in Codex's `test_peer_session`
+(trackVersion3) and `test_multiplayer_integration` (floors `0101010101010`;
+the assisted real-Physics drive passes). [Sheet](art/tracks/warsong-gulch.md).
+
 ## Evidence
 
 Focused Lua51 passes cover isolated geometry, correct floor walls/gates,
