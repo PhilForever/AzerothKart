@@ -1,5 +1,35 @@
 # Codex handoff — production maps and Claude course review
 
+## Installed Warsong v3 checkpoint — 2026-10-28 12:00 +0100
+
+Runtime **a51b60e**, branch `codex/warsong-v3-integration`, integrates approved
+Claude **5cee515** / implementation **d9750f5**. [Review](../reviews/2026-10-28-warsong-v3.md):
+no blocker; eight focused Lua51 modules/85 parsed files,12-board catalogue,
+independent legal finish/1258 arrow-rays/descent fades/history checks PASS.
+Native checks, repeated full46/Lua54 and art rebuild by Codex NOT RUN. Validator
+still has two historical expired links. No release/eight-player gate changes.
+
+Installed directly into the existing classic_beta AddOns/AzerothKart folder.
+All91 source/installed and92 prior backup files independently SHA-256 verified;
+legacy extra preserved. Matching friend ZIP `../AzerothKart-WarsongV3-a51b60e.zip`,
+91 entries,76,803,219 bytes; SHA256
+`A2846C6A27FBC1CBD8D23A6B0B4B3762A7895559A13B90F66E486208C280928F`.
+[Full deployment evidence](../PROGRESS.md); ignored audit/preflight/receipt in
+`local-artifacts/deploy-20261028-warsong-v3/`. Full restart recommended for the
+replacement textures; both multiplayer clients need geometry3.
+
+Both bases run outside-ramp→lobby→flag→tunnel. Four floor transfers/lap, two
+pads, seven gates, solid mid stumps and east-side grid/finish. Warsong stays
+Physics13/raceC/scoreW; v1/v2 history and eleven Physics12 map contexts stay
+saved. No handling, authoritative engine or transport changes. Original Claude
+checkout stays5cee515 with existing outputs. No push/main/release.
+
+**Next:** owner tests v3's route, covers down climbs, guide, finish and3-lap
+results, then same-build friend race/rematch when available. Claude can inspect
+its diff to this branch before merging into a fresh feature branch; no command
+was run in its checkout.
+
+
 ## Active authorized integration/install — Warsong v3, 2026-10-28
 
 Owner requests review and installation if acceptable. Clean8ed25f4, installed

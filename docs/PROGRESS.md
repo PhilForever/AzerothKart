@@ -1,5 +1,46 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-28 12:00 +0100 — Warsong v3 installed and friend ZIP verified
+
+Runtime **a51b60e** on `codex/warsong-v3-integration` merges approved Claude
+5cee515 with reservation5018e4a. [Review](reviews/2026-10-28-warsong-v3.md) found
+no blocker. Owner-authorized installation is complete. Claude's original
+checkout remains5cee515, tracked-clean with its existing untracked outputs.
+No push, main merge, rewrite, release or other-worktree mutation.
+
+Executed PS7 `scripts/install_local.ps1 -AddOnsDirectory
+'C:/Program Files (x86)/World of Warcraft/_classic_beta_/Interface/AddOns'
+-Overwrite -BackupDirectory '<repo>/local-artifacts/deploy-20261028-warsong-v3/backups'`
+after successful preview: PASS. All91 tested source files copied and SHA-256
+verified. All92 previous installed files backed up and verified. Legacy extra
+`Assets/Karts/GoblinDragCar.tga` retained;92 installed files total. No deletions,
+WTF/SavedVariables or unrelated-addon changes.
+
+Independent `C:/Python314/python.exe
+local-artifacts/deploy-20261028-warsong-v3/audit_and_package.py --runtime a51b60e`:
+PASS source/target/backup hashes, complete path inventories and retained extra.
+A new exclusive ZIP uses tested installed paths; every archive entry/hash and
+CRC verifies. Source still matches the committed runtime; later edits are docs.
+
+- Manifest: `local-artifacts/deploy-20261028-warsong-v3/backups/20261028-115847-978-642ae320449c48d898be59925bdfc093/install.json`.
+- Backup: that manifest directory's `before/`,92 verified files.
+- Audit/preflight/receipt: `local-artifacts/deploy-20261028-warsong-v3/`.
+- Friend ZIP: `../AzerothKart-WarsongV3-a51b60e.zip`,91 entries,76,803,219 bytes.
+- SHA256: `A2846C6A27FBC1CBD8D23A6B0B4B3762A7895559A13B90F66E486208C280928F`.
+
+Eight focused Lua51 modules/85 parsed files and12-board catalogue checks PASS;
+independent geometry/finish,1258 guide-ray positions, descent covers, historical
+v1/v2 retention and v3 publication checks PASS. Exact evidence is in the review
+and prior entry. Validator still has only two historical expired links. Native
+appearance/handling/arrow usefulness/peer feel/frame cost, repeated full46/
+Lua54 and art rebuild by Codex NOT RUN; no milestone/release acceptance added.
+
+**Next exact task:** fully restart WoW, drive both bases up the outside ramp,
+through lobby/flag and down the tunnel; check fading covers, guiding arrow,
+east-side finish and3-lap results. Both multiplayer players need this same v3
+build and restart. Old Warsong v1/v2 contexts and other eleven boards stay saved.
+
+
 ## 2026-10-28 11:57 +01:00 — Warsong v3 reviewed and combined candidate ready
 
 Owner requests review/install if acceptable. Clean8ed25f4, installed5871f06;

@@ -1,5 +1,21 @@
 # Shared integration and deployment status
 
+## Installed Warsong v3 — 2026-10-28
+
+Runtime **a51b60e** on `codex/warsong-v3-integration` is installed, merging
+reviewed Claude5cee515. Both bases now run up the outside ramp and out down
+the tunnel, with descent-aware cover fades and a guide clearance margin.
+All91 source/target and92 prior backup files independently SHA-256 verified;
+legacy extra retained. Friend ZIP `../AzerothKart-WarsongV3-a51b60e.zip` has91
+entries. [Receipt/evidence](PROGRESS.md), [review](reviews/2026-10-28-warsong-v3.md).
+
+Eight focused Lua51 modules,85 parsed files,12-board catalogue and independent
+geometry/guide/history checks PASS. Native checks remain NOT RUN; validator
+retains two old links. **Fully restart both clients** after updating. Geometry3
+gets its own score context; v1/v2 history and other eleven maps remain intact.
+No GitHub push, main merge, other-worktree mutation or release.
+
+
 ## Installed Warsong v2 — 2026-10-28
 
 Runtime **5871f06** on `codex/warsong-v2-integration` is installed, integrating
