@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Warsong Gulch version 2: the real gulch (2026-10-28, `claude/warsong-v2`)
+The owner drove version 1: "it's not really driveable ... I think you should inspect the actual warsong gulch in the game files". What confused him: the arrow pointing through walls, karts out of sight under roofs, too many rooms and doors, unclear checkpoints. He kept the lap traced on the real gulch ("Front, as traced").
+- **Measured from his client:** `scripts/wow_map_survey.py` reads the battleground's files (via `wowcasc.py`, now with `--product`) into `scripts/warsong_gulch_survey.json`: ground texture weights, relief and placements, numbers only.
+- **Laid on the real gulch (trackVersion 2):** the field, both tunnels from the middle of its ends, Silverwing Hold (the tunnel climbs into the hold; round the flag; the lobby; out of the front door; over the tunnel on the plateau; down the east path) and the Warsong Lumber Mill (round the flag; the west passage; out of the side door; down the slope). 14 rooms, 2 ramps instead of 8, 7 gates at the mouths, flags and doors; each flag caps the wall between the way in and out. About 4,700 units a lap.
+- **Painted from it:** the client's ground as Warcraft III tiles in its measured weights, shaded by its relief, the paths bold; open bases between thick walls; cliffs at every outdoor edge; thresholds at every gate; the client's own scenery where its map has it, as Warcraft III models; woods on the Alliance's hills.
+- **Covers, not roofs:** only the ground over each tunnel covers the karts; cover and ground are one picture, and a cover starts fading 32 units before its tunnel's mouth.
+- **The arrow follows the route** (`Courses.route`, `routeGates`) instead of pointing through walls; **the next gate glows** (wide, pulsing).
+- **Tests:** `test_warsong` (v2 geometry, route, the flags' walls, ramps, Boots, the arrow's crossings), `test_presentation`, `test_ui`; Codex's peer-session version pin and multiplayer floors pin updated; score catalogue regenerated. Not installed; the client checks are NOT RUN.
+
 ## 2026-10-27 — Warsong registration and score compatibility
 
 - Integrated reviewed Claude Warsong layout, pooled roofs and guide arrow.

@@ -138,6 +138,21 @@ Warsong-only. Four pooled roofs fade/order around copied explicit floor state;
 required roof-load failures block selection/Start/Ready safely. Native course,
 roof, performance and peer-delivery acceptance remains NOT RUN.
 
+**Version 2 proposed (Claude, `claude/warsong-v2`, for Codex's review).** The
+owner asked for the real gulch: geometry2 is laid on the battleground measured
+from his client (14 rooms, 2 ramps, 7 gates, 2 pads; floors 0/1 only at
+Silverwing Hold, where the plateau crosses its tunnel; no optional routes, no
+roofs over the bases). Same contract, invite/score codes, Physics13 and laps;
+trackVersion2 starts its own board (catalogue regenerated). Two covers (the
+ground over each tunnel) use the existing pooled roofs and fade from32units
+before their mouths. Additive presentation data: `routeGates` (per gate, the
+route point driven to while crossing it) and `Courses.route(id)`; the arrow
+follows the route (`Presentation.guideHeading` gains an optional route
+argument; without one it still points at the gate). Pins updated in Codex's
+`test_peer_session` (trackVersion2) and `test_multiplayer_integration`
+(per-lap floors `0101010`; the assisted real-Physics drive passes).
+[Sheet](art/tracks/warsong-gulch.md).
+
 ## Evidence
 
 Focused Lua51 passes cover isolated geometry, correct floor walls/gates,
