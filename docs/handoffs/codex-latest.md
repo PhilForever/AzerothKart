@@ -1,5 +1,19 @@
 # Codex handoff — production maps and Claude course review
 
+## Active Arathi review and conditional installation — 2026-10-28
+
+Owner requests review and install if acceptable. Base clean93270b1, installed
+Warsong v3 runtime a51b60e; own branch codex/arathi-integration. Claude's
+candidate3b85407 is coming soon pending Codex-owned registration. Review its
+course/geometry/presentation and inspect score/protocol compatibility; preserve
+Claude's worktree and existing outputs. If approved, integrate/enable Arathi,
+assign bounded race/score IDs, retain the existing twelve boards/transport
+budget, run focused tests, back up and hash-verify the requested installation,
+and make a matching friend ZIP. Do not change slope physics, push, release,
+merge main, reset worktrees or alter player data. Exact executed evidence and
+native checks pending go in PROGRESS and this handoff.
+
+
 ## Installed Warsong v3 checkpoint — 2026-10-28 12:00 +0100
 
 Runtime **a51b60e**, branch `codex/warsong-v3-integration`, integrates approved
