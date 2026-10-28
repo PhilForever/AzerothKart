@@ -18,6 +18,8 @@
 -- contact counts as a hit (Physics scrubs speed). Lookups use a 64-unit grid.
 -- Optional wallClearance and generated exposed wallVertices preserve that
 -- clearance to the actual visual capsule union, including concave joins.
+-- An open course (`open`, with `laps` 1: a sprint, Alterac Valley's) runs
+-- from the centerline's first point to its last, with no closing segment.
 local _, namespace = ...
 local Circuit = {}
 
@@ -91,7 +93,10 @@ end
 -- (optional, with wallRadius: loop segments first..last, segment k joining
 -- centerline[k] to centerline[k%n+1], walled at their own smaller radius and
 -- paved to min(roadRadius, that radius); no rough strip when it is at most
--- roadRadius), centerline={{x,y}...} (closed),
+-- roadRadius), centerline={{x,y}...} (closed; with open=true, open: from
+-- its first point to its last, segment k joining centerline[k] to
+-- centerline[k+1], k < n), laps (optional, 1-9: the run's length, as a
+-- dungeon's; a sprint is one run to the last gate),
 -- branches={{{x,y}...}...} (open), plazas={{ax,ay,bx,by,radius[,surface]}...}
 -- (optional, with wallRadius; surface "grass": a meadow, drivable to its
 -- radius but never paved, so its ground stays grass even with
@@ -107,10 +112,15 @@ function Circuit.new(definition, crossesGate)
     assert(type(definition) == "table", "circuit definition required")
     assert(type(crossesGate) == "function", "directional gate predicate required")
     local d = definition
+    assert(d.open == nil or type(d.open) == "boolean", "open must be boolean")
+    local open = d.open == true
     assert(type(d.id) == "string" and finite(d.width) and finite(d.height) and finite(d.roadRadius)
-        and finite(d.wallInset) and type(d.centerline) == "table" and #d.centerline >= 3
+        and finite(d.wallInset) and type(d.centerline) == "table" and #d.centerline >= (open and 2 or 3)
         and type(d.gates) == "table" and #d.gates > 0 and type(d.spawn) == "table",
         "complete circuit geometry required")
+    assert(d.laps == nil or (finite(d.laps) and d.laps >= 1 and d.laps <= 9 and d.laps % 1 == 0),
+        "a circuit's lap count must be an integer from 1 to 9")
+    local segments = open and #d.centerline-1 or #d.centerline
     assert(d.fullSpeedToWalls == nil or type(d.fullSpeedToWalls) == "boolean",
         "fullSpeedToWalls must be boolean")
     local fullSpeedToWalls = d.fullSpeedToWalls == true
@@ -137,7 +147,7 @@ function Circuit.new(definition, crossesGate)
         local first,last,radius = narrow.first,narrow.last,narrow.wallRadius
         assert(corridor, "narrows need street walls")
         assert(finite(first) and finite(last) and first == math.floor(first) and last == math.floor(last)
-            and first >= 1 and first <= last and last <= #d.centerline, "narrows must name loop segments")
+            and first >= 1 and first <= last and last <= segments, "narrows must name loop segments")
         assert(finite(radius) and radius > 0 and radius <= d.wallRadius,
             "a narrows' wall radius must lie within the street's")
         for index=first,last do
@@ -146,7 +156,7 @@ function Circuit.new(definition, crossesGate)
     end
     local track = {
         id=d.id, version=d.version or 1, name=d.name, width=d.width, height=d.height,
-        wallInset=d.wallInset, checkpointMaxStep=d.checkpointMaxStep or 5,
+        wallInset=d.wallInset, checkpointMaxStep=d.checkpointMaxStep or 5, laps=d.laps, open=open or nil,
         roadWidth=2*d.roadRadius, roadRadius=d.roadRadius, wallRadius=d.wallRadius,
         fullSpeedToWalls=fullSpeedToWalls,
         wallClearance=clearance, wallVertices=vertices, narrows=copyList(d.narrows),
@@ -181,6 +191,25 @@ function Circuit.new(definition, crossesGate)
     end
     local function gridOpen(x,y)
         return gridOpenCell(math.floor(x/gridSize),math.floor(y/gridSize))
+    end
+
+    -- Optional surface data shares the packed passability-grid shape. Keep
+    -- it separate from road/grass: ice changes traction, not collision.
+    if d.iceMap ~= nil then
+        local map = d.iceMap
+        assert(type(map)=="table" and getmetatable(map)==nil and grassMap
+            and map.cellSize==gridSize and map.columns==gridColumns and map.rows==gridRows
+            and type(map.data)=="string" and #map.data==#gridBytes,
+            "iceMap must match the validated grassMap")
+        local iceBytes = map.data
+        function track.iceAt(x,y)
+            if not finite(x) or not finite(y) or x<inset or x>track.width-inset
+                or y<inset or y>track.height-inset or not gridOpen(x,y) then return false end
+            local col,row=math.floor(x/gridSize),math.floor(y/gridSize)
+            local bit=row*gridColumns+col
+            local byte=string.byte(iceBytes,math.floor(bit/8)+1)
+            return math.floor(byte/powers[bit%8+1])%2==1
+        end
     end
 
     -- Traverse every crossed cell, including both neighbours at a corner.
@@ -230,7 +259,7 @@ function Circuit.new(definition, crossesGate)
         return math.sqrt(dx*dx+dy*dy)
     end
     local line = track.centerline
-    for index=1,#line do
+    for index=1,segments do
         local a,b = line[index],line[index%#line+1]
         if a.x ~= b.x or a.y ~= b.y then
             local drivable = narrowRadius[index] or reach

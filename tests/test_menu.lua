@@ -262,12 +262,13 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu)
     -- (one label), and to the results a Highscores button, a sunburst, a medal
     -- and twelve confetti pieces (14 textures), a banner, its line, the wreath's
     -- rank and the two racers' rows (two labels each).
-    -- The Battlegrounds Cup adds its heading, Warsong Gulch's track button
-    -- and Arathi Basin's coming-soon one; a two-floor course's four pooled
-    -- roofs and its guiding arrow are created with the window (hidden on
-    -- every other course).
-    assert(UI.objects.frames == 92 and UI.objects.textures == 96 and UI.objects.fontStrings == 151,
-        ("explicit budget 92/96/151, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
+    -- The Battlegrounds Cup adds its heading, Warsong Gulch's and Arathi
+    -- Basin's track buttons and Alterac Valley's coming-soon one; a two-floor
+    -- course's four pooled roofs and its guiding arrow, and a tiled course's
+    -- three pooled tiles, are created with the window (hidden on every other
+    -- course).
+    assert(UI.objects.frames == 93 and UI.objects.textures == 99 and UI.objects.fontStrings == 151,
+        ("explicit budget 93/99/151, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
             UI.objects.fontStrings))
     assert(AzerothKartDB.preferences == nil, "creation saves nothing")
     local before = counts(env)
@@ -680,6 +681,9 @@ withMock({schemaVersion=1, preferences={version=1, kart="gyrocopter", track="mir
     assert(UI.trackId == "arathi_basin" and AzerothKartDB.preferences.track == "arathi_basin",
         "and on to Arathi Basin")
     click(UI.trackButton)
+    assert(UI.trackId == "alterac_valley" and AzerothKartDB.preferences.track == "alterac_valley",
+        "and on to Alterac Valley's one-run sprint")
+    click(UI.trackButton)
     assert(UI.trackId == "mirage_raceway" and AzerothKartDB.preferences.track == "mirage_raceway",
         "switching back is remembered too")
 end, function(env, AK)
@@ -1003,11 +1007,11 @@ withMock(nil, function(env, UI, Menu)
     Menu.Show("multiplayer")
     for _,id in ipairs({"stormwind_city","ironforge_gp","darnassus_canopy",
         "orgrimmar_canyon","thunder_bluff_skyway","undercity_slime","scarlet_graveyard",
-        "scarlet_library","scarlet_armory","scarlet_cathedral","warsong_gulch","arathi_basin","mirage_raceway"}) do
+        "scarlet_library","scarlet_armory","scarlet_cathedral","warsong_gulch","arathi_basin","alterac_valley","mirage_raceway"}) do
         click(view.lobbyTrackChoice)
         assert(Menu.lobbyTrackId == id and UI.trackId == track,
             "host chooser cycles every finished course without changing local geometry: " .. id)
-        assert(view.lobbyTrack.text:find(id:find("^scarlet_") and "Sprint: 1 run" or "Laps: 3",1,true),
+        assert(view.lobbyTrack.text:find((id:find("^scarlet_") or id=="alterac_valley") and "Sprint: 1 run" or "Laps: 3",1,true),
             "host choices display the selected race rules: " .. id)
     end
     view.peerName:SetText("  Flaturlative Breeze  "); view.sessionCode:SetText("AKT902")
@@ -1349,26 +1353,38 @@ withMock(nil, function(env, UI, Menu, AK)
         and not soon.scarlet_graveyard and not soon.scarlet_cathedral,
         "the cup lists its four sprints, none of them coming soon")
     local rows = Menu.trackRows()
-    assert(rows[#rows - 7].heading == "Scarlet Crusade Cup" and rows[#rows - 6].track.id == "scarlet_graveyard"
-        and rows[#rows - 5].track.id == "scarlet_library" and rows[#rows - 4].track.id == "scarlet_armory"
-        and rows[#rows - 3].track.id == "scarlet_cathedral", "the third cup's heading, then its four sprints")
+    assert(rows[#rows - 8].heading == "Scarlet Crusade Cup" and rows[#rows - 7].track.id == "scarlet_graveyard"
+        and rows[#rows - 6].track.id == "scarlet_library" and rows[#rows - 5].track.id == "scarlet_armory"
+        and rows[#rows - 4].track.id == "scarlet_cathedral", "the third cup's heading, then its four sprints")
     -- Both reviewed Battlegrounds Cup courses are selectable.
-    assert(rows[#rows - 2].heading == "Battlegrounds Cup" and rows[#rows - 1].track.id == "warsong_gulch"
+    assert(rows[#rows - 3].heading == "Battlegrounds Cup" and rows[#rows - 2].track.id == "warsong_gulch"
         and buttons.warsong_gulch and buttons.warsong_gulch:IsEnabled() and buttons.warsong_gulch.scripts.OnClick
         and not soon.warsong_gulch, "the fourth cup lists Warsong Gulch as a ready track")
     local arathiCourse = AK.Courses.get("arathi_basin")
-    assert(rows[#rows].track.id == "arathi_basin" and buttons.arathi_basin
+    assert(rows[#rows - 1].track.id == "arathi_basin" and buttons.arathi_basin
         and buttons.arathi_basin:IsEnabled() and buttons.arathi_basin.scripts.OnClick
         and not soon.arathi_basin and not arathiCourse.soon, "then the playable Arathi Basin")
-    local warsong, arathi
+    -- Alterac Valley is the third registered Battlegrounds course.
+    local alteracCourse = AK.Courses.get("alterac_valley")
+    assert(rows[#rows].track.id == "alterac_valley" and not alteracCourse.soon and buttons.alterac_valley
+        and buttons.alterac_valley:IsEnabled() and buttons.alterac_valley.scripts.OnClick
+        and not soon.alterac_valley, "then the playable Alterac Valley")
+    local warsong, arathi, alterac
     for _,track in ipairs(Menu.TRACKS) do
-        if track.id == "warsong_gulch" then warsong = track elseif track.id == "arathi_basin" then arathi = track end
+        if track.id == "warsong_gulch" then warsong = track elseif track.id == "arathi_basin" then arathi = track
+        elseif track.id == "alterac_valley" then alterac = track end
     end
     assert(warsong and #warsong.facts == 3 and warsong.blurb:find("Silverwing Hold", 1, true)
         and Menu.PREVIEW_CELLS[warsong.cell].path:find("WarsongGulch\\Preview.tga", 1, true)
         and Menu.PREVIEW_CELLS[warsong.cell].width == 160 and Menu.PREVIEW_CELLS[warsong.cell].height == 320,
         "Warsong's copy and its twice-as-tall preview")
-    assert(arathi and Menu.TRACKS[#Menu.TRACKS] == arathi and #arathi.facts == 3
+    assert(alterac and Menu.TRACKS[#Menu.TRACKS] == alterac and #alterac.facts == 3
+        and alterac.blurb:find("Frostwolf", 1, true) and alterac.blurb:find("Field of Strife", 1, true)
+        and alterac.blurb:find("Dun Baldar", 1, true)
+        and Menu.PREVIEW_CELLS[alterac.cell].path:find("AlteracValley\\Preview.tga", 1, true)
+        and Menu.PREVIEW_CELLS[alterac.cell].width == 320 and Menu.PREVIEW_CELLS[alterac.cell].height == 320,
+        "Alterac Valley's copy and its square preview of the Field of Strife")
+    assert(arathi and Menu.TRACKS[#Menu.TRACKS - 1] == arathi and #arathi.facts == 3
         and arathi.blurb:find("Gold Mine", 1, true) and arathi.blurb:find("Lumber Mill", 1, true)
         and Menu.PREVIEW_CELLS[arathi.cell].path:find("ArathiBasin\\Preview.tga", 1, true)
         and Menu.PREVIEW_CELLS[arathi.cell].width == 320 and Menu.PREVIEW_CELLS[arathi.cell].height == 320,
@@ -1377,13 +1393,19 @@ withMock(nil, function(env, UI, Menu, AK)
     course.soon = true
     local gated = Menu.trackRows()
     course.soon = nil
-    assert(#gated == #rows and gated[#gated - 2].heading == "Battlegrounds Cup"
-        and gated[#gated - 1].track.id == arathiCourse.id and gated[#gated].soon == course,
+    assert(#gated == #rows and gated[#gated - 3].heading == "Battlegrounds Cup"
+        and gated[#gated - 2].track.id == arathiCourse.id and gated[#gated - 1].track.id == alteracCourse.id
+        and gated[#gated].soon == course,
         "an explicitly gated course takes its ready row's place while Arathi remains available")
     click(buttons.arathi_basin)
     assert(UI.trackId == "arathi_basin" and Menu.previewReady and not UI.track.layered
         and Menu.view.trackPreview.width == 320 and Menu.view.trackPreview.height == 320,
         "selecting Arathi builds its circuit and shows its square preview")
+    click(buttons.alterac_valley)
+    assert(UI.trackId == "alterac_valley" and Menu.previewReady and UI.track.open and UI.track.laps==1
+        and UI.tilesLoaded==alteracCourse.tiles and type(UI.track.iceAt)=="function"
+        and Menu.view.trackPreview.width==320 and Menu.view.trackPreview.height==320,
+        "selecting Alterac loads the open sprint, its tile set and ice query")
     click(buttons.warsong_gulch)
     assert(UI.trackId == "warsong_gulch" and Menu.previewReady and UI.track.layered
         and Menu.view.trackPreview.width == 160 and Menu.view.trackPreview.height == 320,
@@ -1415,7 +1437,7 @@ withMock(nil, function(env, UI, Menu, AK)
     local before = counts(env)
     AK.SoloRecords = {GetView=function(id)
         return {scope="local", writable=true, rows={}, trackId=id,
-            context={trackId=id, lapCount=id:find("^scarlet_") and 1 or 3}}
+            context={trackId=id, lapCount=(id:find("^scarlet_") or id=="alterac_valley") and 1 or 3}}
     end}
     Menu.Show("home"); click(Menu.view.homeButtons[6])
     assert(Menu.screen == "highscores" and Menu.view.highscoreTrack.text == "Track: Scarlet Graveyard"
@@ -1442,9 +1464,13 @@ withMock(nil, function(env, UI, Menu, AK)
         and Menu.view.highscoreRule.text == "Fastest completed three-lap totals for the current rules",
         "Arathi's board displays three-lap totals")
     click(Menu.view.highscoreTrack)
+    assert(Menu.view.highscoreTrack.text == "Track: Alterac Valley"
+        and Menu.view.highscoreRule.text == "Fastest completed sprints, one run each, for the current rules",
+        "Alterac's board displays one-run sprint totals")
+    click(Menu.view.highscoreTrack)
     assert(Menu.view.highscoreTrack.text == "Track: Mirage Raceway"
         and Menu.view.highscoreRule.text == "Fastest completed three-lap totals for the current rules",
-        "past Arathi back to the first board's three-lap totals")
+        "past Alterac back to the first board's three-lap totals")
     course.soon = true
     for _=1,#Menu.TRACKS do
         click(Menu.view.highscoreTrack)

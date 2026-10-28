@@ -704,3 +704,74 @@ do
     q:untilTrue(function() return not a:view().transportBusy and not b:view().transportBusy end)
     originalPrint("Arathi multiplayer: menu/peer/grid/countdown/flat telemetry and budget PASS (offline mocks)")
 end
+
+-- Alterac uses the actual delayed native bridge for a one-run ice course,
+-- observed finish and a same-player circuit rematch. The bounded finish
+-- tape tests lifecycle/progress; deterministic ice motion has separate tests.
+do
+    local q=freshPair()
+    local a,b=q.host,q.guest
+    for _,entry in ipairs({{a,GUEST},{b,HOST}}) do
+        entry[1]:run(function()
+            entry[1].ns.Menu.view.peerName:SetText(entry[2])
+            entry[1].ns.Menu.view.sessionCode:SetText("ALT001")
+        end)
+    end
+    for _=1,#a.ns.Courses.LIST do
+        if a.ns.Menu.lobbyTrackId=="alterac_valley" then break end
+        a:click(a.ns.Menu.view.lobbyTrackChoice)
+    end
+    assert(a.ns.Menu.lobbyTrackId=="alterac_valley","host offers actual Alterac in the lobby")
+    b:click(b.ns.Menu.view.listen);a:click(a.ns.Menu.view.host)
+    q:untilTrue(function() return b.ns.Menu.view.join.enabled end)
+    b:click(b.ns.Menu.view.join);readyAndLaunch(q)
+    local originalSession=a:view().session
+    for _,e in ipairs({a,b}) do
+        local ui,view=e.ns.UI,e:view()
+        assert(view.offer.trackId=="alterac_valley" and view.offer.trackVersion==1
+            and view.offer.physicsVersion==15 and view.offer.laps==1
+            and ui.trackId=="alterac_valley" and type(ui.track.iceAt)=="function"
+            and not ui.track.layered and ui.race.targetLaps==1 and ui.state.level==nil,
+            "GO adopts the one-run flat ice course")
+        assert(e.stagedGrid and e.cues["3"]==1 and e.cues["2"]==1 and e.cues["1"]==1,
+            "Alterac gets a shared two-kart grid and full countdown")
+    end
+    installFinishTape(a,0);installFinishTape(b,120)
+    q:untilTrue(function() return a:view().phase=="postrace" and b:view().phase=="postrace" end)
+    for _,e in ipairs({a,b}) do
+        assert(e.ns.UI.race.laps.completedLaps==1 and e:view().results.complete
+            and e:view().results.verified==false and e:view().room.trackId=="alterac_valley",
+            "eight ordered gates finish one observed sprint and retain the room")
+        local sawFlat=false
+        for _,packet in ipairs(e.sends) do
+            if packet.prefix=="AZKRUN2" then sawFlat=true;assert(#packet.payload==40) end
+        end
+        assert(sawFlat,"Alterac retains the flat telemetry size")
+        e:run(function() assert(#e.ns.SoloRecords.GetView("alterac_valley").rows==0,
+            "multiplayer sprint never submits a solo highscore") end)
+        assertBudget(e)
+        e.finishTape=nil;e.heldBeforeGO=nil;e.goPose=nil;e.stagedGrid=nil
+    end
+    a:click(a.ns.Menu.view.resultChangeTrack)
+    for _=1,#a.ns.Courses.LIST do
+        if a.ns.Menu.lobbyTrackId=="mirage_raceway" then break end
+        a:click(a.ns.Menu.view.lobbyTrackChoice)
+    end
+    assert(a.ns.Menu.lobbyTrackId=="mirage_raceway")
+    b:click(b.ns.UI.restartButton) -- Guest Play Again returns to the retained room.
+    a:click(a.ns.Menu.view.ready)
+    q:untilTrue(function() return b.ns.Menu.view.join.enabled end)
+    assert(a:view().session~=originalSession and a:view().session==b:view().session
+        and a:view().peer==GUEST and b:view().peer==HOST,"rematch retains exact peers and a fresh session")
+    b:click(b.ns.Menu.view.join);readyAndLaunch(q)
+    for _,e in ipairs({a,b}) do
+        assert(e.ns.UI.trackId=="mirage_raceway" and e.ns.UI.race.targetLaps==3
+            and e:view().offer.physicsVersion==12 and e.ns.UI.state.onIce==nil,
+            "same-player rematch restores the selected circuit and legacy physics")
+        assert(e.cues["3"]==2 and e.cues["2"]==2 and e.cues["1"]==2)
+        assertBudget(e)
+    end
+    a:run(a.ns.UI.MultiplayerAction,"leave");b:run(b.ns.UI.MultiplayerAction,"leave")
+    q:untilTrue(function() return not a:view().transportBusy and not b:view().transportBusy end)
+    originalPrint("Alterac multiplayer: actual lobby/grid/countdown/Physics15 GO, one-run finish and circuit rematch PASS (offline mocks)")
+end

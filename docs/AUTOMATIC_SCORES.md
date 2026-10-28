@@ -68,14 +68,14 @@ cached-channel/native-group/confirmed-racer discovery plus the separately verifi
 
 ## Implementation
 
-Current catalogue: thirteen courses, with eleven flat maps on Physics12,
-Warsong on Physics13 and Arathi v3 on flat Physics14. AZKSCR2/schema2 HELLO uses fourteen fixed hexadecimal
+Current catalogue: fourteen courses, with eleven flat maps on Physics12,
+Warsong on Physics13, Arathi v3 on Physics14 and Alterac on flat Physics15. AZKSCR2/schema2 HELLO uses fifteen fixed hexadecimal
 digest slots, including retired O=0, and an exact-context catalogue hash. The
-maximum HELLO is145 bytes including prefix; Arathi adds score code B and all
+maximum HELLO is154 bytes including prefix; Alterac adds score code V and all
 prior codes remain stable. Maximum legal NEW/ROW is150 bytes, including a
 96-byte name. Each payload remains capped151 and native total158 bytes.
 Wire contexts permit track/physics/rules versions1..1295, laps1..9 and tickRate60.
-Prior thirteen-slot HELLOs cannot complete catch-up with this build. Both peers
+Prior fourteen-slot HELLOs cannot complete catch-up with this build. Both peers
 need the update for complete reconciliation; compatible direct NEW records from
 an older build may still be received. Historical scores and Test Oval remain
 saved. No save migration or board reset. [Contract](API_CONTRACTS.md),

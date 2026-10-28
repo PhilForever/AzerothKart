@@ -150,7 +150,7 @@ assert(course and not course.soon and course.cup == "battlegrounds"
     and AK.Courses.available("arathi_basin") and AK.Courses.multiplayer("arathi_basin"),
     "Arathi Basin is available in the Battlegrounds Cup")
 assert(AK.Courses.next("warsong_gulch") == "arathi_basin"
-    and AK.Courses.next("arathi_basin") == "mirage_raceway", "the Track button includes Arathi")
+    and AK.Courses.next("arathi_basin") == "alterac_valley" and AK.Courses.next("alterac_valley") == "mirage_raceway", "the Track button includes Arathi")
 local built = assert(AK.Courses.build("arathi_basin", Track.crossesGate))
 assert(built.id == "arathi_basin" and built.version == 3 and built.length == track.length
     and #built.gates == 5 and (built.laps or 3) == 3 and not built.layered
@@ -160,7 +160,7 @@ assert(built.id == "arathi_basin" and built.version == 3 and built.length == tra
 course.soon = true
 assert(not AK.Courses.available("arathi_basin") and not AK.Courses.multiplayer("arathi_basin")
     and AK.Courses.build("arathi_basin", Track.crossesGate) == nil
-    and AK.Courses.next("warsong_gulch") == "mirage_raceway",
+    and AK.Courses.next("warsong_gulch") == "alterac_valley",
     "a temporarily gated course cannot be selected or raced")
 course.soon = nil
 assert(AK.Courses.build("arathi_basin", Track.crossesGate) == built,

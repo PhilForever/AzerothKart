@@ -1,5 +1,38 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-29 00:39 +0100 — Alterac reviewed and ice/registration implemented
+
+Reviewed Claude `ee4ac0c` on `codex/alterac-integration`: open one-run Circuit,
+surveyed long course, eight required gates, masks and four tiled pictures.
+Codex adds Physics15 ice traction/query,15tick recovery, no ice drift charge,
+ICE HUD feedback, and deep-snow metadata. Register solo/two-peer course with
+raceE/scoreV, exact one-run target, fourteen-board catalogue and154-byte HELLO
+within the unchanged158-byte native cap. Old records and other course versions
+remain intact. Idle lobby’s3-lap assumption corrected for open sprints.
+[Review](reviews/2026-10-29-alterac.md) records measured limits.
+
+Executed `scripts/test_lua.py --runtime lua51 --tests ice alterac circuit
+arathi arathi_grass_map grass_boost physics determinism presentation warsong
+race_protocol peer_session race_grid session_transport multiplayer_integration
+score_sync score_sharing ui menu`: PASS19 modules,93 Lua files parsed. Log:
+`local-artifacts/deploy-20261029-alterac/focused-lua51.log`. Actual mocked
+two-client course selection/grid/countdown/Physics15 GO, one-run finish and
+same-player circuit rematch pass with existing pacing. `export_score_catalog.py
+--check`: PASS14 boards. Five changed build/art scripts AST parse; diff checks
+PASS. Independent TGA header/length/hash review and8gate flood checks PASS.
+Agent ran ice/physics/determinism/grass_boost/layered_physics in Lua51/54: PASS.
+Braking from200: road75.26units/0.78s; ice190.64units/1.93s. The stale Warsong
+flat-physics assertion was corrected rather than relaxing actual version checks.
+Project validator FAIL remains only the two historical expired skill links.
+Art rebuild is Claude-reported, not repeated here.
+
+Native play/seams/memory/frame cost and ice forecast smoothness NOT RUN. The
+read-only forecast audit peaks44.7units during growing slip at500ms; this
+needs player feedback, no changed wire or extra sends. Preflight matches94
+installed source files plus preserved legacy extra; install preview PASS.
+Next: commit, verified install and a short Alterac drive. No push, release,
+main merge or mutation of Claude’s worktree.
+
 ## 2026-10-28 19:05 +0100 — Arathi open grass installed and ZIP verified
 
 Runtime **3e3e056**, branch `codex/arathi-open-grass`, combines Claude

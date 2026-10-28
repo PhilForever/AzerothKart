@@ -221,7 +221,7 @@ do
     for _,course in ipairs(owner.namespace.Courses.LIST) do
         if owner.namespace.Courses.available(course.id) then ids[#ids+1]=course.id end
     end
-    assert(#ids==13,"thirteen finished courses, including Arathi and layered Warsong")
+    assert(#ids==14,"fourteen finished courses, including Alterac, Arathi and layered Warsong")
     for index,id in ipairs(ids) do
         local saved=owner:finish(2000+index,id)
         assert(saved.saved,"eligible current board saves: "..id)
@@ -238,9 +238,12 @@ do
         local row=learner:view(id).rows[1]
         assert(row.playerName==owner.name and row.totalTicks==2000+index,
             "automatic login catch-up retains the correct production board: "..id)
-        assert(row.physicsVersion==(id=="arathi_basin" and 14 or id=="warsong_gulch" and 13 or 12),
+        assert(row.physicsVersion==(id=="alterac_valley" and 15 or id=="arathi_basin" and 14 or id=="warsong_gulch" and 13 or 12),
             "mixed Physics versions retain the exact per-map board: "..id)
     end
+    assert(learner:view("alterac_valley").rows[1].lapCount==1
+        and learner:view("alterac_valley").rows[1].physicsVersion==15,
+        "Alterac's one-run ice board catches up under its own physics context")
     assert(learner:view("scarlet_graveyard").rows[1].lapCount==1)
     assert(learner:view("thunder_bluff_skyway").rows[1].lapCount==3)
     assert(learner:view("warsong_gulch").rows[1].lapCount==3)
@@ -273,6 +276,9 @@ do
     local arathi=owner:finish(1500,"arathi_basin")
     assert(arathi.saved and arathi.placement and owner:view("arathi_basin").context.physicsVersion==14)
     allMaps:untilTrue(function() return learner:view("arathi_basin").rows[1].totalTicks==1500 end,5)
+    local alterac=owner:finish(1400,"alterac_valley")
+    assert(alterac.saved and alterac.placement and owner:view("alterac_valley").context.physicsVersion==15)
+    allMaps:untilTrue(function() return learner:view("alterac_valley").rows[1].totalTicks==1400 end,5)
     assert(learner:view("mirage_raceway").rows[1].physicsVersion==12,
         "new layered finish notification does not merge into an existing flat board")
 end

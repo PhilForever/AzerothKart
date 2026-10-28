@@ -78,7 +78,7 @@ REQUIRED=[
  'docs/art/tracks/scarlet_cathedral-overview.png','docs/art/tracks/scarlet_cathedral-review.png',
  'addon/AzerothKart/Assets/Tracks/ScarletCathedral/Background.tga',
  'addon/AzerothKart/Assets/Tracks/ScarletCathedral/Preview.tga',
- 'addon/AzerothKart/Battlegrounds.lua','addon/AzerothKart/ArathiGrass.lua','scripts/build_arathi_grass_mask.py','tests/test_open_grass.lua','tests/test_arathi_grass_map.lua','scripts/battleground_layouts.py','scripts/build_battlegrounds.py',
+ 'addon/AzerothKart/Battlegrounds.lua','addon/AzerothKart/ArathiGrass.lua','scripts/build_arathi_grass_mask.py','tests/test_open_grass.lua','tests/test_ice.lua','tests/test_arathi_grass_map.lua','scripts/battleground_layouts.py','scripts/build_battlegrounds.py',
  'scripts/battleground_paint.py','tests/test_warsong.lua','scripts/wow_map_survey.py','scripts/warsong_gulch_survey.json','scripts/arathi_basin_survey.json',
  'addon/AzerothKart/Assets/Tracks/WarsongGulch/Background.tga',
  'addon/AzerothKart/Assets/Tracks/WarsongGulch/Roofs.tga',

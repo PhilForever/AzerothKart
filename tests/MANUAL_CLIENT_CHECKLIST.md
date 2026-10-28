@@ -1,5 +1,17 @@
 # Manual client acceptance — F0/F1/F2/F5
 
+## Deferred Alterac Valley check (registered)
+
+**NOT RUN.** The integrated build registers Alterac and implements opt-in ice traction; these are still actual-client checks. Fully restart the client: `Assets/Tracks/AlteracValley/` is new (five files).
+
+1. **Track screen:** Alterac Valley under the Battlegrounds Cup, its square preview (the Field of Strife) and copy. Note any hitch selecting it: four pictures (56 MiB raw) load at once.
+2. **Seams:** drive across the three seams between the pictures (north of the grid past Frostwolf Village at y 2048, before the Field of Strife at y 4096, past Icewing at y 6144): no line, gap or jump in the ground. A screenshot of any.
+3. **No fences:** drift wide off the road; full speed within about three kart lengths of the road's edge, then the snow slows the kart (grass speed) until a slope, building, rock or tree stops it. Anywhere a kart stops at nothing it can see: a screenshot.
+4. **The Field of Strife:** the ice reads as ice, the road visible through it; steering and braking are weaker, and the kart slides after turning, road included. Normal grip returns over about a quarter second after leaving the patch; earned boosts remain usable, and ice cannot charge drift.
+5. **Dun Baldar's bridge:** the parapets stop the kart where drawn; the wing walls at its ends; the gorge reads deep.
+6. **The run:** eight gates in order, the HUD saying *Sprint*, the finish at Dun Baldar.
+7. **Memory and frame time** with the valley selected, against Arathi Basin.
+
 ## Deferred Arathi Basin version 3 check (integrated)
 
 **NOT RUN.** After the coordinated install, **fully restart the client:** `Battlegrounds.lua` and `Assets/Tracks/ArathiBasin/` change (same paths). Version 3 has its own board; v1/v2 scores remain saved. The owner runs these checks; Claude does not control the client.

@@ -192,6 +192,22 @@ The cup's second course (`arathi_basin`, `claude/arathi-basin`): a circuit round
 
 Offline: `Circuit.new` accepts it; the route walk never meets a wall and crosses the five gates in order where `routeGates` says, the arrow following it; the bridges' decks are walled at 42; the barn blocks and the yard drives on both sides of it; coming soon, it is not built, selected or stepped to. See [the Arathi Basin sheet](art/tracks/arathi-basin.md).
 
+## Battlegrounds Cup: Alterac Valley (proposed, coming soon)
+
+The cup's third course (`alterac_valley`, `claude/alterac-valley`, for Codex's review): **a sprint** down the whole valley on its real road, from the Horde's side to the Alliance's, measured from the owner's client as Arathi was. The owner: "a long sprint. Starting on the horde side - no fences - but allow for driving and drifting a few kart lengths outside the road - after that, our regular speed reduction like grass - and introduce (get help from codex) a new slide mechanic/physics when the karts touch ice in the middle of the map, handling/turning gets way worse on that patch of ice (field of strife)". Listed as coming soon until Codex adds the ice's slide and registers it ([proposal](API_CONTRACTS.md#proposed-alterac-valley-a-battlegrounds-cup-sprint-claude-claudealterac-valley-2026-10-28-for-codex)).
+
+1. From the grid below Frostwolf Village north past the village, up the valley's eastern road past Tower Point (the highest ground) and down past Iceblood Garrison.
+2. Across the Field of Strife, frozen over.
+3. Up past Stonehearth Outpost, north by Icewing Bunker (the lowest ground), west over the gorge on Dun Baldar's bridge into Dun Baldar.
+
+- 2048 × 7168 at three units to the yard; an **open** Circuit run once (`open`, `laps` 1: additive, shared, flagged for review); full grip 145 either side of the road's middle (the road's 52 and three kart lengths), no walls but the bridge's; off the street, open snow at grass speed out to the valley's natural walls (`grassMap`: steep slopes, buildings, rocks, tree trunks); the bridge narrowed to 42 with its approaches.
+- Eight gates, straight cuts across the open ground checked by flooding the grid: *Frostwolf Village*, *Tower Point*, *Iceblood Tower*, *Field of Strife*, *Stonehearth Outpost*, *Icewing Bunker*, *Dun Baldar Bridge* and *Dun Baldar* (the finish).
+- 8,232 units; heights 0 to 207 units, inert `elevation`.
+- The ice: the Field of Strife's middle, road included (`iceMap`, inert until Codex's slide).
+- Rendering: four pictures, bands of the world, drawn as tiles (`Courses` `tiles`, `Presentation.tileCrop`, three pooled textures); no arrow.
+
+Offline: `Circuit.new` accepts it; the route walk never meets a wall and crosses the eight gates in order where `routeGates` says; the snow beside the road and across the field is open, a kart's length from the grip's edge still street; the bridge's deck is walled; the ice lies within the field; each gate ends at a wall; coming soon, it is not built, selected or stepped to; the tiles are placed and cropped across a seam. See [the Alterac Valley sheet](art/tracks/alterac-valley.md).
+
 ## Test Oval checkpoint sequence
 
 `Track.gates` defines four ordered finite segments: North, West, South, then Start, following counterclockwise motion from the right-hand spawn facing north. The Start strip now runs horizontally across the right-hand road at `y=240`, from `x=570` to `770`; it is the fourth gate rather than an immediate spawn award. The other gates cross the road at its north, west and south extremities. Four pooled strips show pending, next and passed gates; a separate text HUD names the next target and the passed count.

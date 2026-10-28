@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — Alterac Valley (2026-10-28, `claude/alterac-valley`)
+With Arathi Basin settled, the owner: "Let's get started on Alterac Valley. This is going to be a long sprint. Starting on the horde side - no fences - but allow for driving and drifting a few kart lengths outside the road - after that, our regular speed reduction like grass - and introduce (get help from codex) a new slide mechanic/physics when the karts touch ice in the middle of the map, handling/turning gets way worse on that patch of ice (field of strife)".
+- **Measured from his client:** `scripts/alterac_valley_survey.json` (map PVPZone01): the valley's 19 ground textures' weights, its terrain's height and its water every four units over 2048 × 7168 units, and 3,316 placements; numbers only.
+- **A sprint on the real road (Circuit.lua's open course, additive, flagged for Codex's review):** `open` (no closing segment) and `laps` 1; from the grid below Frostwolf Village up the valley past Tower Point and Iceblood, across the Field of Strife, past Stonehearth and Icewing, over Dun Baldar's bridge to the finish at Dun Baldar: eight gates, 8,232 units.
+- **No fences:** full grip 145 either side of the road's middle (three kart lengths beyond its edge); beyond it, open snow at grass speed to the valley's natural walls (`grassMap`: steep slopes, buildings, rocks, tree trunks); only the bridge has walls, its parapets drawn.
+- **The Field of Strife's ice** (`iceMap`, the road across it included): drawn, its data inert; the slide is requested from Codex with a suggested model.
+- **Four pictures, drawn as tiles** (`Courses` `tiles`, `Presentation.tileCrop`, three pooled textures in UI; a refused tile refuses the course, Start's guard as for roofs): budget 93 / 99 / 151.
+- **Painted from the survey:** the valley's snows, rock and ice as Warcraft III tiles in their measured weights; cliffs; the dirt road and packed snow in calm tiles; the ice glassy; Dun Baldar's bridge with parapets, wing walls and the gorge's depth; the bases and the battle as Warcraft III buildings at the client's places; Northrend pines (their replaceable texture fixed to 34), rocks and the client's scenery.
+- **Menu:** "Alterac Valley (soon)" under the Battlegrounds Cup with its copy and the Field of Strife's preview.
+- **Tests:** `test_alterac` (new), `test_presentation`, `test_ui`, `test_menu`, `test_circuit`, `test_warsong` (counts; it already fails on the base at line 253). Not installed; the client checks are NOT RUN.
+
 ## Unreleased — Arathi Basin version 2 (2026-10-28, `claude/arathi-v2`)
 After driving version 1, the owner asked for: no guiding arrow on courses where the way is plain (Warsong keeps it); at the Gold Mine the road down and the road above it as the one real junction, the upper road blocked by "a group of angry alliance players" instead of a fence, and a far more visible drop between the mine and the upper road; the Stables' left side slow grass, a shortcut only with a boost; at the Lumber Mill the other road blocked by something in the way, and "a straight cliff down to the lower road".
 - **No arrow** on Arathi (`Courses`), and so no glowing gate.

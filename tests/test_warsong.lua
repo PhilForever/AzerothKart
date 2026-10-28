@@ -250,12 +250,13 @@ for _,entry in ipairs(AK.Courses.LIST) do
         layered = layered + 1
     else
         flat = flat + 1
-        assert(not built.layered and Physics.versionForTrack(built) == 12,
-            "existing flat course keeps Physics12: " .. entry.id)
+        assert(not built.layered and Physics.versionForTrack(built) == (entry.id=="arathi_basin" and 14 or entry.id=="alterac_valley" and 15 or 12),
+            "each flat course keeps its exact physics context: " .. entry.id)
     end
 end
-assert(flat == 12 and layered == 1 and soon == 0 and Physics.VERSION == 12 and Physics.FEATURE_VERSION == 13,
-    "Warsong keeps a separate feature context while all twelve flat courses retain Physics12")
+assert(flat == 13 and layered == 1 and soon == 0 and not AK.Courses.get("alterac_valley").soon
+    and Physics.VERSION == 12 and Physics.FEATURE_VERSION == 13,
+    "Warsong, Arathi and Alterac retain separate opt-in contexts; other flat courses keep Physics12")
 assert(not AK.Courses.get("test_oval") and not AK.Courses.available("test_oval")
     and not AK.Courses.multiplayer("test_oval") and not AK.Courses.build("test_oval", Track.crossesGate),
     "the development oval stays retired")

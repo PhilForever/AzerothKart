@@ -8,6 +8,13 @@ Physics.VERSION = 12
 -- have a separate compatibility version without retiming flat driving.
 Physics.FEATURE_VERSION = 13
 Physics.GRASS_BOOST_VERSION = 14
+Physics.ICE_VERSION = 15
+Physics.ICE_STEER_MULTIPLIER = 0.60
+Physics.ICE_ACCEL_MULTIPLIER = 0.70
+Physics.ICE_BRAKE_MULTIPLIER = 0.40
+Physics.ICE_GRIP_MULTIPLIER = 0.20
+Physics.ICE_RECOVERY_TICKS = 15
+Physics.ICE_MAX_SLIP_ANGLE = 1.20
 Physics.FIXED_DT = 1/60
 Physics.MAX_SPEED = 200
 Physics.REVERSE_MAX = 55
@@ -90,6 +97,7 @@ local function validLevel(track, level)
 end
 
 function Physics.versionForTrack(track)
+    if type(track)=="table" and type(track.iceAt)=="function" then return Physics.ICE_VERSION end
     if type(track)=="table" and track.boostOnGrass==true then return Physics.GRASS_BOOST_VERSION end
     return type(track)=="table" and (track.layered==true
         or (type(track.pads)=="table" and next(track.pads)~=nil))
@@ -187,6 +195,10 @@ function Physics.new(track)
         boostTicks=0, slipAngle=0, surface=surfaceAt(track,start.x,start.y,level), steering=0,
     }
     if track.layered==true then state.level=level end
+    if type(track.iceAt)=="function" then
+        state.onIce=track.iceAt(start.x,start.y)==true
+        state.iceRecoveryTicks=0
+    end
     return state
 end
 
@@ -221,13 +233,20 @@ function Physics.step(state, input, dt, track, kartId)
     if track.layered==true then assert(validLevel(track,level),"invalid kart level") end
     local oldLevel=level
     local startSurface = surfaceAt(track,state.x,state.y,level)
+    local iceEnabled=type(track.iceAt)=="function"
+    local startIce=iceEnabled and track.iceAt(state.x,state.y)==true
+    local recovery=iceEnabled and math.max(0,math.min(Physics.ICE_RECOVERY_TICKS,state.iceRecoveryTicks or 0)) or 0
+    local iceFactor=startIce and 1 or recovery/Physics.ICE_RECOVERY_TICKS
     local speed = state.speed
-    if accel then speed = speed + handling.accel * dt end
-    if brake then speed = speed - handling.brake * dt end
-    if not accel and not brake then speed = approachZero(speed, Physics.COAST*dt) end
+    local accelScale=1-(1-Physics.ICE_ACCEL_MULTIPLIER)*iceFactor
+    local brakeScale=1-(1-Physics.ICE_BRAKE_MULTIPLIER)*iceFactor
+    local gripScale=1-(1-Physics.ICE_GRIP_MULTIPLIER)*iceFactor
+    if accel then speed = speed + handling.accel * accelScale * dt end
+    if brake then speed = speed - handling.brake * brakeScale * dt end
+    if not accel and not brake then speed = approachZero(speed, Physics.COAST*gripScale*dt) end
     local boostTicks = state.boostTicks or 0
     local grassBoost = track.boostOnGrass==true
-    if brake or (startSurface ~= "road" and not (grassBoost and startSurface == "grass")) then boostTicks = 0 end
+    if brake or (startSurface ~= "road" and not startIce and not (grassBoost and startSurface == "grass")) then boostTicks = 0 end
 
     -- Charge counts fixed simulation ticks, never render frames or wall time.
     -- Brief corrections pause an existing charge; only actual single-direction
@@ -236,7 +255,7 @@ function Physics.step(state, input, dt, track, kartId)
     local drifting, direction, driftTicks, tier, grace = false, 0, 0, 0, 0
     -- Charging resumes after boost expires; longer rewards must not recharge
     -- themselves behind the boost meter into continuous turbo.
-    local eligible = startSurface == "road" and not brake and boostTicks == 0
+    local eligible = startSurface == "road" and iceFactor==0 and not brake and boostTicks == 0
         and speed >= Physics.DRIFT_MIN_SPEED
     local charging = eligible and steering * steer > 0
     local wasDrifting = state.drifting == true
@@ -263,7 +282,7 @@ function Physics.step(state, input, dt, track, kartId)
     local boosting = boostTicks > 0
     local speedBeforeBoost = speed
     if boosting then speed = speed + Physics.BOOST_ACCEL * dt end
-    if startSurface == "road" then
+    if startSurface == "road" or startIce then
         local speedCap = boosting and Physics.BOOST_MAX_SPEED or handling.maxSpeed
         speed = math.max(-Physics.REVERSE_MAX, math.min(speedCap, speed))
     elseif grassBoost and startSurface == "grass" and boosting then
@@ -283,11 +302,22 @@ function Physics.step(state, input, dt, track, kartId)
     local parkingAssist = Physics.LOW_SPEED_STEER_BONUS *
         (1-math.min(1,math.abs(speed)/Physics.LOW_SPEED_STEER_LIMIT))
     local yaw = (handling.steerRate * (0.28 + speedRatio * 0.72) + parkingAssist) * dt
+    if iceFactor>0 then yaw=yaw*(1-(1-Physics.ICE_STEER_MULTIPLIER)*iceFactor) end
     if drifting then yaw = yaw * Physics.DRIFT_STEER_MULTIPLIER end
     if speed < 0 then yaw = -yaw end
     local heading = state.heading + steering * yaw
     local slip = state.slipAngle or 0
-    if drifting and grace == 0 then
+    if iceFactor>0 then
+        -- Heading can turn while travel retains momentum. Adding this
+        -- tick's yaw to slip preserves the previous travel direction;
+        -- traction gradually brings it toward the new heading.
+        if math.abs(speed)<1 then slip=0
+        else
+            slip=math.max(-Physics.ICE_MAX_SLIP_ANGLE,math.min(Physics.ICE_MAX_SLIP_ANGLE,
+                slip+steering*yaw))
+            slip=approachZero(slip,handling.slipRecoverRate*gripScale*dt)
+        end
+    elseif drifting and grace == 0 then
         slip = approach(slip, direction * handling.maxSlipAngle, Physics.SLIP_BUILD_RATE * dt)
     else
         slip = approachZero(slip, handling.slipRecoverRate * dt)
@@ -315,8 +345,9 @@ function Physics.step(state, input, dt, track, kartId)
         if hit then nx,ny = state.x,state.y end
     end
     local surface = surfaceAt(track,nx,ny,level)
+    local endIce=iceEnabled and not hit and surface~="wall" and track.iceAt(nx,ny)==true
     local protectedGrass = grassBoost and surface == "grass" and boosting and not hit
-    if boosting and (hit or (surface ~= "road" and not protectedGrass)) then
+    if boosting and (hit or (surface ~= "road" and not endIce and not protectedGrass)) then
         -- Do not retain a release/boost acceleration reward on grass entry.
         speed = math.min(speed,speedBeforeBoost)
     end
@@ -345,20 +376,26 @@ function Physics.step(state, input, dt, track, kartId)
         grace = 0
     end
     if surface ~= "road" then
-        if protectedGrass then
+        if endIce then
+            -- The field's ice overrides rough-snow drag, even off the road;
+            -- it has no extra low speed ceiling of its own.
+        elseif protectedGrass then
             -- The final active boost tick still protects the kart. Its road
             -- speed cap is per handling profile; it never increases speed.
             speed = math.max(-Physics.REVERSE_MAX, math.min(handling.maxSpeed, speed))
         else
-            if startSurface == "road" or (grassBoost and startSurface == "grass" and boosting) then
+            if startSurface == "road" or (startIce and not endIce)
+                or (grassBoost and startSurface == "grass" and boosting) then
                 speed = grassSpeed(speed,dt)
             end
             boostTicks = 0
         end
         -- Grass never permits drift charging, even while a boost is active.
-        drifting, direction, driftTicks, tier, slip = false, 0, 0, 0, 0
+        drifting, direction, driftTicks, tier = false, 0, 0, 0
+        if not iceEnabled or hit or (not endIce and iceFactor==0) then slip=0 end
         grace = 0
     end
+    if endIce then drifting,direction,driftTicks,tier,grace=false,0,0,0,0 end
 
     -- Pad entry is determined from resolved movement, not intended travel
     -- through a wall. The reward begins on the next fixed step; collision,
@@ -374,6 +411,12 @@ function Physics.step(state, input, dt, track, kartId)
         boostTicks=boostTicks, slipAngle=slip, surface=hit and "wall" or surface, steering=steering,
     }
     if track.layered==true then nextState.level=level end
+    if iceEnabled then
+        nextState.onIce=endIce
+        nextState.iceRecoveryTicks=(startIce or endIce) and Physics.ICE_RECOVERY_TICKS
+            or math.max(0,recovery-1)
+        if hit then nextState.iceRecoveryTicks=0 end
+    end
     return nextState
 end
 

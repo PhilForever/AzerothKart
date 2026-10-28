@@ -30,9 +30,10 @@ No eight-player implementation or capacity acceptance is claimed.
 | Scarlet Cathedral (`scarlet_cathedral`) | 3 | B |
 | Warsong Gulch (`warsong_gulch`) | 3 | C |
 | Arathi Basin (`arathi_basin`) | 3 | D |
+| Alterac Valley (`alterac_valley`) | 1 | E |
 
-All thirteen courses are available in solo, Highscores and the two-peer lobby
-(owner direction,2026-10-27). Circuits use three laps; the four Scarlet dungeons
+All fourteen courses are available in solo, Highscores and the two-peer lobby
+(owner direction,2026-10-27). Circuits use three laps; the four Scarlet dungeons and Alterac Valley
 use one ordered run. Target count is validated at invite, clock handoff and live
 terminal receipt; no sprint can advertise three laps or finish prematurely.
 Full countdown/grid, observed results and same-player rematches use existing
@@ -44,9 +45,9 @@ makes all four Scarlet courses full grip, and gives the Cathedral staircases
 their turning landings. Graveyard, Library and Cathedral now use version3;
 Armory remains2. Graveyard's handling change requires a new board even though
 its scenery is unchanged. All older version1/2 records remain saved in their
-original contexts. Current score catalogue/export has thirteen boards, still
+original contexts. Current score catalogue/export has fourteen boards, still
 within the unchanged packet limit. The integrated race screens bring the
-explicit production pool to92frames/96textures/151fontStrings with Arathi, created once.
+explicit production pool to93frames/99textures/151fontStrings with Alterac, created once.
 Native appearance/feel for these changes remains pending.
 
 A failed scenery load refuses Start until a valid map loads;
@@ -57,7 +58,7 @@ in memory without rewriting the save on initial load.
 exclude Oval. Control wire code0 is retired; Mirage1 remains stable. Both racers
 must update for new sprint offers. `Courses.multiplayer(id)` admits all current
 available production courses; `Courses.next(id,true)` filters the lobby. The eleven other flat courses retain Physics12; Warsong uses Physics13 and layered
-AZKRUN3. Arathi v3 uses Physics14 with flat AZKRUN2. Existing live packet sizes and logged-whisper budgets are unchanged.
+AZKRUN3. Arathi v3 uses Physics14; Alterac v1 uses opt-in ice Physics15, both with flat AZKRUN2. Existing live packet sizes and logged-whisper budgets are unchanged.
 
 `Track.lua` remains a developer-only analytical fixture and the shared gate
 predicate provider. Existing deterministic collision/handling tests may load it
@@ -66,11 +67,11 @@ be selected, started or negotiated through the player APIs. Old saved scores
 are preserved but excluded from current boards/publication. No player data is
 deleted or migrated.
 
-ScoreSync admits thirteen exact current contexts: eleven Physics12 boards,
-Warsong Physics13 and Arathi v3 Physics14. AZKSCR2/schema2 has fourteen fixed hexadecimal digest slots,
-including retired O=0. Existing codes stay stable; Arathi appends B. HELLO is
-145 bytes including prefix and maximum legal NEW/ROW is150; the native158-byte
-ceiling remains. The prior thirteen-slot HELLO cannot complete catch-up with
+ScoreSync admits fourteen exact current contexts: eleven Physics12 boards,
+Warsong Physics13, Arathi v3 Physics14 and Alterac Physics15. AZKSCR2/schema2 has fifteen fixed hexadecimal digest slots,
+including retired O=0. Existing codes stay stable; Arathi code B is retained; Alterac appends V. HELLO is
+154 bytes including prefix and maximum legal NEW/ROW is150; the native158-byte
+ceiling remains. The prior fourteen-slot HELLO cannot complete catch-up with
 this build, so both peers need to update. Existing scores remain saved without
 migration. [Exact bounds](AUTOMATIC_SCORES.md#implementation). The server-store
 example exports the same contexts; the addon does not contact an external server.

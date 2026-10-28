@@ -164,11 +164,16 @@ class Tileset:
         self.cache[(path, shade)] = cells
         return cells
 
-    def whole(self, path, x, y, seed=3, shade=1.0):
+    def whole(self, path, x, y, seed=3, shade=1.0, variations=None):
         """The color of a paved surface at world texel (x, y): the tileset's
-        whole cells (variations where the atlas has them), tiled on its grid."""
+        whole cells (variations where the atlas has them), tiled on its grid;
+        `variations`, cell numbers 16-31, keeps to those (a plain snow's,
+        without its tufts and stones)."""
         cells = self.cells(path, shade)
-        pool = cells[16:] if len(cells) > 16 else cells[15:16]
+        if variations and len(cells) > 16:
+            pool = [cells[k] for k in variations]
+        else:
+            pool = cells[16:] if len(cells) > 16 else cells[15:16]
         cell = pool[hash32(x // CELL, y // CELL, seed) % len(pool)]
         return cell[((CELL - 1 - (y % CELL)) * CELL) + (x % CELL)]
 
@@ -326,9 +331,14 @@ class Street:
         radii = loop_radii(geometry) if geometry.get("wallRadius") else [self.wall] * len(loop)
         caps = []          # (ax, ay, bx, by, visual radius, lane index or -1)
         segs, turn = [], []
+        open_ = geometry.get("open")         # a sprint's open line: no closing segment
         for i in range(len(loop)):
+            if open_ and i == 0:
+                segs.append((loop[0], loop[0]))
+                turn.append(0.0)
+                continue
             segs.append((loop[i - 1], loop[i]))
-            turn.append(_turn(loop[i - 2], loop[i - 1], loop[i]))
+            turn.append(0.0 if open_ and i == 1 else _turn(loop[i - 2], loop[i - 1], loop[i]))
         for branch in geometry.get("branches", []):
             for i in range(1, len(branch)):
                 segs.append((branch[i - 1], branch[i]))

@@ -4,14 +4,14 @@ local H=assert(loadfile("addon/AzerothKart/Highscores.lua"))("AzerothKart",AK)
 local S=assert(loadfile("addon/AzerothKart/ScoreSync.lua"))("AzerothKart",AK)
 local ids={"mirage_raceway","stormwind_city","ironforge_gp",
     "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway","scarlet_graveyard",
-    "scarlet_library","scarlet_armory","scarlet_cathedral","warsong_gulch","arathi_basin"}
+    "scarlet_library","scarlet_armory","scarlet_cathedral","warsong_gulch","arathi_basin","alterac_valley"}
 local versions={stormwind_city=3,ironforge_gp=4,undercity_slime=2,thunder_bluff_skyway=2,
     scarlet_graveyard=3,scarlet_library=3,scarlet_armory=2,scarlet_cathedral=3,warsong_gulch=3,arathi_basin=3}
 local contexts={}
 for i,id in ipairs(ids) do contexts[i]={trackId=id,
     trackVersion=versions[id] or 1,
-    physicsVersion=id=="arathi_basin" and 14 or id=="warsong_gulch" and 13 or 12,
-    lapCount=id:match("^scarlet_") and 1 or 3,tickRate=60,rulesVersion=1} end
+    physicsVersion=id=="alterac_valley" and 15 or id=="arathi_basin" and 14 or id=="warsong_gulch" and 13 or 12,
+    lapCount=(id:match("^scarlet_") or id=="alterac_valley") and 1 or 3,tickRate=60,rulesVersion=1} end
 local function copy(t)
     if type(t)~="table" then return t end
     local out={};for k,v in pairs(t) do out[k]=copy(v) end;return out
@@ -119,8 +119,8 @@ end
 do
     -- Every active board has its own stable wire code, including all four
     -- one-run sprints. Expanded HELLOs fit the unchanged native byte budget.
-    assert(#contexts==13,"thirteen active production boards, with no Test Oval")
-    local codes={"M","S","I","D","R","U","T","G","L","A","C","W","B"}
+    assert(#contexts==14,"fourteen active production boards, with no Test Oval")
+    local codes={"M","S","I","D","R","U","T","G","L","A","C","W","B","V"}
     local rows,otherRows={},{}
     for index,context in ipairs(contexts) do
         local row=record("Amber Stone",1000+index,index)
@@ -134,15 +134,15 @@ do
     for index=8,11 do assert(rows[index].lapCount==1,"each Scarlet course shares a one-run score") end
     local a,b=pair(rows,otherRows)
     drive(a,b,0,110) -- One packet/second per peer; both ends start with distinct scores on every board.
-    assert(signature(a)==signature(b),"all thirteen mixed-physics boards converge through automatic catch-up")
+    assert(signature(a)==signature(b),"all fourteen mixed-physics boards converge through automatic catch-up")
     for _,context in ipairs(contexts) do assert(#H.View(S.snapshot(b),context)==2) end
     local maximum={}
     for index=1,#contexts+1 do maximum[index]=4294967295 end
     maximum[1]=0 -- retired O is never a legal nonzero digest
     local payload=assert(S.encode({kind="HELLO",catalogHash=4294967295,hashes=maximum}))
     local hello=assert(S.decode(payload))
-    assert(#payload+#S.PREFIX==145 and #payload<=S.MAX_BYTES and #hello.hashes==14
-        and hello.catalogHash==4294967295 and hello.hashes[14]==4294967295,
+    assert(#payload+#S.PREFIX==154 and #payload<=S.MAX_BYTES and #hello.hashes==15
+        and hello.catalogHash==4294967295 and hello.hashes[15]==4294967295,
         "fixed hexadecimal HELLO fits every full-range digest under the existing native byte ceiling")
     local nonzeroRetired=copy(maximum);nonzeroRetired[1]=4294967295
     assert(S.encode({kind="HELLO",catalogHash=4294967295,hashes=nonzeroRetired})==nil,
@@ -156,7 +156,7 @@ do
     assert(S.decode(payload.." 00000000")==nil,"extra digest slots cannot change the catalogue shape")
     local oldHello=payload:sub(1,-10)
     assert(S.decode(oldHello)==nil,
-        "a prior thirteen-slot AZKSCR2 HELLO cannot silently omit Arathi")
+        "a prior fourteen-slot AZKSCR2 HELLO cannot silently omit Alterac")
     local oldPeer=new("Amber Stone")
     assert(S.discover(oldPeer,{"Birch Vale"},0))
     local accepted,why=S.receive(oldPeer,"Birch Vale",oldHello,0)
@@ -168,7 +168,7 @@ do
         "the previous nine-slot catalogue cannot silently omit Library, Armory or Cathedral")
     assert(S.decode("1 H 12 1 0 0 0 0 0 0 0 0 0 0 0 0")==nil,
         "the former decimal single-physics family cannot silently handshake")
-    print("score sync catalogue: 13 active mixed-physics boards/14 slots, O=0, maximum HELLO145B including prefix")
+    print("score sync catalogue: 14 active mixed-physics boards/15 slots, O=0, maximum HELLO154B including prefix")
 end
 do
     local largest=record(string.rep("A",96),H.MAX_TICKS,12,H.MAX_TIMESTAMP)
@@ -180,7 +180,7 @@ do
         local parsed=assert(S.decode(payload)).record
         assert(H.BoardKey(parsed)==H.BoardKey(largest) and parsed.playerName==largest.playerName)
     end
-    for _,code in ipairs({"M","S","I","D","R","U","T","G","L","A","C","W","B"}) do
+    for _,code in ipairs({"M","S","I","D","R","U","T","G","L","A","C","W","B","V"}) do
         for _,message in ipairs({{kind="REQUEST",code=code},
             {kind="END",code=code,hash=4294967295,count=S.MAX_ROWS}}) do
             local payload=assert(S.encode(message))
@@ -194,7 +194,7 @@ do
     local high=assert(S.new({name=largest.playerName,contexts=maximumContexts,store=store({largest})},0))
     assert(S.discover(high,{"Birch Vale"},0))
     assert(S.update(high,0,function(_,payload)
-        assert(#payload<=S.MAX_BYTES and #payload+#S.PREFIX==145 and S.decode(payload).kind=="HELLO")
+        assert(#payload<=S.MAX_BYTES and #payload+#S.PREFIX==154 and S.decode(payload).kind=="HELLO")
         return true
     end),"maximum legal saved records must not fail while making the first digest")
     local bounds={{"trackVersion",0},{"trackVersion",1296},{"physicsVersion",1296},
@@ -224,7 +224,7 @@ local early=new("Amber Stone");assert(S.discover(early,{"Birch Vale"},0))
 assert(S.receive(early,"Birch Vale",assert(S.encode({kind="NEW",record=record("Birch Vale",900)})),0),
     "a validated direct update may arrive before HELLO without losing the new score")
 assert(H.Rank(S.snapshot(early),contexts[1],"Birch Vale")==1)
-for index=9,13 do
+for index=9,14 do
     assert(S.receive(early,"Birch Vale",assert(S.encode({kind="NEW",record=record("Birch Vale",900,index)})),index-8),
         "compatible direct new-course scores remain admissible before HELLO")
     assert(H.Rank(S.snapshot(early),contexts[index],"Birch Vale")==1)
@@ -243,18 +243,26 @@ do
         return true
     end))
     assert(S.view(localToken).connected==0 and S.view(localToken).received==0)
-    for _,index in ipairs({1,12,13}) do
+    for _,index in ipairs({1,12,13,14}) do
         local wrong=record("Birch Vale",1,index)
         wrong.physicsVersion=index==1 and 13 or 12
         local accepted,why=S.receive(localToken,"Birch Vale",assert(S.encode({kind="NEW",record=wrong})),index)
         assert(not accepted and why=="context" and #H.View(S.snapshot(localToken),contexts[index])==0,
             "exact board physics remains mandatory for pre-handshake announcements")
     end
+    local oldAlterac=copy(contexts);oldAlterac[14].physicsVersion=12
+    local oldAVPeer=assert(S.new({name="Birch Vale",contexts=oldAlterac},0))
+    assert(S.discover(oldAVPeer,{"Amber Stone"},0))
+    assert(S.update(oldAVPeer,0,function(_,payload)
+        local accepted,why=S.receive(localToken,"Birch Vale",payload,14)
+        assert(not accepted and why=="incompatible","Alterac without ice cannot handshake as Physics15")
+        return true
+    end))
     local oldArathi=copy(contexts);oldArathi[13].physicsVersion=12
     local oldPeer=assert(S.new({name="Birch Vale",contexts=oldArathi},0))
     assert(S.discover(oldPeer,{"Amber Stone"},0))
     assert(S.update(oldPeer,0,function(_,payload)
-        local accepted,why=S.receive(localToken,"Birch Vale",payload,13)
+        local accepted,why=S.receive(localToken,"Birch Vale",payload,14)
         assert(not accepted and why=="incompatible",
             "an Arathi Physics12 catalogue cannot silently join Physics14 sharing")
         return true
@@ -263,20 +271,20 @@ do
     local v2Peer=assert(S.new({name="Birch Vale",contexts=v2Arathi},0))
     assert(S.discover(v2Peer,{"Amber Stone"},0))
     assert(S.update(v2Peer,0,function(_,payload)
-        local accepted,why=S.receive(localToken,"Birch Vale",payload,13)
+        local accepted,why=S.receive(localToken,"Birch Vale",payload,14)
         assert(not accepted and why=="incompatible",
             "Arathi v2 Physics14 cannot handshake with changed v3 geometry")
         return true
     end))
     local oldRecord=record("Birch Vale",1,13);oldRecord.trackVersion=2
-    local accepted,why=S.receive(localToken,"Birch Vale",assert(S.encode({kind="NEW",record=oldRecord})),13)
+    local accepted,why=S.receive(localToken,"Birch Vale",assert(S.encode({kind="NEW",record=oldRecord})),14)
     assert(not accepted and why=="context" and #H.View(S.snapshot(localToken),contexts[13])==0,
         "an old geometry record cannot enter the current board even before a handshake")
     local changed=copy(contexts);changed[12].rulesVersion=2
     local rulePeer=assert(S.new({name="Birch Vale",contexts=changed},0))
     assert(S.discover(rulePeer,{"Amber Stone"},0))
     assert(S.update(rulePeer,0,function(_,payload)
-        local accepted,why=S.receive(localToken,"Birch Vale",payload,13)
+        local accepted,why=S.receive(localToken,"Birch Vale",payload,14)
         assert(not accepted and why=="incompatible","the catalogue also binds each board's lap/rule context")
         return true
     end))

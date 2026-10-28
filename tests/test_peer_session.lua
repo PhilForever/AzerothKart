@@ -55,8 +55,8 @@ do
     end
 end
 
--- Real catalogue admission: Warsong advertises Physics13 while all flat
--- courses, including Arathi, keep their captured Physics12 compatibility.
+-- Real catalogue admission captures exact per-course mechanics: legacy12,
+-- Warsong13, Arathi14 and one-run ice Alterac15.
 do
     local AK={}
     for _,module in ipairs({"Track","MirageRaceway","Circuit","CapitalCities","Dungeon","ScarletCrusade",
@@ -70,12 +70,13 @@ do
         local track=assert(AK.Courses.build(course.id,AK.Track.crossesGate))
         versions[course.id],targets[course.id]=track.version,track.laps or 3
         mechanics[course.id]=AK.Physics.versionForTrack(track)
-        assert(mechanics[course.id]==(course.id=="arathi_basin" and 14 or course.id=="warsong_gulch" and 13 or 12))
+        assert(mechanics[course.id]==(course.id=="alterac_valley" and 15 or course.id=="arathi_basin" and 14 or course.id=="warsong_gulch" and 13 or 12))
         count=count+1
       end
     end
-    assert(count==13 and not versions.test_oval and versions.arathi_basin==3 -- open-grass boundary requires a new geometry version
-        and targets.arathi_basin==3 and mechanics.arathi_basin==14 and targets.warsong_gulch==3,
+    assert(count==14 and not versions.test_oval and versions.arathi_basin==3 -- open-grass boundary requires a new geometry version
+        and targets.arathi_basin==3 and mechanics.arathi_basin==14 and targets.warsong_gulch==3
+        and versions.alterac_valley==1 and targets.alterac_valley==1 and mechanics.alterac_valley==15,
         "the exact current catalogue includes the flat three-lap Arathi course")
     local captured={physicsVersion=12,trackVersions=versions,trackLaps=targets,trackPhysics=mechanics}
     for id in pairs(versions) do
@@ -104,6 +105,13 @@ do
         assert(not deliver(guest,0,wire("INVITE",1,message)))
         closed(guest,"incompatible")
     end
+    for _,change in ipairs({{physicsVersion=12},{physicsVersion=14},{trackVersion=2},{laps=3}}) do
+        local message={physicsVersion=15,trackId="alterac_valley",trackVersion=1,laps=1}
+        for field,value in pairs(change) do message[field]=value end
+        local guest=fresh("guest",captured)
+        assert(not deliver(guest,0,wire("INVITE",1,message)))
+        closed(guest,"incompatible")
+    end
     local prior=fresh("guest",{physicsVersion=12})
     assert(not deliver(prior,0,wire("INVITE",1,{physicsVersion=13,trackId="warsong_gulch",trackVersion=3,laps=3})))
     closed(prior,"incompatible")
@@ -117,9 +125,9 @@ end
 -- Every production map can be offered without admitting the retired fixture.
 for _,id in ipairs({"mirage_raceway","stormwind_city","ironforge_gp",
     "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway",
-    "scarlet_graveyard","scarlet_library","scarlet_armory","scarlet_cathedral","warsong_gulch","arathi_basin"}) do
+    "scarlet_graveyard","scarlet_library","scarlet_armory","scarlet_cathedral","warsong_gulch","arathi_basin","alterac_valley"}) do
     local versions={[id]=3}
-    local target=id:find("scarlet_",1,true)==1 and 1 or 3
+    local target=(id:find("scarlet_",1,true)==1 or id=="alterac_valley") and 1 or 3
     local targets={[id]=target}
     local host=fresh("host",{trackVersions=versions,trackLaps=targets})
     local guest=fresh("guest",{trackVersions=versions,trackLaps=targets})

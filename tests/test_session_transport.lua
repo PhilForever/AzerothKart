@@ -775,7 +775,7 @@ end
 -- The real course catalogue, geometry snapshots and native lease are shared
 -- by every available map; a city offer must not fall back to Mirage or Oval.
 for _,id in ipairs({"mirage_raceway","stormwind_city","ironforge_gp",
-    "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway","warsong_gulch","arathi_basin"}) do
+    "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway","warsong_gulch","arathi_basin","alterac_valley"}) do
     local p=livePair(id)
     for _,role in ipairs({"host","guest"}) do
         local e=p[role]
@@ -793,6 +793,10 @@ for _,id in ipairs({"mirage_raceway","stormwind_city","ironforge_gp",
                 and view.grid.localPose.level==0 and view.grid.peerPose.level==0,
                 "real Warsong negotiation registers the floor codec and stages both ground slots")
         else
+            if id=="alterac_valley" then
+                assert(type(track.iceAt)=="function" and view.offer.physicsVersion==15 and view.offer.laps==1,
+                    "Alterac native offer retains its ice physics and one-run target")
+            end
             if id=="arathi_basin" then
                 assert(track.boostOnGrass and view.offer.physicsVersion==14 and view.offer.trackVersion==3,
                     "Arathi native offer retains its opt-in grass-boost physics context")

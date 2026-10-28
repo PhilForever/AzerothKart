@@ -1,5 +1,15 @@
 # Codex handoff — production maps and Claude course review
 
+## Alterac integrated candidate — 2026-10-29
+
+Reviewed Claude `ee4ac0c`; own `codex/alterac-integration` adds Physics15 ice
+and query, registration in solo/two-peer flow, one-run target/raceE/scoreV,
+fourteen score contexts and154-byte HELLO.19 focused Lua51 modules pass;
+see [review](../reviews/2026-10-29-alterac.md) and [PROGRESS](../PROGRESS.md).
+Native ice prediction during slip changes can need corrections (500ms audit
+peak44.7units); live feel/seams/frame cost are pending. Next: verified install
+and user drive. Preserve old records, source ownership and existing budgets.
+
 ## Active Alterac review/integration — 2026-10-29
 
 Owner requests review of Claude `ee4ac0c` and implementation if acceptable.

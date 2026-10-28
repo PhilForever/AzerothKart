@@ -63,7 +63,9 @@ local joinWire = roundtrip(message("JOIN"),"2JABC123001")
 roundtrip(message("JOIN",{sequence=46655,session="000000"}),"2J000000ZZZ")
 roundtrip(message("READY",{ready=false}),"2RABC1230010")
 roundtrip(message("READY",{ready=true}),"2RABC1230011")
-local startWire = roundtrip(message("START",{startTick=0,seed=0}),"2SABC123001000000000000")
+local startWire = roundtrip(message("INVITE",{physicsVersion=15,trackId="alterac_valley",trackVersion=1,laps=1}),
+    "2IABC1230010FE011")
+roundtrip(message("START",{startTick=0,seed=0}),"2SABC123001000000000000")
 roundtrip(message("START",{startTick=36^6-1,seed=2147483647}),"2SABC123001ZZZZZZZIK0ZJ")
 for index,reason in ipairs({"left","timeout","incompatible","combat","world_leave","error"}) do
     roundtrip(message("CANCEL",{reason=reason}),"2XABC123001"..tostring(index-1))
@@ -138,7 +140,7 @@ refusedDecode(nil); refusedDecode(true); refusedDecode(2); refusedDecode({})
 for _,payload in ipairs({"",string.rep("Z",129),"1JABC123001","3JABC123001","2BABC123001",
     "2Jabc123001","2JABC123000","2JABC12300a","2JABC12300|","2JABC12300 ",
     "2JABC12300\000","2JABC12300\127","2JABC12300\n","2JABC12300\195\184",
-    "2IABC123001000023","2IABC12300107E023","2IABC123001070003",
+    "2IABC123001000023","2IABC12300107F023","2IABC123001070003",
     "2IABC123001070020","2IABC12300107002A","2RABC1230012",
     "2SABC123001000000ZIK0ZK","2XABC1230016","2XABC123001Z",
     "2AABC123001A001","2AABC123001B001","2AABC123001J000"}) do

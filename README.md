@@ -1,5 +1,12 @@
 # Azeroth Kart — top-down arcade racing inside WoW Forever
 
+**Alterac Valley:** a long one-run sprint from Frostwolf to Dun Baldar,
+available solo and in the existing two-player lobby. The Field of Strife’s
+ice reduces steering, acceleration, braking and traction; normal grip returns
+gradually after leaving it. Wide packed snow retains full grip, deeper snow
+slows the kart. Both players need this build and a full client restart for
+the new scenery. [Current status](docs/INTEGRATION_STATUS.md).
+
 **Arathi Basin v3:** available in solo and the existing two-player lobby. Former
 fence stretches open onto slow grass with natural boundaries; the
 Stables grass shortcut slows unboosted karts; an active boost maintains up to

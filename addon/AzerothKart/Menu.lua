@@ -98,6 +98,13 @@ Menu.TRACKS = {
             .. "grass, over the west bridge, along the Lumber Mill's cliff top and down to the Farm.",
         facts={"3 laps, 5 gates named for the bases", "Laid out from the game's own map: real hills and cliffs",
             "The Stables: the road round, or a slow grass shortcut"}},
+    -- The third, coming soon: one long run down the valley, Horde to Alliance.
+    {id="alterac_valley", name="Alterac Valley", cell="alteracvalley",
+        blurb="From the Horde's side to the Alliance's: down from Frostwolf Village past Tower Point and "
+            .. "Iceblood Garrison, across the frozen Field of Strife, up past Stonehearth and Icewing and over "
+            .. "the bridge into Dun Baldar.",
+        facts={"Sprint: one run through 8 gates", "Drift wide: deep snow only past a few kart lengths",
+            "The Field of Strife is ice: steer early"}},
 }
 
 local WC3C = "Model: ITE project (wc3c), author unknown"
@@ -175,6 +182,10 @@ Menu.PREVIEW_CELLS = {
         left=0, right=1, top=0, bottom=1, width=160, height=320},
     -- Arathi Basin's: the basin from above (2048 x 2048).
     arathibasin={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\ArathiBasin\\Preview.tga",
+        left=0, right=1, top=0, bottom=1, width=320, height=320},
+    -- Alterac Valley's: the Field of Strife from above, a 2048-square part of
+    -- the 2048 x 7168 valley.
+    alteracvalley={path="Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\AlteracValley\\Preview.tga",
         left=0, right=1, top=0, bottom=1, width=320, height=320},
 }
 
@@ -1278,7 +1289,7 @@ local function buildMultiplayer()
         local staged = session and session.phase == "postrace" and session.canChangeMap == true
         local chosen = trackInfo(staged and Menu.lobbyTrackId or offered or (room and room.trackId) or Menu.lobbyTrackId)
         local course = chosen and Courses.get(chosen.id)
-        local sprint = course and course.geometry == "dungeon"
+        local sprint = course and (course.geometry == "dungeon" or course.laps == 1)
         -- Read catalogue/offer metadata only; a lobby refresh never selects
         -- or constructs geometry. A sprint is one ordered run, not three laps.
         if offered and not staged and session.offer.laps then sprint = session.offer.laps == 1 end

@@ -10,6 +10,12 @@ You are a development agent for **Azeroth Kart**, a top-down 2D WoW Forever arca
 
 ## Current owner priority
 
+Latest direction, 2026-10-29: review and implement Claude’s Alterac Valley
+if acceptable. Geometry1 is a one-run sprint, opt-in ice Physics15 and tiled
+scenery; the existing two-peer flow and fourteen-board score catalogue
+include it. Native ice/remote smoothness, seams and frame cost remain pending.
+[Review](docs/reviews/2026-10-29-alterac.md) and current handoff record evidence.
+
 Latest direction, 2026-10-28: remove walls at the opened Arathi fence
 stretches and allow slow grass toward natural boundaries. Integrated geometry
 version3 uses opt-in packed terrain passability and existing Physics14;

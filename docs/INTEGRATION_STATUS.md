@@ -1,5 +1,12 @@
 # Shared integration and deployment status
 
+## Alterac reviewed candidate — 2026-10-29
+
+Reviewed Claude `ee4ac0c` with Codex Physics15 ice and solo/two-player sprint
+registration.14-board catalogue and19 focused Lua51 modules pass. Native
+feel, ice forecast smoothness, tile seams and frame/memory cost NOT RUN.
+[Review](reviews/2026-10-29-alterac.md); [evidence](PROGRESS.md). Install next.
+
 ## Arathi open grass installed — 2026-10-28
 
 Runtime **3e3e056** installed; 94 source/installed and 94 prior backup files
