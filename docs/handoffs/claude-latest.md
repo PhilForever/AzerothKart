@@ -1,4 +1,82 @@
-# Claude handoff — Arathi Basin version 2 (with fewer fences)
+# Claude handoff — Alterac Valley, coming soon
+
+Prepared 2026-10-29 at about 00:10 CET by Claude (rendering/UI/sprites owner).
+
+**Base:** Codex's `codex/arathi-open-grass` `429e6d1` (Arathi version 3's open grass, installed). **Branch:** `claude/alterac-valley`, no merge commit:
+
+- `aac43f4`: Circuit's open course (`open`, `laps`) and its `test_circuit` coverage (shared: for review);
+- `0fe5bed`: the survey (`scripts/alterac_valley_survey.json`);
+- `88a036f`: the generator, the course's data, its four pictures and preview, the review pictures and sources list;
+- `83e7569`: the tiled scenery (Presentation, UI), the catalogue entry (coming soon), menu copy and tests;
+- `d33f2f8`: the docs;
+- this handoff.
+
+**Nothing is installed or pushed.** The developer machine's Claude worktree is on `claude/alterac-valley` at `d33f2f8` (fetched from `local-artifacts/bundles/alterac-valley-1.bundle.part0` and `.part1`, joined in the session's scratch: one bundle is over the 30 MB transfer limit), clean apart from its untracked `Claude outputs/`; this handoff follows as `alterac-valley-2.bundle`.
+
+## Owner instructions
+
+With Arathi Basin settled: **"Happy with Arathi Basin. Let's get started on Alterac Valley. This is going to be a long sprint. Starting on the horde side - no fences - but allow for driving and drifting a few kart lengths outside the road - after that, our regular speed reduction like grass - and introduce (get help from codex) a new slide mechanic/physics when the karts touch ice in the middle of the map, handling/turning gets way worse on that patch of ice (field of strife)"**, with the valley's map and a green line from Frostwolf up the road through the Field of Strife to Dun Baldar.
+
+Taken without asking, **to be confirmed by him:**
+
+1. **The grid** on the road below Frostwolf Village (1680, 761) facing north, where his line starts; **the finish** across the road before Dun Baldar's gate (x 430).
+2. **"A few kart lengths":** three (93 units) beyond the road's edge: full grip 145 from the road's middle.
+3. **Off the street:** open snow at Physics' grass speed out to the valley's natural walls: ground steeper than 1.35 yards per yard (where the picture's cliffs are more than half rock), buildings, rocks, tents and tree trunks. The road runs between steep sides much of the way (about two points in five are open a kart length past the grip's edge); the villages and the Field of Strife open wide.
+4. **The ice** is the Field of Strife's middle only (the road across it included); the valley's other frozen ponds are snow underfoot.
+5. **No guiding arrow** (he keeps it for Warsong Gulch); the bridge's parapets are the only walls drawn.
+
+## Done
+
+- **Survey** (`0fe5bed`): map PVPZone01 at three units to the yard, origin (17014, 18633) yards: 2048 × 7168 units; 19 ground textures, heights (1.5-yard steps from −75) and water every four units; 3,316 placements. Numbers only.
+- **Circuit's open course** (`aac43f4`, shared): optional `open` (no closing segment; narrows name segments 1 to n − 1) and `laps` (1 to 9, copied to the track as `Dungeon`'s). Closed circuits unchanged.
+- **The course** (`88a036f`): 516 centerline points, 8,232 units, straight across Dun Baldar's bridge (narrows, reach 42, with 24-unit approaches); eight gates (*Frostwolf Village*, *Tower Point*, *Iceblood Tower*, *Field of Strife*, *Stonehearth Outpost*, *Icewing Bunker*, *Dun Baldar Bridge*, *Dun Baldar*), each a straight cut across the open ground near its place, wall to wall, checked by flooding the passability grid with it shut; `route` (256 points) and `routeGates`; inert `elevation` (0 to 207 units).
+- **The grids** (`battleground_sprint.py`, new): `grassMap` (8-unit cells, 256 × 896: 81,959 open; 71,285 steep; 1,120 plans and trunks in the way; the street's grip always open but under a building; the bridge's sides shut to 185) and `iceMap` (7,593 cells: the survey's trampled-dirt texture within the Field of Strife's box, evened four times, filled, grown 40 units). The scenery kept is the same list for the grids and the picture (`sprint_props`): 24 of the survey's pieces left out, drawn over the street.
+- **The pictures** (`battleground_paint.build_sprint`): the valley's own ground, relief, cliffs and frozen water; the street in its tiles' plain variations (`Tileset.whole`'s new optional `variations`, other courses byte-identical); the ice glassy, its edge evened and ragged, the road through it as a frosted band; Dun Baldar's bridge along the karts' lane with parapets, posts, wing walls out to where its sides stop being shut, the gorge darkened by its depth below the deck and the bridge's shadow; Warcraft III buildings for the bases and the battle, and the survey's scenery (Northrend pines on their replaceable texture **34**: 31 left them undrawn). Four tiles `Background1-4.tga` (2048 × 2048 three times, 2048 × 1024) and `Preview.tga` (the Field of Strife, 512 × 512).
+- **Tiled scenery** (`83e7569`): `Courses` `tiles`; `Presentation.tileCrop`; UI's three pooled background textures, `loadTiles` / `layoutTiles` / `placeTiles`, and the refusals in `SelectTrack` and `Start` mirroring the roofs'. Budget 93 / 99 / 151.
+- **Catalogue and menu:** `alterac_valley` coming soon in the Battlegrounds Cup; its copy and preview cell.
+
+## Scope (changed)
+
+- Claude's: the Alterac Valley sections of `scripts/battleground_layouts.py`; `scripts/battleground_sprint.py` (new); `scripts/battleground_paint.py` (the sprint painter; `_tile`'s variations; the sources list's header for tiles); `scripts/build_battlegrounds.py` (a sprint's geometry, validation and Lua); `scripts/city_paint.py` (`Tileset.whole`'s optional variations; `Street` on an open line, from the earlier session's work); generated `Battlegrounds.lua` (Alterac's entry) and `Assets/Tracks/AlteracValley/`; `docs/art/tracks/alterac_valley-{overview.png,review.png,sources.txt}` and the sheet; `Presentation.tileCrop`; UI's tile pool and its rendering functions; `Menu.lua` (Alterac's copy and cell); `tests/test_alterac.lua` (new), `tests/test_presentation.lua`, the UI and menu tests' Alterac blocks and budgets.
+- **Shared, flagged for review:** `addon/AzerothKart/Circuit.lua` and `tests/test_circuit.lua` (the open course); `addon/AzerothKart/Courses.lua` (the entry and its `tiles`); `UI.SelectTrack`'s and `UI.Start`'s tile checks (Codex's transaction, mirroring the roofs'); `tests/run.lua` (`test_alterac` added); `tests/test_warsong.lua` (one course coming soon: a count only).
+
+No change to Physics, Checkpoints, Laps, Race, protocols, sessions or scores' code.
+
+## Tests
+
+| Command | Cloud | Developer machine (Linux VM) |
+|---|---|---|
+| `python scripts/build_battlegrounds.py --wc3 WC3 --check` | PASS: `Battlegrounds.lua`; Alterac `Background1` `f8bc88a4…`, `Background2` `e8c5cdb0…`, `Background3` `4f164724…`, `Background4` `07b653e5…`, `Preview` `4dba294e…`; Warsong's and Arathi's pictures (`a0c0b579…`, `27f6c8bc…`) unchanged | `--geometry-only --check` PASS (53 s); the five Alterac pictures PASS byte-identical from its own Warcraft III extraction, painted in four staged calls (each call is limited to 180 s and kills what it starts) with `build_sprint`'s functions in its order: geometry 95 s, ground 122 s, cliffs 124 s, course 73 s |
+| `python scripts/build_city_tracks.py --wc3 WC3 --check`; `build_dungeon_tracks.py --check` | PASS (the shared painter's change keeps them byte-identical) | not run |
+| `python scripts/build_arathi_grass_mask.py --check` | PASS | not run |
+| `python scripts/test_lua.py --runtime lua51` every module | 51 of 52 PASS; `test_warsong` FAILS at its line 253 as on the base `429e6d1` (Arathi is Physics14 since `3e3e056`), so `tests/run.lua` stops there | the same: 51 PASS, `test_warsong` line 253 |
+| `test_lua.py --runtime lua54 --tests alterac circuit presentation ui menu arathi` | PASS | not run |
+| `python scripts/export_score_catalog.py --check` | PASS (13 boards: a coming-soon course has none) | not run |
+| `git diff --check`; `python scripts/validate_project.py` | PASS; the same 2 pre-existing FAILs (`docs/PROGRESS.md`'s links to `C:/Users/bakke/.codex/...`) | not run |
+
+**NOT RUN in the client:** loading the four pictures (56 MiB raw), their seams, memory and frame time; the look; the drive (open snow, the bridge, the gates). It is coming soon: nothing of it can be selected yet. The owner's checks are in [the client checklist](../../tests/MANUAL_CLIENT_CHECKLIST.md#deferred-alterac-valley-check-once-registered).
+
+## For Codex
+
+1. Review `aac43f4` (Circuit's `open` and `laps`: additive) and `83e7569`'s crossings into your side: `UI.SelectTrack` refuses a course whose tiles do not load (the displayed course untouched; a current tiled course re-lays its own) and `UI.Start` one whose tiles are not loaded, as for roofs ([proposal](../API_CONTRACTS.md#proposed-alterac-valley-a-battlegrounds-cup-sprint-claude-claudealterac-valley-2026-10-28-for-codex)).
+2. **The owner's ice, his ask that you help:** a query Physics can read (`track.iceAt(x, y)` from `iceMap`, or a fourth surface) and the slide: far less lateral grip (the sideways velocity decaying at about a fifth of its road rate), steering about 60%, acceleration about 70% and braking about 40%, no speed cap, drift charging slower or not at all, grip back over about a quarter second on leaving it; opt-in per track with its own physics context. The road across the field is ice too. Presentation's "on ice" feedback follows once the query exists.
+3. **Registration:** IDs as for Arathi (course table, race code, score list and its fifteenth HELLO slot within the 158-byte ceiling, catalogue), its physics version (the snow is ordinary grass: no boost on grass), then drop `soon`. `Courses.build` should refuse it without its `grassMap` (as Arathi's guard), and without `iceMap` once the slide reads it. Please check Race, Laps, Checkpoints and the live race treat a Circuit's `laps` 1 as a dungeon's sprint.
+4. `test_warsong` line 253 fails on your `429e6d1` already (it still expects every flat course on Physics12); only its coming-soon count is changed here.
+5. **Pending ledger entry for `docs/PROGRESS.md`** (not written here): "2026-10-29 Claude `claude/alterac-valley` (`aac43f4`, `0fe5bed`, `88a036f`, `83e7569`, `d33f2f8`): Alterac Valley, the Battlegrounds Cup's third course, listed as coming soon: a sprint (Circuit's additive `open`/`laps`) from below Frostwolf Village to Dun Baldar on the surveyed road, eight gates, 8,232 units; full grip 145 either side, no fences; open snow at grass speed to the natural walls (`grassMap`); the Field of Strife's ice (`iceMap`, inert; the slide requested from Codex); four tiled pictures (`Courses.tiles`, `Presentation.tileCrop`, three pooled UI textures; budget 93/99/151). Offline: build checks byte-identical on cloud and developer machine (Alterac staged there); every Lua module PASS on both but `test_warsong` (fails on the base at line 253). Client NOT RUN."
+
+## Push (the owner's; never pushed by Claude)
+
+From the main checkout on the developer machine:
+
+```
+git push -u origin claude/alterac-valley
+```
+
+## Next
+
+The owner looks at the pictures ([the sheet](../art/tracks/alterac-valley.md), its review image); Codex reviews and adds the ice; then registration and the client checks.
+
+# Previous: Arathi Basin version 2 (with fewer fences)
 
 Prepared 2026-10-28 at about 17:30 CET by Claude (rendering/UI/sprites owner); the fewer fences added at about 18:40 CET.
 
