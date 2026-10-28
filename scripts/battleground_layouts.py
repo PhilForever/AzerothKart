@@ -123,129 +123,153 @@ def mirror(item, width, height, rename):
 
 
 # ---------------------------------------------------------------------------
-# Warsong Gulch, version 2: the real gulch.
+# Warsong Gulch, version 3: the real gulch, both bases driven alike.
 #
-# The owner drove version 1 (2026-10-28): "it's not really driveable - I
-# mean you can drive, and try to follow the arrow, but it's not really
-# intuitive unfortunately. I think you should inspect the actual warsong
-# gulch in the game files or something to figure this out." Asked what
-# confused him, he named all four: the arrow pointing through walls, karts
-# out of sight under roofs, too many rooms and doors, unclear checkpoints;
-# and he kept the lap traced on the real gulch ("Front, as traced").
+# The owner drove version 1 (2026-10-28): "it's not really driveable ... I
+# think you should inspect the actual warsong gulch in the game files or
+# something to figure this out." Version 2 laid the lap on the real gulch.
+# Driving version 2 he corrected its Horde side: "outside ramp goes into
+# lobby into flag room into tunnel down to mid". The game files put that
+# outside ramp on the west of the gulch, the Alliance's on the east (the
+# gulch turns half a circle into itself about its middle); shown the two
+# ways the lap could then run, he chose both bases the same way round.
 #
 # The world is the battleground's own ground (map PVPZone03, read from the
 # owner's client with scripts/wowcasc.py), three units to the yard: a
 # placement at (px east, pz south) in yards stands at X = (px - 15430) * 3,
 # Y = (16182 - pz) * 3. The rooms follow the walkable ground the client's
-# terrain and buildings make, widened for karts (a tunnel 12 yards wide in
-# the game is 120 units here); the huts, the tunnels' mouths, the bases and
-# the paths keep their places.
+# terrain and buildings make, widened for karts (a tunnel 13 yards wide in
+# the game is 120 units here); the huts, mid's stumps, the tunnels' mouths,
+# the bases, the outside ramps and the paths keep their places.
 #
-# The lap, as a flag carrier runs it:
+# Each base, as a flag carrier runs it: up its outside ramp onto the
+# plateau (floor 1), along the plateau over its own tunnel to the front
+# yard (the Horde's graveyard beside it), in at the front door, along the
+# lobby beside the tunnel, round the flag, down the tunnel's climb (floor
+# 0) and out along the tunnel to its mouth on the field.
 #
-# - from mid, north up the field into the Alliance tunnel's mouth, in the
-#   middle of the field's north wall;
-# - Silverwing Hold: the tunnel runs north under the plateau and climbs into
-#   the hold (floor 1); round the flag at the flag room's middle; south down
-#   the lobby, beside the tunnel, out of the front door onto the plateau;
-#   east across the plateau, over the tunnel, and down the east path into
-#   the field's north-east corner;
-# - south down the field's east side, west of the Alliance's east hut, into
-#   the Horde tunnel's mouth, in the middle of the field's south wall;
-# - the Warsong Lumber Mill: the tunnel runs south under the hill into the
-#   mill; round the flag; north up the west passage and west out of the side
-#   door; north up the slope below the west tower into the field's
-#   south-west corner;
-# - north-east across the field, east of the Horde's west hut, to mid.
+# The lap, a loop round mid:
 #
-# Only Silverwing Hold has two floors: the plateau the lap crosses stands
-# over its tunnel. The Lumber Mill's tunnel runs under the hill, which no
-# kart drives on. Over each tunnel the ground it passes under is a roof
-# picture that fades while the player's kart is in the tunnel; the bases
-# themselves are drawn open, their floors in sight.
+# - from the grid east of mid, north up the field's east side, west of the
+#   Alliance's east hut, to the foot of the east path;
+# - Silverwing Hold: up the east path, west along the plateau, north in at
+#   the front door, up the lobby, round the flag (east), down the climb and
+#   south out of the tunnel's mouth in the middle of the field's north wall;
+# - south-west down the field's west side, west of mid's stumps and east of
+#   the Horde's west hut, to the foot of the west path;
+# - the Warsong Lumber Mill, the same way round: up the west path, east
+#   along the plateau, south in at the front door, down the lobby, round
+#   the flag (west), down the climb and north out of the tunnel's mouth in
+#   the middle of the field's south wall;
+# - north-east to the finish, from mid's stumps to the field's east wall.
 #
-# Each flag is the end of the wall between the way in and the way out: the
-# lap rounds it, and its gate runs from the flag to the far wall.
+# Over each tunnel the ground it passes under is a cover picture that fades
+# while the player's kart is in the tunnel; the plateau runs over it. The
+# bases are drawn open, their floors in sight. Each flag is the end of the
+# wall between the lobby and the tunnel's top: the lap rounds it, and its
+# gate runs from the flag to the far wall.
+#
+# The Horde's base is the Alliance's turned half a circle (mirror()) about
+# (531, 1030.5): the flags' middle, nine units west so that it stands on the
+# Horde's tunnel. The field is not quite so turned (the tunnels' mouths lie
+# 18 units north of it), so the Horde's tunnel, its cover and the west
+# path's foot are laid as the field meets them.
 
 WG_WIDTH, WG_HEIGHT = 1024, 2048
+WG_TURN = (1062, 2061)
 
-WG_ROOMS = [
-    # Floor 0: the field and the two corners the lap uses.
-    room("field", 64, 660, 960, 1440),
-    room("field north-east", 600, 1404, 960, 1498),          # the east path's foot
-    room("field south-west", 64, 540, 420, 696),             # the slope's foot
-    # Silverwing Hold: the tunnel (floor 0) under the plateau; the hold and
-    # the plateau (floor 1).
-    room("alliance tunnel", 462, 1404, 582, 1718, floor="tunnel", cover="alliance hill"),
+
+def _horde(item):
+    """The Alliance's `item` turned into the Horde's (see above)."""
+    names = {"alliance east path": "horde west path"}
+
+    def rename(name):
+        return names.get(name, name.replace("alliance", "horde").replace("Alliance", "Horde"))
+    out = mirror(item, *WG_TURN, rename)
+    if isinstance(out, dict) and out.get("runner"):
+        x0, y0, x1, y1 = item["runner"]
+        out["runner"] = (WG_TURN[0] - x1, WG_TURN[1] - y1, WG_TURN[0] - x0, WG_TURN[1] - y0)
+    return out
+
+
+# Silverwing Hold: the tunnel (floor 0) under the plateau; the hold, its
+# front yard and the plateau (floor 1).
+WG_ALLIANCE_BASE = [
     room("alliance tunnel top", 462, 1792, 582, 1920, level=1, floor="hall"),
     room("alliance flag room", 336, 1884, 582, 2036, level=1, floor="flag room"),
     room("alliance lobby", 336, 1700, 440, 1920, level=1, floor="hall", runner=(370, 1700, 406, 1884)),
     room("alliance front yard", 290, 1636, 434, 1736, level=1, floor="plateau"),
     room("alliance plateau", 290, 1572, 840, 1672, level=1, floor="plateau"),
-    # The Warsong Lumber Mill (floor 0).
-    room("horde tunnel", 480, 214, 600, 696, floor="tunnel", cover="horde hill"),
-    room("horde flag room", 360, 70, 620, 250, floor="flag room"),
-    room("horde west passage", 360, 214, 460, 340, floor="hall", runner=(392, 232, 428, 340)),
-    room("horde side door", 280, 240, 396, 340, floor="slope"),
-    room("horde slope", 160, 240, 316, 600, floor="slope"),
 ]
 
-WG_RAMPS = [
+WG_ROOMS = [
+    # Floor 0: the field and the outside ramps' feet.
+    room("field", 64, 660, 960, 1440),
+    room("field north-east", 600, 1404, 960, 1498),          # the east path's foot
+    room("field south-west", 64, 563, 462, 696),             # the west path's foot
+    room("alliance tunnel", 462, 1404, 582, 1718, floor="tunnel", cover="alliance hill"),
+    *WG_ALLIANCE_BASE,
+    room("horde tunnel", 480, 343, 600, 696, floor="tunnel", cover="horde hill"),
+    *[_horde(r) for r in WG_ALLIANCE_BASE],
+]
+
+WG_ALLIANCE_RAMPS = [
     # The tunnel's climb into the hold, under its south end.
     ramp("alliance_tunnel", "alliance tunnel climb", 462, 1700, 582, 1810, "y", 1, indoor=True),
-    # The east path, down off the plateau.
+    # The east path, up onto the plateau.
     ramp("alliance_ramp", "alliance east path", 720, 1480, 840, 1590, "y", 1),
 ]
+WG_RAMPS = WG_ALLIANCE_RAMPS + [_horde(r) for r in WG_ALLIANCE_RAMPS]
 
 # The ground over each tunnel (see `overlay`): from the field's wall to the
-# hold's climb, and to the mill.
+# climb.
 WG_OVERLAYS = [
     overlay("alliance_hill", "alliance hill", 444, 1440, 600, 1700, ("alliance tunnel",)),
-    overlay("horde_hill", "horde hill", 462, 340, 618, 660, ("horde tunnel",)),
+    overlay("horde_hill", "horde hill", 462, 361, 618, 660, ("horde tunnel",)),
 ]
 
-# In lap order. Each tunnel's gate is its mouth; each flag's runs from the
-# flag to the wall beyond it; the doors' are the doors.
-WG_GATES = [
-    gate("Alliance tunnel", 462, 1428, 582, 1428, NORTH),
-    gate("Alliance flag", 451, 1940, 451, 2036, WEST, level=1),
-    gate("Alliance front door", 336, 1730, 440, 1730, SOUTH, level=1),
-    gate("Horde tunnel", 480, 672, 600, 672, SOUTH),
-    gate("Horde flag", 470, 70, 470, 196, WEST),
-    gate("Horde side door", 340, 240, 340, 340, WEST),
-    gate("Mid", 64, 1056, 960, 1056, NORTH),
+# In lap order. Each base's: its front door, its flag (from the flag to the
+# far wall), its tunnel's mouth; the finish last, from mid's stumps to the
+# field's east wall (build_battlegrounds.geometry lays it across the
+# stumps' middle).
+WG_ALLIANCE_GATES = [
+    gate("Alliance front door", 336, 1730, 440, 1730, NORTH, level=1),
+    gate("Alliance flag", 451, 1940, 451, 2036, EAST, level=1),
 ]
+WG_GATES = WG_ALLIANCE_GATES + [gate("Alliance tunnel", 462, 1428, 582, 1428, SOUTH)] \
+    + [_horde(g) for g in WG_ALLIANCE_GATES] + [gate("Horde tunnel", 480, 672, 600, 672, NORTH),
+                                               gate("Mid", 960, 1028, 600, 1028, NORTH)]
 
-WG_PADS = [pad("alliance_boots", 522, 1600, 14), pad("horde_boots", 540, 480, 14)]
+WG_PADS = [pad("alliance_boots", 522, 1600, 14)]
+WG_PADS.append(_horde(WG_PADS[0]))
 
 # The flags: each a round solid at the end of the wall it caps (the banner
 # is drawn on it, scenery).
-WG_FLAGS = [
-    {"id": "alliance_flag", "x": 437, "y": 1912, "width": 28, "height": 28, "shape": "disc", "level": 1},
-    {"id": "horde_flag", "x": 456, "y": 196, "width": 28, "height": 28, "shape": "disc", "level": 0},
-]
+WG_FLAGS = [{"id": "alliance_flag", "x": 437, "y": 1912, "width": 28, "height": 28, "shape": "disc", "level": 1}]
+WG_FLAGS.append(_horde(WG_FLAGS[0]))
 
-WG_SPAWN = (522, 990, "north", 0)
+WG_SPAWN = (680, 960, "north", 0)
 
-# The reviewed way round (kart centres), from the grid back over mid.
-WG_ROUTE = [
-    (522, 990), (522, 1100), (522, 1440),                                   # north to the Alliance tunnel
-    (522, 1690), (522, 1830),                                               # the tunnel, up into the hold
-    (522, 1950), (500, 1985), (451, 1995), (400, 1985), (388, 1940),        # round the flag
-    (388, 1860), (388, 1700),                                               # the lobby, out of the front door
-    (396, 1640), (460, 1622), (780, 1622),                                  # east across the plateau
-    (780, 1600), (780, 1470),                                               # down the east path
-    (740, 1400), (690, 1330), (680, 1150), (600, 900), (545, 760), (540, 690),  # the field's east side
-    (540, 260), (540, 200), (525, 125), (470, 110), (415, 125), (410, 200),  # the tunnel; round the flag
-    (410, 290), (340, 290), (238, 290),                                     # the west passage; the side door
-    (238, 560), (260, 640), (310, 720), (330, 820),                         # up the slope, past the west hut
-    (430, 1000), (480, 1080), (500, 1110),                                  # over mid
+# The reviewed way round (kart centres), from the grid back over the finish.
+WG_ALLIANCE_ROUTE = [
+    (780, 1470), (780, 1600), (780, 1622), (460, 1622), (396, 1640),        # up the east path, along the plateau
+    (388, 1700), (388, 1860), (388, 1940),                                  # in at the front door, up the lobby
+    (400, 1985), (451, 1995), (500, 1985), (522, 1950),                     # round the flag
+    (522, 1830), (522, 1690), (522, 1440),                                  # down the climb and the tunnel
 ]
+WG_ROUTE = (
+    [(680, 960), (685, 1100), (690, 1330), (740, 1400)]                     # up the field's east side
+    + WG_ALLIANCE_ROUTE
+    + [(522, 1380), (500, 1300), (440, 1150), (420, 1030), (380, 900),      # down the west side, past mid
+       (330, 780), (300, 680)]                                              # and the Horde's west hut
+    + [_horde(p) for p in WG_ALLIANCE_ROUTE]                                # the Lumber Mill, the same way round
+    + [(540, 700), (570, 780), (630, 880), (680, 980), (685, 1100)]         # to the finish
+)
 
 WARSONG = {
     "id": "warsong_gulch",
     "name": "Warsong Gulch",
-    "version": 2,
+    "version": 3,
     "size": (WG_WIDTH, WG_HEIGHT),
     "laps": 3,
     "rooms": WG_ROOMS,
@@ -253,7 +277,8 @@ WARSONG = {
     "overlays": WG_OVERLAYS,
     "gates": WG_GATES,
     "pads": WG_PADS,
-    # The flags; the scenery's solids (the huts) join them from `props`.
+    # The flags; the scenery's solids (mid's stumps, the huts) join them
+    # from `props`.
     "solids": WG_FLAGS,
     "spawn": WG_SPAWN,
     "route": WG_ROUTE,
@@ -476,6 +501,10 @@ def _woods():
 
 
 WG_PROPS = [
+    # Mid: the stumps in the middle of the field, which the lap passes on
+    # either side (north on the east, south on the west).
+    _blocks(prop(ASHEN + "props/ashenhollowstump/ashenhollowstump.mdx", 550, 1028, yaw=225, scale=0.62,
+                 solid=True, name="mid_stumps")),
     # The huts on the field: the night elves' two on the Alliance's half, the
     # orcs' two on the Horde's, at the client's places (turned to the
     # nearest eighth).
@@ -490,7 +519,7 @@ WG_PROPS = [
     # Each flag on its dais (the dais is the solid: WG_FLAGS).
     prop(SUMMER + "props/bannerhuman/bannerhuman0.mdx", 451, 1921, yaw=270, scale=0.34, team=ALLIANCE_BLUE,
          name="alliance_banner"),
-    prop(SUMMER + "props/bannerorc/bannerorc0.mdx", 470, 205, yaw=270, scale=0.34, team=HORDE_RED,
+    prop(SUMMER + "props/bannerorc/bannerorc0.mdx", 611, 130, yaw=270, scale=0.34, team=HORDE_RED,
          name="horde_banner"),
     # Lamps either side of each tunnel's mouth, on the ground over the tunnel
     # (they fade with its cover): the Alliance's blue lanterns, the Horde's
@@ -499,8 +528,8 @@ WG_PROPS = [
     prop(LANTERN, 582, 1452, scale=0.28, light=(34, (80, 120, 255)), name="alliance_mouth_lamp"),
     prop(BRAZIER, 470, 640, scale=0.3, light=(38, (255, 140, 50)), name="horde_mouth_brazier"),
     prop(BRAZIER, 610, 640, scale=0.3, light=(38, (255, 140, 50)), name="horde_mouth_brazier"),
-    # Silverwing Hold's towers at its corners; the Lumber Mill east of the
-    # Horde's flag room, and its watch tower by the side door.
+    # Silverwing Hold's towers at its corners; the Lumber Mill's saw house
+    # east of its lobby, and its watch tower below the plateau.
     prop(SILVER + "silvermoontowerdoodadsmedium/silvermoontowerdoodadsmedium.mdx", 300, 1760, scale=0.26,
          recolor=NIGHTELF_ROOFS, team=ALLIANCE_BLUE, name="alliance_tower"),
     prop(SILVER + "silvermoontowerdoodadsmedium/silvermoontowerdoodadsmedium.mdx", 624, 1720, scale=0.26,
@@ -509,9 +538,9 @@ WG_PROPS = [
          recolor=NIGHTELF_ROOFS, team=ALLIANCE_BLUE, name="alliance_tower"),
     prop(SILVER + "silvermoontowerdoodadsmedium/silvermoontowerdoodadsmedium.mdx", 604, 1996, scale=0.22,
          recolor=NIGHTELF_ROOFS, team=ALLIANCE_BLUE, name="alliance_tower"),
-    prop("war3.w3mod:buildings/orc/warmill/warmill.mdx", 704, 196, yaw=180, scale=0.36, team=HORDE_RED,
+    prop("war3.w3mod:buildings/orc/warmill/warmill.mdx", 830, 230, yaw=180, scale=0.36, team=HORDE_RED,
          name="horde_warmill"),
-    prop(WATCHTOWER, 352, 384, scale=0.34, team=HORDE_RED, name="horde_west_tower"),
+    prop(WATCHTOWER, 352, 320, scale=0.34, team=HORDE_RED, name="horde_west_tower"),
 ]
 
 WARSONG.update({"props": WG_PROPS + _dressing() + _woods(), "roof_props": []})

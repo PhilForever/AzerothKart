@@ -54,8 +54,8 @@ def geometry(d, wc3=None, cache=None):
     scenery blocks where the picture draws it (build_dungeon_tracks.blocking:
     a hut's round, a tree's crown), on its layer's floor: the ground's
     props on floor 0, the roofs' on floor 1. `cache` keeps the sprites for
-    the painter. The finish line (the last gate) runs from the field's west
-    wall to mid's stumps, across their middle."""
+    the painter. With mid's stumps, the finish line (the last gate) runs
+    from the field's wall (its `ax`) to the stumps, across their middle."""
     width, height = d["size"]
     sx, sy, heading, level = d["spawn"]
     cache = {} if cache is None else cache
@@ -83,7 +83,8 @@ def geometry(d, wc3=None, cache=None):
         finish = gates[-1]
         cy = mid["y"] + mid["height"] // 2
         finish["ay"] = finish["by"] = cy
-        finish["bx"] = mid["x"]
+        east = finish["ax"] > mid["x"] + mid["width"]
+        finish["bx"] = mid["x"] + mid["width"] if east else mid["x"]
     return {"id": d["id"], "name": d["name"], "version": d["version"], "width": width, "height": height,
             "wallInset": WALL_INSET, "laps": d["laps"],
             "rooms": [dict(r) for r in d["rooms"]], "ramps": [dict(r) for r in d["ramps"]],

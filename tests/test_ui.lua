@@ -3789,10 +3789,11 @@ end
 
 originalPrint("test_ui production catalogue: twelve multiplayer courses, real Mirage default/scenery, retired-save preservation, layered/sprint Ready and asset-failure Start guard PASS (91/96/151 pool)")
 
--- Registered Warsong rendering (version 2). Its two covers, the ground over
+-- Registered Warsong rendering (version 3). Its two covers, the ground over
 -- each tunnel, crop from Roofs.tga as the camera moves and fade as the
--- player's kart drives into the tunnel below; the kart draws under them on
--- the ground and over them on floor 1 or a ramp; the guiding arrow beside it
+-- player's kart drives into the tunnel below, from the field or down the
+-- climb from its base; the kart draws under them on the ground and over them
+-- on floor 1 or a ramp; the guiding arrow beside it
 -- follows the reviewed route to the lap's next gate, whose marker glows. No
 -- physics or race state is written: the poses below are placed only to be
 -- drawn (the checkpoint progress copied in is only read).
@@ -3845,10 +3846,17 @@ withMock(nil,false,function(env,UI)
     drawAt(780,1530,0)
     assert(UI.kart.sublevel==3 and hill.alpha==1 and smoke.layer=="OVERLAY",
         "on the east path's ramp the kart and its dust draw over the covers")
+    drawAt(522,1730,1)
+    assert(UI.kart.sublevel==3 and hill.alpha>0.25 and hill.alpha<1,
+        "down the tunnel's climb from the hold the kart still draws over the cover, which starts to fade ahead of it")
     drawAt(540,480,0)
     assert(UI.kart.sublevel==-5 and math.abs(horde.alpha-0.25)<1e-9 and hill.alpha==1,
         "in the Horde's tunnel the hill over it fades")
     assert(smoke.layer=="ARTWORK" and smoke.sublevel==6,"back on the ground, the dust under the covers again")
+    drawAt(540,439,1)
+    assert(UI.kart.sublevel==3 and horde.alpha==1,"on the Horde's plateau over its tunnel the cover stands whole")
+    drawAt(540,330,1)
+    assert(UI.kart.sublevel==3 and horde.alpha>0.25 and horde.alpha<1,"down the Horde's climb it starts to fade")
     -- A friend (a copied grid pose, no transport) draws by their reported
     -- floor: over the cover on the plateau, under it in the tunnel below.
     drawAt(522,1622,0)
@@ -3863,21 +3871,21 @@ withMock(nil,false,function(env,UI)
     friendAt(540,1622,0)
     assert(UI.opponent:IsShown() and UI.opponent.sublevel==-5,"a friend in the tunnel draws under it")
     noFriend()
-    drawAt(522,990,0)
+    drawAt(680,990,0)
     local frame=AK.Presentation.arrowFrame(math.pi/2)
     assert(UI.guideArrow.shown and UI.guideArrow.sublevel==7 and frame==4
         and UI.guideArrow.texCoords[1]==0 and UI.guideArrow.texCoords[3]==0.25,
-        "the arrow points from the grid up the field to the Alliance tunnel")
+        "the arrow points from the grid up the field's east side toward the east path")
     assert(UI.glowGate==1 and UI.gateTextures[1].alpha>=0.55 and UI.gateTextures[1].alpha<=1,
         "the next gate's marker glows")
-    -- Past the hold's front door, on the plateau: the next gate (the Horde
-    -- tunnel) lies south-west through the hill; the arrow follows the route
-    -- east to the path down instead.
+    -- Up the Horde's west path, on its plateau: the next gate (the Horde's
+    -- front door) lies east-south-east across the hill's edge; the arrow
+    -- follows the route east along the plateau instead.
     local progress=UI.checkpoints
     UI.checkpoints={passed=3,nextGate=4,complete=false,lap=progress.lap,lapGate=progress.lapGate}
-    drawAt(600,1622,1)
+    drawAt(300,439,1)
     assert(UI.guideArrow.shown and AK.Presentation.arrowFrame(0)==0 and UI.guideArrow.texCoords[1]==0
-        and UI.guideArrow.texCoords[3]==0,"on the plateau the arrow points east along it, not through the hill")
+        and UI.guideArrow.texCoords[3]==0,"on the plateau the arrow points east along it, not across its edge")
     assert(UI.glowGate==4 and UI.gateTextures[1].alpha==1,"the glow moves to the new next gate")
     UI.checkpoints=progress
     UI.Stop("rendering checked")

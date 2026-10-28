@@ -597,8 +597,8 @@ do
         assert(ui.race.laps.completedLaps==3 and e:view().results.complete
             and not e:view().results.verified and e.finishSounds==1,
             "actual layered Physics/Checkpoints/Laps finish three laps exactly once")
-        assert(table.concat(driver.levels,"")=="0101010" and driver.pads==6,
-            "each actual lap climbs into Silverwing Hold, leaves it down the east path and uses both boost pads")
+        assert(table.concat(driver.levels,"")=="0101010101010" and driver.pads==6,
+            "each actual lap climbs each base's outside ramp, leaves down its tunnel's climb and uses both boost pads")
         assert(e.sawLocalHigh and e.sawRemoteHigh and e.sawRemoteGround,
             "real floor telemetry drives pooled local/remote layers above and below the roofs: "
                 ..index..":"..tostring(e.sawLocalHigh)..":"..tostring(e.sawRemoteHigh)..":"..tostring(e.sawRemoteGround))

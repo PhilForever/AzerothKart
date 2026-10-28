@@ -67,14 +67,15 @@ Courses.LIST = {
         background=TRACKS .. "ScarletCathedral\\Background.tga",
         dust={0.78,0.74,0.68}, ground={0.05,0.05,0.05},
         status="Scarlet Cathedral | Sprint to the altar | Up the stairs and turn at the landing"},
-    -- In by each base's tunnel, round its flag, out by its door; two floors
-    -- where Silverwing Hold's plateau crosses its tunnel. Its floor-aware
-    -- physics and protocol context are separate from flat courses.
+    -- Up each base's outside ramp, in at its front door, round its flag, out
+    -- down its tunnel; two floors where each base's plateau crosses its
+    -- tunnel. Its floor-aware physics and protocol context are separate from
+    -- flat courses.
     {id="warsong_gulch", name="Warsong Gulch", short="Warsong", cup="battlegrounds", geometry="layered",
         guideArrow=true,
         background=TRACKS .. "WarsongGulch\\Background.tga", roofs=TRACKS .. "WarsongGulch\\Roofs.tga",
         dust={0.80,0.74,0.60}, ground={0.14,0.17,0.10},
-        status="Warsong Gulch | Start for 3 laps | In by each tunnel, round the flag, out by the door"},
+        status="Warsong Gulch | Start for 3 laps | Up each ramp, round the flag, out by the tunnel"},
 }
 
 local byId = {}

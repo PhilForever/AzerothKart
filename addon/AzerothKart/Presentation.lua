@@ -814,10 +814,8 @@ end
 -- 1; each fades while the player's kart is on the ground in one of its
 -- `under` boxes (the rooms below it).
 
--- Drawn over the roofs: a kart on floor 1, or anywhere on a ramp (no roof
--- stands over a ramp, and a kart climbing one passes its top's edge).
-function Presentation.drawnHigh(track, x, y, level)
-    if level == 1 then return true end
+-- Whether (x, y) lies on one of the track's ramps (its `ramps` boxes).
+function Presentation.onRamp(track, x, y)
     local ramps = type(track) == "table" and track.ramps
     if type(ramps) ~= "table" or not finite(x) or not finite(y) then return false end
     for i = 1, #ramps do
@@ -827,12 +825,21 @@ function Presentation.drawnHigh(track, x, y, level)
     return false
 end
 
+-- Drawn over the roofs: a kart on floor 1, or anywhere on a ramp (no roof
+-- stands over a ramp, and a kart climbing one passes its top's edge).
+function Presentation.drawnHigh(track, x, y, level)
+    return level == 1 or Presentation.onRamp(track, x, y)
+end
+
 Presentation.ROOF_FADED, Presentation.ROOF_FADE_DEPTH, Presentation.ROOF_FADE_LEAD = 0.25, 24, 32
 
 -- A roof's opacity: whole, unless the player's kart is on the ground under
 -- it or about to be: it starts to fade ROOF_FADE_LEAD units before one of
 -- its `under` boxes (a tunnel's mouth) and is down to ROOF_FADED
--- ROOF_FADE_DEPTH units in, so the kart never vanishes under it.
+-- ROOF_FADE_DEPTH units in, so the kart never vanishes under it. `high`: the
+-- kart stands above the roof (on floor 1 off the ramps), and the roof stays
+-- whole; a kart on a ramp is not, so a roof fades as one drives down a ramp
+-- toward the ground beneath it, before the kart drops below it.
 function Presentation.roofAlpha(roof, x, y, high)
     if high or type(roof) ~= "table" or type(roof.under) ~= "table" or not finite(x) or not finite(y) then
         return 1
@@ -869,14 +876,15 @@ end
 -- previous gate's crossing and the next's. Given the kart's `level` and a
 -- track that answers isDrivable, it aims at the farthest of GUIDE_LOOKS
 -- (fractions of `ahead` units along the route) that the kart could drive to
--- in a straight line on its floor, so round a bend it points along the way
--- the kart can go, not across the corner into a wall. A third result, true,
+-- in a straight line on its floor with a few units to spare (clearLine), so
+-- round a bend it points along the way the kart can go, not across the
+-- corner into a wall, nor grazing it. A third result, true,
 -- says the arrow follows a route (it then shows at any distance). With no
 -- route, at the middle of the next gate.
 Presentation.GUIDE_ARROW = {path="Interface\\AddOns\\AzerothKart\\Assets\\UI\\GuideArrow.tga",
     frames=16, columns=4, size=26, reach=46, ahead=110}
 local GUIDE_LOOKS = {1, 0.82, 0.64, 0.46, 0.32, 0.18, 0.08}
-local GUIDE_CLEAR_STEP = 3
+local GUIDE_CLEAR_STEP, GUIDE_CLEAR_MARGIN = 3, 3
 
 local function routePoint(p)
     return type(p) == "table" and finite(p.x) and finite(p.y)
@@ -899,14 +907,23 @@ local function routeAhead(points, count, k, t, left)
     end
 end
 
--- Whether every point of the line from (x, y) to (tx, ty), each
--- GUIDE_CLEAR_STEP units, is drivable on `level`.
+-- Whether the straight run from (x, y) to (tx, ty) is drivable on `level`
+-- with GUIDE_CLEAR_MARGIN units to spare either side: the line and its two
+-- parallels that far off it, each sampled every GUIDE_CLEAR_STEP units (a
+-- line that only grazes a wall's corner meets it on one of the parallels).
 local function clearLine(track, level, x, y, tx, ty)
     local dx, dy = tx - x, ty - y
-    local n = math.ceil(math.sqrt(dx * dx + dy * dy) / GUIDE_CLEAR_STEP)
+    local length = math.sqrt(dx * dx + dy * dy)
+    if length <= 0 then return true end
+    local n = math.ceil(length / GUIDE_CLEAR_STEP)
+    local ox, oy = -dy / length * GUIDE_CLEAR_MARGIN, dx / length * GUIDE_CLEAR_MARGIN
+    local drivable = track.isDrivable
     for k = 1, n do
         local f = k / n
-        if not track.isDrivable(x + dx * f, y + dy * f, level) then return false end
+        local px, py = x + dx * f, y + dy * f
+        if not (drivable(px, py, level) and drivable(px + ox, py + oy, level) and drivable(px - ox, py - oy, level)) then
+            return false
+        end
     end
     return true
 end
