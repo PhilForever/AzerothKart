@@ -1,4 +1,14 @@
-# Claude handoff — Arathi Basin, coming soon
+# Claude handoff — Arathi Basin version 2 (reserved, in progress)
+
+Reserved 2026-10-28 at about 15:30 CET by Claude (rendering/UI/sprites owner).
+
+**Task:** the owner drove the installed Arathi Basin (Codex's `8bf3218`) and asked for: (1) no guiding arrow on courses where the way is obvious, only Warsong Gulch keeps it; (2) at the Gold Mine, the road down to the mine and the road above it drawn as the one real junction, the upper road blocked by "a group of angry alliance players" instead of a fence, and a far more visible downhill between the mine and the upper road (as Thunder Bluff's drops); (3) the whole left side of the Stables as slow grass, a shortcut worth taking only with a boost; (4) at the Lumber Mill fork, the other road blocked by something in the way instead of a fence, and a far more visible ridge: a straight cliff down to the lower road. For (3) he chose that **Codex adds the driving rule** (boosting keeps normal speed on grass); this branch builds the slow grass and the shortcut and writes the rule down for Codex.
+
+**Base:** Codex's `codex/arathi-integration` `1fbea6b` (installed runtime `8bf3218`). **Branch:** `claude/arathi-v2`.
+
+**Reserved (Claude):** the Arathi sections of `scripts/battleground_layouts.py`, `battleground_paint.py`, `build_battlegrounds.py`; the generated `addon/AzerothKart/Battlegrounds.lua` (Arathi's entry; version 2) and `Assets/Tracks/ArathiBasin/`; Arathi's entry in `Courses.lua` (shared: the arrow off); `tests/test_arathi.lua`, Arathi's blocks in `tests/test_ui.lua`/`tests/test_menu.lua`; the Arathi sheet and its pictures, `API_CONTRACTS.md`, `TRACKS.md`, `ASSETS.md`, `art/ASSET_SOURCES.md`, `TEST_PLAN.md`, `CHANGELOG.md`, the client checklist, this handoff. **Shared, flagged for Codex's review:** an additive grass plaza in `Circuit.lua` (`surface="grass"`: drivable, never paved, not made road by `fullSpeedToWalls`; walls and every existing definition unchanged) with `tests/test_circuit.lua` coverage. **Codex-owned, pins only if the version change needs them:** `tests/test_arathi_guide.lua` (its route from the data once Arathi has no arrow), version pins in `test_peer_session`/`test_multiplayer_integration`; the score catalogue regenerated. **Not touched:** Physics (the boost rule is Codex's, by the owner's choice), Checkpoints, protocols, sessions, scores' code.
+
+# Previous: Arathi Basin, coming soon
 
 Prepared 2026-10-28 at about 14:05 CET by Claude (rendering/UI/sprites owner).
 
