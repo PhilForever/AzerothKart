@@ -1,5 +1,29 @@
 # Codex handoff — production maps and Claude course review
 
+## Review complete — Warsong v2 d5fabbf, 2026-10-28
+
+Review-only `codex/warsong-v2-review` from clean47777d0; original Claude
+checkout staysd5fabbf/claude/warsong-v2, tracked-clean with existing outputs.
+[Findings/evidence](../reviews/2026-10-28-warsong-v2.md). No source integration,
+installation, push/main or player-data change. Installed9b7d6df stays current.
+
+Hold for corner-safe guidance: validfloor1(390,1685), nextGate4, gives heading
+−42.503degrees and hits the front-yard wall after36 of46 visible units. An
+endpoint-only check misses it. Also replace test_warsong41–48's90–100unit
+jumps, which exceed MAX_STEP16 and pass even without solids, with legal-step
+collision/gate tests. Independent tapes show actual flag/wall geometry works.
+
+Candidate Lua51focused7modules/85parsed PASS; additionalgrid/admission review
+PASS, catalogue12/old11contexts unchanged PASS, independent v1history/v2NEW
+compatibility PASS, read-only survey/asset checks PASS. Validator has only2old
+links. Native/full46/Lua54/artrebuild NOT RUN by this review. Claude's newsource
+is a substantial layout/navigation improvement, but the arrow complaint is
+not fully resolved. No physics/transport/score-code changes needed.
+
+**Next:** Claude fixes the guide bend and strengthens legal movement/gate
+regressions; Codex reviews exact fixes before the requested future integration.
+
+
 ## Active review — Warsong v2, 2026-10-28
 
 Owner forwards Claude's Warsong update. Base clean47777d0, installed9b7d6df;

@@ -1,5 +1,40 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-28 09:39 +01:00 — Warsong v2 review; arrow correction needed
+
+Owner forwards Claude's real-gulch update. Clean47777d0, installed9b7d6df;
+review-only branch `codex/warsong-v2-review`, reservation6ce9a4a. Exact Claude
+candidate d5fabbf/696bb85 is based on the installed source's handoff, with no
+conflicting backend history. [Detailed findings and evidence](reviews/2026-10-28-warsong-v2.md).
+No source merge, enabling/version update, installation, push or main change.
+Claude checkout/branch and its existing outputs remain untouched.
+
+Hold integration for one concrete navigation defect: at valid floor1 pose
+(390,1685), nextGate4, the110-unit route lookahead points−42.503degrees through
+the Alliance front-yard wall. Real2-unit resolver steps hit it36units away,
+before the visible46-unit arrow; the target itself is drivable. Choose a
+collision-clear intermediate point and cover this exact bend. Also correct
+four wall/flag assertions using90–100-unit moves above MAX_STEP16: they all
+still pass when solids are removed in memory. Independent legal4-unit tapes
+show actual walls/flags block/slide and gate awards work; this is test coverage,
+not a new runtime collision bug.
+
+Executed candidate Lua51 focused warsong/presentation/ui/peer_session/
+multiplayer_integration/score_sync/score_sharing PASS7, all85 files parsed.
+Delegated geometry/grid/admission PASS3 (one additional unique module).
+Actual real-Physics delayed two-peer fixture finishes3 v2laps and flat rematch.
+Catalogue check PASS12; only Warsong geometry1→2 changes. Independent in-memory
+v1 history retention/v2 save-publish/stale-v1 NEW refusal PASS. Read-only survey/
+Python syntax/TGA metadata/hash/source-ledger checks PASS. Diffcheck clean.
+Validator retains only2 historical expired skill links, not full PASS. Native,
+full46/Lua54 repetition and art rebuild by this review NOT RUN; Claude's claimed
+passes are its evidence. No milestone acceptance or8-player claim.
+
+**Next exact task:** Claude's corner-safe guide plus legal-step flag/wall/gate
+regressions; then Codex reviews the narrow fix before integration/install.
+Installed9b7d6df and existing friend ZIP remain current.
+
+
 ## 2026-10-27 18:43 +0100 — Warsong installed and matching friend ZIP verified
 
 Committed combined runtime **9b7d6df** on `codex/warsong-registration` has both
