@@ -6,7 +6,10 @@ Offline checks below; in WoW Forever **NOT RUN** ([client check](#client-check-n
 The owner asked for gates "more immersive than the current.. lines". Of the mockups he liked the
 direction and asked: **"make the banners, posts etc just a bit more outside the track, just pence
 fence, and make the lines more subtle, dont want players to think they need to avoid them heh"**, read
-as: posts just past the fence.
+as: posts just past the fence. Shown Alterac Valley's bridge gate, he asked: **"put this gate at the start
+of the bridge so that the pillars have something to stand on (in the snow), and make the pillar dwarven
+and the line blue"**: that gate moved to the bridge's mouth (Alterac's version 2, [its sheet](../tracks/alterac-valley.md)),
+and all Alterac's gates have dwarven posts and a blue light.
 
 ![The gates as the addon draws them](gates.png)
 
@@ -28,11 +31,15 @@ picture, not a screenshot.
   | `scarlet` | the Scarlet Crusade's standing banners | the four Scarlet sprints | holy gold |
   | `goblin` | the goblin racing arrow post | Mirage Raceway | gold |
   | `brazier` | a Lordaeron brazier | Warsong Gulch, Arathi Basin | fire |
-  | `frost` | an Icecrown ice torch | Alterac Valley | violet (a pale light vanishes on snow) |
+  | `dwarven` | a carved stone obelisk banded in bronze (Reforged's Northrend obelisk), for Dun Baldar's dwarves | Alterac Valley | a deep blue (a pale one vanishes on snow) |
 
   A post stands 12 units past its end of the gate, past the wall that end meets. The camera leans
   heights north, so a post on a gate's south side would lean back over the road: there it moves out by
-  its height's lean as well, and its top too stays past the fence. Posts are pictures, not solids.
+  its height's lean as well, and its top too stays past the fence. Where that would stand a post on a
+  building or over a drop, the course's style names its ground instead (`stands`): on Alterac Valley,
+  Icewing Bunker's west post beside the bunker, Dun Baldar's south post beside its watchtower, and the
+  bridge gate's two on the snow either side of the bridge's mouth. Posts are pictures, not solids (the
+  bridge's two stand on open snow, where a kart running wide could pass through them).
   On the battlegrounds a gate runs from cliff to cliff across open ground, so its posts stand at the
   cliffs, often off screen while you drive the road; the line carries the gate there.
 - **The next gate's posts stand in pools of its light.**
@@ -44,7 +51,8 @@ picture, not a screenshot.
   interface source). A lap's last gate shows the lap's time; the race's finish leaves it to the results.
 
 Every gate of every course (75) was looked at in the preview with its kart just short of it: posts
-past the fences, over canal walls, at the lava's rim, in doorways and on Dun Baldar's bridge parapets.
+past the fences, over canal walls, at the lava's rim and in doorways; Alterac's eight again, both ends
+of each, after the dwarven posts and the bridge's move.
 
 ## How it is drawn
 
@@ -53,8 +61,9 @@ past the fences, over canal walls, at the lava's rim, in doorways and on Dun Bal
   a shadow to the south-east, one texel a world unit) so it stands in the picture like its scenery; a
   soft glow; the soft line and the checks, horizontal and vertical. `Presentation.GATE_KIT` names each
   post's rectangle, foot and height; `--check` compares it and the picture's bytes.
-- **Presentation (pure):** `GATE_KIT`, `GATE_STYLES` (each course's post and light), `GATE_POST_OUTSET`
-  and `GATE_LEAN`, `gatePosts` (the two ground points), `atlasCrop`, `postCrop` and `finishCrop` (screen
+- **Presentation (pure):** `GATE_KIT`, `GATE_STYLES` (each course's post and light, and any `stands`),
+  `GATE_POST_OUTSET` and `GATE_LEAN`, `gatePosts(gate, post, style)` (the two ground points), `atlasCrop`,
+  `postCrop` and `finishCrop` (screen
   rectangles and texture crops, cut at the canvas' edges), `GATE_LINE`, `GATE_FLASH` and
   `gateLineAlpha` (the line's opacity by state).
 - **UI (visual):** `drawTrack` creates the band, two pools and sixteen posts with the window;
@@ -73,7 +82,7 @@ Nothing changes where a gate is, what counts as passing it, the race, physics, s
 From the owner's Warcraft III: Reforged install (read only), into an empty folder `WC3`:
 
 ```
-python scripts/wc3casc.py "INSTALL" models '^war3\.w3mod:(doodads/lordaeronsummer/props/(bannerhuman/bannerhuman0|bannerorc/bannerorc0|brazier/brazier)|doodads/icecrown/props/icetorch/icetorch|_de\.w3mod:doodads/(cityscape/props/scarletcrusadestandingbanners/scarletcrusadestandingbanners0|lordaeronsummer/props/goblinracingarrowpost/goblinracingarrowpost0))\.mdx$' WC3
+python scripts/wc3casc.py "INSTALL" models '^war3\.w3mod:(doodads/lordaeronsummer/props/(bannerhuman/bannerhuman0|bannerorc/bannerorc0|brazier/brazier)|_de\.w3mod:doodads/(cityscape/props/scarletcrusadestandingbanners/scarletcrusadestandingbanners0|lordaeronsummer/props/goblinracingarrowpost/goblinracingarrowpost0|northrend/props/northrendobilisk/northrendobilisk))\.mdx$' WC3
 python scripts/build_gate_kit.py --wc3 WC3 --check
 ```
 

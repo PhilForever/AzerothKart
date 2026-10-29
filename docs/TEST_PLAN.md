@@ -219,6 +219,7 @@ On `claude/immersive-gates` (gates in the world; focused: `python scripts/test_l
 - `tests/test_presentation.lua`: the kit's cells in the atlas, every production course styled; the posts 12 past each end, the south one by its lean too; the crops whole and cut; the checks' squares; the line's opacity by state.
 - `tests/test_ui.lua`: the kit loads once onto every piece; each line's cell and look by state; each post where its crop says; the pools at the next gate; the lap line's band; a pass flashes and is gone in half a second; no objects created switching courses; a refused kit gives plain lines and nothing else, never retried. The budget becomes 121/233/232.
 - `tests/test_menu.lua`: the toast's split text, its showing and going, the ping, a lap's time at its last gate, faster green and slower red.
+- Alterac's gates (the owner's second ask): `test_presentation` checks a style's `stands` (by gate name; false keeps the rule's) and Alterac's dwarven posts and deep blue; `test_ui` that its moved posts reach the pieces; `test_alterac` (version 2) the bridge's gate across its mouth and each moved post on open snow by its gate's end. Codex's pins for the version: `test_peer_session`, `test_multiplayer_integration`, `export_score_catalog.py --check`. Data: `python scripts/build_battlegrounds.py --wc3 WC3 --check --course alterac_valley` (the pictures byte-identical).
 
 The gates in the client are NOT RUN; see [the gates' client check](art/ui/gates.md#client-check-not-run).
 

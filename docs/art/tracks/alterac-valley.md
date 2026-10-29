@@ -4,6 +4,8 @@ The Battlegrounds Cup's third course, by Claude (rendering/UI owner): a **sprint
 
 ![Alterac Valley overview, 8x reduced: south (Frostwolf) at the bottom right, north (Dun Baldar) at the top left](alterac_valley-review.png)
 
+**Version 2 (proposed 2026-10-29 by Claude on `claude/immersive-gates`, for Codex):** with the gates' posts in view, the owner asked: **"put this gate at the start of the bridge so that the pillars have something to stand on (in the snow), and make the pillar dwarven and the line blue"**. *Dun Baldar Bridge*'s gate is now across the deck where the karts come onto the bridge (x 988: past the bank at 975, inside the approach's walls to 999; 80 units across), not halfway over the gorge (x 800). The way, the walls and the finish are unchanged; only that gate's line and the version change (so a version 1 peer cannot race it, and its scores are a new board). Its posts stand on the snow either side of the bridge's mouth; the gates' look is [the gates' sheet](../ui/gates.md). NOT RUN in the client.
+
 **Status:** version1, reviewed and integrated by Codex with flat Physics15 ice traction and one-run solo/two-player registration. The earlier proposal notes below describe Claude’s handoff before that integration. **NOT RUN in the client:** scenery seams, memory/frame cost, handling and multiplayer delivery. See [current contract](../../API_CONTRACTS.md).
 
 ## What the owner asked
@@ -34,7 +36,7 @@ The route follows the client's road (its trampled-dirt texture) from the owner's
 4. **Across the Field of Strife,** frozen over: gate *Field of Strife* in its middle, on the ice.
 5. **Up past Stonehearth Outpost** and its bunker: gate *Stonehearth Outpost*.
 6. **North along the icy basin's eastern road** by Icewing Bunker: gate *Icewing Bunker*, the road's lowest ground just beyond.
-7. **West over the gorge on Dun Baldar's bridge** (narrow: the karts' reach 42 over its deck and approaches): gate *Dun Baldar Bridge* on the deck.
+7. **West over the gorge on Dun Baldar's bridge** (narrow: the karts' reach 42 over its deck and approaches): gate *Dun Baldar Bridge* across the deck where it begins (version 2; version 1 had it halfway across).
 8. **Into Dun Baldar:** the finish, *Dun Baldar*, before the castle's gate.
 
 | Measure | Value |
