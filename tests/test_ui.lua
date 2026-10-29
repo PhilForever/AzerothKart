@@ -3983,7 +3983,7 @@ withMock(nil,false,function(env,UI)
     end
     local function posts(label)
         for index,gate in ipairs(track.gates) do
-            local x1,y1,x2,y2=P.gatePosts(gate,post)
+            local x1,y1,x2,y2=P.gatePosts(gate,post,style)
             for side,point in ipairs({{x1,y1},{x2,y2}}) do
                 local piece=UI.gatePosts[2*index-2+side]
                 local px,py,pw,ph,u0,u1,v0,v1=P.postCrop(UI.view,point[1],point[2],post)
@@ -3999,7 +3999,7 @@ withMock(nil,false,function(env,UI)
         end
     end
     local function pools(nextGate,label)
-        local x1,y1,x2,y2=P.gatePosts(track.gates[nextGate],post)
+        local x1,y1,x2,y2=P.gatePosts(track.gates[nextGate],post,style)
         for side,point in ipairs({{x1,y1},{x2,y2}}) do
             local piece,R=UI.gatePools[side],34
             local px,py=P.atlasCrop(UI.view,point[1]-R,point[2]-R,2*R,2*R,K.pool[1],K.pool[2],K.pool[3],K.pool[4],K.size)
@@ -4029,6 +4029,22 @@ withMock(nil,false,function(env,UI)
     for _,id in ipairs({"mirage_raceway","scarlet_cathedral","alterac_valley","orgrimmar_canyon"}) do
         assert(UI.SelectTrack(id),id.." selects")
         assert(UI.gatePost==P.GATE_KIT.posts[P.GATE_STYLES[id].post],id..": its own posts")
+        if id=="alterac_valley" then
+            -- Where the rule would stand a post over the gorge or on a tower,
+            -- on the snow the style names: the bridge's either side of its mouth.
+            local stands,named=P.GATE_STYLES.alterac_valley.stands,0
+            for index,gate in ipairs(UI.track.gates) do
+                local points,stand=UI.gatePostPoints[index],stands[gate.name]
+                local x1,y1,x2,y2=P.gatePosts(gate,UI.gatePost)
+                for side,rule in ipairs({{x1,y1},{x2,y2}}) do
+                    local want=stand and stand[side] or rule
+                    if stand and stand[side] then named=named+1 end
+                    assert(points[2*side-1]==want[1] and points[2*side]==want[2],
+                        "Alterac's "..gate.name.." post "..side.." stands where its style says")
+                end
+            end
+            assert(named==4,"four of Alterac's posts stand on named ground")
+        end
     end
     assert(loads(env,GATE_KIT_PATH)==GATE_KIT_LOADS,"the kit is never loaded again")
     for key,value in pairs(counts) do

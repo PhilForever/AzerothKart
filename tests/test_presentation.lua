@@ -1243,6 +1243,20 @@ do
     near(y2, 200 - 12 - post.zmax * P.GATE_LEAN, "the south post past the south end by 12 and its lean")
     assert(x1 == 500 and x2 == 500 and P.gatePosts({ax=1, ay=1, bx=1, by=1}, post) == nil, "a gate of no length: none")
     near(y2 + post.zmax * P.GATE_LEAN, 188, "the south post's top at the fence's 12")
+    -- Where the rule would stand a post on a building or over a drop, the
+    -- style names its ground by the gate's name; false keeps the rule's.
+    local style = {stands={Bridge={{10, 20}, false}}}
+    x1, y1, x2, y2 = P.gatePosts({name="Bridge", ax=500, ay=400, bx=500, by=200}, post, style)
+    assert(x1 == 10 and y1 == 20 and x2 == 500, "the first post where the style says, the second by the rule")
+    near(y2, 200 - 12 - post.zmax * P.GATE_LEAN, "the rule's south post")
+    x1, y1, x2, y2 = P.gatePosts({name="Other", ax=100, ay=50, bx=300, by=50}, post, style)
+    assert(x1 == 88 and y1 == 50 and x2 == 312 and y2 == 50, "a gate the style does not name: the rule")
+    -- Alterac Valley (the owner: "make the pillar dwarven and the line
+    -- blue"): the dwarves' stone posts and a deep blue light; its bridge's
+    -- posts on the snow either side of the bridge's mouth.
+    local alterac = P.GATE_STYLES.alterac_valley
+    assert(alterac.post == "dwarven" and alterac.tint[3] == 1 and alterac.tint[1] < 0.4 and alterac.tint[2] < 0.6
+        and #alterac.stands["Dun Baldar Bridge"] == 2, "Alterac: dwarven posts, a deep blue, the bridge's stands")
     -- The crops: a post with its foot at the middle of a 1:1 view shows
     -- whole, its own rectangle; cut at the canvas' left edge, a share of it.
     local view = P.fitViewport(800, 480, 800, 480)

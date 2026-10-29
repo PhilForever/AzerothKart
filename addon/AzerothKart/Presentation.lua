@@ -1062,7 +1062,7 @@ Presentation.GATE_KIT = {path="Interface\\AddOns\\AzerothKart\\Assets\\UI\\GateK
         scarlet={x=285, y=14, w=69, h=99, ox=17, oy=42, zmax=60.8},
         goblin={x=417, y=26, w=61, h=75, ox=17, oy=37, zmax=45.8},
         brazier={x=39, y=153, w=49, h=77, ox=14, oy=35, zmax=35.7},
-        frost={x=159, y=144, w=66, h=96, ox=24, oy=46, zmax=38.4},
+        dwarven={x=159, y=140, w=65, h=104, ox=18, oy=48, zmax=50.1},
     },
     pool={0, 384, 128, 128}, lineH={128, 384, 256, 16}, checkH={128, 400, 256, 16},
     lineV={384, 256, 16, 256}, checkV={400, 256, 16, 256},
@@ -1085,8 +1085,16 @@ Presentation.GATE_STYLES = {
     scarlet_cathedral={post="scarlet", tint=HOLY},
     warsong_gulch={post="brazier", tint=FIRE},
     arathi_basin={post="brazier", tint=FIRE},
-    -- The ice torches' violet: a pale tint would vanish on the snow.
-    alterac_valley={post="frost", tint={0.74, 0.46, 1.00}},
+    -- Dun Baldar's dwarves' stone and a deep blue (a pale one vanishes on
+    -- the snow). Where the rule would stand a post on a tower or over the
+    -- gorge, it stands on the snow beside it: Icewing Bunker's west post by
+    -- the bunker, Dun Baldar's south post by its watchtower, and the
+    -- bridge's either side of the bridge's mouth.
+    alterac_valley={post="dwarven", tint={0.26, 0.52, 1.00}, stands={
+        ["Icewing Bunker"]={{1290, 5404}, false},
+        ["Dun Baldar Bridge"]={{1024, 6530}, {1004, 6698}},
+        ["Dun Baldar"]={{456, 6436}, false},
+    }},
 }
 
 -- How far past each end of its gate a post stands, in world units (past the
@@ -1097,8 +1105,11 @@ Presentation.GATE_POST_OUTSET, Presentation.GATE_LEAN = 12, 0.6
 -- The ground points of a gate's two posts: each end pushed out along the
 -- gate's line. A post on the south side leans north, back over the road, so
 -- an end whose way out points south moves out by its post's lean as well:
--- its top, too, stays past the fence. nil for a gate of no length.
-function Presentation.gatePosts(gate, post)
+-- its top, too, stays past the fence. nil for a gate of no length. Where
+-- that would stand a post on a building or over a drop, the course's style
+-- names the ground it stands on instead (`stands`, by the gate's name: its
+-- first end's post, then its second's; false keeps the rule's).
+function Presentation.gatePosts(gate, post, style)
     if type(gate) ~= "table" then return nil end
     local dx, dy = gate.bx - gate.ax, gate.by - gate.ay
     local length = math.sqrt(dx * dx + dy * dy)
@@ -1111,6 +1122,11 @@ function Presentation.gatePosts(gate, post)
     end
     local x1, y1 = out(gate.ax, gate.ay, -ux, -uy)
     local x2, y2 = out(gate.bx, gate.by, ux, uy)
+    local stand = type(style) == "table" and type(style.stands) == "table" and style.stands[gate.name]
+    if type(stand) == "table" then
+        if type(stand[1]) == "table" then x1, y1 = stand[1][1], stand[1][2] end
+        if type(stand[2]) == "table" then x2, y2 = stand[2][1], stand[2][2] end
+    end
     return x1, y1, x2, y2
 end
 

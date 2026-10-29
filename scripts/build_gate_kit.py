@@ -13,8 +13,9 @@ scripts/wc3casc.py (the city tracks' --wc3). GateKit.tga is 512 x 512 BGRA32:
   one texel a world unit), so a post stands in the track's picture like its
   scenery: `alliance` (the Alliance's banner, blue), `horde` (the Horde's,
   red), `scarlet` (the Scarlet Crusade's standing banners), `goblin` (the
-  goblin racing arrow post), `brazier` (a Lordaeron brazier) and `frost` (an
-  Icecrown ice torch);
+  goblin racing arrow post), `brazier` (a Lordaeron brazier) and `dwarven`
+  (a carved stone obelisk banded in bronze, Reforged's Northrend obelisk:
+  Dun Baldar's dwarves on Alterac Valley);
 - `pool`, a soft round glow (white; the game tints it) at (0, 384), 128 x 128;
 - `lineH` and `lineV`, a soft line across 16 texels (bright middle, faded
   edges) 256 long, horizontal at (128, 384) and vertical at (384, 256);
@@ -52,7 +53,8 @@ KITS = [
     ("goblin", "war3.w3mod:_de.w3mod:doodads/lordaeronsummer/props/goblinracingarrowpost/"
                "goblinracingarrowpost0.mdx", 0.5, (1.0, 0.8, 0.0)),
     ("brazier", "war3.w3mod:doodads/lordaeronsummer/props/brazier/brazier.mdx", 0.5, (1.0, 1.0, 1.0)),
-    ("frost", "war3.w3mod:doodads/icecrown/props/icetorch/icetorch.mdx", 0.55, (1.0, 1.0, 1.0)),
+    ("dwarven", "war3.w3mod:_de.w3mod:doodads/northrend/props/northrendobilisk/northrendobilisk.mdx", 0.24,
+     (1.0, 1.0, 1.0)),
 ]
 UTILITY = {"pool": (0, 384, 128, 128), "lineH": (128, 384, 256, 16), "checkH": (128, 400, 256, 16),
            "lineV": (384, 256, 16, 256), "checkV": (400, 256, 16, 256)}

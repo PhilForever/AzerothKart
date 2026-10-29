@@ -1187,7 +1187,7 @@ local function layoutGates(course)
             piece:SetTexCoord(cell[1]/S,(cell[1]+cell[3])/S,cell[2]/S,(cell[2]+cell[4])/S)
         end
         if gate and UI.gateLook and UI.gatePost then
-            UI.gatePostPoints[index] = {Presentation.gatePosts(gate,UI.gatePost)}
+            UI.gatePostPoints[index] = {Presentation.gatePosts(gate,UI.gatePost,style)}
         end
     end
     if UI.gateLook then
