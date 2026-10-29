@@ -1,5 +1,12 @@
 # Shared integration and deployment status
 
+## GitHub publication — 2026-10-29
+
+Combined build is on `origin/codex/ice-drift-gates`; reviewed Claude menu
+and gates source branches are also published. Remote hashes verified after
+normal atomic push. Installed runtimeaa9ed46, matching friend ZIP below.
+[Publication/deployment evidence](PROGRESS.md). Main is unchanged.
+
 ## Installed ice drift and gates — 2026-10-29
 
 Runtime **aa9ed46** installed;102 source/installed and102 prior backup files

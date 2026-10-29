@@ -1,5 +1,14 @@
 # Codex handoff — production maps and Claude course review
 
+## Published combined foundation — 2026-10-29
+
+Owner-authorized reviewed branches are on GitHub: codex/ice-drift-gates,
+claude/menu-launch and claude/immersive-gates (remote hashes in PROGRESS).
+Next coordinated visual branch should build from the combined foundation
+so Physics16, the meter’s onIce handling and exact solo gate observation
+are preserved. Do not install the older Claude-only branch over this build.
+Current installed runtimeaa9ed46; native ice/gate check is the next task.
+
 ## Installed ice drift and gates — 2026-10-29 13:11 +0100
 
 Runtime **aa9ed46** installed and102 source/installed files verified;102

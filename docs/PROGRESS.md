@@ -1,5 +1,17 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-29 — Authorized GitHub publication verified
+
+Normal atomic push to `https://github.com/PhilForever/AzerothKart.git` PASS
+after dry-run. Remote `ls-remote --heads` verified Claude menu branch
+`claude/menu-launch` at e54c37ff6dbacd6eacef607944666683d7eb787a,
+`claude/immersive-gates` at ef0bb58db600ec5e00bbcbc48553fee70ceb39d6, and
+combined `codex/ice-drift-gates` at1ea70e45741625c13f4c77c7b404e9cd994debf6
+(deployment receipt tip, runtimeaa9ed46). Main still
+f923d15f5cc8f306a0b47ad082587474abd1af8d. No force, release or other-worktree
+mutation. This follow-up receipt is published as a normal combined-branch
+fast-forward. Native play remains pending; both racers update/restart.
+
 ## 2026-10-29 13:11 +0100 — Ice drift and gates installed, ZIP verified
 
 Runtime **aa9ed46**, branch `codex/ice-drift-gates`, combines reviewed
