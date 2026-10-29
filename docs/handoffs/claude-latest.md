@@ -1,4 +1,74 @@
-# Claude handoff — Gates in the world (proposal)
+# Claude handoff — Alterac's gates: dwarven pillars, the bridge's gate at its start (proposal)
+
+Prepared 2026-10-29 at about 11:20 CET by Claude (rendering/UI/sprites owner).
+
+**Base:** this branch's own `067a860` (the gates in the world, below; not yet integrated). **Branch:** `claude/immersive-gates`, no merge commit:
+
+- `fb6f74e`: the dwarven post in `GateKit.tga` (`scripts/build_gate_kit.py`), Alterac's style (the dwarven post, a deep blue, `stands`), `Presentation.gatePosts(gate, post, style)`, `layoutGates` passing the style; `test_presentation`, `test_ui`;
+- `62dada2`: Alterac Valley version 2 (the bridge's gate at its start): the layout, `sprint_gates`' crossing rule, the generated `Battlegrounds.lua`, `test_alterac`, Codex's pins (`test_peer_session`, `test_multiplayer_integration`) and the score catalogue;
+- `1b70140`: the docs (the [gates' sheet](../art/ui/gates.md) and its picture, the kit's provenance, the contract, the test plan, the [Alterac sheet](../art/tracks/alterac-valley.md));
+- this handoff.
+
+**Nothing is installed or pushed.** The developer machine's Claude worktree is on `claude/immersive-gates` at `1b70140` (from `local-artifacts/bundles/immersive-gates-4.bundle`), clean apart from its untracked `Claude outputs/`; this handoff follows as `immersive-gates-5.bundle`.
+
+## Owner instructions
+
+On the gates' picture's Alterac Valley panel (the bridge gate, captioned "ice torches, violet light"): **"put this gate at the start of the bridge so that the pillars have something to stand on (in the snow), and make the pillar dwarven and the line blue"**.
+
+Taken without asking, **to be confirmed by him:**
+
+1. **The start of the bridge** is where the karts come onto it (its east end, from Icewing Bunker). The gate is across the deck there, inside the approach's walls (x 988; the bank is at 975, the walls end at 999): the only cut at the bridge's mouth that no kart can drive round. Its posts stand on the snow either side of the mouth, a little ahead of the line (the gorge's rim runs right up to the deck's sides).
+2. **Dwarven pillars and a blue line on all eight Alterac gates**, not this one alone: the caption he answered named the course's style. Horde banners on the Frostwolf half are an option (not built).
+3. **The dwarven pillar** is Warcraft III Reforged's Northrend obelisk: carved stone banded in bronze with a gold crest. Warcraft III has no Stormpike or dwarven banner model; the darker Dungeon obelisk is the alternative.
+4. **Two more posts moved** while reviewing all of Alterac's gates: Icewing Bunker's west post stood on the bunker's roof, Dun Baldar's south post on the finish's watchtower; both now stand on the snow beside them.
+
+## Done
+
+- **The bridge's gate** (Alterac **version 2**): x 800 halfway over the gorge → x 988 across the deck's mouth, 6576..6656; `routeGates[7]` 243 → 238. Walls, narrows, both grids, the other seven gates, the route, the spawn and all five pictures are byte-identical. `sprint_gates` now cuts a gate where the course first crosses its line after the gate before (the route also crosses x 988 near Iceblood Tower); the other gates come out the same.
+- **The posts:** `dwarven` replaces `frost` in `GateKit.tga` (65 × 104, 50 units tall); Alterac's light is a deep blue (0.26, 0.52, 1.00). A style's `stands` names the ground of a post that the rule would put on a building or over a drop (by gate name; false keeps the rule's): Alterac's bridge (both), Icewing Bunker (west) and Dun Baldar (south). Budget unchanged (121/233/232).
+- **Reviewed** both ends of all eight Alterac gates in the preview.
+
+## Scope (changed)
+
+- Claude's: `scripts/build_gate_kit.py`, `Assets/UI/GateKit.tga`; `Presentation.lua` (the gate block); `UI.lua` `layoutGates` (one line, within the gate functions reserved below); `tests/test_presentation.lua`, `tests/test_ui.lua` (the gate test); the Alterac section of `scripts/battleground_layouts.py`; `docs/art/ui/gates.md|png`, `docs/art/tracks/alterac-valley.md`.
+- **Shared, flagged for review:** `scripts/battleground_sprint.py` (`sprint_gates`' crossing rule) and the generated `addon/AzerothKart/Battlegrounds.lua` (Alterac version 2); `tests/test_alterac.lua` (version 2, the bridge gate's place, the moved posts on open snow); Codex's `tests/test_peer_session.lua` and `tests/test_multiplayer_integration.lua` (the version pins) and the generated `services/leaderboard/catalog.json`; entries in `docs/API_CONTRACTS.md`, `docs/TEST_PLAN.md`, `docs/art/ASSET_SOURCES.md`.
+
+No change to Physics, Checkpoints, Laps, Race, Courses, the protocols, sessions or Highscores' code.
+
+## Tests
+
+| Command | Cloud | Developer machine (Linux VM) |
+|---|---|---|
+| `python scripts/test_lua.py --runtime lua51 --tests <each module>` | 53 of 53 PASS | 53 of 53 PASS (three calls) |
+| `python scripts/test_lua.py --runtime lua54 --tests presentation ui menu alterac` | PASS | not run |
+| `python scripts/build_battlegrounds.py --wc3 WC3 --check --course alterac_valley` | PASS: `Battlegrounds.lua`; the five Alterac pictures byte-identical (`f8bc88a4…`, `e8c5cdb0…`, `4f164724…`, `07b653e5…`, `4dba294e…`) | `--geometry-only --check` PASS (48 s); the pictures not repainted there |
+| `python scripts/build_gate_kit.py --wc3 WC3 --check` | PASS (`a4e6cc10…a57c`) | PASS, the same bytes, from a fresh extraction with the [sheet's command](../art/ui/gates.md#rebuilding-the-kit) |
+| `python scripts/export_score_catalog.py --check` | PASS (14 boards) | PASS |
+| `python scripts/preview_ui.py --check` | 0 faults | 0 faults with the client's own fonts |
+| Trial merge onto Codex's installed `codex/menu-launch-review` `df73e81` (`git merge-tree`, a throwaway detached checkout, no branch made) | no conflicts; 53 of 53 Lua 5.1, Lua 5.4 focused, layout, catalogue PASS | not run |
+| `git diff --check`; `python scripts/validate_project.py` | PASS; the same 2 pre-existing FAILs (`docs/PROGRESS.md`'s links to `C:/Users/bakke/.codex/...`) | not run |
+
+**NOT RUN in the client:** the pillars' look and the blue on snow and cobbles; the bridge gate counting as the karts come onto the bridge; a version 2 race against a version 2 peer. The [gates' client check](../art/ui/gates.md#client-check-not-run) covers it.
+
+## For Codex
+
+1. **Alterac version 2** ([contract](../API_CONTRACTS.md#proposed-gates-in-the-world-claude-claudeimmersive-gates-2026-10-29-for-codex), last bullet): one gate's line moved, so a version 1 peer is incompatible and version 1's scores are a separate board by the existing context rule. The way and the finish are unchanged, so the times are comparable: your call whether to carry them over. Pins updated for your review; `test_race_protocol`'s wire example keeps version 1 (a codec example).
+2. **Pending ledger entry for `docs/PROGRESS.md`** (not written here): "2026-10-29 Claude `claude/immersive-gates` (`fb6f74e`, `62dada2`, `1b70140`): the owner's Alterac gate ask. Dun Baldar Bridge's gate moved to the bridge's mouth (Alterac version 2, x 988; everything else byte-identical, pictures included); Alterac's gates get dwarven stone posts and a deep blue light; a style's `stands` moves the posts the rule would put over the gorge or on a tower onto the snow beside them. Offline: every Lua module PASS on cloud and developer machine; the Alterac data and pictures and the kit byte-identical on both (the kit from a fresh extraction); catalogue and layout checks PASS; the trial merge onto the installed menus clean and passing. Client NOT RUN."
+
+## Push (the owner's; never pushed by Claude)
+
+From the main checkout on the developer machine:
+
+```
+git push -u origin claude/menu-launch
+git push -u origin claude/immersive-gates
+```
+
+## Next
+
+His look at the pictures; if he wants the Frostwolf half's gates Horde, a per-gate post in the style (not built). Then the gates' client check after Codex integrates.
+
+# Previous: Gates in the world (proposal)
 
 Prepared 2026-10-29 at about 10:30 CET by Claude (rendering/UI/sprites owner).
 
