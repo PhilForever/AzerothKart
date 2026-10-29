@@ -1,4 +1,75 @@
-# Claude handoff — Alterac Valley, coming soon
+# Claude handoff — Menus for launch (proposal)
+
+Prepared 2026-10-29 at about 01:50 CET by Claude (rendering/UI/sprites owner).
+
+**Base:** Codex's installed `codex/alterac-integration` `fcd1273`. **Branch:** `claude/menu-launch`, no merge commit:
+
+- `b030f28`: the kart portrait and track thumbnail atlases and their build scripts;
+- `54d4fe2`: `Menu.lua` (shared track lists, kart tiles, boards, the lines under the track, copy, Credits), its tests, the layout check, the validator's file list;
+- `1006082`: the docs (the [launch sheet](../art/ui/menu-launch.md) and its before/after pictures, the front-end sheet and review pictures, the asset ledger, the test plan, the contract proposal);
+- this handoff.
+
+**Nothing is installed or pushed.** The developer machine's Claude worktree is on `claude/menu-launch` at `1006082` (from `local-artifacts/bundles/menu-launch-1.bundle`), clean apart from its untracked `Claude outputs/`; this handoff follows as `menu-launch-2.bundle`.
+
+## Owner instructions
+
+With a screenshot of the installed track screen (Alterac Valley under **Back**, Arathi Basin's copy overlapping): **"The fact that this menu issue wasn't caught is.. interesting. (see image). I think it's time you went over the menu and refined it to prepare for launch next week. Take a look at the entire menu of the game and see if you can propose some improvements. We have a lot more maps and karts ahead of us so something definitely needs to happen in that area. Also - time to implement a mini map icon for this game -- not sure what it would look like - forget about that for now I guess."**
+
+Taken without asking, **to be confirmed by him:**
+
+1. The proposal is built, not only drawn: the track and kart browsers (the "something needs to happen" part), Highscores on the same list, the lines under the track, How to Play's copy, a Credits page and the tagline. He picks what ships; each is a separable part of `Menu.lua`.
+2. Proposed, not built: a track picker inside the lobby, **Race Again** on the main menu, **Next Track** on the results, the multiplayer instructions as numbered steps.
+3. The minimap icon is parked.
+
+## Done
+
+- **Why it got through** ([sheet](../art/ui/menu-launch.md#what-went-wrong)): a list with no limit, no check of where things land, preview fonts 13% narrower than the client's, copy of any length.
+- **Layout check:** `scripts/preview_ui.py --check` walks every screen with every track and kart and every board, measuring text at the client's widths (Friz Quadrata drawn 1.13 times its size, calibrated on his screenshot); overlaps, cut-off or hidden text, escaping controls. 19 faults on the installed build, 0 now. About five seconds; writes nothing unless asked.
+- **Choose a Track:** cup tabs; a pooled list of nine rows a page (paged beyond) with thumbnails and "3 laps | 6 gates"; details with the player's best; copy within three-line blurbs and one-line facts.
+- **Choose Your Kart / Garage:** fifteen pooled portrait tiles a page from `KartIcons.tga`, names in tooltips (or on the tiles when the picture cannot load).
+- **Highscores:** the same tabs and list beside the board (`Menu.boardTrackId`).
+- **Under the track:** the lap and gate lines only with developer info; the staged grid keeps its instruction line.
+- **How to Play / Credits:** current rules (sprints, deep snow, paved cities, ice, saved highscores); every kart's model credit, the tracks' art and the Blizzard notice on a Credits page.
+- **Budget:** 93/99/151 → 121/213/230, now independent of the number of tracks, cups and karts.
+
+## Scope (changed)
+
+- Claude's: `addon/AzerothKart/Menu.lua`; `tests/test_menu.lua`; `scripts/build_kart_icons.py`, `scripts/build_track_thumbs.py`; `addon/AzerothKart/Assets/UI/KartIcons.tga`, `TrackThumbs.tga`; `docs/art/ui/` (the launch sheet and pictures, the front-end sheet, the review pictures).
+- **Shared, flagged for review:** `tests/test_ui.lua` (the menu budget constants, the Test Oval check now over every cup's list, a printed budget); `scripts/preview_ui.py` (the check; `--check` no longer writes the review pictures); `scripts/validate_project.py` (the new files); entries in `docs/API_CONTRACTS.md`, `docs/TEST_PLAN.md` and `docs/art/ASSET_SOURCES.md`.
+
+No change to `UI.lua`, Physics, Courses, Race, the protocols, sessions, scores or saved data.
+
+## Tests
+
+| Command | Cloud | Developer machine (Linux VM) |
+|---|---|---|
+| `python scripts/test_lua.py --runtime lua51 --tests <each module>` | 53 of 53 PASS | 53 of 53 PASS |
+| `python scripts/test_lua.py --runtime lua54 --tests menu ui` | PASS | not run |
+| `python scripts/preview_ui.py --check` | PASS, 0 faults (stand-in fonts and the client's); the installed build: 19 | PASS, 0 faults with the client's own fonts (5 s) |
+| `python scripts/build_kart_icons.py --check`; `python scripts/build_track_thumbs.py --check` | PASS (`60cc8514…`, `7bc16068…`) | PASS, the same bytes |
+| `git diff --check`; `python scripts/validate_project.py` | PASS; the same 2 pre-existing FAILs (`docs/PROGRESS.md`'s links to `C:/Users/bakke/.codex/...`) | not run |
+
+**NOT RUN in the client:** every screen's look, the tooltips (`GameTooltip`, guarded), the two new pictures' loading and memory. Steps in [the client check](../art/ui/menu-launch.md#client-check-not-run).
+
+## For Codex
+
+1. Review the [contract proposal](../API_CONTRACTS.md#proposed-menus-for-launch-claude-claudemenu-launch-2026-10-29-for-codex): presentation only, but `test_ui`'s budget constants (121/213/230) and its Test Oval check change, and `Menu.highscoreTrackIndex` and the per-item button tables are gone (no runtime code used them).
+2. **The lobby's track choice** still steps with `Courses.next`. A picker inside the lobby is proposed; it must stay inside the multiplayer screen because `Menu.Show` leaves the session when the lobby opens another screen. Your call if you would rather change that.
+3. **Pending ledger entry for `docs/PROGRESS.md`** (not written here): "2026-10-29 Claude `claude/menu-launch` (`b030f28`, `54d4fe2`, `1006082`): menus for launch after the owner found Alterac Valley's track button under Back. The track screen and Highscores share pooled track lists (cup tabs, nine rows a page with thumbnails, laps and gates); the kart screen pooled portrait tiles; the lap and gate lines under the track only with developer info; How to Play rewritten with a Credits page; `scripts/preview_ui.py --check` measures every screen at the client's text widths (19 faults on the installed build, 0 now). Budget 121/213/230, independent of the catalogue. Offline: every Lua module PASS on cloud and developer machine; both atlases byte-identical; the layout check PASS with the client's fonts. Client NOT RUN."
+
+## Push (the owner's; never pushed by Claude)
+
+From the main checkout on the developer machine:
+
+```
+git push -u origin claude/menu-launch
+```
+
+## Next
+
+The owner picks the launch set from [the sheet](../art/ui/menu-launch.md) and its before/after pictures; Codex reviews and integrates; then the client check. Then whichever of the lobby picker, Race Again, Next Track and the multiplayer steps he wants, and the minimap icon when he is ready.
+
+# Previous: Alterac Valley, coming soon
 
 Prepared 2026-10-29 at about 00:10 CET by Claude (rendering/UI/sprites owner).
 
