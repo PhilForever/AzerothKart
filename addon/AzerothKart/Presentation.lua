@@ -1041,5 +1041,135 @@ function Presentation.arrowCoords(frame)
     return column / columns, (column + 1) / columns, row / columns, (row + 1) / columns
 end
 
+-- ---------------------------------------------------------------------------
+-- Gates in the world. A gate keeps its exact line (Track.gates: a straight
+-- segment from wall to wall) as a faint, soft stroke, and gains a post just
+-- past the fence at each end: a banner, sign, brazier or torch from its
+-- course's kit. The next gate's line pulses and its posts stand in a pool
+-- of its light; a passed gate's line flashes and fades; the course's last
+-- gate (the lap line, or a sprint's finish) is also a checkered band. Only
+-- pictures: nothing here is solid or changes where a gate is or what counts.
+
+-- GateKit.tga (scripts/build_gate_kit.py): each post's rectangle in the
+-- 512 x 512 atlas, the texel of its foot (ox, oy from that rectangle's
+-- top-left; one texel a world unit, heights leaning north as the scenery's)
+-- and its height in world units; the glow, the soft lines and the checks as
+-- {x, y, width, height}.
+Presentation.GATE_KIT = {path="Interface\\AddOns\\AzerothKart\\Assets\\UI\\GateKit.tga", size=512,
+    posts={
+        alliance={x=27, y=18, w=74, h=91, ox=20, oy=42, zmax=60.1},
+        horde={x=154, y=7, w=76, h=113, ox=18, oy=53, zmax=68.1},
+        scarlet={x=285, y=14, w=69, h=99, ox=17, oy=42, zmax=60.8},
+        goblin={x=417, y=26, w=61, h=75, ox=17, oy=37, zmax=45.8},
+        brazier={x=39, y=153, w=49, h=77, ox=14, oy=35, zmax=35.7},
+        frost={x=159, y=144, w=66, h=96, ox=24, oy=46, zmax=38.4},
+    },
+    pool={0, 384, 128, 128}, lineH={128, 384, 256, 16}, checkH={128, 400, 256, 16},
+    lineV={384, 256, 16, 256}, checkV={400, 256, 16, 256},
+}
+
+-- Each course's gates: its kit's post and the colour of its next gate's
+-- light. A course not listed (a test fixture) shows the lines alone.
+local ALLIANCE, HORDE, HOLY, FIRE = {0.42, 0.64, 1.00}, {1.00, 0.58, 0.28}, {1.00, 0.84, 0.46}, {1.00, 0.72, 0.36}
+Presentation.GATE_STYLES = {
+    mirage_raceway={post="goblin", tint={1.00, 0.84, 0.32}},
+    stormwind_city={post="alliance", tint=ALLIANCE},
+    ironforge_gp={post="alliance", tint=FIRE},
+    darnassus_canopy={post="alliance", tint=ALLIANCE},
+    orgrimmar_canyon={post="horde", tint=HORDE},
+    thunder_bluff_skyway={post="horde", tint=FIRE},
+    undercity_slime={post="horde", tint={0.60, 1.00, 0.44}},
+    scarlet_graveyard={post="scarlet", tint=HOLY},
+    scarlet_library={post="scarlet", tint=HOLY},
+    scarlet_armory={post="scarlet", tint=HOLY},
+    scarlet_cathedral={post="scarlet", tint=HOLY},
+    warsong_gulch={post="brazier", tint=FIRE},
+    arathi_basin={post="brazier", tint=FIRE},
+    -- The ice torches' violet: a pale tint would vanish on the snow.
+    alterac_valley={post="frost", tint={0.74, 0.46, 1.00}},
+}
+
+-- How far past each end of its gate a post stands, in world units (past the
+-- wall the gate's end meets), and the camera's lean (heights draw north by
+-- 0.6 of themselves, as the scenery's).
+Presentation.GATE_POST_OUTSET, Presentation.GATE_LEAN = 12, 0.6
+
+-- The ground points of a gate's two posts: each end pushed out along the
+-- gate's line. A post on the south side leans north, back over the road, so
+-- an end whose way out points south moves out by its post's lean as well:
+-- its top, too, stays past the fence. nil for a gate of no length.
+function Presentation.gatePosts(gate, post)
+    if type(gate) ~= "table" then return nil end
+    local dx, dy = gate.bx - gate.ax, gate.by - gate.ay
+    local length = math.sqrt(dx * dx + dy * dy)
+    if not finite(length) or length <= 0 then return nil end
+    local ux, uy = dx / length, dy / length
+    local lean = type(post) == "table" and finite(post.zmax) and post.zmax * Presentation.GATE_LEAN or 0
+    local function out(x, y, sx, sy)
+        local reach = Presentation.GATE_POST_OUTSET + (sy < -0.5 and lean or 0)
+        return x + sx * reach, y + sy * reach
+    end
+    local x1, y1 = out(gate.ax, gate.ay, -ux, -uy)
+    local x2, y2 = out(gate.bx, gate.by, ux, uy)
+    return x1, y1, x2, y2
+end
+
+-- A world rectangle (x, y its bottom-left, w by h) drawn with a rectangle of
+-- an atlas (texels cx..cx + cw, cy..cy + ch of a size-texel square picture,
+-- top-left to top-left): where it shows on the canvas and its crop, cut at
+-- the canvas' edges, as roofCrop's; nil when none of it shows.
+function Presentation.atlasCrop(view, x, y, w, h, cx, cy, cw, ch, size)
+    local px,py,pw,ph = Presentation.clipRect(view, x, y, w, h)
+    if not px then return nil end
+    local x0,y0 = Presentation.unproject(view, px, py)
+    local x1,y1 = Presentation.unproject(view, px + pw, py + ph)
+    local top = y + h
+    return px, py, pw, ph, (cx + (x0 - x) / w * cw) / size, (cx + (x1 - x) / w * cw) / size,
+        (cy + (top - y1) / h * ch) / size, (cy + (top - y0) / h * ch) / size
+end
+
+-- A post's picture with its foot on (x, y): atlasCrop of its rectangle.
+function Presentation.postCrop(view, x, y, post)
+    local size = Presentation.GATE_KIT.size
+    return Presentation.atlasCrop(view, x - post.ox, y + post.oy - post.h, post.w, post.h,
+        post.x, post.y, post.w, post.h, size)
+end
+
+-- A finish gate's checkered band, `thickness` units across its line: the
+-- band's world rectangle and its crop of the checks (squares of
+-- thickness / 2, as many along as the gate's length allows, stretched past
+-- the cell's 32), as atlasCrop's; nil when none of it shows.
+function Presentation.finishCrop(view, gate, thickness)
+    local K = Presentation.GATE_KIT
+    local half = thickness / 2
+    if gate.ax == gate.bx then
+        local length = math.abs(gate.by - gate.ay)
+        local cell = K.checkV
+        local along = math.min(1, length / (thickness / 2) / 32)
+        return Presentation.atlasCrop(view, gate.ax - half, math.min(gate.ay, gate.by), thickness, length,
+            cell[1], cell[2], cell[3], cell[4] * along, K.size)
+    end
+    local length = math.abs(gate.bx - gate.ax)
+    local cell = K.checkH
+    local along = math.min(1, length / (thickness / 2) / 32)
+    return Presentation.atlasCrop(view, math.min(gate.ax, gate.bx), gate.ay - half, length, thickness,
+        cell[1], cell[2], cell[3] * along, cell[4], K.size)
+end
+
+-- A gate line's opacity: the next gate pulses (a share of gateGlow's), a
+-- passed one flashes and is gone after GATE_FLASH seconds, the others stay
+-- faint. `seconds`: the run's time for `next`, since the pass for `passed`.
+Presentation.GATE_LINE = {next=0.6, later=0.16, flash=0.95}
+Presentation.GATE_FLASH = 0.5
+function Presentation.gateLineAlpha(state, seconds)
+    local L = Presentation.GATE_LINE
+    if state == "next" then return L.next * Presentation.gateGlow(seconds) end
+    if state == "passed" then
+        if not finite(seconds) or seconds < 0 or seconds >= Presentation.GATE_FLASH then return 0 end
+        return L.flash * (1 - seconds / Presentation.GATE_FLASH)
+    end
+    return L.later
+end
+
 if type(namespace) == "table" then namespace.Presentation = Presentation end
 return Presentation

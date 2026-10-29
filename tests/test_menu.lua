@@ -119,7 +119,7 @@ local function withMock(savedDB, test, prepare)
     _G.SOUNDKIT = {IG_MAINMENU_OPTION=852, IG_MAINMENU_OPEN=850, IG_MAINMENU_OPTION_CHECKBOX_ON=856,
         IG_MAINMENU_OPTION_CHECKBOX_OFF=857, UI_BATTLEGROUND_COUNTDOWN_TIMER=25477,
         UI_BATTLEGROUND_COUNTDOWN_FINISHED=25478, LFG_REWARDS=17316, IG_QUEST_LIST_COMPLETE=878,
-        UI_EPICLOOT_TOAST=31578}
+        UI_EPICLOOT_TOAST=31578, MAP_PING=3175}
     _G.PlaySound = function(kit) env.sounds[#env.sounds + 1] = kit end
     _G.UISpecialFrames = {}
     local ok, err = pcall(function()
@@ -262,6 +262,9 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu)
     -- The highscores board is a card; Credits is a dialog with eight labels
     -- and a Back button, reached by How to Play's Credits button.
     -- The lobby adds two EditBoxes and Listen/track buttons.
+    -- The gates' kit adds 19 textures (a checkered band, two light pools,
+    -- two posts for each of the eight gate strips); the race overlay's gate
+    -- toast a plate and two labels.
     -- The observational remote kart adds one texture and one font string.
     -- Saved highscores add six frames and 52 labels, including the results notice.
     -- The player's kart outline adds a texture, its Settings check a button and two labels.
@@ -273,8 +276,8 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu)
     -- A two-floor course's four pooled roofs and its guiding arrow, and a
     -- tiled course's three pooled tiles, are created with the window (hidden on
     -- every other course).
-    assert(UI.objects.frames == 121 and UI.objects.textures == 213 and UI.objects.fontStrings == 230,
-        ("explicit budget 121/213/230, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
+    assert(UI.objects.frames == 121 and UI.objects.textures == 233 and UI.objects.fontStrings == 232,
+        ("explicit budget 121/233/232, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
             UI.objects.fontStrings))
     assert(AzerothKartDB.preferences == nil, "creation saves nothing")
     local before = counts(env)
@@ -1315,6 +1318,48 @@ withMock(nil, function(env, UI, Menu, AK)
     for _ = 1, 200 do UI.OnUpdate(1 / 60) end
     assert(#env.sounds == 0, "muted menus and countdown stay silent")
     UI.Stop("sound run")
+end)
+
+-- Passing a gate: its name and the run's time there at the top, with the
+-- difference from the last lap at the same gate (green when faster, red when
+-- slower), and the map's ping; gone after Menu.GATE_TOAST seconds. A lap's
+-- last gate shows the lap's time. Presentation memory only; nothing new.
+withMock(nil, function(env, UI, Menu)
+    assert(Menu.splitText(1284) == "0:21.40" and Menu.splitText(1284, 1305) == "0:21.40   |cff66ee66-0.35|r"
+        and Menu.splitText(1305, 1284) == "0:21.75   |cffff6655+0.35|r", "a split, and its difference coloured")
+    UI.Toggle(); click(Menu.view.homeButtons[1]); click(Menu.view.trackNext); click(Menu.view.race)
+    for _ = 1, 200 do UI.OnUpdate(1 / 60) end
+    local Track, view = UI.track, Menu.view
+    local before = counts(env)
+    local function cross(index, wait)
+        for _ = 1, wait do UI.OnUpdate(1 / 60) end
+        local gate = Track.gates[index]
+        UI.state.x, UI.state.y = (gate.ax + gate.bx) / 2 - gate.nx, (gate.ay + gate.by) / 2 - gate.ny
+        UI.state.heading = gate.nx == 1 and 0 or gate.nx == -1 and math.pi or
+            gate.ny == 1 and math.pi / 2 or -math.pi / 2
+        UI.state.speed, UI.state.steering = 200, 0
+        UI.OnUpdate(1 / 60)
+    end
+    assert(not view.toastName:IsShown(), "no toast before a gate")
+    env.sounds = {}
+    cross(1, 30)
+    local first = UI.checkpoints.lastTick - UI.laps.lapStartTick
+    assert(UI.checkpoints.passed == 1 and view.toastName:IsShown() and view.toastPlate:IsShown()
+        and view.toastName.text == Track.gates[1].name and view.toastSplit.text == Menu.splitText(first)
+        and env.sounds[#env.sounds] == 3175, "the first gate: its name, the time there and the ping")
+    for _ = 1, 100 do UI.OnUpdate(1 / 60) end
+    assert(not view.toastName:IsShown() and not view.toastSplit:IsShown(), "the toast goes after its moment")
+    cross(2, 5); cross(3, 5); cross(4, 5)
+    assert(UI.laps.completedLaps == 1 and view.toastName.text == Track.gates[4].name
+        and view.toastSplit.text == Menu.splitText(UI.laps.lastLapTicks), "the lap's last gate: the lap's time")
+    cross(1, 10)
+    local second = UI.checkpoints.lastTick - UI.laps.lapStartTick
+    assert(second < first and view.toastSplit.text == Menu.splitText(second, first)
+        and view.toastSplit.text:find("|cff66ee66-", 1, true), "faster than the last lap: green")
+    cross(2, 150) -- later than the last lap reached it
+    assert(view.toastSplit.text:find("|cffff6655+", 1, true), "slower: red")
+    sameCounts(env, before, "gate toasts reuse their pieces")
+    UI.Stop("gate toasts")
 end)
 
 -- The shared starting grid is a race scene without solo simulation. Showing

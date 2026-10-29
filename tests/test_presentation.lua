@@ -1211,6 +1211,67 @@ do
     print("offline presentation: two floors' draw order, roof fades and crops, guiding arrow")
 end
 
+-- Gates in the world: posts just past each end, clear of the road on the
+-- south too; the kit's crops; the line's opacity by state; every course's
+-- style names a post in the kit.
+do
+    local K = P.GATE_KIT
+    for name, post in pairs(K.posts) do
+        assert(post.x >= 0 and post.y >= 0 and post.x + post.w <= K.size and post.y + post.h <= K.size
+            and post.ox > 0 and post.ox < post.w and post.oy > 0 and post.oy <= post.h and post.zmax > 0,
+            name .. ": its rectangle is in the atlas and its foot in its rectangle")
+    end
+    for _, key in ipairs({"pool", "lineH", "checkH", "lineV", "checkV"}) do
+        local c = K[key]
+        assert(c[1] >= 0 and c[2] >= 0 and c[1] + c[3] <= K.size and c[2] + c[4] <= K.size, key .. " in the atlas")
+    end
+    local styled = 0
+    for id, style in pairs(P.GATE_STYLES) do
+        assert(K.posts[style.post] and #style.tint == 3, id .. ": a post of the kit and a light")
+        styled = styled + 1
+    end
+    assert(styled == 14, "every production course has its gates' style")
+    -- A gate from x 100 to 300 along y 50 (east-west): the posts 12 past each
+    -- end, leaning north away from the road.
+    local post = K.posts.horde
+    local x1, y1, x2, y2 = P.gatePosts({ax=100, ay=50, bx=300, by=50}, post)
+    assert(x1 == 88 and y1 == 50 and x2 == 312 and y2 == 50, "east and west: 12 past each end")
+    -- North-south (from y 400 down to y 200): the south end's post moves out
+    -- by its height's lean too, so its top stays past the fence.
+    x1, y1, x2, y2 = P.gatePosts({ax=500, ay=400, bx=500, by=200}, post)
+    near(y1, 412, "the north post 12 past the north end")
+    near(y2, 200 - 12 - post.zmax * P.GATE_LEAN, "the south post past the south end by 12 and its lean")
+    assert(x1 == 500 and x2 == 500 and P.gatePosts({ax=1, ay=1, bx=1, by=1}, post) == nil, "a gate of no length: none")
+    near(y2 + post.zmax * P.GATE_LEAN, 188, "the south post's top at the fence's 12")
+    -- The crops: a post with its foot at the middle of a 1:1 view shows
+    -- whole, its own rectangle; cut at the canvas' left edge, a share of it.
+    local view = P.fitViewport(800, 480, 800, 480)
+    local px, py, pw, ph, u0, u1, v0, v1 = P.postCrop(view, 400, 240, post)
+    near(px, 400 - post.ox, "the post's left: its foot less ox"); near(py, 240 + post.oy - post.h, "its bottom")
+    assert(pw == post.w and ph == post.h, "one texel a world unit")
+    near(u0, post.x / K.size, "u0"); near(u1, (post.x + post.w) / K.size, "u1")
+    near(v0, post.y / K.size, "v0 (top)"); near(v1, (post.y + post.h) / K.size, "v1")
+    px, py, pw, ph, u0, u1 = P.postCrop(view, 5, 240, post)
+    assert(px == 0 and math.abs(pw - (5 - post.ox + post.w)) < 1e-9, "cut at the canvas' left edge")
+    near(u0, (post.x + post.ox - 5) / K.size, "the crop starts where the canvas does")
+    assert(P.postCrop(view, -500, 240, post) == nil, "off the canvas: nothing")
+    -- The finish's checks: squares of half the band, along as far as the cell has.
+    local band = {P.finishCrop(view, {ax=100, ay=200, bx=260, by=200}, 10)}
+    assert(band[1] == 100 and band[2] == 195 and band[3] == 160 and band[4] == 10, "the band over the line")
+    near(band[6] - band[5], K.checkH[3] * (160 / 5 / 32) / K.size, "32 squares of 5 along 160 units")
+    band = {P.finishCrop(view, {ax=300, ay=100, bx=300, by=420}, 10)}
+    near(band[8] - band[7], K.checkV[4] / K.size, "a longer band stretches the whole cell")
+    -- The line's opacity by state.
+    local L = P.GATE_LINE
+    near(P.gateLineAlpha("next", 0), L.next * 0.55, "the next gate pulses from its low")
+    near(P.gateLineAlpha("next", 0.4), L.next, "to its full")
+    assert(P.gateLineAlpha("later", 3) == L.later, "a later gate: faint")
+    assert(P.gateLineAlpha("passed", 0) == L.flash and P.gateLineAlpha("passed", P.GATE_FLASH) == 0
+        and P.gateLineAlpha("passed", -1) == 0 and P.gateLineAlpha("passed", 0 / 0) == 0, "a passed gate's flash")
+    near(P.gateLineAlpha("passed", P.GATE_FLASH / 2), L.flash / 2, "fading evenly")
+    print("offline presentation: gate posts past the fences, the kit's crops, the lines' states")
+end
+
 assert(_G.AzerothKart == beforeGlobal, "offline import must not create or replace an addon global")
 local namespace = {sentinel=marker}
 local loaded = assert(loadfile("addon/AzerothKart/Presentation.lua"))("AzerothKart", namespace)

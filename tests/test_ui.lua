@@ -337,7 +337,8 @@ local EFFECT_TEXTURES=20+14+2*2
 -- two page buttons, nine rows (a button, three textures, three labels) and a
 -- page label; fifteen portrait tiles (a button, four textures, a label). The
 -- highscores board is a card; Credits a dialog with eight labels and Back.
-local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=109,145,214 -- ten pooled score rows and bounded navigation/result notice
+-- The race overlay's gate toast adds a plate and two labels.
+local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=109,146,216 -- ten pooled score rows and bounded navigation/result notice
 -- (the kart screen's four handling bars: two textures and a label each; the
 -- race screens: the HUD's place, and the results' Highscores button,
 -- celebration art, confetti, banner and the two racers' rows)
@@ -354,7 +355,15 @@ local ROOF_PIECES=4+1
 -- texture and the rest in three pooled background textures, created with the
 -- window and hidden on every other course.
 local TILE_PIECES=3
-local UI_TEXTURES=112+GATE_STRIPS+EFFECT_TEXTURES+MENU_TEXTURES+ROOF_PIECES+TILE_PIECES
+-- The gates' kit: the last gate's checkered band, the next gate's two light
+-- pools and two posts a gate strip, created with the window and hidden
+-- until a course with a kit lays them out.
+local GATE_KIT_PIECES=1+2+2*GATE_STRIPS
+-- The kit's picture loads once, onto every piece and every gate strip, with
+-- the first course that has gate posts.
+local GATE_KIT_PATH="Interface\\AddOns\\AzerothKart\\Assets\\UI\\GateKit.tga"
+local GATE_KIT_LOADS=GATE_KIT_PIECES+GATE_STRIPS
+local UI_TEXTURES=112+GATE_STRIPS+EFFECT_TEXTURES+MENU_TEXTURES+ROOF_PIECES+TILE_PIECES+GATE_KIT_PIECES
 -- The Close results and Kart buttons add two Frames to the earlier nine; the
 -- Settings check "Outline my kart" adds a button and its two lines of text.
 local OUTLINE_CHECK_FRAMES,OUTLINE_CHECK_FONTS=1,2
@@ -578,8 +587,8 @@ withMock(nil,false,function(env,UI)
     assert(Mirage.id=="mirage_raceway" and UI.view.scale==1.5 and UI.view.follow==true,
         "Mirage uses the closer uniform follow camera")
     assert(UI.canvas.width==800 and UI.canvas.height==480 and
-           UI.mirageBackground:IsShown() and env.textureCalls==2+EFFECT_TEXTURES and
-           loads(env,BACKGROUND_PATH)==1 and
+           UI.mirageBackground:IsShown() and env.textureCalls==2+EFFECT_TEXTURES+GATE_KIT_LOADS and
+           loads(env,BACKGROUND_PATH)==1 and loads(env,GATE_KIT_PATH)==GATE_KIT_LOADS and
            UI.mirageBackground.texturePath==
                "Interface\\AddOns\\AzerothKart\\Assets\\Tracks\\SaltFlats\\Background.tga",
         "one custom background is loaded at the declared addon path")
@@ -761,8 +770,9 @@ withMock(nil,false,function(env,UI)
         assert(UI.SelectTrack("mirage_raceway"))
         assert(UI.SelectTrack("test_oval"))
     end
-    assert(env.textureCalls==2+EFFECT_TEXTURES and loads(env,BACKGROUND_PATH)==1 and loads(env,KART_PATH)==1,
-        "background, kart sprite and effect atlases each load once and are reused across later selections")
+    assert(env.textureCalls==2+EFFECT_TEXTURES+GATE_KIT_LOADS and loads(env,BACKGROUND_PATH)==1
+        and loads(env,KART_PATH)==1 and loads(env,GATE_KIT_PATH)==GATE_KIT_LOADS,
+        "background, kart sprite, effect atlases and the gates' kit each load once and are reused across later selections")
     UI.Start()
     env.fire("GLOBAL_MOUSE_DOWN","LeftButton")
     local activeState,activeRace,activeClock=UI.state,UI.race,UI.clock
@@ -1065,8 +1075,15 @@ withMock(nil,false,function(env,UI)
     local Track,Physics=env.namespace.Track,env.namespace.Physics
     local counts={}
     for key,value in pairs(env.counts) do counts[key]=value end
+    -- The Oval fixture has no gate kit: each line keeps a plain colour, faint
+    -- white for a later gate, the default gold for the next, and a passed
+    -- gate's gold flashing out (Presentation.GATE_LINE).
     local function gateColor(index,r,g,b,a)
-        local color=UI.gateTextures[index].color
+        local color,start=UI.gateTextures[index].color,UI.gateFlashes[index]
+        if start then -- a gate passed moments ago shows its gold flash, fading to its own look
+            local flash=env.namespace.Presentation.gateLineAlpha("passed",(UI.state.tick-start)*Physics.FIXED_DT)
+            r,g,b,a=1,.86,.45,math.max(a,flash)
+        end
         assert(color[1]==r and color[2]==g and color[3]==b and color[4]==a,
             "unexpected checkpoint tint for gate "..index)
     end
@@ -1103,8 +1120,8 @@ withMock(nil,false,function(env,UI)
             assert(gate.ay==gate.by and strip.height==5 and strip.width==math.abs(gate.bx-gate.ax),
                 "horizontal gate strip covers its crossing segment")
         end
-        if index==1 then gateColor(index,.98,.93,.45,.9)
-        else gateColor(index,.55,.58,.62,.65) end
+        if index==1 then gateColor(index,1,.86,.45,.6)
+        else gateColor(index,1,1,1,.16) end
     end
     local startGate=Track.gates[4]
     assert(startGate.name=="Start" and startGate.ay==Track.centerY and
@@ -1130,15 +1147,19 @@ withMock(nil,false,function(env,UI)
         "actual fixed-step North crossing advances one checkpoint")
     assert(UI.checkpointHud.text=="Checkpoints: 1/4 | Next: West",
         "checkpoint HUD refreshes immediately before the periodic timing HUD")
-    gateColor(1,.25,.80,.72,.9); gateColor(2,.98,.93,.45,.9)
+    gateColor(1,1,.86,.45,.95); gateColor(2,1,.86,.45,.6)
+    assert(UI.gateFlashes[1]==UI.state.tick,"the gate just passed flashes")
     local writes={}
     for index,strip in ipairs(UI.gateTextures) do writes[index]=strip.colorWrites end
     local hudWrites=UI.checkpointHud.textWrites
     for _=1,3 do UI.OnUpdate(0) end
+    for index,strip in ipairs(UI.gateTextures) do
+        assert(strip.colorWrites==writes[index],"a frame without a tick rewrites no gate's colour")
+    end
     cross(1)
     assert(UI.checkpoints.passed==1,"recrossing an accepted gate cannot duplicate progress")
     for index,strip in ipairs(UI.gateTextures) do
-        assert(strip.colorWrites==writes[index],"unchanged progress does not rewrite gate tints")
+        assert(index==1 or strip.colorWrites==writes[index],"unchanged progress does not rewrite gate tints")
     end
     assert(UI.checkpointHud.textWrites==hudWrites,
         "render-only and irrelevant crossings do not rewrite checkpoint text")
@@ -1163,8 +1184,10 @@ withMock(nil,false,function(env,UI)
         "finish refreshes exact lap feedback before the periodic HUD interval")
     assert(UI.checkpointHud.text=="Checkpoints: 0/4 | Next: North",
         "a completed lap displays the next circuit's first required gate")
-    gateColor(1,.98,.93,.45,.9)
-    for index=2,4 do gateColor(index,.55,.58,.62,.65) end
+    gateColor(1,1,.86,.45,.6)
+    for index=2,4 do gateColor(index,1,1,1,.16) end
+    assert(UI.gateFlashes[4]==firstFinishTick and UI.gateTextures[4].color[4]==.95,
+        "a lap's end flashes its last gate at full brightness")
     cross(4); cross(1,true)
     assert(UI.laps.completedLaps==1 and UI.laps.lastLapTicks==firstLapTicks and
            UI.checkpoints.passed==0,
@@ -1231,8 +1254,8 @@ withMock(nil,false,function(env,UI)
            UI.laps.checkpoints==UI.checkpoints and
            UI.lapHud.text=="Laps: 0 | Current: 0.00s | Last: -- | Best: --",
         "fresh Start resets all lap timing and replaces the retained lap object")
-    gateColor(1,.98,.93,.45,.9)
-    for index=2,4 do gateColor(index,.55,.58,.62,.65) end
+    gateColor(1,1,.86,.45,.6)
+    for index=2,4 do gateColor(index,1,1,1,.16) end
     UI.Stop("lap fixture done")
     for key,value in pairs(counts) do
         assert(env.counts[key]==value,"lap/checkpoint updates allocated UI objects: "..key)
@@ -3770,7 +3793,7 @@ withMock({schemaVersion=1,preferences={version=1,track="test_oval",futureField="
     -- (The menus' pooled track lists and portrait grid, the four pooled roofs,
     -- the guiding arrow and the three pooled tiles are part of the production
     -- pool; see test_menu's budget.)
-    assert(UI.objects.frames==121 and UI.objects.textures==213 and UI.objects.fontStrings==230,
+    assert(UI.objects.frames==121 and UI.objects.textures==233 and UI.objects.fontStrings==232,
         "production pool excludes the 96 Oval bands and two fixture crates")
 end,nil,nil,true)
 
@@ -3799,7 +3822,7 @@ for _,failure in ipairs({"false","nil","throws","camera"}) do
     end,nil,nil,true)
 end
 
-originalPrint("test_ui production catalogue: fourteen multiplayer courses, real Mirage default/scenery, retired-save preservation, layered/sprint Ready and asset-failure Start guard PASS (121/213/230 pool)")
+originalPrint("test_ui production catalogue: fourteen multiplayer courses, real Mirage default/scenery, retired-save preservation, layered/sprint Ready and asset-failure Start guard PASS (121/233/232 pool)")
 
 -- Registered Warsong rendering (version 3). Its two covers, the ground over
 -- each tunnel, crop from Roofs.tga as the camera moves and fade as the
@@ -3923,6 +3946,113 @@ withMock(nil,false,function(env,UI)
         assert(UI.opponent:IsShown() and UI.opponent.sublevel==0,"and the friend shows there at 0: "..level)
         noFriend()
     end
+end,nil,nil,true)
+
+-- Gates in the world: on a course with a style the kit loads once onto
+-- every piece; each line shows its direction's soft line, the next gate's in
+-- its course's light, later ones faint white; two posts a gate stand past
+-- its ends where Presentation puts them; the next gate's posts stand in
+-- light pools; the last gate gets the checkered band. A passed gate's line
+-- flashes and is gone in half a second, the pools move on. Nothing is
+-- created while driving or switching courses. Only pictures change.
+withMock(nil,false,function(env,UI)
+    env.fire("ADDON_LOADED","AzerothKart")
+    local AK=env.namespace
+    local P,Physics=AK.Presentation,AK.Physics
+    UI.Toggle()
+    local counts={}
+    for key,value in pairs(env.counts) do counts[key]=value end
+    assert(UI.SelectTrack("orgrimmar_canyon"),"Orgrimmar selects")
+    local track,style=UI.track,P.GATE_STYLES.orgrimmar_canyon
+    local post,K=P.GATE_KIT.posts[style.post],P.GATE_KIT
+    assert(UI.gateLook and UI.gateStyle==style and UI.gatePost==post and loads(env,GATE_KIT_PATH)==GATE_KIT_LOADS,
+        "the kit loads once onto every piece")
+    local function lines(nextGate,label)
+        for index,gate in ipairs(track.gates) do
+            local strip,cell=UI.gateTextures[index],gate.ax==gate.bx and K.lineV or K.lineH
+            assert(strip.texCoords[1]==cell[1]/K.size and strip.texCoords[3]==cell[2]/K.size,
+                label..": gate "..index.."'s line cell by its direction")
+            local c=strip.vertexColor
+            if index==nextGate then
+                assert(c[1]==style.tint[1] and c[2]==style.tint[2] and c[4]==P.GATE_LINE.next,
+                    label..": the next gate in its course's light")
+            elseif not UI.gateFlashes[index] and index>nextGate then
+                assert(c[1]==1 and c[2]==1 and c[3]==1 and c[4]==P.GATE_LINE.later,label..": a later gate faint white")
+            end
+        end
+    end
+    local function posts(label)
+        for index,gate in ipairs(track.gates) do
+            local x1,y1,x2,y2=P.gatePosts(gate,post)
+            for side,point in ipairs({{x1,y1},{x2,y2}}) do
+                local piece=UI.gatePosts[2*index-2+side]
+                local px,py,pw,ph,u0,u1,v0,v1=P.postCrop(UI.view,point[1],point[2],post)
+                if px then
+                    assert(piece:IsShown() and piece.point[4]==px and piece.point[5]==py and piece.width==pw
+                        and piece.height==ph and piece.texCoords[1]==u0 and piece.texCoords[3]==v0,
+                        label..": gate "..index.."'s post "..side.." where its crop says")
+                else assert(not piece:IsShown(),label..": a post off the canvas is hidden") end
+            end
+        end
+        for index=2*#track.gates+1,#UI.gatePosts do
+            assert(not UI.gatePosts[index]:IsShown(),label..": posts past the course's gates stay hidden")
+        end
+    end
+    local function pools(nextGate,label)
+        local x1,y1,x2,y2=P.gatePosts(track.gates[nextGate],post)
+        for side,point in ipairs({{x1,y1},{x2,y2}}) do
+            local piece,R=UI.gatePools[side],34
+            local px,py=P.atlasCrop(UI.view,point[1]-R,point[2]-R,2*R,2*R,K.pool[1],K.pool[2],K.pool[3],K.pool[4],K.size)
+            assert((px~=nil)==piece:IsShown() and (not px or piece.point[4]==px and piece.point[5]==py),
+                label..": the next gate's pool "..side)
+        end
+    end
+    lines(1,"at the grid"); posts("at the grid"); pools(1,"at the grid")
+    local px=P.finishCrop(UI.view,track.gates[#track.gates],10)
+    assert((px~=nil)==UI.gateBand:IsShown() and UI.gateBand.texturePath==GATE_KIT_PATH,"the last gate's checkered band")
+    UI.Start()
+    finishCountdown(UI)
+    local gate=track.gates[1]
+    UI.state.x,UI.state.y=(gate.ax+gate.bx)/2-gate.nx,(gate.ay+gate.by)/2-gate.ny
+    UI.state.heading=gate.nx==1 and 0 or gate.nx==-1 and math.pi or gate.ny==1 and math.pi/2 or -math.pi/2
+    UI.state.speed=200; UI.state.steering=0
+    UI.OnUpdate(Physics.FIXED_DT)
+    assert(UI.checkpoints.passed==1 and UI.gateFlashes[1]==UI.state.tick
+        and UI.gateTextures[1].vertexColor[4]==P.GATE_LINE.flash,"the gate just passed flashes")
+    lines(2,"after the first gate"); posts("after the first gate"); pools(2,"after the first gate")
+    UI.state.speed=0
+    for _=1,40 do UI.OnUpdate(Physics.FIXED_DT) end
+    assert(UI.gateFlashes[1]==nil and UI.gateTextures[1].vertexColor[4]==0,
+        "in half a second the passed gate's line is gone")
+    assert(UI.gateTextures[2].alpha>=0.55 and UI.gateTextures[2].alpha<=1,"the next gate's line pulses")
+    UI.Stop("gates checked")
+    for _,id in ipairs({"mirage_raceway","scarlet_cathedral","alterac_valley","orgrimmar_canyon"}) do
+        assert(UI.SelectTrack(id),id.." selects")
+        assert(UI.gatePost==P.GATE_KIT.posts[P.GATE_STYLES[id].post],id..": its own posts")
+    end
+    assert(loads(env,GATE_KIT_PATH)==GATE_KIT_LOADS,"the kit is never loaded again")
+    for key,value in pairs(counts) do
+        assert(env.counts[key]==value,"gates, posts and pools allocate nothing: "..key)
+    end
+end,nil,nil,true)
+
+-- A refused gate kit: plain faint lines, no posts, pools or band; never retried.
+withMock(nil,false,function(env,UI)
+    env.textureModes={[GATE_KIT_PATH]="false"}
+    env.fire("ADDON_LOADED","AzerothKart")
+    local P=env.namespace.Presentation
+    UI.Toggle()
+    assert(UI.SelectTrack("stormwind_city"),"Stormwind selects without its gates' kit")
+    assert(not UI.gateLook and loads(env,GATE_KIT_PATH)==1,"the kit is refused at the first piece")
+    local color=UI.gateTextures[1].color
+    local tint=P.GATE_STYLES.stormwind_city.tint
+    assert(color[1]==tint[1] and color[2]==tint[2] and color[3]==tint[3] and color[4]==P.GATE_LINE.next,
+        "the next gate is a plain line in its course's light")
+    assert(not UI.gateBand:IsShown(),"no band")
+    for _,piece in ipairs(UI.gatePosts) do assert(not piece:IsShown(),"no posts") end
+    for _,piece in ipairs(UI.gatePools) do assert(not piece:IsShown(),"no pools") end
+    assert(UI.SelectTrack("orgrimmar_canyon") and not UI.gateLook and loads(env,GATE_KIT_PATH)==1,
+        "a refused kit is not retried")
 end,nil,nil,true)
 
 -- Registered Arathi Basin (version 2): a temporary gate is refused by the
