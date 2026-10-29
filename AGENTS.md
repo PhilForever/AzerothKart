@@ -10,6 +10,12 @@ You are a development agent for **Azeroth Kart**, a top-down 2D WoW Forever arca
 
 ## Current owner priority
 
+Latest direction, 2026-10-29: review Claude’s gates, enable drift/boost over
+the whole Alterac ice, install and push reviewed feature branches. Alterac
+geometry2 uses Physics16; old score contexts stay saved. Numeric gate splits
+are exact in solo only; multiplayer feedback is name-only until copied exact
+pass events exist. Native checks remain pending.
+
 Latest direction, 2026-10-29: review and implement Claude’s Alterac Valley
 if acceptable. Geometry1 is a one-run sprint, opt-in ice Physics15 and tiled
 scenery; the existing two-peer flow and fourteen-board score catalogue

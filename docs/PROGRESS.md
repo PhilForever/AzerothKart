@@ -1,5 +1,37 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-29 13:11 +0100 — Whole-field ice drifting and gate review complete
+
+`codex/ice-drift-gates` merges reviewed Claudeef0bb58 with owner-requested
+Physics16 ice drift/boost. Normal tiers, grace and release work on both road
+and rough-snow ice underlay; reduced traction remains. HUD/meter/help updated.
+Alterac geometry2 moves the bridge gate to its mouth, new gate posts/soft
+lines/pools/band/toasts are integrated. Review corrected frame-dependent
+solo split timing via read-only fixed-step observation; multiplayer feedback
+is name-only pending exact copied pass events. Prior score contexts remain
+saved, with no carryover into the new context.
+[Review](reviews/2026-10-29-ice-drift-gates.md), [contract](API_CONTRACTS.md).
+
+Executed `scripts/test_lua.py --runtime lua51 --tests ice physics determinism
+grass_boost layered_physics presentation ui menu alterac peer_session
+session_transport multiplayer_integration score_sync score_sharing warsong`:
+PASS15 modules,93 files parsed. Log in `local-artifacts/deploy-20261029-ice-drift/`.
+Actual map starts:3891 road/2769 off-road ice samples; tests cover tier1/2,
+brake/wall/snow, correction grace, road-underlay crossing and deterministic
+replay. Agent ice/legacy checks in Lua51/54: PASS. Gate checks include30fps,
+5step frames, multiple crossings, idempotent render and live name-only feedback.
+Independent gate flood:8 mandatory cuts PASS; GateKit header/length/hash PASS.
+Artwork rebuild not repeated (Claude reports it). Font-aware `preview_ui.py
+--check` with bundled Python/client fonts: PASS0 faults. Score catalogue
+`--check`: PASS14 boards, HELLO154/native158 unchanged. `validate_project.py`
+retains only the two old expired skill links; diff checks PASS.
+
+Prior installed101 source hashes plus extra match; installer preview PASS.
+Native ice/remote smoothness, gates/audio and frame cost NOT RUN. Next: focused
+commit, verified install/ZIP and authorized non-forced feature-branch push;
+then owner drives/boosts the ice. No main merge or release. Claude’s worktree
+remains untouched.
+
 ## 2026-10-29 07:56 +0100 — Reviewed menus installed and ZIP verified
 
 Runtime **c8a3eed** on `codex/menu-launch-review` integrates Claude6098e73

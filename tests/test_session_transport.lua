@@ -794,7 +794,7 @@ for _,id in ipairs({"mirage_raceway","stormwind_city","ironforge_gp",
                 "real Warsong negotiation registers the floor codec and stages both ground slots")
         else
             if id=="alterac_valley" then
-                assert(type(track.iceAt)=="function" and view.offer.physicsVersion==15 and view.offer.laps==1,
+                assert(type(track.iceAt)=="function" and view.offer.physicsVersion==16 and view.offer.trackVersion==2 and view.offer.laps==1,
                     "Alterac native offer retains its ice physics and one-run target")
             end
             if id=="arathi_basin" then

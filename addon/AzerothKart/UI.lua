@@ -194,18 +194,100 @@ local function createMeter(window)
     refreshMeter()
 end
 
+-- Gates in the world (Presentation's GATE_ section). A gate's line is faint
+-- and soft: its kit's line cell tinted by vertex colour, or without the kit
+-- a plain colour. The next gate's line has its course's light, later gates
+-- are a faint white stroke, passed ones go (after their flash).
+local placeGatePieces
+local DEFAULT_GATE_TINT, LATER_GATE_TINT = {1.00,0.86,0.45}, {1,1,1}
+
+local function setGateLook(piece,rgb,alpha)
+    if UI.gateLook then piece:SetVertexColor(rgb[1],rgb[2],rgb[3],alpha)
+    else piece:SetColorTexture(rgb[1],rgb[2],rgb[3],alpha) end
+end
+
+-- A gate's colour and opacity in its state now (flashes aside).
+local function gateLook(index)
+    local progress,L = UI.checkpoints,Presentation.GATE_LINE
+    local tint = UI.gateStyle and UI.gateStyle.tint or DEFAULT_GATE_TINT
+    if index <= progress.passed then return tint,0 end
+    if index == progress.nextGate and not progress.complete then return tint,L.next end
+    return LATER_GATE_TINT,L.later
+end
+
+local function refreshGateLooks()
+    UI.gateAlphas = {}
+    for index,piece in ipairs(UI.gateTextures) do
+        local rgb,alpha = gateLook(index)
+        local start = UI.gateFlashes[index]
+        if start then -- a flash starts at its brightest, at once
+            rgb = UI.gateStyle and UI.gateStyle.tint or DEFAULT_GATE_TINT
+            alpha = math.max(alpha,Presentation.gateLineAlpha("passed",(UI.state.tick-start)*Physics.FIXED_DT))
+        end
+        setGateLook(piece,rgb,alpha)
+        UI.gateAlphas[index] = alpha
+    end
+end
+
+-- Each frame: the next gate's pulse (a guided course's placeGuide pulses
+-- its own), its light pools', and the flashes of gates just passed, each
+-- written only when it changes. Outside a run nothing pulses or flashes.
+local function animateGates()
+    local progress = UI.checkpoints
+    if not progress or not UI.gateTextures or not UI.state then return end
+    local running = UI.active and not UI.gridStaged
+    local seconds = UI.state.tick * Physics.FIXED_DT
+    local nextGate = running and not progress.complete and progress.nextGate or nil
+    if not UI.guideReady then
+        if nextGate ~= UI.nextGate then
+            local old = UI.gateTextures[UI.nextGate or 0]
+            if old then old:SetAlpha(1) end
+            UI.nextGate = nextGate
+        end
+        local piece = nextGate and UI.gateTextures[nextGate]
+        if piece then piece:SetAlpha(Presentation.gateGlow(seconds)) end
+    end
+    local pulse = running and Presentation.gateGlow(seconds) or 0.8
+    for _,pool in ipairs(UI.gatePools) do
+        if pool:IsShown() and pool.gateAlpha ~= pulse then pool.gateAlpha = pulse; pool:SetAlpha(pulse) end
+    end
+    local tint = UI.gateStyle and UI.gateStyle.tint or DEFAULT_GATE_TINT
+    for index,start in pairs(UI.gateFlashes) do
+        local piece = UI.gateTextures[index]
+        local _,base = gateLook(index)
+        local flash = running and Presentation.gateLineAlpha("passed",(UI.state.tick-start)*Physics.FIXED_DT) or 0
+        local alpha = math.max(base,flash)
+        if flash <= 0 then
+            UI.gateFlashes[index] = nil
+            local rgb
+            rgb,alpha = gateLook(index)
+            setGateLook(piece,rgb,alpha)
+            UI.gateAlphas[index] = alpha
+        elseif alpha ~= UI.gateAlphas[index] then
+            setGateLook(piece,tint,alpha)
+            UI.gateAlphas[index] = alpha
+        end
+    end
+end
+
 local function refreshCheckpoints()
     if not UI.checkpointHud or not UI.checkpoints then return end
     local progress = UI.checkpoints
     local changed = UI.gatePassed ~= progress.passed
     if changed then
+        local before,laps = UI.gatePassed,UI.laps and UI.laps.completedLaps or 0
         UI.gatePassed = progress.passed
-        for index,piece in ipairs(UI.gateTextures) do
-            if index <= progress.passed then piece:SetColorTexture(0.25,0.80,0.72,0.9)
-            elseif index == progress.nextGate and not progress.complete then
-                piece:SetColorTexture(0.98,0.93,0.45,0.9)
-            else piece:SetColorTexture(0.55,0.58,0.62,0.65) end
+        -- A gate passed in a run flashes: each one passed since, or the
+        -- lap's last gate as a lap ends (its count back to 0).
+        if before and UI.active then
+            local tick = UI.state.tick
+            if progress.passed > before then
+                for index=before+1,progress.passed do UI.gateFlashes[index] = tick end
+            elseif laps > (UI.gateLaps or 0) then UI.gateFlashes[#Track.gates] = tick end
         end
+        UI.gateLaps = laps
+        refreshGateLooks()
+        if UI.gatePosts then placeGatePieces() end
     end
     local stopped = not UI.active and UI.state.tick > 0
     if changed or stopped ~= UI.gateStopped then
@@ -353,9 +435,8 @@ local function refreshHud()
         local surface = onIce and "ICE" or state.surface == "grass" and (rough and rough.label or "Grass") or
             (state.surface == "wall" and "Wall" or "Road")
         local feedback = "Drift: hold Space + turn at speed 90+ | Release Space to boost"
-        if onIce then
-            feedback = "Reduced grip | Steer early | No drift charging on ice"
-        elseif state.surface == "grass" then
+        if onIce then feedback = "Drift: Space + turn at 90+ | Release to boost" end
+        if state.surface == "grass" and not onIce then
             feedback = (rough and rough.feedback or "Slowing on grass") ..
                 " | Rejoin the road to drift"
         elseif state.surface == "wall" then
@@ -372,7 +453,7 @@ local function refreshHud()
                     math.floor(state.driftTicks / Physics.DRIFT_TIER1_TICKS * 100))
             end
         end
-        feedback = surface .. " | " .. feedback
+        feedback = surface .. " | " .. (onIce and "Reduced grip | " or "") .. feedback
         if not UI.active and state.tick > 0 then feedback = "Last drive | " .. feedback end
         UI.driftHud:SetText(feedback)
     end
@@ -536,6 +617,9 @@ local function drawTrack(canvas)
         drawEllipse(canvas,Track.outerX,Track.outerY,64,"BACKGROUND",0.26,0.25,0.23)
         drawEllipse(canvas,Track.innerX,Track.innerY,32,"BORDER",0.08,0.24,0.12)
     end
+    -- The last gate's checkered band, under every gate's line.
+    UI.gateBand = texture(canvas,"ARTWORK")
+    UI.gateBand:Hide()
     UI.gateTextures = {}
     for index=1,GATE_POOL do
         local line = texture(canvas,"ARTWORK")
@@ -547,6 +631,21 @@ local function drawTrack(canvas)
             line:SetPoint("CENTER",canvas,"BOTTOMLEFT",(gate.ax+gate.bx)/2,(gate.ay+gate.by)/2)
         else line:Hide() end
         UI.gateTextures[index] = line
+    end
+    -- Over the lines, the light pools of the next gate's two posts and the
+    -- gates' posts, two a gate (Presentation.GATE_KIT); hidden until a course
+    -- with a kit lays them out (layoutGates).
+    UI.gatePools,UI.gatePosts,UI.gateFlashes = {},{},{}
+    for index=1,2 do
+        local pool = texture(canvas,"ARTWORK")
+        if type(pool.SetBlendMode) == "function" then pcall(pool.SetBlendMode,pool,"ADD") end
+        pool:Hide()
+        UI.gatePools[index] = pool
+    end
+    for index=1,2*GATE_POOL do
+        local post = texture(canvas,"ARTWORK")
+        post:Hide()
+        UI.gatePosts[index] = post
     end
     UI.obstacleTextures = {}
     if Track == GateGeometry then
@@ -584,6 +683,49 @@ local function placeWorldRect(piece,x,y,width,height)
     piece:Show()
 end
 
+-- A piece of the gates' kit where Presentation's crop puts it; hidden when
+-- none of it shows.
+local function placeCrop(piece,px,py,pw,ph,u0,u1,v0,v1)
+    if not px then piece:Hide(); return end
+    piece:ClearAllPoints()
+    piece:SetPoint("BOTTOMLEFT",UI.canvas,"BOTTOMLEFT",px,py)
+    piece:SetSize(pw,ph)
+    piece:SetTexCoord(u0,u1,v0,v1)
+    piece:Show()
+end
+
+local GATE_POOL_RADIUS, FINISH_BAND = 34, 10
+
+-- The posts at each gate's ends, the next gate's light pools and the last
+-- gate's checkered band, as the camera moves; all hidden without the kit.
+placeGatePieces = function()
+    local K = Presentation.GATE_KIT
+    local points = UI.gatePostPoints or {}
+    local shown = UI.gateLook and UI.gateStyle ~= nil
+    local gates = Track.gates
+    local last = shown and gates[#gates]
+    if last then placeCrop(UI.gateBand,Presentation.finishCrop(UI.view,last,FINISH_BAND))
+    else UI.gateBand:Hide() end
+    for index=1,GATE_POOL do
+        local ends = shown and points[index]
+        for side=1,2 do
+            local piece = UI.gatePosts[2*index-2+side]
+            if ends then placeCrop(piece,Presentation.postCrop(UI.view,ends[2*side-1],ends[2*side],UI.gatePost))
+            else piece:Hide() end
+        end
+    end
+    local progress = UI.checkpoints
+    local lit = shown and progress and not progress.complete and points[progress.nextGate]
+    local pool,R = K.pool,GATE_POOL_RADIUS
+    for side=1,2 do
+        local piece = UI.gatePools[side]
+        if lit then
+            local x,y = lit[2*side-1],lit[2*side]
+            placeCrop(piece,Presentation.atlasCrop(UI.view,x-R,y-R,2*R,2*R,pool[1],pool[2],pool[3],pool[4],K.size))
+        else piece:Hide() end
+    end
+end
+
 local function placeTrackMarkers()
     for index,piece in ipairs(UI.gateTextures) do
         local gate = Track.gates[index]
@@ -600,6 +742,7 @@ local function placeTrackMarkers()
     placeWorldRect(UI.wallTextures[2],0,Track.height-thickness,Track.width,thickness)
     placeWorldRect(UI.wallTextures[3],0,thickness,thickness,Track.height-2*thickness)
     placeWorldRect(UI.wallTextures[4],Track.width-thickness,thickness,thickness,Track.height-2*thickness)
+    if UI.gatePosts then placeGatePieces() end
 end
 
 -- Drift/boost effects: pooled textures created once and hidden while idle.
@@ -1003,6 +1146,56 @@ local function placeGuide(wx, wy, level)
     arrow:Hide()
 end
 
+-- The gates' kit loads once, with the first course that has a style (a
+-- refused picture is not retried); from then on every gate's line draws
+-- from it, and the band, pools and posts on a course with a style.
+local function loadGateKit()
+    if UI.gateKitTried then return UI.gateKitReady end
+    UI.gateKitTried = true
+    local path,ready = Presentation.GATE_KIT.path,true
+    local pieces = {UI.gateBand}
+    for _,list in ipairs({UI.gateTextures,UI.gatePools,UI.gatePosts}) do
+        for _,piece in ipairs(list) do pieces[#pieces+1] = piece end
+    end
+    for _,piece in ipairs(pieces) do
+        local ok,loaded = false,false
+        if type(piece.SetTexture) == "function" then ok,loaded = pcall(piece.SetTexture,piece,path) end
+        ready = ok and loaded == true
+        if not ready then break end -- refused once: plain lines from then on
+    end
+    UI.gateKitReady = ready
+    return ready
+end
+
+-- A course's gates: its style (Presentation.GATE_STYLES), each line's cell
+-- of the kit by its direction, the band's tint, each gate's two posts'
+-- ground points (Presentation.gatePosts). No flash carries over.
+local function layoutGates(course)
+    local style = course and Presentation.GATE_STYLES[course.id] or nil
+    if style then loadGateKit() end
+    UI.gateStyle,UI.gateLook = style,UI.gateKitReady == true
+    UI.gatePost = style and Presentation.GATE_KIT.posts[style.post] or nil
+    UI.gatePostPoints,UI.gateFlashes,UI.nextGate = {},{},nil
+    local K = Presentation.GATE_KIT
+    local S = K.size
+    for index,piece in ipairs(UI.gateTextures) do
+        local gate = Track.gates[index]
+        piece:SetAlpha(1)
+        if gate and UI.gateLook then
+            local cell = gate.ax == gate.bx and K.lineV or K.lineH
+            piece:SetTexCoord(cell[1]/S,(cell[1]+cell[3])/S,cell[2]/S,(cell[2]+cell[4])/S)
+        end
+        if gate and UI.gateLook and UI.gatePost then
+            UI.gatePostPoints[index] = {Presentation.gatePosts(gate,UI.gatePost,style)}
+        end
+    end
+    if UI.gateLook then
+        UI.gateBand:SetVertexColor(1,1,1,0.45)
+        local tint = style and style.tint or DEFAULT_GATE_TINT
+        for _,pool in ipairs(UI.gatePools) do pool:SetVertexColor(tint[1],tint[2],tint[3],0.7) end
+    end
+end
+
 local function layoutTrack()
     -- Shipped courses use the follow camera over their scenery picture.
     local course = Courses and Courses.get(UI.trackId)
@@ -1020,6 +1213,7 @@ local function layoutTrack()
     UI.mirageBackground:SetPoint("BOTTOMLEFT",UI.canvas,"BOTTOMLEFT",0,0)
     UI.mirageBackground:SetSize(800,480)
     layoutTiles(follow and course or nil)
+    layoutGates(course)
     placeTrackMarkers()
     layoutRoofs(course)
     for index,piece in ipairs(UI.obstacleTextures) do
@@ -1485,6 +1679,7 @@ render = function()
         if UI.roofs then placeRoofs(x,y,level == 1 and not ramp) end
     end
     if UI.guideReady then placeGuide(x,y,level) end
+    animateGates()
     x,y = Presentation.project(UI.view,x,y)
     UI.kart:ClearAllPoints()
     local sprite = UI.kartSprite
@@ -2007,6 +2202,9 @@ local function step(dt)
     UI.race = Race.step(UI.race,UI.previousState,UI.state,Track,Checkpoints,Laps)
     UI.laps = UI.race.laps
     UI.checkpoints = UI.laps.checkpoints
+    -- Observe this exact pass tick before another catch-up step advances it.
+    -- The menu writes presentation state only; render will not repeat it.
+    if AK.Menu and type(AK.Menu.ObserveGateProgress) == "function" then AK.Menu.ObserveGateProgress() end
     if countdown and UI.race.status == "running" then
         UI.stopReason = "Driving"
         UI.status:SetText((UI.race.targetLaps == 1 and "Sprint" or "3 laps")

@@ -6,11 +6,11 @@ local ids={"mirage_raceway","stormwind_city","ironforge_gp",
     "darnassus_canopy","orgrimmar_canyon","undercity_slime","thunder_bluff_skyway","scarlet_graveyard",
     "scarlet_library","scarlet_armory","scarlet_cathedral","warsong_gulch","arathi_basin","alterac_valley"}
 local versions={stormwind_city=3,ironforge_gp=4,undercity_slime=2,thunder_bluff_skyway=2,
-    scarlet_graveyard=3,scarlet_library=3,scarlet_armory=2,scarlet_cathedral=3,warsong_gulch=3,arathi_basin=3}
+    scarlet_graveyard=3,scarlet_library=3,scarlet_armory=2,scarlet_cathedral=3,warsong_gulch=3,arathi_basin=3,alterac_valley=2}
 local contexts={}
 for i,id in ipairs(ids) do contexts[i]={trackId=id,
     trackVersion=versions[id] or 1,
-    physicsVersion=id=="alterac_valley" and 15 or id=="arathi_basin" and 14 or id=="warsong_gulch" and 13 or 12,
+    physicsVersion=id=="alterac_valley" and 16 or id=="arathi_basin" and 14 or id=="warsong_gulch" and 13 or 12,
     lapCount=(id:match("^scarlet_") or id=="alterac_valley") and 1 or 3,tickRate=60,rulesVersion=1} end
 local function copy(t)
     if type(t)~="table" then return t end
@@ -255,9 +255,29 @@ do
     assert(S.discover(oldAVPeer,{"Amber Stone"},0))
     assert(S.update(oldAVPeer,0,function(_,payload)
         local accepted,why=S.receive(localToken,"Birch Vale",payload,14)
-        assert(not accepted and why=="incompatible","Alterac without ice cannot handshake as Physics15")
+        assert(not accepted and why=="incompatible","Alterac without ice cannot handshake as Physics16")
         return true
     end))
+    -- Both pre-drift Alterac boards stay historical, even when the geometry
+    -- already matches the new bridge-gate placement.
+    for _,prior in ipairs({{1,15},{2,15},{1,16}}) do
+        local currentReceiver=new("Amber Stone")
+        assert(S.discover(currentReceiver,{"Birch Vale"},0))
+        local oldContexts=copy(contexts)
+        oldContexts[14].trackVersion,oldContexts[14].physicsVersion=prior[1],prior[2]
+        local oldToken=assert(S.new({name="Birch Vale",contexts=oldContexts},0))
+        assert(S.discover(oldToken,{"Amber Stone"},0))
+        assert(S.update(oldToken,0,function(_,payload)
+            local accepted,why=S.receive(currentReceiver,"Birch Vale",payload,14)
+            assert(not accepted and why=="incompatible","historical Alterac catalogue cannot handshake as drift-enabled ice")
+            return true
+        end))
+        local historicalRecord=record("Birch Vale",1,14)
+        historicalRecord.trackVersion,historicalRecord.physicsVersion=prior[1],prior[2]
+        local accepted,why=S.receive(currentReceiver,"Birch Vale",assert(S.encode({kind="NEW",record=historicalRecord})),14)
+        assert(not accepted and why=="context" and #H.View(S.snapshot(currentReceiver),contexts[14])==0,
+            "a historical Alterac record cannot enter the current board before handshake")
+    end
     local oldArathi=copy(contexts);oldArathi[13].physicsVersion=12
     local oldPeer=assert(S.new({name="Birch Vale",contexts=oldArathi},0))
     assert(S.discover(oldPeer,{"Amber Stone"},0))

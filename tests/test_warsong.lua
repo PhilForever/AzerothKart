@@ -250,7 +250,7 @@ for _,entry in ipairs(AK.Courses.LIST) do
         layered = layered + 1
     else
         flat = flat + 1
-        assert(not built.layered and Physics.versionForTrack(built) == (entry.id=="arathi_basin" and 14 or entry.id=="alterac_valley" and 15 or 12),
+        assert(not built.layered and Physics.versionForTrack(built) == (entry.id=="arathi_basin" and 14 or entry.id=="alterac_valley" and 16 or 12),
             "each flat course keeps its exact physics context: " .. entry.id)
     end
 end

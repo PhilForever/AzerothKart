@@ -1,5 +1,12 @@
 # Shared integration and deployment status
 
+## Reviewed ice drift and gate candidate — 2026-10-29
+
+Claudeef0bb58 plus Physics16 whole-field drift/boost and exact solo gate
+split correction pass focused checks. Alterac geometry2 has its own context.
+Native checks pending; install/push next.
+[Review](reviews/2026-10-29-ice-drift-gates.md), [evidence](PROGRESS.md).
+
 ## Installed reviewed menus — 2026-10-29
 
 Runtime **c8a3eed** installed;101 source/installed and100 backup files

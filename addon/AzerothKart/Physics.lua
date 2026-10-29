@@ -8,7 +8,7 @@ Physics.VERSION = 12
 -- have a separate compatibility version without retiming flat driving.
 Physics.FEATURE_VERSION = 13
 Physics.GRASS_BOOST_VERSION = 14
-Physics.ICE_VERSION = 15
+Physics.ICE_VERSION = 16
 Physics.ICE_STEER_MULTIPLIER = 0.60
 Physics.ICE_ACCEL_MULTIPLIER = 0.70
 Physics.ICE_BRAKE_MULTIPLIER = 0.40
@@ -255,7 +255,10 @@ function Physics.step(state, input, dt, track, kartId)
     local drifting, direction, driftTicks, tier, grace = false, 0, 0, 0, 0
     -- Charging resumes after boost expires; longer rewards must not recharge
     -- themselves behind the boost meter into continuous turbo.
-    local eligible = startSurface == "road" and iceFactor==0 and not brake and boostTicks == 0
+    -- Every passable ice cell supports the same charge/release rules as
+    -- road, even where the underlying terrain is rough snow. Recovery on
+    -- road must not discard a drift carried out of the ice patch.
+    local eligible = (startSurface == "road" or startIce) and not brake and boostTicks == 0
         and speed >= Physics.DRIFT_MIN_SPEED
     local charging = eligible and steering * steer > 0
     local wasDrifting = state.drifting == true
@@ -390,12 +393,14 @@ function Physics.step(state, input, dt, track, kartId)
             end
             boostTicks = 0
         end
-        -- Grass never permits drift charging, even while a boost is active.
-        drifting, direction, driftTicks, tier = false, 0, 0, 0
-        if not iceEnabled or hit or (not endIce and iceFactor==0) then slip=0 end
-        grace = 0
+        if not endIce then
+            -- Unfrozen rough ground still cancels charge on the crossing
+            -- tick; a later return to ice cannot spend a banked tier.
+            drifting, direction, driftTicks, tier = false, 0, 0, 0
+            if not iceEnabled or hit or iceFactor==0 then slip=0 end
+            grace = 0
+        end
     end
-    if endIce then drifting,direction,driftTicks,tier,grace=false,0,0,0,0 end
 
     -- Pad entry is determined from resolved movement, not intended travel
     -- through a wall. The reward begins on the next fixed step; collision,

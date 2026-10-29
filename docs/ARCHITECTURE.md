@@ -1,8 +1,9 @@
 # Technical architecture
 
 Alterac Valley uses an open Circuit sprint with one ordered run and eight
-gates. Its separate ice query selects Physics15; momentum is stored in
-slipAngle with opt-in scalar recovery state. Four scenery bands render via
+gates. Its separate ice query selects Physics16; momentum is stored in
+slipAngle with opt-in scalar recovery state. Every passable ice cell supports
+normal drift charge/release, regardless of its road/snow underlay. Four scenery bands render via
 three extra pooled textures. Live packets stay flat AZKRUN2; score sharing
 now has14 contexts/15 digest slots within the existing byte limit.
 [Implemented contract](API_CONTRACTS.md), [review](reviews/2026-10-29-alterac.md).

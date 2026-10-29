@@ -20,11 +20,11 @@ local function distance(ax, ay, bx, by) return math.sqrt((bx - ax) ^ 2 + (by - a
 -- The generated definition: 2048 x 7168 at three units to the yard, an open
 -- centerline run once, the street's full grip 145 from the road's middle
 -- (its 52 and three kart lengths), the Dun Baldar bridge narrowed to 42.
-assert(data and data.id == "alterac_valley" and data.version == 1 and data.width == 2048 and data.height == 7168
+assert(data and data.id == "alterac_valley" and data.version == 2 and data.width == 2048 and data.height == 7168
     and data.open == true and data.laps == 1 and data.fullSpeedToWalls == true
     and data.roadRadius == 145 and data.wallRadius == 145 and #data.narrows == 1
     and data.narrows[1].wallRadius == 42 and #data.solids == 0,
-    "Alterac Valley version 1: 2048 x 7168, open, one run, full grip 145 either side, one bridge")
+    "Alterac Valley version 2: 2048 x 7168, open, one run, full grip 145 either side, one bridge")
 local track = Circuit.new(data, Track.crossesGate)
 assert(track.open and track.laps == 1 and #track.gates == 8 and track.length > 7800 and track.length < 8800,
     "the valley's road, about 8,300 units: " .. track.length)
@@ -170,6 +170,31 @@ for _,gate in ipairs(data.gates) do
     end
 end
 
+-- Version 2 (the owner: "put this gate at the start of the bridge so that
+-- the pillars have something to stand on (in the snow)"): Dun Baldar
+-- Bridge's gate is across the deck where the karts come onto it, past the
+-- bank (975) within the approach's walls (to 999), crossed westwards; its
+-- posts, and every post Presentation moves off the rule's ground, stand on
+-- the open snow near their gate's end, not over the gorge or on a tower.
+local bridgeGate = data.gates[7]
+assert(bridgeGate.name == "Dun Baldar Bridge" and bridgeGate.ax == bridgeGate.bx and bridgeGate.ax > 975
+    and bridgeGate.ax < 999 and math.abs(bridgeGate.by - bridgeGate.ay) <= 2 * 42 and bridgeGate.nx == -1,
+    "the bridge's gate is across its mouth: " .. bridgeGate.ax)
+local stands, standing = AK.Presentation.GATE_STYLES.alterac_valley.stands, 0
+for _,gate in ipairs(data.gates) do
+    local stand = stands[gate.name]
+    for side,point in ipairs(stand and {stand[1], stand[2]} or {}) do
+        if point then
+            local ex, ey = side == 1 and gate.ax or gate.bx, side == 1 and gate.ay or gate.by
+            assert(bit(data.grassMap, point[1], point[2]) and distance(point[1], point[2], ex, ey) < 60,
+                gate.name .. "'s post " .. side .. " stands on the snow by its end")
+            standing = standing + 1
+        end
+    end
+end
+assert(standing == 4 and stands["Dun Baldar Bridge"][1][1] > bridgeGate.ax
+    and stands["Dun Baldar Bridge"][2][1] > bridgeGate.ax, "the bridge's posts on the bank, either side of its mouth")
+
 -- The heights (inert, ADR 0015): one per centerline point.
 assert(#data.elevation.centerline == #data.centerline and #data.elevation.branches == 0,
     "a height per centerline point")
@@ -188,7 +213,7 @@ for _,key in ipairs({"grassMap","iceMap"}) do
 end
 local production=assert(Courses.build("alterac_valley",Track.crossesGate))
 assert(production.laps==1 and not production.layered and type(production.iceAt)=="function"
-    and AK.Physics.versionForTrack(production)==15,"Alterac uses one-run flat ice Physics15")
+    and AK.Physics.versionForTrack(production)==16,"Alterac uses one-run flat ice Physics16")
 -- Its scenery: four tiles, bands of the world from south to north, each a
 -- picture at most 2048 a side, the first its background.
 local tiles = course.tiles
@@ -201,4 +226,5 @@ for index,tile in ipairs(tiles) do
     top = tile.y1
 end
 assert(top == data.height, "the tiles cover the valley")
-print("Alterac Valley version 1: a sprint of eight gates, open snow, the Field of Strife's ice, route walked")
+print("Alterac Valley version 2: a sprint of eight gates (the bridge's at its mouth), open snow, the Field of "
+    .. "Strife's ice, route walked")

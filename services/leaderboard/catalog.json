@@ -107,8 +107,8 @@
     },
     {
       "trackId": "alterac_valley",
-      "trackVersion": 1,
-      "physicsVersion": 15,
+      "trackVersion": 2,
+      "physicsVersion": 16,
       "lapCount": 1,
       "tickRate": 60,
       "rulesVersion": 1

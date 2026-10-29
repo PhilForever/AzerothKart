@@ -728,8 +728,8 @@ do
     local originalSession=a:view().session
     for _,e in ipairs({a,b}) do
         local ui,view=e.ns.UI,e:view()
-        assert(view.offer.trackId=="alterac_valley" and view.offer.trackVersion==1
-            and view.offer.physicsVersion==15 and view.offer.laps==1
+        assert(view.offer.trackId=="alterac_valley" and view.offer.trackVersion==2
+            and view.offer.physicsVersion==16 and view.offer.laps==1
             and ui.trackId=="alterac_valley" and type(ui.track.iceAt)=="function"
             and not ui.track.layered and ui.race.targetLaps==1 and ui.state.level==nil,
             "GO adopts the one-run flat ice course")
@@ -773,5 +773,5 @@ do
     end
     a:run(a.ns.UI.MultiplayerAction,"leave");b:run(b.ns.UI.MultiplayerAction,"leave")
     q:untilTrue(function() return not a:view().transportBusy and not b:view().transportBusy end)
-    originalPrint("Alterac multiplayer: actual lobby/grid/countdown/Physics15 GO, one-run finish and circuit rematch PASS (offline mocks)")
+    originalPrint("Alterac multiplayer: actual lobby/grid/countdown/Physics16 GO, one-run finish and circuit rematch PASS (offline mocks)")
 end

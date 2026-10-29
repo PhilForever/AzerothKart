@@ -1038,6 +1038,14 @@ ALTERAC_LINE = _av_line()
 # whole open ground there, wall to wall, so no way round it): ("y", Y) a
 # line along Y crossed northwards, ("x", X) a line along X crossed westwards
 # (the last stretch runs west into Dun Baldar). The last gate is the finish.
+#
+# Version 2 (the owner, 2026-10-29: "put this gate at the start of the bridge
+# so that the pillars have something to stand on (in the snow)"): Dun Baldar
+# Bridge's gate stands where the karts come onto the bridge, across the deck
+# within its approach (x 988; the bank is at 975, the approach's walls end
+# at 999), instead of halfway over the gorge (x 800). The way and the finish
+# are unchanged. Its posts stand on the snow either side of the bridge's
+# mouth (Presentation.GATE_STYLES' `stands`), not over the drop.
 AV_GATES = [
     ("Frostwolf Village", "y", 1500),
     ("Tower Point", "y", 2470),
@@ -1045,7 +1053,7 @@ AV_GATES = [
     ("Field of Strife", "y", 3960),
     ("Stonehearth Outpost", "y", 4720),
     ("Icewing Bunker", "y", 5400),
-    ("Dun Baldar Bridge", "x", 800),
+    ("Dun Baldar Bridge", "x", 988),
     ("Dun Baldar", "x", 430),
 ]
 AV_SPAWN = _nearest(ALTERAC_LINE, 1680, 760)
@@ -1053,7 +1061,7 @@ AV_SPAWN = _nearest(ALTERAC_LINE, 1680, 760)
 ALTERAC = {
     "id": "alterac_valley",
     "name": "Alterac Valley",
-    "version": 1,
+    "version": 2,
     "kind": "sprint",
     "size": AV_SIZE,
     "laps": 1,

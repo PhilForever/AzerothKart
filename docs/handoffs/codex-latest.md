@@ -1,5 +1,14 @@
 # Codex handoff — production maps and Claude course review
 
+## Reviewed ice drift and gates — 2026-10-29
+
+Own codex/ice-drift-gates integrates Claudeef0bb58. Alterac geometry2/Physics16
+supports normal drift/boost over all passable ice; old contexts stay saved.
+Solo gate splits now capture exact step ticks; MP feedback is name-only.
+15 focused Lua51 modules, catalogue and font-aware layout pass.
+[Review](../reviews/2026-10-29-ice-drift-gates.md), [evidence](../PROGRESS.md).
+Next: authorized install/feature push; native check pending.
+
 ## Active ice drift and gate integration — 2026-10-29
 
 Owner requests review of Claude’s newest gates, drift/boost over the whole

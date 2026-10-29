@@ -139,7 +139,7 @@ Menu.RULES = {
         .. "Crusade, Alterac Valley) is one run to its last gate.",
     "Hold a drift to charge it: blue, then gold at Tier 1 (0.5 s), then pink at Tier 2 (1 s). Release Space for a boost.",
     "Grass, rough salt and deep snow slow you; an active boost keeps road speed on Arathi grass. "
-        .. "A wall scrubs speed. Ice cuts your grip: steer early. A drift cannot charge on it.",
+        .. "A wall scrubs speed. Ice cuts your grip: steer early. Drift and boost work across the ice.",
     "Your best solo time on each track is saved to its Highscores. Entering combat closes the game.",
 }
 
@@ -490,7 +490,9 @@ Menu.SOUNDS = {click="IG_MAINMENU_OPTION", open="IG_MAINMENU_OPEN", checkOn="IG_
     go="UI_BATTLEGROUND_COUNTDOWN_FINISHED", finish="LFG_REWARDS",
     -- The results window's celebrations: a top-ten board place, and a top
     -- three, #1 or a race won (in place of the finish fanfare).
-    top10="IG_QUEST_LIST_COMPLETE", top3="UI_EPICLOOT_TOAST"}
+    top10="IG_QUEST_LIST_COMPLETE", top3="UI_EPICLOOT_TOAST",
+    -- A gate passed in a run: the map's ping.
+    gate="MAP_PING"}
 
 function Menu.Play(name)
     if Menu.prefs and Menu.prefs.sound == false then return end
@@ -1812,6 +1814,115 @@ local function buildRaceOverlay()
         label:Hide()
     end
     view.racerMine, view.racerTheirs = {}, {}
+    -- A gate just passed: its name and the run's time there, with the
+    -- difference from the last lap (a sprint: the last finished run on the
+    -- track) at the same gate, at the top middle for a moment.
+    view.toastPlate = newTexture(overlay, "BACKGROUND")
+    view.toastPlate:SetColorTexture(0, 0, 0, 0.5)
+    view.toastPlate:SetSize(250, 48)
+    view.toastPlate:SetPoint("TOP", overlay, "TOP", 0, -6)
+    view.toastName = newText(overlay, FONT.large, "TOP", 0, -11, "")
+    view.toastSplit = newText(overlay, FONT.white, "TOP", 0, -32, "")
+    for _,label in ipairs({view.toastName, view.toastSplit}) do
+        call(label, "SetShadowOffset", 1, -1)
+        call(label, "SetShadowColor", 0, 0, 0, 1)
+    end
+    for _,piece in ipairs({view.toastPlate, view.toastName, view.toastSplit}) do piece:Hide() end
+end
+
+-- Gate splits (presentation memory only: nothing is saved or sent): the
+-- run's time into its lap at each gate this lap, the last lap's, and per
+-- track the last finished sprint's. Menu.GATE_TOAST seconds a toast shows.
+Menu.GATE_TOAST = 1.6
+Menu.sprintSplits = {}
+
+-- "0:21.40   -0.35" (the split's difference in green, or red when slower);
+-- the time alone without an earlier split.
+function Menu.splitText(ticks, before)
+    local dt = Physics.FIXED_DT
+    local text = Menu.formatTime(ticks * dt)
+    if type(before) ~= "number" then return text end
+    local delta = (ticks - before) * dt
+    local colour = delta <= 0 and "ff66ee66" or "ffff6655"
+    return ("%s   |c%s%+.2f|r"):format(text, colour, delta)
+end
+
+local function showToast(name, ticks, before)
+    local view = Menu.view
+    view.toastName:SetText(name)
+    view.toastSplit:SetText(Menu.splitText(ticks, before))
+    for _,piece in ipairs({view.toastPlate, view.toastName, view.toastSplit}) do piece:Show() end
+    view.toastUntil = UI.state.tick + math.floor(Menu.GATE_TOAST / Physics.FIXED_DT + 0.5)
+    Menu.Play("gate")
+end
+
+-- Solo fixed-step presentation observer. It reads the just-updated race
+-- before later catch-up steps overwrite progress.lastTick. Render calls may
+-- hide a toast but cannot invent/repeat a split from a frame-end snapshot.
+local function refreshGateToast(exactStep)
+    local view = Menu.view
+    if not view.toastPlate then return end
+    local race, laps, progress = UI.race, UI.laps, UI.checkpoints
+    if view.toastUntil and (not UI.active or UI.state.tick >= view.toastUntil) then
+        view.toastUntil = nil
+        for _,piece in ipairs({view.toastPlate, view.toastName, view.toastSplit}) do piece:Hide() end
+    end
+    if not race or not laps or not progress or race.status == "countdown" or UI.gridStaged then
+        view.splitTick = nil
+        return
+    end
+    local tick = UI.state.tick
+    local live = UI.multiplayer or UI.liveActive
+    if not live and not exactStep then return end
+    -- A live view is a copied frame-end observation, not an exact pass
+    -- event stream. It gets name-only feedback and no numeric split history.
+    if view.splitTick == nil or tick < view.splitTick or UI.track ~= view.splitTrack then
+        view.splitTick, view.splitTrack = tick, UI.track
+        view.splitPassed, view.splitLaps = progress.passed, laps.completedLaps
+        view.lapSplits, view.lastLapSplits = {}, nil
+        if live then view.lapSplits = nil end
+        return
+    end
+    view.splitTick = tick
+    local gates = UI.track and UI.track.gates or {}
+    if live then
+        view.lapSplits, view.lastLapSplits = nil, nil
+        local index = laps.completedLaps > view.splitLaps and #gates
+            or (progress.passed > view.splitPassed and progress.passed)
+        if index and gates[index] and race.status == "running" then
+            view.toastName:SetText(gates[index].name)
+            view.toastSplit:SetText("Checkpoint passed")
+            for _,piece in ipairs({view.toastPlate, view.toastName, view.toastSplit}) do piece:Show() end
+            view.toastUntil = tick + math.floor(Menu.GATE_TOAST / Physics.FIXED_DT + 0.5)
+            Menu.Play("gate")
+        end
+        view.splitPassed, view.splitLaps = progress.passed, laps.completedLaps
+        return
+    end
+    local sprint = race.targetLaps == 1
+    if laps.completedLaps > view.splitLaps then
+        local index = #gates
+        view.lapSplits[index] = laps.lastLapTicks
+        if race.status ~= "finished" and gates[index] and laps.lastLapTicks then
+            showToast(gates[index].name, laps.lastLapTicks, view.lastLapSplits and view.lastLapSplits[index])
+        end
+        if sprint and race.status == "finished" then Menu.sprintSplits[UI.trackId] = view.lapSplits end
+        view.lastLapSplits, view.lapSplits = view.lapSplits, {}
+    elseif progress.passed > view.splitPassed and race.status == "running" then
+        local index = progress.passed
+        local at = progress.lastTick - laps.lapStartTick
+        view.lapSplits[index] = at
+        local earlier = sprint and Menu.sprintSplits[UI.trackId] or view.lastLapSplits
+        if gates[index] then showToast(gates[index].name, at, earlier and earlier[index]) end
+    end
+    view.splitPassed, view.splitLaps = progress.passed, laps.completedLaps
+end
+
+-- Called only after the local solo step has published its new copied race
+-- references. It changes presentation memory/widgets, never race authority.
+function Menu.ObserveGateProgress()
+    if Menu.disabled or not UI or UI.multiplayer or UI.liveActive then return end
+    refreshGateToast(true)
 end
 
 -- A place's colour: gold, silver, bronze, then white.
@@ -2253,6 +2364,7 @@ function Menu.RefreshRaceHud()
     local view = Menu.view
     if Menu.disabled or not view.lap then return end
     refreshPlace()
+    refreshGateToast()
     local race, laps, progress = UI.race, UI.laps, UI.checkpoints
     local status = UI.gridStaged and "grid" or (race and race.status or "none")
     local ticks = race and race.totalTicks or 0

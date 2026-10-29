@@ -1,5 +1,23 @@
 # Implemented simulation and rendering contracts
 
+## Ice drift and reviewed world gates — 2026-10-29
+
+Alterac geometry2 moves the bridge gate to its mouth at x988; Physics16
+allows normal drift tiers/grace/release on every passable `iceAt` position,
+including rough-snow underlay. Ice traction and15tick recovery remain; ordinary
+snow, brakes and walls cancel charge. State `onIce=true` also permits the
+charge/boost meter over grass underlay. Old geometry1/Physics15 and
+geometry2/Physics15 records stay in their original contexts. Fourteen current
+boards, scoreV/raceE, flat telemetry and154-byte HELLO remain unchanged.
+
+Reviewed Claudeef0bb58 adds pooled gate posts/pools/band, subtle lines and
+feedback. `Menu.ObserveGateProgress()` is a read-only solo presentation hook
+after each fixed step. It captures exact pass ticks before catch-up can
+replace them; render cannot create/replay a split. Live copied views have
+name-only checkpoint feedback and no numeric split history. Current pool is
+121frames/233textures/232fontStrings. Native look/sounds/ice feel are NOT RUN.
+The earlier ice prohibition and gate proposals below are historical.
+
 ## Integrated launch menus — 2026-10-29
 
 Reviewed Claude6098e73 supplies pooled track/score lists and kart tiles.
@@ -1047,6 +1065,17 @@ On `claude/arathi-v2` (base Codex's `codex/arathi-integration` `1fbea6b`, instal
 - **Openings and blockers (painting only):** where a real road leaves the course, the fence is left out and the road painted on, seamless, and what stands in it (Warcraft III units and props) is painted at the street's edge where the karts stop. The walls are the street's, as before (no new collision); the painter refuses an opening a kart could see through (every gap texel within 9 units of a blocker's body).
 - **Fewer fences (painting only, after the owner's second look):** the painted timber fence is left out along eight stretches of the street's edge he lined in red (`open_edges` in the layout: a side of the lap from one place to another; 87% of the fence), so the cliffs, the river and the long grass beyond the verge mark the edge there. No contract change: the walls (`wallRadius`, `wallVertices`, narrows, plazas) and `Battlegrounds.lua` are byte-identical, trackVersion stays 2, and collision never reads the picture. A kart still stops where the fence stood; whether that reads as natural in the client is NOT RUN (if the owner would rather karts run out onto slow grass there, that is a geometry and physics change for Codex).
 - **Codex-owned tests, pins only (for review):** `test_peer_session` (Arathi `trackVersion` 2; 1 incompatible), `test_multiplayer_integration` (the offer's `trackVersion` 2), `test_arathi_guide` (Arathi hands no route to the arrow: the guide-round-a-solid regression keeps Arathi's geometry with the yard paved, as version 1 had it, and its route from the data). A failure already on `codex/arathi-integration` is fixed in `test_dungeon` (the Track button now steps from Warsong to Arathi, then to Mirage).
+
+### Proposed: gates in the world (Claude, `claude/immersive-gates`, 2026-10-29, for Codex)
+
+The owner asked for gates more immersive than lines, with posts "just a bit more outside the track" and lines "more subtle, dont want players to think they need to avoid them". Presentation only; details in [the gates' sheet](art/ui/gates.md). Client behaviour is **NOT RUN**. Based on `claude/menu-launch`.
+
+- **Unchanged:** checkpoint and lap rules, the race, physics, sessions, saved data; `Track.gates` on every course but Alterac Valley's bridge gate (below). Gate strips keep their rectangles (five units thick, Warsong's guided next gate ten); `test_ui`'s geometry assertions stand.
+- **Presentation (Claude, pure):** `GATE_KIT` (GateKit.tga's cells, posts' feet and heights), `GATE_STYLES` (each course's post and light; `stands` names the ground of a post the rule would put on a building or over a drop, by gate name), `GATE_POST_OUTSET`, `GATE_LEAN`, `gatePosts(gate, post, style)`, `atlasCrop(view, x, y, w, h, cx, cy, cw, ch, size)`, `postCrop(view, x, y, post)`, `finishCrop(view, gate, thickness)`, `GATE_LINE`, `GATE_FLASH`, `gateLineAlpha(state, seconds)`.
+- **UI.lua (Claude's visual functions; reserved on this branch):** `drawTrack` creates `UI.gateBand`, `UI.gatePools` (two, additive blend when the client offers it) and `UI.gatePosts` (sixteen); new local `layoutGates`, `loadGateKit`, `placeGatePieces`, `placeCrop`, `refreshGateLooks`, `animateGates`, `setGateLook`, `gateLook`; `placeTrackMarkers` places the pieces; `refreshCheckpoints` replaces its gate colours with the looks and records each pass's tick in `UI.gateFlashes` (a lap's end: its last gate); `render` calls `animateGates` after `placeGuide`. `UI.nextGate` is the pulsing next gate on unguided courses; `UI.glowGate` keeps its guided meaning (the Arathi test's "no gate glows" still holds for it).
+- **Menu (race overlay):** a toast on each gate passed (name, time into the lap at the crossing tick, difference from the last lap or a sprint's last finished run), `Menu.splitText`, `Menu.GATE_TOAST`, `Menu.sprintSplits`, and `Menu.SOUNDS.gate = "MAP_PING"`. Splits read the copied `UI.checkpoints.lastTick` and `UI.laps`; nothing is saved or sent.
+- **Counts:** 121/213/230 on `claude/menu-launch` → **121 frames, 233 textures, 232 font strings**; `test_ui`'s `GATE_KIT_PIECES` and texture-load counts (the kit loads once onto every piece and strip: 27 calls) are updated with the lap fixture's colours.
+- **Alterac Valley version 2 (geometry, for Codex's review):** the owner asked for the bridge's gate "at the start of the bridge so that the pillars have something to stand on (in the snow)". `Battlegrounds.alterac_valley`: `version` 2; gate 7 *Dun Baldar Bridge* from x 800 (6552..6632) to x 988 (6576..6656), still the deck's whole width inside the approach's walls; `routeGates[7]` 243 → 238. Every other value (walls, narrows, both grids, the other gates, route, spawn, the pictures) is byte-identical. The generator's `sprint_gates` now cuts a gate where the course first crosses its line after the gate before (x 988 is also crossed near Iceblood Tower); the other seven gates come out unchanged. The way and the finish are the same, so version 1's times are comparable, but they are a separate board by the existing context rule (your call whether to carry them over). Pins updated for review: `test_peer_session` (version 2; version 1 incompatible), `test_multiplayer_integration` (the offer's version 2), `services/leaderboard/catalog.json` (`export_score_catalog.py`); `test_race_protocol`'s wire example keeps its version 1 (a codec example, not the catalogue). Claude's `test_alterac` checks the gate in the bridge's mouth and the moved posts on open snow.
 
 ### Proposed: menus for launch (Claude, `claude/menu-launch`, 2026-10-29, for Codex)
 

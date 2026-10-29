@@ -216,6 +216,15 @@ do
     previousArathi.playerName,previousArathi.totalTicks=owner.name,7777
     previousArathi.finishedAt,previousArathi.kartId=1792750000,"goblin_mortar_trike"
     owner.db.highscores=owner.namespace.Highscores.Submit(owner.db.highscores,previousArathi)
+    local historicalAlterac={}
+    for _,prior in ipairs({{1,15,6666},{2,15,5555}}) do
+        local row=owner.namespace.SoloRecords.Context(owner.namespace.Courses.build("alterac_valley",owner.namespace.Track.crossesGate))
+        row.trackVersion,row.physicsVersion=prior[1],prior[2]
+        row.playerName,row.totalTicks=owner.name,prior[3]
+        row.finishedAt,row.kartId=1792750000,"goblin_mortar_trike"
+        owner.db.highscores=owner.namespace.Highscores.Submit(owner.db.highscores,row)
+        historicalAlterac[#historicalAlterac+1]=row
+    end
     using(owner,function() owner.namespace.SoloRecords.Init() end)
     local ids={}
     for _,course in ipairs(owner.namespace.Courses.LIST) do
@@ -238,11 +247,12 @@ do
         local row=learner:view(id).rows[1]
         assert(row.playerName==owner.name and row.totalTicks==2000+index,
             "automatic login catch-up retains the correct production board: "..id)
-        assert(row.physicsVersion==(id=="alterac_valley" and 15 or id=="arathi_basin" and 14 or id=="warsong_gulch" and 13 or 12),
+        assert(row.physicsVersion==(id=="alterac_valley" and 16 or id=="arathi_basin" and 14 or id=="warsong_gulch" and 13 or 12),
             "mixed Physics versions retain the exact per-map board: "..id)
     end
     assert(learner:view("alterac_valley").rows[1].lapCount==1
-        and learner:view("alterac_valley").rows[1].physicsVersion==15,
+        and learner:view("alterac_valley").rows[1].physicsVersion==16
+        and learner:view("alterac_valley").rows[1].trackVersion==2,
         "Alterac's one-run ice board catches up under its own physics context")
     assert(learner:view("scarlet_graveyard").rows[1].lapCount==1)
     assert(learner:view("thunder_bluff_skyway").rows[1].lapCount==3)
@@ -255,6 +265,10 @@ do
         "Arathi version 1 Physics12 remains saved separately from version 3 Physics14")
     assert(owner.namespace.Highscores.View(owner.db.highscores,previousArathi)[1].totalTicks==7777,
         "Arathi version 2 Physics14 stays saved separately from version 3")
+    for _,row in ipairs(historicalAlterac) do
+        assert(owner.namespace.Highscores.View(owner.db.highscores,row)[1].totalTicks==row.totalTicks,
+            "Alterac geometry1/2 Physics15 records stay saved outside the new ice-drift context")
+    end
     assert(owner.namespace.Highscores.View(owner.db.highscores,historical)[1].totalTicks==9999,
         "adding Physics13 sharing never migrates/deletes historical Physics11 records")
     assert(learner:view("scarlet_graveyard").rows[1].trackVersion==3
@@ -277,7 +291,7 @@ do
     assert(arathi.saved and arathi.placement and owner:view("arathi_basin").context.physicsVersion==14)
     allMaps:untilTrue(function() return learner:view("arathi_basin").rows[1].totalTicks==1500 end,5)
     local alterac=owner:finish(1400,"alterac_valley")
-    assert(alterac.saved and alterac.placement and owner:view("alterac_valley").context.physicsVersion==15)
+    assert(alterac.saved and alterac.placement and owner:view("alterac_valley").context.physicsVersion==16)
     allMaps:untilTrue(function() return learner:view("alterac_valley").rows[1].totalTicks==1400 end,5)
     assert(learner:view("mirage_raceway").rows[1].physicsVersion==12,
         "new layered finish notification does not merge into an existing flat board")

@@ -30,7 +30,7 @@ No eight-player implementation or capacity acceptance is claimed.
 | Scarlet Cathedral (`scarlet_cathedral`) | 3 | B |
 | Warsong Gulch (`warsong_gulch`) | 3 | C |
 | Arathi Basin (`arathi_basin`) | 3 | D |
-| Alterac Valley (`alterac_valley`) | 1 | E |
+| Alterac Valley (`alterac_valley`) | 2 | E |
 
 All fourteen courses are available in solo, Highscores and the two-peer lobby
 (owner direction,2026-10-27). Circuits use three laps; the four Scarlet dungeons and Alterac Valley
@@ -58,7 +58,7 @@ in memory without rewriting the save on initial load.
 exclude Oval. Control wire code0 is retired; Mirage1 remains stable. Both racers
 must update for new sprint offers. `Courses.multiplayer(id)` admits all current
 available production courses; `Courses.next(id,true)` filters the lobby. The eleven other flat courses retain Physics12; Warsong uses Physics13 and layered
-AZKRUN3. Arathi v3 uses Physics14; Alterac v1 uses opt-in ice Physics15, both with flat AZKRUN2. Existing live packet sizes and logged-whisper budgets are unchanged.
+AZKRUN3. Arathi v3 uses Physics14; Alterac v2 uses opt-in ice Physics16, both with flat AZKRUN2. Existing live packet sizes and logged-whisper budgets are unchanged.
 
 `Track.lua` remains a developer-only analytical fixture and the shared gate
 predicate provider. Existing deterministic collision/handling tests may load it
@@ -68,7 +68,7 @@ are preserved but excluded from current boards/publication. No player data is
 deleted or migrated.
 
 ScoreSync admits fourteen exact current contexts: eleven Physics12 boards,
-Warsong Physics13, Arathi v3 Physics14 and Alterac Physics15. AZKSCR2/schema2 has fifteen fixed hexadecimal digest slots,
+Warsong Physics13, Arathi v3 Physics14 and Alterac Physics16. AZKSCR2/schema2 has fifteen fixed hexadecimal digest slots,
 including retired O=0. Existing codes stay stable; Arathi code B is retained; Alterac appends V. HELLO is
 154 bytes including prefix and maximum legal NEW/ROW is150; the native158-byte
 ceiling remains. The prior fourteen-slot HELLO cannot complete catch-up with

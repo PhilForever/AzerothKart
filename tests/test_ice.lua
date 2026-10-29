@@ -30,7 +30,7 @@ assert(iceDistance>roadDistance*2.3 and iceDistance<roadDistance*2.7
     "ice needs roughly two and a half times the road stopping distance and time")
 print(("ice braking from200: road %.2fu / %.2fs; ice %.2fu / %.2fs")
     :format(roadDistance,roadSeconds,iceDistance,iceSeconds))
-assert(P.versionForTrack(ice)==15 and P.versionForTrack(road)==12)
+assert(P.versionForTrack(ice)==16 and P.versionForTrack(road)==12)
 assert(P.versionForTrack({boostOnGrass=true})==14 and P.versionForTrack({layered=true})==13)
 assert(P.new(road).onIce==nil and P.new(road).iceRecoveryTicks==nil,"legacy state shape stays exact")
 assert(P.new(ice).onIce==true and P.new(ice).iceRecoveryTicks==0)
@@ -61,18 +61,84 @@ local retained=frozen.slipAngle
 for _=1,10 do frozen=step(frozen,ice,{accelerate=true}) end
 assert(frozen.slipAngle>0 and frozen.slipAngle<retained,"releasing steering recovers traction slowly")
 
-local charged=P.new(ice);charged.speed=150
-charged.drifting=true;charged.driftTicks=P.DRIFT_TIER2_TICKS;charged.driftTier=2
-charged=step(charged,ice,{accelerate=true,left=true,drift=true})
-assert(not charged.drifting and charged.driftTicks==0 and charged.boostTicks==0,"ice cannot build or bank a drift reward")
+-- The whole ice surface supports ordinary drift thresholds and rewards,
+-- including ice over a grass underlay away from the painted road.
+local function ready(t,ticks,kart)
+    local state=P.new(t);state.speed=150;state.steering=1
+    for i=1,ticks do
+        state=step(state,t,{accelerate=true,left=true,drift=true},kart)
+        assert(state.drifting and state.driftTicks==i,"every eligible ice tick charges")
+        assert(state.driftTier==(i>=P.DRIFT_TIER2_TICKS and 2 or i>=P.DRIFT_TIER1_TICKS and 1 or 0),
+            "ice uses the ordinary tier timing")
+    end
+    return state
+end
+for _,underlay in ipairs({"road","grass"}) do
+    local field=track(function() return true end,underlay)
+    for _,kart in ipairs({"basic","steam_tank","dwarven_biker"}) do
+        for _,tier in ipairs({1,2}) do
+            local ticks=tier==1 and P.DRIFT_TIER1_TICKS or P.DRIFT_TIER2_TICKS
+            local state=ready(field,ticks,kart)
+            assert(state.slipAngle>0,"holding drift still slides on ice")
+            local released=step(state,field,{accelerate=true},kart)
+            local reward=tier==1 and P.BOOST_TIER1_TICKS or P.BOOST_TIER2_TICKS
+            assert(not released.drifting and released.driftTicks==0 and released.driftTier==0
+                and released.boostTicks==reward-1 and released.speed>state.speed,
+                "releasing an earned tier boosts on every ice underlay/profile")
+            local held=step(released,field,{accelerate=true,left=true,drift=true},kart)
+            assert(not held.drifting and held.driftTicks==0 and held.boostTicks==reward-2,
+                "an active boost cannot recharge itself")
+        end
+    end
+end
+-- Painted road boundaries within the ice are visual: neither charge nor
+-- release is cancelled when the ice remains under the kart.
+local mixed=track(function() return true end)
+mixed.surfaceAt=function(x) return x<0 and "road" or "grass" end
+local crossing=P.new(mixed);crossing.x=-1;crossing.speed=150;crossing.steering=1
+crossing.drifting=true;crossing.driftDirection=1;crossing.driftTicks=P.DRIFT_TIER1_TICKS;crossing.driftTier=1
+crossing=step(crossing,mixed,{accelerate=true,left=true,drift=true})
+assert(crossing.surface=="grass" and crossing.onIce and crossing.drifting
+    and crossing.driftTicks==P.DRIFT_TIER1_TICKS+1,"ice charge ignores the painted road edge")
+crossing=step(crossing,mixed,{accelerate=true})
+assert(crossing.boostTicks==P.BOOST_TIER1_TICKS-1,"off-road ice can spend the carried tier")
+local charged=ready(ice,P.DRIFT_TIER1_TICKS)
+local correction=step(charged,ice,{accelerate=true,right=true,drift=true})
+assert(correction.driftGraceTicks==1 and correction.driftTicks==charged.driftTicks,
+    "an ice steering correction retains earned charge without increasing it")
+correction=step(correction,ice,{accelerate=true})
+assert(correction.boostTicks==P.BOOST_TIER1_TICKS-1,"releasing during ice correction grace pays the tier")
+local braked=step(charged,ice,{brake=true,left=true,drift=true})
+assert(not braked.drifting and braked.driftTicks==0 and braked.driftTier==0 and braked.boostTicks==0,
+    "braking clears ice charge without reward")
+
+-- A held road charge continues onto ice; no extra release or tier is invented.
 local entering=track(function(x) return x>=0 end)
 charged=P.new(entering);charged.x=-1;charged.speed=150;charged.steering=1
-charged.drifting=true;charged.driftDirection=1;charged.driftTicks=P.DRIFT_TIER2_TICKS;charged.driftTier=2
+charged.drifting=true;charged.driftDirection=1;charged.driftTicks=P.DRIFT_TIER1_TICKS;charged.driftTier=1
 charged=step(charged,entering,{accelerate=true,left=true,drift=true})
-assert(charged.onIce and not charged.drifting and charged.driftTicks==0 and charged.boostTicks==0,
-    "held charge is cleared at the road-to-ice boundary")
+assert(charged.onIce and charged.drifting and charged.driftTicks==P.DRIFT_TIER1_TICKS+1 and charged.boostTicks==0,
+    "road charge continues at the ice boundary")
 charged=step(charged,entering,{accelerate=true})
-assert(charged.boostTicks==0,"releasing after entry cannot spend a road charge banked onto ice")
+assert(charged.boostTicks==P.BOOST_TIER1_TICKS-1,"the carried road tier can release on ice")
+-- Ice over rough snow is eligible too; leaving the ice cancels on that tick.
+local snowExit=track(function(x) return x<0 end,"grass")
+charged=P.new(snowExit);charged.x=-1;charged.speed=150;charged.steering=1
+charged.drifting=true;charged.driftDirection=1;charged.driftTicks=P.DRIFT_TIER1_TICKS;charged.driftTier=1
+charged=step(charged,snowExit,{accelerate=true,left=true,drift=true})
+assert(not charged.onIce and not charged.drifting and charged.driftTicks==0 and charged.driftTier==0,
+    "leaving onto ordinary snow clears charge")
+charged=step(charged,snowExit,{accelerate=true})
+assert(charged.boostTicks==0,"snow cannot bank an ice tier for release")
+-- Returning to road can continue/release during the traction recovery window.
+local roadExit=track(function(x) return x<0 end)
+charged=P.new(roadExit);charged.x=-1;charged.speed=150;charged.steering=1
+charged.drifting=true;charged.driftDirection=1;charged.driftTicks=P.DRIFT_TIER1_TICKS;charged.driftTier=1
+charged=step(charged,roadExit,{accelerate=true,left=true,drift=true})
+assert(not charged.onIce and charged.iceRecoveryTicks==15 and charged.drifting,
+    "road recovery retains a valid ice charge")
+charged=step(charged,roadExit,{accelerate=true})
+assert(charged.boostTicks==P.BOOST_TIER1_TICKS-1,"road recovery allows release")
 local boosted=P.new(ice);boosted.speed=240;boosted.boostTicks=8
 boosted=step(boosted,ice,{accelerate=true})
 assert(boosted.speed>240 and boosted.boostTicks==7,"earned road boost remains usable across ice")
@@ -128,4 +194,28 @@ for _,bad in ipairs({{cellSize=8,columns=20,rows=20,data="short"},{cellSize=10,c
     d=definition();d.iceMap=bad;assert(not pcall(C.new,d,T.crossesGate),"malformed ice map refused")
 end
 d=definition();d.iceMap=nil;assert(C.new(d,T.crossesGate).iceAt==nil,"legacy track has no ice feature")
-print("ice: reduced acceleration/braking/steering, momentum, snow override, recovery, cancellation and determinism PASS")
+-- Actual Alterac mask coverage: every collision-free first drift step from
+-- a passable ice cell charges, regardless of its road/snow classification.
+local AK={}
+for _,name in ipairs({"Track","Circuit","Battlegrounds"}) do
+    assert(loadfile("addon/AzerothKart/"..name..".lua"))("AzerothKart",AK)
+end
+local valley=AK.Circuit.new(AK.Battlegrounds.alterac_valley,AK.Track.crossesGate)
+local map=AK.Battlegrounds.alterac_valley.iceMap
+local onRoad,offRoad=0,0
+for row=0,map.rows-1 do
+    for col=0,map.columns-1 do
+        local x,y=(col+0.5)*map.cellSize,(row+0.5)*map.cellSize
+        if valley.iceAt(x,y) then
+            local state=P.new(valley);state.x=x;state.y=y;state.surface=valley.surfaceAt(x,y);state.heading=0;state.speed=150;state.steering=1
+            local nextState=step(state,valley,{accelerate=true,left=true,drift=true})
+            if nextState.impacts==0 and nextState.onIce then
+                assert(nextState.drifting and nextState.driftTicks==1,"passable Alterac ice charges everywhere")
+                if state.surface=="road" then onRoad=onRoad+1 else offRoad=offRoad+1 end
+            end
+        end
+    end
+end
+assert(onRoad>100 and offRoad>100,"coverage includes road and off-road ice")
+print(("ice mask drift coverage: %d road / %d off-road collision-free samples"):format(onRoad,offRoad))
+print("ice: traction, whole-field drift tiers/boosts, recovery, cancellation and determinism PASS")
