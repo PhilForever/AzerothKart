@@ -25,86 +25,82 @@ local UI
 
 -- The track list's copy, in display order within each cup (Courses.CUPS).
 -- Courses marked `soon` in Courses.LIST are listed after these, disabled,
--- even when their copy is ready here.
+-- even when their copy is ready here. `laps` and `gates` make the list's and
+-- the details' summary line (Menu.trackSummary; test_menu checks them against
+-- the built course). A blurb fits three lines of the details and each fact
+-- one line (scripts/preview_ui.py --check measures them as the client does).
 Menu.TRACKS = {
-    {id="mirage_raceway", name="Mirage Raceway", cell=0,
+    {id="mirage_raceway", name="Mirage Raceway", cell=0, laps=3, gates=4,
         blurb="A sun-baked salt circuit on the dry Shimmering Flats, run between the rival goblin and gnome camps.",
-        facts={"3 laps, 4 gates", "Counterclockwise: North, West, South, Start", "Off the road, rough salt slows you down"}},
-    {id="stormwind_city", name="Stormwind City Circuit", cell="stormwind",
-        blurb="Start in the Valley of Heroes, through the gate into the Trade District, then the canals: "
-            .. "Old Town, the Dwarven District, Cathedral Square, the Park and the Mage Quarter.",
-        facts={"3 laps, 6 gates named for the districts", "The canals stay on your left all lap",
+        facts={"Counterclockwise: North, West, South, Start", "Off the road, rough salt slows you down",
+            "The place to learn to drift and boost"}},
+    {id="stormwind_city", name="Stormwind City Circuit", cell="stormwind", laps=3, gates=6,
+        blurb="From the Valley of Heroes through the gate into the Trade District, then round the canals: "
+            .. "Old Town, the Dwarven District, Cathedral Square, the Park, the Mage Quarter.",
+        facts={"Gates named for the districts", "The canals stay on your left all lap",
             "Full speed to the street walls"}},
-    {id="ironforge_gp", name="Ironforge Grand Prix", cell="ironforge",
+    {id="ironforge_gp", name="Ironforge Grand Prix", cell="ironforge", laps=3, gates=7,
         blurb="From the Gates round the Commons, the Mystic Ward and the Forlorn Cavern, through the "
             .. "Great Forge's fire, then Tinker Town and the Military Ward.",
-        facts={"3 laps, 7 gates named for the districts", "Tight tunnels in and out of the Forlorn Cavern",
+        facts={"Gates named for the districts", "Tight tunnels in and out of the Forlorn Cavern",
             "Mind the lava: the forges' walls are solid"}},
-    {id="darnassus_canopy", name="Darnassus Canopy Run", cell="darnassus",
-        blurb="Start on the Warrior's Terrace, north past the Craftsmen's Terrace, down past the Cenarion "
-            .. "Enclave to the Temple Gardens' lake, round the Temple of the Moon and up past the Tradesmen's Terrace.",
-        facts={"3 laps, 6 gates named for the districts", "Down from the upper terraces to the lake and back up",
+    {id="darnassus_canopy", name="Darnassus Canopy Run", cell="darnassus", laps=3, gates=6,
+        blurb="From the Warrior's Terrace past the Craftsmen's Terrace and the Cenarion Enclave, down to the "
+            .. "Temple Gardens' lake, round the Temple of the Moon and back up.",
+        facts={"Gates named for the districts", "Down from the terraces to the lake and up",
             "Full speed to the street walls"}},
-    {id="orgrimmar_canyon", name="Orgrimmar Canyon Rush", cell="orgrimmar",
+    {id="orgrimmar_canyon", name="Orgrimmar Canyon Rush", cell="orgrimmar", laps=3, gates=4,
         blurb="Start on the canyon road behind the city gate, then round the Cleft of Shadow: the Valley of "
             .. "Strength, the Drag, the Valley of Wisdom and down the Cleft's rim.",
-        facts={"3 laps, 4 gates named for the districts", "Counterclockwise round the Cleft of Shadow",
+        facts={"Gates named for the districts", "Counterclockwise round the Cleft of Shadow",
             "Full speed to the street walls"}},
-    {id="thunder_bluff_skyway", name="Thunder Bluff Skyway", cell="thunderbluff",
+    {id="thunder_bluff_skyway", name="Thunder Bluff Skyway", cell="thunderbluff", laps=3, gates=6,
         blurb="Start where the lift arrives and lap the Lower Rise high over Mulgore, out over rope bridges "
             .. "to the Spirit Rise, the Elder Rise and the Hunter Rise and back.",
-        facts={"3 laps, 6 gates named for the rises", "Six narrow rope bridges, a long way down",
+        facts={"Gates named for the rises", "Six narrow rope bridges, a long way down",
             "Full speed to the street walls"}},
-    {id="undercity_slime", name="Undercity Slime Circuit", cell="undercity",
-        blurb="Start by the slime below the Apothecarium and race round the canal ring: past the Rogues' and "
-            .. "Magic Quarters, under the Ruins of Lordaeron and back by the War Quarter, over a bridge at every section.",
-        facts={"3 laps, 6 gates named for the quarters", "Six bridges over the slime: sharp turns on and off",
+    {id="undercity_slime", name="Undercity Slime Circuit", cell="undercity", laps=3, gates=6,
+        blurb="From the slime below the Apothecarium round the canal ring: past the Rogues' and Magic "
+            .. "Quarters, under the Ruins of Lordaeron and back by the War Quarter.",
+        facts={"Gates named for the quarters", "Six bridges over the slime: sharp turns",
             "Full speed to the street walls"}},
-    {id="scarlet_graveyard", name="Scarlet Graveyard", cell="scarletgraveyard",
-        blurb="Through the monastery's portal and up the hall to the Chamber of Atonement, down the stairs into "
-            .. "the Forlorn Cloister and across its graveyard to Honor's Tomb. No road here: find your way.",
-        facts={"Sprint: one run through 3 gates", "Full speed on the grass; graves and tombs block",
+    {id="scarlet_graveyard", name="Scarlet Graveyard", cell="scarletgraveyard", laps=1, gates=3,
+        blurb="Through the monastery's portal, up the hall to the Chamber of Atonement, down into the "
+            .. "Forlorn Cloister and across its graveyard to Honor's Tomb.",
+        facts={"No road here: find your way", "Full speed on the grass; graves and tombs block",
             "The finish is Honor's Tomb"}},
-    {id="scarlet_library", name="Scarlet Library", cell="scarletlibrary",
-        blurb="From the portal down the long hall to the Huntsman's Cloister, past Houndmaster Loksey's kennel, "
-            .. "then up through the Gallery of Treasures and the Athenaeum to Arcanist Doan's round library.",
-        facts={"Sprint: one run through 4 gates", "Full speed across the cloister's lawn",
+    {id="scarlet_library", name="Scarlet Library", cell="scarletlibrary", laps=1, gates=4,
+        blurb="Down the long hall to the Huntsman's Cloister, past Loksey's kennel, up through the "
+            .. "Gallery of Treasures and the Athenaeum to Doan's round library.",
+        facts={"Full speed across the cloister's lawn", "Loksey's kennel is off the way",
             "The finish is the round library's door"}},
-    {id="scarlet_armory", name="Scarlet Armory", cell="scarletarmory",
-        blurb="From the portal across the Training Grounds, the one open sky, up into the Footman's and the "
-            .. "Crusader's Armories, along the long hall into the round Hall of Champions and down its stairs "
-            .. "to Herod.",
-        facts={"Sprint: one run through 5 gates", "Full speed across the Training Grounds",
+    {id="scarlet_armory", name="Scarlet Armory", cell="scarletarmory", laps=1, gates=5,
+        blurb="Across the Training Grounds, up into the Footman's and Crusader's Armories, along the long "
+            .. "hall into the Hall of Champions and down its stairs to Herod.",
+        facts={"Full speed across the Training Grounds", "Its dummies and targets block",
             "The finish is down the stairs, beside Herod"}},
-    {id="scarlet_cathedral", name="Scarlet Cathedral", cell="scarletcathedral",
-        blurb="From the portal into the Chapel Gardens, round their pools, up the stairs beside the falls and "
-            .. "off their landing, through the cathedral's door and up the nave to the altar, where Mograine and "
-            .. "Whitemane stand.",
-        facts={"Sprint: one run through 4 gates", "The pools block; the stairs turn at a landing",
+    {id="scarlet_cathedral", name="Scarlet Cathedral", cell="scarletcathedral", laps=1, gates=4,
+        blurb="Into the Chapel Gardens, round their pools, up the stairs beside the falls, through the "
+            .. "cathedral's door and up the nave to Mograine and Whitemane.",
+        facts={"The pools block", "The stairs turn at a landing",
             "The finish is before the altar"}},
-    -- The Battlegrounds Cup's course (version 3: laid out on the real gulch,
-    -- both bases driven alike). A course listed as coming soon shows in
-    -- trackRows without a board.
-    {id="warsong_gulch", name="Warsong Gulch", cell="warsonggulch",
-        blurb="The real gulch, both bases alike: up Silverwing Hold's east path, in at the front door, round "
-            .. "the flag and out down its tunnel; then up the Lumber Mill's west path, round its flag and down "
-            .. "its tunnel to mid, every lap.",
-        facts={"3 laps, 7 gates: both flags every lap", "Laid out from the game's own map",
+    -- The Battlegrounds Cup (Warsong version 3: laid out on the real gulch,
+    -- both bases driven alike).
+    {id="warsong_gulch", name="Warsong Gulch", cell="warsonggulch", laps=3, gates=7,
+        blurb="Both bases alike: up Silverwing Hold's east path, in at its front door, round the flag and "
+            .. "down its tunnel; then the same through the Horde's Lumber Mill.",
+        facts={"Both flags every lap", "Laid out from the game's own map",
             "Boots in each tunnel; the arrow shows the way"}},
-    -- The second: round the basin on its real roads.
-    {id="arathi_basin", name="Arathi Basin", cell="arathibasin",
-        blurb="Round the basin from the road to Defiler's Den: north over the east bridge and down into the "
-            .. "Gold Mine's pit, up the north road to the Stables, round the barn by the road or across its slow "
-            .. "grass, over the west bridge, along the Lumber Mill's cliff top and down to the Farm.",
-        facts={"3 laps, 5 gates named for the bases", "Laid out from the game's own map: real hills and cliffs",
-            "The Stables: the road round, or a slow grass shortcut"}},
-    -- The third, coming soon: one long run down the valley, Horde to Alliance.
-    {id="alterac_valley", name="Alterac Valley", cell="alteracvalley",
-        blurb="From the Horde's side to the Alliance's: down from Frostwolf Village past Tower Point and "
-            .. "Iceblood Garrison, across the frozen Field of Strife, up past Stonehearth and Icewing and over "
-            .. "the bridge into Dun Baldar.",
-        facts={"Sprint: one run through 8 gates", "Drift wide: deep snow only past a few kart lengths",
-            "The Field of Strife is ice: steer early"}},
+    {id="arathi_basin", name="Arathi Basin", cell="arathibasin", laps=3, gates=5,
+        blurb="Over the east bridge, down into the Gold Mine's pit, up to the Stables, over the west "
+            .. "bridge, along the Lumber Mill's cliff and down to the Farm.",
+        facts={"Gates named for the bases", "Real hills and cliffs from the game's own map",
+            "The Stables: the road round, or slow grass"}},
+    {id="alterac_valley", name="Alterac Valley", cell="alteracvalley", laps=1, gates=8,
+        blurb="From Frostwolf Village past Tower Point and Iceblood, across the frozen Field of Strife, "
+            .. "by Stonehearth and Icewing and over the bridge into Dun Baldar.",
+        facts={"Drift wide: deep snow only past the verge", "The Field of Strife is ice: steer early",
+            "Horde to Alliance, one long run"}},
 }
 
 local WC3C = "Model: ITE project (wc3c), author unknown"
@@ -139,16 +135,32 @@ Menu.CONTROLS = {
 }
 
 Menu.RULES = {
-    "Pass the gates in order (the HUD names the next one); each full circuit is a lap. Three laps finish the race; "
-        .. "a Scarlet Crusade sprint is one run to its last gate.",
+    "Pass the gates in order; the HUD names the next one. Three laps finish a race. A sprint (the Scarlet "
+        .. "Crusade, Alterac Valley) is one run to its last gate.",
     "Hold a drift to charge it: blue, then gold at Tier 1 (0.5 s), then pink at Tier 2 (1 s). Release Space for a boost.",
-    "Grass and rough salt slow you and cancel drift and boost. Stormwind has full grip to the walls; wall contact scrubs speed.",
-    "Your best lap is kept for the current run. Entering combat closes the game.",
+    "Grass, rough salt and deep snow slow you and cancel drift and boost. City streets are paved wall to wall; "
+        .. "a wall scrubs speed. Ice cuts your grip: steer early. A drift cannot charge on it.",
+    "Your best solo time on each track is saved to its Highscores. Entering combat closes the game.",
+}
+
+-- The credits page (How to Play, then Credits): who made what, as the asset
+-- ledger (docs/art/ASSET_SOURCES.md) records it.
+Menu.CREDITS = {
+    {"Karts", "Goblin Mortar Trike: erwtenpeller and Chriz (Vast Graphics). Steam Tank, Dwarven Biker, "
+        .. "Gryphon Rider and Gyrocopter: the ITE project on wc3c (authors unknown). Dwarf Car, Orc Demolisher, "
+        .. "Meat Wagon and Glaive Thrower: Blizzard Entertainment (Warcraft III). Goblin Pod Racer: Blizzard "
+        .. "Entertainment (World of Warcraft)."},
+    {"Tracks", "Mirage Raceway's scenery is original. The cities, the Scarlet Monastery and the battlegrounds "
+        .. "are painted from Blizzard Entertainment's Warcraft III art; the battlegrounds follow their World of "
+        .. "Warcraft maps."},
+    {"Everything else", "The drift and boost effects, the handling bars, the medals and the track pictures are "
+        .. "made for Azeroth Kart. The dialogs, buttons, fonts and sounds are the WoW client's own."},
 }
 
 Menu.SCALES = {0.8, 0.9, 1, 1.1, 1.25}
 Menu.WINDOW_WIDTH, Menu.WINDOW_HEIGHT = 856, 762
 Menu.PREVIEW_PATH = "Interface\\AddOns\\AzerothKart\\Assets\\UI\\TrackPreviews.tga"
+Menu.PREVIEW_SIZE = 280 -- the details card's picture, for a cell drawn 320 units square
 -- TrackPreviews.tga: 1024x512, one 512x512 cell per track. Mirage fills its
 -- cell; the 5:3 Oval painting sits centered in the top 300 rows of its cell.
 -- A city has its own 512x512 Preview.tga beside its scenery (`path`).
@@ -196,6 +208,11 @@ Menu.PREVIEW_CELLS = {
 -- (scripts/build_stat_bars.py) is 512x64: row 0 the empty bar, row 1 the
 -- full one, each 480x32 texels for a 240x16 bar; the full bar is drawn over
 -- the empty one, cropped from the left to the kart's value.
+-- The kart screen's portraits: KartIcons.tga (scripts/build_kart_icons.py),
+-- 1024 x 512, one 128 x 128 cell a kart in Presentation.KART_ORDER's order,
+-- eight to a row. Menu.KART_TILES tiles a page (three rows of five).
+Menu.KART_ICONS = {path="Interface\\AddOns\\AzerothKart\\Assets\\UI\\KartIcons.tga", columns=8, rows=4}
+Menu.KART_TILES = 15
 Menu.STATS_PATH = "Interface\\AddOns\\AzerothKart\\Assets\\UI\\StatBars.tga"
 Menu.KART_STATS = {
     {key="maxSpeed", label="Speed"},
@@ -299,7 +316,7 @@ local FONT = {
 }
 
 local GOLD, WHITE, RED = {1, 0.82, 0}, {1, 1, 1}, {1, 0.35, 0.3}
-local SOON = {1, 0.55, 0.15}
+local SOON, GRAY = {1, 0.55, 0.15}, {0.5, 0.5, 0.5}
 
 -- Classic dialog backdrops, as defined by the client's Backdrop.lua presets.
 local DIALOG = {bgFile="Interface\\DialogFrame\\UI-DialogBox-Background",
@@ -667,7 +684,7 @@ local function buildHome()
     call(logo, "SetShadowColor", 0, 0, 0, 1)
     Menu.view.logo = logo
     Menu.view.tagline = newText(root, FONT.white, "TOP", 0, -90,
-        "Goblin-powered racing from the Shimmering Flats to Stormwind")
+        "Goblin-powered kart racing across Azeroth")
     local box = panel(root, DIALOG, 300, 314, "TOP", 0, -124)
     Menu.screens.home = box
     box:Hide()
@@ -691,60 +708,248 @@ local function buildHome()
     end
 end
 
+-- ---------------------------------------------------------------------------
+-- The track list, shared by the track screen and the highscores: the cups as
+-- tabs along the top, the shown cup's tracks as rows, each with its thumbnail
+-- and its laps and gates. A cup of any size keeps the same layout: its tracks
+-- fill Menu.TRACK_ROWS a page, paged beyond, and the rows are pooled, so
+-- adding tracks adds pages, never widgets or height.
+Menu.TRACK_ROWS, Menu.CUP_TABS = 9, 5
+Menu.CUP_LABELS = {proving="Proving Grounds", capital="Capital Cities", scarlet="Scarlet Crusade",
+    battlegrounds="Battlegrounds"}
+-- The rows' thumbnails: TrackThumbs.tga (scripts/build_track_thumbs.py),
+-- 512 x 512, one 64 x 64 cell a track in Menu.TRACKS order, eight to a row:
+-- the middle of each track's own preview, made small.
+Menu.TRACK_THUMBS = {path="Interface\\AddOns\\AzerothKart\\Assets\\UI\\TrackThumbs.tga", columns=8, rows=8}
+
+-- A cup's rows: its finished tracks (Menu.TRACKS order), then its
+-- coming-soon courses (Courses.LIST), as {track=} or {soon=}.
+function Menu.cupRows(cupId)
+    local rows = {}
+    for _,track in ipairs(Menu.TRACKS) do
+        local course = Courses and Courses.get(track.id)
+        if (course and course.cup or "proving") == cupId and not (course and course.soon) then
+            rows[#rows + 1] = {track=track}
+        end
+    end
+    for _,course in ipairs(Courses and Courses.LIST or {}) do
+        if course.cup == cupId and course.soon then rows[#rows + 1] = {soon=course} end
+    end
+    return rows
+end
+
+-- "3 laps | 6 gates" or "Sprint | 4 gates" for a track's copy (its laps and
+-- gates, checked against the built course by test_menu).
+function Menu.trackSummary(track)
+    if type(track) ~= "table" or type(track.gates) ~= "number" then return "" end
+    local run = track.laps == 1 and "Sprint" or ("%d laps"):format(track.laps or 3)
+    return ("%s | %d gates"):format(run, track.gates)
+end
+
+local function cupOf(id)
+    local course = Courses and Courses.get(id)
+    if not course then -- a listed course not (yet) registered for driving
+        for _,listed in ipairs(Courses and Courses.LIST or {}) do
+            if listed.id == id then course = listed end
+        end
+    end
+    return course and course.cup or "proving"
+end
+
+local function thumbCell(id)
+    for index,track in ipairs(Menu.TRACKS) do
+        if track.id == id then return index - 1 end
+    end
+end
+
+-- A track list on `box`, `width` wide. pick(track) runs on a click;
+-- chosen() names the track lit. list.cup and list.page are the cup and page
+-- shown (nil: the chosen track's, on the next refresh); list.find(id) shows
+-- a track's cup and page and returns its row.
+local function trackList(box, width, pick, chosen)
+    local list = {rows={}, tabs={}}
+    local cups = Courses and Courses.CUPS or {{id="proving", name="Proving Grounds"}}
+    local shown = math.min(#cups, Menu.CUP_TABS)
+    local tabWidth = math.floor((716 - (shown - 1) * 8) / shown)
+    local tabGlow = newTexture(box, "ARTWORK")
+    tabGlow:SetColorTexture(1, 0.82, 0, 0.30)
+    for index,cup in ipairs(cups) do
+        if index > Menu.CUP_TABS then break end
+        local tab = newButton(box, Menu.CUP_LABELS[cup.id] or cup.name, tabWidth, 28, "TOPLEFT",
+            32 + (index - 1) * (tabWidth + 8), -72, function()
+                list.cup, list.page = cup.id, 1
+                list.refresh()
+            end)
+        fonts(tab, "GameFontNormal", "GameFontHighlight", "GameFontDisable")
+        list.tabs[cup.id] = tab
+    end
+    local frame = panel(box, CARD, width, 434, "TOPLEFT", 32, -110, 0.03, 0.03, 0.04, 0.92)
+    for slot=1,Menu.TRACK_ROWS do
+        local row = newFrame("Button", frame)
+        row:SetSize(width - 12, 44)
+        row:SetPoint("TOPLEFT", frame, "TOPLEFT", 6, -6 - (slot - 1) * 47)
+        row.bg = newTexture(row, "BACKGROUND")
+        row.bg:SetAllPoints(row)
+        local light = newTexture(row, "HIGHLIGHT")
+        light:SetAllPoints(row)
+        light:SetColorTexture(1, 0.82, 0, 0.14)
+        row.thumb = newTexture(row, "ARTWORK")
+        row.thumb:SetSize(36, 36)
+        row.thumb:SetPoint("LEFT", row, "LEFT", 4, 0)
+        row.name = wrap(newText(row, FONT.white, "TOPLEFT", 48, -7, ""), width - 112)
+        call(row.name, "SetWordWrap", false)
+        row.detail = newText(row, FONT.graySmall, "TOPLEFT", 48, -26, "")
+        row.tag = newText(row, FONT.normal, "RIGHT", -12, 0, "")
+        color(row.tag, SOON)
+        row:SetScript("OnClick", function()
+            if not row.track then return end
+            Menu.Play("click")
+            pick(row.track)
+        end)
+        list.rows[slot] = row
+    end
+    -- Paging, shown only for a cup with more rows than a page.
+    list.previous = newButton(box, "<", 40, 22, "TOPLEFT", 32, -552, function()
+        list.page = math.max(1, (list.page or 1) - 1)
+        list.refresh()
+    end)
+    list.nextPage = newButton(box, ">", 40, 22, "TOPLEFT", 32 + width - 40, -552, function()
+        list.page = (list.page or 1) + 1
+        list.refresh()
+    end)
+    list.pageText = newText(box, FONT.small, "TOP", 32 + width / 2 - 390, -556, "")
+    local thumbs -- nil until the atlas is tried, then whether it loaded (a refusal is not retried)
+    list.refresh = function()
+        local id = chosen()
+        local cupId = list.cup or cupOf(id)
+        list.cup = cupId
+        markSelected(list.tabs, tabGlow, cupId)
+        local rows = Menu.cupRows(cupId)
+        local pages = math.max(1, math.ceil(#rows / Menu.TRACK_ROWS))
+        if list.page == nil then                       -- the chosen track's page
+            for index,entry in ipairs(rows) do
+                if entry.track and entry.track.id == id then list.page = math.ceil(index / Menu.TRACK_ROWS) end
+            end
+        end
+        local page = math.max(1, math.min(list.page or 1, pages))
+        list.page = page
+        if thumbs == nil then
+            thumbs = true
+            for _,row in ipairs(list.rows) do
+                local ok, loaded = call(row.thumb, "SetTexture", Menu.TRACK_THUMBS.path)
+                thumbs = thumbs and ok and loaded == true
+            end
+        end
+        local columns, cellRows = Menu.TRACK_THUMBS.columns, Menu.TRACK_THUMBS.rows
+        for slot,row in ipairs(list.rows) do
+            local entry = rows[(page - 1) * Menu.TRACK_ROWS + slot]
+            local track = entry and entry.track
+            -- false, not nil, when unbound: a widget's missing key may read its API.
+            row.id, row.track = entry and (track or entry.soon).id or false, track or false
+            if entry then
+                row.name:SetText(track and track.name or entry.soon.name)
+                color(row.name, track and WHITE or GRAY)
+                row.detail:SetText(track and Menu.trackSummary(track) or "Coming soon")
+                row.tag:SetText(track and "" or "Soon")
+                setEnabled(row, track ~= nil)
+                local lit = track ~= nil and track.id == id
+                if lit then row.bg:SetColorTexture(1, 0.82, 0, 0.24) else row.bg:SetColorTexture(1, 1, 1, 0.05) end
+                if lit then call(row, "LockHighlight") else call(row, "UnlockHighlight") end
+                local cell = thumbs and thumbCell(row.id)
+                if cell then
+                    local c, r = cell % columns, math.floor(cell / columns)
+                    row.thumb:SetTexCoord(c / columns, (c + 1) / columns, r / cellRows, (r + 1) / cellRows)
+                end
+                setShown(row.thumb, cell ~= nil and cell ~= false)
+                row:Show()
+            else
+                row:Hide()
+            end
+        end
+        setShown(list.previous, pages > 1)
+        setShown(list.nextPage, pages > 1)
+        setEnabled(list.previous, page > 1)
+        setEnabled(list.nextPage, page < pages)
+        list.pageText:SetText(pages > 1 and ("Page %d of %d"):format(page, pages) or "")
+    end
+    list.find = function(id)
+        list.cup, list.page = cupOf(id), 1
+        for index,entry in ipairs(Menu.cupRows(list.cup)) do
+            if (entry.track or entry.soon).id == id then list.page = math.ceil(index / Menu.TRACK_ROWS) end
+        end
+        list.refresh()
+        for _,row in ipairs(list.rows) do
+            if row.id == id and row:IsShown() then return row end
+        end
+    end
+    return list
+end
+
+-- A track's row in the shown screen's list (the track screen's or the
+-- highscores'), after turning to its cup and page; nil when not listed.
+function Menu.TrackRow(id)
+    local list = Menu.screen == "highscores" and Menu.view.boardList or Menu.view.trackList
+    return list and list.find(id) or nil
+end
+
 -- A bounded saved-record view. Browsing never selects a driving track, writes
 -- saved data, or publishes anything. The backend is queried only by deliberate
 -- open/track/page actions; Sync/OnUpdate do not refresh or sort this board.
+-- The boards are chosen from the same track list as the track screen's.
 local THREE_LAP_RULE = "Fastest completed three-lap totals for the current rules"
 local SPRINT_RULE = "Fastest completed sprints, one run each, for the current rules"
 local function buildHighscores()
-    local box = screenBox("highscores", "Saved Highscores", 780, 570)
+    local box = screenBox("highscores", "Highscores", 780, 640)
     local view = Menu.view
-    view.highscoreScope = newText(box, FONT.gray, "TOP", 0, -65, "Local cache | Global publishing pending")
-    view.highscoreTrack = newButton(box, "Track", 420, 30, "TOP", 0, -91, function()
-        -- The next board, past any course still coming soon (Arathi Basin).
-        local index = Menu.highscoreTrackIndex or 1
-        for _=1,#Menu.TRACKS do
-            index = index % #Menu.TRACKS + 1
-            local course = Courses and Courses.get(Menu.TRACKS[index].id)
-            if not (course and course.soon) then break end
-        end
-        Menu.highscoreTrackIndex = index
-        Menu.highscorePage = 1
+    view.boardList = trackList(box, 280, function(track)
+        Menu.boardTrackId, Menu.highscorePage = track.id, 1
         refresh.highscores()
-    end)
-    view.highscoreRule = newText(box, FONT.graySmall, "TOPLEFT", 38, -140, THREE_LAP_RULE)
-    newText(box, FONT.normal, "TOPLEFT", 38, -170, "Rank")
-    newText(box, FONT.normal, "TOPLEFT", 96, -170, "Name")
-    newText(box, FONT.normal, "TOPLEFT", 422, -170, "Total")
-    newText(box, FONT.normal, "TOPLEFT", 548, -170, "Date UTC")
+    end, function() return Menu.boardTrackId or UI.trackId end)
+    -- The board, a card beside the list: the track's name and rule, ten
+    -- pooled rows, the page. Its text sits on the card (a frame's children
+    -- draw above the frame's own text).
+    local width = 422
+    local board = panel(box, CARD, width, 434, "TOPLEFT", 326, -110, 0.05, 0.05, 0.06, 1)
+    view.highscoreTitle = wrap(newText(board, FONT.large, "TOPLEFT", 14, -14, ""), width - 28)
+    call(view.highscoreTitle, "SetMaxLines", 1)
+    view.highscoreRule = newText(board, FONT.graySmall, "TOPLEFT", 14, -36, THREE_LAP_RULE)
+    local columns = {rank=14, name=40, total=232, date=302}
+    newText(board, FONT.normal, "TOPLEFT", columns.rank, -62, "#")
+    newText(board, FONT.normal, "TOPLEFT", columns.name, -62, "Name")
+    newText(board, FONT.normal, "TOPLEFT", columns.total, -62, "Total")
+    newText(board, FONT.normal, "TOPLEFT", columns.date, -62, "Date UTC")
     view.highscoreRows = {}
     for index=1,10 do
         local row = {}
-        local y = -199 - (index - 1) * 23
-        row.rank = newText(box, FONT.white, "TOPLEFT", 38, y, "")
-        row.name = wrap(newText(box, FONT.white, "TOPLEFT", 96, y, ""), 306)
+        local y = -86 - (index - 1) * 23
+        row.rank = newText(board, FONT.white, "TOPLEFT", columns.rank, y, "")
+        row.name = wrap(newText(board, FONT.white, "TOPLEFT", columns.name, y, ""), columns.total - columns.name - 8)
         call(row.name, "SetWordWrap", false)
         call(row.name, "SetMaxLines", 1)
-        row.total = newText(box, FONT.white, "TOPLEFT", 422, y, "")
-        row.date = newText(box, FONT.white, "TOPLEFT", 548, y, "")
+        row.total = newText(board, FONT.white, "TOPLEFT", columns.total, y, "")
+        row.date = wrap(newText(board, FONT.white, "TOPLEFT", columns.date, y, ""), width - columns.date - 12)
+        call(row.date, "SetWordWrap", false)
         view.highscoreRows[index] = row
     end
-    view.highscoreEmpty = newText(box, FONT.gray, "TOP", 0, -215, "")
-    view.highscoreStatus = wrap(newText(box, FONT.graySmall, "BOTTOM", 0, 108, ""), 700, "CENTER")
+    view.highscoreEmpty = wrap(newText(board, FONT.gray, "TOPLEFT", 14, -102, ""), width - 28, "CENTER")
+    view.highscoreStatus = wrap(newText(board, FONT.graySmall, "TOPLEFT", 14, -330, ""), width - 28, "CENTER")
     call(view.highscoreStatus, "SetMaxLines", 2)
-    view.highscorePage = newText(box, FONT.normal, "BOTTOM", 0, 72, "Page 1 / 1")
-    view.highscorePrevious = newButton(box, "Previous", 130, 28, "BOTTOMLEFT", 170, 66, function()
+    view.highscoreScope = wrap(newText(board, FONT.graySmall, "TOPLEFT", 14, -362, ""), width - 28, "CENTER")
+    call(view.highscoreScope, "SetMaxLines", 1)
+    view.highscorePrevious = newButton(board, "Previous", 90, 24, "TOPLEFT", 14, -396, function()
         Menu.highscorePage = math.max(1, (Menu.highscorePage or 1) - 1)
         refresh.highscores()
     end)
-    view.highscoreNext = newButton(box, "Next", 130, 28, "BOTTOMRIGHT", -170, 66, function()
+    view.highscorePage = newText(board, FONT.normal, "TOP", 0, -401, "Page 1 / 1")
+    view.highscoreNext = newButton(board, "Next", 90, 24, "TOPRIGHT", -14, -396, function()
         Menu.highscorePage = (Menu.highscorePage or 1) + 1
         refresh.highscores()
     end)
-    newButton(box, "Back", 150, 30, "BOTTOMLEFT", 30, 22, function() Menu.Show("home") end)
+    newButton(box, "Back", 150, 30, "BOTTOMLEFT", 30, 26, function() Menu.Show("home") end)
     refresh.highscores = function()
-        local index = Menu.highscoreTrackIndex or 1
-        local track = Menu.TRACKS[index] or Menu.TRACKS[1]
+        view.boardList.refresh()
+        local track = trackInfo(Menu.boardTrackId or UI.trackId) or Menu.TRACKS[1]
+        Menu.boardTrackId = track.id
         local backend = AK.SoloRecords
         local snapshot
         if type(backend) == "table" and type(backend.GetView) == "function" then
@@ -766,7 +971,7 @@ local function buildHighscores()
         end
         local page = math.max(1, math.min(Menu.highscorePage or 1, pages))
         Menu.highscorePage = page
-        view.highscoreTrack:SetText("Track: " .. track.name)
+        view.highscoreTitle:SetText(track.name)
         -- A sprint's board (lap count 1) holds one-run times, not three-lap totals.
         local context = snapshot and type(snapshot.context) == "table" and snapshot.context
         view.highscoreRule:SetText(context and context.lapCount == 1 and SPRINT_RULE or THREE_LAP_RULE)
@@ -823,80 +1028,80 @@ end
 
 -- From the results: the run's own board, at the page with the player's row.
 function Menu.ShowBoard(trackId)
-    for index,track in ipairs(Menu.TRACKS) do
-        if track.id == trackId then Menu.highscoreTrackIndex = index end
-    end
+    Menu.boardRequest = trackInfo(trackId) and trackId or nil
     Menu.highscorePage, Menu.highscoreFindSelf = 1, true
     UI.DismissSummary()
     Menu.Show("highscores")
 end
 
--- The list: each cup's heading, its tracks (Menu.TRACKS order), then its
--- coming-soon entries (Courses.LIST), disabled.
+-- Every cup's heading, its tracks (Menu.TRACKS order), then its coming-soon
+-- entries (Courses.LIST): the whole catalogue in the order the tabs show it.
 function Menu.trackRows()
     local rows = {}
     for _,cup in ipairs(Courses and Courses.CUPS or {{id="proving", name="Proving Grounds"}}) do
         rows[#rows + 1] = {heading=cup.name}
-        for _,track in ipairs(Menu.TRACKS) do
-            local course = Courses and Courses.get(track.id)
-            if (course and course.cup or "proving") == cup.id and not (course and course.soon) then
-                rows[#rows + 1] = {track=track}
-            end
-        end
-        for _,course in ipairs(Courses and Courses.LIST or {}) do
-            if course.cup == cup.id and course.soon then rows[#rows + 1] = {soon=course} end
-        end
+        for _,entry in ipairs(Menu.cupRows(cup.id)) do rows[#rows + 1] = entry end
     end
     return rows
 end
 
+-- The track screen: the track list, and the chosen track's picture, copy and
+-- the player's best beside it.
 local function buildTracks()
     local box = screenBox("tracks", "Choose a Track", 780, 640)
-    Menu.view.trackStep = newText(box, FONT.gray, "TOPRIGHT", -30, -34, "Step 1 of 2")
-    local glow = newTexture(box, "ARTWORK")
-    glow:SetColorTexture(1, 0.82, 0, 0.30)
-    local buttons, soon = {}, {}
-    -- Four cups and thirteen rows: a 24-unit heading and a 30-unit row step
-    -- (28-unit buttons) keep the list clear of the Back button.
-    local y = -78
-    for _,row in ipairs(Menu.trackRows()) do
-        if row.heading then
-            color(newText(box, FONT.normal, "TOPLEFT", 38, y - 5, row.heading), GOLD)
-            y = y - 24
-        else
-            local track, course = row.track, row.soon
-            local label = track and track.name or (course.name .. "  |cffff8c26(soon)|r")
-            local button = newButton(box, label, 310, 28, "TOPLEFT", 34, y, track and function()
-                if UI.SelectTrack(track.id) then
-                    Menu.Chose("track", track.id)
-                    toast("tracks", "")
-                elseif inCombat() then toast("tracks", "Leave combat to change tracks.")
-                else toast("tracks", UI.status and UI.status:GetText() or "That track is unavailable.") end
-                refresh.tracks()
-            end or nil)
-            fonts(button, "GameFontNormal", "GameFontHighlight", "GameFontDisable")
-            if track then buttons[track.id] = button
-            else button:Disable(); soon[course.id] = button end
-            y = y - 30
-        end
-    end
-    local card = panel(box, CARD, 340, 340, "TOPRIGHT", -32, -72, 0.05, 0.05, 0.06, 1)
+    local view = Menu.view
+    view.trackStep = newText(box, FONT.gray, "TOPRIGHT", -30, -34, "Step 1 of 2")
+    view.trackList = trackList(box, 330, function(track)
+        if UI.SelectTrack(track.id) then
+            Menu.Chose("track", track.id)
+            toast("tracks", "")
+        elseif inCombat() then toast("tracks", "Leave combat to change tracks.")
+        else toast("tracks", UI.status and UI.status:GetText() or "That track is unavailable.") end
+        refresh.tracks()
+    end, function() return (trackInfo(UI.trackId) or Menu.TRACKS[1]).id end)
+    -- The chosen track: its picture and copy.
+    local card = panel(box, CARD, 368, 300, "TOPLEFT", 380, -110, 0.05, 0.05, 0.06, 1)
     local preview = newTexture(card, "ARTWORK")
     preview:SetPoint("CENTER")
     local missing = newText(card, FONT.gray, "CENTER", 0, 0, "Preview unavailable")
-    local name = wrap(newText(box, FONT.large, "TOPRIGHT", -32, -422), 340)
-    local blurb = wrap(newText(box, FONT.white, "TOPRIGHT", -32, -446), 340)
+    local name = wrap(newText(box, FONT.large, "TOPLEFT", 380, -422), 368)
+    call(name, "SetMaxLines", 1)
+    local summary = wrap(newText(box, FONT.small, "TOPLEFT", 380, -444), 368)
+    call(summary, "SetMaxLines", 1)
+    local blurb = wrap(newText(box, FONT.white, "TOPLEFT", 380, -464), 368)
+    call(blurb, "SetMaxLines", 3)
     local facts = {}
-    for index=1,3 do facts[index] = wrap(newText(box, FONT.normal, "TOPRIGHT", -32, -510 - (index - 1) * 20), 340) end
+    for index=1,3 do
+        facts[index] = wrap(newText(box, FONT.normal, "TOPLEFT", 380, -508 - (index - 1) * 16), 368)
+        call(facts[index], "SetWordWrap", false)
+    end
     newButton(box, "Back", 150, 30, "BOTTOMLEFT", 30, 26, function() Menu.Show("home") end)
-    Menu.view.trackNext = newButton(box, "Next: Choose Kart", 240, 36, "BOTTOMRIGHT", -30, 22,
+    view.trackNext = newButton(box, "Next: Choose Kart", 240, 36, "BOTTOMRIGHT", -30, 22,
         function() Menu.Show("karts") end, true)
-    Menu.view.trackButtons, Menu.view.trackPreview, Menu.view.soonButtons = buttons, preview, soon
+    view.trackPreview = preview
     Menu.previewLoaded = {}
+    -- The player's best on the chosen track, from the saved boards (read on
+    -- a deliberate refresh only; nothing is saved or published here).
+    local function best(id)
+        local backend = AK.SoloRecords
+        if type(backend) ~= "table" or type(backend.GetView) ~= "function" then return nil end
+        local ok, snapshot = pcall(backend.GetView, id)
+        local me = Menu.PlayerName()
+        if not ok or type(snapshot) ~= "table" or type(snapshot.rows) ~= "table" or not me then return nil end
+        for _,row in ipairs(snapshot.rows) do
+            if type(row) == "table" and row.playerName == me and type(backend.FormatTime) == "function" then
+                local okTime, text = pcall(backend.FormatTime, row.totalTicks)
+                return okTime and type(text) == "string" and text or nil
+            end
+        end
+    end
     refresh.tracks = function()
+        view.trackList.refresh()
+        -- The chosen track (it may sit in another cup than the one shown).
         local track = trackInfo(UI.trackId) or Menu.TRACKS[1]
-        markSelected(buttons, glow, UI.trackId)
         name:SetText(track.name)
+        local mine = best(track.id)
+        summary:SetText(Menu.trackSummary(track) .. (mine and ("  |  Your best: " .. mine) or ""))
         blurb:SetText(track.blurb)
         for index,line in ipairs(facts) do line:SetText(track.facts[index] or "") end
         local cell = Menu.PREVIEW_CELLS[track.cell]
@@ -911,7 +1116,8 @@ local function buildTracks()
         setShown(preview, Menu.previewReady)
         setShown(missing, not Menu.previewReady)
         if Menu.previewReady then
-            preview:SetSize(cell.width, cell.height)
+            -- The cells are drawn for a 320-unit square; the card holds Menu.PREVIEW_SIZE.
+            preview:SetSize(cell.width * Menu.PREVIEW_SIZE / 320, cell.height * Menu.PREVIEW_SIZE / 320)
             preview:SetTexCoord(cell.left, cell.right, cell.top, cell.bottom)
         end
     end
@@ -1005,6 +1211,7 @@ local function buildKarts()
     Menu.view.stageFrame0 = stage
     Menu.view.stageMissing = newText(stage, FONT.gray, "CENTER", 0, 0, "Preview unavailable")
     local order = Presentation.KART_ORDER
+    assert(type(order) == "table" and #order > 0, "the kart screen needs the kart roster")
     local function step(delta)
         local index = 1
         for i,id in ipairs(order) do if id == UI.kartId then index = i end end
@@ -1015,11 +1222,13 @@ local function buildKarts()
     local counter = newText(box, FONT.white, "TOP", 0, -20, "", stage, "BOTTOM")
     Menu.view.stageSprite = false
     local name = newText(box, FONT.huge, "TOPLEFT", 420, -84)
-    local blurb = wrap(newText(box, FONT.white, "TOPLEFT", 420, -120), 330)
-    local credit = wrap(newText(box, FONT.graySmall, "TOPLEFT", 420, -190), 330)
+    local blurb = wrap(newText(box, FONT.white, "TOPLEFT", 420, -116), 330)
+    call(blurb, "SetMaxLines", 3)
+    local credit = wrap(newText(box, FONT.graySmall, "TOPLEFT", 420, -160), 330)
+    call(credit, "SetWordWrap", false)
     -- The handling profile's name over its four bars; if the bars' picture
     -- cannot load, the line tells the tradeoffs in words instead.
-    local handling = wrap(newText(box, FONT.normal, "TOPLEFT", 420, -210, ""), 330)
+    local handling = wrap(newText(box, FONT.normal, "TOPLEFT", 420, -180, ""), 330)
     Menu.view.kartHandling = handling
     local handlingCopy = {
         balanced="Balanced | Even launch, braking and cornering.",
@@ -1028,7 +1237,7 @@ local function buildKarts()
     }
     local bars = {}
     for index,stat in ipairs(Menu.KART_STATS) do
-        local y = -230 - (index - 1) * 22
+        local y = -200 - (index - 1) * 22
         local empty = newTexture(box, "ARTWORK")
         empty:SetSize(Menu.STAT_WIDTH, Menu.STAT_HEIGHT)
         empty:SetPoint("TOPLEFT", box, "TOPLEFT", 750 - Menu.STAT_WIDTH, y)
@@ -1038,14 +1247,51 @@ local function buildKarts()
             label=newText(box, FONT.normal, "TOPLEFT", 420, y - 2, stat.label)}
     end
     Menu.view.statBars = bars
-    local glow = newTexture(box, "ARTWORK")
-    glow:SetColorTexture(1, 0.82, 0, 0.30)
-    local buttons = {}
-    for index,id in ipairs(order) do
-        local column, row = (index - 1) % 2, math.floor((index - 1) / 2)
-        buttons[id] = newButton(box, Presentation.KART_SPRITES[id].name, 160, 28, "TOPLEFT",
-            420 + column * 172, -330 - row * 38, function() Menu.ChooseKart(id) end)
+    -- The garage's floor: the karts' portraits (Menu.KART_ICONS), Menu.KART_TILES
+    -- a page in rows of five (paged beyond), the chosen kart's tile framed in
+    -- gold. The tiles are pooled: every page reuses them, so a longer roster
+    -- adds pages, never widgets. A kart's name shows on its tile when the
+    -- atlas cannot load, and in a tooltip while the mouse is over it.
+    local tiles = {}
+    for slot=1,Menu.KART_TILES do
+        local tile = newFrame("Button", box)
+        tile:SetSize(60, 60)
+        tile:SetPoint("TOPLEFT", box, "TOPLEFT", 420 + (slot - 1) % 5 * 67.5, -300 - math.floor((slot - 1) / 5) * 68)
+        tile.edge = newTexture(tile, "BACKGROUND")
+        tile.edge:SetAllPoints(tile)
+        tile.bg = newTexture(tile, "BORDER")
+        tile.bg:SetColorTexture(0.80, 0.75, 0.64, 1)
+        local light = newTexture(tile, "HIGHLIGHT")
+        light:SetAllPoints(tile)
+        light:SetColorTexture(1, 0.82, 0, 0.18)
+        tile.icon = newTexture(tile, "ARTWORK")
+        tile.icon:SetPoint("TOPLEFT", tile, "TOPLEFT", 3, -3)
+        tile.icon:SetPoint("BOTTOMRIGHT", tile, "BOTTOMRIGHT", -3, 3)
+        tile.label = wrap(newText(tile, FONT.small, "CENTER", 0, 0, ""), 56, "CENTER")
+        tile:SetScript("OnClick", function()
+            if not tile.kart then return end
+            Menu.Play("click")
+            Menu.ChooseKart(tile.kart)
+        end)
+        tile:SetScript("OnEnter", function(self)
+            local tip, sprite = _G.GameTooltip, tile.kart and Presentation.KART_SPRITES[tile.kart]
+            if sprite and type(tip) == "table" and call(tip, "SetOwner", self, "ANCHOR_RIGHT") then
+                call(tip, "SetText", sprite.name)
+                call(tip, "Show")
+            end
+        end)
+        tile:SetScript("OnLeave", function() call(_G.GameTooltip, "Hide") end)
+        tiles[slot] = tile
     end
+    Menu.view.kartPrevious = newButton(box, "<", 40, 22, "TOPLEFT", 420, -504, function()
+        Menu.kartPage = math.max(1, (Menu.kartPage or 1) - 1)
+        refresh.karts()
+    end)
+    Menu.view.kartNextPage = newButton(box, ">", 40, 22, "TOPLEFT", 710, -504, function()
+        Menu.kartPage = (Menu.kartPage or 1) + 1
+        refresh.karts()
+    end)
+    Menu.view.kartPageText = newText(box, FONT.small, "TOP", 585 - 390, -508, "")
     newButton(box, "Back", 150, 30, "BOTTOMLEFT", 30, 26, function()
         Menu.Show(Menu.screen == "garage" and "home" or "tracks")
     end)
@@ -1055,13 +1301,56 @@ local function buildKarts()
         if UI.active then Menu.Show(nil)
         else toast("karts", UI.status and UI.status:GetText() or "The race could not start.") end
     end, true)
-    Menu.view.kartButtons = buttons
+    Menu.view.kartTiles = tiles
     refresh.karts = function()
         local garage = Menu.screen == "garage"
         setShown(Menu.view.kartStep, not garage)
         Menu.view.race:SetText(garage and "Done" or "Race!")
         local sprite = UI.kartSprite
-        markSelected(buttons, glow, UI.kartId)
+        -- The icon atlas loads once; refused, every tile shows its name.
+        local view = Menu.view
+        if view.kartIconsReady == nil then
+            view.kartIconsReady = true
+            for _,tile in ipairs(tiles) do
+                local ok, loaded = call(tile.icon, "SetTexture", Menu.KART_ICONS.path)
+                view.kartIconsReady = view.kartIconsReady and ok and loaded == true
+            end
+        end
+        -- The chosen kart's page (on first look), then the page's karts.
+        local per, chosen = Menu.KART_TILES, 1
+        for i,id in ipairs(order) do if id == UI.kartId then chosen = i end end
+        local pages = math.max(1, math.ceil(#order / per))
+        if Menu.kartPage == nil then Menu.kartPage = math.ceil(chosen / per) end
+        local page = math.max(1, math.min(Menu.kartPage, pages))
+        Menu.kartPage = page
+        local cells, cellRows = Menu.KART_ICONS.columns, Menu.KART_ICONS.rows
+        for slot,tile in ipairs(tiles) do
+            local index = (page - 1) * per + slot
+            local id = order[index]
+            tile.kart = id or false
+            if id then
+                local mine = id == UI.kartId
+                -- A gold frame round the chosen kart, a dark one round the rest.
+                if mine then tile.edge:SetColorTexture(1, 0.82, 0, 1) else tile.edge:SetColorTexture(0.35, 0.30, 0.22, 1) end
+                tile.bg:ClearAllPoints()
+                tile.bg:SetPoint("TOPLEFT", tile, "TOPLEFT", mine and 3 or 1, mine and -3 or -1)
+                tile.bg:SetPoint("BOTTOMRIGHT", tile, "BOTTOMRIGHT", mine and -3 or -1, mine and 3 or 1)
+                if mine then call(tile, "LockHighlight") else call(tile, "UnlockHighlight") end
+                if view.kartIconsReady then
+                    local c, r = (index - 1) % cells, math.floor((index - 1) / cells)
+                    tile.icon:SetTexCoord(c / cells, (c + 1) / cells, r / cellRows, (r + 1) / cellRows)
+                end
+                tile.label:SetText(Presentation.KART_SPRITES[id].name)
+                setShown(tile.icon, view.kartIconsReady)
+                setShown(tile.label, not view.kartIconsReady)
+                tile:Show()
+            else tile:Hide() end
+        end
+        setShown(view.kartPrevious, pages > 1)
+        setShown(view.kartNextPage, pages > 1)
+        setEnabled(view.kartPrevious, page > 1)
+        setEnabled(view.kartNextPage, page < pages)
+        view.kartPageText:SetText(pages > 1 and ("Page %d of %d"):format(page, pages) or "")
         name:SetText(sprite and sprite.name or "Basic kart")
         local copy = Menu.KARTS[UI.kartId]
         blurb:SetText(copy and copy.blurb or "The kart art could not load, so a plain kart stands in.")
@@ -1076,6 +1365,20 @@ local function buildKarts()
     end
     refresh.garage = refresh.karts
     message.garage = message.karts
+end
+
+-- A kart's tile on the kart screen, after turning to its page; nil when the
+-- kart is not in the roster.
+function Menu.KartTile(id)
+    local order = Presentation.KART_ORDER
+    for index,kart in ipairs(order) do
+        if kart == id then Menu.kartPage = math.ceil(index / Menu.KART_TILES) end
+    end
+    local screen = Menu.screen == "garage" and "garage" or "karts"
+    if refresh[screen] then refresh[screen]() end
+    for _,tile in ipairs(Menu.view.kartTiles or {}) do
+        if tile.kart == id and tile:IsShown() then return tile end
+    end
 end
 
 function Menu.ChooseKart(id)
@@ -1343,13 +1646,23 @@ local function buildHelp()
     newText(box, FONT.large, "TOPLEFT", 410, -84, "Racing")
     local rules = wrap(newText(box, FONT.white, "TOPLEFT", 410, -116, table.concat(Menu.RULES, "\n\n")), 340)
     call(rules, "SetSpacing", 3)
-    wrap(newText(box, FONT.graySmall, "TOPLEFT", 40, -440,
-        "The keyboard is only captured during a race you start yourself, out of combat. " ..
-        "Kart models: Goblin Mortar Trike by erwtenpeller and Chriz (Vast Graphics); Steam Tank, Dwarven " ..
-        "Biker, Gryphon Rider and Gyrocopter from the wc3c ITE project; the other karts are Blizzard's own, " ..
-        "the Goblin Pod Racer from World of Warcraft. The Mirage scenery and the effects are original."),
-        700)
+    wrap(newText(box, FONT.graySmall, "TOPLEFT", 40, -320,
+        "The keyboard is only captured during a race you start yourself, out of combat."), 340)
     newButton(box, "Back", 150, 30, "BOTTOMLEFT", 30, 26, function() Menu.Show("home") end)
+    Menu.view.credits = newButton(box, "Credits", 150, 30, "BOTTOMRIGHT", -30, 26, function() Menu.Show("credits") end)
+    -- Credits: each part's heading over its lines, then the notice.
+    local page = screenBox("credits", "Credits")
+    local y = -84
+    for _,part in ipairs(Menu.CREDITS) do
+        newText(page, FONT.large, "TOPLEFT", 40, y, part[1])
+        local body = wrap(newText(page, FONT.white, "TOPLEFT", 40, y - 24, part[2]), 700)
+        call(body, "SetSpacing", 3)
+        y = y - 112
+    end
+    wrap(newText(page, FONT.graySmall, "TOPLEFT", 40, y + 8,
+        "Azeroth Kart is a fan-made addon, not affiliated with or endorsed by Blizzard Entertainment. "
+            .. "World of Warcraft and Warcraft are trademarks of Blizzard Entertainment, Inc."), 700)
+    newButton(page, "Back", 150, 30, "BOTTOMLEFT", 30, 26, function() Menu.Show("help") end)
 end
 
 local function buildSettings()
@@ -1381,7 +1694,7 @@ local function buildSettings()
         function() Menu.SetOutline(not Menu.prefs.outline) end)
     view.sound = check("Sound effects", "Menu clicks, the countdown beeps and the finish fanfare.", -296,
         function() Menu.SetSound(not Menu.prefs.sound) end)
-    view.devInfo = check("Show developer info", "Adds the timing line and the Print Probe button under the track.", -366,
+    view.devInfo = check("Show developer info", "Adds the lap, gate and timing lines and the Print Probe button under the track.", -366,
         function() Menu.SetDevInfo(not Menu.prefs.devInfo) end)
     newButton(box, "Reset window position", 220, 28, "TOPLEFT", 60, -440, function() Menu.ResetPosition() end)
     newText(box, FONT.graySmall, "TOPLEFT", 296, -446, "Drag the window by its title bar to move it.")
@@ -2018,7 +2331,7 @@ function Menu.Sync()
     end
     if UI.race then recordLaps() end
     local current = scene()
-    local key = current .. (Menu.prefs.devInfo and "+dev" or "")
+    local key = current .. (UI.gridStaged and "+grid" or "") .. (Menu.prefs.devInfo and "+dev" or "")
     if key == Menu.barKey then return end
     Menu.barKey = key
     local track = current == "track"
@@ -2029,6 +2342,10 @@ function Menu.Sync()
     setShown(UI.stopButton, current == "race")
     setShown(UI.probeButton, Menu.prefs.devInfo and current ~= "menu")
     setShown(UI.hud, Menu.prefs.devInfo)
+    -- The lap and gate lines under the track repeat the HUD on it: developer
+    -- info, except the staged grid's instructions on the gate line.
+    setShown(UI.lapHud, Menu.prefs.devInfo)
+    setShown(UI.checkpointHud, Menu.prefs.devInfo or UI.gridStaged == true)
     setShown(Menu.view.capture, current == "race")
     setShown(Menu.overlay, current ~= "menu")
 end
@@ -2037,11 +2354,17 @@ function Menu.Show(screen)
     if Menu.disabled or not Menu.root then return end
     if screen and (UI.active or UI.gridStaged) then screen = nil end -- never cover a live run/grid
     if screen and screen ~= "multiplayer" and UI.multiplayer then screen = "multiplayer" end
+    local lists = Menu.view
+    if screen == "tracks" and Menu.screen ~= "tracks" and lists.trackList then
+        lists.trackList.cup, lists.trackList.page = nil, nil   -- open on the chosen track's cup and page
+    end
+    if (screen == "karts" or screen == "garage") and Menu.screen ~= screen then
+        Menu.kartPage = nil                                     -- open on the chosen kart's page
+    end
     if screen == "highscores" and Menu.screen ~= "highscores" then
-        Menu.highscoreTrackIndex, Menu.highscorePage = 1, 1
-        for index,track in ipairs(Menu.TRACKS) do
-            if track.id == UI.trackId then Menu.highscoreTrackIndex = index; break end
-        end
+        -- The board asked for (the results' run), else the driving track's.
+        Menu.boardTrackId, Menu.boardRequest, Menu.highscorePage = Menu.boardRequest or UI.trackId, nil, 1
+        if lists.boardList then lists.boardList.cup, lists.boardList.page = nil, nil end
     end
     local leavingLobby = Menu.screen == "multiplayer" and screen ~= "multiplayer"
     local session = (leavingLobby or (screen and screen ~= "multiplayer" and UI.multiplayer)) and sessionView()

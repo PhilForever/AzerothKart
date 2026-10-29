@@ -252,8 +252,16 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu)
         ("every created object is counted: %d/%d/%d against %d/%d/%d"):format(UI.objects.frames,
             UI.objects.textures, UI.objects.fontStrings, env.counts.frames, env.counts.textures,
             env.counts.fontStrings))
-    -- Twelve track buttons under three cup headings; eight pooled gate strips.
-    -- Ten kart buttons; the lobby adds two EditBoxes and Listen/track buttons.
+    -- Eight pooled gate strips. The track screen's and the highscores' track
+    -- lists are pooled, the same for any catalogue: each has four cup tabs, a
+    -- list card, two page buttons, nine rows (a button with its background,
+    -- highlight and thumbnail textures and its name, summary and tag labels)
+    -- and a page label; the tabs' glow is a texture. The kart screen's fifteen
+    -- pooled portrait tiles each have a button, edge, sand, highlight and icon
+    -- textures and a fallback name label, plus two page buttons and a label.
+    -- The highscores board is a card; Credits is a dialog with eight labels
+    -- and a Back button, reached by How to Play's Credits button.
+    -- The lobby adds two EditBoxes and Listen/track buttons.
     -- The observational remote kart adds one texture and one font string.
     -- Saved highscores add six frames and 52 labels, including the results notice.
     -- The player's kart outline adds a texture, its Settings check a button and two labels.
@@ -262,13 +270,11 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu)
     -- (one label), and to the results a Highscores button, a sunburst, a medal
     -- and twelve confetti pieces (14 textures), a banner, its line, the wreath's
     -- rank and the two racers' rows (two labels each).
-    -- The Battlegrounds Cup adds its heading, Warsong Gulch's and Arathi
-    -- Basin's track buttons and Alterac Valley's coming-soon one; a two-floor
-    -- course's four pooled roofs and its guiding arrow, and a tiled course's
-    -- three pooled tiles, are created with the window (hidden on every other
-    -- course).
-    assert(UI.objects.frames == 93 and UI.objects.textures == 99 and UI.objects.fontStrings == 151,
-        ("explicit budget 93/99/151, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
+    -- A two-floor course's four pooled roofs and its guiding arrow, and a
+    -- tiled course's three pooled tiles, are created with the window (hidden on
+    -- every other course).
+    assert(UI.objects.frames == 121 and UI.objects.textures == 213 and UI.objects.fontStrings == 230,
+        ("explicit budget 121/213/230, got %d/%d/%d"):format(UI.objects.frames, UI.objects.textures,
             UI.objects.fontStrings))
     assert(AzerothKartDB.preferences == nil, "creation saves nothing")
     local before = counts(env)
@@ -346,9 +352,10 @@ withMock({schemaVersion=1, custom={keep=true}}, function(env, UI, Menu, AK)
         "the last page clears unused rows and disables Next")
     click(Menu.view.highscorePrevious)
     assert(Menu.view.highscorePage.text == "Page 2 / 3", "Previous returns one page")
-    click(Menu.view.highscoreTrack)
-    assert(Menu.highscorePage == 1 and requested[#requested] ~= selected and UI.trackId == selected,
-        "track browsing resets only the board page and leaves the driving track alone")
+    click(Menu.TrackRow("stormwind_city"))
+    assert(Menu.highscorePage == 1 and requested[#requested] == "stormwind_city" and UI.trackId == selected
+        and Menu.view.highscoreTitle.text == "Stormwind City Circuit",
+        "choosing a board from the list resets only its page and leaves the driving track alone")
     click(find(env, Menu.screens.highscores, "Back")); click(Menu.view.homeButtons[6])
     assert(Menu.screen == "highscores" and requested[#requested] == selected and Menu.highscorePage == 1,
         "reopening uses the current driving track without changing it")
@@ -375,7 +382,7 @@ withMock({schemaVersion=1, highscores={version=99, future="keep"}}, function(env
     Menu.Show("home"); Menu.Show("highscores")
     assert(Menu.view.highscoreEmpty.text == "Saved records unavailable.", "missing backend has a graceful empty state")
     AK.SoloRecords = {GetView=function() error("unavailable") end}
-    click(Menu.view.highscoreTrack)
+    click(Menu.TrackRow("stormwind_city"))
     assert(Menu.view.highscoreEmpty.text == "Saved records unavailable.", "a refused backend cannot break the menu")
     UI.scoreResult = {message="Solo time saved. Global publishing pending."}
     Menu.OnResults()
@@ -391,14 +398,14 @@ withMock({schemaVersion=1}, function(env, UI, Menu)
     local before = counts(env)
     click(Menu.view.homeButtons[1])
     assert(Menu.screen == "tracks" and Menu.view.trackStep:IsShown(), "Single Player starts with the track")
-    click(Menu.view.trackButtons.mirage_raceway)
+    click(Menu.TrackRow("mirage_raceway"))
     assert(UI.trackId == "mirage_raceway" and AzerothKartDB.preferences.track == "mirage_raceway",
         "choosing a track selects and remembers it")
     assert(Menu.view.trackPreview.texturePath == Menu.PREVIEW_PATH and
            Menu.view.trackPreview.texCoords[2] == 0.5, "the preview shows the chosen track's cell")
     click(Menu.view.trackNext)
     assert(Menu.screen == "karts" and Menu.view.race.text == "Race!", "Next leads to the kart choice")
-    click(Menu.view.kartButtons.steam_tank)
+    click(Menu.KartTile("steam_tank"))
     assert(UI.kartId == "steam_tank" and AzerothKartDB.preferences.kart == "steam_tank" and
            Menu.view.stage.texturePath == UI.kartSprite.path, "choosing a kart selects, previews and remembers it")
     local stage, turntable = Menu.view.stage, Menu.view.stageFrame0
@@ -492,7 +499,7 @@ withMock({schemaVersion=1}, function(env, UI, Menu)
     assert(UI.kartId == order[#order], "the arrows wrap around")
     env.textureModes[env.namespace.Presentation.KART_SPRITES.gyrocopter.path] = "false"
     local before = UI.kartId
-    click(Menu.view.kartButtons.gyrocopter)
+    click(Menu.KartTile("gyrocopter"))
     assert(UI.kartId == before and Menu.view.race.text == "Done" and AzerothKartDB.preferences.kart == before and
            Menu.messages.garage.text == "Gyrocopter could not load; keeping " ..
                env.namespace.Presentation.KART_SPRITES[before].name .. ".",
@@ -561,14 +568,14 @@ withMock({schemaVersion=1, preferences={version=1, track="ironforge_gp"}}, funct
     click(Menu.view.homeButtons[1])
     assert(Menu.view.trackPreview.texturePath == Menu.PREVIEW_CELLS.ironforge.path and
            Menu.view.trackPreview:IsShown(), "saved Ironforge shows its own preview")
-    click(Menu.view.trackButtons.stormwind_city)
-    click(Menu.view.trackButtons.ironforge_gp)
+    click(Menu.TrackRow("stormwind_city"))
+    click(Menu.TrackRow("ironforge_gp"))
     assert(UI.trackId == "ironforge_gp" and AzerothKartDB.preferences.track == "ironforge_gp" and
            Menu.screen == "tracks" and not UI.active and UI.race == nil and UI.clock == nil and
            UI.state.tick == 0, "choosing Ironforge remembers it and waits for Race!")
     local preview, cell = Menu.view.trackPreview, Menu.PREVIEW_CELLS.ironforge
     assert(UI.backgroundPath == AK.Courses.get("ironforge_gp").background and
-           preview.texturePath == cell.path and preview.width == cell.width and preview.height == cell.height and
+           preview.texturePath == cell.path and preview.width == cell.width * Menu.PREVIEW_SIZE / 320 and preview.height == cell.height * Menu.PREVIEW_SIZE / 320 and
            preview.texCoords[1] == cell.left and preview.texCoords[2] == cell.right and
            preview.texCoords[3] == cell.top and preview.texCoords[4] == cell.bottom,
         "an explicit Ironforge choice loads its scenery and complete preview cell")
@@ -591,7 +598,7 @@ for _,city in ipairs({{id="darnassus_canopy",cell="darnassus",refusal="false"},
         click(Menu.view.homeButtons[1])
         local preview,cell=Menu.view.trackPreview,Menu.PREVIEW_CELLS[city.cell]
         assert(preview:IsShown() and preview.texturePath==cell.path
-            and preview.width==cell.width and preview.height==cell.height
+            and preview.width==cell.width*Menu.PREVIEW_SIZE/320 and preview.height==cell.height*Menu.PREVIEW_SIZE/320
             and preview.texCoords[1]==cell.left and preview.texCoords[2]==cell.right
             and preview.texCoords[3]==cell.top and preview.texCoords[4]==cell.bottom,
             city.id..": saved selection displays its complete city preview")
@@ -610,7 +617,7 @@ for _,city in ipairs({{id="darnassus_canopy",cell="darnassus",refusal="false"},
         local oldResultReason,oldTicks=result.reason,race.totalTicks
         local before=counts(env)
         env.textureModes[AK.Courses.get(city.id).background]=city.refusal
-        click(Menu.view.trackButtons[city.id])
+        click(Menu.TrackRow(city.id))
         assert(UI.track==track and UI.trackId==id and UI.backgroundPath==background
             and UI.mirageBackground==picture and picture.texturePath==background,
             city.id..": refused scenery preserves the old authoritative track and visible picture")
@@ -711,7 +718,7 @@ withMock({schemaVersion=1, preferences={version=1, track="mirage_raceway"}}, fun
     UI.Toggle()
     assert(UI.trackId == "mirage_raceway" and not UI.backgroundPath and Menu.screen == "home",
         "no scenery restore during combat")
-    click(Menu.view.homeButtons[1]); click(Menu.view.trackButtons.mirage_raceway)
+    click(Menu.view.homeButtons[1]); click(Menu.TrackRow("mirage_raceway"))
     assert(UI.trackId == "mirage_raceway" and Menu.messages.tracks.text == "Leave combat to change tracks.",
         "a combat refusal says so plainly")
     env.combat = false
@@ -724,18 +731,121 @@ end)
 -- still marked coming soon (a fixture) is listed, disabled and inert.
 withMock(nil, function(env, UI, Menu, AK)
     UI.Toggle(); click(Menu.view.homeButtons[1])
-    assert(Menu.view.trackButtons.thunder_bluff_skyway and Menu.view.soonButtons.thunder_bluff_skyway == nil,
+    local bluff = Menu.TrackRow("thunder_bluff_skyway")
+    assert(bluff and bluff.track and bluff.track.id == "thunder_bluff_skyway" and bluff:IsEnabled(),
         "Thunder Bluff is listed as a ready track")
-    local soon = Menu.view.soonButtons.soon_fixture
-    assert(soon and not soon:IsEnabled() and not soon.scripts.OnClick and soon.text:find("(soon)", 1, true),
-        "a coming-soon city is listed, disabled and inert")
-    local warsong = Menu.view.soonButtons.warsong_gulch
-    assert(warsong and not warsong:IsEnabled() and not warsong.scripts.OnClick and not Menu.view.trackButtons.warsong_gulch,
+    local track = UI.trackId
+    local soon = Menu.TrackRow("soon_fixture")
+    assert(soon and not soon:IsEnabled() and not soon.track and soon.name.text == "Coming Course"
+        and soon.tag.text == "Soon" and soon.detail.text == "Coming soon",
+        "a coming-soon city is listed, disabled and labelled")
+    click(soon)
+    assert(UI.trackId == track and Menu.screen == "tracks", "and choosing it does nothing")
+    local warsong = Menu.TrackRow("warsong_gulch")
+    assert(warsong and not warsong:IsEnabled() and not warsong.track and warsong.tag.text == "Soon",
         "an explicitly gated future layered course stays disabled too")
     AK.Courses.get("warsong_gulch").soon = nil
 end, function(env, AK)
     table.insert(AK.Courses.LIST, {id="soon_fixture", name="Coming Course", cup="capital", soon=true})
     AK.Courses.get("warsong_gulch").soon = true
+end)
+
+-- The list's and the details' summary ("3 laps | 6 gates", "Sprint | 8
+-- gates") is copy: it must match each built course's laps and gates. Every
+-- track has a row in its own cup, and a thumbnail cell in its list order.
+withMock(nil, function(env, UI, Menu, AK)
+    for index,track in ipairs(Menu.TRACKS) do
+        local built = AK.Courses.build(track.id)
+        assert(built and #built.gates == track.gates and (built.laps or 3) == track.laps,
+            track.id .. ": its summary's laps and gates match the course")
+        assert(Menu.trackSummary(track) == (track.laps == 1 and ("Sprint | %d gates"):format(track.gates)
+            or ("%d laps | %d gates"):format(track.laps, track.gates)), track.id .. ": its summary line")
+        local listed = 0
+        for _,entry in ipairs(Menu.cupRows(AK.Courses.get(track.id).cup)) do
+            if entry.track == track then listed = listed + 1 end
+        end
+        assert(listed == 1, track.id .. ": one row in its own cup")
+        assert(index <= Menu.TRACK_THUMBS.columns * Menu.TRACK_THUMBS.rows, track.id .. ": a thumbnail cell")
+    end
+    UI.Toggle(); click(Menu.view.homeButtons[1])
+    local before = counts(env)
+    local row = Menu.TrackRow("alterac_valley")
+    local cell = #Menu.TRACKS - 1                                         -- Alterac is listed last
+    local c, r = cell % Menu.TRACK_THUMBS.columns, math.floor(cell / Menu.TRACK_THUMBS.columns)
+    assert(row.thumb.texturePath == Menu.TRACK_THUMBS.path and row.thumb.texCoords[1] == c / 8
+        and row.thumb.texCoords[3] == r / 8 and row.detail.text == "Sprint | 8 gates",
+        "a row shows its own thumbnail cell and summary")
+    for _,id in ipairs({"mirage_raceway", "stormwind_city", "scarlet_graveyard", "arathi_basin"}) do Menu.TrackRow(id) end
+    sameCounts(env, before, "turning cups and pages reuses the pooled rows")
+end)
+
+-- The kart screen's portraits: a pooled tile per kart on its page, each
+-- cropping its own cell of the icon atlas; the chosen one framed in gold; the
+-- names instead when the atlas cannot load (and no retry).
+withMock(nil, function(env, UI, Menu, AK)
+    UI.Toggle(); click(Menu.view.homeButtons[3])
+    local order = AK.Presentation.KART_ORDER
+    local before = counts(env)
+    for index,id in ipairs(order) do
+        local tile = Menu.KartTile(id)
+        local c, r = (index - 1) % Menu.KART_ICONS.columns, math.floor((index - 1) / Menu.KART_ICONS.columns)
+        assert(tile and tile.kart == id and tile.icon.texturePath == Menu.KART_ICONS.path and tile.icon:IsShown()
+            and tile.icon.texCoords[1] == c / Menu.KART_ICONS.columns
+            and tile.icon.texCoords[3] == r / Menu.KART_ICONS.rows and not tile.label:IsShown(),
+            id .. ": its tile crops its own icon cell")
+    end
+    click(Menu.KartTile("steam_tank"))
+    assert(UI.kartId == "steam_tank" and Menu.KartTile("steam_tank").edge.color[1] == 1
+        and Menu.KartTile("gyrocopter").edge.color[1] < 1, "the chosen kart's tile is framed in gold")
+    local shown = 0
+    for _,tile in ipairs(Menu.view.kartTiles) do if tile:IsShown() then shown = shown + 1 end end
+    assert(#Menu.view.kartTiles == Menu.KART_TILES and shown == math.min(#order, Menu.KART_TILES),
+        "a tile for each kart on the page, the rest hidden")
+    assert(not Menu.view.kartPrevious:IsShown() and not Menu.view.kartNextPage:IsShown(),
+        "one page of karts needs no paging")
+    sameCounts(env, before, "choosing karts reuses the pooled tiles")
+end)
+withMock(nil, function(env, UI, Menu, AK)
+    UI.Toggle(); click(Menu.view.homeButtons[3])
+    local calls = env.textureCalls
+    local tile = Menu.KartTile("gyrocopter")
+    assert(not tile.icon:IsShown() and tile.label:IsShown() and tile.label.text == "Gyrocopter"
+        and env.textureCalls == calls, "a refused icon atlas shows the karts' names and is not retried")
+end, function(env, AK)
+    env.textureModes["Interface\\AddOns\\AzerothKart\\Assets\\UI\\KartIcons.tga"] = "false"
+end)
+
+-- Under the track, the lap and gate lines repeat the race HUD: they show only
+-- with developer info, except the staged grid's instructions on the gate line.
+withMock(nil, function(env, UI, Menu)
+    UI.Toggle(); Menu.Show(nil); UI.Start(); UI.OnUpdate(1 / 60)
+    assert(UI.active and not UI.lapHud:IsShown() and not UI.checkpointHud:IsShown() and UI.status:IsShown()
+        and UI.driftHud:IsShown() and not UI.hud:IsShown(), "a race shows the status and drift lines only")
+    Menu.SetDevInfo(true)
+    assert(UI.lapHud:IsShown() and UI.checkpointHud:IsShown() and UI.hud:IsShown(),
+        "developer info adds the lap, gate and timing lines")
+    Menu.SetDevInfo(false)
+    UI.Stop("hud lines")
+    UI.gridStaged = true; Menu.Sync()
+    assert(UI.checkpointHud:IsShown() and not UI.lapHud:IsShown(), "the staged grid keeps its instructions")
+    UI.gridStaged = false; Menu.Sync()
+    assert(not UI.checkpointHud:IsShown(), "and hides them again after")
+end)
+
+-- How to Play leads to the Credits page and back; every kart in the roster
+-- is credited there by name.
+withMock(nil, function(env, UI, Menu, AK)
+    UI.Toggle(); click(Menu.view.homeButtons[4])
+    assert(Menu.screen == "help", "How to Play opens")
+    click(Menu.view.credits)
+    assert(Menu.screen == "credits" and Menu.screens.credits:IsShown() and not Menu.screens.help:IsShown(),
+        "its Credits button opens the credits")
+    for _,id in ipairs(AK.Presentation.KART_ORDER) do
+        local name = AK.Presentation.KART_SPRITES[id].name
+        assert(Menu.CREDITS[1][2]:find(name, 1, true), name .. " is credited")
+    end
+    click(find(env, Menu.screens.credits, "Back"))
+    assert(Menu.screen == "help", "Back returns to How to Play")
 end)
 
 -- A deliberate choice is remembered even when it was already current, and it
@@ -745,7 +855,7 @@ withMock({schemaVersion=1, preferences={version=1, track="mirage_raceway"}}, fun
     UI.Toggle()
     env.combat = false
     assert(UI.trackId == "mirage_raceway" and not Menu.trackRestored, "the restore waits for an open out of combat")
-    click(Menu.view.homeButtons[1]); click(Menu.view.trackButtons.mirage_raceway)
+    click(Menu.view.homeButtons[1]); click(Menu.TrackRow("mirage_raceway"))
     assert(UI.trackId == "mirage_raceway" and AzerothKartDB.preferences.track == "mirage_raceway",
         "choosing the current track is remembered")
     UI.Toggle(); UI.Toggle()
@@ -761,10 +871,10 @@ withMock({schemaVersion=1, preferences={version=1, track="mirage_raceway", kart=
     assert(AzerothKartDB.preferences.track == "mirage_raceway" and AzerothKartDB.preferences.kart == "gyrocopter",
         "an untouched failed restore keeps the saved choices")
     env.textureModes[BACKGROUND] = nil
-    click(Menu.view.homeButtons[1]); click(Menu.view.trackButtons.mirage_raceway)
+    click(Menu.view.homeButtons[1]); click(Menu.TrackRow("mirage_raceway"))
     assert(AzerothKartDB.preferences.track == "mirage_raceway" and UI.backgroundPath == BACKGROUND,
         "explicitly retrying the default loads its scenery")
-    click(Menu.view.trackNext); click(Menu.view.kartButtons.goblin_mortar_trike)
+    click(Menu.view.trackNext); click(Menu.KartTile("goblin_mortar_trike"))
     assert(UI.kartId == "goblin_mortar_trike" and AzerothKartDB.preferences.kart == "goblin_mortar_trike",
         "choosing the fallback kart replaces the failed one")
 end, function(env, AK)
@@ -785,13 +895,13 @@ end)
 
 -- Saving keeps what this version does not know and never replaces a newer record.
 withMock({schemaVersion=1, preferences={version=1, kart="steam_tank", futureField="keep"}}, function(env, UI, Menu)
-    UI.Toggle(); click(Menu.view.homeButtons[3]); click(Menu.view.kartButtons.gyrocopter)
+    UI.Toggle(); click(Menu.view.homeButtons[3]); click(Menu.KartTile("gyrocopter"))
     assert(AzerothKartDB.preferences.kart == "gyrocopter" and AzerothKartDB.preferences.futureField == "keep"
         and AzerothKartDB.preferences.version == 1, "unknown preference fields survive a save")
 end)
 withMock({schemaVersion=1, preferences={version=2, kart="steam_tank", newShape={1}}}, function(env, UI, Menu)
     assert(UI.kartId == "steam_tank", "a newer record's known fields are still read")
-    UI.Toggle(); click(Menu.view.homeButtons[3]); click(Menu.view.kartButtons.gyrocopter)
+    UI.Toggle(); click(Menu.view.homeButtons[3]); click(Menu.KartTile("gyrocopter"))
     assert(UI.kartId == "gyrocopter" and AzerothKartDB.preferences.version == 2 and
            AzerothKartDB.preferences.kart == "steam_tank", "a newer version's record is never overwritten")
 end)
@@ -803,8 +913,8 @@ withMock({schemaVersion=777, preferences={version=1, track="test_oval", kart="st
     UI.Toggle(); click(Menu.view.homeButtons[5])
     Menu.SetScale(1.1); click(Menu.view.effects); click(Menu.view.sound); click(Menu.view.devInfo)
     click(find(env, Menu.screens.settings, "Back"))
-    click(Menu.view.homeButtons[3]); click(Menu.view.kartButtons.gyrocopter)
-    click(Menu.view.race); click(Menu.view.homeButtons[1]); click(Menu.view.trackButtons.mirage_raceway)
+    click(Menu.view.homeButtons[3]); click(Menu.KartTile("gyrocopter"))
+    click(Menu.view.race); click(Menu.view.homeButtons[1]); click(Menu.TrackRow("mirage_raceway"))
     click(find(env, Menu.screens.tracks, "Back")); click(Menu.view.homeButtons[6])
     assert(AzerothKartDB == root and root.schemaVersion == 777 and root.preferences == preferences and
         root.unknown == unknown and unknown.keep and preferences.version == 1 and preferences.track == "test_oval" and
@@ -822,7 +932,7 @@ withMock({schemaVersion=1, preferences={version=1, kart="steam_tank"}}, function
     UI.Toggle(); click(Menu.view.homeButtons[5])
     Menu.SetScale(1.1); click(Menu.view.effects); click(Menu.view.sound); click(Menu.view.devInfo)
     click(find(env, Menu.screens.settings, "Back")); click(Menu.view.homeButtons[3])
-    click(Menu.view.kartButtons.gyrocopter)
+    click(Menu.KartTile("gyrocopter"))
     assert(AzerothKartDB.preferences == future and future.version == 777 and future.kart == "steam_tank" and
         future.newShape == shape and shape.keep == "exact" and future.scale == nil and future.effects == nil,
         "each save rechecks a future preference child installed after menu creation")
@@ -866,11 +976,11 @@ withMock({schemaVersion=1, preferences={version=2, track="mirage_raceway", kart=
                record.newShape == unknown and unknown.owner == "future" and unknown.keep == true,
             "explicit fallback choices never replace or change a newer preference record")
     end
-    click(Menu.view.trackButtons.mirage_raceway)
+    click(Menu.TrackRow("mirage_raceway"))
     assert(Menu.prefs.track == "mirage_raceway" and Menu.trackRestored,
         "the current track choice still supersedes restoration in memory")
     unchanged()
-    click(Menu.view.trackNext); click(Menu.view.kartButtons.goblin_mortar_trike)
+    click(Menu.view.trackNext); click(Menu.KartTile("goblin_mortar_trike"))
     assert(Menu.prefs.kart == "goblin_mortar_trike", "the current kart choice is kept in memory")
     unchanged()
 end, function(env, AK)
@@ -1348,9 +1458,12 @@ end)
 -- holds one-run times.
 withMock(nil, function(env, UI, Menu, AK)
     UI.Toggle(); click(Menu.view.homeButtons[1])
-    local buttons, soon = Menu.view.trackButtons, Menu.view.soonButtons
-    assert(buttons.scarlet_graveyard and buttons.scarlet_library and buttons.scarlet_armory and buttons.scarlet_cathedral
-        and not soon.scarlet_graveyard and not soon.scarlet_cathedral,
+    local function ready(id)
+        local row = Menu.TrackRow(id)
+        return row and row.track and row.track.id == id and row:IsEnabled() and row.tag.text == "" and row
+    end
+    assert(ready("scarlet_graveyard") and ready("scarlet_library") and ready("scarlet_armory")
+        and ready("scarlet_cathedral") and Menu.TrackRow("scarlet_cathedral").detail.text == "Sprint | 4 gates",
         "the cup lists its four sprints, none of them coming soon")
     local rows = Menu.trackRows()
     assert(rows[#rows - 8].heading == "Scarlet Crusade Cup" and rows[#rows - 7].track.id == "scarlet_graveyard"
@@ -1358,17 +1471,14 @@ withMock(nil, function(env, UI, Menu, AK)
         and rows[#rows - 4].track.id == "scarlet_cathedral", "the third cup's heading, then its four sprints")
     -- Both reviewed Battlegrounds Cup courses are selectable.
     assert(rows[#rows - 3].heading == "Battlegrounds Cup" and rows[#rows - 2].track.id == "warsong_gulch"
-        and buttons.warsong_gulch and buttons.warsong_gulch:IsEnabled() and buttons.warsong_gulch.scripts.OnClick
-        and not soon.warsong_gulch, "the fourth cup lists Warsong Gulch as a ready track")
+        and ready("warsong_gulch"), "the fourth cup lists Warsong Gulch as a ready track")
     local arathiCourse = AK.Courses.get("arathi_basin")
-    assert(rows[#rows - 1].track.id == "arathi_basin" and buttons.arathi_basin
-        and buttons.arathi_basin:IsEnabled() and buttons.arathi_basin.scripts.OnClick
-        and not soon.arathi_basin and not arathiCourse.soon, "then the playable Arathi Basin")
+    assert(rows[#rows - 1].track.id == "arathi_basin" and ready("arathi_basin")
+        and not arathiCourse.soon, "then the playable Arathi Basin")
     -- Alterac Valley is the third registered Battlegrounds course.
     local alteracCourse = AK.Courses.get("alterac_valley")
-    assert(rows[#rows].track.id == "alterac_valley" and not alteracCourse.soon and buttons.alterac_valley
-        and buttons.alterac_valley:IsEnabled() and buttons.alterac_valley.scripts.OnClick
-        and not soon.alterac_valley, "then the playable Alterac Valley")
+    assert(rows[#rows].track.id == "alterac_valley" and not alteracCourse.soon and ready("alterac_valley"),
+        "then the playable Alterac Valley")
     local warsong, arathi, alterac
     for _,track in ipairs(Menu.TRACKS) do
         if track.id == "warsong_gulch" then warsong = track elseif track.id == "arathi_basin" then arathi = track
@@ -1397,34 +1507,34 @@ withMock(nil, function(env, UI, Menu, AK)
         and gated[#gated - 2].track.id == arathiCourse.id and gated[#gated - 1].track.id == alteracCourse.id
         and gated[#gated].soon == course,
         "an explicitly gated course takes its ready row's place while Arathi remains available")
-    click(buttons.arathi_basin)
+    click(Menu.TrackRow("arathi_basin"))
     assert(UI.trackId == "arathi_basin" and Menu.previewReady and not UI.track.layered
-        and Menu.view.trackPreview.width == 320 and Menu.view.trackPreview.height == 320,
+        and Menu.view.trackPreview.width == Menu.PREVIEW_SIZE and Menu.view.trackPreview.height == Menu.PREVIEW_SIZE,
         "selecting Arathi builds its circuit and shows its square preview")
-    click(buttons.alterac_valley)
+    click(Menu.TrackRow("alterac_valley"))
     assert(UI.trackId == "alterac_valley" and Menu.previewReady and UI.track.open and UI.track.laps==1
         and UI.tilesLoaded==alteracCourse.tiles and type(UI.track.iceAt)=="function"
-        and Menu.view.trackPreview.width==320 and Menu.view.trackPreview.height==320,
+        and Menu.view.trackPreview.width == Menu.PREVIEW_SIZE and Menu.view.trackPreview.height == Menu.PREVIEW_SIZE,
         "selecting Alterac loads the open sprint, its tile set and ice query")
-    click(buttons.warsong_gulch)
+    click(Menu.TrackRow("warsong_gulch"))
     assert(UI.trackId == "warsong_gulch" and Menu.previewReady and UI.track.layered
-        and Menu.view.trackPreview.width == 160 and Menu.view.trackPreview.height == 320,
+        and Menu.view.trackPreview.width == Menu.PREVIEW_SIZE / 2 and Menu.view.trackPreview.height == Menu.PREVIEW_SIZE,
         "selecting Warsong builds its floor-aware geometry and displays the tall preview")
-    click(buttons.scarlet_cathedral)
+    click(Menu.TrackRow("scarlet_cathedral"))
     assert(UI.trackId == "scarlet_cathedral" and Menu.previewReady
-        and Menu.view.trackPreview.width == 160 and Menu.view.trackPreview.height == 320,
+        and Menu.view.trackPreview.width == Menu.PREVIEW_SIZE / 2 and Menu.view.trackPreview.height == Menu.PREVIEW_SIZE,
         "the Cathedral shows its twice-as-tall preview")
-    click(buttons.scarlet_armory)
+    click(Menu.TrackRow("scarlet_armory"))
     assert(UI.trackId == "scarlet_armory" and Menu.previewReady
-        and Menu.view.trackPreview.width == 320 and Menu.view.trackPreview.height == 320,
+        and Menu.view.trackPreview.width == Menu.PREVIEW_SIZE and Menu.view.trackPreview.height == Menu.PREVIEW_SIZE,
         "the Armory shows its square preview")
-    click(buttons.scarlet_library)
+    click(Menu.TrackRow("scarlet_library"))
     assert(UI.trackId == "scarlet_library" and Menu.previewReady
-        and Menu.view.trackPreview.width == 320 and Menu.view.trackPreview.height == 320,
+        and Menu.view.trackPreview.width == Menu.PREVIEW_SIZE and Menu.view.trackPreview.height == Menu.PREVIEW_SIZE,
         "the Library shows its square preview")
-    click(buttons.scarlet_graveyard)
+    click(Menu.TrackRow("scarlet_graveyard"))
     assert(UI.trackId == "scarlet_graveyard" and Menu.previewReady
-        and Menu.view.trackPreview.width == 320 and Menu.view.trackPreview.height == 160,
+        and Menu.view.trackPreview.width == Menu.PREVIEW_SIZE and Menu.view.trackPreview.height == Menu.PREVIEW_SIZE / 2,
         "choosing it shows its twice-as-wide preview")
     local lap, time, gates = Menu.raceLines(nil, nil)
     assert(lap == "SPRINT" and time == "0:00.0" and gates == "GATES 0/3", "before the sprint: its gates, no laps")
@@ -1440,42 +1550,24 @@ withMock(nil, function(env, UI, Menu, AK)
             context={trackId=id, lapCount=(id:find("^scarlet_") or id=="alterac_valley") and 1 or 3}}
     end}
     Menu.Show("home"); click(Menu.view.homeButtons[6])
-    assert(Menu.screen == "highscores" and Menu.view.highscoreTrack.text == "Track: Scarlet Graveyard"
-        and Menu.view.highscoreRule.text == "Fastest completed sprints, one run each, for the current rules",
-        "the Graveyard's saved board holds one-run sprint times")
-    click(Menu.view.highscoreTrack)
-    assert(Menu.view.highscoreTrack.text == "Track: Scarlet Library"
-        and Menu.view.highscoreRule.text == "Fastest completed sprints, one run each, for the current rules",
-        "so does the Library's")
-    click(Menu.view.highscoreTrack)
-    assert(Menu.view.highscoreTrack.text == "Track: Scarlet Armory"
-        and Menu.view.highscoreRule.text == "Fastest completed sprints, one run each, for the current rules",
-        "and the Armory's")
-    click(Menu.view.highscoreTrack)
-    assert(Menu.view.highscoreTrack.text == "Track: Scarlet Cathedral"
-        and Menu.view.highscoreRule.text == "Fastest completed sprints, one run each, for the current rules",
-        "and the Cathedral's")
-    click(Menu.view.highscoreTrack)
-    assert(Menu.view.highscoreTrack.text == "Track: Warsong Gulch"
-        and Menu.view.highscoreRule.text == "Fastest completed three-lap totals for the current rules",
-        "Warsong's board displays three-lap totals")
-    click(Menu.view.highscoreTrack)
-    assert(Menu.view.highscoreTrack.text == "Track: Arathi Basin"
-        and Menu.view.highscoreRule.text == "Fastest completed three-lap totals for the current rules",
-        "Arathi's board displays three-lap totals")
-    click(Menu.view.highscoreTrack)
-    assert(Menu.view.highscoreTrack.text == "Track: Alterac Valley"
-        and Menu.view.highscoreRule.text == "Fastest completed sprints, one run each, for the current rules",
-        "Alterac's board displays one-run sprint totals")
-    click(Menu.view.highscoreTrack)
-    assert(Menu.view.highscoreTrack.text == "Track: Mirage Raceway"
-        and Menu.view.highscoreRule.text == "Fastest completed three-lap totals for the current rules",
-        "past Alterac back to the first board's three-lap totals")
-    course.soon = true
-    for _=1,#Menu.TRACKS do
-        click(Menu.view.highscoreTrack)
-        assert(Menu.view.highscoreTrack.text ~= "Track: Warsong Gulch", "an explicitly gated course has no board")
+    local SPRINT = "Fastest completed sprints, one run each, for the current rules"
+    local THREE = "Fastest completed three-lap totals for the current rules"
+    assert(Menu.screen == "highscores" and Menu.view.highscoreTitle.text == "Scarlet Graveyard"
+        and Menu.view.highscoreRule.text == SPRINT, "the Graveyard's saved board holds one-run sprint times")
+    local names = {}
+    for _,track in ipairs(Menu.TRACKS) do names[track.id] = track.name end
+    for _,id in ipairs({"scarlet_library", "scarlet_armory", "scarlet_cathedral", "warsong_gulch", "arathi_basin",
+        "alterac_valley", "mirage_raceway"}) do
+        click(Menu.TrackRow(id))
+        local sprint = id:find("^scarlet_") or id == "alterac_valley"
+        assert(Menu.boardTrackId == id and Menu.view.highscoreTitle.text == names[id]
+            and Menu.view.highscoreRule.text == (sprint and SPRINT or THREE), id .. ": its board and its rule")
     end
+    course.soon = true
+    local gated = Menu.TrackRow("warsong_gulch")
+    assert(gated and not gated.track and not gated:IsEnabled(), "an explicitly gated course has no board")
+    click(gated)
+    assert(Menu.boardTrackId == "mirage_raceway", "and choosing it shows nothing new")
     course.soon = nil
     sameCounts(env, before, "the board's rule line reuses its label")
 end)
@@ -1736,7 +1828,7 @@ withMock({schemaVersion=1}, function(env, UI, Menu, AK)
     end
     local before = counts(env)
     click(Menu.view.homeButtons[1]); click(Menu.view.trackNext)
-    click(Menu.view.kartButtons.gryphon_rider)
+    click(Menu.KartTile("gryphon_rider"))
     assert(UI.kartId == "gryphon_rider" and Menu.view.stage.texturePath == gryphon.path, "the gryphon is chosen")
     local stage, turntable = Menu.view.stage, Menu.view.stageFrame0
     assert(poseOf(stage) == 0, "the turntable starts at rest")

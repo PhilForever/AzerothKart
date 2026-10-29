@@ -1,7 +1,7 @@
 """Offline layout review of the Azeroth Kart window and its menus.
 
 python scripts/preview_ui.py [--out docs/art/ui/front-end-review.png] [--screens DIR]
-    [--race-out docs/art/ui/race-screens-review.png]
+    [--race-out docs/art/ui/race-screens-review.png] [--client-fonts DIR] [--check]
 
 Runs the real addon Lua (pinned Lupa, Lua 5.1) against a recording mock of the
 widget API, visits every screen (main menu, track and kart choice, garage,
@@ -12,8 +12,23 @@ for the track, kart, effects and previews, and simple stand-ins for the
 client's dialog backdrops, buttons, check buttons, header and fonts.
 
 This is a layout picture, not client evidence or a screenshot: the client's
-real button and border art, its fonts (stand-ins are Bitstream Charter and
-FreeSerif), filtering and pixel snapping are not reproduced. Needs Pillow.
+real button and border art, its filtering and pixel snapping are not
+reproduced. Its fonts are stand-ins (Bitstream Charter for Friz Quadrata,
+FreeSerif for Morpheus) unless --client-fonts names a folder holding the
+client's own frizqt__.ttf and morpheus.ttf (extracted from the owner's install
+by scripts/wowcasc.py into local-artifacts/, never committed). Either way the
+client draws Friz Quadrata about 13% wider than its nominal size (EM below,
+measured on the owner's 2026-10-29 screenshot of the track screen: every line
+of Arathi Basin's copy wraps where the client wraps it), so text measures and
+wraps as in the client.
+
+--check walks every menu screen with every track and every kart chosen (the
+track and kart screens, the garage, the board for every track) and reports
+any visible text or control that overlaps another control or text in the same
+dialog, text cut short or hidden under a card drawn over it, or a control
+leaving its dialog; it exits 1 when it finds one. With --check the review
+pictures are written only where --out, --race-out or --screens ask (a check
+changes no tracked file). About five seconds. Needs Pillow.
 """
 import argparse
 import importlib
@@ -47,6 +62,12 @@ FONTS = {  # client font object -> (face, pixel height, default colour, outline)
 }
 FACES = {"friz": "/usr/share/fonts/type1/texlive-fonts-recommended/bchb8a.pfb",
          "morpheus": "/usr/share/fonts/truetype/freefont/FreeSerifBold.ttf"}
+CLIENT_FACES = {"friz": "frizqt__.ttf", "morpheus": "morpheus.ttf"}
+# The client's glyphs against the nominal size (the line pitch stays the size):
+# Friz Quadrata 1.13 times wider (both it and the Charter stand-in then wrap
+# Arathi Basin's blurb and facts line for line as the client did); Morpheus
+# titles measured at their size.
+EM = {"friz": 1.13, "morpheus": 1.0}
 LAYERS = {"BACKGROUND": 0, "BORDER": 1, "ARTWORK": 2, "OVERLAY": 3, "HIGHLIGHT": 4}
 SCREEN_W, SCREEN_H = 900, 830
 
@@ -123,6 +144,8 @@ function methods:SetFontObject(font) if type(font) == "table" then self.font = f
 function methods:SetTextColor(r, g, b, a) self.textColor = {r, g, b, a or 1} end
 function methods:SetJustifyH(value) self.justify = value end
 function methods:SetSpacing(value) self.spacing = value end
+function methods:SetMaxLines(value) self.maxLines = value end
+function methods:SetWordWrap(value) self.wordWrap = value end
 function methods:SetBackdrop(info) self.backdrop = info; return true end
 function methods:SetBackdropColor(r, g, b, a) self.backdropColor = {r, g, b, a or 1} end
 function methods:SetFrameLevel(level) self.level = level end
@@ -210,7 +233,7 @@ function mock.dump()
                 (rawget(o, "backdrop").bgFile or "") or nil,
             backdropColor = rawget(o, "backdropColor"), disabled = rawget(o, "disabled"),
             locked = rawget(o, "locked"), checked = rawget(o, "checked"), headerText = rawget(o, "headerText"),
-            normalFont = rawget(o, "normalFont")}
+            normalFont = rawget(o, "normalFont"), maxLines = rawget(o, "maxLines"), wordWrap = rawget(o, "wordWrap")}
     end
     return out
 end
@@ -229,7 +252,7 @@ def snapshot(lua):
         item = {key: o[key] for key in ("kind", "parent", "width", "height", "visible", "level", "text", "font",
                                         "justify", "spacing", "layer", "sublevel", "path", "rotation", "template",
                                         "frameKind", "backdrop", "disabled", "locked", "checked", "headerText",
-                                        "normalFont")}
+                                        "normalFont", "maxLines", "wordWrap")}
         for key in ("textColor", "color", "uv", "tint", "backdropColor"):
             item[key] = lua_list(o[key])
         item["points"] = [lua_list(o["points"][j]) for j in range(1, len(o["points"]) + 1)]
@@ -253,7 +276,7 @@ class Layout:
         face, size, rgb, outline = FONTS.get(name or "GameFontNormal", FONTS["GameFontNormal"])
         key = (face, size)
         if key not in self.fonts:
-            self.fonts[key] = ImageFont.truetype(FACES[face], size)
+            self.fonts[key] = ImageFont.truetype(FACES[face], size * EM[face])
         return self.fonts[key], size, rgb, outline
 
     def lines(self, item, width=None):
@@ -264,6 +287,15 @@ class Layout:
             if width is None:
                 out.append(paragraph)
                 continue
+            if item.get("wordWrap") is False:
+                # One line, cut with an ellipsis where it would overrun (as the client).
+                line = paragraph
+                if font.getlength(line) > width:
+                    while line and font.getlength(line + "...") > width:
+                        line = line[:-1]
+                    line += "..."
+                out.append(line)
+                continue
             words, line = paragraph.split(" "), ""
             for word in words:
                 trial = word if not line else line + " " + word
@@ -273,6 +305,10 @@ class Layout:
                     out.append(line)
                     line = word
             out.append(line)
+        most = item.get("maxLines")
+        if most and len(out) > most:
+            out = out[:most]
+            out[-1] = out[-1] + "..."
         return out
 
     def text_size(self, item):
@@ -396,8 +432,8 @@ class Painter:
 
     def texture(self, item, rect):
         l, b, r, t = rect
-        if r - l < 1 or t - b < 1:
-            return
+        if r - l < 1 or t - b < 1 or item["layer"] == "HIGHLIGHT":
+            return                                  # a highlight shows only under the mouse
         x0, y0, x1, y1 = self.box(rect)
         size = (max(1, x1 - x0), max(1, y1 - y0))
         if item["color"]:
@@ -473,7 +509,7 @@ class Painter:
             if item["kind"] == "frame":
                 if item["backdrop"]:
                     work.append(((item["level"], -1, 0, index), self.backdrop, item, rect))
-                if item["frameKind"] in ("Button", "CheckButton"):
+                if item["frameKind"] == "CheckButton" or item["frameKind"] == "Button" and item["template"]:
                     work.append(((item["level"], 1.5, 0, index), self.button, item, rect))
                 if item["template"] == "DialogHeaderTemplate" and item["headerText"]:
                     work.append(((item["level"], 2, 0, index), self.header, item, rect))
@@ -486,19 +522,162 @@ class Painter:
         return self.image
 
 
-def capture(lua, name, out_dir):
-    image = Painter(Layout(snapshot(lua))).draw().convert("RGB")
+CONTROLS = ("Button", "CheckButton", "EditBox")
+
+
+def plain(text):
+    return re.sub(r"\|c[0-9a-fA-F]{8}|\|r", "", text or "").strip()
+
+
+def lint(layout, name, skip=()):
+    """Overlaps in each dialog box (a DialogBox backdrop, not the window
+    itself, index `skip`): a control on a control, a text on a control it
+    does not belong to, a text on a text; a text under a card drawn over it
+    (a child frame's opaque backdrop: the client draws a frame's children
+    above its own text); and a control outside its dialog. Returns one line
+    per fault."""
+    objects = layout.objects
+
+    def ancestors(index):
+        out, walk = [], objects[index]["parent"]
+        while walk:
+            out.append(walk)
+            walk = objects[walk]["parent"]
+        return out
+
+    def dialog(index):
+        for walk in ancestors(index):
+            item = objects[walk]
+            if item["kind"] == "frame" and item["backdrop"] and "DialogBox" in item["backdrop"].split("|")[0] \
+                    and walk not in skip:
+                return walk
+        return None
+
+    def label(index):
+        item = objects[index]
+        text = plain(item["text"])
+        return f"{item['frameKind'] or item['kind']} '{text[:40]}'" if text else f"{item['frameKind'] or item['kind']} #{index}"
+
+    groups, cards = {}, {}
+    faults = []
+    for index in range(1, len(objects)):
+        item = objects[index]
+        if not item["visible"]:
+            continue
+        if item["kind"] == "font" and plain(item["text"]) and item["width"] and \
+                any(line.endswith("...") and not plain(item["text"]).endswith("...")
+                    for line in layout.lines(item, item["width"])):
+            faults.append(f"{name}: {label(index)} is cut short")
+        control = item["kind"] == "frame" and item["frameKind"] in CONTROLS
+        text = item["kind"] == "font" and plain(item["text"]) != ""
+        card = item["kind"] == "frame" and item["backdrop"] and "DialogBox" not in item["backdrop"].split("|")[0] \
+            and (item["backdropColor"] or [0, 0, 0, 1])[3] >= 0.5
+        if card and dialog(index) is not None:
+            cards.setdefault(dialog(index), []).append(index)
+        if not (control or text):
+            continue
+        box = dialog(index)
+        if box is not None:
+            groups.setdefault(box, []).append((index, control, layout.rect(index)))
+    for box, members in groups.items():
+        for index, control, (l, b, r, t) in members:
+            if control:
+                continue
+            level = objects[objects[index]["parent"]]["level"]
+            for card in cards.get(box, ()):
+                if objects[card]["level"] <= level or card in ancestors(index):
+                    continue
+                cl, cb, cr, ct = layout.rect(card)
+                if min(r, cr) - max(l, cl) > 1 and min(t, ct) - max(b, cb) > 1:
+                    faults.append(f"{name}: {label(index)} is hidden under {label(card)}")
+                    break
+        bl, bb, br, bt = layout.rect(box)
+        for index, control, (l, b, r, t) in members:
+            if control and (l < bl + 4 or r > br - 4 or b < bb + 4 or t > bt - 4):
+                faults.append(f"{name}: {label(index)} leaves its dialog")
+        for i, (a, control_a, ra) in enumerate(members):
+            for z, control_b, rb in members[i + 1:]:
+                if not (control_a or control_b) or True:
+                    w = min(ra[2], rb[2]) - max(ra[0], rb[0])
+                    h = min(ra[3], rb[3]) - max(ra[1], rb[1])
+                    if w <= 1 or h <= 1:
+                        continue
+                    if a in ancestors(z) or z in ancestors(a):
+                        continue                       # a label on its own button or row
+                    faults.append(f"{name}: {label(a)} overlaps {label(z)} ({w:.0f} x {h:.0f})")
+    return faults
+
+
+FAULTS = []
+
+
+def capture(lua, name, out_dir, check=False):
+    layout = Layout(snapshot(lua))
+    if check:
+        FAULTS.extend(lint(layout, name, {int(lua.eval("mock.namespace.UI.window.index"))}))
+    image = Painter(layout).draw().convert("RGB")
     if out_dir:
         image.save(out_dir / f"{name}.png")
     return image
 
 
+def check_all(lua):
+    """Every menu screen with each track and kart chosen, and the board for
+    each track: the faults lint finds."""
+    run = lua.execute
+    skip = {int(lua.eval("mock.namespace.UI.window.index"))}
+
+    def look(name):
+        FAULTS.extend(lint(Layout(snapshot(lua)), name, skip))
+    run("mock.namespace.Menu.Show('home')")
+    look("home")
+    ids = lua.eval("""(function()
+        local out, Courses = {}, mock.namespace.Courses
+        for _, course in ipairs(Courses.LIST) do if not course.soon then out[#out + 1] = course.id end end
+        return out end)()""")
+    for i in range(1, len(ids) + 1):
+        run(f"mock.namespace.UI.SelectTrack('{ids[i]}'); mock.namespace.Menu.Show('tracks')")
+        look(f"tracks/{ids[i]}")
+    run("mock.namespace.UI.SelectTrack('mirage_raceway')")
+    karts = lua.eval("mock.namespace.Presentation.KART_ORDER")
+    for screen in ("karts", "garage"):
+        run(f"mock.namespace.Menu.Show('{screen}'); mock.namespace.Menu.view.stage.scripts = nil")
+        for i in range(1, len(karts) + 1):
+            run(f"mock.namespace.Menu.ChooseKart('{karts[i]}')")
+            look(f"{screen}/{karts[i]}")
+    run("mock.namespace.Menu.ChooseKart('goblin_mortar_trike')")
+    for screen in ("multiplayer", "help", "credits", "settings"):
+        run(f"mock.namespace.Menu.Show('{screen}')")
+        look(screen)
+    run("mock.namespace.Menu.Show('highscores')")
+    tracks = int(lua.eval("#mock.namespace.Menu.TRACKS"))
+    for i in range(1, tracks + 1):
+        run(f"local M = mock.namespace.Menu; M.boardTrackId = M.TRACKS[{i}].id; "
+            "M.view.boardList.cup, M.view.boardList.page = nil, nil; M.OnScoresChanged()")
+        look(f"highscores/{lua.eval(f'mock.namespace.Menu.TRACKS[{i}].id')}")
+    run("mock.namespace.Menu.Show('home')")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--out", default=str(ROOT / "docs" / "art" / "ui" / "front-end-review.png"))
+    parser.add_argument("--out", help="the review sheet (default docs/art/ui/front-end-review.png; "
+                        "with --check none unless given)")
     parser.add_argument("--screens", help="also write each full-size screen into this folder")
-    parser.add_argument("--race-out", default=str(ROOT / "docs" / "art" / "ui" / "race-screens-review.png"))
+    parser.add_argument("--race-out", help="the race screens' sheet (default docs/art/ui/race-screens-review.png; "
+                        "with --check none unless given)")
+    parser.add_argument("--client-fonts", help="a folder with the client's frizqt__.ttf and morpheus.ttf")
+    parser.add_argument("--check", action="store_true",
+                        help="report overlapping or escaping text and controls on every screen; exit 1 on any")
     args = parser.parse_args()
+    if not args.check:
+        args.out = args.out or str(ROOT / "docs" / "art" / "ui" / "front-end-review.png")
+        args.race_out = args.race_out or str(ROOT / "docs" / "art" / "ui" / "race-screens-review.png")
+    if args.client_fonts:
+        for face, file in CLIENT_FACES.items():
+            path = Path(args.client_fonts) / file
+            if not path.is_file():
+                raise SystemExit(f"--client-fonts: {path} not found")
+            FACES[face] = str(path)
     os.chdir(ROOT)
     lupa = importlib.import_module("lupa.lua51")
     lua = lupa.LuaRuntime(unpack_returned_tuples=True)
@@ -510,7 +689,12 @@ def main():
     shots = []
     run = lua.execute
     run("mock.namespace.UI.Toggle(); mock.namespace.UI.SelectTrack('mirage_raceway'); mock.namespace.Menu.Show('home')")
-    for screen in ("home", "tracks", "karts", "multiplayer", "help", "settings"):
+    if args.check:
+        check_all(lua)
+    check = args.check
+    def capture(lua, name, out_dir, check=check, _capture=globals()["capture"]):
+        return _capture(lua, name, out_dir, check)
+    for screen in ("home", "tracks", "karts", "multiplayer", "help", "credits", "settings", "highscores"):
         run(f"mock.namespace.Menu.Show('{screen}')")
         if screen == "karts":
             run("mock.namespace.Menu.view.stage.scripts = nil")
@@ -602,9 +786,10 @@ def main():
         x, y = 8 + (i % columns) * (w + 8), 8 + (i // columns) * (h + 22)
         draw.text((x, y), name, font=label, fill=(230, 230, 230))
         sheet.paste(image.resize((w, h), Image.LANCZOS), (x, y + 18))
-    Path(args.out).parent.mkdir(parents=True, exist_ok=True)
-    sheet.save(args.out, optimize=True)
-    print(f"wrote {args.out} ({len(shots)} screens)")
+    if args.out:
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+        sheet.save(args.out, optimize=True)
+        print(f"wrote {args.out} ({len(shots)} screens)")
     # The race screens and celebrations, larger: a sheet of their own.
     chosen = [(name, image) for name, image in shots
               if name in ("results: top 3", "results: top 10", "two-player race", "two-player results")]
@@ -617,10 +802,17 @@ def main():
         x, y = 8 + (i % 2) * (w + 8), 8 + (i // 2) * (h + 26)
         draw.text((x, y), name, font=label, fill=(230, 230, 230))
         race.paste(image.resize((w, h), Image.LANCZOS), (x, y + 22))
-    out = Path(args.race_out)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    race.save(out, optimize=True)
-    print(f"wrote {out}")
+    if args.race_out:
+        out = Path(args.race_out)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        race.save(out, optimize=True)
+        print(f"wrote {out}")
+    if args.check:
+        faults = sorted(set(FAULTS))
+        for fault in faults:
+            print("LAYOUT:", fault)
+        print(f"CHECK {'FAIL' if faults else 'PASS'}: {len(faults)} layout faults")
+        return 1 if faults else 0
 
 
 if __name__ == "__main__":
