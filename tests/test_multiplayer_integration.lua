@@ -728,7 +728,7 @@ do
     local originalSession=a:view().session
     for _,e in ipairs({a,b}) do
         local ui,view=e.ns.UI,e:view()
-        assert(view.offer.trackId=="alterac_valley" and view.offer.trackVersion==1
+        assert(view.offer.trackId=="alterac_valley" and view.offer.trackVersion==2
             and view.offer.physicsVersion==15 and view.offer.laps==1
             and ui.trackId=="alterac_valley" and type(ui.track.iceAt)=="function"
             and not ui.track.layered and ui.race.targetLaps==1 and ui.state.level==nil,

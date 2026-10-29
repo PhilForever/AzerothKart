@@ -76,7 +76,7 @@ do
     end
     assert(count==14 and not versions.test_oval and versions.arathi_basin==3 -- open-grass boundary requires a new geometry version
         and targets.arathi_basin==3 and mechanics.arathi_basin==14 and targets.warsong_gulch==3
-        and versions.alterac_valley==1 and targets.alterac_valley==1 and mechanics.alterac_valley==15,
+        and versions.alterac_valley==2 and targets.alterac_valley==1 and mechanics.alterac_valley==15,
         "the exact current catalogue includes the flat three-lap Arathi course")
     local captured={physicsVersion=12,trackVersions=versions,trackLaps=targets,trackPhysics=mechanics}
     for id in pairs(versions) do
@@ -105,8 +105,8 @@ do
         assert(not deliver(guest,0,wire("INVITE",1,message)))
         closed(guest,"incompatible")
     end
-    for _,change in ipairs({{physicsVersion=12},{physicsVersion=14},{trackVersion=2},{laps=3}}) do
-        local message={physicsVersion=15,trackId="alterac_valley",trackVersion=1,laps=1}
+    for _,change in ipairs({{physicsVersion=12},{physicsVersion=14},{trackVersion=1},{laps=3}}) do
+        local message={physicsVersion=15,trackId="alterac_valley",trackVersion=2,laps=1}
         for field,value in pairs(change) do message[field]=value end
         local guest=fresh("guest",captured)
         assert(not deliver(guest,0,wire("INVITE",1,message)))

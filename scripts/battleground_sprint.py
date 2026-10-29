@@ -367,10 +367,11 @@ def _reachable(maps, start, blocked):
 def sprint_gates(d, g, maps, log=print):
     """Each gate (d["gate_cuts"]: name, "y" or "x", value): the straight line
     across the open ground there, through the course, from wall to wall
-    (the run of open cells it crosses that holds the course's crossing);
-    tried nearest the value first, within 160 units, until it parts the
-    grid: with its cells shut, the finish cannot be reached from the grid.
-    A "y" gate is crossed northwards, an "x" gate westwards."""
+    (the run of open cells it crosses that holds the course's crossing: the
+    first after the gate before it, as the karts meet it); tried nearest the
+    value first, within 160 units, until it parts the grid: with its cells
+    shut, the finish cannot be reached from the grid. A "y" gate is crossed
+    northwards, an "x" gate westwards."""
     cell, cols, rows, grass = maps["cell"], maps["columns"], maps["rows"], maps["grass"]
     line = g["centerline"]
     sx, sy = g["spawn"][:2]
@@ -378,18 +379,22 @@ def sprint_gates(d, g, maps, log=print):
     start, end = (int(sx // cell), int(sy // cell)), (int(ex // cell), int(ey // cell))
     assert grass[start[1] * cols + start[0]] and grass[end[1] * cols + end[0]], "the grid and the finish are open"
     gates = []
+    after = (1, -1.0)                         # the gate before's crossing: segment, fraction
     for name, axis, value in d["gate_cuts"]:
         found = None
         for offset in sorted(range(-160, 161, cell), key=abs):
             v = value + offset
-            # Where the course first crosses the line.
+            # Where the course first crosses the line after the gate before.
             cross = None
-            for k in range(1, len(line)):
+            for k in range(after[0], len(line)):
                 (ax, ay), (bx, by) = line[k - 1], line[k]
                 a, b = (ay, by) if axis == "y" else (ax, bx)
                 if (a - v) * (b - v) <= 0 and a != b:
                     t = (v - a) / (b - a)
+                    if k == after[0] and t <= after[1]:
+                        continue
                     cross = (ax + (bx - ax) * t, ay + (by - ay) * t)
+                    at = (k, t)
                     break
             if cross is None:
                 continue
@@ -421,9 +426,10 @@ def sprint_gates(d, g, maps, log=print):
             seen = _reachable(maps, start, blocked)
             if seen[end[1] * cols + end[0]]:
                 continue                      # a way round: try the next line
-            found = gate
+            found, crossed = gate, at
             break
         assert found, "no cut across the valley near the gate %s" % name
+        after = crossed
         span = abs(found["bx"] - found["ax"]) + abs(found["by"] - found["ay"])
         log("  gate %s: %s %d, %d units across" % (name, axis, found["ay"] if axis == "y" else found["ax"], span))
         gates.append(found)
