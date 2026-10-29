@@ -1,5 +1,12 @@
 # Shared integration and deployment status
 
+## Installed ice drift and gates — 2026-10-29
+
+Runtime **aa9ed46** installed;102 source/installed and102 prior backup files
+independently verified. Friend ZIP `../AzerothKart-IceDrift-aa9ed46.zip` matches.
+Both clients fully restart. Native checks pending; authorized feature push next.
+[Receipt](PROGRESS.md), [review](reviews/2026-10-29-ice-drift-gates.md).
+
 ## Reviewed ice drift and gate candidate — 2026-10-29
 
 Claudeef0bb58 plus Physics16 whole-field drift/boost and exact solo gate

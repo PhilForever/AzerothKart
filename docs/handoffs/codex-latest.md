@@ -1,5 +1,13 @@
 # Codex handoff — production maps and Claude course review
 
+## Installed ice drift and gates — 2026-10-29 13:11 +0100
+
+Runtime **aa9ed46** installed and102 source/installed files verified;102
+prior files backed up. Friend ZIP `../AzerothKart-IceDrift-aa9ed46.zip` matches.
+Both clients fully restart for geometry2/Physics16 and GateKit. Native feel,
+remote smoothing and gate audio/appearance pending.
+[Evidence](../PROGRESS.md). Next: owner-authorized feature publication.
+
 ## Reviewed ice drift and gates — 2026-10-29
 
 Own codex/ice-drift-gates integrates Claudeef0bb58. Alterac geometry2/Physics16

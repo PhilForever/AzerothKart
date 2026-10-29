@@ -1,5 +1,22 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-29 13:11 +0100 — Ice drift and gates installed, ZIP verified
+
+Runtime **aa9ed46**, branch `codex/ice-drift-gates`, combines reviewed
+Claudeef0bb58 with Physics16 whole-field ice drift/boost, corrected meter/HUD
+and exact solo gate split observation. Installer preview and fresh prior
+hash/inventory check passed. Approved installer installed102 source files and
+backed up102 previous files. Independent audit verified all installed/source/
+backup hashes, preserved extra and102 ZIP entries/CRC: PASS.
+
+ZIP `../AzerothKart-IceDrift-aa9ed46.zip`:127,406,105 bytes, SHA256
+`7CE5F5DB16823FFA485E1D49B50AF4A6A9F649700B6337E2465D25B06819BFCB`.
+Manifest/backup/receipt/log under `local-artifacts/deploy-20261029-ice-drift/`.
+No SavedVariables, unrelated addon or Claude checkout touched. Both clients
+fully restart for GateKit/new geometry2/Physics16. Native play/appearance/
+remote smoothing NOT RUN. Next: authorized non-forced feature publication,
+then owner charges and releases drift on both road and off-road ice.
+
 ## 2026-10-29 13:11 +0100 — Whole-field ice drifting and gate review complete
 
 `codex/ice-drift-gates` merges reviewed Claudeef0bb58 with owner-requested
