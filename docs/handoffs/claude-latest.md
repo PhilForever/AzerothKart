@@ -9,7 +9,7 @@ Prepared 2026-10-29 at about 10:30 CET by Claude (rendering/UI/sprites owner).
 - `a04650e`: the docs (the [gates' sheet](../art/ui/gates.md) and its picture, the kit's provenance, the contract proposal, the test plan, the front end's status line, the validator's file list);
 - this handoff, with the sheet's rebuild commands and run results.
 
-It contains `claude/menu-launch` (its budget and tests build on the menus), so it is reviewed after it. **Nothing is installed or pushed.** The developer machine's Claude worktree is on `claude/immersive-gates` at `a04650e` (from `local-artifacts/bundles/immersive-gates-1.bundle`; `claude/menu-launch` is unchanged at `e54c37f`), clean apart from its untracked `Claude outputs/`; this handoff follows as `immersive-gates-2.bundle`.
+It contains `claude/menu-launch` (its budget and tests build on the menus), so it is reviewed after it. Codex has since reviewed and installed the menus from `6098e73` as `codex/menu-launch-review` (runtime `c8a3eed`, recorded in `df73e81`); this branch merges onto that cleanly and the merged tree passes (see Tests). **Nothing of the gates is installed or pushed.** The developer machine's Claude worktree is on `claude/immersive-gates` at `a04650e` (from `local-artifacts/bundles/immersive-gates-1.bundle`; `claude/menu-launch` is unchanged at `e54c37f`), clean apart from its untracked `Claude outputs/`; this handoff follows as `immersive-gates-2.bundle`.
 
 ## Owner instructions
 
@@ -51,12 +51,13 @@ No change to `Track.gates`, Checkpoints, Laps, Race, Physics, Courses, the proto
 | `python scripts/build_gate_kit.py --wc3 WC3 --check` | PASS (`3ab00ea7…04e9`) | PASS, the same bytes, from a fresh extraction of exactly the six models and their textures with the [sheet's command](../art/ui/gates.md#rebuilding-the-kit) (2 s, then 9 s) |
 | `python scripts/build_kart_icons.py --check`; `build_track_thumbs.py --check` | PASS | not run (unchanged since `claude/menu-launch`, PASS there) |
 | `git diff --check`; `python scripts/validate_project.py` | PASS; the same 2 pre-existing FAILs (`docs/PROGRESS.md`'s links to `C:/Users/bakke/.codex/...`) | `git diff --check e54c37f HEAD` PASS |
+| Trial merge onto Codex's installed `codex/menu-launch-review` `df73e81`: `git merge-tree`, its tree checked out detached in a throwaway folder (no branch made), then every check above | no conflicts; 53 of 53 Lua 5.1 PASS, Lua 5.4 `presentation ui menu` PASS (Codex's new overflow-page regressions included), layout check 0 faults, the kit's and both menu atlases' `--check` PASS | not run |
 
 **NOT RUN in the client:** the look of the lines, posts, pools and band; `SetBlendMode("ADD")` on the pools; the kit's loading and memory; the ping; the toast. Steps in [the client check](../art/ui/gates.md#client-check-not-run).
 
 ## For Codex
 
-1. Review the [contract proposal](../API_CONTRACTS.md#proposed-gates-in-the-world-claude-claudeimmersive-gates-2026-10-29-for-codex) after `claude/menu-launch`'s: presentation only, but `refreshCheckpoints`' gate colours, `test_ui`'s budget (121/233/232), its texture-load counts (the kit loads once onto every piece and strip: 27 calls) and the lap fixture's colour helper change. `UI.glowGate` keeps its guided meaning; the unguided pulse is `UI.nextGate`.
+1. Review the [contract proposal](../API_CONTRACTS.md#proposed-gates-in-the-world-claude-claudeimmersive-gates-2026-10-29-for-codex) on top of your installed `codex/menu-launch-review` (the trial merge is clean and passes): presentation only, but `refreshCheckpoints`' gate colours, `test_ui`'s budget (121/233/232), its texture-load counts (the kit loads once onto every piece and strip: 27 calls) and the lap fixture's colour helper change. `UI.glowGate` keeps its guided meaning; the unguided pulse is `UI.nextGate`.
 2. **Pending ledger entry for `docs/PROGRESS.md`** (not written here): "2026-10-29 Claude `claude/immersive-gates` (`3574216`, `7e772e6`, `a04650e`, on `claude/menu-launch`): gates in the world after the owner asked for more than lines, with posts just past the fence and subtler lines. Each gate's line stays exact (Track.gates unchanged) as a faint soft stroke: the next gate in its course's light, pulsing; later gates faint; a passed gate flashes out. A Warcraft III post per course 12 units past each gate end (`GateKit.tga`, six models rendered with the scenery's renderer), the next gate's light pools, a checkered lap line; a toast with the gate's name, time and split, and the map's ping. Budget 121/233/232. Offline: every Lua module PASS on cloud and developer machine; the kit byte-identical on both (the developer machine from a fresh extraction); the layout check PASS with the client's fonts. Client NOT RUN."
 
 ## Push (the owner's; never pushed by Claude)
