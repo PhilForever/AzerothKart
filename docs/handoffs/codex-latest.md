@@ -1,5 +1,13 @@
 # Codex handoff — production maps and Claude course review
 
+## Installed reviewed menus — 2026-10-29 07:56 +0100
+
+Runtime **c8a3eed** installed and101 source/installed files verified;100
+prior files backed up. Friend ZIP `../AzerothKart-Menus-c8a3eed.zip` verified.
+Claude6098e73 is integrated, its worktree unchanged. Full client restart
+required; native menu/tooltips/loading check pending.
+[Evidence](../PROGRESS.md), [review](../reviews/2026-10-29-menu-launch.md).
+
 ## Reviewed launch menus — 2026-10-29
 
 `codex/menu-launch-review` integrates Claude6098e73, pooled browsers/portraits,

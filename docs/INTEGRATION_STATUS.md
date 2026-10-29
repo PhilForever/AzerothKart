@@ -1,5 +1,12 @@
 # Shared integration and deployment status
 
+## Installed reviewed menus — 2026-10-29
+
+Runtime **c8a3eed** installed;101 source/installed and100 backup files
+independently verified. Friend ZIP `../AzerothKart-Menus-c8a3eed.zip` matches.
+Fully restart for new UI atlases. Native appearance/tooltips/loading NOT RUN.
+[Receipt](PROGRESS.md), [review](reviews/2026-10-29-menu-launch.md).
+
 ## Reviewed launch menu candidate — 2026-10-29
 
 Claude6098e73 plus Codex copy/overflow regressions approved. Focused Lua51,

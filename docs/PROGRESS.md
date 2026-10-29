@@ -1,5 +1,23 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-29 07:56 +0100 — Reviewed menus installed and ZIP verified
+
+Runtime **c8a3eed** on `codex/menu-launch-review` integrates Claude6098e73
+with the copy fix and overflow regressions. Fresh prior-source hashes and
+inventory matched. The approved installer copied101 tested source files,
+backed up100 prior files and preserved the legacy extra. Independent
+`local-artifacts/deploy-20261029-menu-launch/audit_and_package.py --runtime
+c8a3eed` verified every source/installed/backup hash and101 ZIP entries/CRC:
+PASS. No SavedVariables, other addon or Claude worktree changed.
+
+ZIP: `../AzerothKart-Menus-c8a3eed.zip`,127,368,106 bytes; SHA256
+`2E5793025ACC952429BB1479037E74B0646A704CD70FF26E97FC6F8C8DEE808A`.
+Manifest/backup/receipt under `local-artifacts/deploy-20261029-menu-launch/`.
+Full client restart required for the two new atlases. Native menu appearance,
+tooltips and loading remain NOT RUN. Next: owner opens Single Player’s
+Battlegrounds tab, kart portraits and Highscores to verify the actual layout.
+No push, release or main merge.
+
 ## 2026-10-29 07:54 +0100 — Claude launch menus reviewed
 
 Own `codex/menu-launch-review` integrates reviewed Claude `6098e73` from
