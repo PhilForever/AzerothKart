@@ -1,5 +1,14 @@
 # Codex handoff — production maps and Claude course review
 
+## Active menu review and conditional install — 2026-10-29
+
+Owner requests review/install of Claude’s latest work. Review `6098e73` on
+`codex/menu-launch-review` from cleanfcd1273. Reserve integration regressions,
+menu fixes if needed and shared evidence/status docs; preserve Claude’s
+checkout, installed runtime858913b and player data. Focus on pooled callback
+identity, paging, highscore contexts, multiplayer transitions and layout.
+Native appearance remains pending; no push or release inferred.
+
 ## Installed Alterac Valley — 2026-10-29 00:41 +0100
 
 Runtime **858913b** installed: reviewed Claude `ee4ac0c`, Physics15 ice,
