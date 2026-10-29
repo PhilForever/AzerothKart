@@ -1,4 +1,78 @@
-# Claude handoff — Menus for launch (proposal)
+# Claude handoff — Gates in the world (proposal)
+
+Prepared 2026-10-29 at about 10:30 CET by Claude (rendering/UI/sprites owner).
+
+**Base:** `claude/menu-launch` `e54c37f` (the menus for launch, on Codex's installed `codex/alterac-integration` `fcd1273`). **Branch:** `claude/immersive-gates`, no merge commit:
+
+- `3574216`: the gates' kit, `Assets/UI/GateKit.tga`, and `scripts/build_gate_kit.py`;
+- `7e772e6`: `Presentation.lua`, `UI.lua` and `Menu.lua` (the gates and the toast) with their tests;
+- `a04650e`: the docs (the [gates' sheet](../art/ui/gates.md) and its picture, the kit's provenance, the contract proposal, the test plan, the front end's status line, the validator's file list);
+- this handoff, with the sheet's rebuild commands and run results.
+
+It contains `claude/menu-launch` (its budget and tests build on the menus), so it is reviewed after it. **Nothing is installed or pushed.** The developer machine's Claude worktree is on `claude/immersive-gates` at `a04650e` (from `local-artifacts/bundles/immersive-gates-1.bundle`; `claude/menu-launch` is unchanged at `e54c37f`), clean apart from its untracked `Claude outputs/`; this handoff follows as `immersive-gates-2.bundle`.
+
+## Owner instructions
+
+**"Propose some ways to make the gates more immersive than the current.. lines"**: four mockups over real race frames went to him in chat: (A) Warcraft III banners at a gate's ends with the next gate's light pools; (B) chevrons and a checkered start/finish band with goblin arrow posts; (C) a ribbon of light with runes; (D) passing feedback: a flash, a chime and a toast with the split. His answer: **"I like this, but make the banners, posts etc just a bit more outside the track, just pence fence, and make the lines more subtle, dont want players to think they need to avoid them heh"**.
+
+Taken without asking, **to be confirmed by him:**
+
+1. "Just pence fence" is read as **just past the fence**: a post stands 12 units (under half a kart length) past the wall its gate's end meets; on a gate's south end it also moves out by its height's lean (the camera leans heights north), so its top clears the road as well.
+2. **Built:** a post at each end of every gate, chosen by course (A and B's posts); the next gate's light pools (A); the checkered lap line (B); the pass flash, ping and toast with the split (D); the line itself a faint, soft stroke. **Not built:** B's chevrons and C's rune ribbon: he asked for subtler lines, so nothing more is drawn across the road.
+3. **Each course's post and light** (`Presentation.GATE_STYLES`): the Alliance's banner for Stormwind, Ironforge and Darnassus; the Horde's for Orgrimmar, Thunder Bluff and Undercity; the Scarlet Crusade's standing banners for the four sprints; the goblin racing arrow post for Mirage Raceway; braziers for Warsong Gulch and Arathi Basin; Icecrown ice torches for Alterac Valley, in violet (a pale light vanishes on the snow). Test Oval (developer fixture) keeps plain faint lines.
+4. **The split** is against the last lap at the same gate; on a sprint, the last finished run on that track this session (kept in memory only). The race's finish leaves the time to the results screen.
+5. **The sound** is the map's ping (`SOUNDKIT.MAP_PING`, 3175 in the pinned interface source); one play per gate.
+
+## Done
+
+- **The line stays exact and goes quiet:** each gate keeps its strip from wall to wall (`Track.gates` untouched); it is drawn with a soft cell (a bright middle fading to nothing across its five units). The next gate's line has its course's light at 0.6 and pulses with the existing glow; later gates are white at 0.16; a passed gate flashes at 0.95 and fades out in half a second.
+- **Posts:** six Warcraft III standing models rendered by the scenery's own renderer (`wc3render`: the karts' camera, the lean, the shadow, a texel a world unit) into `GateKit.tga` (512 × 512, 1 MiB), cropped and placed like the scenery as the camera moves, cut at the canvas' edges.
+- **Pools** under the next gate's two posts (additive blend when the client offers `SetBlendMode`, guarded); **the lap line's** checkered band, ten units across at half opacity.
+- **The toast** at the top of the track for 1.6 seconds: the gate's name, the run's time there and the split in green (faster) or red (slower); the lap's last gate shows the lap's time.
+- **A refused kit** leaves plain faint lines with no posts, pools or band, and is not retried.
+- **Reviewed:** every gate of every course (75) in the preview with the kart just short of it.
+- **Budget:** 121/213/230 on `claude/menu-launch` → **121 frames, 233 textures, 232 font strings** (the band, two pools, sixteen posts; the toast's plate and two labels), all created with the window; switching courses allocates nothing.
+
+## Scope (changed)
+
+- Claude's: `addon/AzerothKart/Presentation.lua` (the gate block, pure); `addon/AzerothKart/Menu.lua` (the race overlay's toast, `Menu.splitText`, `Menu.GATE_TOAST`, `Menu.sprintSplits`, `Menu.SOUNDS.gate`); `tests/test_presentation.lua`, `tests/test_menu.lua`; `scripts/build_gate_kit.py`; `addon/AzerothKart/Assets/UI/GateKit.tga`; `docs/art/ui/gates.md`, `gates.png`, the front end's status line.
+- **`UI.lua`, Claude's visual functions (reserved on this branch):** `drawTrack` (creates `UI.gateBand`, `UI.gatePools`, `UI.gatePosts`, `UI.gateFlashes`); new locals `layoutGates`, `loadGateKit`, `placeGatePieces`, `placeCrop`, `refreshGateLooks`, `animateGates`, `setGateLook`, `gateLook`; `layoutTrack` (calls `layoutGates`), `placeTrackMarkers` (places the pieces), the visual body of `render` (`animateGates` after `placeGuide`).
+- **Shared, flagged for review:** `refreshCheckpoints` in `UI.lua` (its gate colours become the looks, and it records each pass's tick in `UI.gateFlashes`; it still only reads `UI.checkpoints`, `UI.laps` and `UI.active`); `tests/test_ui.lua` (budget constants, `GATE_KIT_PIECES`, the texture-load counts, the lap fixture's colour helper made flash-aware, the new gate tests); `scripts/validate_project.py`; entries in `docs/API_CONTRACTS.md`, `docs/TEST_PLAN.md`, `docs/art/ASSET_SOURCES.md`.
+
+No change to `Track.gates`, Checkpoints, Laps, Race, Physics, Courses, the protocols, sessions, scores or saved data.
+
+## Tests
+
+| Command | Cloud | Developer machine (Linux VM) |
+|---|---|---|
+| `python scripts/test_lua.py --runtime lua51 --tests <each module>` | 53 of 53 PASS | 53 of 53 PASS (three calls: 2, 49 and 67 s) |
+| `python scripts/test_lua.py --runtime lua54 --tests presentation ui menu` | PASS | not run |
+| `python scripts/preview_ui.py --check` | PASS, 0 faults | PASS, 0 faults with the client's own fonts (6 s) |
+| `python scripts/build_gate_kit.py --wc3 WC3 --check` | PASS (`3ab00ea7…04e9`) | PASS, the same bytes, from a fresh extraction of exactly the six models and their textures with the [sheet's command](../art/ui/gates.md#rebuilding-the-kit) (2 s, then 9 s) |
+| `python scripts/build_kart_icons.py --check`; `build_track_thumbs.py --check` | PASS | not run (unchanged since `claude/menu-launch`, PASS there) |
+| `git diff --check`; `python scripts/validate_project.py` | PASS; the same 2 pre-existing FAILs (`docs/PROGRESS.md`'s links to `C:/Users/bakke/.codex/...`) | `git diff --check e54c37f HEAD` PASS |
+
+**NOT RUN in the client:** the look of the lines, posts, pools and band; `SetBlendMode("ADD")` on the pools; the kit's loading and memory; the ping; the toast. Steps in [the client check](../art/ui/gates.md#client-check-not-run).
+
+## For Codex
+
+1. Review the [contract proposal](../API_CONTRACTS.md#proposed-gates-in-the-world-claude-claudeimmersive-gates-2026-10-29-for-codex) after `claude/menu-launch`'s: presentation only, but `refreshCheckpoints`' gate colours, `test_ui`'s budget (121/233/232), its texture-load counts (the kit loads once onto every piece and strip: 27 calls) and the lap fixture's colour helper change. `UI.glowGate` keeps its guided meaning; the unguided pulse is `UI.nextGate`.
+2. **Pending ledger entry for `docs/PROGRESS.md`** (not written here): "2026-10-29 Claude `claude/immersive-gates` (`3574216`, `7e772e6`, `a04650e`, on `claude/menu-launch`): gates in the world after the owner asked for more than lines, with posts just past the fence and subtler lines. Each gate's line stays exact (Track.gates unchanged) as a faint soft stroke: the next gate in its course's light, pulsing; later gates faint; a passed gate flashes out. A Warcraft III post per course 12 units past each gate end (`GateKit.tga`, six models rendered with the scenery's renderer), the next gate's light pools, a checkered lap line; a toast with the gate's name, time and split, and the map's ping. Budget 121/233/232. Offline: every Lua module PASS on cloud and developer machine; the kit byte-identical on both (the developer machine from a fresh extraction); the layout check PASS with the client's fonts. Client NOT RUN."
+
+## Push (the owner's; never pushed by Claude)
+
+From the main checkout on the developer machine:
+
+```
+git push -u origin claude/menu-launch
+git push -u origin claude/immersive-gates
+```
+
+## Next
+
+The owner looks at the gates in chat (rendered with the client's fonts) and in the client; numbers to tune are in `Presentation`: `GATE_POST_OUTSET` (how far past the fence), `GATE_LINE` (the lines' opacity), `GATE_FLASH`, each course's light in `GATE_STYLES`, and each post's scale in `build_gate_kit.py`. The menus' launch set still waits on his choice; the minimap icon is parked.
+
+# Previous: Menus for launch (proposal)
 
 Prepared 2026-10-29 at about 01:50 CET by Claude (rendering/UI/sprites owner).
 

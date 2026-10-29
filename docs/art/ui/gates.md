@@ -68,6 +68,18 @@ past the fences, over canal walls, at the lava's rim, in doorways and on Dun Bal
 
 Nothing changes where a gate is, what counts as passing it, the race, physics, sessions or scores.
 
+## Rebuilding the kit
+
+From the owner's Warcraft III: Reforged install (read only), into an empty folder `WC3`:
+
+```
+python scripts/wc3casc.py "INSTALL" models '^war3\.w3mod:(doodads/lordaeronsummer/props/(bannerhuman/bannerhuman0|bannerorc/bannerorc0|brazier/brazier)|doodads/icecrown/props/icetorch/icetorch|_de\.w3mod:doodads/(cityscape/props/scarletcrusadestandingbanners/scarletcrusadestandingbanners0|lordaeronsummer/props/goblinracingarrowpost/goblinracingarrowpost0))\.mdx$' WC3
+python scripts/build_gate_kit.py --wc3 WC3 --check
+```
+
+The first extracts exactly the six models and the textures they name (a few seconds); the second
+renders the posts and compares the picture's bytes and `Presentation.GATE_KIT` (about ten seconds).
+
 ## Budget
 
 The window's pool grows by **19 textures** (the band, two pools, sixteen posts) and the race overlay by
@@ -88,6 +100,11 @@ next gate's pulse and the pools' alpha and any flash are written when they chang
   fixture's line colours follow the new looks (flash-aware).
 - `test_menu`: `Menu.splitText`; the first gate's toast and ping; the toast's going; a lap's last gate
   with the lap's time; faster in green, slower in red; no objects created.
+
+Run on 2026-10-29, in the cloud and on the developer machine: every Lua module (53) PASS under Lua 5.1
+on both; `presentation`, `ui` and `menu` under Lua 5.4 PASS (cloud); `preview_ui.py --check` 0 faults
+(on the developer machine with the client's own fonts); the kit's `--check` PASS on both, the
+developer machine's from a fresh extraction with the commands above (`3ab00ea7…04e9`).
 
 ## Client check (NOT RUN)
 
