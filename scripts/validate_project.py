@@ -97,6 +97,7 @@ REQUIRED=[
  'addon/AzerothKart/Assets/UI/Celebration.tga','scripts/build_celebration_art.py','docs/art/ui/celebration.png',
  'addon/AzerothKart/Assets/UI/KartIcons.tga','scripts/build_kart_icons.py','addon/AzerothKart/Assets/UI/TrackThumbs.tga',
  'scripts/build_track_thumbs.py','docs/art/ui/menu-launch.md','docs/art/ui/menu-launch-menus.png','docs/art/ui/menu-launch-race-help.png',
+ 'addon/AzerothKart/Assets/UI/GateKit.tga','scripts/build_gate_kit.py','docs/art/ui/gates.md','docs/art/ui/gates.png',
  'docs/art/ui/race-screens-review.png',
  'addon/AzerothKart/Assets/Karts/SteamTank.tga','addon/AzerothKart/Assets/Karts/DwarvenBiker.tga',
  'addon/AzerothKart/Assets/Karts/GryphonRider.tga','addon/AzerothKart/Assets/Karts/Gyrocopter.tga',

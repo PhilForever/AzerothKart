@@ -4,6 +4,8 @@
 
 **Launch refresh (2026-10-29, proposed on `claude/menu-launch`, NOT RUN):** the track screen's list ran past its dialog at fourteen courses. Cup tabs and pooled, paged track lists with thumbnails (the track screen and Highscores), a pooled portrait grid for the karts, the lap and gate lines under the track only with developer info, rewritten How to Play and a Credits page, and a layout check (`preview_ui.py --check`) that walks every screen. The rows below describe it; the audit, the before/after pictures and the open proposals are in [menu-launch](menu-launch.md).
 
+**Gates (2026-10-29, proposed on `claude/immersive-gates`, NOT RUN):** each gate's line is a faint, soft stroke in its course's light (the next one pulsing, a passed one flashing out), with a Warcraft III banner, sign, brazier or torch just past the fence at each end and a checkered lap line; passing a gate shows a toast with the split and pings. See [the gates' sheet](gates.md).
+
 The owner asked for "the ready to ship UI": clear Single Player and Multiplayer choices, and selecting maps and karts. He chose:
 
 - the client's own **Classic WoW dialogs** style;

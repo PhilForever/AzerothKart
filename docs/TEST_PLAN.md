@@ -214,6 +214,14 @@ On `claude/menu-launch` (the menus for launch; focused: `python scripts/test_lua
 
 The menus in the client are NOT RUN; see [the launch refresh's client check](art/ui/menu-launch.md#client-check-not-run).
 
+On `claude/immersive-gates` (gates in the world; focused: `python scripts/test_lua.py --runtime lua51 --tests presentation ui menu`, then the full Lua 5.1 suite; art bytes and Presentation's table: `python scripts/build_gate_kit.py --wc3 WC3 --check`; layout: `python scripts/preview_ui.py --check`):
+
+- `tests/test_presentation.lua`: the kit's cells in the atlas, every production course styled; the posts 12 past each end, the south one by its lean too; the crops whole and cut; the checks' squares; the line's opacity by state.
+- `tests/test_ui.lua`: the kit loads once onto every piece; each line's cell and look by state; each post where its crop says; the pools at the next gate; the lap line's band; a pass flashes and is gone in half a second; no objects created switching courses; a refused kit gives plain lines and nothing else, never retried. The budget becomes 121/233/232.
+- `tests/test_menu.lua`: the toast's split text, its showing and going, the ping, a lap's time at its last gate, faster green and slower red.
+
+The gates in the client are NOT RUN; see [the gates' client check](art/ui/gates.md#client-check-not-run).
+
 ## Current front-end slice (proposed, `claude/ui-flow`)
 
 Focused command: `python scripts/test_lua.py --runtime lua51 --tests menu ui presentation`; art bytes: `python scripts/build_ui_art.py --check`. `tests/test_menu.lua` runs the addon against a widget mock that passes Show/Hide on to child frames, like the client. It covers the main menu and one dialog at a time; browsing without changing the run, track or kart; the Single Player flow, including a refused start; every results path, the track view and the lap list; the garage turntable; settings (sizes that do not fit, effects off, sound mute); saved preferences, failed restores and unknown or newer records; the coming-soon lobby and a mapped PeerSession view; Alt+Z versus a real close; the combat track restore; the build fallback; and missing templates. `tests/test_ui.lua` keeps Codex's assertions; only its counts, module list, results-panel size and a Lua 5.4 `unpack` call changed. Explicit counts become 65 frames/160 textures/79 font strings (11/151/13 without the front end). The menus' client appearance and sounds are NOT RUN; see [the front-end client check](art/ui/front-end.md#client-check-not-run).
