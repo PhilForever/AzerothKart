@@ -2,6 +2,8 @@
 
 **Status (2026-10-22):** reviewed Claude UI `1b2d3d5` is integrated with Codex backend `192c6de` by merge `6cd611a` on `codex/ui-backend-integration`. Claude's isolated preference fix `4ffe184` is retained as `9b22f12`; city merge f9f2af0 now includes reviewed Stormwind from78d97a1, followed by the protected background-load transaction. The implemented interfaces are in [API_CONTRACTS](../../API_CONTRACTS.md#implemented-front-end-menus-race-hud-and-results). Its appearance and behaviour in WoW Forever are **NOT RUN**; see [the client check](#client-check-not-run).
 
+**Launch refresh (2026-10-29, proposed on `claude/menu-launch`, NOT RUN):** the track screen's list ran past its dialog at fourteen courses. Cup tabs and pooled, paged track lists with thumbnails (the track screen and Highscores), a pooled portrait grid for the karts, the lap and gate lines under the track only with developer info, rewritten How to Play and a Credits page, and a layout check (`preview_ui.py --check`) that walks every screen. The rows below describe it; the audit, the before/after pictures and the open proposals are in [menu-launch](menu-launch.md).
+
 The owner asked for "the ready to ship UI": clear Single Player and Multiplayer choices, and selecting maps and karts. He chose:
 
 - the client's own **Classic WoW dialogs** style;
@@ -32,17 +34,18 @@ open window ─► Main menu ─► Single Player ─► Choose a Track ─► C
 | Screen | Offers |
 |---|---|
 | Main menu | The "Azeroth Kart" title, then **Single Player**, **Multiplayer (soon)**, **Garage**, **How to Play** and **Settings**, with the current track and kart named underneath |
-| Choose a Track | Mirage Raceway and Test Oval, each with a preview picture, a short description and its facts (3 laps, 4 gates, direction, off-road). Choosing one applies it at once; **Next: Choose Kart** continues |
-| Choose Your Kart | A turntable that spins the chosen kart's own 64-heading sheet (the Gryphon Rider beating its wings, then gliding), arrows and a grid of all ten karts (five rows of two), the kart's description and model credit, its handling profile's name and four gold-framed **stat bars**, Speed, Acceleration, Turning and Braking, filled from the profile's actual values ([below](#new-art-kart-stat-bars); `claude/kart-stat-bars`). **Race!** starts the countdown |
+| Choose a Track | Cup tabs (Proving Grounds, Capital Cities, Scarlet Crusade, Battlegrounds) over the shown cup's tracks, nine rows a page with a thumbnail, the name and "3 laps \| 6 gates" (or "Sprint \| 8 gates"); coming-soon courses greyed. Beside them the chosen track's preview, name, summary with the player's best, a blurb of up to three lines and three one-line facts. Choosing one applies it at once; **Next: Choose Kart** continues ([launch refresh](menu-launch.md)) |
+| Choose Your Kart | A turntable that spins the chosen kart's own 64-heading sheet (the Gryphon Rider beating its wings, then gliding), arrows and a grid of portrait tiles (five a row, fifteen a page; the name in a tooltip; [launch refresh](menu-launch.md)), the kart's description and model credit, its handling profile's name and four gold-framed **stat bars**, Speed, Acceleration, Turning and Braking, filled from the profile's actual values ([below](#new-art-kart-stat-bars); `claude/kart-stat-bars`). **Race!** starts the countdown |
 | Garage | The same kart choice from the main menu, with **Done** instead of Race! |
 | Multiplayer | **COMING SOON**. Disabled **Host a Race** and **Join a Race**, a disabled lobby preview (you, an open slot, track, Ready/Start/Leave), and how to help with today's connection test (`/akart net help`) |
-| How to Play | The controls and the racing rules, plus the model credits |
+| How to Play | The controls and the racing rules; **Credits** opens a page with every kart's model credit, the tracks' art and the Blizzard notice |
+| Highscores | The same cup tabs and track list as the track screen beside the chosen board: its rule line, ten rows (the player's in gold), the scope and pages |
 | Settings | Window size (80–125%; sizes that would not fit the screen are disabled), drift and boost effects, **Outline my kart** (a bright yellow line round your own kart; [outlines](../karts/outlines.md), since 2026-10-23), sound effects, developer info (the timing line and Print Probe), and reset window position. The window can be dragged by its title bar |
 | Race | Big **LAP x/3** and the next gate at top left. The clock in tenths and the best lap at top right. "Controls active - Esc to release" at the bottom. A large gold 3-2-1-GO. **Stop** sits away from where Start was, so a double click cannot start and stop. In a two-player race, the place ("1st"/"2nd", "of 2") at bottom right and the friend's name over their kart ([race screens](#race-screens-and-score-celebrations), `claude/race-screens`) |
 | Results | A dark dialog with the result title, track and kart, total/last/best times and every lap time, the fastest in green. **Restart**, **Highscores** (the run's board at the player's page) and **Close results**, then **Change Kart**, **Change Track** and **Main Menu**. A top-ten best on the shared board, or a two-player place, adds a banner, a medal or wreath on a sunburst and confetti; a two-player race lists both racers ([race screens](#race-screens-and-score-celebrations)) |
 | Track view (after Close results) | The frozen run and its HUD, with **Start Race**, **Track**, **Kart** and **Main Menu** on the bar |
 
-The UI's own HUD lines keep their rows and text: laps, checkpoints, status, drift feedback and the meter. They gain colours: white detail, gold status. The timing line shows only with developer info.
+The UI's own HUD lines keep their rows and text: laps, checkpoints, status, drift feedback and the meter. They gain colours: white detail, gold status. The timing line shows only with developer info; since the launch refresh, so do the lap and gate lines (they repeat the race HUD), except the gate line on a staged two-player grid.
 
 ## Look: the client's own dialogs
 
