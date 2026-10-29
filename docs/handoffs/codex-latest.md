@@ -1,5 +1,14 @@
 # Codex handoff — production maps and Claude course review
 
+## Active ice drift and gate integration — 2026-10-29
+
+Owner requests review of Claude’s newest gates, drift/boost over the whole
+Alterac ice, install and push. Review ef0bb58 on own codex/ice-drift-gates
+from cleandf73e81; reserve Physics/test_ice, compatibility contexts/tests and
+UI/Menu ice copy plus shared handoff/evidence docs. New ice Physics16 keeps
+older scores separate; retain all prior work. Publish reviewed feature
+branches only, no main merge, forced push or release. Native checks pending.
+
 ## Installed reviewed menus — 2026-10-29 07:56 +0100
 
 Runtime **c8a3eed** installed and101 source/installed files verified;100
