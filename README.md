@@ -1,5 +1,10 @@
 # Azeroth Kart — top-down arcade racing inside WoW Forever
 
+**Updated menus:** track and Highscores browsers use cup tabs and paged
+lists; the garage uses kart portraits. Credits and updated driving rules
+are included. Full client restart required for the two new UI atlases.
+Native layout remains to be checked in game.
+
 **Alterac Valley:** a long one-run sprint from Frostwolf to Dun Baldar,
 available solo and in the existing two-player lobby. The Field of Strife’s
 ice reduces steering, acceleration, braking and traction; normal grip returns

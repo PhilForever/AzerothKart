@@ -1,5 +1,31 @@
 # PROGRESS — persistent project handoff
 
+## 2026-10-29 07:54 +0100 — Claude launch menus reviewed
+
+Own `codex/menu-launch-review` integrates reviewed Claude `6098e73` from
+cleanfcd1273. Track/highscore cup tabs and9-row page pools fix the14th-track
+overflow;15 kart portrait tiles per page, Credits/current rules and quiet
+race diagnostics are included. Simulation, UI.lua, transport, maps, scores
+and saved schema are unchanged. Corrected Help’s Arathi boost exception and
+added actual Next/Previous overflow tests with17 track rows and16 karts.
+Pooled click identities, inactive rows, saved choices and board/drive isolation
+pass. Current pool121/213/230; bounded5cups/32kart/64track atlas capacities.
+[Review](reviews/2026-10-29-menu-launch.md), [contract](API_CONTRACTS.md).
+
+Executed by review agents: `scripts/test_lua.py --runtime lua51 --tests menu
+ui multiplayer_integration session_transport`: PASS,93 Lua files parsed;
+`--tests menu` PASS after added regressions. Both atlas scripts `--check`:
+PASS exact bytes. Final `scripts/preview_ui.py --check --client-fonts
+<Claude/local-artifacts/fonts/fonts>`: PASS0 faults using bundled Python3.12
+and PYTHONPATH `C:/Users/bakke/Downloads/Forever_Addons/tools/vendor`; it wrote
+no tracked previews. Initial Python3.14 layout attempt lacked Pillow; the
+working bundled runtime was used without changing dependencies. `git diff
+--check`: PASS. Project validator retains only the two historical expired
+computer-use links. Native appearance/tooltips/asset loading NOT RUN.
+Installed99 source hashes plus preserved extra match prior receipt; install
+preview PASS. Next: commit and verified install, then owner opens the menus.
+No push, release, main merge or modification of Claude’s worktree.
+
 ## 2026-10-29 00:41 +0100 — Alterac installed and friend ZIP verified
 
 Runtime **858913b** on `codex/alterac-integration` merges reviewed Claude

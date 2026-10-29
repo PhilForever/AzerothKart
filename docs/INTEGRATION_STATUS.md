@@ -1,5 +1,12 @@
 # Shared integration and deployment status
 
+## Reviewed launch menu candidate — 2026-10-29
+
+Claude6098e73 plus Codex copy/overflow regressions approved. Focused Lua51,
+atlas rebuilds and final font-aware layout check pass. Native menu appearance,
+tooltips and loading NOT RUN. [Review](reviews/2026-10-29-menu-launch.md),
+[evidence](PROGRESS.md). Verified install follows.
+
 ## Installed Alterac Valley — 2026-10-29
 
 Runtime **858913b** is installed with99 source files independently verified

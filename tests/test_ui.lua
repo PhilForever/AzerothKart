@@ -330,10 +330,14 @@ end
 -- exhaust flames of two layers each, created and loaded once with the window.
 local EFFECT_TEXTURES=20+14+2*2
 -- The front end (Menu.lua) creates its header, menu screens, race overlay and
--- results buttons once with the window; it replaced the old title line. The
--- track list holds six finished courses and one coming-soon city under two
--- cup headings; the injected geometry fixture has no player menu button.
-local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=74,31,133 -- ten pooled score rows and bounded navigation/result notice
+-- results buttons once with the window; it replaced the old title line. Its
+-- two track lists (the track screen's and the highscores') and the kart
+-- screen's portrait grid are pooled: the same widgets for any catalogue, so a
+-- track, cup or kart added later adds none. Each list: four cup tabs, a card,
+-- two page buttons, nine rows (a button, three textures, three labels) and a
+-- page label; fifteen portrait tiles (a button, four textures, a label). The
+-- highscores board is a card; Credits a dialog with eight labels and Back.
+local MENU_FRAMES,MENU_TEXTURES,MENU_FONTS=109,145,214 -- ten pooled score rows and bounded navigation/result notice
 -- (the kart screen's four handling bars: two textures and a label each; the
 -- race screens: the HUD's place, and the results' Highscores button,
 -- celebration art, confetti, banner and the two racers' rows)
@@ -354,12 +358,9 @@ local UI_TEXTURES=112+GATE_STRIPS+EFFECT_TEXTURES+MENU_TEXTURES+ROOF_PIECES+TILE
 -- The Close results and Kart buttons add two Frames to the earlier nine; the
 -- Settings check "Outline my kart" adds a button and its two lines of text.
 local OUTLINE_CHECK_FRAMES,OUTLINE_CHECK_FONTS=1,2
--- The Scarlet Crusade Cup adds its heading and four track buttons (Scarlet
--- Graveyard and three coming-soon dungeons) to the track list.
-local SCARLET_CUP_FRAMES,SCARLET_CUP_FONTS=4,1
--- The Battlegrounds Cup adds its heading, Warsong Gulch's and Arathi Basin's
--- buttons and Alterac Valley's coming-soon one.
-local BATTLEGROUNDS_CUP_FRAMES,BATTLEGROUNDS_CUP_FONTS=3,1
+-- Cups add no widgets: the pooled track lists show any cup's tracks.
+local SCARLET_CUP_FRAMES,SCARLET_CUP_FONTS=0,0
+local BATTLEGROUNDS_CUP_FRAMES,BATTLEGROUNDS_CUP_FONTS=0,0
 local UI_FRAMES=11+MENU_FRAMES+OUTLINE_CHECK_FRAMES+SCARLET_CUP_FRAMES+BATTLEGROUNDS_CUP_FRAMES
 -- (UI's own 14 font strings include the friend's name tag.)
 local UI_FONTS=14+MENU_FONTS+OUTLINE_CHECK_FONTS+SCARLET_CUP_FONTS+BATTLEGROUNDS_CUP_FONTS
@@ -3718,8 +3719,13 @@ withMock({schemaVersion=1,preferences={version=1,track="test_oval",futureField="
         preferences.futureField=="keep" and AzerothKartDB.legacyOval==legacy and legacy.keep,
         "loading a retired saved choice leaves persisted preferences and old data untouched")
     assert(not AK.Courses.get("test_oval") and not AK.Courses.available("test_oval") and
-        not UI.SelectTrack("test_oval") and not AK.Menu.view.trackButtons.test_oval,
+        not UI.SelectTrack("test_oval"),
         "retired Oval has no catalogue, selection or menu path")
+    for _,cup in ipairs(AK.Courses.CUPS) do
+        for _,entry in ipairs(AK.Menu.cupRows(cup.id)) do
+            assert((entry.track or entry.soon).id~="test_oval","retired Oval has no row in any cup's list")
+        end
+    end
     for _,track in ipairs(AK.Menu.TRACKS) do assert(track.id~="test_oval") end
     local ids={"mirage_raceway","stormwind_city","ironforge_gp","darnassus_canopy",
         "orgrimmar_canyon","thunder_bluff_skyway","undercity_slime","scarlet_graveyard",
@@ -3761,10 +3767,10 @@ withMock({schemaVersion=1,preferences={version=1,track="test_oval",futureField="
         UI.state.x==UI.track.spawn().x and UI.state.y==UI.track.spawn().y,
         "default Start uses the displayed Mirage spawn and no developer geometry")
     UI.Stop("production catalogue regression")
-    -- (The Battlegrounds Cup's heading and three buttons, Alterac Valley's
-    -- coming soon, the four pooled roofs, the guiding arrow and the three
-    -- pooled tiles are part of the production pool.)
-    assert(UI.objects.frames==93 and UI.objects.textures==99 and UI.objects.fontStrings==151,
+    -- (The menus' pooled track lists and portrait grid, the four pooled roofs,
+    -- the guiding arrow and the three pooled tiles are part of the production
+    -- pool; see test_menu's budget.)
+    assert(UI.objects.frames==121 and UI.objects.textures==213 and UI.objects.fontStrings==230,
         "production pool excludes the 96 Oval bands and two fixture crates")
 end,nil,nil,true)
 
@@ -3793,7 +3799,7 @@ for _,failure in ipairs({"false","nil","throws","camera"}) do
     end,nil,nil,true)
 end
 
-originalPrint("test_ui production catalogue: fourteen multiplayer courses, real Mirage default/scenery, retired-save preservation, layered/sprint Ready and asset-failure Start guard PASS (93/99/151 pool)")
+originalPrint("test_ui production catalogue: fourteen multiplayer courses, real Mirage default/scenery, retired-save preservation, layered/sprint Ready and asset-failure Start guard PASS (121/213/230 pool)")
 
 -- Registered Warsong rendering (version 3). Its two covers, the ground over
 -- each tunnel, crop from Roofs.tga as the camera moves and fade as the

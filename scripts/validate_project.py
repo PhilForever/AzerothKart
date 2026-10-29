@@ -95,6 +95,8 @@ REQUIRED=[
  'docs/art/karts/gryphon-rider-wings-review.png',
  'docs/adr/0022-floors-and-boost-pads.md','docs/art/tracks/warsong-gulch.md','docs/art/tracks/warsong_gulch-route-sketch.png',
  'addon/AzerothKart/Assets/UI/Celebration.tga','scripts/build_celebration_art.py','docs/art/ui/celebration.png',
+ 'addon/AzerothKart/Assets/UI/KartIcons.tga','scripts/build_kart_icons.py','addon/AzerothKart/Assets/UI/TrackThumbs.tga',
+ 'scripts/build_track_thumbs.py','docs/art/ui/menu-launch.md','docs/art/ui/menu-launch-menus.png','docs/art/ui/menu-launch-race-help.png',
  'docs/art/ui/race-screens-review.png',
  'addon/AzerothKart/Assets/Karts/SteamTank.tga','addon/AzerothKart/Assets/Karts/DwarvenBiker.tga',
  'addon/AzerothKart/Assets/Karts/GryphonRider.tga','addon/AzerothKart/Assets/Karts/Gyrocopter.tga',

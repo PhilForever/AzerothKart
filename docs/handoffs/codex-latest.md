@@ -1,5 +1,14 @@
 # Codex handoff — production maps and Claude course review
 
+## Reviewed launch menus — 2026-10-29
+
+`codex/menu-launch-review` integrates Claude6098e73, pooled browsers/portraits,
+Help/Credits and quieter race diagnostics. Added overflow-page identity/state
+regressions and Arathi boost exception. Focused Lua51 and final font-aware
+layout check pass. [Review](../reviews/2026-10-29-menu-launch.md),
+[evidence](../PROGRESS.md). Native appearance/tooltips/loading pending;
+no gameplay/version change. Next: verified install and user menu check.
+
 ## Active menu review and conditional install — 2026-10-29
 
 Owner requests review/install of Claude’s latest work. Review `6098e73` on
