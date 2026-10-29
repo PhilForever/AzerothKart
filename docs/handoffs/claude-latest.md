@@ -69,6 +69,8 @@ git push -u origin claude/menu-launch
 
 The owner picks the launch set from [the sheet](../art/ui/menu-launch.md) and its before/after pictures; Codex reviews and integrates; then the client check. Then whichever of the lobby picker, Race Again, Next Track and the multiplayer steps he wants, and the minimap icon when he is ready.
 
+**Gates (proposed in chat 2026-10-29, nothing built):** the owner asked for gates more immersive than the lines. Mockups over real race frames offered: (A) Warcraft III banner standards at a gate's ends, per faction or cup, painted into the scenery, the next gate's light pools lit; (B) painted chevrons pointing the way and a checkered start/finish band with goblin arrow posts; (C) arcane gates: a ribbon of light with flowing runes and two rune circles, in each cup's colour (frost, holy gold, fel green), only the next gate lit; (D) passing feedback: a flash and burst, a chime and a toast with the gate's name and the split against the last lap. Recommended for launch: C and D on every course plus B's checkered finish; A as a later art pass, cup by cup. Gate positions and rules stay Codex's and unchanged; the current line stays as the fallback and with developer info. Awaiting his choice.
+
 # Previous: Alterac Valley, coming soon
 
 Prepared 2026-10-29 at about 00:10 CET by Claude (rendering/UI/sprites owner).
